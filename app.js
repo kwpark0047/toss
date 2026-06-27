@@ -115,7 +115,10 @@ app.use((req, res, next) => {
                         store_id: req.storeId || null,
                         user_id: req.user?.id || null
                     });
-                } catch (_e) { /* 에러 무시 */ }
+                } catch (_e) {
+                    const logger = require('./utils/logger');
+                    logger.warn(`[Monitoring] 기록 실패: ${req.path}`, { error: _e.message });
+                }
             });
         });
     }
@@ -145,34 +148,43 @@ app.get("/api/health", async (req, res) => {
     });
 });
 
+// 버전/디버그 엔드포인트 (개발 환경에서만 상세 정보 노출)
 app.get('/api/version', (req, res) => {
-    res.json({
+    const info = {
         version: '1.0.8-final-complete-v3',
-        deployedAt: new Date().toISOString(),
-        message: 'Direct DB Connection Verification Active',
         environment: process.env.NODE_ENV || 'production'
-    });
+    };
+    if (process.env.NODE_ENV !== 'production') {
+        info.deployedAt = new Date().toISOString();
+        info.message = 'Direct DB Connection Verification Active';
+    }
+    res.json(info);
 });
 
-app.get('/api/debug/system', (req, res) => {
-    res.json({
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        platform: process.platform,
-        nodeVersion: process.version,
-        timestamp: new Date().toISOString(),
-        version: '1.0.8-final-mega'
+if (process.env.NODE_ENV !== 'production') {
+    app.get('/api/debug/system', (req, res) => {
+        res.json({
+            uptime: process.uptime(),
+            memory: process.memoryUsage(),
+            platform: process.platform,
+            nodeVersion: process.version,
+            timestamp: new Date().toISOString(),
+            version: '1.0.8-final-mega'
+        });
     });
-});
+}
 
-app.get("/api/config/firebase", (req, res) => {
-    res.json({
-        apiKey: process.env.FIREBASE_API_KEY,
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-        appId: process.env.FIREBASE_APP_ID
+// Firebase 설정은 프론트엔드 VITE env 변수로 직접 주입 (개발 환경에서만 API 확인용)
+if (process.env.NODE_ENV !== 'production') {
+    app.get("/api/config/firebase", (req, res) => {
+        res.json({
+            apiKey: process.env.FIREBASE_API_KEY,
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.FIREBASE_APP_ID
+        });
     });
-});
+}
 
 // [보안/동적] Firebase Messaging Service Worker를 환경변수 기반으로 동적 생성하여 제공
 app.get("/firebase-messaging-sw.js", (req, res) => {
@@ -229,14 +241,17 @@ const routes = {
     inventory: require('./routes/inventory')
 };
 
-// [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅)
-app.use('/api', (req, res, next) => {
-    console.log(`[API Trace] ${req.method} ${req.originalUrl}`);
-    if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
-        console.log(`[API Body]`, JSON.stringify(req.body, null, 2));
-    }
-    next();
-});
+// [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
+if (process.env.NODE_ENV !== 'production') {
+    app.use('/api', (req, res, next) => {
+        const logger = require('./utils/logger');
+        logger.debug(`[API Trace] ${req.method} ${req.originalUrl}`);
+        if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
+            logger.debug(`[API Body]`, JSON.stringify(req.body, null, 2));
+        }
+        next();
+    });
+}
 
 // [API 라우트 명시적 그룹화 등록]
 const API_PREFIX = '/api';
