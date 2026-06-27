@@ -187,6 +187,9 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 if (process.env.NODE_ENV !== 'production') {
+    app.get('/api/debug/list', (req, res) => {
+        res.json({ ok: true, env: process.env.NODE_ENV });
+    });
     app.get('/api/debug/routes', (req, res) => {
         const list = [];
         const router = app.router || app._router;
