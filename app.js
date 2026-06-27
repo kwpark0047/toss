@@ -287,6 +287,10 @@ if (process.env.NODE_ENV !== 'production') {
 // [API 라우트 명시적 그룹화 등록]
 const API_PREFIX = '/api';
 
+app.use('/api/auth', (req, res, next) => {
+    console.log(`[DIAG AUTH] ${req.method} ${req.originalUrl} path=${req.path} baseUrl=${req.baseUrl}`);
+    next();
+});
 app.use(`${API_PREFIX}/auth`, routes.auth);
 app.use(`${API_PREFIX}/stores`, routes.stores);
 app.use(`${API_PREFIX}/products`, routes.products);
