@@ -1,0 +1,719 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model categories {
+  id         Int        @id @default(autoincrement())
+  store_id   Int
+  name       String
+  sort_order Int?       @default(0)
+  created_at DateTime?  @default(now())
+  stores     stores     @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products   products[]
+}
+
+model comments {
+  id          Int       @id @default(autoincrement())
+  post_id     Int
+  parent_id   Int?
+  content     String
+  author_id   Int
+  author_name String
+  created_at  DateTime? @default(now())
+  users       users     @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  posts       posts     @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([parent_id], map: "idx_comments_parent")
+  @@index([post_id], map: "idx_comments_post")
+}
+
+model ledger {
+  id          Int       @id @default(autoincrement())
+  store_id    Int
+  order_id    Int?
+  payment_id  Int?
+  type        String
+  category    String
+  amount      Int
+  method      String?
+  description String?
+  created_at  DateTime? @default(now())
+  payments    payments? @relation(fields: [payment_id], references: [id], onUpdate: NoAction)
+  orders      orders?   @relation(fields: [order_id], references: [id], onUpdate: NoAction)
+  stores      stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([store_id], map: "idx_ledger_store")
+}
+
+model metrics {
+  id            Int       @id @default(autoincrement())
+  endpoint      String?
+  method        String?
+  response_time Int?
+  status_code   Int?
+  store_id      Int?
+  user_id       Int?
+  timestamp     DateTime? @default(now())
+}
+
+model order_items {
+  id           Int       @id @default(autoincrement())
+  order_id     Int
+  product_id   Int?
+  product_name String
+  price        Int
+  quantity     Int
+  subtotal     Int
+  options      String?
+  user_phone   String?   // [추가] 해당 품목을 주문한 사람의 전화번호 (분할 결제 정산용)
+  created_at   DateTime? @default(now())
+  products     products? @relation(fields: [product_id], references: [id], onUpdate: NoAction)
+  orders       orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model orders {
+  id                 Int                  @id @default(autoincrement())
+  store_id           Int
+  table_id           Int?
+  order_number       String               @unique
+  customer_name      String?
+  customer_phone     String?
+  notes              String?
+  status             String?              @default("pending")
+  method             String?
+  payment_status     String?              @default("pending")
+  total_amount       Int?                 @default(0)
+  queue_number       Int?
+  estimated_minutes  Int?
+  created_at         DateTime?            @default(now())
+  toss_user_key      String?
+  updated_at         DateTime?
+  completed_at       DateTime?
+  is_takeout         Int?                 @default(0)
+  order_type         String?              @default("dine_in")  // dine_in | takeout | delivery
+  delivery_address   String?
+  preparing_at       DateTime?
+  ready_at           DateTime?
+  split_type         String?              @default("NONE")     // [추가] 분할 방식 (NONE, EQUAL: N분의 1, ITEM: 품목별)
+  is_split_payment   Boolean?             @default(false)    // [추가] 분할 결제 여부
+  split_status       String?              @default("PENDING")  // [추가] 정산 상태 (PENDING, PARTIAL, COMPLETED)
+  handled_by_staff_id Int?
+  staff              staff?               @relation(fields: [handled_by_staff_id], references: [id], onUpdate: NoAction)
+  ledger             ledger[]
+  order_items        order_items[]
+  tables             tables?              @relation(fields: [table_id], references: [id], onUpdate: NoAction)
+  stores             stores               @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  payments           payments[]
+  point_transactions point_transactions[]
+  reviews            reviews?
+
+  @@index([created_at], map: "idx_orders_created_at")
+  @@index([store_id], map: "idx_orders_store_id")
+}
+
+model payments {
+  id                    Int                  @id @default(autoincrement())
+  order_id              Int
+  store_id              Int
+  status                String               @default("pending")
+  amount                Int
+  point_amount          Int?                 @default(0)
+  cash_amount           Int?                 @default(0)
+  toss_pay_token        String?
+  payment_key           String?
+  toss_transaction_id   String?
+  transfer_confirmed    Boolean?             @default(false)
+  transfer_confirmed_at DateTime?
+  transfer_reference    String?
+  points_earned         Int?                 @default(0)
+  error_code            String?
+  error_message         String?
+  created_at            DateTime?            @default(now())
+  updated_at            DateTime?            @default(now())
+  completed_at          DateTime?
+  cancelled_at          DateTime?
+  order_name            String?
+  method                String?
+  receipt_url           String?
+  checkout_url          String?
+  card_company          String?
+  card_number           String?
+  installment_months    Int?                 @default(0)
+  easy_pay_provider     String?
+  failure_code          String?
+  failure_message       String?
+  raw_response          String?
+  payer_phone           String?              // [추가] 실제 결제을 진행한 사람의 전화번호
+  is_partial            Boolean?             @default(false) // [추가] 부분 결제 여부
+  approved_at           DateTime?
+  cancel_reason         String?
+  ledger                ledger[]
+  stores                stores               @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  orders                orders               @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  point_transactions    point_transactions[]
+
+  @@index([payment_key], map: "idx_payments_payment_key")
+  @@index([store_id], map: "idx_payments_store_id")
+  @@index([order_id], map: "idx_payments_order_id")
+  @@index([status], map: "idx_payments_status")
+  @@index([store_id], map: "idx_payments_store")
+  @@index([order_id], map: "idx_payments_order")
+}
+
+model plan_requests {
+  id                                     Int       @id @default(autoincrement())
+  store_id                               Int
+  user_id                                Int
+  current_plan                           String    @default("free")
+  requested_plan                         String
+  status                                 String    @default("pending")
+  reason                                 String?
+  admin_note                             String?
+  reviewed_by                            Int?
+  created_at                             DateTime? @default(now())
+  reviewed_at                            DateTime?
+  users_plan_requests_reviewed_byTousers users?    @relation("plan_requests_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_plan_requests_user_idTousers     users     @relation("plan_requests_user_idTousers", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stores                                 stores    @relation(fields: [store_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([status], map: "idx_plan_requests_status")
+  @@index([store_id], map: "idx_plan_requests_store")
+}
+
+model point_transactions {
+  id            Int         @id @default(autoincrement())
+  user_point_id Int
+  store_id      Int
+  order_id      Int?
+  payment_id    Int?
+  type          String
+  amount        Int
+  balance_after Int
+  description   String?
+  reference_id  String?
+  expires_at    DateTime?
+  created_at    DateTime?   @default(now())
+  payments      payments?   @relation(fields: [payment_id], references: [id], onUpdate: NoAction)
+  orders        orders?     @relation(fields: [order_id], references: [id], onUpdate: NoAction)
+  stores        stores      @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_points   user_points @relation(fields: [user_point_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([store_id], map: "idx_point_transactions_store")
+  @@index([user_point_id], map: "idx_point_transactions_user")
+}
+
+model posts {
+  id            Int        @id @default(autoincrement())
+  board_type    String     @default("free")
+  title         String
+  content       String
+  author_id     Int
+  author_name   String
+  is_pinned     Boolean?   @default(false)
+  view_count    Int?       @default(0)
+  comment_count Int?       @default(0)
+  created_at    DateTime?  @default(now())
+  updated_at    DateTime?  @default(now())
+  comments      comments[]
+  users         users      @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([is_pinned], map: "idx_posts_pinned")
+  @@index([author_id], map: "idx_posts_author")
+  @@index([board_type], map: "idx_posts_board_type")
+}
+
+model products {
+  id                 Int                 @id @default(autoincrement())
+  store_id           Int
+  category_id        Int?
+  name               String
+  description        String?
+  price              Int
+  image_url          String?
+  is_active          Boolean?            @default(true)
+  is_sold_out        Boolean?            @default(false)
+  sort_order         Int?                @default(0)
+  created_at         DateTime?           @default(now())
+  detail_description String?
+  options            String?
+  nutrition_info     String?
+  allergens          String?
+  ingredients        String?
+  spicy_level        Int?                @default(0)
+  is_popular         Int?                @default(0)
+  is_new             Int?                @default(0)
+  tags               String?
+  detail_images          String?
+  cooking_time           Int?                @default(5)
+  updated_at             DateTime?
+  stock_quantity         Int?                // null = 무제한, 0 이상 = 수량 관리
+  low_stock_threshold    Int                 @default(5)
+  order_items            order_items[]
+  stores                 stores              @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  categories             categories?         @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  shared_cart_items      shared_cart_items[]
+  stock_history          stock_history[]
+}
+
+model stock_history {
+  id           Int       @id @default(autoincrement())
+  product_id   Int
+  store_id     Int
+  change       Int       // 양수 = 입고, 음수 = 차감
+  qty_after    Int
+  reason       String    // ORDER | MANUAL_IN | MANUAL_OUT | CORRECTION | RETURN
+  order_id     Int?
+  note         String?
+  created_by   Int?      // user_id of staff who made the change
+  created_at   DateTime  @default(now())
+  products     products  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@index([product_id], map: "idx_stock_history_product")
+  @@index([store_id, created_at(sort: Desc)], map: "idx_stock_history_store_time")
+}
+
+model settlements {
+  id                Int       @id @default(autoincrement())
+  store_id          Int
+  period_start      DateTime
+  period_end        DateTime
+  total_sales       Int?      @default(0)
+  total_refunds     Int?      @default(0)
+  commission_amount Int?      @default(0)
+  vat_amount        Int?      @default(0)
+  net_amount        Int?      @default(0)
+  status            String?   @default("PENDING")
+  paid_at           DateTime?
+  created_at        DateTime? @default(now())
+  stores            stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([store_id], map: "idx_settlements_store")
+}
+
+model staff {
+  id         Int       @id @default(autoincrement())
+  store_id   Int
+  user_id    Int
+  role       String?   @default("staff")
+  created_at DateTime? @default(now())
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  stores     stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([store_id, user_id], map: "sqlite_autoindex_staff_1")
+  orders     orders[]
+}
+
+model staff_account_requests {
+  id                                              Int       @id @default(autoincrement())
+  store_id                                        Int
+  user_id                                         Int
+  role                                            String
+  count                                           Int?      @default(1)
+  status                                          String    @default("pending")
+  reason                                          String?
+  admin_note                                      String?
+  reviewed_by                                     Int?
+  created_at                                      DateTime? @default(now())
+  reviewed_at                                     DateTime?
+  users_staff_account_requests_reviewed_byTousers users?    @relation("staff_account_requests_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_staff_account_requests_user_idTousers     users     @relation("staff_account_requests_user_idTousers", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stores                                          stores    @relation(fields: [store_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([status], map: "idx_staff_requests_status")
+  @@index([store_id], map: "idx_staff_requests_store")
+}
+
+model store_accounts {
+  id              Int       @id @default(autoincrement())
+  store_id        Int       @unique(map: "sqlite_autoindex_store_accounts_1")
+  bank_code       String
+  bank_name       String
+  account_number  String
+  account_holder  String
+  toss_account_id String?
+  is_active       Boolean?  @default(true)
+  created_at      DateTime? @default(now())
+  updated_at      DateTime? @default(now())
+  stores          stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model store_point_settings {
+  id              Int       @id @default(autoincrement())
+  store_id        Int       @unique(map: "sqlite_autoindex_store_point_settings_1")
+  is_enabled      Boolean?  @default(true)
+  earn_rate       Float?    @default(1.0)
+  min_earn_amount Int?      @default(1000)
+  max_use_rate    Float?    @default(100)
+  min_use_points  Int?      @default(100)
+  expiry_days     Int?      @default(365)
+  created_at      DateTime? @default(now())
+  updated_at      DateTime? @default(now())
+  stores          stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model store_receipt_settings {
+  id                 Int       @id @default(autoincrement())
+  store_id           Int       @unique(map: "sqlite_autoindex_store_receipt_settings_1")
+  header_logo        String?
+  title              String?   @default("영수증")
+  greetings          String?   @default("방문해 주셔서 감사합니다.")
+  footer_text        String?   @default("교환/환불은 영수증 지참 시 7일 이내 가능합니다.")
+  show_order_number  Boolean?  @default(true)
+  show_item_details  Boolean?  @default(true)
+  show_store_address Boolean?  @default(true)
+  show_points        Boolean?  @default(true)
+  updated_at         DateTime? @default(now())
+  stores             stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model store_staff {
+  id         Int       @id @default(autoincrement())
+  store_id   Int
+  user_id    Int?
+  name       String
+  role       String?   @default("staff")
+  pin_code   String?
+  is_active  Int?      @default(1)
+  created_at DateTime? @default(now())
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stores     stores    @relation(fields: [store_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([store_id], map: "idx_store_staff_store_id")
+}
+
+model stores {
+  id                     Int                      @id @default(autoincrement())
+  user_id                Int
+  name                   String
+  description            String?
+  address                String?
+  phone                  String?
+  theme                  String?
+  is_active              Boolean?                 @default(true)
+  can_send_sms           Boolean                  @default(false)
+  created_at             DateTime?                @default(now())
+  business_type          String?
+  open_time              String?
+  close_time             String?
+  latitude               Float?                   // 매장 위도 (Geo-마케팅용)
+  longitude              Float?                   // 매장 경도 (Geo-마케팅용)
+  plan                   String?                  @default("free")
+  campaign_settings      campaign_settings[]
+  categories             categories[]
+  chat_rooms             chat_rooms[]
+  coupons                coupons[]
+  ledger                 ledger[]
+  orders                 orders[]
+  payments               payments[]
+  option_templates       option_templates[]
+  plan_requests          plan_requests[]
+  point_transactions     point_transactions[]
+  products               products[]
+  reservations           reservations[]
+  notifications          notifications[]
+  reviews                reviews[]
+  settlements            settlements[]
+  staff                  staff[]
+  staff_account_requests staff_account_requests[]
+  store_accounts         store_accounts?
+  store_customers        store_customers[]
+  store_point_settings   store_point_settings?
+  store_receipt_settings store_receipt_settings?
+  store_staff            store_staff[]
+  store_tier_settings    store_tier_settings[]
+  users                  users                    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tables                 tables[]
+  waiting_list           waiting_list[]
+
+  @@index([user_id], map: "idx_stores_user_id")
+}
+
+model notifications {
+  id         Int       @id @default(autoincrement())
+  store_id   Int
+  type       String    // NEW_ORDER | ORDER_STATUS | LOW_STOCK | NEW_REVIEW | NEW_RESERVATION | NEW_WAITING | MANAGER_CALL | SETTLEMENT | SYSTEM
+  title      String
+  message    String
+  data       String?   // JSON 직렬화 추가 정보
+  is_read    Boolean   @default(false)
+  priority   String    @default("normal") // low | normal | high | urgent
+  link       String?   // 클릭 시 이동할 프론트엔드 경로
+  created_at DateTime  @default(now())
+  stores     stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id, is_read], map: "idx_notifications_store_read")
+  @@index([store_id, created_at(sort: Desc)], map: "idx_notifications_store_time")
+}
+
+model tables {
+  id                Int                 @id @default(autoincrement())
+  store_id          Int
+  table_number      String
+  qr_code           String              @unique(map: "sqlite_autoindex_tables_1")
+  is_active         Boolean?            @default(true)
+  created_at        DateTime?           @default(now())
+  capacity          Int?                @default(2)
+  updated_at        DateTime?           @default(now())
+  status            String?             @default("available")
+  x                 Int?                @default(0)
+  y                 Int?                @default(0)
+  orders            orders[]
+  shared_cart_items shared_cart_items[]
+  stores            stores              @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model user_points {
+  id                 Int                  @id @default(autoincrement())
+  user_id            Int?
+  toss_user_key      String?              @unique(map: "sqlite_autoindex_user_points_1")
+  phone              String?
+  total_points       Int?                 @default(0)
+  lifetime_earned    Int?                 @default(0)
+  lifetime_used      Int?                 @default(0)
+  created_at         DateTime?            @default(now())
+  updated_at         DateTime?            @default(now())
+  point_transactions point_transactions[]
+  users              users?               @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([phone], map: "idx_user_points_phone")
+  @@index([toss_user_key], map: "idx_user_points_toss_key")
+}
+
+model users {
+  id                                                               Int                      @id @default(autoincrement())
+  name                                                             String?
+  email                                                            String?                  @unique(map: "sqlite_autoindex_users_1")
+  phone                                                            String?                  @unique(map: "uq_users_phone")
+  address                                                          String?
+  profile_step                                                     Int?                     @default(1)
+  password                                                         String
+  created_at                                                       DateTime?                @default(now())
+  role                                                             String?                  @default("user")
+  fcm_token                                                        String?
+  comments                                                         comments[]
+  plan_requests_plan_requests_reviewed_byTousers                   plan_requests[]          @relation("plan_requests_reviewed_byTousers")
+  plan_requests_plan_requests_user_idTousers                       plan_requests[]          @relation("plan_requests_user_idTousers")
+  posts                                                            posts[]
+  staff                                                            staff[]
+  staff_account_requests_staff_account_requests_reviewed_byTousers staff_account_requests[] @relation("staff_account_requests_reviewed_byTousers")
+  staff_account_requests_staff_account_requests_user_idTousers     staff_account_requests[] @relation("staff_account_requests_user_idTousers")
+  store_staff                                                      store_staff[]
+  stores                                                           stores[]
+  user_points                                                      user_points[]
+
+  @@index([email], map: "idx_users_email")
+}
+
+model phone_otps {
+  id         Int      @id @default(autoincrement())
+  phone      String
+  otp        String
+  expires_at DateTime
+  verified   Boolean  @default(false)
+  used       Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  @@index([phone], map: "idx_phone_otps_phone")
+}
+
+model chat_rooms {
+  id             Int             @id @default(autoincrement())
+  store_id       Int
+  customer_id    Int?
+  customer_phone String?
+  is_active      Boolean?        @default(true)
+  created_at     DateTime?       @default(now())
+  updated_at     DateTime?       @default(now())
+  messages       chat_messages[]
+  stores         stores          @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([store_id], map: "idx_chat_rooms_store")
+}
+
+model chat_messages {
+  id          Int        @id @default(autoincrement())
+  room_id     Int
+  sender_id   Int?
+  sender_type String
+  content     String
+  is_read     Boolean?   @default(false)
+  created_at  DateTime?  @default(now())
+  rooms       chat_rooms @relation(fields: [room_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([room_id], map: "idx_chat_messages_room")
+}
+
+model shared_cart_items {
+  id         Int      @id @default(autoincrement())
+  table_id   Int
+  product_id Int
+  quantity   Int      @default(1)
+  user_phone String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  products   products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  tables     tables   @relation(fields: [table_id], references: [id], onDelete: Cascade)
+
+  @@index([table_id], map: "idx_shared_cart_table")
+}
+
+model waiting_list {
+  id             Int       @id @default(autoincrement())
+  store_id       Int
+  customer_name  String?
+  customer_phone String
+  party_size     Int       @default(1)
+  status         String    @default("waiting")
+  queue_number   Int
+  created_at     DateTime? @default(now())
+  updated_at     DateTime? @updatedAt
+  called_at      DateTime?
+  stores         stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id], map: "idx_waiting_list_store")
+  @@index([customer_phone], map: "idx_waiting_list_phone")
+}
+
+model reviews {
+  id             Int            @id @default(autoincrement())
+  store_id       Int
+  order_id       Int?           @unique
+  customer_name  String?
+  customer_phone String?
+  rating         Int            @default(5)
+  content        String
+  image_url      String?
+  is_best        Boolean        @default(false)
+  created_at     DateTime?      @default(now())
+  updated_at     DateTime?      @updatedAt
+  likes          review_likes[]
+  orders         orders?        @relation(fields: [order_id], references: [id])
+  stores         stores         @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id], map: "idx_reviews_store")
+  @@index([created_at], map: "idx_reviews_created")
+}
+
+model review_likes {
+  id         Int       @id @default(autoincrement())
+  review_id  Int
+  user_phone String?
+  created_at DateTime? @default(now())
+  reviews    reviews   @relation(fields: [review_id], references: [id], onDelete: Cascade)
+
+  @@index([review_id], map: "idx_review_likes_id")
+}
+
+model store_customers {
+  id             Int       @id @default(autoincrement())
+  store_id       Int
+  customer_name  String?
+  customer_phone String
+  toss_user_key  String?
+  visit_count    Int       @default(1)
+  total_spent    Int       @default(0)
+  tier           String    @default("GENERAL")
+  last_visit_at  DateTime? @default(now())
+  created_at     DateTime? @default(now())
+  updated_at     DateTime? @updatedAt
+  stores         stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@unique([store_id, customer_phone], name: "uk_store_customer")
+  @@index([store_id], map: "idx_store_customers_store")
+  @@index([customer_phone], map: "idx_store_customers_phone")
+}
+
+model store_tier_settings {
+  id         Int       @id @default(autoincrement())
+  store_id   Int
+  tier_name  String
+  min_spent  Int       @default(0)
+  earn_rate  Float     @default(1.0)
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+  stores     stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@unique([store_id, tier_name], name: "uk_store_tier")
+  @@index([store_id], map: "idx_tier_settings_store")
+}
+
+model coupons {
+  id               Int            @id @default(autoincrement())
+  store_id         Int
+  name             String
+  type             String
+  amount           Int
+  min_order_amount Int            @default(0)
+  valid_days       Int            @default(30)
+  is_active        Int            @default(1)
+  created_at       DateTime?      @default(now())
+  updated_at       DateTime?      @updatedAt
+  stores           stores         @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  user_coupons     user_coupons[]
+
+  @@index([store_id], map: "idx_coupons_store")
+}
+
+model user_coupons {
+  id             Int       @id @default(autoincrement())
+  customer_phone String
+  coupon_id      Int
+  status         String    @default("UNUSED")
+  used_at        DateTime?
+  expires_at     DateTime?
+  created_at     DateTime? @default(now())
+  updated_at     DateTime? @updatedAt
+  coupons        coupons   @relation(fields: [coupon_id], references: [id], onDelete: Cascade)
+
+  @@index([customer_phone], map: "idx_user_coupons_phone")
+}
+
+model campaign_settings {
+  id           Int       @id @default(autoincrement())
+  store_id     Int
+  trigger_type String
+  target_tier  String?
+  coupon_id    Int
+  is_active    Int       @default(1)
+  created_at   DateTime? @default(now())
+  updated_at   DateTime? @updatedAt
+  stores       stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id], map: "idx_campaigns_store")
+}
+
+model reservations {
+  id               Int       @id @default(autoincrement())
+  store_id         Int
+  customer_name    String
+  customer_phone   String
+  party_size       Int       @default(2)
+  reservation_time DateTime
+  status           String    @default("PENDING")
+  notes            String?
+  created_at       DateTime? @default(now())
+  updated_at       DateTime? @updatedAt
+  stores           stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id], map: "idx_reservations_store")
+  @@index([customer_phone], map: "idx_reservations_phone")
+  @@index([reservation_time], map: "idx_reservations_time")
+}
+
+model option_templates {
+  id          Int       @id @default(autoincrement())
+  store_id    Int
+  name        String    // 템플릿 이름 (예: 스테이크 굽기, 음료 당도)
+  options     String    // JSON 형태의 옵션 목록
+  created_at  DateTime? @default(now())
+  updated_at  DateTime? @updatedAt
+  stores      stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id], map: "idx_option_templates_store")
+}

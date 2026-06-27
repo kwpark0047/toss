@@ -1,0 +1,95 @@
+const prisma = require('../config/prisma');
+const crypto = require('crypto');
+
+/**
+ * 테이블 모델 (Prisma 기반)
+ * 매장별 테이블 레이아웃, QR 코드 정보 및 상태를 관리합니다.
+ */
+const Table = {
+    // [테이블 생성]
+    create: async (data) => {
+        const { store_id, table_number, capacity = 2, qr_code, x = 0, y = 0, status = 'available' } = data;
+
+        // 예측 가능한 QR 코드 대신 UUID 기반으로 보안 강화
+        const finalQrCode = qr_code || `qr_${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`;
+
+        return await prisma.tables.create({
+            data: {
+                store_id: parseInt(store_id),
+                table_number,
+                capacity: parseInt(capacity),
+                qr_code: finalQrCode,
+                x: parseInt(x),
+                y: parseInt(y),
+                status,
+                is_active: true
+            }
+        });
+    },
+
+    // [ID로 테이블 상세 조회]
+    findById: async (id) => {
+        return await prisma.tables.findUnique({
+            where: { id: parseInt(id) }
+        });
+    },
+
+    // [매장별 활성 테이블 목록 조회]
+    findByStoreId: async (storeId) => {
+        return await prisma.tables.findMany({
+            where: {
+                store_id: parseInt(storeId),
+                is_active: true
+            }
+        });
+    },
+
+    // [QR 코드로 테이블 및 매장 정보 조회]
+    findByQrCode: async (qrCode) => {
+        return await prisma.tables.findFirst({
+            where: {
+                qr_code: qrCode,
+                is_active: true
+            },
+            include: {
+                stores: {
+                    select: { name: true }
+                }
+            }
+        });
+    },
+
+    // [테이블 정보 업데이트]
+    update: async (id, data) => {
+        const { table_number, capacity, is_active, x, y, status } = data;
+        const updateData = {};
+
+        if (table_number !== undefined) updateData.table_number = table_number;
+        if (capacity !== undefined) updateData.capacity = parseInt(capacity);
+        if (is_active !== undefined) updateData.is_active = is_active;
+        if (x !== undefined) updateData.x = parseInt(x);
+        if (y !== undefined) updateData.y = parseInt(y);
+        if (status !== undefined) updateData.status = status;
+
+        if (Object.keys(updateData).length === 0) return await Table.findById(id);
+
+        return await prisma.tables.update({
+            where: { id: parseInt(id) },
+            data: {
+                ...updateData,
+                updated_at: new Date()
+            }
+        });
+    },
+
+    // [테이블 논리 삭제]
+    delete: async (id) => {
+        await prisma.tables.update({
+            where: { id: parseInt(id) },
+            data: { is_active: false }
+        });
+        return true;
+    }
+};
+
+module.exports = Table;

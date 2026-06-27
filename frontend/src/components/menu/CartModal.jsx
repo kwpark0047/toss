@@ -1,0 +1,162 @@
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Minus, Plus, Trash2, CreditCard } from 'lucide-react';
+
+const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice }) => {
+  const formatPrice = (price) => new Intl.NumberFormat('ko-KR').format(price) + '원';
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+          />
+
+          {/* Modal */}
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-[32px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+          >
+            {/* Handle */}
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3" />
+            
+            <div className="px-6 pb-4 flex items-center justify-between border-b border-slate-50">
+              <h2 className="text-xl font-black text-slate-900">장바구니</h2>
+              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <X className="w-6 h-6 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+              {cart.length === 0 ? (
+                <div className="text-center py-20">
+                  <div className="text-5xl mb-4">🛒</div>
+                  <p className="text-slate-400 font-medium">장바구니가 비어 있습니다</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-6">
+                    {cart.map((item) => (
+                      <div key={item.cartItemId} className="flex gap-4">
+                        <div className="w-20 h-20 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-3xl">{item.menuItem.emoji || '🍽️'}</span>
+                        </div>
+                        
+                        <div className="flex-1 flex flex-col justify-between py-0.5">
+                          <div>
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className="font-bold text-slate-900 leading-tight">{item.menuItem.name}</h3>
+                              <button 
+                                onClick={() => onUpdateQuantity(item.cartItemId, -item.quantity)}
+                                className="text-slate-300 hover:text-red-500 transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                            {item.selectedOptions?.length > 0 && (
+                              <p className="text-[11px] text-slate-400 mt-1">
+                                {item.selectedOptions.map(opt => opt.choiceName).join(', ')}
+                              </p>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="font-bold text-slate-900">{formatPrice(item.unitPrice * item.quantity)}</span>
+                            
+                            <div className="flex items-center gap-3 bg-slate-100 rounded-full p-1">
+                              <button 
+                                onClick={() => onUpdateQuantity(item.cartItemId, -1)}
+                                className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-slate-600 shadow-sm active:scale-90 transition-transform"
+                              >
+                                <Minus size={14} />
+                              </button>
+                              <span className="text-sm font-black w-4 text-center">{item.quantity}</span>
+                              <button 
+                                onClick={() => onUpdateQuantity(item.cartItemId, 1)}
+                                className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-slate-600 shadow-sm active:scale-90 transition-transform"
+                              >
+                                <Plus size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* AI 추천 섹션 */}
+                  <div className="pt-8 border-t border-slate-100">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-lg">✨</span>
+                      <h4 className="font-black text-slate-900">함께 먹으면 더 맛있는 인기 조합</h4>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2 scrollbar-hide">
+                      {[1, 2, 3].map((_, i) => (
+                        <div key={i} className="min-w-[160px] p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50 flex flex-col gap-2">
+                          <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-2xl">🥤</div>
+                          <div>
+                            <p className="text-xs font-bold text-orange-600">추천 페어링</p>
+                            <p className="text-sm font-black text-slate-900">시원한 에이드</p>
+                            <p className="text-xs text-slate-500 mt-1">4,500원</p>
+                          </div>
+                          <button className="mt-2 w-full py-2 bg-white border border-orange-200 text-orange-600 text-xs font-bold rounded-lg hover:bg-orange-100 transition-colors">
+                            추가하기
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="p-6 bg-slate-50 space-y-4">
+              {/* 분할 결제 안내 팁 */}
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white">
+                    <span className="text-xs font-bold">1/N</span>
+                  </div>
+                  <span className="text-sm font-bold text-blue-900">친구와 나누어 결제할까요?</span>
+                </div>
+                <button className="text-xs font-black text-blue-600 underline">분할 결제 설정</button>
+              </div>
+
+              <div className="flex items-center justify-between text-slate-900 font-black text-xl">
+                <span>총 결제금액</span>
+                <span className="text-primary">{formatPrice(totalPrice)}</span>
+              </div>
+              
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                disabled={cart.length === 0 || isOrdering}
+                onClick={onOrder}
+                className="w-full h-16 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/20 flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale transition-all"
+              >
+                {isOrdering ? (
+                  <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <CreditCard size={22} />
+                    <span>주문하기</span>
+                  </>
+                )}
+              </motion.button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default CartModal;

@@ -1,0 +1,38 @@
+# 의존성
+node_modules
+
+# 빌드 결과물
+frontend/dist/
+generated/
+
+# 데이터베이스
+*.db
+prisma/wemarket.db
+
+# 로그
+logs/
+*.log
+lint_result.json
+lint_result_front.json
+lint_backend.log
+
+# 환경 설정 (로컬 전용)
+.env
+.vercel/
+mcp_config.json
+
+# 임시/테스트 파일
+test_git.txt
+scratch/
+tmp_*.js
+check_sqlite_data.js
+frontend/admin_test.cjs
+
+# 임시 스크린샷 (루트에 생성되는 작업용)
+/*.png
+.playwright-mcp/
+
+# 외부 예시/서브모듈 (로컬 전용)
+skills/
+toss-miniapp-examples/
+wemarket-miniapp/

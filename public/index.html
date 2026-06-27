@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>위마켓 - QR 메뉴판 플랫폼</title>
+
+  <!-- PWA Meta Tags -->
+  <meta name="description" content="QR코드로 간편하게 주문하고 포인트도 적립하세요" />
+  <meta name="theme-color" content="#4F46E5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="위마켓" />
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json" />
+
+  <!-- Apple Touch Icons -->
+  <link rel="apple-touch-icon" href="/icons/icon-152x152.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png" />
+
+  <!-- Splash Screens for iOS -->
+  <meta name="apple-mobile-web-app-title" content="위마켓">
+
+  <!-- Kakao Maps SDK -->
+  <script type="text/javascript"
+    src="//dapi.kakao.com/v2/maps/sdk.js?appkey=69efa87511d9415c33bc430b602834e4&libraries=services,clusterer"></script>
+  <script type="module" crossorigin src="/assets/index-y1uQpQOu.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BpxoQGzv.css">
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', async () => {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          console.log('[App] Service Worker registered:', registration.scope);
+        } catch (error) {
+          console.error('[App] Service Worker registration failed:', error);
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- maskable: safe zone은 가운데 80% — 배경을 꽉 채움 -->
+  <rect width="512" height="512" fill="#F97316"/>
+  <text x="256" y="320" font-family="Arial Black, Arial" font-weight="900" font-size="220" fill="white" text-anchor="middle">W</text>
+</svg>

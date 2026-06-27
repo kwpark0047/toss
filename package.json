@@ -1,0 +1,74 @@
+{
+  "name": "wemarket-api",
+  "version": "1.0.0",
+  "description": "WeMarket QR Menu Platform API",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "build": "npx prisma generate && cd frontend && npm install && npm run build",
+    "vercel-build": "cd frontend && npm install && npm run build",
+    "db:push": "npx prisma db push --accept-data-loss",
+    "postinstall": "node -e \"if(!process.env.VERCEL){require('child_process').execSync('prisma generate',{stdio:'inherit'})}\"",
+    "seed": "node scripts/seed_production_direct.js",
+    "test": "jest --coverage --forceExit --detectOpenHandles",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --coverageReporters=text --coverageReporters=lcov",
+    "lint:backend": "eslint ."
+  },
+  "keywords": [
+    "wemarket",
+    "qr-menu",
+    "pos"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@prisma/adapter-better-sqlite3": "^7.4.0",
+    "@supabase/supabase-js": "^2.90.1",
+    "axios": "^1.16.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.6.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "firebase-admin": "^13.10.0",
+    "helmet": "^8.1.0",
+    "joi": "^18.0.2",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.2.0",
+    "node-cache": "^5.1.2",
+    "pdfkit": "^0.19.1",
+    "qr-code-styling": "^1.9.2",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "winston": "^3.19.0"
+  },
+  "overrides": {
+    "protobufjs": "^7.6.3",
+    "ws": "^8.21.0",
+    "minimatch": "^9.0.7",
+    "flatted": "^3.4.1",
+    "picomatch": "^4.0.4",
+    "tmp": "^0.2.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@prisma/client": "^5.22.0",
+    "@types/jest": "^30.0.0",
+    "eslint": "^9.39.2",
+    "globals": "^17.0.0",
+    "jest": "^25.0.0",
+    "pg": "^8.22.0",
+    "prisma": "^5.22.0",
+    "socket.io-client": "^4.8.3",
+    "supertest": "^7.2.2"
+  }
+}

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- 기본 SEO -->
+  <title>위마켓 — QR 메뉴 & 스마트 매장 관리</title>
+  <meta name="description" content="WeMarket은 QR 주문, 실시간 주방 관리, 재고 관리, 매출 분석을 통합한 스마트 매장 관리 솔루션입니다." />
+  <meta name="keywords" content="위마켓, QR메뉴판, 스마트오더, 매장관리, 무인주문, 푸드테크, 재고관리" />
+
+  <!-- PWA 필수 -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#F97316" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#F97316" media="(prefers-color-scheme: dark)" />
+
+  <!-- 아이콘 -->
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+  <link rel="apple-touch-icon" href="/icons/icon.svg" />
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="위마켓" />
+
+  <!-- Android PWA -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="application-name" content="위마켓" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="위마켓 — 스마트한 매장 운영의 시작" />
+  <meta property="og:description" content="QR 주문부터 재고 관리, 매출 분석까지 WeMarket 하나로 끝내세요." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/icons/icon.svg" />
+
+  <!-- Windows 타일 -->
+  <meta name="msapplication-TileColor" content="#F97316" />
+  <meta name="msapplication-TileImage" content="/icons/icon.svg" />
+
+  <!-- SEO: 웹마스터 도구 -->
+  <meta name="naver-site-verification" content="" />
+  <meta name="google-site-verification" content="" />
+
+  <!-- Canonical -->
+  <link rel="canonical" href="https://wemarket.kr" />
+
+  <!-- Structured Data (Organization + WebApplication) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "위마켓 (WeMarket)",
+    "url": "https://wemarket.kr",
+    "description": "QR 주문, 실시간 주방 관리, 재고 관리, 매출 분석을 통합한 스마트 매장 관리 솔루션",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "browserRequirements": "Requires JavaScript",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "KRW"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "WeMarket"
+    }
+  }
+  </script>
+
+  <!-- Kakao Maps SDK (동적 로드 — KakaoMap.jsx에서 key 유무에 따라 로드) -->
+  <script>window.__KAKAO_MAP_API_KEY__ = '';</script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

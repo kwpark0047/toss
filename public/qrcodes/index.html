@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>테이블 QR코드 - 위마켓 카페</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 20px; }
+    h1 { text-align: center; margin-bottom: 30px; color: #333; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+    .card { background: white; border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .card img { width: 200px; height: 200px; margin-bottom: 15px; }
+    .card h3 { font-size: 18px; color: #333; margin-bottom: 8px; }
+    .card p { font-size: 12px; color: #666; word-break: break-all; }
+    .print-btn { display: block; margin: 30px auto; padding: 15px 30px; font-size: 16px; background: #4f46e5; color: white; border: none; border-radius: 10px; cursor: pointer; }
+    .print-btn:hover { background: #4338ca; }
+    @media print {
+      .print-btn { display: none; }
+      .card { break-inside: avoid; page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <h1>위마켓 카페 - 테이블 QR코드</h1>
+  <button class="print-btn" onclick="window.print()">인쇄하기</button>
+  <div class="grid">
+    <div class="card">
+      <img src="table-1.png" alt="테이블 1 QR코드">
+      <h3>테이블 1</h3>
+      <p>http://localhost:3002/?store_id=1&table_id=1</p>
+    </div>
+    <div class="card">
+      <img src="table-2.png" alt="테이블 2 QR코드">
+      <h3>테이블 2</h3>
+      <p>http://localhost:3002/?store_id=1&table_id=2</p>
+    </div>
+    <div class="card">
+      <img src="table-3.png" alt="테이블 3 QR코드">
+      <h3>테이블 3</h3>
+      <p>http://localhost:3002/?store_id=1&table_id=3</p>
+    </div>
+    <div class="card">
+      <img src="table-4.png" alt="테이블 4 QR코드">
+      <h3>테이블 4</h3>
+      <p>http://localhost:3002/?store_id=1&table_id=4</p>
+    </div>
+    <div class="card">
+      <img src="table-5.png" alt="테이블 5 QR코드">
+      <h3>테이블 5</h3>
+      <p>http://localhost:3002/?store_id=1&table_id=5</p>
+    </div>
+    <div class="card">
+      <img src="table-6.png" alt="테이블 6 QR코드">
+      <h3>테이블 6</h3>
+      <p>http://localhost:3002/?store_id=1&table_id=6</p>
+    </div>
+    <div class="card">
+      <img src="table-7.png" alt="테이블 7 QR코드">
+      <h3>테이블 7</h3>
+      <p>http://localhost:3002/?store_id=1&table_id=7</p>
+    </div>
+    <div class="card">
+      <img src="table-8.png" alt="테이블 8 QR코드">
+      <h3>테이블 8</h3>
+      <p>http://localhost:3002/?store_id=1&table_id=8</p>
+    </div>
+    <div class="card">
+      <img src="table-9.png" alt="테이블 9 QR코드">
+      <h3>테이블 9</h3>
+      <p>http://localhost:3002/?store_id=1&table_id=9</p>
+    </div>
+    <div class="card">
+      <img src="table-10.png" alt="테이블 10 QR코드">
+      <h3>테이블 10</h3>
+      <p>http://localhost:3002/?store_id=1&table_id=10</p>
+    </div>
+  </div>
+</body>
+</html>

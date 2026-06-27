@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>디자인 QR코드 - 위마켓 카페</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 {
+      text-align: center;
+      color: white;
+      font-size: 32px;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    .subtitle {
+      text-align: center;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 40px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 30px;
+    }
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .card img {
+      width: 100%;
+      max-width: 300px;
+      border-radius: 16px;
+    }
+    .card h3 {
+      font-size: 20px;
+      color: #1e293b;
+      margin-top: 16px;
+    }
+    .card p {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 8px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 40px;
+    }
+    .btn {
+      padding: 16px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      background: white;
+      color: #4f46e5;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      transition: all 0.3s;
+    }
+    .btn:hover {
+      background: #4f46e5;
+      color: white;
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+    .btn-secondary:hover {
+      background: white;
+      color: #4f46e5;
+    }
+    @media print {
+      body { background: white; padding: 20px; }
+      .btn-group { display: none; }
+      .card { box-shadow: 0 2px 10px rgba(0,0,0,0.1); break-inside: avoid; }
+      h1 { color: #1e293b; text-shadow: none; }
+      .subtitle { color: #64748b; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 위마켓 카페</h1>
+    <p class="subtitle">테이블별 디자인 QR코드</p>
+
+    <div class="btn-group">
+      <button class="btn" onclick="window.print()">🖨️ 전체 인쇄</button>
+      <button class="btn btn-secondary" onclick="downloadAll()">📥 전체 다운로드</button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <img src="table-1-designer.png" alt="테이블 1 QR코드">
+        <h3>테이블 1</h3>
+        <p>QR 스캔하여 주문하기</p>
+      </div>
+      <div class="card">
+        <img src="table-2-designer.png" alt="테이블 2 QR코드">
+        <h3>테이블 2</h3>
+        <p>QR 스캔하여 주문하기</p>
+      </div>
+      <div class="card">
+        <img src="table-3-designer.png" alt="테이블 3 QR코드">
+        <h3>테이블 3</h3>
+        <p>QR 스캔하여 주문하기</p>
+      </div>
+      <div class="card">
+        <img src="table-4-designer.png" alt="테이블 4 QR코드">
+        <h3>테이블 4</h3>
+        <p>QR 스캔하여 주문하기</p>
+      </div>
+      <div class="card">
+        <img src="table-5-designer.png" alt="테이블 5 QR코드">
+        <h3>테이블 5</h3>
+        <p>QR 스캔하여 주문하기</p>
+      </div>
+      <div class="card">
+        <img src="table-6-designer.png" alt="테이블 6 QR코드">
+        <h3>테이블 6</h3>
+        <p>QR 스캔하여 주문하기</p>
+      </div>
+      <div class="card">
+        <img src="table-7-designer.png" alt="테이블 7 QR코드">
+        <h3>테이블 7</h3>
+        <p>QR 스캔하여 주문하기</p>
+      </div>
+      <div class="card">
+        <img src="table-8-designer.png" alt="테이블 8 QR코드">
+        <h3>테이블 8</h3>
+        <p>QR 스캔하여 주문하기</p>
+      </div>
+      <div class="card">
+        <img src="table-9-designer.png" alt="테이블 9 QR코드">
+        <h3>테이블 9</h3>
+        <p>QR 스캔하여 주문하기</p>
+      </div>
+      <div class="card">
+        <img src="table-10-designer.png" alt="테이블 10 QR코드">
+        <h3>테이블 10</h3>
+        <p>QR 스캔하여 주문하기</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function downloadAll() {
+      const links = ['table-1-designer.png', 'table-2-designer.png', 'table-3-designer.png', 'table-4-designer.png', 'table-5-designer.png', 'table-6-designer.png', 'table-7-designer.png', 'table-8-designer.png', 'table-9-designer.png', 'table-10-designer.png'];
+      links.forEach((filename, i) => {
+        setTimeout(() => {
+          const a = document.createElement('a');
+          a.href = filename;
+          a.download = filename;
+          a.click();
+        }, i * 200);
+      });
+    }
+  </script>
+</body>
+</html>
