@@ -258,6 +258,10 @@ if (process.env.NODE_ENV !== 'production') {
 // [API 라우트 명시적 그룹화 등록]
 const API_PREFIX = '/api';
 
+console.log(`[라우트] auth 라우터 등록됨: ${routes.auth.stack.length}개 경로`);
+routes.auth.stack.forEach(l => {
+    if (l.route) console.log(`  → ${l.route.path} [${Object.keys(l.route.methods).join(',')}]`);
+});
 app.use(`${API_PREFIX}/auth`, routes.auth);
 app.use(`${API_PREFIX}/stores`, routes.stores);
 app.use(`${API_PREFIX}/products`, routes.products);
