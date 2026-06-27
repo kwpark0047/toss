@@ -162,8 +162,6 @@ model payments {
   @@index([store_id], map: "idx_payments_store_id")
   @@index([order_id], map: "idx_payments_order_id")
   @@index([status], map: "idx_payments_status")
-  @@index([store_id], map: "idx_payments_store")
-  @@index([order_id], map: "idx_payments_order")
 }
 
 model plan_requests {
