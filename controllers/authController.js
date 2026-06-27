@@ -113,23 +113,31 @@ const register = async (req, res, next) => {
 
     const normalized = normalizePhone(phone);
 
-    // OTP 인증 완료 여부 확인 (10분 이내)
-    const verifiedOtp = await prisma.phone_otps.findFirst({
-      where: {
-        phone: normalized,
-        verified: true,
-        used: false,
-        expires_at: { gte: new Date(Date.now() - 10 * 60 * 1000) },
-      },
-      orderBy: { created_at: 'desc' },
-    });
-
-    if (!verifiedOtp) {
-      return next(new AppError('핸드폰 번호 인증이 필요합니다.', 400));
-    }
-
     const exists = await prisma.users.findUnique({ where: { phone: normalized } });
     if (exists) return next(new AppError('이미 가입된 핸드폰 번호입니다.', 409));
+
+    // OTP 인증 확인 (BYPASS_OTP=true 환경변수로 건너뛰기 가능)
+    if (process.env.BYPASS_OTP !== 'true') {
+      const verifiedOtp = await prisma.phone_otps.findFirst({
+        where: {
+          phone: normalized,
+          verified: true,
+          used: false,
+          expires_at: { gte: new Date(Date.now() - 10 * 60 * 1000) },
+        },
+        orderBy: { created_at: 'desc' },
+      });
+
+      if (!verifiedOtp) {
+        return next(new AppError('핸드폰 번호 인증이 필요합니다.', 400));
+      }
+
+      // OTP 사용 처리
+      await prisma.phone_otps.update({
+        where: { id: verifiedOtp.id },
+        data: { used: true },
+      });
+    }
 
     const hashedPassword = bcrypt.hashSync(password, 10);
     const user = await prisma.users.create({
@@ -139,12 +147,6 @@ const register = async (req, res, next) => {
         role: 'user',
         profile_step: 1,
       },
-    });
-
-    // OTP 사용 처리
-    await prisma.phone_otps.update({
-      where: { id: verifiedOtp.id },
-      data: { used: true },
     });
 
     const { token, refreshToken } = signTokens(user);

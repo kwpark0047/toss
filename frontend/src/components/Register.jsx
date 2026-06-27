@@ -266,6 +266,17 @@ const Register = () => {
                     <>인증번호 받기 <ArrowRight className="w-4 h-4" /></>
                   )}
                 </motion.button>
+
+                    {/* 개발 모드: OTP 인증 건너뛰기 (BYPASS_OTP=true 필요) */}
+                    {window.location.hostname === 'localhost' && (
+                      <button
+                        type="button"
+                        onClick={() => { setError(''); setStep(3); }}
+                        className="w-full text-center text-sm text-slate-400 hover:text-slate-600 font-medium transition-colors mt-2"
+                      >
+                        인증 없이 바로 가입하기 (개발 모드)
+                      </button>
+                    )}
               </motion.form>
             )}
 
