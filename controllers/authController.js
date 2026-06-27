@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/prisma');
+const logger = require('../utils/logger');
 const { AppError } = require('../utils/errorHandler');
 const { sendSms } = require('../utils/smsService');
 
