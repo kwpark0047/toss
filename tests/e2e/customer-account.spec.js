@@ -355,12 +355,12 @@ test.describe.serial('Customer Account Features', () => {
         expect(shortPwRes.ok()).toBeFalsy();
         console.log(`[Validation] 짧은 비밀번호 거부 (${shortPwRes.status()}) ✅`);
 
-        // 8-3. 필수 필드 누락 (이름 없음)
-        const noNameRes = await request.post(`${BASE}/auth/register`, {
-            data: { email: `noname_${TS}@test.com`, password: PASSWORD }
+        // 8-3. 필수 필드 누락 (전화번호 없음 — name/email 선택)
+        const noPhoneRes = await request.post(`${BASE}/auth/register`, {
+            data: { password: PASSWORD }
         });
-        expect(noNameRes.ok()).toBeFalsy();
-        console.log(`[Validation] 이름 누락 거부 (${noNameRes.status()}) ✅`);
+        expect(noPhoneRes.ok()).toBeFalsy();
+        console.log(`[Validation] 전화번호 누락 거부 (${noPhoneRes.status()}) ✅`);
 
         // 8-4. 인증 없이 보호 API 접근
         const noAuthRes = await request.get(`${BASE}/auth/me`);

@@ -6,26 +6,22 @@ const bcrypt = require('bcryptjs');
  * 전체 관리자, 매장 관리자, 직원 등 모든 시스템 사용자의 인증 및 정보를 담당합니다.
  */
 const User = {
-    // [사용자 생성]
+    // [사용자 생성] — phone 기반 가입 지원 (name, email 선택)
     create: async (data) => {
-        const { name, email, password, role = 'user' } = data;
-
-        // 이메일 중복 체크
-        const existing = await User.findByEmail(email);
-        if (existing) {
-            throw new Error('이미 존재하는 이메일입니다.');
-        }
+        const { name, email, password, phone, role = 'user' } = data;
 
         const hashedPassword = bcrypt.hashSync(password, 10);
 
-        return await prisma.users.create({
-            data: {
-                name,
-                email,
-                password: hashedPassword,
-                role
-            }
-        });
+        const createData = { password: hashedPassword, role };
+        if (name) createData.name = name;
+        if (email) {
+            const existing = await User.findByEmail(email);
+            if (existing) throw new Error('이미 존재하는 이메일입니다.');
+            createData.email = email;
+        }
+        if (phone) createData.phone = phone;
+
+        return await prisma.users.create({ data: createData });
     },
 
     // [ID로 사용자 조회]
