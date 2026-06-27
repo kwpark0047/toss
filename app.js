@@ -186,36 +186,7 @@ if (process.env.NODE_ENV !== 'production') {
     });
 }
 
-if (process.env.NODE_ENV !== 'production') {
-    app.get('/api/debug/list', (req, res) => {
-        res.json({ ok: true, env: process.env.NODE_ENV });
-    });
-    app.get('/api/debug/routes', (req, res) => {
-        const list = [];
-        const router = app.router || app._router;
-        if (router) {
-            router.stack.forEach((layer) => {
-                if (layer.route) {
-                    list.push({
-                        path: layer.route.path,
-                        methods: Object.keys(layer.route.methods),
-                    });
-                } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
-                    const mountPath = typeof layer.path === 'string' ? layer.path : '(mounted)';
-                    layer.handle.stack.forEach((sub) => {
-                        if (sub.route) {
-                            list.push({
-                                path: mountPath + sub.route.path,
-                                methods: Object.keys(sub.route.methods),
-                            });
-                        }
-                    });
-                }
-            });
-        }
-        res.json({ routes: list, count: list.length });
-    });
-}
+
 
 // [보안/동적] Firebase Messaging Service Worker를 환경변수 기반으로 동적 생성하여 제공
 app.get("/firebase-messaging-sw.js", (req, res) => {
@@ -287,12 +258,6 @@ if (process.env.NODE_ENV !== 'production') {
 // [API 라우트 명시적 그룹화 등록]
 const API_PREFIX = '/api';
 
-app.use(`${API_PREFIX}/auth`, (req, res, next) => {
-    if (req.method === 'POST' && req.path === '/send-otp') {
-        return res.json({ diag: true, path: req.path, baseUrl: req.baseUrl, originalUrl: req.originalUrl });
-    }
-    next();
-});
 app.use(`${API_PREFIX}/auth`, routes.auth);
 app.use(`${API_PREFIX}/stores`, routes.stores);
 app.use(`${API_PREFIX}/products`, routes.products);
