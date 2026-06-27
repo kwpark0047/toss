@@ -1,5 +1,6 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const dotenv = require("dotenv");
+const logger = require('../utils/logger');
 
 // 환경 변수 로드
 dotenv.config();
@@ -12,7 +13,7 @@ class AIService {
     constructor() {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
-            logger.error(error);
+            logger.error('GEMINI_API_KEY is not set in environment');
         }
         this.genAI = new GoogleGenerativeAI(apiKey);
         this.cache = new Map(); // 메뉴 설명 및 추천 캐시를 위한 메모리 맵
@@ -30,7 +31,7 @@ class AIService {
     initModel() {
         const modelName = this.models[this.currentModelIndex];
         this.model = this.genAI.getGenerativeModel({ model: modelName });
-        console.log(`[AI] ${modelName} 모델로 엔진이 초기화되었습니다.`);
+        logger.info(`[AI] ${modelName} 모델로 엔진이 초기화되었습니다.`);
     }
 
     /**
@@ -86,7 +87,7 @@ class AIService {
 
         // 1. 캐시 확인
         if (this.cache.has(cacheKey)) {
-            console.log(`[AI] 캐시된 설명을 반환합니다: ${name}`);
+            logger.debug(`[AI] 캐시된 설명을 반환합니다: ${name}`);
             return this.cache.get(cacheKey);
         }
 
@@ -126,7 +127,7 @@ class AIService {
         const cacheKey = `rec_${preferences}_${weather}_${mood}_${pastOrders.length}_${menuList.length}`;
 
         if (this.cache.has(cacheKey)) {
-            console.log(`[AI] 캐시된 추천 결과를 반환합니다.`);
+            logger.debug(`[AI] 캐시된 추천 결과를 반환합니다.`);
             return this.cache.get(cacheKey);
         }
 

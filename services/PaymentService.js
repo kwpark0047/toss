@@ -5,6 +5,7 @@ const Point = require('../models/Point');
 const TossAPI = require('../utils/toss');
 const notificationService = require('../utils/notifications');
 const prisma = require('../config/prisma');
+const logger = require('../utils/logger');
 
 /**
  * [PaymentService]
@@ -26,7 +27,7 @@ class PaymentService {
             tossResponse = await TossAPI.confirmPayment(paymentKey, orderIdString, amount);
         }
 
-        console.log('[PaymentService] 토스 결제 승인 완료:', tossResponse.paymentKey);
+        logger.info('[PaymentService] 토스 결제 승인 완료:', tossResponse.paymentKey);
 
         try {
             // [최적화] 모든 후처리 로직을 하나의 트랜잭션으로 통합하여 원자성 보장
@@ -217,7 +218,7 @@ const logger = require('../utils/logger');
 
         // 2. 토스 취소 API 호출
         await TossAPI.cancelPayment(payment.payment_key, cancelReason || '시스템 취소');
-        console.log('[PaymentService] 토스 결제 취소 완료:', payment.payment_key);
+        logger.info('[PaymentService] 토스 결제 취소 완료:', payment.payment_key);
 
         // 3. DB 상태 업데이트
         await Payment.cancel(payment.payment_key, cancelReason);
@@ -239,7 +240,7 @@ const logger = require('../utils/logger');
                         amount: tx.amount,
                         description: `결제 취소(${payment.payment_key}) 포인트 회수`
                     });
-                    console.log(`[PaymentService] 포인트 회수 완료 (${tx.amount}P)`);
+                    logger.info(`[PaymentService] 포인트 회수 완료 (${tx.amount}P)`);
                 } else if (tx.type === 'use') {
                     const usedAmount = Math.abs(tx.amount);
                     await Point.cancel({
@@ -251,7 +252,7 @@ const logger = require('../utils/logger');
                         amount: usedAmount,
                         description: `결제 취소(${payment.payment_key}) 포인트 복구`
                     });
-                    console.log(`[PaymentService] 포인트 복구 완료 (${usedAmount}P)`);
+                    logger.info(`[PaymentService] 포인트 복구 완료 (${usedAmount}P)`);
                 }
             }
         } catch (e) {

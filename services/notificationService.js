@@ -30,7 +30,7 @@ class NotificationService {
           admin.initializeApp({
             credential: admin.credential.cert(require(path.resolve(serviceAccountPath)))
           });
-          console.log('[Notification] Firebase Admin SDK 초기화 완료');
+          logger.info('[Notification] Firebase Admin SDK 초기화 완료');
         }
       }
       this.messaging = admin.messaging();

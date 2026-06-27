@@ -12,7 +12,7 @@ class CampaignService {
      * [등급 승급 트리거 처리]
      */
     static async handleTierUp(storeId, customerPhone, newTier) {
-        console.log(`[Campaign] 등급 승급 감지: ${customerPhone} -> ${newTier}`);
+        logger.info(`[Campaign] 등급 승급 감지: ${customerPhone} -> ${newTier}`);
 
         try {
             // 1. 해당 등급 승급 시 발급하도록 설정된 캠페인 조회
@@ -28,7 +28,7 @@ class CampaignService {
             for (const campaign of campaigns) {
                 // 2. 쿠폰 발급
                 await Coupon.issueToCustomer(customerPhone, campaign.coupon_id);
-                console.log(`[Campaign] 쿠폰 발급 완료: ${customerPhone} (Campaign ID: ${campaign.id})`);
+                logger.info(`[Campaign] 쿠폰 발급 완료: ${customerPhone} (Campaign ID: ${campaign.id})`);
 
                 // 쿠폰 발급 알림 SMS 전송
                 await sendSms(customerPhone, `[매장] 등급이 ${newTier}(으)로 올랐습니다! 특별 쿠폰이 발급되었습니다. 매장에서 확인해주세요.`);
@@ -39,7 +39,7 @@ class CampaignService {
     }
 
     static async handleWelcome(storeId, customerPhone) {
-        console.log(`[Campaign] 첫 방문(WELCOME) 감지: ${customerPhone}`);
+        logger.info(`[Campaign] 첫 방문(WELCOME) 감지: ${customerPhone}`);
         try {
             const campaigns = await prisma.campaign_settings.findMany({
                 where: {
@@ -51,7 +51,7 @@ class CampaignService {
 
             for (const campaign of campaigns) {
                 await Coupon.issueToCustomer(customerPhone, campaign.coupon_id);
-                console.log(`[Campaign] WELCOME 쿠폰 발급 완료: ${customerPhone}`);
+                logger.info(`[Campaign] WELCOME 쿠폰 발급 완료: ${customerPhone}`);
                 await sendSms(customerPhone, `[매장] 첫 방문을 환영합니다! 감사 쿠폰이 발급되었습니다. 다음 방문 시 사용해주세요.`);
             }
         } catch (error) {

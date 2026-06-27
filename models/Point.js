@@ -270,7 +270,8 @@ const Point = {
           const currentTier = tiers.find(t => t.tier_name === customer.tier);
           if (currentTier) {
             earnRate = currentTier.earn_rate;
-            console.log(`[Point] 등급(${customer.tier}) 적립률 적용: ${earnRate}%`);
+            const logger = require('../utils/logger');
+            logger.debug(`[Point] 등급(${customer.tier}) 적립률 적용: ${earnRate}%`);
           }
         }
       }

@@ -135,7 +135,8 @@ const sendSmartMarketingSms = async (req, res, next) => {
 
         // 실제 SMS 발송 로직 위치 (현재 스텁 — 실제 SMS API 연동 필요)
         const phones = targets.map(c => c.customer_phone);
-        console.log(`[CRM SMS] ${store.name} → ${phones.length}명 발송:`, message);
+        const logger = require('../utils/logger');
+        logger.info(`[CRM SMS] ${store.name} → ${phones.length}명 발송:`, message);
 
         res.success({
             sent: phones.length,
