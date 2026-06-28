@@ -77,8 +77,8 @@ async function sendOrderReadyNotification(io, order, tableAssignment, customerTo
   };
 
   // [실시간] 특정 주문 룸과 해당 매장 룸에 각각 알림 발송
-  io.to(`order-${order.id}`).emit('notification', { ...notification, target: 'customer' });
-  io.to(`store-${order.store_id}`).emit('notification', { ...notification, target: 'manager' });
+  io.to(`order - ${order.id}`).emit('notification', { ...notification, target: 'customer' });
+  io.to(`store - ${order.store_id}`).emit('notification', { ...notification, target: 'manager' });
 
   // [푸시] 고객의 FCM 토큰이 있다면 백그라운드 푸시 전송
   if (customerToken) {
@@ -110,8 +110,8 @@ async function sendNewOrderNotification(io, order, managerTokens = []) {
   };
 
   // [실시간] 매장 룸과 주방 룸에 주문 발생 사실 전파
-  io.to(`store-${order.store_id}`).emit('notification', { ...notification, target: 'store' });
-  io.to(`kitchen-${order.store_id}`).emit('notification', { ...notification, target: 'kitchen' });
+  io.to(`store - ${order.store_id}`).emit('notification', { ...notification, target: 'store' });
+  io.to(`kitchen - ${order.store_id}`).emit('notification', { ...notification, target: 'kitchen' });
 
   // [푸시] 등록된 모든 매니저 기기에 푸시 알림 전송 (병렬 처리로 성능 최적화)
   if (managerTokens && managerTokens.length > 0) {
@@ -145,7 +145,7 @@ async function sendSettlementNotification(io, store, settlement, managerTokens =
 
   // [실시간]
   if (io) {
-    io.to(`store-${store.id}`).emit('notification', {
+    io.to(`store - ${store.id}`).emit('notification', {
       type: 'SETTLEMENT_COMPLETED',
       storeId: store.id,
       amount: settlement.net_amount,
@@ -199,7 +199,7 @@ async function sendOrderStatusNotification(io, order, oldStatus, newStatus, cust
 
   // [실시간] 특정 주문 조회 중인 고객에게 전송
   if (io) {
-    io.to(`order-${order.id}`).emit('notification', { ...notification, target: 'customer' });
+    io.to(`order - ${order.id}`).emit('notification', { ...notification, target: 'customer' });
   }
 
   // [푸시] 중요 상태 변화일 경우 고객에게 푸시 알림 전송

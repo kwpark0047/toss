@@ -36,3 +36,5 @@ frontend/admin_test.cjs
 skills/
 toss-miniapp-examples/
 wemarket-miniapp/
+.vercel
+.env*

@@ -144,14 +144,14 @@ app.get("/api/health", async (req, res) => {
         status: "ok",
         db: dbStatus,
         timestamp: new Date().toISOString(),
-        version: '1.0.8-final-complete-v3'
+        version: '1.0.9'
     });
 });
 
 // 버전/디버그 엔드포인트 (개발 환경에서만 상세 정보 노출)
 app.get('/api/version', (req, res) => {
     const info = {
-        version: '1.0.8-final-complete-v3',
+        version: '1.0.9',
         environment: process.env.NODE_ENV || 'production'
     };
     if (process.env.NODE_ENV !== 'production') {
@@ -438,7 +438,7 @@ app.use((req, res, next) => {
             success: false,
             message: `요청하신 API 경로를 찾을 수 없습니다: ${req.method} ${req.originalUrl}.`,
             diagnostics: {
-                version: '1.0.8-final-mega',
+                version: '1.0.9',
                 hint: '서버 라우터에 해당 경로가 정의되지 않았거나 매칭 실패했습니다. app.js 등록 순서를 확인하십시오.'
             },
             timestamp: new Date().toISOString()

@@ -22,7 +22,7 @@ router.post('/register', catchAsync(async (req, res) => {
     });
     const io = req.app.get('io');
     if (io) {
-        io.to(`store-${store_id}`).emit('new-reservation', entry);
+        io.to(`store - ${store_id}`).emit('new-reservation', entry);
     }
     res.json({ success: true, data: entry });
 }));
@@ -98,7 +98,7 @@ router.patch('/:id/cancel', catchAsync(async (req, res) => {
 
     const io = req.app.get('io');
     if (io) {
-        io.to(`store-${entry.store_id}`).emit('new-reservation', entry);
+        io.to(`store - ${entry.store_id}`).emit('new-reservation', entry);
     }
 
     sendReservationNotification(entry, 'CANCELED').catch(err => logger.error(err));

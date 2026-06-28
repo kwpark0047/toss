@@ -83,8 +83,6 @@ class PaymentService {
                 });
 
                 // 5. 단골 고객 정보 갱신
-                const StoreCustomer = require('../models/StoreCustomer');
-const logger = require('../utils/logger');
                 // upsertCustomer가 내부적으로 prisma를 사용하므로 직접 tx로 구현하거나 tx 주입 필요
                 // 여기서는 안정성을 위해 tx 내부에서 직접 업데이트 로직 수행
                 const customer = await tx.store_customers.upsert({
@@ -108,7 +106,6 @@ const logger = require('../utils/logger');
 
                 // 6. 포인트 적립
                 let pointResult = null;
-                const Point = require('../models/Point');
                 const earnPoints = await Point.calculateEarnPoints(tossResponse.totalAmount, orderData.store_id, { phone: orderData.customer_phone });
 
                 if (earnPoints > 0) {
@@ -170,7 +167,7 @@ const logger = require('../utils/logger');
             // 8. 비동기 알림 처리 (트랜잭션 외부에서 실행하여 응답 지연 방지)
             if (this.io) {
                 if (order.table_id) {
-                    this.io.to(`table-${order.table_id}`).emit('split-payment-update', {
+                    this.io.to(`table - ${order.table_id}`).emit('split-payment-update', {
                         orderId: order.id,
                         totalAmount: order.total_amount,
                         paidAmount: totalPaidAmount,

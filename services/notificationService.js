@@ -86,7 +86,7 @@ class NotificationService {
     };
 
     // 1. 소켓 발송
-    this.sendSocket(`order-${order.id}`, 'notification', { ...payload, target: 'customer' });
+    this.sendSocket(`order - ${order.id}`, 'notification', { ...payload, target: 'customer' });
 
     // 2. 푸시 발송 (중요 상태일 때만)
     if (customerToken && ['confirmed', 'ready', 'cancelled'].includes(newStatus)) {
@@ -94,7 +94,7 @@ class NotificationService {
     }
 
     // 3. 주방/매장 실시간 알림
-    this.sendSocket(`store-${order.store_id}`, 'notification', { ...payload, target: 'manager' });
+    this.sendSocket(`store - ${order.store_id}`, 'notification', { ...payload, target: 'manager' });
   }
 
   /**
@@ -113,8 +113,8 @@ class NotificationService {
     };
 
     // 매장/주방 실시간 공유
-    this.sendSocket(`store-${order.store_id}`, 'notification', { ...payload, target: 'store' });
-    this.sendSocket(`kitchen-${order.store_id}`, 'notification', { ...payload, target: 'kitchen' });
+    this.sendSocket(`store - ${order.store_id}`, 'notification', { ...payload, target: 'store' });
+    this.sendSocket(`kitchen - ${order.store_id}`, 'notification', { ...payload, target: 'kitchen' });
 
     // 관리자 푸시
     if (managerTokens.length > 0) {

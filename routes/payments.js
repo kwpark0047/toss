@@ -134,8 +134,8 @@ router.post('/', catchAsync(async (req, res) => {
 
       // 3-6. 매장 관리자에게 실시간 알림 전송 (Socket.IO)
       if (io) {
-    io.to(`store-${store_id}`).emit('new-order', order);
-    io.to(`store-${store_id}`).emit('payment-success', {
+    io.to(`store - ${store_id}`).emit('new-order', order);
+    io.to(`store - ${store_id}`).emit('payment-success', {
       order_id: order.id,
       order_number: order.order_number,
       amount: total_amount
@@ -274,7 +274,7 @@ router.post('/:paymentId/proof', upload.single('proof'), catchAsync(async (req, 
     // 매장 관리자에게 실시간 알림
     const io = req.app.get('io');
     if (io) {
-      io.to(`store-${payment.store_id}`).emit('payment-proof-uploaded', {
+      io.to(`store - ${payment.store_id}`).emit('payment-proof-uploaded', {
     payment_id: paymentId,
     order_id: payment.order_id,
     proof_url: proofUrl,
@@ -467,7 +467,7 @@ router.post('/split/pay', catchAsync(async (req, res) => {
     if (io) {
       const tableId = txResult.order.table_id;
       if (tableId) {
-    io.to(`table-${tableId}`).emit('split-payment-update', {
+    io.to(`table - ${tableId}`).emit('split-payment-update', {
       orderId: txResult.order.id,
       totalAmount: txResult.order.total_amount,
       paidAmount: txResult.totalPaid,
@@ -477,7 +477,7 @@ router.post('/split/pay', catchAsync(async (req, res) => {
     });
       }
       if (txResult.isFullyPaid) {
-    io.to(`store-${txResult.order.store_id}`).emit('new-order', txResult.order);
+    io.to(`store - ${txResult.order.store_id}`).emit('new-order', txResult.order);
       }
     }
 

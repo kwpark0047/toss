@@ -34,7 +34,7 @@ router.put('/:id', authMiddleware, catchAsync(async (req, res) => {
 
     const io = req.app.get('io');
     if (io && product.store_id) {
-        io.to(`store-${product.store_id}`).emit('product-updated', {
+        io.to(`store - ${product.store_id}`).emit('product-updated', {
             productId: product.id,
             is_sold_out: product.is_sold_out,
             cooking_time: product.cooking_time,
