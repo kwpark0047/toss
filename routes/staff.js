@@ -121,6 +121,74 @@ router.post('/', authMiddleware, catchAsync(async (req, res, _next) => {
     }, '직원이 생성되었습니다.', 201);
 }));
 
+// 4-A. 매장 근태 조회 (날짜 or 월 필터)
+router.get('/store/:storeId/attendance', authMiddleware, catchAsync(async (req, res) => {
+    const storeId = parseInt(req.params.storeId);
+    const { date, month } = req.query;
+
+    let clockFilter = {};
+    if (date) {
+        const start = new Date(date);
+        const end = new Date(date);
+        end.setDate(end.getDate() + 1);
+        clockFilter = { clock_in: { gte: start, lt: end } };
+    } else if (month) {
+        const [y, m] = month.split('-').map(Number);
+        clockFilter = { clock_in: { gte: new Date(y, m - 1, 1), lt: new Date(y, m, 1) } };
+    }
+
+    const records = await prisma.staff_attendance.findMany({
+        where: { store_id: storeId, ...clockFilter },
+        include: {
+            staff: {
+                include: { users: { select: { name: true, email: true } } }
+            }
+        },
+        orderBy: { clock_in: 'desc' }
+    });
+    res.success(records);
+}));
+
+// 4-B. 출근 처리
+router.post('/:id/clock-in', authMiddleware, catchAsync(async (req, res) => {
+    const staffId = parseInt(req.params.id);
+    const staff = await prisma.staff.findUnique({ where: { id: staffId } });
+    if (!staff) throw new AppError('직원을 찾을 수 없습니다.', 404);
+
+    const active = await prisma.staff_attendance.findFirst({
+        where: { staff_id: staffId, clock_out: null }
+    });
+    if (active) throw new AppError('이미 출근 중입니다.', 400);
+
+    const record = await prisma.staff_attendance.create({
+        data: {
+            staff_id: staffId,
+            store_id: staff.store_id,
+            clock_in: new Date(),
+            note: req.body.note || null
+        }
+    });
+    res.success(record, '출근 처리되었습니다.', 201);
+}));
+
+// 4-C. 퇴근 처리
+router.post('/:id/clock-out', authMiddleware, catchAsync(async (req, res) => {
+    const staffId = parseInt(req.params.id);
+    const active = await prisma.staff_attendance.findFirst({
+        where: { staff_id: staffId, clock_out: null },
+        orderBy: { clock_in: 'desc' }
+    });
+    if (!active) throw new AppError('출근 기록이 없습니다.', 400);
+
+    const clockOut = new Date();
+    const workHours = (clockOut - new Date(active.clock_in)) / (1000 * 60 * 60);
+    const record = await prisma.staff_attendance.update({
+        where: { id: active.id },
+        data: { clock_out: clockOut, work_hours: Math.round(workHours * 100) / 100 }
+    });
+    res.success(record, '퇴근 처리되었습니다.');
+}));
+
 // 4. 직원 역할 수정
 router.put('/:id', authMiddleware, catchAsync(async (req, res, next) => {
     const staffId = parseInt(req.params.id);

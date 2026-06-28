@@ -295,16 +295,33 @@ model settlements {
 }
 
 model staff {
-  id         Int       @id @default(autoincrement())
-  store_id   Int
-  user_id    Int
-  role       String?   @default("staff")
-  created_at DateTime? @default(now())
-  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  stores     stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id               Int                @id @default(autoincrement())
+  store_id         Int
+  user_id          Int
+  role             String?            @default("staff")
+  created_at       DateTime?          @default(now())
+  users            users              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  stores           stores             @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  orders           orders[]
+  staff_attendance staff_attendance[]
 
   @@unique([store_id, user_id], map: "sqlite_autoindex_staff_1")
-  orders     orders[]
+}
+
+model staff_attendance {
+  id         Int       @id @default(autoincrement())
+  staff_id   Int
+  store_id   Int
+  clock_in   DateTime  @default(now())
+  clock_out  DateTime?
+  work_hours Float?
+  note       String?
+  created_at DateTime? @default(now())
+  staff      staff     @relation(fields: [staff_id], references: [id], onDelete: Cascade)
+  stores     stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([staff_id, clock_in], map: "idx_attendance_staff_time")
+  @@index([store_id, clock_in], map: "idx_attendance_store_time")
 }
 
 model staff_account_requests {
@@ -418,6 +435,7 @@ model stores {
   reviews                reviews[]
   settlements            settlements[]
   staff                  staff[]
+  staff_attendance       staff_attendance[]
   staff_account_requests staff_account_requests[]
   store_accounts         store_accounts?
   store_customers        store_customers[]
