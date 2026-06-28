@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
-const { checkPermission } = require('../middleware/storeAuth');
+const { checkStorePermission: checkPermission } = require('../middleware/storeAuth');
 const {
     getInventory,
     adjustStock,

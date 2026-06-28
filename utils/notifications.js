@@ -1,4 +1,5 @@
 const path = require('path');
+const logger = require('../utils/logger');
 
 /**
  * [알림 통합 유틸리티]
@@ -9,7 +10,6 @@ const path = require('path');
 let messaging = null;
 try {
   const admin = require('firebase-admin');
-const logger = require('../utils/logger');
   if (admin.apps.length === 0) {
     // 환경 변수에 설정된 서비스 계정 키 경로를 사용하여 초기화합니다.
     const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
