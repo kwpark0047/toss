@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../config/prisma');
 const authMiddleware = require('../middleware/auth');
+const { checkStorePermission, getStoreRole } = require('../middleware/storeAuth');
 const { AppError } = require('../utils/errorHandler');
 const bcrypt = require('bcryptjs');
 const catchAsync = require('../utils/catchAsync');
@@ -121,8 +122,8 @@ router.post('/', authMiddleware, catchAsync(async (req, res, _next) => {
     }, '직원이 생성되었습니다.', 201);
 }));
 
-// 4-A. 매장 근태 조회 (날짜 or 월 필터)
-router.get('/store/:storeId/attendance', authMiddleware, catchAsync(async (req, res) => {
+// 4-A. 매장 근태 조회 (매장 권한 필요)
+router.get('/store/:storeId/attendance', authMiddleware, checkStorePermission('order:read'), catchAsync(async (req, res) => {
     const storeId = parseInt(req.params.storeId);
     const { date, month } = req.query;
 
@@ -149,11 +150,19 @@ router.get('/store/:storeId/attendance', authMiddleware, catchAsync(async (req, 
     res.success(records);
 }));
 
-// 4-B. 출근 처리
+// 4-B. 출근 처리 (본인 or 매장 오너/매니저만 허용)
 router.post('/:id/clock-in', authMiddleware, catchAsync(async (req, res) => {
     const staffId = parseInt(req.params.id);
     const staff = await prisma.staff.findUnique({ where: { id: staffId } });
     if (!staff) throw new AppError('직원을 찾을 수 없습니다.', 404);
+
+    const isSelf = staff.user_id === req.user.id;
+    if (!isSelf && req.user.role !== 'super_admin') {
+        const role = await getStoreRole(req.user.id, staff.store_id);
+        if (!role || (role !== 'owner' && role !== 'manager')) {
+            throw new AppError('출근 처리 권한이 없습니다.', 403);
+        }
+    }
 
     const active = await prisma.staff_attendance.findFirst({
         where: { staff_id: staffId, clock_out: null }
@@ -161,19 +170,25 @@ router.post('/:id/clock-in', authMiddleware, catchAsync(async (req, res) => {
     if (active) throw new AppError('이미 출근 중입니다.', 400);
 
     const record = await prisma.staff_attendance.create({
-        data: {
-            staff_id: staffId,
-            store_id: staff.store_id,
-            clock_in: new Date(),
-            note: req.body.note || null
-        }
+        data: { staff_id: staffId, store_id: staff.store_id, clock_in: new Date(), note: req.body.note || null }
     });
     res.success(record, '출근 처리되었습니다.', 201);
 }));
 
-// 4-C. 퇴근 처리
+// 4-C. 퇴근 처리 (본인 or 매장 오너/매니저만 허용)
 router.post('/:id/clock-out', authMiddleware, catchAsync(async (req, res) => {
     const staffId = parseInt(req.params.id);
+    const staff = await prisma.staff.findUnique({ where: { id: staffId } });
+    if (!staff) throw new AppError('직원을 찾을 수 없습니다.', 404);
+
+    const isSelf = staff.user_id === req.user.id;
+    if (!isSelf && req.user.role !== 'super_admin') {
+        const role = await getStoreRole(req.user.id, staff.store_id);
+        if (!role || (role !== 'owner' && role !== 'manager')) {
+            throw new AppError('퇴근 처리 권한이 없습니다.', 403);
+        }
+    }
+
     const active = await prisma.staff_attendance.findFirst({
         where: { staff_id: staffId, clock_out: null },
         orderBy: { clock_in: 'desc' }
