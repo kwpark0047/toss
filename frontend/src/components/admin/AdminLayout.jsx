@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { NotificationProvider } from '../../contexts/NotificationContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Store, LogOut, LayoutDashboard, UtensilsCrossed,
@@ -74,6 +75,7 @@ const AdminLayout = ({ children }) => {
   });
 
   return (
+    <NotificationProvider storeId={storeId} userId={user?.id} role={user?.role}>
     <div className="min-h-screen bg-slate-950 flex overflow-hidden text-slate-300">
       {/* 배경 장식 */}
       <div className="fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
@@ -270,6 +272,7 @@ const AdminLayout = ({ children }) => {
         )}
       </AnimatePresence>
     </div>
+    </NotificationProvider>
   );
 };
 

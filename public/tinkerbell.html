@@ -1,0 +1,966 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>WeMarket · AI 팅커벨 2.0</title>
+<style>
+:root{
+  --blue:#2563EB;--blueD:#1D4ED8;--blueL:#EAF1FE;
+  --amber:#F59E0B;--amberD:#D97706;--amberL:#FEF3E2;
+  --green:#10B981;--greenD:#059669;
+  --rose:#F43F5E;--roseL:#FFF1F3;
+  --purple:#8B5CF6;--cyan:#06B6D4;
+  --ink:#0E1A2E;--ink2:#16273F;--ink3:#1E3354;
+  --text:#1F2937;--mut:#6B7280;--line:#E5E9F0;--panel:#F6F8FB;
+  --fz:1;
+}
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;height:100%;}
+body{
+  font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-ui,sans-serif;
+  background:
+    radial-gradient(1200px 600px at 15% -10%,rgba(43,111,255,.18) 0,transparent 60%),
+    radial-gradient(900px 500px at 110% 120%,rgba(245,159,11,.12),transparent 55%),
+    linear-gradient(160deg,#0E1A2E 0%,#16273F 60%,#1E3354 100%);
+  color:var(--text);min-height:100%;
+  display:flex;flex-direction:column;align-items:center;
+  padding:24px 16px 48px;
+}
+.head{color:#fff;text-align:center;margin-bottom:20px;}
+.head .kick{color:var(--amber);font-weight:800;letter-spacing:2px;font-size:11px;}
+.head h1{margin:6px 0 4px;font-size:22px;font-weight:800;}
+.head .badge{display:inline-block;background:var(--amber);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle;}
+.head p{margin:0;color:#AEC0E0;font-size:13px;}
+.stage{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;justify-content:center;}
+
+/* PHONE */
+.phone{width:360px;height:750px;border-radius:42px;background:#0A1322;border:2px solid #243a5c;padding:14px;position:relative;box-shadow:0 30px 70px rgba(0,0,0,.45),inset 0 0 0 2px #0A1322;flex:0 0 auto;}
+.notch{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:120px;height:22px;background:#0A1322;border-radius:0 0 14px 14px;z-index:30;}
+.screen{position:relative;width:100%;height:100%;border-radius:30px;overflow:hidden;background:#fff;}
+.scroll{position:absolute;top:0;left:0;right:0;bottom:132px;overflow-y:auto;overflow-x:hidden;}
+.scroll::-webkit-scrollbar{width:0;}
+
+/* APPBAR */
+.appbar{background:linear-gradient(135deg,var(--blue),var(--blueD));color:#fff;padding:28px 16px 12px;position:sticky;top:0;z-index:10;}
+.appbar-row1{display:flex;justify-content:space-between;align-items:flex-start;}
+.appbar .store{font-size:calc(16px*var(--fz));font-weight:800;}
+.appbar .sub{font-size:calc(11px*var(--fz));color:#D7E4FF;margin-top:2px;}
+.time-badge{font-size:10px;background:rgba(255,255,255,.2);padding:3px 9px;border-radius:20px;font-weight:700;white-space:nowrap;}
+.langrow{display:flex;gap:5px;margin-top:9px;}
+.langrow button{border:0;background:rgba(255,255,255,.16);color:#fff;font-weight:700;padding:4px 9px;border-radius:20px;font-size:11px;cursor:pointer;}
+.langrow button.on{background:#fff;color:var(--blueD);}
+
+/* CATEGORY */
+.cat{display:flex;gap:6px;padding:9px 12px 5px;overflow-x:auto;white-space:nowrap;}
+.cat::-webkit-scrollbar{height:0;}
+.cat span{font-size:calc(11.5px*var(--fz));color:var(--mut);background:var(--panel);padding:5px 11px;border-radius:13px;font-weight:600;cursor:pointer;flex:0 0 auto;transition:.2s;}
+.cat span.act{background:var(--ink);color:#fff;}
+
+/* MENU */
+.menu{padding:5px 11px 8px;}
+.item{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:15px;padding:10px;margin-bottom:9px;position:relative;transition:.25s;cursor:pointer;}
+.item:active{transform:scale(.98);}
+.emoji-wrap{position:relative;width:48px;height:48px;flex:0 0 auto;}
+.item .emoji{width:48px;height:48px;border-radius:11px;background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:24px;}
+.qty-badge{position:absolute;top:-6px;right:-6px;width:18px;height:18px;background:var(--blue);color:#fff;border-radius:50%;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;opacity:0;transition:.2s;pointer-events:none;}
+.qty-badge.show{opacity:1;}
+.item .info{flex:1;min-width:0;}
+.item .nm{font-weight:800;font-size:calc(13px*var(--fz));color:var(--ink);}
+.item .meta{display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap;}
+.tag{font-size:calc(10px*var(--fz));padding:2px 6px;border-radius:6px;font-weight:700;}
+.tag.amber{color:var(--amberD);background:var(--amberL);}
+.tag.green{color:var(--greenD);background:#D1FAE5;}
+.tag.red{color:var(--rose);background:var(--roseL);}
+.stars{font-size:9.5px;color:var(--amber);}
+.item .pr{font-size:calc(12.5px*var(--fz));color:var(--text);font-weight:700;margin-top:3px;}
+.item .controls{display:flex;align-items:center;gap:4px;flex:0 0 auto;}
+.btn-ctrl{border:1.5px solid var(--line);background:#fff;color:var(--ink);width:27px;height:27px;border-radius:50%;font-size:15px;line-height:1;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center;transition:.15s;}
+.btn-ctrl.plus{background:var(--blue);border-color:var(--blue);color:#fff;}
+.btn-ctrl:active{transform:scale(.82);}
+.qty-num{font-size:12px;font-weight:800;min-width:15px;text-align:center;}
+.item.rec{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,159,11,.18);animation:recpulse 1.1s ease 2;}
+.item.rec .emoji{background:var(--amberL);}
+.item.soldout{opacity:.5;pointer-events:none;}
+.item.soldout::after{content:'SOLD OUT';position:absolute;inset:0;background:rgba(255,255,255,.75);border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--mut);letter-spacing:2px;}
+.recflag{position:absolute;top:-9px;right:12px;background:var(--amber);color:#fff;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:8px;opacity:0;transition:.3s;}
+.item.rec .recflag{opacity:1;}
+@keyframes recpulse{0%,100%{box-shadow:0 0 0 3px rgba(245,159,11,.18);}50%{box-shadow:0 0 0 8px rgba(245,159,11,.30);}}
+
+/* CHAT BAR */
+.chatbar{position:absolute;left:0;right:0;bottom:62px;padding:5px 10px;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);z-index:14;display:flex;gap:6px;align-items:center;}
+.chatbar input{flex:1;border:1.5px solid var(--line);border-radius:18px;padding:7px 12px;font-size:calc(12px*var(--fz));outline:none;font-family:inherit;background:var(--panel);transition:.2s;}
+.chatbar input:focus{border-color:var(--blue);background:#fff;}
+.chatbar button{width:32px;height:32px;border-radius:50%;border:0;background:var(--blue);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex:0 0 auto;}
+.chatbar button:active{transform:scale(.85);}
+
+/* CART BAR */
+.cartbar{position:absolute;left:8px;right:8px;bottom:8px;height:52px;z-index:15;background:var(--ink);color:#fff;border-radius:15px;display:flex;align-items:center;justify-content:space-between;padding:0 13px;box-shadow:0 8px 20px rgba(0,0,0,.3);}
+.cartbar .l{font-size:calc(12px*var(--fz));font-weight:700;}
+.cartbar .l b{color:var(--amber);}
+.cartbar .go{background:var(--blue);border:0;color:#fff;font-weight:800;padding:8px 13px;border-radius:10px;font-size:calc(12.5px*var(--fz));cursor:pointer;transition:.15s;}
+.cartbar .go:active{transform:scale(.94);}
+
+/* CART DRAWER */
+.cart-drawer{position:absolute;inset:0;z-index:25;display:flex;flex-direction:column;background:#fff;transform:translateY(102%);transition:transform .35s cubic-bezier(.32,1,.52,1);border-radius:30px;}
+.cart-drawer.open{transform:translateY(0);}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 10px;border-bottom:1px solid var(--line);}
+.drawer-head h3{margin:0;font-size:16px;font-weight:800;}
+.drawer-head button{border:0;background:var(--panel);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.drawer-list{flex:1;overflow-y:auto;padding:10px 14px;}
+.cart-item{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--line);}
+.cart-item:last-child{border-bottom:0;}
+.ci-emoji{font-size:20px;}
+.ci-info{flex:1;}
+.ci-name{font-weight:700;font-size:13px;}
+.ci-price{color:var(--mut);font-size:11.5px;}
+.ci-ctrl{display:flex;align-items:center;gap:5px;}
+.ci-btn{border:1.5px solid var(--line);background:#fff;width:25px;height:25px;border-radius:50%;cursor:pointer;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:.15s;}
+.ci-btn.plus{background:var(--blue);border-color:var(--blue);color:#fff;}
+.ci-qty{font-weight:800;min-width:16px;text-align:center;font-size:13px;}
+.drawer-foot{padding:12px 14px;border-top:1px solid var(--line);}
+.total-row{display:flex;justify-content:space-between;font-weight:800;font-size:14px;margin-bottom:10px;}
+.order-btn{width:100%;border:0;background:linear-gradient(135deg,var(--blue),var(--blueD));color:#fff;padding:13px;border-radius:13px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 6px 16px rgba(37,99,235,.28);}
+
+/* ORDER SUCCESS */
+.order-success{position:absolute;inset:0;z-index:30;background:linear-gradient(160deg,#0E1A2E,#16273F);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s;border-radius:30px;color:#fff;text-align:center;padding:30px;}
+.order-success.show{opacity:1;pointer-events:auto;}
+.success-check{width:76px;height:76px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:38px;margin-bottom:18px;box-shadow:0 0 40px rgba(16,185,129,.45);animation:popIn .5s cubic-bezier(.68,-.55,.27,1.55) both;}
+@keyframes popIn{from{transform:scale(0);}to{transform:scale(1);}}
+.order-success h2{font-size:22px;font-weight:800;margin:0 0 8px;}
+.order-success p{color:#AEC0E0;font-size:13px;margin:0 0 22px;}
+.order-success button{border:0;background:var(--amber);color:#fff;padding:12px 28px;border-radius:13px;font-weight:800;font-size:14px;cursor:pointer;}
+
+/* FAIRY */
+.fxlayer{position:absolute;inset:0;pointer-events:none;z-index:20;overflow:hidden;}
+.fairy{position:absolute;width:78px;height:78px;transition:transform 1.2s cubic-bezier(.5,.05,.3,1);will-change:transform;pointer-events:auto;cursor:pointer;}
+.fairy.intro{opacity:0;}
+.fbody{position:absolute;inset:0;animation:bob 3.4s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(-5px) rotate(-4deg);}50%{transform:translateY(6px) rotate(4deg);}}
+.glow{position:absolute;left:50%;top:50%;width:96px;height:96px;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(245,159,11,.55) 0%,rgba(245,159,11,.18) 40%,transparent 68%);animation:glowPulse 2.2s ease-in-out infinite;transition:background .5s;}
+@keyframes glowPulse{0%,100%{opacity:.7;transform:translate(-50%,-50%) scale(1);}50%{opacity:1;transform:translate(-50%,-50%) scale(1.18);}}
+.wing{position:absolute;top:16px;width:30px;height:42px;background:rgba(255,255,255,.55);border-radius:60% 60% 70% 70%/70% 70% 60% 60%;filter:blur(.3px);}
+.wing.l{left:2px;transform-origin:right center;animation:flapL .28s ease-in-out infinite;}
+.wing.r{right:2px;transform-origin:left center;animation:flapR .28s ease-in-out infinite;}
+@keyframes flapL{0%,100%{transform:rotate(18deg) scaleX(1);}50%{transform:rotate(36deg) scaleX(.6);}}
+@keyframes flapR{0%,100%{transform:rotate(-18deg) scaleX(1);}50%{transform:rotate(-36deg) scaleX(.6);}}
+.core{position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFE3A6,var(--amber) 65%,var(--amberD));box-shadow:0 4px 14px rgba(245,159,11,.5);display:flex;align-items:center;justify-content:center;transition:background .5s,box-shadow .5s;}
+.core svg{width:24px;height:24px;}
+/* Moods */
+.fairy.thinking .fbody{animation:thinking 1.5s ease-in-out infinite;}
+@keyframes thinking{0%,100%{transform:translateY(-2px);}50%{transform:translateY(2px) rotate(5deg);}}
+.fairy.thinking .wing{animation-duration:.48s !important;}
+.fairy.thinking .core{background:radial-gradient(circle at 35% 30%,#BAE6FD,#2563EB 65%,#1D4ED8);box-shadow:0 4px 14px rgba(37,99,235,.5);}
+.fairy.thinking .glow{background:radial-gradient(circle,rgba(37,99,235,.4) 0%,transparent 68%);}
+.fairy.happy .fbody{animation:happy .65s ease;}
+@keyframes happy{0%,100%{transform:translateY(0) scale(1);}30%{transform:translateY(-16px) scale(1.12);}60%{transform:translateY(2px) scale(.96);}}
+.fairy.happy .core{background:radial-gradient(circle at 35% 30%,#A7F3D0,#10B981 65%,#059669);box-shadow:0 4px 14px rgba(16,185,129,.5);}
+.fairy.happy .glow{background:radial-gradient(circle,rgba(16,185,129,.4) 0%,transparent 68%);}
+.fairy.excited .fbody{animation:excited .3s ease-in-out infinite;}
+@keyframes excited{0%,100%{transform:rotate(-8deg) scale(1.05);}50%{transform:rotate(8deg) scale(1.1);}}
+.fairy.excited .wing{animation-duration:.14s !important;}
+.fairy.excited .core{background:radial-gradient(circle at 35% 30%,#FBCFE8,#F43F5E 65%,#E11D48);box-shadow:0 4px 14px rgba(244,63,94,.5);}
+.fairy.excited .glow{background:radial-gradient(circle,rgba(244,63,94,.4) 0%,transparent 68%);}
+.fairy.sleeping{opacity:.65;}
+.fairy.sleeping .fbody{animation:sleeping 3s ease-in-out infinite;}
+@keyframes sleeping{0%,100%{transform:translateY(-3px) rotate(-6deg) scale(.9);}50%{transform:translateY(3px) rotate(6deg) scale(.9);}}
+.fairy.sleeping .wing{animation-duration:2s !important;opacity:.4;}
+.fairy.sleeping .core{background:radial-gradient(circle at 35% 30%,#E9D5FF,#8B5CF6 65%,#7C3AED);box-shadow:0 4px 14px rgba(139,92,246,.5);}
+.fairy.sleeping .glow{background:radial-gradient(circle,rgba(139,92,246,.3) 0%,transparent 68%);animation-duration:4s !important;}
+.fairy.patrol .core{background:radial-gradient(circle at 35% 30%,#CFFAFE,#06B6D4 65%,#0891B2);box-shadow:0 4px 14px rgba(6,182,212,.5);}
+.fairy.patrol .glow{background:radial-gradient(circle,rgba(6,182,212,.4) 0%,transparent 68%);}
+.zzz{position:absolute;font-size:11px;color:#8B5CF6;font-weight:800;top:-4px;right:-4px;animation:zzzFloat 2s ease-in-out infinite;}
+@keyframes zzzFloat{0%{opacity:0;transform:translate(0,0) scale(.7);}50%{opacity:1;transform:translate(4px,-8px) scale(1);}100%{opacity:0;transform:translate(8px,-16px) scale(.7);}}
+
+/* BUBBLE */
+.bubble{position:absolute;max-width:198px;background:var(--ink);color:#fff;padding:10px 12px;border-radius:14px;font-size:calc(12px*var(--fz));font-weight:600;line-height:1.45;z-index:22;box-shadow:0 8px 22px rgba(0,0,0,.30);opacity:0;transform:translateY(6px) scale(.96);transition:opacity .3s,transform .3s;pointer-events:none;}
+.bubble.show{opacity:1;transform:translateY(0) scale(1);}
+.bubble .ctx{display:block;color:var(--amber);font-weight:800;font-size:calc(10.5px*var(--fz));margin-bottom:3px;}
+.bubble .cur{display:inline-block;width:7px;background:var(--amber);margin-left:1px;animation:blink .7s steps(1) infinite;border-radius:1px;}
+@keyframes blink{50%{opacity:0;}}
+.bubble::after{content:"";position:absolute;bottom:-7px;right:24px;width:14px;height:14px;background:var(--ink);transform:rotate(45deg);border-radius:2px;}
+
+/* SPARK */
+.spark{position:absolute;pointer-events:none;will-change:transform,opacity;}
+@keyframes fall{from{opacity:.95;transform:translate(0,0) scale(var(--s,1)) rotate(0);}to{opacity:0;transform:translate(var(--dx,0),28px) scale(.15) rotate(150deg);}}
+@keyframes rise{from{opacity:.95;transform:translate(0,0) scale(var(--s,1));}to{opacity:0;transform:translate(var(--dx,0),-36px) scale(.1) rotate(-80deg);}}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(18px);background:var(--ink);color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;font-weight:700;z-index:100;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* DOCK */
+.dock{width:300px;background:#fff;border-radius:20px;padding:17px;box-shadow:0 24px 60px rgba(0,0,0,.3);flex:0 0 auto;}
+.dock h2{margin:0 0 3px;font-size:15px;color:var(--ink);}
+.dock .desc{margin:0 0 13px;font-size:11.5px;color:var(--mut);line-height:1.4;}
+.grp{margin-bottom:12px;}
+.grp .lbl{font-size:11px;font-weight:800;color:var(--mut);letter-spacing:.4px;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
+.seg{display:flex;gap:5px;flex-wrap:wrap;}
+.seg button{flex:1;min-width:54px;border:1px solid var(--line);background:#fff;color:var(--text);padding:7px 4px;border-radius:9px;font-size:11.5px;font-weight:700;cursor:pointer;transition:.15s;}
+.seg button.on{background:var(--blue);border-color:var(--blue);color:#fff;}
+.seg.amber button.on{background:var(--amber);border-color:var(--amber);}
+.bigbtn{width:100%;border:0;background:linear-gradient(135deg,var(--amber),var(--amberD));color:#fff;font-weight:800;padding:12px;border-radius:12px;font-size:14px;cursor:pointer;box-shadow:0 7px 16px rgba(245,159,11,.32);}
+.bigbtn:active{transform:translateY(1px);}
+.toggles{display:flex;gap:6px;margin-bottom:8px;}
+.toggle{flex:1;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 6px;cursor:pointer;text-align:center;font-size:11px;font-weight:700;color:var(--text);transition:.15s;}
+.toggle.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+.toggle small{display:block;font-size:9px;font-weight:600;opacity:.7;margin-top:2px;}
+.replay{width:100%;border:1px dashed var(--line);background:#fff;color:var(--mut);padding:8px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;}
+/* Mood */
+.mood-row{display:flex;align-items:center;gap:8px;padding:9px 11px;background:var(--panel);border-radius:11px;margin-bottom:12px;}
+.mood-dot{width:10px;height:10px;border-radius:50%;background:var(--amber);transition:background .4s;flex:0 0 auto;}
+.mood-label{font-size:12px;font-weight:700;color:var(--ink);}
+.mood-sub{font-size:10px;color:var(--mut);margin-left:auto;}
+/* Chat log */
+.chat-log{background:var(--panel);border-radius:11px;padding:9px;max-height:96px;overflow-y:auto;margin-bottom:12px;}
+.chat-log::-webkit-scrollbar{width:3px;}
+.chat-log::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px;}
+.chat-entry{font-size:10.5px;line-height:1.45;margin-bottom:4px;}
+.chat-entry.user{color:var(--blue);font-weight:700;}
+.chat-entry.fairy{color:var(--ink);}
+.chat-entry:last-child{margin-bottom:0;}
+.legend{margin-top:12px;padding-top:11px;border-top:1px solid var(--line);font-size:10.5px;color:var(--mut);line-height:1.6;}
+.legend b{color:var(--ink);}
+.foot{color:#8AA0C4;font-size:11px;margin-top:18px;text-align:center;}
+@media(max-width:740px){.dock{width:360px;}}
+</style>
+</head>
+<body>
+<div class="head">
+  <div class="kick">WeMarket · EXPERIENCE</div>
+  <h1>AI 팅커벨 도우미 <span class="badge">v2.0</span></h1>
+  <p>AI 채팅 · 무드 시스템 · 수량 조절 · 장바구니 · 주문 완료 · 자동 순찰</p>
+</div>
+
+<div class="stage">
+  <!-- PHONE -->
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen">
+      <div class="scroll" id="scroll">
+        <div class="appbar">
+          <div class="appbar-row1">
+            <div><div class="store">우리동네 분식</div><div class="sub" id="sub">Table 4 · QR 주문</div></div>
+            <div class="time-badge" id="timeBadge">🌞 점심</div>
+          </div>
+          <div class="langrow" id="langrow">
+            <button data-l="ko" class="on">한국어</button>
+            <button data-l="en">EN</button>
+            <button data-l="ja">日本語</button>
+            <button data-l="zh">中文</button>
+          </div>
+        </div>
+        <div class="cat" id="catRow">
+          <span class="act" data-c="all">전체</span>
+          <span data-c="bun">분식</span>
+          <span data-c="bap">밥류</span>
+          <span data-c="myun">면류</span>
+          <span data-c="side">사이드</span>
+        </div>
+        <div class="menu" id="menu"></div>
+      </div>
+
+      <div class="fxlayer" id="fx">
+        <div class="bubble" id="bubble"><span class="ctx" id="bctx"></span><span id="btxt"></span><span class="cur" id="bcur">&nbsp;</span></div>
+        <div class="fairy intro" id="fairy">
+          <div class="fbody">
+            <div class="glow"></div>
+            <div class="wing l"></div><div class="wing r"></div>
+            <div class="core"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 1.5l1.7 6.1c.2.7.8 1.3 1.5 1.5l6.1 1.7-6.1 1.7c-.7.2-1.3.8-1.5 1.5L12 22.5l-1.7-6.1c-.2-.7-.8-1.3-1.5-1.5L2.7 13.2l6.1-1.7c.7-.2 1.3-.8 1.5-1.5L12 1.5z"/></svg></div>
+          </div>
+          <div class="zzz" id="zzz" style="display:none">z</div>
+        </div>
+      </div>
+
+      <div class="chatbar">
+        <input id="chatInput" type="text" placeholder="팅커벨에게 물어보세요..." autocomplete="off"/>
+        <button id="chatSend">➤</button>
+      </div>
+      <div class="cartbar">
+        <div class="l" id="cartL"><span id="cartPrefix">장바구니 </span><b id="cartN">0</b><span id="cartSuffix">개</span></div>
+        <button class="go" id="cartGo">주문하기</button>
+      </div>
+
+      <!-- CART DRAWER -->
+      <div class="cart-drawer" id="cartDrawer">
+        <div class="drawer-head"><h3 id="drawerTitle">장바구니</h3><button id="drawerClose">✕</button></div>
+        <div class="drawer-list" id="drawerList"></div>
+        <div class="drawer-foot">
+          <div class="total-row"><span id="drawerTotalLabel">합계</span><span id="drawerTotal">0원</span></div>
+          <button class="order-btn" id="orderBtn">결제하기</button>
+        </div>
+      </div>
+
+      <!-- SUCCESS -->
+      <div class="order-success" id="orderSuccess">
+        <div class="success-check">✓</div>
+        <h2 id="successTitle">주문 완료!</h2>
+        <p id="successMsg">맛있게 준비할게요 😋</p>
+        <button id="successClose">처음으로</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOCK -->
+  <div class="dock">
+    <h2>데모 컨트롤 <span style="font-size:11px;color:var(--mut);font-weight:500">v2.0</span></h2>
+    <p class="desc">팅커벨의 9가지 기능을 직접 체험해 보세요.</p>
+
+    <div class="mood-row">
+      <div class="mood-dot" id="moodDot"></div>
+      <span class="mood-label" id="moodLabel">대기 중</span>
+      <span class="mood-sub" id="moodSub">idle</span>
+    </div>
+
+    <div class="grp"><div class="lbl">🌐 다국어</div>
+      <div class="seg" id="cLang">
+        <button data-l="ko" class="on">한국어</button>
+        <button data-l="en">EN</button>
+        <button data-l="ja">日本語</button>
+        <button data-l="zh">中文</button>
+      </div>
+    </div>
+    <div class="grp"><div class="lbl">🌦️ 날씨 · 상황</div>
+      <div class="seg amber" id="cWeather">
+        <button data-w="rain" class="on">☔ 비</button>
+        <button data-w="sun">☀️ 맑음</button>
+        <button data-w="cold">❄️ 추움</button>
+        <button data-w="hot">🔥 더움</button>
+      </div>
+    </div>
+    <div class="grp"><button class="bigbtn" id="recBtn">✨ AI 추천 받기</button></div>
+
+    <div class="grp"><div class="lbl">💬 채팅 기록</div>
+      <div class="chat-log" id="chatLog"><div class="chat-entry fairy">🧚 팅커벨이 도착했어요 ✨</div></div>
+    </div>
+
+    <div class="grp"><div class="lbl">♿ 접근성 · 설정</div>
+      <div class="toggles">
+        <div class="toggle" id="tBig">큰 글씨<small>고령 배려</small></div>
+        <div class="toggle" id="tVoice">음성 안내<small>읽어주기</small></div>
+        <div class="toggle on" id="tSound">효과음<small>ON</small></div>
+      </div>
+      <button class="replay" id="replay">↻ 처음부터 (등장 애니메이션)</button>
+    </div>
+
+    <div class="legend">
+      <b>v2.0 신기능</b> — AI 채팅 · 무드(idle/thinking/happy/excited/sleeping/patrol) · 잠자기·깨우기 · 수량 ＋/− · 장바구니 서랍 · 주문 완료 · 카테고리 필터 · 별점 · 효과음 · 자동 순찰.
+    </div>
+  </div>
+</div>
+
+<div class="foot">WeMarket · AI 모바일 메뉴판 플랫폼 — 오프라인 동작 데모 (외부 연결 없음)</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+// ── DATA ───────────────────────────────────────────────────────────────────
+var MENU=[
+  {id:"tbk",cat:"bun",emoji:"🌶️",price:4000,warm:true,popular:true,cold:false,spicy:2,rating:4.8,soldout:false,name:{ko:"떡볶이",en:"Tteokbokki",ja:"トッポッキ",zh:"炒年糕"},tag:{ko:"인기",en:"Popular",ja:"人気",zh:"人气"},tagType:"amber"},
+  {id:"gim",cat:"bun",emoji:"🍙",price:3500,warm:false,popular:true,cold:false,spicy:0,rating:4.5,soldout:false,name:{ko:"김밥",en:"Gimbap",ja:"キンパ",zh:"紫菜包饭"}},
+  {id:"ram",cat:"myun",emoji:"🍜",price:4000,warm:true,popular:false,cold:false,spicy:1,rating:4.3,soldout:false,name:{ko:"라면",en:"Ramen",ja:"ラーメン",zh:"拉面"},tag:{ko:"따뜻",en:"Warm",ja:"温かい",zh:"热乎"},tagType:"amber"},
+  {id:"udo",cat:"myun",emoji:"🍲",price:5000,warm:true,popular:false,cold:false,spicy:0,rating:4.6,soldout:false,name:{ko:"우동",en:"Udon",ja:"うどん",zh:"乌冬面"},tag:{ko:"따뜻",en:"Warm",ja:"温かい",zh:"热乎"},tagType:"amber"},
+  {id:"ode",cat:"side",emoji:"🍢",price:3000,warm:true,popular:false,cold:false,spicy:0,rating:4.2,soldout:false,name:{ko:"어묵",en:"Fish Cake",ja:"おでん",zh:"鱼饼"},tag:{ko:"따뜻",en:"Warm",ja:"温かい",zh:"热乎"},tagType:"amber"},
+  {id:"twi",cat:"side",emoji:"🍤",price:4000,warm:false,popular:false,cold:false,spicy:0,rating:4.1,soldout:false,name:{ko:"모둠튀김",en:"Fritters",ja:"天ぷら",zh:"什锦炸物"}},
+  {id:"bib",cat:"myun",emoji:"🥗",price:5500,warm:false,popular:false,cold:true,spicy:1,rating:4.4,soldout:false,name:{ko:"비빔국수",en:"Cold Spicy Noodles",ja:"ビビン麺",zh:"拌面"},tag:{ko:"시원",en:"Cool",ja:"さっぱり",zh:"清爽"},tagType:"green"},
+  {id:"kbr",cat:"bap",emoji:"🍚",price:6000,warm:true,popular:true,cold:false,spicy:1,rating:4.9,soldout:false,name:{ko:"김치볶음밥",en:"Kimchi Fried Rice",ja:"キムチチャーハン",zh:"泡菜炒饭"},tag:{ko:"든든",en:"Hearty",ja:"がっつり",zh:"丰盛"},tagType:"amber"},
+  {id:"snd",cat:"bun",emoji:"🥪",price:3500,warm:false,popular:false,cold:false,spicy:0,rating:3.9,soldout:true,name:{ko:"샌드위치",en:"Sandwich",ja:"サンドイッチ",zh:"三明治"},tag:{ko:"품절",en:"Sold Out",ja:"売切",zh:"售完"},tagType:"red"},
+  {id:"tea",cat:"side",emoji:"🧋",price:3000,warm:false,popular:false,cold:true,spicy:0,rating:4.0,soldout:false,name:{ko:"아이스티",en:"Iced Tea",ja:"アイスティ",zh:"冰茶"},tag:{ko:"시원",en:"Cool",ja:"さっぱり",zh:"清爽"},tagType:"green"},
+];
+
+var I={
+  ko:{
+    sub:"Table 4 · QR 주문",
+    time:{morning:"🌅 아침",lunch:"🌞 점심",dinner:"🌙 저녁",night:"🌃 야간"},
+    greet:["안녕하세요! 팅커벨이에요 ✨ 뭐 드실래요?","어서오세요 😊 메뉴를 골라보세요!","배고프셨죠? 제가 도와드릴게요 🍽️"],
+    greetTime:{morning:"좋은 아침이에요! 든든하게 드세요 ☀️",lunch:"점심 시간이에요! 에너지 충전하세요 🌞",dinner:"저녁은 뭐 드실까요? 😊",night:"야식 시간이에요! 🌙"},
+    ctx:{rain:"비가 오네요 ☔",sun:"날씨가 좋아요 ☀️",cold:"날이 쌀쌀해요 ❄️",hot:"오늘 덥네요 🔥"},
+    rec:{rain:"이런 날엔 따끈한 {n} 어때요?",cold:"몸 따뜻해지는 {n} 추천드려요!",hot:"더울 땐 시원한 {n}가 딱이에요!",sun:"많은 분들이 찾는 {n}, 강력 추천!"},
+    add:["{n} 담았어요! 탁월한 선택 ✨","{n} 좋은 선택이에요 👏","{n} 맛있겠다~ 🤤"],
+    remove:"{n} 빼드렸어요",
+    cart:function(n,t){return n+"개 · "+t.toLocaleString()+"원";},
+    go:"주문하기",total:"합계",pay:"결제하기",
+    successTitle:"주문 완료!",successMsg:"맛있게 준비할게요 😋 잠시만 기다려 주세요",successClose:"처음으로",
+    drawerTitle:"장바구니",
+    chatPlaceholder:"팅커벨에게 물어보세요...",
+    cat:{all:"전체",bun:"분식",bap:"밥류",myun:"면류",side:"사이드"},
+    pr:function(p){return p.toLocaleString()+"원";},
+    wake:"잠깐 졸았어요 😴 무엇이든 물어보세요!",
+    thinking:"음... 생각해볼게요 🤔",
+    noItem:"먼저 메뉴를 담아주세요 🛒",
+    resp:{
+      rec:"날씨·시간대로 골라봤어요 → {n} 어때요? ✨",
+      cheap:"가장 알뜰한 건 {n} ({p}원)이에요!",
+      spicy:"매운 메뉴: 떡볶이(🌶️🌶️), 라면·비빔국수(🌶️)예요!",
+      nospicy:"안 매운 메뉴: 김밥·우동·어묵·튀김·아이스티예요!",
+      warm:"따뜻한 메뉴: 떡볶이·라면·우동·어묵이 있어요 🔥",
+      cold:"시원한 메뉴: 비빔국수·아이스티가 있어요 ❄️",
+      popular:"인기 1위는 김치볶음밥(⭐4.9)이에요! 떡볶이·김밥도 인기 많아요",
+      price:"메뉴 가격은 3,000~6,000원 사이예요!",
+      allergy:"알레르기 정보는 직원에게 문의해 주세요 🙏",
+      hello:"반가워요! 오늘 뭐 드실 거예요? 😊",
+      thanks:"천만에요! 맛있게 드세요 😋",
+      order:"담은 메뉴는 '주문하기'를 눌러 결제해요!",
+      rating:"김치볶음밥이 ⭐4.9로 가장 높아요! 강력 추천 🔥",
+      default:"잘 이해 못 했어요 😅 추천·가격·매운맛·별점 등을 물어보세요!",
+    }
+  },
+  en:{
+    sub:"Table 4 · QR Order",
+    time:{morning:"🌅 Morning",lunch:"🌞 Lunch",dinner:"🌙 Dinner",night:"🌃 Late Night"},
+    greet:["Hi! I'm Tinkerbell ✨ What would you like?","Welcome! Browse the menu 🍽️","Hungry? Let me help you 😊"],
+    greetTime:{morning:"Good morning! Start the day right ☀️",lunch:"Lunchtime! Time to recharge 🌞",dinner:"What's for dinner tonight? 😊",night:"Late-night craving? 🌙"},
+    ctx:{rain:"It's raining ☔",sun:"Lovely weather ☀️",cold:"It's chilly ❄️",hot:"It's hot today 🔥"},
+    rec:{rain:"On a rainy day, warm {n}?",cold:"Try {n} to warm up!",hot:"Beat the heat with cool {n}!",sun:"Everyone loves {n} — highly recommended!"},
+    add:["Added {n}! Great choice ✨","Nice pick: {n} 👏","{n} sounds yummy 🤤"],
+    remove:"{n} removed",
+    cart:function(n,t){return n+" item(s) · "+t.toLocaleString()+" KRW";},
+    go:"Order",total:"Total",pay:"Pay Now",
+    successTitle:"Order Placed!",successMsg:"We'll prepare it right away 😋",successClose:"Start Over",
+    drawerTitle:"Cart",
+    chatPlaceholder:"Ask Tinkerbell anything...",
+    cat:{all:"All",bun:"Snacks",bap:"Rice",myun:"Noodles",side:"Sides"},
+    pr:function(p){return p.toLocaleString()+" KRW";},
+    wake:"Oops, dozed off 😴 Ask me anything!",
+    thinking:"Hmm, let me think 🤔",
+    noItem:"Please add items first 🛒",
+    resp:{
+      rec:"Based on weather & time → try {n}! ✨",
+      cheap:"Most affordable: {n} ({p} KRW)!",
+      spicy:"Spicy options: Tteokbokki(🌶️🌶️), Ramen & Cold Noodles(🌶️)!",
+      nospicy:"Non-spicy: Gimbap, Udon, Fish Cake, Fritters, Iced Tea!",
+      warm:"Warm dishes: Tteokbokki, Ramen, Udon, Fish Cake 🔥",
+      cold:"Cool dishes: Cold Spicy Noodles, Iced Tea ❄️",
+      popular:"#1 is Kimchi Fried Rice (⭐4.9)! Tteokbokki & Gimbap are popular too",
+      price:"Prices range from 3,000–6,000 KRW!",
+      allergy:"For allergy info, please ask our staff 🙏",
+      hello:"Nice to meet you! What'll it be today? 😊",
+      thanks:"You're welcome! Enjoy your meal 😋",
+      order:"Add items then tap 'Order' to pay!",
+      rating:"Kimchi Fried Rice is rated ⭐4.9 — the highest! Highly recommended 🔥",
+      default:"Didn't catch that 😅 Try asking about recommendations, price, spiciness, or ratings!",
+    }
+  },
+  ja:{
+    sub:"テーブル4 · QR注文",
+    time:{morning:"🌅 朝",lunch:"🌞 昼",dinner:"🌙 夜",night:"🌃 深夜"},
+    greet:["いらっしゃいませ！ティンカーベルです ✨","何にしますか？メニューをどうぞ 🍽️","お腹すきましたか？ご案内します 😊"],
+    greetTime:{morning:"おはようございます！良い一日を ☀️",lunch:"ランチタイムです！しっかり食べて 🌞",dinner:"今夜は何にしましょう？ 😊",night:"夜食タイムですね 🌙"},
+    ctx:{rain:"雨ですね ☔",sun:"いい天気 ☀️",cold:"肌寒いですね ❄️",hot:"今日は暑い 🔥"},
+    rec:{rain:"こんな日は温かい{n}はいかが？",cold:"温まる{n}がおすすめ！",hot:"暑い日はさっぱり{n}が最高！",sun:"人気の{n}、おすすめです！"},
+    add:["{n}を追加！いい選択 ✨","{n}いいですね！ 👏","{n}美味しそう 🤤"],
+    remove:"{n}を削除しました",
+    cart:function(n,t){return n+"点 · "+t.toLocaleString()+"ウォン";},
+    go:"注文する",total:"合計",pay:"お会計",
+    successTitle:"注文完了！",successMsg:"美味しく作ります 😋 少々お待ちください",successClose:"最初から",
+    drawerTitle:"カート",
+    chatPlaceholder:"ティンカーベルに聞いてね...",
+    cat:{all:"全体",bun:"粉食",bap:"ご飯",myun:"麺",side:"サイド"},
+    pr:function(p){return p.toLocaleString()+"ウォン";},
+    wake:"うとうとしてました 😴 何でも聞いて！",
+    thinking:"うーん、考えますね 🤔",
+    noItem:"先にメニューを選んでね 🛒",
+    resp:{
+      rec:"天気と時間帯で選びました → {n}はいかが？ ✨",
+      cheap:"一番お得: {n}（{p}ウォン）！",
+      spicy:"辛いメニュー: トッポッキ(🌶️🌶️)、ラーメン・ビビン麺(🌶️)！",
+      nospicy:"辛くないメニュー: キンパ・うどん・おでん・天ぷら・アイスティ！",
+      warm:"温かいメニュー: トッポッキ・ラーメン・うどん・おでん 🔥",
+      cold:"さっぱりメニュー: ビビン麺・アイスティ ❄️",
+      popular:"1位はキムチチャーハン(⭐4.9)！トッポッキ・キンパも人気です",
+      price:"価格は3,000〜6,000ウォンです！",
+      allergy:"アレルギー情報はスタッフへお問い合わせください 🙏",
+      hello:"はじめまして！今日は何にしますか？ 😊",
+      thanks:"どういたしまして！お楽しみください 😋",
+      order:"カートに入れたら「注文する」を押してね！",
+      rating:"キムチチャーハンが⭐4.9で最高評価！おすすめです 🔥",
+      default:"よく分からなかったです 😅 おすすめ・価格・辛さ・評価など聞いてね！",
+    }
+  },
+  zh:{
+    sub:"4号桌 · 扫码点餐",
+    time:{morning:"🌅 早餐",lunch:"🌞 午餐",dinner:"🌙 晚餐",night:"🌃 夜宵"},
+    greet:["您好！我是小叮当 ✨ 今天想吃什么？","欢迎光临！请选择菜品 🍽️","饿了吗？让我来帮您 😊"],
+    greetTime:{morning:"早上好！吃顿好的开始新的一天 ☀️",lunch:"午餐时间到了！充充电 🌞",dinner:"晚饭想吃什么？ 😊",night:"夜宵时间 🌙"},
+    ctx:{rain:"下雨了 ☔",sun:"天气真好 ☀️",cold:"有点冷 ❄️",hot:"今天好热 🔥"},
+    rec:{rain:"这种天气来碗热乎的{n}吧？",cold:"推荐暖身的{n}！",hot:"天热就来份清爽的{n}！",sun:"大家都爱点的{n}，强烈推荐！"},
+    add:["已加入{n}！眼光不错 ✨","好眼光！加了{n} 👏","{n}看着真香 🤤"],
+    remove:"已删除{n}",
+    cart:function(n,t){return n+"件 · "+t.toLocaleString()+"韩元";},
+    go:"去下单",total:"合计",pay:"结账",
+    successTitle:"下单成功！",successMsg:"马上为您准备 😋 请稍候",successClose:"重新开始",
+    drawerTitle:"购物车",
+    chatPlaceholder:"问问小叮当...",
+    cat:{all:"全部",bun:"小吃",bap:"饭类",myun:"面类",side:"小食"},
+    pr:function(p){return p.toLocaleString()+"韩元";},
+    wake:"刚才打盹了 😴 有什么问题尽管问！",
+    thinking:"嗯，让我想想 🤔",
+    noItem:"请先选择菜品 🛒",
+    resp:{
+      rec:"根据天气和时间推荐 → 试试{n}！ ✨",
+      cheap:"最划算的是{n}（{p}韩元）！",
+      spicy:"辣味菜品: 炒年糕(🌶️🌶️)、拉面·拌面(🌶️)！",
+      nospicy:"不辣的: 紫菜包饭·乌冬面·鱼饼·炸物·冰茶！",
+      warm:"热乎菜品: 炒年糕·拉面·乌冬面·鱼饼 🔥",
+      cold:"清爽菜品: 拌面·冰茶 ❄️",
+      popular:"第一名是泡菜炒饭(⭐4.9)！炒年糕·紫菜包饭也很受欢迎",
+      price:"价格在3,000~6,000韩元之间！",
+      allergy:"过敏信息请咨询工作人员 🙏",
+      hello:"你好！今天想吃什么？ 😊",
+      thanks:"不客气！请慢用 😋",
+      order:"加入菜品后点击「去下单」结账！",
+      rating:"泡菜炒饭⭐4.9评分最高！强烈推荐 🔥",
+      default:"没太听懂 😅 可以问推荐、价格、辣度、评分等！",
+    }
+  }
+};
+
+var VLANG={ko:"ko-KR",en:"en-US",ja:"ja-JP",zh:"zh-CN"};
+var MOOD_COLOR={idle:"#F59E0B",thinking:"#2563EB",happy:"#10B981",excited:"#F43F5E",sleeping:"#8B5CF6",patrol:"#06B6D4"};
+var MOOD_KO={idle:"대기 중",thinking:"생각 중",happy:"기쁨",excited:"흥분",sleeping:"잠자는 중",patrol:"순찰 중"};
+var MOOD_EN={idle:"Idle",thinking:"Thinking",happy:"Happy",excited:"Excited",sleeping:"Sleeping",patrol:"Patrolling"};
+var MOOD_JA={idle:"待機中",thinking:"考え中",happy:"喜び",excited:"興奮",sleeping:"眠り中",patrol:"巡回中"};
+var MOOD_ZH={idle:"待机",thinking:"思考中",happy:"开心",excited:"兴奋",sleeping:"睡眠中",patrol:"巡逻中"};
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+var st={lang:"ko",weather:"rain",cart:{},voice:false,big:false,sound:true,mood:"idle",cat:"all"};
+var typingTimer=null,returnTimer=null,idleTimer=null,sleepTimer=null,patrolTimer=null,moodTimer=null;
+var home={x:246,y:238};
+var $=function(s){return document.querySelector(s);};
+var fx=$("#fx"),fairy=$("#fairy"),bubble=$("#bubble"),bctx=$("#bctx"),btxt=$("#btxt"),bcur=$("#bcur");
+var menuEl=$("#menu"),scroll=$("#scroll"),zzz=$("#zzz");
+
+// ── AUDIO ──────────────────────────────────────────────────────────────────
+var ac=null;
+function tone(f,t,d,type,v){
+  if(!st.sound) return;
+  try{
+    if(!ac) ac=new(window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==="suspended") ac.resume();
+    var o=ac.createOscillator(),g=ac.createGain();
+    o.type=type||"sine"; o.frequency.setValueAtTime(f,t);
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(v||0.35,t+0.01);
+    g.gain.linearRampToValueAtTime(0,t+d);
+    o.connect(g); g.connect(ac.destination);
+    o.start(t); o.stop(t+d);
+  }catch(e){}
+}
+function sndAdd(){var n=ac?ac.currentTime:(new(window.AudioContext||window.webkitAudioContext)().currentTime);if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();var t=ac.currentTime;tone(523,t,.1,"sine",.3);tone(659,t+.1,.1,"sine",.35);tone(784,t+.2,.2,"sine",.4);}
+function sndRec(){if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();var t=ac.currentTime;tone(880,t,.12,"sine",.3);tone(1100,t+.12,.2,"sine",.35);}
+function sndOrder(){if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();var t=ac.currentTime;[523,659,784,1047].forEach(function(f,i){tone(f,t+i*.12,.2,"sine",.45);});}
+
+// ── TIME ───────────────────────────────────────────────────────────────────
+function timeKey(){var h=new Date().getHours();return h<10?"morning":h<15?"lunch":h<20?"dinner":"night";}
+
+// ── MOOD ───────────────────────────────────────────────────────────────────
+var MOODS=["idle","thinking","happy","excited","sleeping","patrol"];
+function setMood(mood,dur){
+  st.mood=mood;
+  MOODS.forEach(function(m){fairy.classList.remove(m);});
+  fairy.classList.add(mood);
+  zzz.style.display=mood==="sleeping"?"block":"none";
+  var dot=$("#moodDot"),lbl=$("#moodLabel"),sub=$("#moodSub");
+  dot.style.background=MOOD_COLOR[mood]||"#F59E0B";
+  var map={ko:MOOD_KO,en:MOOD_EN,ja:MOOD_JA,zh:MOOD_ZH}[st.lang]||MOOD_KO;
+  lbl.textContent=map[mood]||mood; sub.textContent=mood;
+  clearTimeout(moodTimer);
+  if(dur) moodTimer=setTimeout(function(){setMood("idle");},dur);
+}
+
+// ── SLEEP ──────────────────────────────────────────────────────────────────
+function resetSleep(){
+  clearTimeout(sleepTimer);
+  if(st.mood==="sleeping"){setMood("idle");say("",I[st.lang].wake);}
+  sleepTimer=setTimeout(function(){
+    if(fairy._busy) return resetSleep();
+    setMood("sleeping");
+    say("","z z z 💤",{keep:true});
+  },13000);
+}
+
+// ── FAIRY POS ──────────────────────────────────────────────────────────────
+function setFairy(x,y){fairy.style.transform="translate("+x+"px,"+y+"px)";fairy._x=x;fairy._y=y;}
+function fairyC(){return{x:(fairy._x||home.x)+39,y:(fairy._y||home.y)+39};}
+function fairyHome(){setFairy(home.x,home.y);}
+
+function startFloat(){
+  clearInterval(idleTimer);
+  idleTimer=setInterval(function(){
+    if(fairy._busy||st.mood!=="idle") return;
+    setFairy(home.x+(Math.random()*30-15),home.y+(Math.random()*34-17));
+  },2800);
+}
+
+// ── PARTICLES ─────────────────────────────────────────────────────────────
+var trailTimer=null;
+function spark(cx,cy,o){
+  o=o||{};
+  var s=document.createElement("div"),sz=o.size||(6+Math.random()*8);
+  s.className="spark";
+  var glyphs=["★","✦","✧","◆","·","✱"];
+  s.style.cssText="left:"+(cx-sz/2+(Math.random()*14-7))+"px;top:"+(cy-sz/2+(Math.random()*8-4))+"px;font-size:"+sz+"px;color:"+(o.color||"#F59E0B")+";";
+  s.textContent=o.glyph||glyphs[Math.floor(Math.random()*glyphs.length)];
+  s.style.setProperty("--dx",(Math.random()*22-11)+"px");
+  s.style.setProperty("--s",0.7+Math.random()*.6);
+  s.style.animation=(o.rise?"rise":"fall")+" "+(0.8+Math.random()*.5)+"s ease-out forwards";
+  fx.appendChild(s);
+  setTimeout(function(){s.remove();},1500);
+}
+function burst(cx,cy,n,col,glyph){
+  for(var i=0;i<n;i++){(function(k){setTimeout(function(){spark(cx,cy,{size:8+Math.random()*9,color:col||"#F59E0B",glyph:glyph});},k*28);})(i);}
+}
+function confetti(){
+  var cols=["#F59E0B","#2563EB","#10B981","#F43F5E","#8B5CF6"];
+  for(var i=0;i<28;i++){(function(k){setTimeout(function(){
+    var c=fairyC();
+    spark(c.x+(Math.random()*100-50),c.y+(Math.random()*80-40),
+      {size:6+Math.random()*9,color:cols[k%5],rise:Math.random()>.4});
+  },k*22);})(i);}
+}
+function startTrail(){
+  clearInterval(trailTimer);
+  trailTimer=setInterval(function(){
+    var c=fairyC();
+    spark(c.x,c.y,{size:4+Math.random()*4,color:MOOD_COLOR[st.mood]||"#F59E0B"});
+  },220);
+}
+
+// ── BUBBLE ─────────────────────────────────────────────────────────────────
+function placeBubble(){
+  var bx=Math.min(Math.max((fairy._x||home.x)-138,10),360-10-bubble.offsetWidth-10);
+  var by=(fairy._y||home.y)-bubble.offsetHeight-9;
+  if(by<70) by=(fairy._y||home.y)+88;
+  bubble.style.left=bx+"px"; bubble.style.top=by+"px";
+}
+function say(ctx,text,opts){
+  opts=opts||{};
+  clearTimeout(typingTimer);
+  bctx.textContent=ctx||""; bctx.style.display=ctx?"block":"none";
+  btxt.textContent=""; bcur.style.display="inline-block";
+  bubble.classList.add("show"); placeBubble();
+  var i=0;
+  (function type(){
+    if(i<=text.length){btxt.textContent=text.slice(0,i);placeBubble();i++;typingTimer=setTimeout(type,30);}
+    else{
+      bcur.style.display="none";
+      if(st.voice) speak((ctx?ctx+". ":"")+text);
+      if(!opts.keep){clearTimeout(returnTimer);returnTimer=setTimeout(function(){bubble.classList.remove("show");},5500);}
+    }
+  })();
+  resetSleep();
+}
+function speak(t){
+  if(!window.speechSynthesis) return;
+  try{window.speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(t.replace(/[✨🍽️☔☀️❄️🔥👏🤤😊😋🌶️⭐💤🤔🛒]/g,""));u.lang=VLANG[st.lang]||"ko-KR";u.rate=1.05;u.pitch=1.15;window.speechSynthesis.speak(u);}catch(e){}
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+var toastT=null;
+function toast(msg){var t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove("show");},2600);}
+
+// ── CHAT LOG ───────────────────────────────────────────────────────────────
+function logChat(who,text){
+  var log=$("#chatLog"),d=document.createElement("div");
+  d.className="chat-entry "+who;
+  d.textContent=(who==="user"?"나: ":"🧚 ")+text;
+  log.appendChild(d); log.scrollTop=log.scrollHeight;
+  while(log.children.length>14) log.removeChild(log.children[0]);
+}
+
+// ── AI CHAT ────────────────────────────────────────────────────────────────
+function chat(input){
+  if(!input.trim()) return;
+  logChat("user",input); resetSleep();
+  var L=I[st.lang],R=L.resp,lc=input.toLowerCase(),resp;
+  if(/추천|おすすめ|recommend|suggest|推荐|좋은|뭐가/.test(lc)){
+    var m=pickRec(); resp=R.rec.replace("{n}",m.name[st.lang]);
+  } else if(/싸|저렴|cheap|afford|安い|划算|제일\s*싼|가장\s*싼/.test(lc)){
+    var cheap=MENU.filter(function(m){return!m.soldout;}).sort(function(a,b){return a.price-b.price;})[0];
+    resp=R.cheap.replace("{n}",cheap.name[st.lang]).replace("{p}",cheap.price.toLocaleString());
+  } else if(/안매|안 매|not spicy|辛くない|不辣|순한/.test(lc)){
+    resp=R.nospicy;
+  } else if(/매워|매운|spicy|辛|辣/.test(lc)){
+    resp=R.spicy;
+  } else if(/따뜻|뜨거|warm|温か|暖|뜨끈/.test(lc)){
+    resp=R.warm;
+  } else if(/시원|차가|cool|cold|さっぱり|清爽|차게/.test(lc)){
+    resp=R.cold;
+  } else if(/인기|popular|人気|人气|베스트|best/.test(lc)){
+    resp=R.popular;
+  } else if(/가격|얼마|price|값|how much|値段|価格|价格|多少/.test(lc)){
+    resp=R.price;
+  } else if(/알레르기|allergy|アレルギー|过敏/.test(lc)){
+    resp=R.allergy;
+  } else if(/안녕|hello|hi|こんにちは|你好|하이|hey/.test(lc)){
+    resp=R.hello;
+  } else if(/고마|감사|thanks|thank|ありがとう|谢谢/.test(lc)){
+    resp=R.thanks;
+  } else if(/주문|결제|order|pay|注文|点餐|계산/.test(lc)){
+    resp=R.order;
+  } else if(/별점|평점|rating|점수|評価|评分|맛있/.test(lc)){
+    resp=R.rating;
+  } else {
+    resp=R.default;
+  }
+  setMood("thinking",2600);
+  say(null,L.thinking);
+  setTimeout(function(){
+    setMood("happy",3200);
+    say(null,resp); logChat("fairy",resp);
+    sndRec(); burst(fairyC().x,fairyC().y,5);
+  },1500);
+}
+
+// ── RECOMMEND ──────────────────────────────────────────────────────────────
+function pickRec(){
+  var w=st.weather,pool;
+  if(w==="rain"||w==="cold") pool=MENU.filter(function(m){return m.warm&&!m.soldout;});
+  else if(w==="hot") pool=MENU.filter(function(m){return m.cold&&!m.soldout;});
+  else pool=MENU.filter(function(m){return m.popular&&!m.soldout;});
+  if(!pool.length) pool=MENU.filter(function(m){return!m.soldout;});
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function recommend(){
+  var L=I[st.lang],m=pickRec();
+  var text=L.rec[st.weather].replace("{n}",m.name[st.lang]);
+  document.querySelectorAll(".item.rec").forEach(function(e){e.classList.remove("rec");});
+  var card=menuEl.querySelector('[data-id="'+m.id+'"]');
+  if(!card) return;
+  fairy._busy=true; setMood("thinking");
+  say(L.ctx[st.weather],L.thinking);
+  card.scrollIntoView({behavior:"smooth",block:"center"});
+  setTimeout(function(){
+    var rect=card.getBoundingClientRect(),fr=fx.getBoundingClientRect();
+    var tx=Math.max(8,Math.min(rect.right-fr.left-86,274));
+    var ty=Math.max(70,Math.min(rect.top-fr.top+4,520));
+    setFairy(tx,ty);
+    setTimeout(function(){
+      card.classList.add("rec"); setMood("excited",4500);
+      burst(fairyC().x,fairyC().y,10,"#F59E0B"); sndRec();
+      say(L.ctx[st.weather],text); logChat("fairy",text);
+      setTimeout(function(){fairy._busy=false;setMood("idle");fairyHome();},5800);
+    },700);
+  },550);
+  resetSleep();
+}
+
+// ── MENU ───────────────────────────────────────────────────────────────────
+function getQty(id){return st.cart[id]||0;}
+function totalQty(){return Object.values(st.cart).reduce(function(a,b){return a+b;},0);}
+function totalPrice(){
+  return Object.keys(st.cart).reduce(function(acc,id){
+    var m=MENU.find(function(x){return x.id===id;});
+    return acc+(m?m.price*(st.cart[id]||0):0);
+  },0);
+}
+
+function buildMenu(){
+  var L=I[st.lang];
+  menuEl.innerHTML="";
+  var list=MENU.filter(function(m){return st.cat==="all"||m.cat===st.cat;});
+  list.forEach(function(m){
+    var d=document.createElement("div");
+    d.className="item"+(m.soldout?" soldout":""); d.dataset.id=m.id;
+    var tag=m.tag?'<span class="tag '+(m.tagType||"amber")+'">'+m.tag[st.lang]+'</span>':"";
+    var spicy=m.spicy>0?'<span class="tag red">'+"🌶️".repeat(m.spicy)+'</span>':"";
+    var stars="⭐"+m.rating.toFixed(1);
+    var qty=getQty(m.id);
+    var ctrl=qty>0
+      ?'<button class="btn-ctrl minus" data-id="'+m.id+'">−</button><span class="qty-num">'+qty+'</span><button class="btn-ctrl plus" data-id="'+m.id+'">＋</button>'
+      :'<button class="btn-ctrl plus" data-id="'+m.id+'">＋</button>';
+    d.innerHTML=
+      '<div class="recflag">AI 추천</div>'+
+      '<div class="emoji-wrap"><div class="emoji">'+m.emoji+'</div><div class="qty-badge'+(qty>0?" show":"")+'">'+qty+'</div></div>'+
+      '<div class="info">'+
+        '<div class="nm">'+m.name[st.lang]+'</div>'+
+        '<div class="meta">'+tag+spicy+'<span class="stars">'+stars+'</span></div>'+
+        '<div class="pr">'+L.pr(m.price)+'</div>'+
+      '</div>'+
+      '<div class="controls">'+ctrl+'</div>';
+    var plus=d.querySelector(".btn-ctrl.plus");
+    if(plus) plus.addEventListener("click",function(e){e.stopPropagation();addItem(m,d);resetSleep();});
+    var minus=d.querySelector(".btn-ctrl.minus");
+    if(minus) minus.addEventListener("click",function(e){e.stopPropagation();removeItem(m);resetSleep();});
+    menuEl.appendChild(d);
+  });
+  $("#sub").textContent=L.sub;
+  $("#timeBadge").textContent=L.time[timeKey()];
+  document.querySelectorAll("#catRow span").forEach(function(s){s.textContent=L.cat[s.dataset.c]||s.textContent;});
+  $("#cartGo").textContent=L.go;
+  updateCart();
+}
+
+function updateCart(){
+  var n=totalQty(),t=totalPrice();
+  var prefixes={ko:"장바구니 ",en:"Cart ",ja:"カート ",zh:"购物车 "};
+  var suffixes={ko:"개 · "+t.toLocaleString()+"원",en:" · "+t.toLocaleString()+" KRW",ja:"点 · "+t.toLocaleString()+"ウォン",zh:"件 · "+t.toLocaleString()+"韩元"};
+  $("#cartN").textContent=n;
+  $("#cartPrefix").textContent=prefixes[st.lang]||prefixes.ko;
+  $("#cartSuffix").textContent=suffixes[st.lang]||suffixes.ko;
+}
+
+function addItem(m,card){
+  st.cart[m.id]=(st.cart[m.id]||0)+1;
+  updateCart(); buildMenu();
+  var L=I[st.lang];
+  var line=L.add[Math.floor(Math.random()*L.add.length)].replace("{n}",m.name[st.lang]);
+  var fr=fx.getBoundingClientRect();
+  var btn=card.querySelector(".btn-ctrl.plus");
+  if(btn){var br=btn.getBoundingClientRect();burst(br.left-fr.left+14,br.top-fr.top+14,9,"#2563EB","★");}
+  setMood("happy",2000); sndAdd();
+  say("",line); logChat("fairy",line);
+  burst(fairyC().x,fairyC().y,5,"#10B981");
+}
+
+function removeItem(m){
+  if(!st.cart[m.id]) return;
+  st.cart[m.id]--; if(!st.cart[m.id]) delete st.cart[m.id];
+  updateCart(); buildMenu();
+  toast(I[st.lang].remove.replace("{n}",m.name[st.lang]));
+}
+
+// ── DRAWER ─────────────────────────────────────────────────────────────────
+function openDrawer(){
+  var L=I[st.lang];
+  $("#drawerTitle").textContent=L.drawerTitle;
+  $("#drawerTotalLabel").textContent=L.total;
+  $("#orderBtn").textContent=L.pay;
+  var list=$("#drawerList"); list.innerHTML="";
+  if(totalQty()===0){
+    var empty=document.createElement("div");
+    empty.style.cssText="text-align:center;padding:36px 0;color:var(--mut);font-size:13px;";
+    empty.textContent=L.noItem;
+    list.appendChild(empty);
+  } else {
+    Object.keys(st.cart).forEach(function(id){
+      var m=MENU.find(function(x){return x.id===id;}); if(!m) return;
+      var d=document.createElement("div"); d.className="cart-item";
+
+      var emojiEl=document.createElement("div"); emojiEl.className="ci-emoji"; emojiEl.textContent=m.emoji;
+      var infoEl=document.createElement("div"); infoEl.className="ci-info";
+      var nameEl=document.createElement("div"); nameEl.className="ci-name"; nameEl.textContent=m.name[st.lang];
+      var priceEl=document.createElement("div"); priceEl.className="ci-price"; priceEl.textContent=L.pr(m.price);
+      infoEl.appendChild(nameEl); infoEl.appendChild(priceEl);
+
+      var ctrlEl=document.createElement("div"); ctrlEl.className="ci-ctrl";
+      var minusBtn=document.createElement("button"); minusBtn.className="ci-btn minus"; minusBtn.textContent="−";
+      var qtySpan=document.createElement("span"); qtySpan.className="ci-qty"; qtySpan.textContent=st.cart[id];
+      var plusBtn=document.createElement("button"); plusBtn.className="ci-btn plus"; plusBtn.textContent="＋";
+      ctrlEl.appendChild(minusBtn); ctrlEl.appendChild(qtySpan); ctrlEl.appendChild(plusBtn);
+
+      plusBtn.addEventListener("click",function(){st.cart[id]=(st.cart[id]||0)+1;updateCart();buildMenu();openDrawer();});
+      minusBtn.addEventListener("click",function(){st.cart[id]--;if(!st.cart[id])delete st.cart[id];updateCart();buildMenu();openDrawer();});
+
+      d.appendChild(emojiEl); d.appendChild(infoEl); d.appendChild(ctrlEl);
+      list.appendChild(d);
+    });
+  }
+  $("#drawerTotal").textContent=I[st.lang].pr(totalPrice());
+  $("#cartDrawer").classList.add("open");
+}
+function closeDrawer(){$("#cartDrawer").classList.remove("open");}
+
+// ── ORDER SUCCESS ──────────────────────────────────────────────────────────
+function showSuccess(){
+  closeDrawer();
+  var L=I[st.lang];
+  $("#successTitle").textContent=L.successTitle;
+  $("#successMsg").textContent=L.successMsg;
+  $("#successClose").textContent=L.successClose;
+  $("#orderSuccess").classList.add("show");
+  sndOrder(); setMood("excited",5000); confetti();
+  setTimeout(function(){burst(fairyC().x,fairyC().y,12,"#10B981","★");},700);
+}
+function hideSuccess(){
+  $("#orderSuccess").classList.remove("show");
+  st.cart={}; buildMenu(); setMood("happy",2000);
+  var L=I[st.lang]; say("",L.greet[0]);
+}
+
+// ── ENTRANCE / GREET ───────────────────────────────────────────────────────
+function greet(){
+  var L=I[st.lang];
+  var msg=L.greetTime[timeKey()]||L.greet[0];
+  say("",msg); logChat("fairy",msg); setMood("happy",3000);
+}
+function entrance(){
+  clearTimeout(returnTimer); bubble.classList.remove("show");
+  setMood("idle"); fairy._busy=false;
+  fairy.classList.add("intro"); fairy.style.transition="none";
+  setFairy(330,-90); fairy.style.opacity="0";
+  setTimeout(function(){
+    fairy.style.transition="transform 1.2s cubic-bezier(.5,.05,.3,1),opacity .6s";
+    fairy.classList.remove("intro"); fairy.style.opacity="1";
+    setFairy(home.x,home.y);
+    var iv=setInterval(function(){var c=fairyC();spark(c.x,c.y,{size:7+Math.random()*7});},115);
+    setTimeout(function(){clearInterval(iv);greet();},1400);
+  },120);
+  resetSleep();
+}
+
+// ── PATROL ─────────────────────────────────────────────────────────────────
+function patrol(){
+  clearTimeout(patrolTimer);
+  patrolTimer=setTimeout(function(){
+    if(fairy._busy||st.mood==="sleeping"){patrol();return;}
+    var avail=MENU.filter(function(m){return!m.soldout;});
+    var m=avail[Math.floor(Math.random()*avail.length)];
+    var card=menuEl.querySelector('[data-id="'+m.id+'"]');
+    if(!card){patrol();return;}
+    card.scrollIntoView({behavior:"smooth",block:"center"});
+    fairy._busy=true; setMood("patrol",3500);
+    setTimeout(function(){
+      var rect=card.getBoundingClientRect(),fr=fx.getBoundingClientRect();
+      var tx=Math.max(8,Math.min(rect.right-fr.left-86,274));
+      var ty=Math.max(70,Math.min(rect.top-fr.top+4,520));
+      setFairy(tx,ty);
+      setTimeout(function(){
+        spark(fairyC().x,fairyC().y,{size:11,color:"#06B6D4",glyph:"★"});
+        setTimeout(function(){fairy._busy=false;fairyHome();setMood("idle");patrol();},2600);
+      },750);
+    },420);
+  },9000+Math.random()*7000);
+}
+
+// ── CONTROLS ───────────────────────────────────────────────────────────────
+function setLang(l){
+  st.lang=l;
+  document.querySelectorAll("#cLang button,#langrow button").forEach(function(b){b.classList.toggle("on",b.dataset.l===l);});
+  $("#chatInput").placeholder=I[l].chatPlaceholder;
+  buildMenu(); greet();
+}
+
+document.querySelectorAll("#cLang button,#langrow button").forEach(function(b){b.addEventListener("click",function(){setLang(b.dataset.l);});});
+document.querySelectorAll("#cWeather button").forEach(function(b){b.addEventListener("click",function(){st.weather=b.dataset.w;document.querySelectorAll("#cWeather button").forEach(function(x){x.classList.toggle("on",x===b);});recommend();});});
+document.querySelectorAll("#catRow span").forEach(function(s){s.addEventListener("click",function(){document.querySelectorAll("#catRow span").forEach(function(x){x.classList.remove("act");});s.classList.add("act");st.cat=s.dataset.c;buildMenu();resetSleep();});});
+$("#recBtn").addEventListener("click",recommend);
+$("#tBig").addEventListener("click",function(){st.big=!st.big;this.classList.toggle("on",st.big);document.documentElement.style.setProperty("--fz",st.big?"1.18":"1");});
+$("#tVoice").addEventListener("click",function(){st.voice=!st.voice;this.classList.toggle("on",st.voice);if(st.voice)speak(I[st.lang].greet[0]);else if(window.speechSynthesis)window.speechSynthesis.cancel();});
+$("#tSound").addEventListener("click",function(){st.sound=!st.sound;this.classList.toggle("on",st.sound);this.querySelector("small").textContent=st.sound?"ON":"OFF";if(st.sound)sndAdd();});
+$("#replay").addEventListener("click",entrance);
+$("#cartGo").addEventListener("click",function(){totalQty()===0?say("",I[st.lang].noItem):openDrawer();resetSleep();});
+$("#drawerClose").addEventListener("click",closeDrawer);
+$("#orderBtn").addEventListener("click",function(){totalQty()===0?toast(I[st.lang].noItem):showSuccess();});
+$("#successClose").addEventListener("click",hideSuccess);
+fairy.addEventListener("click",function(){resetSleep();if(st.mood==="sleeping"){setMood("happy",2000);say("",I[st.lang].wake);burst(fairyC().x,fairyC().y,8);}else{greet();}});
+scroll.addEventListener("scroll",function(){if(bubble.classList.contains("show"))placeBubble();});
+
+var ci=$("#chatInput"),cs=$("#chatSend");
+cs.addEventListener("click",function(){var v=ci.value.trim();ci.value="";if(v)chat(v);});
+ci.addEventListener("keydown",function(e){if(e.key==="Enter"){var v=this.value.trim();this.value="";if(v)chat(v);}});
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+buildMenu();
+setFairy(home.x,home.y);
+startTrail();
+startFloat();
+patrol();
+setTimeout(entrance,400);
+
+})();
+</script>
+</body>
+</html>
