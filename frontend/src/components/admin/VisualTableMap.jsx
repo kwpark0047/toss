@@ -3,7 +3,6 @@ import { tablesAPI } from '../../api';
 import { Save, Move, MousePointer2, Loader2, RefreshCw } from 'lucide-react';
 
 const GRID_SIZE = 20;
-const MAP_WIDTH = 800;
 const MAP_HEIGHT = 600;
 
 /**
@@ -32,8 +31,7 @@ export default function VisualTableMap({ storeId, tables, onUpdate }) {
         const newX = Math.round((e.clientX - mapRect.left - 40) / GRID_SIZE) * GRID_SIZE;
         const newY = Math.round((e.clientY - mapRect.top - 40) / GRID_SIZE) * GRID_SIZE;
 
-        // 맵 경계 제한
-        const boundedX = Math.max(0, Math.min(newX, MAP_WIDTH - 80));
+        const boundedX = Math.max(0, Math.min(newX, mapRect.width - 80));
         const boundedY = Math.max(0, Math.min(newY, MAP_HEIGHT - 80));
 
         setItems(prev => prev.map(item =>
@@ -122,8 +120,8 @@ export default function VisualTableMap({ storeId, tables, onUpdate }) {
 
             <div
                 ref={mapRef}
-                className="relative bg-white border-2 border-dashed border-gray-200 rounded-xl mx-auto shadow-inner overflow-hidden"
-                style={{ width: MAP_WIDTH, height: MAP_HEIGHT, backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px` }}
+                className="relative bg-white border-2 border-dashed border-gray-200 rounded-xl shadow-inner overflow-hidden w-full"
+                style={{ height: MAP_HEIGHT, backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px` }}
             >
                 {items.map((table) => (
                     <div

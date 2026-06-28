@@ -262,18 +262,22 @@ const TableManager = () => {
                 >
                   <div className="flex justify-between items-start mb-8">
                     <div>
-                      <h3 className="text-2xl font-black text-white tracking-tight mb-2">{table.name}</h3>
+                      <h3 className="text-2xl font-black text-white tracking-tight mb-2">{table.table_number}</h3>
                       <div className="flex items-center gap-2 text-slate-500">
                         <Users size={14} />
                         <span className="font-bold text-[10px] tracking-widest uppercase">{table.capacity} SEATS</span>
                       </div>
                     </div>
                     <div className={`px-4 py-1.5 rounded-full font-black text-[9px] tracking-widest uppercase ${
-                      table.is_occupied 
-                        ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.1)]' 
-                        : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                      table.status === 'occupied'
+                        ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.1)]'
+                        : table.status === 'reserved'
+                          ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                          : table.status === 'dirty'
+                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
                     }`}>
-                      {table.is_occupied ? 'OCCUPIED' : 'VACANT'}
+                      {table.status === 'occupied' ? 'OCCUPIED' : table.status === 'reserved' ? 'RESERVED' : table.status === 'dirty' ? 'DIRTY' : 'VACANT'}
                     </div>
                   </div>
 
@@ -335,9 +339,9 @@ const TableManager = () => {
 };
 
 const TableModal = ({ storeId, table, onClose, onSave }) => {
-  const [form, setForm] = useState({ 
-    name: table?.name || "", 
-    capacity: table?.capacity || 4 
+  const [form, setForm] = useState({
+    table_number: table?.table_number || "",
+    capacity: table?.capacity || 4
   });
   const [loading, setLoading] = useState(false);
 
@@ -373,14 +377,14 @@ const TableModal = ({ storeId, table, onClose, onSave }) => {
         </h3>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Table Name</label>
-            <input 
-              type="text" 
-              value={form.name} 
-              onChange={(e) => setForm({ ...form, name: e.target.value })} 
-              placeholder="e.g. Table 01" 
-              required 
-              className="w-full px-6 py-4 bg-white/5 border border-white/5 rounded-2xl text-white font-bold outline-none focus:border-orange-500/30 transition-all uppercase text-sm tracking-widest" 
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Table Number</label>
+            <input
+              type="text"
+              value={form.table_number}
+              onChange={(e) => setForm({ ...form, table_number: e.target.value })}
+              placeholder="e.g. Table 01"
+              required
+              className="w-full px-6 py-4 bg-white/5 border border-white/5 rounded-2xl text-white font-bold outline-none focus:border-orange-500/30 transition-all uppercase text-sm tracking-widest"
             />
           </div>
           <div className="space-y-2">

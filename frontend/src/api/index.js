@@ -160,11 +160,12 @@ export const productsAPI = {
 
 // === [5. 테이블 및 주문] ===
 export const tablesAPI = {
-  getByStore: (storeId) => api.get('/tables/store/' + storeId), // 테이블 목록
-  getByQrCode: (qrCode) => api.get('/tables/qr/' + qrCode), // QR 코드로 테이블 조회
+  getByStore: (storeId) => api.get('/tables/store/' + storeId),
+  getByQrCode: (qrCode) => api.get('/tables/qr/' + qrCode),
   create: (data) => api.post('/tables', data),
   update: (id, data) => api.put('/tables/' + id, data),
   delete: (id) => api.delete('/tables/' + id),
+  regenerateQr: (id) => api.post('/tables/' + id + '/regenerate-qr'),
 };
 
 export const ordersAPI = {

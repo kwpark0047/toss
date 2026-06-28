@@ -3,6 +3,14 @@ const router = express.Router();
 const Table = require('../models/Table');
 const authMiddleware = require('../middleware/auth');
 const catchAsync = require('../utils/catchAsync');
+const crypto = require('crypto');
+const prisma = require('../config/prisma');
+
+// 매장별 테이블 목록 조회
+router.get('/store/:storeId', authMiddleware, catchAsync(async (req, res) => {
+    const tables = await Table.findByStoreId(req.params.storeId);
+    res.success(tables);
+}));
 
 // QR 코드로 테이블 조회
 router.get('/qr/:qrCode', catchAsync(async (req, res) => {
@@ -27,6 +35,20 @@ router.put('/:id', authMiddleware, catchAsync(async (req, res) => {
     }
 
     res.success(table, '테이블 정보가 수정되었습니다.');
+}));
+
+// QR 코드 재생성
+router.post('/:id/regenerate-qr', authMiddleware, catchAsync(async (req, res) => {
+    const newQrCode = `qr_${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`;
+    const table = await prisma.tables.update({
+        where: { id: parseInt(req.params.id) },
+        data: { qr_code: newQrCode, updated_at: new Date() }
+    });
+    const io = req.app.get('io');
+    if (io && table) {
+        io.emit('table-updated', { store_id: table.store_id, table_id: table.id });
+    }
+    res.success(table, 'QR 코드가 재생성되었습니다.');
 }));
 
 // 테이블 삭제
