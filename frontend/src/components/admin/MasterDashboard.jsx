@@ -446,7 +446,7 @@ const MasterDashboard = () => {
                                 whileTap={{ scale: 0.98 }}
                             >
                                 <Link
-                                    to={`/admin/stores/${selectedStore?.id}/${tool.to}`}
+                                    to={selectedStore?.id ? `/admin/stores/${selectedStore.id}/${tool.to}` : '/admin'}
                                     className="glass-panel p-5 flex items-center gap-5 transition-all hover:bg-white hover:shadow-xl group relative overflow-hidden border-white/60"
                                 >
                                     <div className={`p-3.5 bg-gradient-to-br ${tool.gradient} rounded-2xl text-white shadow-lg group-hover:rotate-6 transition-transform`}>

@@ -31,6 +31,7 @@ const ReservationManager = lazy(() => import("@/components/admin/ReservationMana
 const StoreForm          = lazy(() => import("@/components/admin/StoreForm"));
 const BulkSMSManager     = lazy(() => import("@/components/admin/BulkSMSManager"));
 const InventoryManager   = lazy(() => import("@/components/admin/InventoryManager"));
+const TableManager       = lazy(() => import("@/components/admin/TableManager"));
 const ProfilePage        = lazy(() => import("@/pages/ProfilePage"));
 
 const queryClient = new QueryClient();
@@ -188,6 +189,13 @@ const AppRoutes = () => (
     <Route path="/admin/stores/:storeId/inventory" element={
       <AdminPage>
         <ValidStoreRoute><AdminSuspense><InventoryManager /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
+    {/* 테이블 관리 */}
+    <Route path="/admin/stores/:storeId/tables" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><TableManager /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
