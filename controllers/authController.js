@@ -63,7 +63,7 @@ const sendOtp = async (req, res, next) => {
     await sendSms(normalized, `[위마켓] 인증번호: ${otp}`);
 
     const responseData = { message: '인증번호가 발송되었습니다.' };
-    if (IS_DEV) responseData.dev_otp = otp;
+    if (IS_DEV || !process.env.SMS_ENV || process.env.SMS_ENV === 'none') responseData.dev_otp = otp;
 
     res.success(responseData, '인증번호가 발송되었습니다.');
   } catch (error) {
