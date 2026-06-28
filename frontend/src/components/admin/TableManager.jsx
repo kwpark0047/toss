@@ -167,7 +167,6 @@ const TableManager = () => {
   }
 
   return (
-  return (
     <div className="max-w-7xl mx-auto pb-20 px-4">
       {/* 헤더 섹션 */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-12">
