@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
@@ -64,6 +64,15 @@ const ProtectedRoute = ({ children }) => {
   return <>{children}</>;
 };
 
+// storeId가 "undefined" 문자열이거나 없으면 대시보드로 리다이렉트
+const ValidStoreRoute = ({ children }) => {
+  const { storeId } = useParams();
+  if (!storeId || storeId === 'undefined') {
+    return <Navigate to="/admin" replace />;
+  }
+  return <>{children}</>;
+};
+
 // Admin Layout Wrapper
 const AdminPage = ({ children }) => (
   <ProtectedRoute>
@@ -108,84 +117,84 @@ const AppRoutes = () => (
     {/* 주문 관리 */}
     <Route path="/admin/stores/:storeId/orders" element={
       <AdminPage>
-        <AdminSuspense><OrderManager /></AdminSuspense>
+        <ValidStoreRoute><AdminSuspense><OrderManager /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
     {/* 메뉴 관리 */}
     <Route path="/admin/stores/:storeId/menu" element={
       <AdminPage>
-        <AdminSuspense><MenuManager /></AdminSuspense>
+        <ValidStoreRoute><AdminSuspense><MenuManager /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
     {/* 메뉴판 비주얼 빌더 */}
     <Route path="/admin/stores/:storeId/visual-builder" element={
       <AdminPage>
-        <AdminSuspense><MenuBuilder /></AdminSuspense>
+        <ValidStoreRoute><AdminSuspense><MenuBuilder /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
     {/* 직원 관리 */}
     <Route path="/admin/stores/:storeId/staff" element={
       <AdminPage>
-        <AdminSuspense><StaffManager /></AdminSuspense>
+        <ValidStoreRoute><AdminSuspense><StaffManager /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
     {/* 매출 통계 */}
     <Route path="/admin/stores/:storeId/stats" element={
       <AdminPage>
-        <AdminSuspense><SalesStats /></AdminSuspense>
+        <ValidStoreRoute><AdminSuspense><SalesStats /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
     {/* 고급 분석 대시보드 */}
     <Route path="/admin/stores/:storeId/analytics" element={
       <AdminPage>
-        <AdminSuspense><AnalyticsDashboard /></AdminSuspense>
+        <ValidStoreRoute><AdminSuspense><AnalyticsDashboard /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
     {/* 정산 분석 */}
     <Route path="/admin/stores/:storeId/settlements" element={
       <AdminPage>
-        <AdminSuspense><SettlementManager /></AdminSuspense>
+        <ValidStoreRoute><AdminSuspense><SettlementManager /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
     {/* 영수증 설정 */}
     <Route path="/admin/stores/:storeId/receipt-settings" element={
       <AdminPage>
-        <AdminSuspense><ReceiptSettings /></AdminSuspense>
+        <ValidStoreRoute><AdminSuspense><ReceiptSettings /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
     {/* 단골 고객 관리 */}
     <Route path="/admin/stores/:storeId/customers" element={
       <AdminPage>
-        <AdminSuspense><CustomerManager /></AdminSuspense>
+        <ValidStoreRoute><AdminSuspense><CustomerManager /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
     {/* 예약 관리 */}
     <Route path="/admin/stores/:storeId/reservations" element={
       <AdminPage>
-        <AdminSuspense><ReservationManager /></AdminSuspense>
+        <ValidStoreRoute><AdminSuspense><ReservationManager /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
     {/* 재고 관리 */}
     <Route path="/admin/stores/:storeId/inventory" element={
       <AdminPage>
-        <AdminSuspense><InventoryManager /></AdminSuspense>
+        <ValidStoreRoute><AdminSuspense><InventoryManager /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
     {/* 매장 환경설정 */}
     <Route path="/admin/stores/:storeId/settings" element={
       <AdminPage>
-        <AdminSuspense><StoreForm isEdit /></AdminSuspense>
+        <ValidStoreRoute><AdminSuspense><StoreForm isEdit /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
