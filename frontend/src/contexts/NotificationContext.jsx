@@ -20,14 +20,16 @@ export function NotificationProvider({ children, storeId, userId, role }) {
     const [activeFilter, setActiveFilter] = useState('ALL');
     const pollTimer = useRef(null);
 
+    const validStoreId = storeId && storeId !== 'undefined' ? storeId : null;
+
     // DB에서 알림 목록 로드
     const fetchNotifications = useCallback(async (page = 1, filter = activeFilter) => {
-        if (!storeId) return;
+        if (!validStoreId) return;
         try {
             setLoading(true);
             const params = { page, limit: 30 };
             if (filter !== 'ALL') params.type = filter;
-            const res = await notificationsAPI.getList(storeId, params);
+            const res = await notificationsAPI.getList(validStoreId, params);
             const data = res.data?.data;
             if (page === 1) {
                 setNotifications(data?.notifications || []);
@@ -37,19 +39,19 @@ export function NotificationProvider({ children, storeId, userId, role }) {
             setPagination(data?.pagination || { total: 0, page: 1, total_pages: 1 });
         } catch (_) { /* 조용히 실패 */ }
         finally { setLoading(false); }
-    }, [storeId, activeFilter]);
+    }, [validStoreId, activeFilter]);
 
     // 읽지 않은 수 갱신
     const fetchUnreadCount = useCallback(async () => {
-        if (!storeId) return;
+        if (!validStoreId) return;
         try {
-            const res = await notificationsAPI.getUnreadCount(storeId);
+            const res = await notificationsAPI.getUnreadCount(validStoreId);
             const d = res.data?.data;
             setUnreadCount(d?.total_unread || 0);
             setUrgentCount(d?.urgent_unread || 0);
             setByType(d?.by_type || {});
         } catch (_) { /* 조용히 실패 */ }
-    }, [storeId]);
+    }, [validStoreId]);
 
     // Socket.IO 실시간 알림 추가
     const addRealtimeNotification = useCallback((notification) => {
@@ -90,12 +92,12 @@ export function NotificationProvider({ children, storeId, userId, role }) {
     }, []);
 
     const markAllAsRead = useCallback(async () => {
-        if (!storeId) return;
-        try { await notificationsAPI.markAllAsRead(storeId); } catch (_) { /* 로컬 업데이트만 */ }
+        if (!validStoreId) return;
+        try { await notificationsAPI.markAllAsRead(validStoreId); } catch (_) { /* 로컬 업데이트만 */ }
         setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
         setUnreadCount(0);
         setUrgentCount(0);
-    }, [storeId]);
+    }, [validStoreId]);
 
     const removeNotification = useCallback(async (id) => {
         const target = notifications.find(n => n.id === id);
@@ -105,8 +107,8 @@ export function NotificationProvider({ children, storeId, userId, role }) {
     }, [notifications]);
 
     const clearNotifications = useCallback(async (mode = 'read') => {
-        if (!storeId) return;
-        try { await notificationsAPI.clear(storeId, mode); } catch (_) { /* 로컬 업데이트만 */ }
+        if (!validStoreId) return;
+        try { await notificationsAPI.clear(validStoreId, mode); } catch (_) { /* 로컬 업데이트만 */ }
         if (mode === 'all') {
             setNotifications([]);
             setUnreadCount(0);
@@ -114,7 +116,7 @@ export function NotificationProvider({ children, storeId, userId, role }) {
         } else {
             setNotifications(prev => prev.filter(n => !n.is_read));
         }
-    }, [storeId]);
+    }, [validStoreId]);
 
     const changeFilter = useCallback((filter) => {
         setActiveFilter(filter);
@@ -129,17 +131,17 @@ export function NotificationProvider({ children, storeId, userId, role }) {
 
     // 초기 로드 + 30초 폴링
     useEffect(() => {
-        if (!storeId) return;
+        if (!validStoreId) return;
         fetchNotifications(1);
         fetchUnreadCount();
         pollTimer.current = setInterval(fetchUnreadCount, POLL_INTERVAL);
         return () => { if (pollTimer.current) clearInterval(pollTimer.current); };
-    }, [storeId, fetchNotifications, fetchUnreadCount]);
+    }, [validStoreId, fetchNotifications, fetchUnreadCount]);
 
     // Socket.IO 연결
     useEffect(() => {
-        if (!storeId || !userId) return;
-        connectSocket(storeId, userId, role);
+        if (!validStoreId || !userId) return;
+        connectSocket(validStoreId, userId, role);
         const cleanupNotification = onNotification(addRealtimeNotification);
         const cleanupConnect = onConnect(() => setIsConnected(true));
         const cleanupDisconnect = onDisconnect(() => setIsConnected(false));
@@ -149,7 +151,7 @@ export function NotificationProvider({ children, storeId, userId, role }) {
             cleanupDisconnect?.();
             disconnectSocket();
         };
-    }, [storeId, userId, role, addRealtimeNotification]);
+    }, [validStoreId, userId, role, addRealtimeNotification]);
 
     useEffect(() => { notificationSound.setEnabled?.(soundEnabled); }, [soundEnabled]);
 

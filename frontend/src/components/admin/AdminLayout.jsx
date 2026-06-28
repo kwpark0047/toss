@@ -513,7 +513,8 @@ const AdminLayout = ({ children }) => {
     );
   }
 
-  const storeId = location.pathname.split('/')[3];
+  const rawStoreId = location.pathname.split('/')[3];
+  const storeId = rawStoreId && rawStoreId !== 'undefined' ? rawStoreId : undefined;
 
   const navItems = [
     { label: '대시보드',      icon: LayoutDashboard, path: '/admin',                                           id: 'dashboard', roles: [] },
