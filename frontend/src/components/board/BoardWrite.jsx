@@ -1,226 +1,348 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { boardAPI } from '../../api';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-    ArrowLeft, Save, Megaphone, MessageSquare, HelpCircle, Pin, Sparkles, Type, Send, AlertCircle
+    ArrowLeft, Send, Pin, Save, X, Tag, Plus,
+    FileText, AlignLeft, Layers
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-// ==============================================================
-// BoardWrite - 포커스 에디터 스타일
-// 잡지 원고를 쓰는 듯한 미니멀하고 몰입감 있는 환경 제공
-// ==============================================================
-
-const BOARD_OPTIONS = [
-    { key: 'notice', label: '공지사항', icon: Megaphone, desc: '공식 소식', adminOnly: true },
-    { key: 'free', label: '자유게시판', icon: MessageSquare, desc: '커뮤니티 공간', adminOnly: false },
-    { key: 'qna', label: '질문/답변', icon: HelpCircle, desc: '궁금한 점 문의', adminOnly: false },
-    { key: 'faq', label: '도움말/FAQ', icon: HelpCircle, desc: '자주 묻는 질문', adminOnly: true },
+const BOARD_TYPES = [
+    { key: 'free',   label: '자유게시판', restricted: false },
+    { key: 'qna',    label: '질문/답변', restricted: false },
+    { key: 'notice', label: '공지사항',  restricted: true },
+    { key: 'faq',    label: '도움말/FAQ', restricted: true },
 ];
 
-const BoardWrite = () => {
-    const { id } = useParams();
-    const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
-    const { user } = useAuth();
-    const isEditMode = !!id;
+const DRAFT_KEY = (type) => `board_draft_${type}`;
 
-    const [boardType, setBoardType] = useState(searchParams.get('type') || 'free');
+const BoardWrite = () => {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const initialType = searchParams.get('type') || 'free';
+    const editId = searchParams.get('edit');
+
+    const isAdmin = user && ['super_admin', 'store_admin'].includes(user.role);
+
+    const [boardType, setBoardType] = useState(initialType);
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
-    const [is_pinned, setIsPinned] = useState(false);
-    const [loading, setLoading] = useState(isEditMode);
+    const [isPinned, setIsPinned] = useState(false);
+    const [tagInput, setTagInput] = useState('');
+    const [tags, setTags] = useState([]);
     const [submitting, setSubmitting] = useState(false);
+    const [hasDraft, setHasDraft] = useState(false);
+    const [wordCount, setWordCount] = useState(0);
+    const tagInputRef = useRef(null);
 
-    const isAdmin = ['super_admin', 'store_admin'].includes(user?.role);
-
+    // 기존 게시글 로드 (수정 모드)
     useEffect(() => {
-        if (!user) {
-            toast.warning('로그인이 필요한 페이지입니다.');
-            navigate('/login');
-            return;
-        }
-        if (isEditMode) {
-            fetchPost();
-        }
-    }, [id, user]);
+        if (!editId) return;
+        boardAPI.getPost(editId).then(res => {
+            const p = res.data?.data || res.data;
+            setTitle(p.title || '');
+            setContent(p.content || '');
+            setBoardType(p.board_type || initialType);
+            setIsPinned(p.is_pinned || false);
+            if (p.tags) setTags(p.tags.split(',').filter(Boolean));
+        }).catch(() => toast.error('게시글을 불러올 수 없습니다.'));
+    }, [editId]);
 
-    const fetchPost = async () => {
+    // localStorage 임시저장 복원
+    useEffect(() => {
+        if (editId) return;
+        const saved = localStorage.getItem(DRAFT_KEY(boardType));
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.title || parsed.content) setHasDraft(true);
+            } catch {}
+        }
+    }, [boardType]);
+
+    // 자동 임시저장 (2초 디바운스)
+    useEffect(() => {
+        if (editId || (!title && !content)) return;
+        const t = setTimeout(() => {
+            localStorage.setItem(DRAFT_KEY(boardType), JSON.stringify({ title, content, tags }));
+        }, 2000);
+        return () => clearTimeout(t);
+    }, [title, content, tags, boardType, editId]);
+
+    // 글자수 카운트
+    useEffect(() => {
+        setWordCount(content.replace(/\s/g, '').length);
+    }, [content]);
+
+    const restoreDraft = () => {
+        const saved = localStorage.getItem(DRAFT_KEY(boardType));
+        if (!saved) return;
         try {
-            const res = await boardAPI.getPost(id);
-            const post = res.data?.data || res.data;
-            setTitle(post.title);
-            setContent(post.content);
-            setBoardType(post.board_type);
-            setIsPinned(post.is_pinned);
-        } catch (error) {
-            toast.error('기사를 불러오는데 실패했습니다.');
-            navigate('/board');
-        } finally {
-            setLoading(false);
+            const parsed = JSON.parse(saved);
+            setTitle(parsed.title || '');
+            setContent(parsed.content || '');
+            setTags(parsed.tags || []);
+            setHasDraft(false);
+            toast.success('임시저장 내용을 불러왔습니다.');
+        } catch {}
+    };
+
+    const clearDraft = () => {
+        localStorage.removeItem(DRAFT_KEY(boardType));
+        setHasDraft(false);
+    };
+
+    const addTag = (raw) => {
+        const normalized = raw.replace(/^#/, '').trim().toLowerCase();
+        if (!normalized || tags.includes(normalized) || tags.length >= 5) return;
+        setTags(prev => [...prev, normalized]);
+        setTagInput('');
+    };
+
+    const removeTag = (tag) => setTags(prev => prev.filter(t => t !== tag));
+
+    const handleTagKeyDown = (e) => {
+        if (['Enter', ',', ' '].includes(e.key)) {
+            e.preventDefault();
+            if (tagInput.trim()) addTag(tagInput);
+        }
+        if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
+            setTags(prev => prev.slice(0, -1));
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // 유효성 검사 강화
-        if (!title.trim()) {
-            toast.error('기사의 헤드라인을 입력해주세요.');
-            return;
-        }
-        if (!content.trim()) {
-            toast.error('본문 내용을 작성해주세요.');
-            return;
-        }
-        if (content.trim().length < 10) {
-            toast.error('기사 내용은 최소 10자 이상이어야 합니다.');
-            return;
-        }
+        if (!title.trim()) { toast.error('제목을 입력해주세요.'); return; }
+        if (!content.trim()) { toast.error('내용을 입력해주세요.'); return; }
 
         setSubmitting(true);
-        try {
-            const postData = {
-                title: title.trim(),
-                content: content.trim(),
-                is_pinned,
-                board_type: boardType
-            };
+        const payload = {
+            title: title.trim(),
+            content: content.trim(),
+            is_pinned: isPinned,
+            tags: tags.join(','),
+        };
 
-            if (isEditMode) {
-                await boardAPI.updatePost(id, postData);
-                toast.success('기사가 성공적으로 수정되었습니다.');
-                navigate(`/board/posts/${id}`);
+        try {
+            let res;
+            if (editId) {
+                res = await boardAPI.updatePost(editId, payload);
             } else {
-                const res = await boardAPI.createPost(boardType, postData);
-                const newPostId = res.data?.data?.id || res.data?.id;
-                toast.success('새로운 기사가 발행되었습니다.');
-                navigate(newPostId ? `/board/posts/${newPostId}` : `/board/${boardType}`);
+                res = await boardAPI.createPost(boardType, payload);
             }
-        } catch (error) {
-            toast.error(error.response?.data?.error || '발행 중 오류가 발생했습니다.');
+
+            localStorage.removeItem(DRAFT_KEY(boardType));
+            toast.success(editId ? '수정되었습니다.' : '등록되었습니다.');
+
+            const postId = editId || (res.data?.data?.id || res.data?.id);
+            navigate(postId ? `/board/posts/${postId}` : `/board/${boardType}`);
+        } catch (err) {
+            toast.error(err.response?.data?.error || '등록에 실패했습니다.');
         } finally {
             setSubmitting(false);
         }
     };
 
-    if (loading) return (
-        <div className="flex items-center justify-center py-64">
-            <div className="text-[10rem] font-serif italic font-black text-slate-50 animate-pulse select-none">PREPARING...</div>
-        </div>
-    );
+    const availableTypes = BOARD_TYPES.filter(t => !t.restricted || isAdmin);
 
     return (
-        <div className="max-w-6xl mx-auto pb-48 px-6 sm:px-10 font-sans text-slate-900">
-            {/* Editorial Header */}
-            <header className="border-b-[6px] border-slate-900 pb-12 mb-20 flex flex-col md:flex-row md:items-end justify-between gap-10">
-                <div className="space-y-6">
-                    <div className="flex items-center gap-4">
-                        <span className="h-1 w-12 bg-slate-900"></span>
-                        <div className="text-[12px] font-black tracking-[0.5em] text-slate-400 uppercase italic">
-                            {isEditMode ? '원고 수정' : '원고 작성'} 섹션
+        <div className="min-h-screen bg-white">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-40">
+
+                {/* ── 헤더 ── */}
+                <div className="flex items-center justify-between py-8 border-b border-slate-100">
+                    <button onClick={() => navigate(-1)}
+                        className="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-slate-900 uppercase tracking-[0.3em] transition-colors group">
+                        <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+                        Back
+                    </button>
+                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                        <FileText size={12} />
+                        {editId ? 'Edit Article' : 'New Article'}
+                    </div>
+                </div>
+
+                {/* 임시저장 복원 배너 */}
+                <AnimatePresence>
+                    {hasDraft && !editId && (
+                        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
+                            className="flex items-center justify-between mt-6 px-6 py-4 bg-amber-50 border border-amber-200 rounded-2xl">
+                            <div className="flex items-center gap-3 text-[11px] font-black text-amber-700">
+                                <Save size={14} />
+                                저장된 임시 원고가 있습니다
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button onClick={restoreDraft}
+                                    className="px-4 py-2 bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-700 transition-all">
+                                    불러오기
+                                </button>
+                                <button onClick={clearDraft}
+                                    className="px-4 py-2 bg-amber-100 text-amber-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-200 transition-all">
+                                    무시
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <form onSubmit={handleSubmit} className="pt-12 space-y-10">
+
+                    {/* ── 게시판 타입 선택 ── */}
+                    {!editId && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                                <Layers size={12} /> Section
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {availableTypes.map(type => (
+                                    <button key={type.key} type="button" onClick={() => setBoardType(type.key)}
+                                        className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${boardType === type.key
+                                            ? 'bg-slate-900 border-slate-900 text-white'
+                                            : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
+                                        }`}>
+                                        {type.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── 제목 ── */}
+                    <div className="space-y-4 border-b-[6px] border-slate-900 pb-8">
+                        <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                            <FileText size={12} /> Headline
+                        </div>
+                        <textarea
+                            rows={3}
+                            maxLength={200}
+                            placeholder="Write your headline..."
+                            className="w-full text-5xl md:text-7xl font-serif font-black italic tracking-tighter leading-[1.05] placeholder:text-slate-100 border-none outline-none resize-none bg-transparent text-slate-900 transition-all"
+                            value={title}
+                            onChange={e => setTitle(e.target.value)}
+                            required
+                        />
+                        <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-bold text-slate-200 uppercase tracking-widest">Headline</span>
+                            <span className={`text-[10px] font-black tabular-nums ${title.length > 180 ? 'text-rose-500' : 'text-slate-300'}`}>
+                                {title.length} / 200
+                            </span>
                         </div>
                     </div>
-                    <h1 className="text-7xl md:text-9xl font-serif font-black italic tracking-tighter leading-none select-none">
-                        {isEditMode ? 'EDIT' : 'WRITE'}
-                    </h1>
-                </div>
-                <div className="flex flex-col items-start md:items-end gap-6 h-full pb-2">
-                    <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-100">
-                        {BOARD_OPTIONS.filter(o => !o.adminOnly || isAdmin).map(type => (
-                            <button
-                                key={type.key}
-                                onClick={() => setBoardType(type.key)}
-                                className={`px-6 py-2.5 rounded-xl text-[10px] font-black tracking-[0.2em] uppercase transition-all ${boardType === type.key ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-300 hover:text-slate-900'}`}
-                            >
-                                {type.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </header>
 
-            <form onSubmit={handleSubmit} className="space-y-24">
-                {/* 제목 입력부 (매거진 스타일 헤드라인) */}
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <label className="text-[11px] font-black tracking-[0.4em] uppercase text-slate-400 italic">Headline Strategy (기사 제목)</label>
-                        <span className="text-[10px] font-black italic text-slate-200 tabular-nums uppercase">{title.length} / 100 자</span>
-                    </div>
-                    <input
-                        type="text"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="이곳에 강렬한 헤드라인을 입력하세요..."
-                        maxLength={100}
-                        className="w-full bg-transparent border-b-[4px] border-slate-100 focus:border-slate-900 text-5xl md:text-8xl font-serif font-black italic tracking-tighter outline-none py-6 transition-all placeholder:text-slate-100"
-                    />
-                </div>
-
-                {/* 본문 에디터 영역 */}
-                <div className="space-y-6 relative group">
-                    <div className="flex items-center justify-between">
-                        <label className="text-[11px] font-black tracking-[0.4em] uppercase text-slate-400 italic">The Manuscript Content (본문 내용)</label>
-                        <div className="flex items-center gap-6">
-                            <span className="text-[10px] font-black italic text-slate-200 tabular-nums uppercase">{content.split(/\s+/).filter(Boolean).length} 단어</span>
-                            <span className="text-[10px] font-black italic text-slate-200 tabular-nums uppercase">{content.length} 자</span>
+                    {/* ── 본문 ── */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                            <AlignLeft size={12} /> Body Copy
                         </div>
-                    </div>
-                    <textarea
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        placeholder="당신의 이야기를 풀어내세요. 모든 단어가 이 아카이브에서 중요하게 다뤄집니다..."
-                        className="w-full bg-slate-50 border-[3px] border-slate-100 rounded-[3rem] p-12 md:p-20 text-2xl md:text-3xl font-serif leading-[1.6] outline-none focus:border-slate-900 focus:bg-white transition-all placeholder:text-slate-200 min-h-[600px] resize-none selection:bg-slate-900 selection:text-white"
-                    />
-                    <div className="absolute -inset-4 bg-slate-100/30 rounded-[4rem] -z-10 opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
-                </div>
-
-                {/* Admin Features & Actions */}
-                <div className="flex flex-col md:flex-row items-center justify-between gap-12 pt-16 border-t-[3px] border-slate-900">
-                    <div className="flex items-center gap-10">
-                        {isAdmin && (
-                            <button
-                                type="button"
-                                onClick={() => setIsPinned(!is_pinned)}
-                                className={`flex items-center gap-3 px-8 py-3.5 rounded-full border-2 text-[10px] font-black tracking-[0.3em] uppercase transition-all shadow-sm active:scale-95 ${is_pinned ? 'bg-rose-600 border-rose-600 text-white' : 'border-slate-100 text-slate-300 hover:border-slate-900 hover:text-slate-900'}`}
-                            >
-                                <Pin size={16} className={is_pinned ? 'fill-current' : ''} />
-                                {is_pinned ? '상단 고정 게시글' : '상단 고정 설정'}
-                            </button>
-                        )}
-                        <div className="flex items-center gap-4 text-slate-300">
-                            <AlertCircle size={18} />
-                            <span className="text-[10px] font-black tracking-widest uppercase italic">게시물은 발행 후 영구적으로 아카이브에 기록됩니다.</span>
+                        <textarea
+                            rows={20}
+                            placeholder="Write your article here..."
+                            className="w-full text-[15px] font-serif leading-[2] text-slate-700 placeholder:text-slate-200 border-none outline-none resize-none bg-transparent transition-all"
+                            value={content}
+                            onChange={e => setContent(e.target.value)}
+                            required
+                        />
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                            <span className="text-[10px] font-bold text-slate-200 uppercase tracking-widest">Article Body</span>
+                            <span className="text-[10px] font-black tabular-nums text-slate-300">
+                                {wordCount.toLocaleString()} characters
+                            </span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
-                        <button
-                            type="button"
-                            onClick={() => navigate(-1)}
-                            className="px-10 py-4 text-[11px] font-black tracking-[0.4em] uppercase text-slate-400 hover:text-slate-900 transition-colors"
-                        >
-                            작성 취소
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={submitting}
-                            className="group relative flex items-center gap-4 px-14 py-5 bg-slate-900 text-white rounded-full font-bold text-sm overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-slate-900/30"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            {submitting ? (
-                                <span className="relative z-10 animate-pulse tracking-[0.2em] uppercase">발행 중...</span>
-                            ) : (
-                                <>
-                                    <Send size={18} className="relative z-10 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                    <span className="relative z-10 tracking-[0.2em]">{isEditMode ? '변경사항 저장' : '게시글 발행'}</span>
-                                </>
+                    {/* ── 태그 입력 ── */}
+                    <div className="space-y-4 p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                        <div className="flex items-center gap-3 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
+                            <Tag size={12} /> Tags
+                            <span className="text-slate-300 font-bold normal-case tracking-normal ml-1">최대 5개</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 min-h-[36px] items-center">
+                            {tags.map(tag => (
+                                <motion.span key={tag} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[10px] font-black text-slate-600 tracking-widest shadow-sm">
+                                    #{tag}
+                                    <button type="button" onClick={() => removeTag(tag)}
+                                        className="text-slate-300 hover:text-rose-500 transition-colors">
+                                        <X size={10} />
+                                    </button>
+                                </motion.span>
+                            ))}
+                            {tags.length < 5 && (
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        ref={tagInputRef}
+                                        type="text"
+                                        value={tagInput}
+                                        onChange={e => setTagInput(e.target.value)}
+                                        onKeyDown={handleTagKeyDown}
+                                        onBlur={() => { if (tagInput.trim()) addTag(tagInput); }}
+                                        placeholder={tags.length === 0 ? "#태그 입력 후 Enter" : "#추가..."}
+                                        className="bg-transparent border-none outline-none text-[10px] font-black text-slate-600 placeholder:text-slate-300 tracking-widest w-40"
+                                    />
+                                    {tagInput && (
+                                        <button type="button" onClick={() => addTag(tagInput)}
+                                            className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition-all">
+                                            <Plus size={10} />
+                                        </button>
+                                    )}
+                                </div>
                             )}
-                        </button>
+                        </div>
                     </div>
-                </div>
-            </form>
+
+                    {/* ── 옵션 (관리자) ── */}
+                    {isAdmin && (
+                        <div className="flex items-center gap-4 p-5 bg-rose-50 rounded-2xl border border-rose-100">
+                            <button type="button" onClick={() => setIsPinned(p => !p)}
+                                className={`flex items-center gap-2.5 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${isPinned
+                                    ? 'bg-rose-600 border-rose-600 text-white'
+                                    : 'bg-white border-rose-200 text-rose-400 hover:border-rose-400'
+                                }`}>
+                                <Pin size={12} />
+                                {isPinned ? 'Pinned (Headline)' : 'Pin as Headline'}
+                            </button>
+                            <span className="text-[10px] font-bold text-rose-400">상단에 고정 노출됩니다</span>
+                        </div>
+                    )}
+
+                    {/* ── 제출 버튼 ── */}
+                    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-slate-100 px-6 py-5">
+                        <div className="max-w-4xl mx-auto flex items-center justify-between">
+                            <div className="flex items-center gap-3 text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                                <Save size={12} className="text-green-400" />
+                                자동 임시저장 중
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button type="button" onClick={() => navigate(-1)}
+                                    className="px-8 py-4 rounded-2xl border-2 border-slate-100 text-slate-400 text-[11px] font-black uppercase tracking-widest hover:border-slate-300 transition-all">
+                                    Cancel
+                                </button>
+                                <motion.button
+                                    type="submit"
+                                    disabled={submitting || !title.trim() || !content.trim()}
+                                    whileTap={{ scale: 0.96 }}
+                                    className="flex items-center gap-3 px-10 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-xl shadow-slate-900/10">
+                                    {submitting ? (
+                                        <span className="flex items-center gap-2">
+                                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Publishing...
+                                        </span>
+                                    ) : (
+                                        <>
+                                            <Send size={14} />
+                                            {editId ? 'Update Article' : 'Publish Article'}
+                                        </>
+                                    )}
+                                </motion.button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };

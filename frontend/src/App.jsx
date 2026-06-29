@@ -33,6 +33,9 @@ const BulkSMSManager     = lazy(() => import("@/components/admin/BulkSMSManager"
 const InventoryManager   = lazy(() => import("@/components/admin/InventoryManager"));
 const TableManager       = lazy(() => import("@/components/admin/TableManager"));
 const ProfilePage        = lazy(() => import("@/pages/ProfilePage"));
+const BoardList          = lazy(() => import("@/components/board/BoardList"));
+const BoardDetail        = lazy(() => import("@/components/board/BoardDetail"));
+const BoardWrite         = lazy(() => import("@/components/board/BoardWrite"));
 
 const queryClient = new QueryClient();
 
@@ -219,6 +222,13 @@ const AppRoutes = () => (
         <AdminSuspense><ProfilePage /></AdminSuspense>
       </AdminPage>
     } />
+
+    {/* 커뮤니티 게시판 (구체적 경로 먼저) */}
+    <Route path="/board/posts/:id" element={<AdminSuspense><BoardDetail /></AdminSuspense>} />
+    <Route path="/board/write" element={<AdminSuspense><BoardWrite /></AdminSuspense>} />
+    <Route path="/board/edit/:id" element={<AdminSuspense><BoardWrite /></AdminSuspense>} />
+    <Route path="/board/:type" element={<AdminSuspense><BoardList /></AdminSuspense>} />
+    <Route path="/board" element={<AdminSuspense><BoardList /></AdminSuspense>} />
 
     {/* 404 */}
     <Route path="*" element={<NotFound />} />

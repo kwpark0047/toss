@@ -1,97 +1,138 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 import { boardAPI } from '../../api';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-    ArrowLeft, MessageSquare, Eye, Clock,
-    Trash2, Edit3, Pin, Heart, Share2, CornerDownRight, Send
+    ArrowLeft, Heart, Eye, MessageSquare, Share2, Pin,
+    Trash2, Edit3, CornerDownRight, ChevronUp, Tag,
+    Clock, Send
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
 
-// ==============================================================
-// BoardDetail - 매거진 기사 스타일
-// 게시글을 하나의 정제된 잡지 아티클처럼 구성
-// ==============================================================
+const TYPE_LABELS = { notice: '공지사항', free: '자유게시판', qna: '질문/답변', faq: '도움말/FAQ' };
+const TYPE_COLORS = {
+    notice: 'bg-rose-600 text-white',
+    free:   'bg-indigo-600 text-white',
+    qna:    'bg-emerald-600 text-white',
+    faq:    'bg-slate-700 text-white',
+};
+
+const fmtDateFull = (d) =>
+    new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(d));
+
+const fmtDateShort = (d) => {
+    const diff = (Date.now() - new Date(d)) / 1000;
+    if (diff < 60) return '방금 전';
+    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+    return new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' }).format(new Date(d));
+};
+
+const CommentItem = ({ comment, user, onDelete, onReply, depth = 0 }) => (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        className={`${depth > 0 ? 'pl-8 border-l-2 border-slate-100' : ''}`}>
+        <div className="flex gap-4 py-6">
+            <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black shrink-0">
+                {comment.author_name?.charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 flex-wrap mb-2">
+                    <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{comment.author_name}</span>
+                    <span className="text-[10px] font-bold text-slate-300 flex items-center gap-1">
+                        <Clock size={9} />{fmtDateShort(comment.created_at)}
+                    </span>
+                </div>
+                <p className="text-[13px] text-slate-700 leading-relaxed">{comment.content}</p>
+                <div className="flex items-center gap-4 mt-3">
+                    {depth === 0 && (
+                        <button onClick={() => onReply(comment.id, comment.author_name)}
+                            className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 hover:text-indigo-600 uppercase tracking-widest transition-colors">
+                            <CornerDownRight size={11} /> Reply
+                        </button>
+                    )}
+                    {user && (user.id === comment.author_id || ['super_admin', 'store_admin'].includes(user.role)) && (
+                        <button onClick={() => onDelete(comment.id)}
+                            className="flex items-center gap-1 text-[10px] font-black text-slate-300 hover:text-rose-500 uppercase tracking-widest transition-colors">
+                            <Trash2 size={10} /> Delete
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+        {comment.replies?.map(reply => (
+            <CommentItem key={reply.id} comment={reply} user={user} onDelete={onDelete} onReply={onReply} depth={1} />
+        ))}
+    </motion.div>
+);
 
 const BoardDetail = () => {
     const { id } = useParams();
-    const navigate = useNavigate();
     const { user } = useAuth();
+    const navigate = useNavigate();
+    const commentRef = useRef(null);
     const [post, setPost] = useState(null);
     const [comments, setComments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [commentText, setCommentText] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-    const [replyTarget, setReplyTarget] = useState(null);
-
-    const isAdmin = ['super_admin', 'store_admin'].includes(user?.role);
-    const isAuthor = post?.author_id === user?.id;
-
-    // 카테고리 한글 변환 헬퍼
-    const getBoardLabel = (type) => {
-        const labels = {
-            'notice': '공지사항',
-            'free': '자유게시판',
-            'qna': '질문/답변',
-            'faq': '도움말/FAQ'
-        };
-        return labels[type] || type?.toUpperCase();
-    };
+    const [replyTo, setReplyTo] = useState(null);
+    const [likeLoading, setLikeLoading] = useState(false);
+    const [showTop, setShowTop] = useState(false);
 
     useEffect(() => {
-        fetchPostData();
-    }, [id]);
+        const onScroll = () => setShowTop(window.scrollY > 500);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
 
-    const fetchPostData = async () => {
-        setLoading(true);
+    const fetchPost = async () => {
         try {
             const [postRes, commentRes] = await Promise.all([
                 boardAPI.getPost(id),
-                boardAPI.getComments(id)
+                boardAPI.getComments(id),
             ]);
             setPost(postRes.data?.data || postRes.data);
-            setComments(commentRes.data?.data || commentRes.data);
-        } catch (error) {
-            toast.error('게시글을 불러오는데 실패했습니다.');
-            navigate('/board');
+            setComments(commentRes.data?.data || commentRes.data || []);
+        } catch {
+            toast.error('게시글을 불러올 수 없습니다.');
+            navigate(-1);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleComment = async (e) => {
-        e.preventDefault();
-        if (!user) {
-            toast.warning('로그인이 필요합니다.');
-            return;
-        }
-        if (!commentText.trim()) return;
+    useEffect(() => { fetchPost(); }, [id]);
 
-        setSubmitting(true);
+    const handleLike = async () => {
+        if (!user) { toast.info('로그인이 필요합니다.'); return; }
+        if (likeLoading) return;
+        setLikeLoading(true);
         try {
-            await boardAPI.createComment(id, {
-                content: commentText.trim(),
-                parent_id: replyTarget
-            });
-            setCommentText('');
-            setReplyTarget(null);
-            fetchPostData();
-            toast.success('댓글이 등록되었습니다.');
-        } catch (error) {
-            toast.error('댓글 등록에 실패했습니다.');
+            const res = await boardAPI.toggleLike(id);
+            const { liked, like_count } = res.data?.data || {};
+            setPost(p => ({ ...p, is_liked: liked, like_count }));
+        } catch {
+            toast.error('잠시 후 다시 시도해주세요.');
         } finally {
-            setSubmitting(false);
+            setLikeLoading(false);
         }
     };
 
-    const handleDeletePost = async () => {
-        if (!window.confirm('정말로 이 기사를 삭제하시겠습니까? 관련 데이터가 모두 사라집니다.')) return;
+    const handleComment = async (e) => {
+        e.preventDefault();
+        if (!user) { toast.info('로그인이 필요합니다.'); return; }
+        if (!commentText.trim()) return;
         try {
-            await boardAPI.deletePost(id);
-            toast.success('게시글이 삭제되었습니다.');
-            navigate('/board');
-        } catch (error) {
-            toast.error('삭제에 실패했습니다.');
+            await boardAPI.createComment(id, {
+                content: commentText.trim(),
+                parent_id: replyTo?.id || null,
+            });
+            setCommentText('');
+            setReplyTo(null);
+            await fetchPost();
+            toast.success('댓글이 등록되었습니다.');
+        } catch {
+            toast.error('댓글 등록에 실패했습니다.');
         }
     };
 
@@ -99,288 +140,272 @@ const BoardDetail = () => {
         if (!window.confirm('댓글을 삭제하시겠습니까?')) return;
         try {
             await boardAPI.deleteComment(commentId);
-            fetchPostData();
-            toast.success('댓글이 삭제되었습니다.');
-        } catch (error) {
-            toast.error('댓글 삭제에 실패했습니다.');
+            await fetchPost();
+            toast.success('삭제되었습니다.');
+        } catch {
+            toast.error('삭제에 실패했습니다.');
         }
     };
 
-    const togglePin = async () => {
+    const handleDeletePost = async () => {
+        if (!window.confirm('게시글을 삭제하시겠습니까?')) return;
         try {
-            const res = await boardAPI.togglePin(id);
-            setPost({ ...post, is_pinned: res.data?.data?.is_pinned });
-            toast.success(res.data?.data?.is_pinned ? '상단에 고정되었습니다.' : '고정이 해제되었습니다.');
-        } catch (error) {
-            toast.error('권한이 없거나 오류가 발생했습니다.');
+            await boardAPI.deletePost(id);
+            toast.success('삭제되었습니다.');
+            navigate(`/board/${post?.board_type || 'free'}`);
+        } catch {
+            toast.error('삭제에 실패했습니다.');
         }
     };
 
-    // [프리미엄 스켈레톤 UI]
-    if (loading) return (
-        <div className="max-w-5xl mx-auto pb-48 px-6 sm:px-10 space-y-20 animate-pulse">
-            <div className="h-10 border-b-[3px] border-slate-100 pb-8 flex justify-between items-center">
-                <div className="w-32 h-4 bg-slate-100 rounded" />
-                <div className="w-24 h-8 bg-slate-50 rounded-full" />
-            </div>
-            <div className="space-y-12">
-                <div className="flex justify-between items-end border-b border-slate-50 pb-16">
-                    <div className="space-y-8 flex-1">
-                        <div className="w-48 h-4 bg-slate-100 rounded" />
-                        <div className="w-full h-16 bg-slate-100 rounded-2xl" />
-                        <div className="w-3/4 h-16 bg-slate-100 rounded-2xl" />
+    const handlePin = async () => {
+        try {
+            await boardAPI.togglePin(id);
+            setPost(p => ({ ...p, is_pinned: !p.is_pinned }));
+            toast.success(post?.is_pinned ? '고정 해제되었습니다.' : '고정되었습니다.');
+        } catch {
+            toast.error('처리에 실패했습니다.');
+        }
+    };
+
+    const handleShare = () => {
+        navigator.clipboard.writeText(window.location.href);
+        toast.success('링크가 복사되었습니다.');
+    };
+
+    const isOwner = user && post && user.id === post.author_id;
+    const isAdmin = user && ['super_admin', 'store_admin'].includes(user.role);
+    const isEditable = isOwner || isAdmin;
+
+    if (loading) {
+        return (
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 animate-pulse">
+                <div className="space-y-12">
+                    <div className="w-24 h-8 bg-slate-100 rounded-xl" />
+                    <div className="space-y-6">
+                        <div className="w-20 h-6 bg-slate-100 rounded-lg" />
+                        <div className="w-full h-20 bg-slate-100 rounded-3xl" />
+                        <div className="w-1/2 h-20 bg-slate-50 rounded-3xl" />
+                    </div>
+                    <div className="h-px bg-slate-100" />
+                    <div className="space-y-4">
+                        {[1, 2, 3, 4, 5].map(i => <div key={i} className="w-full h-4 bg-slate-50 rounded" />)}
                     </div>
                 </div>
-                <div className="space-y-6">
-                    <div className="w-full h-4 bg-slate-50 rounded" />
-                    <div className="w-full h-4 bg-slate-50 rounded" />
-                    <div className="w-full h-4 bg-slate-50 rounded" />
-                    <div className="w-2/3 h-4 bg-slate-50 rounded" />
-                </div>
             </div>
-        </div>
-    );
+        );
+    }
+
+    if (!post) return null;
+
+    const tags = post.tags ? post.tags.split(',').filter(Boolean) : [];
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="max-w-5xl mx-auto pb-48 px-6 sm:px-10 font-sans text-slate-900"
-        >
-            {/* Editorial Navigation */}
-            <nav className="flex items-center justify-between border-b-[3px] border-slate-900 pb-8 mb-20">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="group flex items-center gap-4 text-[11px] font-black tracking-[0.4em] uppercase text-slate-400 hover:text-slate-900 transition-all"
-                >
-                    <ArrowLeft size={18} className="group-hover:-translate-x-2 transition-transform" />
-                    Back to Index
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
+            {/* ── 상단 네비게이션 ── */}
+            <div className="flex items-center justify-between py-8 border-b border-slate-100">
+                <button onClick={() => navigate(`/board/${post.board_type}`)}
+                    className="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-slate-900 uppercase tracking-[0.3em] transition-colors group">
+                    <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+                    Back to {TYPE_LABELS[post.board_type] || 'Board'}
                 </button>
-                <div className="flex items-center gap-8">
-                    {(isAuthor || isAdmin) && (
-                        <div className="flex items-center gap-6">
-                            <Link to={`/board/edit/${id}`} className="text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 hover:text-indigo-600 border-b border-transparent hover:border-indigo-600 transition-all">Edit Article</Link>
-                            <button onClick={handleDeletePost} className="text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 hover:text-rose-600 border-b border-transparent hover:border-rose-600 transition-all">Discard</button>
-                        </div>
-                    )}
+                <div className="flex items-center gap-3 flex-wrap">
                     {isAdmin && (
-                        <button
-                            onClick={togglePin}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-full border-2 text-[10px] font-black tracking-[0.2em] uppercase transition-all shadow-sm active:scale-95 ${post.is_pinned ? 'bg-rose-600 border-rose-600 text-white shadow-rose-600/20' : 'border-slate-100 text-slate-300 hover:border-slate-900 hover:text-slate-900'
-                                }`}
-                        >
-                            <Pin size={14} className={post.is_pinned ? 'fill-current' : ''} /> {post.is_pinned ? 'Featured' : 'Feature Story'}
+                        <button onClick={handlePin}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${post.is_pinned ? 'bg-rose-100 text-rose-600' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
+                            <Pin size={12} /> {post.is_pinned ? 'Unpin' : 'Pin'}
                         </button>
                     )}
+                    {isEditable && (
+                        <>
+                            <button onClick={() => navigate(`/board/edit/${id}?type=${post.board_type}`)}
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 text-[10px] font-black uppercase tracking-widest transition-all">
+                                <Edit3 size={12} /> Edit
+                            </button>
+                            <button onClick={handleDeletePost}
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-600 text-[10px] font-black uppercase tracking-widest transition-all">
+                                <Trash2 size={12} /> Delete
+                            </button>
+                        </>
+                    )}
+                    <button onClick={handleShare}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 text-[10px] font-black uppercase tracking-widest transition-all">
+                        <Share2 size={12} /> Share
+                    </button>
                 </div>
-            </nav>
+            </div>
 
-            <article className="space-y-24">
-                {/* Article Header */}
-                <header className="space-y-12">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 border-b border-slate-100 pb-16">
-                        <div className="space-y-8 flex-1">
-                            <div className="flex items-center gap-4">
-                                <span className="h-1 w-12 bg-rose-600 rounded-full"></span>
-                                <span className="text-[12px] font-black tracking-[0.5em] uppercase text-rose-600 italic">
-                                    {getBoardLabel(post.board_type)} / ARCHIVE NO.{id}
-                                </span>
-                            </div>
-                            <h1 className="text-6xl md:text-8xl font-serif font-black leading-[0.95] tracking-tighter italic lg:-ml-1">
-                                {post.title}
-                            </h1>
-                        </div>
-                        <div className="flex flex-col items-start md:items-end gap-3 shrink-0 lg:pb-2">
-                            <div className="text-[11px] font-black text-slate-900 tracking-[0.3em] uppercase border-b-[3px] border-slate-900 pb-1">Mastermind</div>
-                            <div className="text-3xl font-serif font-black italic tracking-tight">{post.author_name}</div>
-                            <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">
-                                Published on {new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(new Date(post.created_at))}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-8 py-2">
-                        <div className="flex items-center gap-10">
-                            <div className="flex items-center gap-3 text-[11px] font-black tracking-[0.2em] uppercase text-slate-400">
-                                <Eye size={18} className="text-slate-200" /> {post.view_count} Readers
-                            </div>
-                            <div className="flex items-center gap-3 text-[11px] font-black tracking-[0.2em] uppercase text-slate-400">
-                                <MessageSquare size={18} className="text-slate-200" /> {comments.length} Responses
-                            </div>
-                        </div>
-                        <button className="flex items-center gap-3 text-[11px] font-black tracking-[0.3em] uppercase text-slate-900 group hover:text-indigo-600 transition-colors">
-                            <Share2 size={18} className="group-hover:translate-x-1 transition-transform" /> Spread the words
-                        </button>
-                    </div>
-                </header>
-
-                {/* Article Body */}
-                <div className="prose prose-slate max-w-none">
-                    <div className="text-xl md:text-2xl leading-[1.8] text-slate-800 font-medium whitespace-pre-wrap selection:bg-slate-900 selection:text-white first-letter:text-8xl first-letter:font-serif first-letter:font-black first-letter:float-left first-letter:mr-6 first-letter:mt-2 first-letter:text-slate-900 first-letter:leading-none">
-                        {post.content}
-                    </div>
+            {/* ── 게시글 헤더 ── */}
+            <motion.header initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="py-14 space-y-8 border-b-[3px] border-slate-900">
+                <div className="flex items-center gap-3 flex-wrap">
+                    <span className={`px-4 py-1.5 rounded-lg text-[10px] font-black tracking-[0.3em] uppercase ${TYPE_COLORS[post.board_type] || 'bg-slate-700 text-white'}`}>
+                        {TYPE_LABELS[post.board_type] || post.board_type}
+                    </span>
+                    {post.is_pinned && (
+                        <span className="px-4 py-1.5 rounded-lg text-[10px] font-black tracking-[0.3em] uppercase bg-rose-600 text-white flex items-center gap-1.5">
+                            <Pin size={10} /> HEADLINE STORY
+                        </span>
+                    )}
                 </div>
 
-                {/* Interaction Footer */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true }}
-                    className="pt-20 border-t-2 border-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-10"
-                >
-                    <div className="flex items-center gap-6">
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="flex items-center gap-4 px-8 py-4 bg-white border-[3px] border-slate-900 rounded-full text-[11px] font-black tracking-[0.3em] uppercase hover:bg-slate-900 hover:text-white transition-all group shadow-xl shadow-slate-900/5 active:scale-95"
-                        >
-                            <Heart size={18} className="group-hover:fill-rose-500 group-hover:text-rose-500 transition-all" />
-                            ADMIRE ARTICLE
-                        </motion.button>
+                <h1 className="text-5xl md:text-7xl font-serif font-black italic tracking-tighter leading-[1.05]">
+                    {post.title}
+                </h1>
+
+                {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                        {tags.map(tag => (
+                            <Link key={tag} to={`/board/${post.board_type}?tag=${tag}`}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 text-slate-500 rounded-full text-[10px] font-black tracking-widest uppercase transition-all">
+                                <Tag size={9} />#{tag}
+                            </Link>
+                        ))}
                     </div>
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-6 pt-4 border-t border-slate-100">
                     <div className="flex items-center gap-4">
-                        <span className="text-[11px] font-black tracking-[0.4em] text-slate-300 uppercase">Archive Tags /</span>
-                        <div className="flex gap-4">
-                            {['EDITORIAL', 'FEATURED', 'COMMUNITY'].map(tag => (
-                                <motion.span
-                                    key={tag}
-                                    whileHover={{ y: -2 }}
-                                    className="text-[11px] font-black tracking-[0.2em] text-slate-900 hover:text-indigo-600 cursor-pointer transition-colors relative group"
-                                >
-                                    #{tag}
-                                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 group-hover:w-full transition-all"></span>
-                                </motion.span>
-                            ))}
+                        <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center text-sm font-black">
+                            {post.author_name?.charAt(0)}
+                        </div>
+                        <div>
+                            <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{post.author_name}</p>
+                            <p className="text-[10px] font-bold text-slate-300 flex items-center gap-1 mt-0.5">
+                                <Clock size={9} /> {fmtDateFull(post.created_at)}
+                            </p>
                         </div>
                     </div>
-                </motion.div>
-            </article>
+                    <div className="flex items-center gap-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <span className="flex items-center gap-1.5"><Eye size={12} /> {post.view_count || 0}</span>
+                        <span className="flex items-center gap-1.5"><MessageSquare size={12} /> {post.comment_count || 0}</span>
+                        <span className={`flex items-center gap-1.5 ${post.is_liked ? 'text-rose-500' : ''}`}>
+                            <Heart size={12} className={post.is_liked ? 'fill-rose-500' : ''} /> {post.like_count || 0}
+                        </span>
+                    </div>
+                </div>
+            </motion.header>
 
-            {/* Responses Section */}
-            <section className="mt-48 space-y-20">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="flex flex-col items-center gap-6"
-                >
-                    <div className="text-[11px] font-black tracking-[0.8em] text-slate-200 uppercase italic">The Public Opinion</div>
-                    <h2 className="text-5xl md:text-6xl font-serif font-black italic tracking-tighter">Public Responses</h2>
-                    <span className="h-1 w-32 bg-slate-900 rounded-full"></span>
-                </motion.div>
+            {/* ── 본문 ── */}
+            <motion.article initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
+                className="py-16 prose prose-slate prose-lg max-w-none font-serif
+                    prose-headings:font-black prose-headings:tracking-tight prose-headings:font-serif
+                    prose-p:leading-[1.9] prose-p:text-slate-700
+                    prose-a:text-indigo-600 prose-a:no-underline hover:prose-a:underline
+                    prose-strong:text-slate-900 prose-strong:font-black
+                    prose-code:text-rose-600 prose-code:bg-rose-50 prose-code:px-2 prose-code:py-0.5 prose-code:rounded-lg prose-code:text-sm prose-code:font-mono
+                    prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-pre:rounded-3xl prose-pre:shadow-2xl
+                    prose-blockquote:border-l-4 prose-blockquote:border-indigo-300 prose-blockquote:not-italic prose-blockquote:text-slate-600 prose-blockquote:font-serif
+                    whitespace-pre-wrap">
+                {post.content}
+            </motion.article>
 
-                {/* Comment Form */}
-                <div className="relative">
-                    <form onSubmit={handleComment} className="relative group z-10">
-                        {replyTarget && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="absolute -top-12 left-0 flex items-center gap-4 bg-slate-900 text-white px-6 py-2 rounded-t-2xl text-[10px] font-black tracking-[0.3em] uppercase"
-                            >
-                                REPYING TO A VOICE
-                                <button type="button" onClick={() => setReplyTarget(null)} className="ml-4 hover:text-rose-400 transition-colors uppercase">CANCEL</button>
-                            </motion.div>
-                        )}
-                        <textarea
-                            value={commentText}
-                            onChange={(e) => setCommentText(e.target.value)}
-                            placeholder={user ? "Share your thoughts about this masterpiece..." : "로그인 후 댓글을 작성할 수 있습니다."}
-                            disabled={!user || submitting}
-                            rows={5}
-                            className="w-full bg-slate-50 border-[3px] border-slate-100 rounded-[2.5rem] p-10 md:p-14 text-xl md:text-2xl font-serif italic outline-none focus:border-slate-900 focus:bg-white transition-all placeholder:text-slate-400 resize-none shadow-2xl shadow-slate-900/[0.02] disabled:bg-slate-100 disabled:cursor-not-allowed"
-                        />
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            type="submit"
-                            disabled={!user || submitting || !commentText.trim()}
-                            className="absolute bottom-10 right-10 md:bottom-14 md:right-14 w-20 h-20 bg-slate-900 text-white rounded-3xl flex items-center justify-center shadow-3xl active:scale-95 disabled:opacity-20 disabled:scale-100 transition-all group overflow-hidden"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-600 to-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <Send size={28} className="relative z-10" />
-                        </motion.button>
-                    </form>
-                    <div className="absolute -inset-4 bg-slate-100/50 rounded-[3.5rem] -z-0 opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+            {/* ── 좋아요 버튼 ── */}
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
+                className="flex flex-col items-center gap-4 py-16 border-t border-b border-slate-100">
+                <motion.button
+                    onClick={handleLike}
+                    disabled={likeLoading}
+                    whileTap={{ scale: 0.9 }}
+                    className={`group flex flex-col items-center gap-3 px-12 py-8 rounded-[2rem] border-2 transition-all
+                        ${post.is_liked
+                            ? 'bg-rose-50 border-rose-300 text-rose-600'
+                            : 'bg-slate-50 border-slate-100 text-slate-400 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-500'
+                        } ${likeLoading ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                    <Heart size={32} className={`transition-all ${post.is_liked ? 'fill-rose-500 text-rose-500 scale-110' : 'group-hover:scale-110'}`} />
+                    <div className="text-center">
+                        <div className="text-2xl font-black tabular-nums">{post.like_count || 0}</div>
+                        <div className="text-[10px] font-black tracking-[0.3em] uppercase mt-1">
+                            {post.is_liked ? 'Liked ✓' : 'Like this article'}
+                        </div>
+                    </div>
+                </motion.button>
+                <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+                    {post.is_liked ? '이 글에 공감을 남겼습니다' : '이 글이 도움이 되었나요?'}
+                </p>
+            </motion.div>
+
+            {/* ── 댓글 섹션 ── */}
+            <section className="pt-16 space-y-12" ref={commentRef}>
+                <div className="flex items-center gap-4 pb-6 border-b-[3px] border-slate-900">
+                    <span className="h-1 w-10 bg-slate-900" />
+                    <h2 className="text-[12px] font-black tracking-[0.4em] uppercase">Reader Comments</h2>
+                    <span className="ml-auto text-[11px] font-black tabular-nums text-slate-400 uppercase">{post.comment_count || 0} comments</span>
                 </div>
 
-                {/* Comments List */}
-                <div className="space-y-16">
-                    {comments.map((comment) => (
-                        <div key={comment.id} className="group space-y-10 animate-in fade-in slide-in-from-bottom-4">
-                            <div className="flex flex-col gap-6 border-l-[6px] border-slate-50 pl-10 md:pl-16 transition-all group-hover:border-slate-900">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center text-[10px] font-black uppercase italic">
-                                            {comment.author_name?.charAt(0)}
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-[12px] font-black tracking-widest text-slate-900 uppercase italic leading-none">{comment.author_name}</span>
-                                            <span className="text-[9px] font-bold text-slate-300 uppercase mt-2">{new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit', year: 'numeric' }).format(new Date(comment.created_at))}</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-6">
-                                        {(comment.author_id === user?.id || isAdmin) && (
-                                            <button
-                                                onClick={() => handleDeleteComment(comment.id)}
-                                                className="text-[10px] font-black tracking-widest text-slate-200 hover:text-rose-600 transition-colors uppercase"
-                                            >
-                                                Discard
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => setReplyTarget(comment.id)}
-                                            className="flex items-center gap-2 px-6 py-2 bg-slate-50 rounded-full text-[10px] font-black tracking-[0.2em] text-slate-400 hover:bg-slate-900 hover:text-white transition-all uppercase"
-                                        >
-                                            Response
-                                        </button>
-                                    </div>
-                                </div>
-                                <p className="text-xl md:text-2xl font-serif italic text-slate-700 leading-relaxed tracking-tight group-hover:text-slate-900 transition-colors">
-                                    "{comment.content}"
-                                </p>
-                            </div>
-
-                            {/* Replies */}
-                            {comment.replies?.length > 0 && (
-                                <div className="ml-20 md:ml-32 space-y-12 border-l-2 border-slate-50 pl-12 md:pl-20 mt-10">
-                                    {comment.replies.map((reply) => (
-                                        <div key={reply.id} className="space-y-4 animate-in fade-in slide-in-from-left-4">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-5">
-                                                    <CornerDownRight size={18} className="text-slate-200" />
-                                                    <span className="text-[11px] font-black tracking-widest text-slate-900 uppercase italic">{reply.author_name}</span>
-                                                    <span className="text-[9px] font-bold text-slate-300 uppercase">{new Intl.DateTimeFormat('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).format(new Date(reply.created_at))}</span>
-                                                </div>
-                                                {(reply.author_id === user?.id || isAdmin) && (
-                                                    <button
-                                                        onClick={() => handleDeleteComment(reply.id)}
-                                                        className="text-[9px] font-black tracking-widest text-slate-200 hover:text-rose-600 transition-colors uppercase"
-                                                    >
-                                                        Discard
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <p className="text-lg font-serif italic text-slate-500 leading-relaxed pl-10 group-hover:text-slate-700 transition-colors">
-                                                "{reply.content}"
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                <div className="divide-y divide-slate-50">
+                    {comments.length === 0 ? (
+                        <div className="py-16 text-center">
+                            <div className="text-6xl font-serif italic font-black text-slate-50 select-none">No Comments</div>
+                            <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest mt-4">첫 번째 댓글을 남겨보세요</p>
                         </div>
-                    ))}
-
-                    {comments.length === 0 && (
-                        <div className="text-center py-32 space-y-8">
-                            <div className="text-8xl font-serif italic text-slate-50 font-black select-none">QUIET</div>
-                            <p className="text-[11px] font-black tracking-[0.5em] text-slate-200 uppercase">Be the first to echo your thoughts</p>
-                        </div>
+                    ) : (
+                        <AnimatePresence>
+                            {comments.map(comment => (
+                                <CommentItem key={comment.id} comment={comment} user={user}
+                                    onDelete={handleDeleteComment}
+                                    onReply={(cid, name) => {
+                                        setReplyTo({ id: cid, name });
+                                        commentRef.current?.querySelector('textarea')?.focus();
+                                    }} />
+                            ))}
+                        </AnimatePresence>
                     )}
                 </div>
+
+                {/* 댓글 작성 */}
+                <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleComment}
+                    className="bg-slate-50 rounded-[2rem] p-8 space-y-5 border border-slate-100">
+                    {replyTo && (
+                        <div className="flex items-center justify-between px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl">
+                            <div className="flex items-center gap-2 text-[11px] font-black text-indigo-600">
+                                <CornerDownRight size={12} />
+                                <span className="uppercase tracking-widest">{replyTo.name}</span>
+                                <span className="text-indigo-400 font-bold">에게 답글 작성 중</span>
+                            </div>
+                            <button type="button" onClick={() => setReplyTo(null)}
+                                className="text-[10px] font-black text-indigo-400 hover:text-rose-500 uppercase tracking-widest transition-colors">
+                                취소
+                            </button>
+                        </div>
+                    )}
+                    {!user && (
+                        <div className="text-[11px] font-bold text-slate-400 text-center py-2">
+                            <Link to="/login" className="text-indigo-600 font-black underline">로그인</Link>이 필요합니다.
+                        </div>
+                    )}
+                    <textarea
+                        rows={4}
+                        disabled={!user}
+                        placeholder={user
+                            ? (replyTo ? `${replyTo.name}님께 답글을 남겨보세요...` : '의견을 자유롭게 남겨보세요...')
+                            : '로그인 후 댓글을 작성할 수 있습니다.'}
+                        className="w-full bg-white border border-slate-100 rounded-2xl p-5 text-[13px] text-slate-700 placeholder:text-slate-300 resize-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 outline-none transition-all disabled:opacity-60"
+                        value={commentText}
+                        onChange={e => setCommentText(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleComment(e); }}
+                    />
+                    <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Ctrl+Enter로 전송</span>
+                        <button type="submit" disabled={!user || !commentText.trim()}
+                            className="flex items-center gap-2 px-8 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95">
+                            <Send size={14} /> Submit
+                        </button>
+                    </div>
+                </motion.form>
             </section>
-        </motion.div>
+
+            {/* ── 스크롤 투 탑 ── */}
+            <AnimatePresence>
+                {showTop && (
+                    <motion.button
+                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                        className="fixed bottom-8 right-8 w-12 h-12 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-2xl hover:bg-indigo-600 transition-all active:scale-95 z-50">
+                        <ChevronUp size={18} />
+                    </motion.button>
+                )}
+            </AnimatePresence>
+        </div>
     );
 };
 

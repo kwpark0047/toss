@@ -415,8 +415,10 @@ export const staffRequestsAPI = {
 
 // === [12. 게시판 API (공통)] ===
 export const boardAPI = {
-  // 게시글 목록 조회 (페이지네이션, 검색)
+  // 게시글 목록 조회 (페이지네이션, 검색, 태그 필터)
   getPosts: (type, params) => api.get(`/boards/${type}`, { params }),
+  // 인기글 조회
+  getTrending: (limit = 5) => api.get(`/boards/trending`, { params: { limit } }),
   // 게시글 상세 조회
   getPost: (id) => api.get(`/boards/posts/${id}`),
   // 게시글 작성
@@ -427,6 +429,8 @@ export const boardAPI = {
   deletePost: (id) => api.delete(`/boards/posts/${id}`),
   // 고정글 토글
   togglePin: (id) => api.put(`/boards/posts/${id}/pin`),
+  // 좋아요 토글
+  toggleLike: (id) => api.post(`/boards/posts/${id}/like`),
   // 댓글 목록 조회
   getComments: (postId) => api.get(`/boards/posts/${postId}/comments`),
   // 댓글 작성
