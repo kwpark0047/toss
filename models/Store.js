@@ -71,9 +71,9 @@ const Store = {
             const uid = parseInt(userId);
             if (isNaN(uid)) return [];
 
-            // 1. 소유한 매장 조회
+            // 1. 소유한 매장 조회 (is_active null 포함)
             const ownedStores = await prisma.stores.findMany({
-                where: { user_id: uid, is_active: true }
+                where: { user_id: uid, is_active: { not: false } }
             });
 
             // 2. 직원으로 등록된 매장 조회 (schema 모델명: staff)

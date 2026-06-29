@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { storesAPI, ordersAPI, analyticsAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatPrice } from '../../utils/format';
@@ -13,6 +13,7 @@ import {
 
 const MasterDashboard = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [stores, setStores] = useState([]);
     const [selectedStore, setSelectedStore] = useState(null);
     const [stats, setStats] = useState(null);
@@ -48,9 +49,11 @@ const MasterDashboard = () => {
             const res = user?.role === 'super_admin'
                 ? await storesAPI.getAll()
                 : await storesAPI.getMy();
-            setStores(res.data || []);
-            if (res.data && res.data.length > 0) {
-                setSelectedStore(res.data[0]);
+            // 응답이 배열 직접이거나 {success, data:[]} 래퍼 둘 다 처리
+            const storeList = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+            setStores(storeList);
+            if (storeList.length > 0) {
+                setSelectedStore(storeList[0]);
             }
         } catch (error) {
             console.error('매장 로딩 실패:', error);
@@ -58,6 +61,15 @@ const MasterDashboard = () => {
             setLoading(false);
         }
     }, [user?.role]);
+
+    const handleToolNav = useCallback((toolPath) => {
+        const store = selectedStore || stores[0];
+        if (store?.id) {
+            navigate(`/admin/stores/${store.id}/${toolPath}`);
+        } else {
+            navigate('/admin/stores/new');
+        }
+    }, [selectedStore, stores, navigate]);
 
     const fetchStoreData = useCallback(async (storeId) => {
         try {
@@ -131,6 +143,25 @@ const MasterDashboard = () => {
                 >
                     Initializing Systems...
                 </motion.p>
+            </div>
+        );
+    }
+
+    if (!loading && stores.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+                <div className="text-6xl">🏪</div>
+                <div className="text-center">
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">등록된 매장이 없습니다</h2>
+                    <p className="text-slate-500 text-sm">매장을 먼저 생성해야 상품 관리와 메뉴 빌더를 사용할 수 있습니다.</p>
+                </div>
+                <button
+                    onClick={() => navigate('/admin/stores/new')}
+                    className="px-8 py-4 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                    <Plus size={20} />
+                    매장 만들기
+                </button>
             </div>
         );
     }
@@ -439,25 +470,25 @@ const MasterDashboard = () => {
                             { label: 'Human Resources', to: 'staff', icon: Users, desc: '직원 권한 및 근태 레포트', gradient: 'from-purple-500 to-purple-600' },
                             { label: 'Intelligence', to: 'stats', icon: BarChart3, desc: 'AI 기반 매출 예측 분석', gradient: 'from-emerald-500 to-emerald-600' },
                             { label: 'Settlement Hub', to: 'settlements', icon: DollarSign, desc: '정산 및 금융 통계 요약', gradient: 'from-amber-500 to-amber-600' },
-                        ].map((tool, idx) => (
+                        ].map((tool) => (
                             <motion.div
                                 key={tool.to}
                                 whileHover={{ scale: 1.03, x: 5 }}
                                 whileTap={{ scale: 0.98 }}
                             >
-                                <Link
-                                    to={selectedStore?.id ? `/admin/stores/${selectedStore.id}/${tool.to}` : '/admin'}
-                                    className="glass-panel p-5 flex items-center gap-5 transition-all hover:bg-white hover:shadow-xl group relative overflow-hidden border-white/60"
+                                <button
+                                    onClick={() => handleToolNav(tool.to)}
+                                    className="w-full glass-panel p-5 flex items-center gap-5 transition-all hover:bg-white hover:shadow-xl group relative overflow-hidden border-white/60"
                                 >
                                     <div className={`p-3.5 bg-gradient-to-br ${tool.gradient} rounded-2xl text-white shadow-lg group-hover:rotate-6 transition-transform`}>
                                         <tool.icon size={22} />
                                     </div>
-                                    <div className="relative z-10 flex-grow">
+                                    <div className="relative z-10 flex-grow text-left">
                                         <div className="font-black text-slate-900 leading-tight group-hover:text-blue-600 transition-colors uppercase text-xs tracking-tight">{tool.label}</div>
                                         <div className="text-[10px] text-slate-400 font-bold mt-1 leading-snug">{tool.desc}</div>
                                     </div>
                                     <ChevronRight size={18} className="text-slate-200 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
-                                </Link>
+                                </button>
                             </motion.div>
                         ))}
                     </div>
