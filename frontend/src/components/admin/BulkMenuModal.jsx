@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    X, Sparkles, Plus, Wand2, ArrowRight, Check, ShoppingBag,
-    Loader2, FileSpreadsheet, Upload, Download, Info, ChevronDown, ChevronUp
+    X, Sparkles, Plus, Wand2, Check, ShoppingBag,
+    Loader2, FileSpreadsheet, Upload, Download, Info, ChevronDown, ChevronUp,
+    RefreshCw, ImageOff
 } from 'lucide-react';
 import { aiAPI, productsAPI, categoriesAPI } from '../../api';
 import { formatPrice } from '../../utils/format';
@@ -198,6 +199,14 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
 
     const removeSuggestion = (index) => {
         setSuggestions(prev => prev.filter((_, i) => i !== index));
+    };
+
+    // 이미지 새로고침: 키워드 기반 새 Unsplash URL 생성
+    const refreshImage = (index) => {
+        const keyword = suggestions[index].image_keyword || suggestions[index].name;
+        const seed = Math.random().toString(36).slice(2, 7);
+        const url = `https://source.unsplash.com/featured/480x480/?${encodeURIComponent(keyword)},food&_=${seed}`;
+        updateSuggestion(index, 'image_url', url);
     };
 
     return (
@@ -464,21 +473,46 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
                                         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                                             {/* 이미지 */}
                                             <div className="md:col-span-2">
-                                                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Image</div>
-                                                <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-200">
-                                                    <img
-                                                        src={`https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200&auto=format&fit=crop&sig=${encodeURIComponent(item.image_keyword)}`}
-                                                        alt={item.name}
-                                                        className="w-full h-full object-cover"
-                                                        onError={e => { e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'; }}
-                                                    />
+                                                <div className="flex items-center justify-between mb-1.5">
+                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Image</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => refreshImage(idx)}
+                                                        title="이미지 새로고침"
+                                                        className="p-1 rounded-md text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-all"
+                                                    >
+                                                        <RefreshCw size={10} />
+                                                    </button>
+                                                </div>
+                                                <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 group">
+                                                    {item.image_url ? (
+                                                        <img
+                                                            key={item.image_url}
+                                                            src={item.image_url}
+                                                            alt={item.name}
+                                                            className="w-full h-full object-cover"
+                                                            onError={e => {
+                                                                e.target.style.display = 'none';
+                                                                e.target.nextSibling.style.display = 'flex';
+                                                            }}
+                                                        />
+                                                    ) : null}
+                                                    <div
+                                                        className="absolute inset-0 flex-col items-center justify-center text-slate-300 text-[9px] font-bold"
+                                                        style={{ display: item.image_url ? 'none' : 'flex' }}
+                                                    >
+                                                        <ImageOff size={20} className="mb-1" />
+                                                        No Image
+                                                    </div>
                                                 </div>
                                                 <input
                                                     type="text"
-                                                    value={item.image_keyword}
+                                                    value={item.image_keyword || ''}
                                                     onChange={e => updateSuggestion(idx, 'image_keyword', e.target.value)}
+                                                    onKeyDown={e => { if (e.key === 'Enter') refreshImage(idx); }}
                                                     className="w-full mt-1.5 bg-white px-2 py-1 rounded-lg border border-slate-200 text-[9px] font-bold text-slate-500 focus:ring-1 focus:ring-blue-500"
-                                                    placeholder="image keyword..."
+                                                    placeholder="키워드 수정 후 Enter↵"
+                                                    title="수정 후 Enter 또는 🔄 버튼으로 이미지 갱신"
                                                 />
                                             </div>
 

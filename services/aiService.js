@@ -335,70 +335,127 @@ class AIService {
     }
 
     /**
-     * 메뉴 이름 리스트를 분석하여 카테고리, 설명, 가격 추천 (일괄 등록용)
+     * Unsplash 이미지 URL 생성 (API 키 있으면 검색 API, 없으면 source URL)
+     */
+    async _fetchMenuImageUrl(keyword) {
+        const safeKeyword = encodeURIComponent(keyword.trim());
+        if (process.env.UNSPLASH_ACCESS_KEY) {
+            try {
+                const https = require('https');
+                const url = `https://api.unsplash.com/search/photos?query=${safeKeyword}&per_page=3&orientation=squarish&content_filter=high`;
+                const data = await new Promise((resolve, reject) => {
+                    const req = https.get(url, {
+                        headers: {
+                            Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`,
+                            'Accept-Version': 'v1'
+                        }
+                    }, (res) => {
+                        let body = '';
+                        res.on('data', chunk => { body += chunk; });
+                        res.on('end', () => resolve(body));
+                    });
+                    req.on('error', reject);
+                    req.setTimeout(4000, () => { req.destroy(); reject(new Error('timeout')); });
+                });
+                const json = JSON.parse(data);
+                const results = json.results || [];
+                if (results.length > 0) {
+                    const pick = results[Math.floor(Math.random() * results.length)];
+                    return pick.urls?.regular || pick.urls?.small || null;
+                }
+            } catch (e) {
+                logger.warn(`Unsplash API 이미지 검색 실패 (${keyword}):`, e.message);
+            }
+        }
+        // 폴백: source.unsplash.com (무료, 키 불필요)
+        return `https://source.unsplash.com/featured/480x480/?${safeKeyword},food`;
+    }
+
+    /**
+     * 메뉴 이름 리스트를 분석하여 카테고리, 설명, 가격, 이미지 URL 생성 (일괄 등록용)
      * menuData: 엑셀에서 파싱된 구조화 힌트 [{name, price, category, description, spicy_level, allergens}]
      */
     async analyzeMenuList(menuNames, existingCategories = [], menuData = []) {
-        // 엑셀 힌트가 있으면 상세 목록, 없으면 이름만 나열
         const menuListText = menuData.length > 0
             ? menuNames.map(name => {
                 const hint = menuData.find(d => d.name === name) || {};
-                const parts = [`- ${name}`];
                 const meta = [];
                 if (hint.price) meta.push(`가격: ${hint.price}원`);
                 if (hint.category) meta.push(`카테고리: ${hint.category}`);
                 if (hint.description) meta.push(`설명힌트: ${hint.description}`);
                 if (hint.spicy_level != null) meta.push(`맵기: ${hint.spicy_level}`);
                 if (hint.allergens) meta.push(`알레르기: ${hint.allergens}`);
-                return meta.length > 0 ? `${parts[0]} (${meta.join(' / ')})` : parts[0];
+                return meta.length > 0 ? `- ${name} (${meta.join(' / ')})` : `- ${name}`;
             }).join('\n')
             : menuNames.map(n => `- ${n}`).join('\n');
 
         const prompt = `
-            당신은 매장 컨설팅 전문가입니다.
-            다음은 매장 관리자가 입력한 메뉴 이름들입니다.
-            이 메뉴들을 분석하여 적절한 카테고리 분류, 메뉴 설명, 그리고 예상 판매 가격(원화)을 추천해 주세요.
+당신은 한국 외식업 메뉴 전문 컨설턴트입니다.
+아래 메뉴 이름들을 분석하여 카테고리, 상세 설명, 가격, 태그, 옵션, 이미지 키워드를 생성해 주세요.
 
-            [메뉴 리스트]
-            ${menuListText}
+[메뉴 리스트]
+${menuListText}
 
-            [기존 카테고리 참고]
-            ${existingCategories.map(c => c.name).join(', ') || '없음 (새로 생성 필요)'}
+[기존 카테고리 참고]
+${existingCategories.map(c => c.name).join(', ') || '없음'}
 
-            [출력 지침]
-            1. 반드시 다음 JSON 형식의 배열로만 응답하세요:
-           [
-             {
-               "name": "메뉴명",
-               "category_name": "카테고리명",
-               "description": "친절한 설명",
-               "price": 예상가격(숫자),
-               "allergens": "알레르기 정보 (없으면 빈 문자열)",
-               "tags": ["태그1", "태그2"],
-               "spicy_level": 맵기단계(0~3),
-               "options": [{"name": "옵션명", "type": "radio/checkbox", "values": ["값1", "값2"]}],
-               "image_keyword": "영문 이미지 검색 키워드 (예: crispy fried chicken)"
-             }
-           ]
-        2. 카테고리명은 가급적 기존 카테고리를 활용하고, 없으면 새로 만드세요.
-        3. 가격힌트가 제공된 경우 해당 가격을 그대로 사용하고, 없으면 100원 단위로 추천하세요.
-        4. 카테고리힌트가 제공된 경우 해당 카테고리를 우선 사용하세요.
-        5. 설명힌트가 제공된 경우 이를 바탕으로 더 풍성하게 작성하세요.
-        6. 알레르기 정보가 제공된 경우 그대로 allergens 필드에 반영하세요.
-        7. spicy_level은 안매움(0)부터 아주매움(3)까지 숫자로 표현하세요.
-        8. options는 해당 메뉴에 어울리는 추가 선택 사항(예: 굽기, 토핑, 사이즈)을 제안하세요.
-        9. image_keyword는 Unsplash에서 검색하기 좋은 구체적인 영문 키워드로 작성해 주세요.
-        10. 다른 텍스트는 절대 포함하지 마세요.
-        11. 한국어로 작성하세요 (image_keyword 제외).
-        `;
+[출력 형식 - JSON 배열만 반환, 다른 텍스트 금지]
+[
+  {
+    "name": "메뉴명 (입력값 그대로)",
+    "category_name": "카테고리 (치킨/피자/한식/중식/일식/분식/음료/사이드/디저트/주류 등)",
+    "description": "2문장 설명: 첫 문장은 주요 재료와 조리법, 두 번째 문장은 이 메뉴만의 특징과 추천 상황",
+    "price": 가격숫자,
+    "allergens": "알레르기 원재료 (밀·대두·닭고기 등, 없으면 빈 문자열)",
+    "tags": ["태그1","태그2","태그3"],
+    "spicy_level": 0~3,
+    "options": [{"name":"옵션명","type":"radio","values":["선택1","선택2"]}],
+    "image_keyword": "3~5개 영단어 식품사진 키워드"
+  }
+]
 
+[세부 지침]
+카테고리:
+- 기존 카테고리가 있으면 최대한 활용, 없으면 위 예시 중 가장 적합한 것으로 생성
+
+설명 (2문장 필수):
+- 1문장: "OO 재료를 XX 방식으로 조리한 메뉴입니다." 형태
+- 2문장: 맛 특징, 인기 이유, 어울리는 상황 중 하나
+
+가격 (힌트 없을 때 한국 배달/외식 시세 기준):
+- 치킨 메인: 17,000~24,000원 / 피자 M: 18,000~28,000원
+- 한식 메인: 8,000~16,000원 / 분식: 4,000~12,000원
+- 음료: 2,500~6,000원 / 사이드: 2,000~7,000원
+- 주류: 4,000~9,000원 / 디저트: 3,000~8,000원
+- 가격힌트 제공 시 그대로 사용, 100원 단위
+
+tags (3~4개):
+- 맛 특성: 달콤한·매콤한·담백한·고소한·짭짤한
+- 주재료: 닭·소고기·돼지·해산물·채소·치즈
+- 상황: 혼밥·회식·가족·야식·술안주
+- 특성: 인기·신메뉴·매장추천·한정
+
+spicy_level: 0=안매움, 1=약간매움, 2=매움, 3=아주매움
+
+options: 해당 메뉴에 실제로 필요한 선택 항목만 (사이즈·굽기·토핑·수량 등)
+
+image_keyword (중요 - Unsplash 검색에 사용됨):
+- 반드시 영문, 3~5단어, 해당 음식을 정확히 묘사
+- 좋은 예: "crispy korean fried chicken drumsticks", "bibimbap colorful korean rice bowl", "cold iced americano coffee glass"
+- 나쁜 예: "food", "korean food", "chicken" (너무 일반적)
+- 힌트: 조리법(crispy/grilled/steamed) + 음식명 + 시각적특징(close-up/plated/overhead)
+`;
+
+        let suggestions;
         try {
             const rawText = await this.generateWithFallback(prompt);
-            const text = rawText.replace(/```json|```/g, "").trim();
-            return JSON.parse(text);
+            const text = rawText.replace(/```json\n?|```/g, '').trim();
+            // JSON 배열 추출 (앞뒤 텍스트 제거)
+            const match = text.match(/\[[\s\S]*\]/);
+            suggestions = JSON.parse(match ? match[0] : text);
         } catch (error) {
-            logger.error(error);
-            return menuNames.map(name => {
+            logger.error('analyzeMenuList AI 파싱 실패:', error);
+            suggestions = menuNames.map(name => {
                 const hint = menuData.find(d => d.name === name) || {};
                 return {
                     name,
@@ -409,10 +466,21 @@ class AIService {
                     spicy_level: hint.spicy_level || 0,
                     tags: [],
                     options: [],
-                    image_keyword: 'food'
+                    image_keyword: name + ' food korean'
                 };
             });
         }
+
+        // 각 메뉴에 실제 이미지 URL 추가 (병렬)
+        const suggestionsWithImages = await Promise.all(
+            suggestions.map(async (s) => {
+                const keyword = s.image_keyword || (s.name + ' food');
+                const imageUrl = await this._fetchMenuImageUrl(keyword);
+                return { ...s, image_url: imageUrl };
+            })
+        );
+
+        return suggestionsWithImages;
     }
 
     /**
