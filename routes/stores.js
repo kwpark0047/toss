@@ -31,8 +31,11 @@ router.post('/', authMiddleware, catchAsync(async (req, res) => {
     res.success(store, '매장이 생성되었습니다', 201);
 }));
 
+// checkStorePermission은 req.params.storeId를 참조하므로 /:id → storeId 브리지
+const bridgeStoreId = (req, _res, next) => { req.storeId = req.params.id; next(); };
+
 // 매장 정보 수정
-router.put('/:id', authMiddleware, checkStorePermission('store:update'), catchAsync(async (req, res) => {
+router.put('/:id', authMiddleware, bridgeStoreId, checkStorePermission('store:update'), catchAsync(async (req, res) => {
     const store = await Store.findById(req.params.id);
     if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다' });
     const updated = await Store.update(req.params.id, req.body);
@@ -40,7 +43,7 @@ router.put('/:id', authMiddleware, checkStorePermission('store:update'), catchAs
 }));
 
 // 매장 삭제 (소프트 딜리트)
-router.delete('/:id', authMiddleware, checkStorePermission('store:delete'), catchAsync(async (req, res) => {
+router.delete('/:id', authMiddleware, bridgeStoreId, checkStorePermission('store:delete'), catchAsync(async (req, res) => {
     const store = await Store.findById(req.params.id);
     if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다' });
     await Store.delete(req.params.id);
