@@ -327,7 +327,6 @@ async function createOrder(storeId, tableId, products, orderDate, status, handle
         payment_key: `demo_pay_${order.id}_${Date.now()}`,
         completed_at: completedAt || orderDate,
         created_at: orderDate,
-        approved_at: orderDate,
       },
     });
     await prisma.ledger.create({
@@ -458,8 +457,19 @@ async function seedStore(def) {
   console.log(`    ✓ 직원 ${staffIds.length}명 + 출퇴근 기록`);
 
   // 5. 주문 이력 (60일)
-  const existingOrderCount = await prisma.orders.count({ where: { store_id: sid } });
+  let existingOrderCount = await prisma.orders.count({ where: { store_id: sid } });
   let totalSales = { apr:0, may:0, jun:0 };
+
+  // 재실행 시 고아 주문 정리 (payment 없는 미완성 주문)
+  if (existingOrderCount > 0 && existingOrderCount < 50) {
+    const orphanIds = (await prisma.orders.findMany({ where: { store_id: sid }, select: { id: true } })).map(o => o.id);
+    await prisma.payments.deleteMany({ where: { order_id: { in: orphanIds } } });
+    await prisma.ledger.deleteMany({ where: { order_id: { in: orphanIds } } });
+    await prisma.order_items.deleteMany({ where: { order_id: { in: orphanIds } } });
+    await prisma.orders.deleteMany({ where: { id: { in: orphanIds } } });
+    existingOrderCount = 0;
+    console.log(`    ⚠ 고아 주문 ${orphanIds.length}개 정리 완료`);
+  }
 
   if (existingOrderCount === 0) {
     let orderCount = 0;
