@@ -70,6 +70,22 @@ router.get('/store/:storeId', authMiddleware, catchAsync(async (req, res, next) 
     res.success(formattedList);
 }));
 
+// 2.5. 오너 셀프 근태 등록 (1인 매장)
+router.post('/self-register', authMiddleware, catchAsync(async (req, res) => {
+    const { storeId } = req.body;
+    const sid = parseInt(storeId);
+    if (isNaN(sid)) throw new AppError('유효하지 않은 매장 ID입니다.', 400);
+    const store = await prisma.stores.findFirst({ where: { id: sid, user_id: req.user.id } });
+    if (!store) throw new AppError('매장 소유자만 사용 가능합니다.', 403);
+    const existing = await prisma.staff.findFirst({ where: { store_id: sid, user_id: req.user.id } });
+    if (existing) throw new AppError('이미 근태 추적이 활성화되어 있습니다.', 409);
+    const newStaff = await prisma.staff.create({
+        data: { store_id: sid, user_id: req.user.id, role: 'owner' },
+        include: { users: { select: { name: true, email: true } } }
+    });
+    res.success({ id: newStaff.id, name: newStaff.users.name, role: 'owner' }, '셀프 근태 추적이 활성화되었습니다.', 201);
+}));
+
 // 3. 직원 직접 생성 (관리자 기능)
 router.post('/', authMiddleware, catchAsync(async (req, res, _next) => {
     const { storeId, name, email, password, role } = req.body;

@@ -239,6 +239,8 @@ export const staffAPI = {
   getAttendance: (storeId, params) => api.get(`/staff/store/${storeId}/attendance`, { params }),
   clockIn: (id, note) => api.post(`/staff/${id}/clock-in`, { note }),
   clockOut: (id) => api.post(`/staff/${id}/clock-out`),
+  // 1인 매장 셀프 등록
+  selfRegister: (storeId) => api.post('/staff/self-register', { storeId }),
 };
 
 // === [8. 포인트 및 분석] ===
