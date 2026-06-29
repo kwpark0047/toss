@@ -7,6 +7,7 @@ import { lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import MenuPage from "./pages/MenuPage";
+import MenuDemo from "./components/customer/MenuDemo";
 import AuthPage from "./pages/AuthPage";
 import Register from "./components/Register";
 import StoreSearchPage from "./pages/StoreSearchPage";
@@ -95,6 +96,7 @@ const AppRoutes = () => (
     <Route path="/login" element={<Navigate to="/auth" replace />} />
     <Route path="/register" element={<Register />} />
     <Route path="/search" element={<StoreSearchPage />} />
+    <Route path="/menu/demo" element={<MenuDemo />} />
     <Route path="/menu/:storeId" element={<MenuPage />} />
 
     {/* Admin 메인 대시보드 */}

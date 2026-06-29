@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, ArrowLeft, Check, Wand2, Tag, DollarSign, Image as ImageIcon, ListPlus, ChevronRight, X, AlertCircle, Trash2, Plus } from 'lucide-react';
+import { Sparkles, ArrowRight, ArrowLeft, Check, Wand2, Tag, Image as ImageIcon, ListPlus, ChevronRight, X, AlertCircle, Trash2, Plus } from 'lucide-react';
 import { aiAPI, productsAPI } from '../../api';
 
 const MenuWizard = ({ storeId, categories, onClose, onSave }) => {
@@ -164,13 +164,15 @@ const MenuWizard = ({ storeId, categories, onClose, onSave }) => {
                                         <div className="space-y-2">
                                             <label className="text-sm font-black text-slate-500 ml-2">가격 추천</label>
                                             <div className="relative">
-                                                <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-black text-lg select-none">₩</span>
                                                 <input
                                                     type="number"
                                                     value={form.price}
                                                     onChange={(e) => setForm({ ...form, price: e.target.value })}
-                                                    className="w-full h-16 pl-14 pr-6 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-[1.5rem] outline-none transition-all font-black text-xl text-blue-600"
+                                                    placeholder="0"
+                                                    className="w-full h-16 pl-12 pr-16 bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-[1.5rem] outline-none transition-all font-black text-xl text-blue-600"
                                                 />
+                                                <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm select-none">원</span>
                                             </div>
                                         </div>
                                         <div className="space-y-2">
