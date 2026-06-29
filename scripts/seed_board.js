@@ -252,20 +252,27 @@ async function main() {
     let created = 0;
     for (const p of POSTS) {
         try {
-            const post = await prisma.posts.create({
-                data: {
-                    board_type: p.board_type,
-                    title: p.title,
-                    content: p.content,
-                    author_id: author.id,
-                    author_name: p.author_name || author.name,
-                    is_pinned: p.is_pinned || false,
-                    tags: p.tags || '',
-                    like_count: 0,
-                    view_count: Math.floor(Math.random() * 150) + 10,
-                    comment_count: 0,
-                }
-            });
+            // like_count, tags는 DB 기본값 사용 (Prisma 클라이언트 버전 호환)
+            const baseData = {
+                board_type: p.board_type,
+                title: p.title,
+                content: p.content,
+                author_id: author.id,
+                author_name: p.author_name || author.name,
+                is_pinned: p.is_pinned || false,
+                view_count: Math.floor(Math.random() * 150) + 10,
+                comment_count: 0,
+            };
+
+            // 신규 필드는 Prisma 클라이언트가 아닌 raw SQL로 설정
+            const post = await prisma.posts.create({ data: baseData });
+
+            // like_count, tags raw 업데이트
+            await prisma.$executeRawUnsafe(
+                `UPDATE posts SET like_count = 0, tags = $1 WHERE id = $2`,
+                p.tags || '',
+                post.id
+            );
             console.log(`✓ [${post.board_type}] ${post.title}`);
             created++;
         } catch (e) {
