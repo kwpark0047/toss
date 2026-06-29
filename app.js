@@ -152,9 +152,14 @@ app.get("/api/health", async (req, res) => {
 const { execFile } = require('child_process');
 let _seedJob = null; // { status, output, startedAt }
 
+const _SEED_KEY = Buffer.from(process.env.SEED_KEY || 'wm-seed-2026');
+function _checkSeedKey(k) {
+    if (!k) return false;
+    try { const b = Buffer.from(k); return b.length === _SEED_KEY.length && require('crypto').timingSafeEqual(b, _SEED_KEY); } catch { return false; }
+}
+
 app.post('/api/_seed-start', (req, res) => {
-    const key = req.headers['x-seed-key'] || req.query.key;
-    if (key !== 'wm-seed-2026') return res.status(403).json({ error: 'forbidden' });
+    if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
     if (_seedJob?.status === 'running') return res.json({ status: 'already_running', output: _seedJob.output });
 
     _seedJob = { status: 'running', output: '', startedAt: new Date().toISOString() };
@@ -173,8 +178,7 @@ app.post('/api/_seed-start', (req, res) => {
 });
 
 app.get('/api/_seed-status', (req, res) => {
-    const key = req.headers['x-seed-key'] || req.query.key;
-    if (key !== 'wm-seed-2026') return res.status(403).json({ error: 'forbidden' });
+    if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
     res.json(_seedJob || { status: 'not_started' });
 });
 // ── 임시 시드 엔드포인트 끝 ─────────────────────────────────────────────────
