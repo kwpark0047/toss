@@ -150,11 +150,11 @@ router.post("/storytelling", validateBody(["name"]), catchAsync(async (req, res)
 }));
 
 router.post("/analyze-menu-list", catchAsync(async (req, res) => {
-    const { menuNames, categories } = req.body;
+    const { menuNames, menuData, categories } = req.body;
     if (!menuNames || !Array.isArray(menuNames)) {
         return res.status(400).json({ success: false, error: "menuNames 배열이 필요합니다." });
     }
-    const suggestions = await aiService.analyzeMenuList(menuNames, categories || []);
+    const suggestions = await aiService.analyzeMenuList(menuNames, categories || [], menuData || []);
     res.json({ success: true, suggestions });
 }));
 

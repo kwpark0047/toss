@@ -336,41 +336,60 @@ class AIService {
 
     /**
      * 메뉴 이름 리스트를 분석하여 카테고리, 설명, 가격 추천 (일괄 등록용)
+     * menuData: 엑셀에서 파싱된 구조화 힌트 [{name, price, category, description, spicy_level, allergens}]
      */
-    async analyzeMenuList(menuNames, existingCategories = []) {
+    async analyzeMenuList(menuNames, existingCategories = [], menuData = []) {
+        // 엑셀 힌트가 있으면 상세 목록, 없으면 이름만 나열
+        const menuListText = menuData.length > 0
+            ? menuNames.map(name => {
+                const hint = menuData.find(d => d.name === name) || {};
+                const parts = [`- ${name}`];
+                const meta = [];
+                if (hint.price) meta.push(`가격: ${hint.price}원`);
+                if (hint.category) meta.push(`카테고리: ${hint.category}`);
+                if (hint.description) meta.push(`설명힌트: ${hint.description}`);
+                if (hint.spicy_level != null) meta.push(`맵기: ${hint.spicy_level}`);
+                if (hint.allergens) meta.push(`알레르기: ${hint.allergens}`);
+                return meta.length > 0 ? `${parts[0]} (${meta.join(' / ')})` : parts[0];
+            }).join('\n')
+            : menuNames.map(n => `- ${n}`).join('\n');
+
         const prompt = `
-            당신은 매장 컨설팅 전문가입니다. 
-            다음은 매장 관리자가 입력한 메뉴 이름들입니다. 
+            당신은 매장 컨설팅 전문가입니다.
+            다음은 매장 관리자가 입력한 메뉴 이름들입니다.
             이 메뉴들을 분석하여 적절한 카테고리 분류, 메뉴 설명, 그리고 예상 판매 가격(원화)을 추천해 주세요.
 
             [메뉴 리스트]
-            ${menuNames.join(', ')}
+            ${menuListText}
 
             [기존 카테고리 참고]
-            ${existingCategories.map(c => c.name).join(', ')}
+            ${existingCategories.map(c => c.name).join(', ') || '없음 (새로 생성 필요)'}
 
             [출력 지침]
             1. 반드시 다음 JSON 형식의 배열로만 응답하세요:
            [
-             { 
-               "name": "메뉴명", 
-               "category_name": "카테고리명", 
-               "description": "친절한 설명", 
+             {
+               "name": "메뉴명",
+               "category_name": "카테고리명",
+               "description": "친절한 설명",
                "price": 예상가격(숫자),
+               "allergens": "알레르기 정보 (없으면 빈 문자열)",
                "tags": ["태그1", "태그2"],
                "spicy_level": 맵기단계(0~3),
                "options": [{"name": "옵션명", "type": "radio/checkbox", "values": ["값1", "값2"]}],
-               "image_keyword": "영문 이미지 검색 키워드 (예: crispy fried chicken)" 
-             },
-             ...
+               "image_keyword": "영문 이미지 검색 키워드 (예: crispy fried chicken)"
+             }
            ]
         2. 카테고리명은 가급적 기존 카테고리를 활용하고, 없으면 새로 만드세요.
-        3. 가격은 100원 단위로 떨어지게 추천해 주세요.
-        4. spicy_level은 안매움(0)부터 아주매움(3)까지 숫자로 표현하세요.
-        5. options는 해당 메뉴에 어울리는 추가 선택 사항(예: 굽기, 토핑, 사이즈)을 제안하세요.
-        6. image_keyword는 Unsplash에서 검색하기 좋은 구체적인 영문 키워드로 작성해 주세요.
-        7. 다른 텍스트는 절대 포함하지 마세요.
-        8. 한국어로 작성하세요 (image_keyword 제외).
+        3. 가격힌트가 제공된 경우 해당 가격을 그대로 사용하고, 없으면 100원 단위로 추천하세요.
+        4. 카테고리힌트가 제공된 경우 해당 카테고리를 우선 사용하세요.
+        5. 설명힌트가 제공된 경우 이를 바탕으로 더 풍성하게 작성하세요.
+        6. 알레르기 정보가 제공된 경우 그대로 allergens 필드에 반영하세요.
+        7. spicy_level은 안매움(0)부터 아주매움(3)까지 숫자로 표현하세요.
+        8. options는 해당 메뉴에 어울리는 추가 선택 사항(예: 굽기, 토핑, 사이즈)을 제안하세요.
+        9. image_keyword는 Unsplash에서 검색하기 좋은 구체적인 영문 키워드로 작성해 주세요.
+        10. 다른 텍스트는 절대 포함하지 마세요.
+        11. 한국어로 작성하세요 (image_keyword 제외).
         `;
 
         try {
@@ -379,14 +398,20 @@ class AIService {
             return JSON.parse(text);
         } catch (error) {
             logger.error(error);
-            // 최소한의 기본 데이터 반환
-            return menuNames.map(name => ({
-                name,
-                category_name: '기타',
-                description: `${name}입니다.`,
-                price: 0,
-                image_keyword: 'food'
-            }));
+            return menuNames.map(name => {
+                const hint = menuData.find(d => d.name === name) || {};
+                return {
+                    name,
+                    category_name: hint.category || '기타',
+                    description: hint.description || `${name}입니다.`,
+                    price: hint.price || 0,
+                    allergens: hint.allergens || '',
+                    spicy_level: hint.spicy_level || 0,
+                    tags: [],
+                    options: [],
+                    image_keyword: 'food'
+                };
+            });
         }
     }
 
