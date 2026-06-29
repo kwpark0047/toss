@@ -204,6 +204,15 @@ app.get('/api/_db-push-status', (req, res) => {
     if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
     res.json(_dbPushJob || { status: 'not_started' });
 });
+
+app.get('/api/_db-tables', async (req, res) => {
+    if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
+    try {
+        const prisma = require('./config/prisma');
+        const rows = await prisma.$queryRaw`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name`;
+        res.json({ tables: rows.map(r => r.table_name) });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
 // ── 임시 시드 엔드포인트 끝 ─────────────────────────────────────────────────
 
 // 버전/디버그 엔드포인트 (개발 환경에서만 상세 정보 노출)
