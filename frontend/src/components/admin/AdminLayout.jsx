@@ -8,7 +8,7 @@ import {
   Store, LogOut, LayoutDashboard, UtensilsCrossed,
   Settings, Users, Receipt, Wallet, Palette,
   Menu as MenuIcon, X, MessageSquare, LogIn, Smartphone, CalendarCheck, Sparkles, Package,
-  UserCircle, ChevronRight, Check,
+  UserCircle, ChevronRight, Check, ShoppingBag,
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 
@@ -519,14 +519,15 @@ const AdminLayout = ({ children }) => {
   const navItems = [
     { label: '대시보드',      icon: LayoutDashboard, path: '/admin',                                           id: 'dashboard', roles: [] },
     { label: '주문서 현황',   icon: UtensilsCrossed,  path: `/admin/stores/${storeId}/orders`,                  show: !!storeId, roles: [] },
-    { label: '메뉴판 빌더',   icon: Palette,           path: `/admin/stores/${storeId}/visual-builder`,          show: !!storeId, roles: ['super_admin', 'store_admin'] },
-    { label: '스마트 예약',   icon: CalendarCheck,     path: `/admin/stores/${storeId}/reservations`,            show: !!storeId, roles: ['super_admin', 'store_admin', 'manager'] },
-    { label: '정산 분석',     icon: Wallet,            path: `/admin/stores/${storeId}/settlements`,             show: !!storeId, roles: ['super_admin', 'store_admin'] },
-    { label: '영수증 커스텀', icon: Receipt,           path: `/admin/stores/${storeId}/receipt-settings`,        show: !!storeId, roles: ['super_admin', 'store_admin'] },
-    { label: '재고 관리',     icon: Package,           path: `/admin/stores/${storeId}/inventory`,               show: !!storeId, roles: ['super_admin', 'store_admin', 'manager'] },
-    { label: '단골 관리',     icon: Users,             path: `/admin/stores/${storeId}/customers`,               show: !!storeId, roles: ['super_admin', 'store_admin', 'manager'] },
-    { label: '팀원 관리',     icon: Users,             path: `/admin/stores/${storeId}/staff`,                   show: !!storeId, roles: ['super_admin', 'store_admin', 'manager'] },
-    { label: '매장 환경설정', icon: Settings,          path: `/admin/stores/${storeId}/settings`,               show: !!storeId, roles: ['super_admin', 'store_admin'] },
+    { label: '상품 관리',     icon: ShoppingBag,       path: `/admin/stores/${storeId}/menu`,                    show: !!storeId, roles: [] },
+    { label: '메뉴판 빌더',   icon: Palette,           path: `/admin/stores/${storeId}/visual-builder`,          show: !!storeId, roles: [] },
+    { label: '스마트 예약',   icon: CalendarCheck,     path: `/admin/stores/${storeId}/reservations`,            show: !!storeId, roles: [] },
+    { label: '정산 분석',     icon: Wallet,            path: `/admin/stores/${storeId}/settlements`,             show: !!storeId, roles: [] },
+    { label: '영수증 커스텀', icon: Receipt,           path: `/admin/stores/${storeId}/receipt-settings`,        show: !!storeId, roles: [] },
+    { label: '재고 관리',     icon: Package,           path: `/admin/stores/${storeId}/inventory`,               show: !!storeId, roles: [] },
+    { label: '단골 관리',     icon: Users,             path: `/admin/stores/${storeId}/customers`,               show: !!storeId, roles: [] },
+    { label: '팀원 관리',     icon: Users,             path: `/admin/stores/${storeId}/staff`,                   show: !!storeId, roles: [] },
+    { label: '매장 환경설정', icon: Settings,          path: `/admin/stores/${storeId}/settings`,               show: !!storeId, roles: [] },
     { label: '통합 SMS 발송', icon: Smartphone,        path: '/admin/bulk-sms',                                                  roles: ['super_admin'] },
     { label: '커뮤니티',      icon: MessageSquare,     path: '/board',                                           id: 'board',     roles: [] },
   ];

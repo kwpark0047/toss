@@ -76,9 +76,9 @@ const Store = {
                 where: { user_id: uid, is_active: true }
             });
 
-            // 2. 직원으로 등록된 매장 조회
-            const staffed = await prisma.store_staff.findMany({
-                where: { user_id: uid, is_active: 1 },
+            // 2. 직원으로 등록된 매장 조회 (schema 모델명: staff)
+            const staffed = await prisma.staff.findMany({
+                where: { user_id: uid },
                 include: { stores: true }
             });
 
