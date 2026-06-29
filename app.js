@@ -148,6 +148,37 @@ app.get("/api/health", async (req, res) => {
     });
 });
 
+// ── 임시 시드 실행 엔드포인트 (사용 후 제거 예정) ──────────────────────────
+const { execFile } = require('child_process');
+let _seedJob = null; // { status, output, startedAt }
+
+app.post('/api/_seed-start', (req, res) => {
+    const key = req.headers['x-seed-key'] || req.query.key;
+    if (key !== 'wm-seed-2026') return res.status(403).json({ error: 'forbidden' });
+    if (_seedJob?.status === 'running') return res.json({ status: 'already_running', output: _seedJob.output });
+
+    _seedJob = { status: 'running', output: '', startedAt: new Date().toISOString() };
+    const child = execFile('node', ['scripts/seed_test.js'], {
+        cwd: process.cwd(), timeout: 600000, env: process.env, maxBuffer: 10 * 1024 * 1024
+    });
+    child.stdout?.on('data', d => { _seedJob.output += d; });
+    child.stderr?.on('data', d => { _seedJob.output += '[ERR] ' + d; });
+    child.on('close', code => {
+        _seedJob.status = code === 0 ? 'done' : 'failed';
+        _seedJob.exitCode = code;
+        _seedJob.finishedAt = new Date().toISOString();
+    });
+
+    res.json({ status: 'started', message: '시드 실행 시작. /api/_seed-status 로 확인하세요.' });
+});
+
+app.get('/api/_seed-status', (req, res) => {
+    const key = req.headers['x-seed-key'] || req.query.key;
+    if (key !== 'wm-seed-2026') return res.status(403).json({ error: 'forbidden' });
+    res.json(_seedJob || { status: 'not_started' });
+});
+// ── 임시 시드 엔드포인트 끝 ─────────────────────────────────────────────────
+
 // 버전/디버그 엔드포인트 (개발 환경에서만 상세 정보 노출)
 app.get('/api/version', (req, res) => {
     const info = {
