@@ -181,6 +181,29 @@ app.get('/api/_seed-status', (req, res) => {
     if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
     res.json(_seedJob || { status: 'not_started' });
 });
+
+let _dbPushJob = null;
+app.post('/api/_db-push', (req, res) => {
+    if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
+    if (_dbPushJob?.status === 'running') return res.json({ status: 'already_running' });
+
+    _dbPushJob = { status: 'running', output: '', startedAt: new Date().toISOString() };
+    const child = execFile('npx', ['prisma', 'db', 'push', '--accept-data-loss', '--skip-generate'], {
+        cwd: process.cwd(), timeout: 120000, env: process.env, maxBuffer: 5 * 1024 * 1024
+    });
+    child.stdout?.on('data', d => { _dbPushJob.output += d; });
+    child.stderr?.on('data', d => { _dbPushJob.output += d; });
+    child.on('close', code => {
+        _dbPushJob.status = code === 0 ? 'done' : 'failed';
+        _dbPushJob.exitCode = code;
+        _dbPushJob.finishedAt = new Date().toISOString();
+    });
+    res.json({ status: 'started', message: 'prisma db push 실행 중. /api/_db-push-status 로 확인하세요.' });
+});
+app.get('/api/_db-push-status', (req, res) => {
+    if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
+    res.json(_dbPushJob || { status: 'not_started' });
+});
 // ── 임시 시드 엔드포인트 끝 ─────────────────────────────────────────────────
 
 // 버전/디버그 엔드포인트 (개발 환경에서만 상세 정보 노출)
