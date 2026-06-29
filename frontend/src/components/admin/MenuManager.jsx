@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { categoriesAPI, productsAPI, storesAPI, aiAPI, uploadsAPI } from '../../api';
+import { categoriesAPI, productsAPI, storesAPI, aiAPI, uploadsAPI, optionTemplatesAPI } from '../../api';
 import {
   ArrowLeft, Plus, Edit, Trash2, Clock, Star, Sparkles, Flame, AlertTriangle,
   Image, Tag, FileText, Wand2, ShoppingBag, Download, Store, Folders, Search,
@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
-import axios from 'axios';
 import BulkMenuModal from './BulkMenuModal';
 import MenuWizard from './MenuWizard';
 import OptionTemplateModal from './OptionTemplateModal';
@@ -772,15 +771,13 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
   const [aiLoading, setAiLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [templates, setTemplates] = useState([]);
+  const [optionEditorKey, setOptionEditorKey] = useState(0);
 
   useEffect(() => {
     const loadTemplates = async () => {
       try {
-        const res = await axios.get(
-          `${axios.defaults.baseURL || 'http://localhost:3000/api'}/option-templates/store/${storeId}`,
-          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-        );
-        setTemplates(res.data || []);
+        const res = await optionTemplatesAPI.getByStore(storeId);
+        setTemplates(Array.isArray(res) ? res : (res?.data || []));
       } catch { /* 옵션 템플릿 없음 */ }
     };
     loadTemplates();
@@ -794,8 +791,8 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
     fd.append('image', file);
     try {
       const res = await uploadsAPI.uploadImage(fd);
-      if (res.data?.success || res.url) {
-        const url = res.data?.url || res.url;
+      const url = res?.url || res?.data?.url;
+      if (url) {
         setForm(prev => ({
           ...prev,
           [field]: field === 'detail_images'
@@ -821,6 +818,7 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
   const applyTemplate = (tpl) => {
     try {
       setForm(prev => ({ ...prev, options: tpl.options || '[]' }));
+      setOptionEditorKey(k => k + 1);
     } catch { alert('템플릿 적용 실패'); }
   };
 
@@ -1126,6 +1124,7 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
                   <span className="text-[10px] text-slate-600 font-bold">추가금은 기본 가격에 더해집니다</span>
                 </div>
                 <VisualOptionEditor
+                  key={optionEditorKey}
                   value={form.options}
                   onChange={(val) => setForm(prev => ({ ...prev, options: val }))}
                 />

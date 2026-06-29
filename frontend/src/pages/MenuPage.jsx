@@ -38,21 +38,21 @@ const MenuPage = () => {
     queryKey: ["storeProfile", storeId],
     queryFn: async () => {
       if (!storeId) return null;
-      const data = await storesAPI.getById(storeId);
-      // 저장된 테마 파싱
+      const raw = await storesAPI.getById(storeId);
+      // res.success()로 감싸진 경우: {success:true, data:{...}} → .data 추출
+      const data = raw?.data || raw;
       let parsedTheme = null;
-      if (data.theme) {
+      if (data?.theme) {
         try { parsedTheme = typeof data.theme === 'string' ? JSON.parse(data.theme) : data.theme; } catch { /* 파싱 실패 무시 */ }
       }
       return {
-        store_name: data.name,
-        address: data.address,
-        description: data.description,
-        open_time: data.open_time,
-        close_time: data.close_time,
-        phone: data.phone,
+        store_name: data?.name,
+        address: data?.address,
+        description: data?.description,
+        open_time: data?.open_time,
+        close_time: data?.close_time,
+        phone: data?.phone,
         theme: parsedTheme,
-        // 테마에서 공지사항 읽기
         announcement: parsedTheme?.announcement || null,
         announcement_active: parsedTheme?.announcementActive || false,
       };
@@ -65,8 +65,8 @@ const MenuPage = () => {
     queryKey: ["publicCategories", storeId],
     queryFn: async () => {
       if (!storeId) return [];
-      const data = await categoriesAPI.getByStore(storeId);
-      return data || [];
+      const raw = await categoriesAPI.getByStore(storeId);
+      return Array.isArray(raw) ? raw : (raw?.data || []);
     },
     enabled: !!storeId,
   });
@@ -76,10 +76,11 @@ const MenuPage = () => {
     queryKey: ["publicMenuItems", storeId],
     queryFn: async () => {
       if (!storeId) return [];
-      const data = await productsAPI.getByStore(storeId);
-      return (data || []).map(item => ({
+      const raw = await productsAPI.getByStore(storeId);
+      const data = Array.isArray(raw) ? raw : (raw?.data || []);
+      return data.map(item => ({
         ...item,
-        is_available: true // API에서 제공하지 않을 경우 기본값
+        is_available: true
       }));
     },
     enabled: !!storeId,

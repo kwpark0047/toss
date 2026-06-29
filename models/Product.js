@@ -13,16 +13,16 @@ const Product = {
             description, image_url, is_active = 1, is_sold_out = 0,
             detail_description, options, nutrition_info, allergens,
             ingredients, spicy_level = 0, is_popular = 0, is_new = 0,
-            tags, detail_images, cooking_time = 5
+            tags, detail_images, cooking_time = 5,
+            stock_quantity, low_stock_threshold = 5
         } = data;
 
         if (store_id === undefined) throw new Error('store_id is undefined');
-        if (category_id === undefined) throw new Error('category_id is undefined');
 
         const product = await prisma.products.create({
             data: {
                 store_id: parseInt(store_id),
-                category_id: parseInt(category_id),
+                category_id: (category_id !== null && category_id !== undefined) ? parseInt(category_id) : null,
                 name,
                 price: parseInt(price),
                 description,
@@ -34,12 +34,14 @@ const Product = {
                 nutrition_info: typeof nutrition_info === 'object' ? JSON.stringify(nutrition_info) : nutrition_info,
                 allergens: typeof allergens === 'object' ? JSON.stringify(allergens) : allergens,
                 ingredients: typeof ingredients === 'object' ? JSON.stringify(ingredients) : ingredients,
-                spicy_level: parseInt(spicy_level),
+                spicy_level: parseInt(spicy_level) || 0,
                 is_popular: is_popular ? 1 : 0,
                 is_new: is_new ? 1 : 0,
                 tags: typeof tags === 'object' ? JSON.stringify(tags) : tags,
                 detail_images: typeof detail_images === 'object' ? JSON.stringify(detail_images) : detail_images,
-                cooking_time: parseInt(cooking_time),
+                cooking_time: parseInt(cooking_time) || 5,
+                stock_quantity: (stock_quantity !== null && stock_quantity !== undefined && stock_quantity !== '') ? parseInt(stock_quantity) : null,
+                low_stock_threshold: parseInt(low_stock_threshold) || 5,
                 sort_order: 0
             }
         });
@@ -105,31 +107,34 @@ const Product = {
     // [상품 정보 업데이트]
     update: async (id, data) => {
         const {
-            name, price, description, is_active, is_sold_out, category_id,
+            name, price, description, image_url, is_active, is_sold_out, category_id,
             detail_description, options, nutrition_info, allergens,
             ingredients, spicy_level, is_popular, is_new,
-            tags, detail_images, cooking_time
+            tags, detail_images, cooking_time, stock_quantity, low_stock_threshold
         } = data;
 
         const updateData = {};
         if (name !== undefined) updateData.name = name;
         if (price !== undefined) updateData.price = parseInt(price);
         if (description !== undefined) updateData.description = description;
+        if (image_url !== undefined) updateData.image_url = image_url;
         if (is_active !== undefined) updateData.is_active = is_active ? true : false;
         if (is_sold_out !== undefined) updateData.is_sold_out = is_sold_out ? true : false;
-        if (category_id !== undefined) updateData.category_id = parseInt(category_id);
+        if (category_id !== undefined) updateData.category_id = (category_id !== null && category_id !== '') ? parseInt(category_id) : null;
 
         if (detail_description !== undefined) updateData.detail_description = detail_description;
         if (options !== undefined) updateData.options = typeof options === 'object' ? JSON.stringify(options) : options;
         if (nutrition_info !== undefined) updateData.nutrition_info = typeof nutrition_info === 'object' ? JSON.stringify(nutrition_info) : nutrition_info;
         if (allergens !== undefined) updateData.allergens = typeof allergens === 'object' ? JSON.stringify(allergens) : allergens;
         if (ingredients !== undefined) updateData.ingredients = typeof ingredients === 'object' ? JSON.stringify(ingredients) : ingredients;
-        if (spicy_level !== undefined) updateData.spicy_level = parseInt(spicy_level);
+        if (spicy_level !== undefined) updateData.spicy_level = parseInt(spicy_level) || 0;
         if (is_popular !== undefined) updateData.is_popular = is_popular ? 1 : 0;
         if (is_new !== undefined) updateData.is_new = is_new ? 1 : 0;
         if (tags !== undefined) updateData.tags = typeof tags === 'object' ? JSON.stringify(tags) : tags;
         if (detail_images !== undefined) updateData.detail_images = typeof detail_images === 'object' ? JSON.stringify(detail_images) : detail_images;
-        if (cooking_time !== undefined) updateData.cooking_time = parseInt(cooking_time);
+        if (cooking_time !== undefined) updateData.cooking_time = parseInt(cooking_time) || 5;
+        if (stock_quantity !== undefined) updateData.stock_quantity = (stock_quantity !== null && stock_quantity !== '') ? parseInt(stock_quantity) : null;
+        if (low_stock_threshold !== undefined) updateData.low_stock_threshold = parseInt(low_stock_threshold) || 5;
 
         const product = await prisma.products.update({
             where: { id: parseInt(id) },

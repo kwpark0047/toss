@@ -1,6 +1,6 @@
 const Joi = require('joi');
 
-// 옵션 항목 하나의 스키마 (프론트 OptionTemplateModal 포맷)
+// 옵션 항목 하나의 스키마 (VisualOptionEditor 포맷 포함)
 const optionItemSchema = Joi.object({
     name: Joi.string().required().messages({
         'any.required': '옵션명은 필수입니다.'
@@ -9,8 +9,10 @@ const optionItemSchema = Joi.object({
         'array.min': '옵션 값은 최소 1개 이상이어야 합니다.',
         'any.required': '옵션 값은 필수입니다.'
     }),
-    type: Joi.string().valid('radio', 'checkbox', 'select').default('radio')
-});
+    type: Joi.string().valid('radio', 'checkbox', 'select').default('radio'),
+    required: Joi.boolean().optional(),
+    prices: Joi.array().items(Joi.number().allow(null)).optional(),
+}).unknown(true);
 
 const schemas = {
     // === [Auth] ===
@@ -88,15 +90,30 @@ const schemas = {
     product: {
         create: Joi.object({
             store_id: Joi.number().integer().required(),
-            category_id: Joi.number().integer().required(),
+            category_id: Joi.number().integer().allow(null).optional(),
             name: Joi.string().required(),
             price: Joi.number().min(0).required(),
             description: Joi.string().allow('', null),
-            image_url: Joi.string().uri().allow('', null),
+            image_url: Joi.string().allow('', null),
             is_active: Joi.number().valid(0, 1).default(1),
             is_sold_out: Joi.number().valid(0, 1).default(0),
-            options: Joi.array().items(optionItemSchema).allow(null)
-        })
+            detail_description: Joi.string().allow('', null),
+            allergens: Joi.string().allow('', null),
+            ingredients: Joi.string().allow('', null),
+            nutrition_info: Joi.string().allow('', null),
+            spicy_level: Joi.number().min(0).max(5).default(0),
+            is_popular: Joi.number().valid(0, 1).default(0),
+            is_new: Joi.number().valid(0, 1).default(0),
+            tags: Joi.string().allow('', null),
+            detail_images: Joi.string().allow('', null),
+            cooking_time: Joi.number().min(0).default(5),
+            stock_quantity: Joi.number().integer().allow(null).optional(),
+            low_stock_threshold: Joi.number().integer().min(0).default(5),
+            options: Joi.alternatives().try(
+                Joi.array().items(optionItemSchema).allow(null),
+                Joi.string().allow('', null)
+            ).optional(),
+        }).unknown(true)
     },
 
     // === [Option Template] ===
