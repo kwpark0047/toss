@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, ArrowLeft, Check, Wand2, Tag, DollarSign, Image as ImageIcon, ListPlus, ChevronRight, X, AlertCircle } from 'lucide-react';
+import { Sparkles, ArrowRight, ArrowLeft, Check, Wand2, Tag, DollarSign, Image as ImageIcon, ListPlus, ChevronRight, X, AlertCircle, Trash2, Plus } from 'lucide-react';
 import { aiAPI, productsAPI } from '../../api';
 
 const MenuWizard = ({ storeId, categories, onClose, onSave }) => {

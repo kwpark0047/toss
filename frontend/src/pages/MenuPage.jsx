@@ -39,14 +39,22 @@ const MenuPage = () => {
     queryFn: async () => {
       if (!storeId) return null;
       const data = await storesAPI.getById(storeId);
+      // 저장된 테마 파싱
+      let parsedTheme = null;
+      if (data.theme) {
+        try { parsedTheme = typeof data.theme === 'string' ? JSON.parse(data.theme) : data.theme; } catch { /* 파싱 실패 무시 */ }
+      }
       return {
         store_name: data.name,
         address: data.address,
         description: data.description,
-        business_hours: data.business_hours, // {mon: {open, close, closed}, ...}
-        announcement: data.announcement,
-        announcement_active: data.announcement_active,
-        phone: data.phone
+        open_time: data.open_time,
+        close_time: data.close_time,
+        phone: data.phone,
+        theme: parsedTheme,
+        // 테마에서 공지사항 읽기
+        announcement: parsedTheme?.announcement || null,
+        announcement_active: parsedTheme?.announcementActive || false,
       };
     },
     enabled: !!storeId,
@@ -96,39 +104,35 @@ const MenuPage = () => {
 
   // Helper functions
   const getTodayHours = () => {
-    if (!profile?.business_hours) return null;
-    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-    const today = days[new Date().getDay()];
-    return profile.business_hours[today];
+    if (!profile?.open_time || !profile?.close_time) return null;
+    return { open: profile.open_time, close: profile.close_time };
   };
 
   const isStoreOpen = () => {
-    const todayHrs = getTodayHours();
-    if (!todayHrs || todayHrs.closed) return false;
-    
+    if (!profile?.open_time || !profile?.close_time) return true; // 시간 미설정 시 항상 영업 중
     const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes();
-    
     try {
-      const [openHour, openMin] = todayHrs.open.split(":").map(Number);
-      const [closeHour, closeMin] = todayHrs.close.split(":").map(Number);
-      
+      const [openHour, openMin] = profile.open_time.split(":").map(Number);
+      const [closeHour, closeMin] = profile.close_time.split(":").map(Number);
       const openTime = openHour * 60 + openMin;
       const closeTime = closeHour * 60 + closeMin;
-      
-      if (closeTime < openTime) {
-        return currentTime >= openTime || currentTime < closeTime;
-      }
-      
+      if (closeTime < openTime) return currentTime >= openTime || currentTime < closeTime;
       return currentTime >= openTime && currentTime < closeTime;
     } catch {
-      return true; // 시간 형식이 다를 경우 기본적으로 열림으로 표시
+      return true;
     }
   };
 
-  const getOptionsForMenuItem = () => {
-    // API에서 옵션 정보를 제공하는 경우 여기에 구현
-    return []; 
+  const getOptionsForMenuItem = (itemId) => {
+    const item = menuItems.find(i => i.id === itemId);
+    if (!item?.options) return [];
+    try {
+      const parsed = typeof item.options === 'string' ? JSON.parse(item.options) : item.options;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   };
 
   const isNewItem = (item) => {
@@ -264,8 +268,29 @@ const MenuPage = () => {
     );
   }
 
+  // 테마 CSS 변수 생성
+  const themeStyle = profile?.theme ? {
+    '--color-primary': profile.theme.primaryColor || '#f97316',
+    '--color-secondary': profile.theme.secondaryColor || '#1e3a5f',
+    '--color-accent': profile.theme.accentColor || '#10b981',
+    '--color-bg': profile.theme.backgroundColor || '#f8fafc',
+    '--color-card': profile.theme.cardColor || '#ffffff',
+    '--color-text': profile.theme.textColor || '#1e293b',
+    fontFamily: profile.theme.fontFamily || 'inherit',
+    backgroundColor: profile.theme.backgroundColor || undefined,
+    color: profile.theme.textColor || undefined,
+  } : {};
+
   return (
-    <div className="min-h-screen bg-white pb-24 font-sans tracking-tight">
+    <div className="min-h-screen pb-24 font-sans tracking-tight" style={themeStyle}>
+      {/* 공지사항 배너 */}
+      {profile?.announcement_active && profile?.announcement && (
+        <div className="px-4 py-2.5 flex items-center gap-2" style={{ backgroundColor: '#fbbf24' }}>
+          <span className="text-xs">📢</span>
+          <p className="text-xs font-bold text-amber-900 flex-1">{profile.announcement}</p>
+        </div>
+      )}
+
       {/* Header */}
       <MenuHeader
         storeName={profile?.store_name || "위마켓"}
@@ -278,9 +303,6 @@ const MenuPage = () => {
         description={profile?.description}
         phone={profile?.phone}
         address={profile?.address}
-        businessHours={profile?.business_hours}
-        announcement={profile?.announcement}
-        announcementActive={profile?.announcement_active}
         isOpen={storeOpen}
         todayHours={todayHours}
       />

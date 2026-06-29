@@ -114,26 +114,49 @@ const OptionTemplateModal = ({ storeId, onClose }) => {
 
                             <div className="space-y-2">
                                 {newTemplate.options.map((opt, i) => (
-                                    <div key={i} className="bg-white p-3 rounded-xl shadow-sm space-y-2">
+                                    <div key={i} className="bg-white p-3 rounded-xl shadow-sm space-y-2 border border-slate-100">
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="옵션명 (예: 맵기)"
+                                                className="flex-1 text-xs font-bold outline-none border-b border-slate-100 pb-1"
+                                                value={opt.name}
+                                                onChange={e => {
+                                                    const newOpts = [...newTemplate.options];
+                                                    newOpts[i].name = e.target.value;
+                                                    setNewTemplate({ ...newTemplate, options: newOpts });
+                                                }}
+                                            />
+                                            <select
+                                                value={opt.type || 'radio'}
+                                                onChange={e => {
+                                                    const newOpts = [...newTemplate.options];
+                                                    newOpts[i].type = e.target.value;
+                                                    setNewTemplate({ ...newTemplate, options: newOpts });
+                                                }}
+                                                className="text-[10px] font-bold text-slate-500 outline-none bg-slate-50 rounded-lg px-2 py-1"
+                                            >
+                                                <option value="radio">단일</option>
+                                                <option value="checkbox">복수</option>
+                                            </select>
+                                            <button
+                                                onClick={() => {
+                                                    const newOpts = newTemplate.options.filter((_, j) => j !== i);
+                                                    setNewTemplate({ ...newTemplate, options: newOpts });
+                                                }}
+                                                className="p-1 text-slate-300 hover:text-rose-500 transition-all"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
                                         <input
                                             type="text"
-                                            placeholder="옵션명 (예: 맵기)"
-                                            className="w-full text-xs font-bold outline-none border-b border-slate-50 pb-1"
-                                            value={opt.name}
-                                            onChange={e => {
-                                                const newOpts = [...newTemplate.options];
-                                                newOpts[i].name = e.target.value;
-                                                setNewTemplate({ ...newTemplate, options: newOpts });
-                                            }}
-                                        />
-                                        <input
-                                            type="text"
-                                            placeholder="값 (쉼표로 구분: 약간, 매움)"
-                                            className="w-full text-[10px] text-slate-400 outline-none"
+                                            placeholder="값 (쉼표로 구분 예: 약간, 보통, 매움)"
+                                            className="w-full text-[10px] text-slate-400 outline-none border-b border-slate-50 pb-1"
                                             value={Array.isArray(opt.values) ? opt.values.join(',') : opt.values}
                                             onChange={e => {
                                                 const newOpts = [...newTemplate.options];
-                                                newOpts[i].values = e.target.value.split(',');
+                                                newOpts[i].values = e.target.value.split(',').map(v => v.trim());
                                                 setNewTemplate({ ...newTemplate, options: newOpts });
                                             }}
                                         />

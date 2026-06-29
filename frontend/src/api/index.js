@@ -135,11 +135,12 @@ export const storeAccountAPI = {
 
 // === [4. 상품 및 카테고리] ===
 export const categoriesAPI = {
-  getAll: () => api.get('/categories/store/1'), // [데모용] 1번 매장 카테고리 조회
-  getByStore: (storeId) => api.get('/categories/store/' + storeId), // 매장별 카테고리 조회
+  getAll: () => api.get('/categories/store/1'),
+  getByStore: (storeId) => api.get('/categories/store/' + storeId),
   create: (data) => api.post('/categories', data),
   update: (id, data) => api.put('/categories/' + id, data),
   delete: (id) => api.delete('/categories/' + id),
+  updateSort: (orders) => api.put('/categories/sort', { orders }),
 };
 
 export const productsAPI = {
