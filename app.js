@@ -205,6 +205,30 @@ app.get('/api/_db-push-status', (req, res) => {
     res.json(_dbPushJob || { status: 'not_started' });
 });
 
+app.post('/api/_migrate-attendance', async (req, res) => {
+    if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
+    try {
+        const prisma = require('./config/prisma');
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS staff_attendance (
+                id SERIAL PRIMARY KEY,
+                staff_id INTEGER NOT NULL,
+                store_id INTEGER NOT NULL,
+                clock_in TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                clock_out TIMESTAMPTZ,
+                work_hours FLOAT,
+                note TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                CONSTRAINT fk_sa_staff FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE,
+                CONSTRAINT fk_sa_store FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_attendance_staff_time ON staff_attendance(staff_id, clock_in);
+            CREATE INDEX IF NOT EXISTS idx_attendance_store_time ON staff_attendance(store_id, clock_in);
+        `);
+        res.json({ success: true, message: 'staff_attendance 테이블 생성 완료' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/_db-tables', async (req, res) => {
     if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
     try {
