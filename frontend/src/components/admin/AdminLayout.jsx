@@ -528,8 +528,9 @@ const AdminLayout = ({ children }) => {
     { label: '단골 관리',     icon: Users,             path: `/admin/stores/${storeId}/customers`,               show: !!storeId, roles: [] },
     { label: '팀원 관리',     icon: Users,             path: `/admin/stores/${storeId}/staff`,                   show: !!storeId, roles: [] },
     { label: '매장 환경설정', icon: Settings,          path: `/admin/stores/${storeId}/settings`,               show: !!storeId, roles: [] },
-    { label: '통합 SMS 발송', icon: Smartphone,        path: '/admin/bulk-sms',                                                  roles: ['super_admin'] },
-    { label: '커뮤니티',      icon: MessageSquare,     path: '/board',                                           id: 'board',     roles: [] },
+    { label: 'AI 팅커벨',     icon: Sparkles,           path: '/admin/tinkerbell',                                                roles: [] },
+    { label: '통합 SMS 발송', icon: Smartphone,         path: '/admin/bulk-sms',                                                  roles: ['super_admin'] },
+    { label: '커뮤니티',      icon: MessageSquare,      path: '/board',                                           id: 'board',     roles: [] },
   ];
 
   const filteredNavItems = navItems.filter(item => {

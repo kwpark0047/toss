@@ -31,9 +31,10 @@ const CustomerManager    = lazy(() => import("@/components/admin/CustomerManager
 const ReservationManager = lazy(() => import("@/components/admin/ReservationManager"));
 const StoreForm          = lazy(() => import("@/components/admin/StoreForm"));
 const BulkSMSManager     = lazy(() => import("@/components/admin/BulkSMSManager"));
-const InventoryManager   = lazy(() => import("@/components/admin/InventoryManager"));
-const TableManager       = lazy(() => import("@/components/admin/TableManager"));
-const ProfilePage        = lazy(() => import("@/pages/ProfilePage"));
+const InventoryManager      = lazy(() => import("@/components/admin/InventoryManager"));
+const TableManager          = lazy(() => import("@/components/admin/TableManager"));
+const ProfilePage           = lazy(() => import("@/pages/ProfilePage"));
+const TinkerBellManagerPage = lazy(() => import("@/pages/TinkerBellManagerPage"));
 const BoardList          = lazy(() => import("@/components/board/BoardList"));
 const BoardDetail        = lazy(() => import("@/components/board/BoardDetail"));
 const BoardWrite         = lazy(() => import("@/components/board/BoardWrite"));
@@ -215,6 +216,13 @@ const AppRoutes = () => (
     <Route path="/admin/bulk-sms" element={
       <AdminPage>
         <AdminSuspense><BulkSMSManager /></AdminSuspense>
+      </AdminPage>
+    } />
+
+    {/* AI 팅커벨 도우미 */}
+    <Route path="/admin/tinkerbell" element={
+      <AdminPage>
+        <AdminSuspense><TinkerBellManagerPage /></AdminSuspense>
       </AdminPage>
     } />
 

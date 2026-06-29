@@ -517,6 +517,71 @@ const LandingPage = () => {
                         ))}
                     </div>
 
+                    {/* ★ AI 팅커벨 쇼케이스 카드 ★ */}
+                    <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                        className="bg-gradient-to-r from-amber-500/8 to-orange-500/8 border border-amber-500/25 rounded-3xl p-8 mb-6 flex flex-col md:flex-row items-center gap-8">
+                        {/* 왼쪽: 설명 */}
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">AI 팅커벨 도우미</span>
+                                <span className="text-[10px] font-black text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/15">NEW</span>
+                            </div>
+                            <h3 className="text-2xl font-black text-white mb-3 leading-tight">
+                                24시간 AI 요정이<br />고객을 안내합니다
+                            </h3>
+                            <p className="text-slate-400 text-sm leading-relaxed mb-5">
+                                한국어·영어·일본어·중국어 4개 국어 지원. 날씨와 시간대에 따라 메뉴를 자동 추천하고, 장바구니 담기에 실시간으로 반응하는 AI 안내 캐릭터입니다.
+                            </p>
+                            <div className="grid grid-cols-2 gap-3 mb-5">
+                                {[
+                                    { stat:'4개 국어', label:'자동 전환' },
+                                    { stat:'+1.8개', label:'추천 후 추가 주문' },
+                                    { stat:'64%', label:'추천 전환율' },
+                                    { stat:'24%', label:'큰 글씨 활용 (고령층)' },
+                                ].map(s => (
+                                    <div key={s.label} className="bg-slate-900 rounded-xl px-4 py-3 border border-slate-800">
+                                        <p className="text-amber-400 font-black text-lg">{s.stat}</p>
+                                        <p className="text-slate-500 text-[11px]">{s.label}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            <Link to="/menu/demo">
+                                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                    className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-full font-black text-sm shadow-lg shadow-amber-500/30 cursor-pointer hover:bg-amber-400 transition-colors">
+                                    ✨ 팅커벨 메뉴 데모 체험하기
+                                </motion.div>
+                            </Link>
+                        </div>
+
+                        {/* 오른쪽: 요정 일러스트레이션 */}
+                        <div className="flex-shrink-0 flex flex-col items-center gap-4">
+                            <div className="relative w-32 h-32">
+                                {/* 오라 */}
+                                <div className="absolute inset-0 rounded-full opacity-60"
+                                    style={{ background: 'radial-gradient(circle, rgba(245,159,11,.5) 0%, transparent 70%)' }} />
+                                {/* 날개 */}
+                                <div className="absolute w-12 h-20 rounded-[60%_40%_70%_70%/70%_70%_60%_60%] opacity-50"
+                                    style={{ left: 4, top: 20, background: 'rgba(255,255,255,0.5)' }} />
+                                <div className="absolute w-12 h-20 rounded-[40%_60%_70%_70%/70%_70%_60%_60%] opacity-50"
+                                    style={{ right: 4, top: 20, background: 'rgba(255,255,255,0.5)' }} />
+                                {/* 코어 */}
+                                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full flex items-center justify-center shadow-2xl"
+                                    style={{ background: 'radial-gradient(circle at 34% 28%, #FFF8E7, #F59E0B 62%, #D97706)', boxShadow: '0 4px 30px rgba(245,159,11,.7)' }}>
+                                    <svg viewBox="0 0 24 24" fill="white" width="28" height="28">
+                                        <path d="M12 2l1.8 6.6c.2.7.8 1.3 1.5 1.5L22 12l-6.7 1.9c-.7.2-1.3.8-1.5 1.5L12 22l-1.8-6.6c-.2-.7-.8-1.3-1.5-1.5L2 12l6.7-1.9c.7-.2 1.3-.8 1.5-1.5L12 2z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            {/* 말풍선 */}
+                            <div className="bg-slate-900 border border-slate-700 rounded-2xl px-4 py-2.5 text-xs text-white font-semibold max-w-[180px] text-center relative">
+                                오늘 날씨 좋네요! ☀️<br />
+                                <span className="text-amber-400">시그니처 라떼 추천해요!</span>
+                                <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-900 border-l border-t border-slate-700 rotate-45" />
+                            </div>
+                            <div className="flex gap-2 text-lg">🇰🇷 🇺🇸 🇯🇵 🇨🇳</div>
+                        </div>
+                    </motion.div>
+
                     {/* 데모 체험 CTA 블록 */}
                     <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                         className="bg-gradient-to-r from-orange-500/10 to-rose-500/10 border border-orange-500/20 rounded-3xl p-10 flex flex-col md:flex-row items-center gap-8">

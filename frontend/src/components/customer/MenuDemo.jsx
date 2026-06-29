@@ -5,13 +5,21 @@ import {
   ChevronLeft, Star, MapPin, Clock, Megaphone,
   CheckCircle2, RotateCcw, Zap, QrCode,
   UtensilsCrossed, Link2, Gift,
-  ShieldCheck, Wifi, Scan, Flame,
+  ShieldCheck, Wifi, Scan, Flame, Globe,
 } from 'lucide-react';
 import CategoryTabs from '../menu/CategoryTabs';
 import MenuItemCard from '../menu/MenuItemCard';
 import CartButton from '../menu/CartButton';
 import CartModal from '../menu/CartModal';
 import OptionSelectionModal from '../menu/OptionSelectionModal';
+import TinkerBell from '../ai/TinkerBell';
+
+const DEMO_LANGS = [
+  { code: 'ko', flag: '🇰🇷', label: 'KO' },
+  { code: 'en', flag: '🇺🇸', label: 'EN' },
+  { code: 'ja', flag: '🇯🇵', label: 'JA' },
+  { code: 'zh', flag: '🇨🇳', label: 'ZH' },
+];
 
 const fp = n => new Intl.NumberFormat('ko-KR').format(n) + '원';
 const makeCartId = () => `c-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -185,6 +193,11 @@ const MenuDemo = () => {
   const [uuidTyped, setUuidTyped] = useState('');
   const [scanClicked, setScanClicked] = useState(false);
 
+  // 팅커벨 AI 도우미
+  const [tbLang,         setTbLang]         = useState('ko');
+  const [tbLastAdded,    setTbLastAdded]    = useState(null);
+  const [showLangPicker, setShowLangPicker] = useState(false);
+
   // 메뉴 / 장바구니
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [cart, setCart] = useState([]);
@@ -259,10 +272,14 @@ const MenuDemo = () => {
     if (item.isSoldOut) return;
     if (item.options?.length > 0) { setOptionItem(item); return; }
     setCart(prev => [...prev, { cartItemId: makeCartId(), menuItem: item, quantity: 1, selectedOptions: [], unitPrice: item.price }]);
+    setTbLastAdded({ name: item.name, id: item.id });
+    setTimeout(() => setTbLastAdded(null), 80);
   };
   const handleOptionConfirm = (qty, opts, total) => {
     if (!optionItem) return;
     setCart(prev => [...prev, { cartItemId: makeCartId(), menuItem: optionItem, quantity: qty, selectedOptions: opts, unitPrice: Math.round(total / qty) }]);
+    setTbLastAdded({ name: optionItem.name, id: optionItem.id });
+    setTimeout(() => setTbLastAdded(null), 80);
     setOptionItem(null);
   };
   const updateQuantity = (cartItemId, delta) => {
@@ -395,6 +412,15 @@ const MenuDemo = () => {
             <motion.div key="menu" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}
               className="w-full md:max-w-[420px] flex flex-col min-h-screen bg-slate-50" ref={topRef}>
 
+              {/* ★ AI 팅커벨 도우미 오버레이 ★ */}
+              <TinkerBell
+                lang={tbLang}
+                weather="sun"
+                menuItems={PRODUCTS}
+                lastAddedItem={tbLastAdded}
+                mode="float"
+              />
+
               {/* 동석자 토스트 */}
               <div className="fixed top-4 right-4 z-50 space-y-2 pointer-events-none">
                 <AnimatePresence>
@@ -440,6 +466,35 @@ const MenuDemo = () => {
                     <h1 className="text-base font-black text-slate-900 leading-tight truncate">{STORE.name}</h1>
                     <p className="text-xs font-bold text-orange-500">{STORE.table}번 테이블</p>
                   </div>
+                  {/* ★ 언어 선택기 ★ */}
+                  <div className="relative flex-shrink-0">
+                    <button
+                      onClick={() => setShowLangPicker(p => !p)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-full hover:bg-slate-100 transition-colors">
+                      <Globe size={11} className="text-slate-500" />
+                      <span className="text-[10px] font-black text-slate-600">
+                        {DEMO_LANGS.find(l => l.code === tbLang)?.flag} {DEMO_LANGS.find(l => l.code === tbLang)?.label}
+                      </span>
+                    </button>
+                    <AnimatePresence>
+                      {showLangPicker && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.94, y: -4 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.94, y: -4 }}
+                          className="absolute right-0 top-9 z-50 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 flex flex-col gap-1 min-w-[100px]">
+                          {DEMO_LANGS.map(l => (
+                            <button key={l.code}
+                              onClick={() => { setTbLang(l.code); setShowLangPicker(false); }}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${tbLang === l.code ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
+                              <span>{l.flag}</span> {l.label}
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
                   {/* ★ 공유 오더 배지 ★ */}
                   <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-full flex-shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
