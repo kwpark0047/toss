@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',          // 업데이트 시 사용자에게 확인 요청
+      registerType: 'autoUpdate',      // 새 버전 배포 시 SW 자동 교체
       injectRegister: 'auto',
       includeAssets: ['icons/*.svg', 'icons/*.png', 'offline.html'],
       manifest: false,                 // public/manifest.json 사용
@@ -77,7 +77,7 @@ export default defineConfig({
 
         // 기존 sw.js와 충돌 방지
         cleanupOutdatedCaches: true,
-        skipWaiting: false,            // prompt 모드에서는 false
+        skipWaiting: true,             // autoUpdate: 새 SW 즉시 활성화
         clientsClaim: true,
       },
 
