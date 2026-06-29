@@ -188,12 +188,18 @@ const LandingPage = () => {
                             <motion.button
                                 whileHover={{ scale: 1.04 }}
                                 whileTap={{ scale: 0.97 }}
-                                onClick={() => navigate('/stores')}
-                                className="flex items-center justify-center gap-2 px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full font-bold text-lg hover:border-orange-300 transition-colors"
+                                onClick={() => navigate('/login')}
+                                className="flex items-center justify-center gap-2 px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full font-bold text-lg hover:border-orange-300 hover:text-orange-500 transition-colors"
                             >
-                                고객 메뉴 데모 보기
+                                로그인
                             </motion.button>
                         </div>
+                        <p className="text-sm text-gray-400 mt-2">
+                            서비스가 궁금하신가요?{' '}
+                            <Link to="/stores" className="text-orange-500 font-bold hover:text-orange-600 transition-colors">
+                                고객 메뉴 데모 보기
+                            </Link>
+                        </p>
 
                         {/* 통계 */}
                         <div className="flex gap-10 mt-12 pt-8 border-t border-gray-100">
