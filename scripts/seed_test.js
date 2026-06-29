@@ -473,52 +473,47 @@ async function seedStore(def) {
 
   if (existingOrderCount === 0) {
     let orderCount = 0;
+    // connection_limit=1 환경: Promise.all 대신 순차 실행
     // April (days 89~60 ago)
     for (let d = 89; d >= 60; d--) {
       const date = new Date(BASE); date.setDate(date.getDate() - d);
       const isWeekend = [0,6].includes(date.getDay());
-      const count = isWeekend ? rnd(8, 18) : rnd(4, 10);
-      const batch = [];
+      const count = isWeekend ? rnd(4, 8) : rnd(2, 5);
       for (let o = 0; o < count; o++) {
         const hour = pick(def.peakHours);
         const od = new Date(date); od.setHours(hour, rnd(0, 59), 0, 0);
-        batch.push(createOrder(sid, pick(tables).id, products, od, 'completed', pick(staffIds)));
+        const r = await createOrder(sid, pick(tables).id, products, od, 'completed', pick(staffIds));
+        totalSales.apr += r.total;
+        orderCount++;
       }
-      const results = await Promise.all(batch);
-      results.forEach(r => { totalSales.apr += r.total; });
-      orderCount += results.length;
     }
 
     // May (days 59~30 ago)
     for (let d = 59; d >= 30; d--) {
       const date = new Date(BASE); date.setDate(date.getDate() - d);
       const isWeekend = [0,6].includes(date.getDay());
-      const count = isWeekend ? rnd(12, 22) : rnd(6, 14);
-      const batch = [];
+      const count = isWeekend ? rnd(5, 10) : rnd(3, 7);
       for (let o = 0; o < count; o++) {
         const hour = pick(def.peakHours);
         const od = new Date(date); od.setHours(hour, rnd(0, 59), 0, 0);
-        batch.push(createOrder(sid, pick(tables).id, products, od, 'completed', pick(staffIds)));
+        const r = await createOrder(sid, pick(tables).id, products, od, 'completed', pick(staffIds));
+        totalSales.may += r.total;
+        orderCount++;
       }
-      const results = await Promise.all(batch);
-      results.forEach(r => { totalSales.may += r.total; });
-      orderCount += results.length;
     }
 
     // June 1~28 (days 28~1 ago)
     for (let d = 28; d >= 1; d--) {
       const date = new Date(BASE); date.setDate(date.getDate() - d);
       const isWeekend = [0,6].includes(date.getDay());
-      const count = isWeekend ? rnd(15, 28) : rnd(8, 18);
-      const batch = [];
+      const count = isWeekend ? rnd(6, 12) : rnd(4, 8);
       for (let o = 0; o < count; o++) {
         const hour = pick(def.peakHours);
         const od = new Date(date); od.setHours(hour, rnd(0, 59), 0, 0);
-        batch.push(createOrder(sid, pick(tables).id, products, od, 'completed', pick(staffIds)));
+        const r = await createOrder(sid, pick(tables).id, products, od, 'completed', pick(staffIds));
+        totalSales.jun += r.total;
+        orderCount++;
       }
-      const results = await Promise.all(batch);
-      results.forEach(r => { totalSales.jun += r.total; });
-      orderCount += results.length;
     }
 
     // 오늘 (진행 중)

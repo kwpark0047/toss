@@ -164,7 +164,7 @@ app.post('/api/_seed-start', (req, res) => {
 
     _seedJob = { status: 'running', output: '', startedAt: new Date().toISOString() };
     const child = execFile('node', ['scripts/seed_test.js'], {
-        cwd: process.cwd(), timeout: 600000, env: process.env, maxBuffer: 10 * 1024 * 1024
+        cwd: process.cwd(), timeout: 900000, env: process.env, maxBuffer: 10 * 1024 * 1024
     });
     child.stdout?.on('data', d => { _seedJob.output += d; });
     child.stderr?.on('data', d => { _seedJob.output += '[ERR] ' + d; });
