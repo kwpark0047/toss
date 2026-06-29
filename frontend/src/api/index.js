@@ -1,23 +1,28 @@
 import axios from 'axios';
 
-// 런타임 호스트네임 기반 API URL 결정 (환경 변수 무시 - 빌드 시점 오염 방지)
-// 로컬 개발 환경과 배포 환경(Vercel, Render)을 구분하여 올바른 백엔드 주소를 반환합니다.
 const getApiUrl = () => {
   const hostname = window.location.hostname;
-
-  // 로컬 환경에서만 로컬 서버 사용
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'http://localhost:3000/api';
   }
-
-  // 그 외 모든 환경(Vercel 등)은 무조건 운영 서버(Render) 사용
   return 'https://wemarket.onrender.com/api';
 };
 
-
-
-
 const API_URL = getApiUrl();
+
+/**
+ * Render 콜드스타트 웨이크업: 앱 최초 로드 시 health 엔드포인트를 찔러
+ * 서버가 잠든 경우 깨운다. 이후 실제 API 요청들이 CORS 없이 도달하도록 보장.
+ */
+let _wakeupPromise = null;
+export const wakeupServer = () => {
+  if (_wakeupPromise) return _wakeupPromise;
+  const baseUrl = API_URL.replace('/api', '');
+  _wakeupPromise = fetch(`${baseUrl}/api/health`, { method: 'GET', mode: 'cors' })
+    .then(() => { _wakeupPromise = null; })
+    .catch(() => { _wakeupPromise = null; });
+  return _wakeupPromise;
+};
 
 const api = axios.create({
   baseURL: API_URL,
@@ -38,24 +43,26 @@ api.interceptors.request.use((config) => {
 
 // 응답 인터셉터 - 데이터 구조 표준화 및 에러 핸들링
 api.interceptors.response.use(
-  (response) => {
-    // 백엔드 응답 바디(response.data)만 반환하여 컴포넌트에서 res.data 등으로 접근 가능하게 함
-    return response.data;
-  },
+  (response) => response.data,
   async (error) => {
     const originalRequest = error.config;
 
-    // 404/500 에러 대응을 위한 로깅 (운영 환경 진단용)
-    if (error.response) {
-      const status = error.response.status;
-      if (status === 404) {
-        console.error('API 경로를 찾을 수 없습니다 (404). 배포 동기화 중일 수 있습니다.');
-      } else if (status >= 500) {
-        console.error('서버 내부 오류가 발생했습니다 (500). DB 스키마 확인이 필요합니다.');
+    // ── Render 콜드스타트 자동 재시도 ──
+    // 네트워크 에러(서버 슬립 중 CORS 없는 503) → 서버 웨이크업 후 1회 재시도
+    const isNetworkError = !error.response;
+    const isCorsError = error.code === 'ERR_NETWORK' || error.message?.includes('Network Error');
+    if ((isNetworkError || isCorsError) && !originalRequest._coldRetry) {
+      originalRequest._coldRetry = true;
+      try {
+        await wakeupServer();
+        await new Promise(r => setTimeout(r, 2000)); // 서버 준비 대기
+        return api(originalRequest);
+      } catch {
+        // 재시도도 실패하면 원래 에러 전파
       }
     }
 
-    // 401 에러 처리 (토큰 만료 등) 및 리프레시 시도
+    // 401 에러 처리 - 토큰 갱신
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
@@ -63,10 +70,8 @@ api.interceptors.response.use(
         if (refreshToken) {
           const response = await axios.post(`${API_URL}/auth/refresh-token`, { refreshToken });
           const { token, refreshToken: newRefreshToken } = response.data.data || response.data;
-
           localStorage.setItem('token', token);
           localStorage.setItem('refreshToken', newRefreshToken);
-
           originalRequest.headers.Authorization = `Bearer ${token}`;
           return api(originalRequest);
         }

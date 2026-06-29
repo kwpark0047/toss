@@ -428,19 +428,29 @@ app.set('io', io);
 // Swagger API 문서
 require('./docs/swagger')(app);
 
+// CORS 안전망 - 라우트 매칭 전에 실패해도 CORS 헤더 보장
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Vary', 'Origin');
+    }
+    if (req.method === 'OPTIONS') {
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.setHeader('Access-Control-Max-Age', '3600');
+        return res.sendStatus(204);
+    }
+    next();
+});
+
 // 404 핸들러 (매칭되는 라우트가 없을 경우 상세 로깅 및 응답 보장)
 app.use((req, res, next) => {
     if (req.path.startsWith('/api')) {
         console.error(`[CRITICAL 404] Unmatched API Path: ${req.method} ${req.originalUrl}`);
-        console.error(`[Headers]`, JSON.stringify(req.headers, null, 2));
-
         return res.status(404).json({
             success: false,
             message: `요청하신 API 경로를 찾을 수 없습니다: ${req.method} ${req.originalUrl}.`,
-            diagnostics: {
-                version: '1.0.9',
-                hint: '서버 라우터에 해당 경로가 정의되지 않았거나 매칭 실패했습니다. app.js 등록 순서를 확인하십시오.'
-            },
             timestamp: new Date().toISOString()
         });
     }

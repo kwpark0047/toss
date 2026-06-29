@@ -59,6 +59,19 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
+          // Unsplash 이미지 (AI 메뉴 생성 프리뷰)
+          {
+            urlPattern: /^https:\/\/(source\.unsplash\.com|images\.unsplash\.com)\//,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'wemarket-unsplash',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24,   // 1일
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           // Google Fonts / 외부 폰트
           {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com/,
