@@ -1,199 +1,288 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { tablesAPI } from '../../api';
-import { Save, Move, MousePointer2, Loader2, RefreshCw } from 'lucide-react';
+import { Save, Move, MousePointer2, Loader2, RefreshCw, X } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const GRID_SIZE = 20;
-const MAP_HEIGHT = 600;
+const TABLE_SIZE = 72; // px — 터치 타겟 크기
 
-/**
- * [VisualTableMap]
- * 매장의 테이블을 실제 도면처럼 배치하고 상태를 확인할 수 있는 비주얼 맵 컴포넌트입니다.
- */
+const STATUS = {
+  available: { label: '이용 가능', color: 'bg-emerald-500', border: 'border-emerald-600', dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'hover:bg-emerald-50' },
+  occupied:  { label: '이용 중',   color: 'bg-blue-500',    border: 'border-blue-600',    dot: 'bg-blue-500',    text: 'text-blue-700',    bg: 'hover:bg-blue-50' },
+  dirty:     { label: '정리 필요', color: 'bg-amber-400',   border: 'border-amber-500',   dot: 'bg-amber-400',   text: 'text-amber-700',   bg: 'hover:bg-amber-50' },
+  reserved:  { label: '예약됨',    color: 'bg-purple-500',  border: 'border-purple-600',  dot: 'bg-purple-500',  text: 'text-purple-700',  bg: 'hover:bg-purple-50' },
+};
+
 export default function VisualTableMap({ storeId, tables, onUpdate }) {
-    const [items, setItems] = useState([]);
-    const [isEditing, setIsEditing] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [selectedTable, setSelectedTable] = useState(null); // 상태 변경 팝오버용
-    const mapRef = useRef(null);
+  const [items, setItems]           = useState([]);
+  const [isEditing, setIsEditing]   = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [selected, setSelected]     = useState(null);
+  const [mapHeight, setMapHeight]   = useState(480);
+  const mapRef      = useRef(null);
+  const touchRef    = useRef(null);   // { id, startX, startY, itemX, itemY }
+  const containerRef = useRef(null);
 
-    useEffect(() => {
-        setItems(tables.map(t => ({
-            ...t,
-            x: t.x || 0,
-            y: t.y || 0
-        })));
-    }, [tables]);
-
-    const handleDrag = (id, e) => {
-        if (!isEditing) return;
-
-        const mapRect = mapRef.current.getBoundingClientRect();
-        const newX = Math.round((e.clientX - mapRect.left - 40) / GRID_SIZE) * GRID_SIZE;
-        const newY = Math.round((e.clientY - mapRect.top - 40) / GRID_SIZE) * GRID_SIZE;
-
-        const boundedX = Math.max(0, Math.min(newX, mapRect.width - 80));
-        const boundedY = Math.max(0, Math.min(newY, MAP_HEIGHT - 80));
-
-        setItems(prev => prev.map(item =>
-            item.id === id ? { ...item, x: boundedX, y: boundedY } : item
-        ));
+  /* 반응형 맵 높이 */
+  useEffect(() => {
+    const update = () => {
+      const w = containerRef.current?.offsetWidth || window.innerWidth;
+      setMapHeight(window.innerWidth < 640 ? Math.round(w * 1.1) : 480);
     };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
-    const saveLayout = async () => {
-        setSaving(true);
-        try {
-            await Promise.all(items.map(item =>
-                tablesAPI.update(item.id, { x: item.x, y: item.y })
-            ));
-            setIsEditing(false);
-            onUpdate?.();
-        } catch (error) {
-            alert('레이아웃 저장에 실패했습니다.');
-        } finally {
-            setSaving(false);
-        }
-    };
+  useEffect(() => {
+    setItems(tables.map(t => ({ ...t, x: t.x ?? 0, y: t.y ?? 0 })));
+  }, [tables]);
 
-    const handleStatusChange = async (e, tableId, newStatus) => {
-        e.stopPropagation();
-        try {
-            await tablesAPI.update(tableId, { status: newStatus });
-            setSelectedTable(null);
-            onUpdate?.(); // 상위 컴포넌트(TableManager)에서 fetch => socket으로 브로드캐스트
-        } catch (error) {
-            alert('상태 업데이트에 실패했습니다.');
-        }
-    };
+  /* ─── 데스크탑 드래그 ─── */
+  const handleDragEnd = (id, e) => {
+    if (!isEditing) return;
+    const mapRect = mapRef.current.getBoundingClientRect();
+    const newX = Math.round((e.clientX - mapRect.left - TABLE_SIZE / 2) / GRID_SIZE) * GRID_SIZE;
+    const newY = Math.round((e.clientY - mapRect.top  - TABLE_SIZE / 2) / GRID_SIZE) * GRID_SIZE;
+    moveItem(id, newX, newY, mapRect.width);
+  };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'occupied': return 'bg-blue-500 border-blue-600';
-            case 'dirty': return 'bg-yellow-500 border-yellow-600';
-            case 'reserved': return 'bg-purple-500 border-purple-600';
-            default: return 'bg-green-500 border-green-600';
-        }
-    };
+  /* ─── 터치 드래그 ─── */
+  const handleTouchStart = (id, e) => {
+    if (!isEditing) return;
+    const t = e.touches[0];
+    const item = items.find(i => i.id === id);
+    touchRef.current = { id, startX: t.clientX, startY: t.clientY, itemX: item.x, itemY: item.y };
+  };
 
-    return (
-        <div className="bg-gray-100 rounded-2xl p-6 border border-gray-200">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h3 className="text-lg font-bold">비주얼 테이블 맵</h3>
-                    <p className="text-sm text-gray-500">실제 매장 구조에 맞춰 테이블을 배치하세요.</p>
-                </div>
-                <div className="flex gap-2">
-                    {isEditing ? (
-                        <>
-                            <button
-                                onClick={() => { setItems(tables); setIsEditing(false); }}
-                                className="px-4 py-2 bg-white border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 transition-all"
-                            >
-                                취소
-                            </button>
-                            <button
-                                onClick={saveLayout}
-                                disabled={saving}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
-                            >
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                레이아웃 저장
-                            </button>
-                        </>
-                    ) : (
-                        <button
-                            onClick={() => setIsEditing(true)}
-                            className="px-4 py-2 bg-white border border-gray-300 rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-gray-50 transition-all"
-                        >
-                            <Move className="w-4 h-4 text-gray-400" />
-                            위치 편집모드
-                        </button>
-                    )}
-                    <button
-                        onClick={onUpdate}
-                        className="p-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-all"
-                        title="상태 새로고침"
-                    >
-                        <RefreshCw className="w-4 h-4 text-gray-400" />
-                    </button>
-                </div>
-            </div>
+  const handleTouchMove = useCallback((e) => {
+    if (!isEditing || !touchRef.current) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const { id, startX, startY, itemX, itemY } = touchRef.current;
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    const mapRect = mapRef.current.getBoundingClientRect();
+    const newX = Math.round((itemX + dx) / GRID_SIZE) * GRID_SIZE;
+    const newY = Math.round((itemY + dy) / GRID_SIZE) * GRID_SIZE;
+    moveItem(id, newX, newY, mapRect.width);
+  }, [isEditing, items]);
 
-            <div
-                ref={mapRef}
-                className="relative bg-white border-2 border-dashed border-gray-200 rounded-xl shadow-inner overflow-hidden w-full"
-                style={{ height: MAP_HEIGHT, backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px` }}
-            >
-                {items.map((table) => (
-                    <div
-                        key={table.id}
-                        draggable={isEditing}
-                        onDragEnd={(e) => handleDrag(table.id, e)}
-                        onClick={(e) => {
-                            if (!isEditing) {
-                                e.stopPropagation();
-                                setSelectedTable(selectedTable === table.id ? null : table.id);
-                            }
-                        }}
-                        className={`absolute w-20 h-20 rounded-2xl border-2 flex flex-col items-center justify-center transition-all cursor-pointer shadow-sm
-              ${getStatusColor(table.status)} text-white
-              ${isEditing ? 'opacity-80 hover:scale-105 active:scale-95' : 'hover:brightness-95'}
-            `}
-                        style={{
-                            left: table.x,
-                            top: table.y,
-                            userSelect: 'none'
-                        }}
-                    >
-                        <span className="text-xs font-bold opacity-80">{table.capacity}인석</span>
-                        <span className="text-lg font-black">{table.table_number}</span>
-                        {!isEditing && table.status === 'occupied' && (
-                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full border-2 border-white animate-pulse" />
-                        )}
-                        {isEditing && <Move className="w-4 h-4 mt-1 opacity-50" />}
+  const handleTouchEnd = () => { touchRef.current = null; };
 
-                        {/* 상태 변경 팝오버 UI */}
-                        {!isEditing && selectedTable === table.id && (
-                            <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-100 p-2 w-32 z-50 flex flex-col gap-1 text-gray-800" onClick={e => e.stopPropagation()}>
-                                <button onClick={(e) => handleStatusChange(e, table.id, 'available')} className="px-3 py-1.5 text-xs font-bold text-left rounded-lg hover:bg-green-50 hover:text-green-700 w-full flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-500"></div>이용 가능</button>
-                                <button onClick={(e) => handleStatusChange(e, table.id, 'occupied')} className="px-3 py-1.5 text-xs font-bold text-left rounded-lg hover:bg-blue-50 hover:text-blue-700 w-full flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500"></div>이용 중</button>
-                                <button onClick={(e) => handleStatusChange(e, table.id, 'dirty')} className="px-3 py-1.5 text-xs font-bold text-left rounded-lg hover:bg-yellow-50 hover:text-yellow-700 w-full flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-yellow-500"></div>정리 필요</button>
-                                <button onClick={(e) => handleStatusChange(e, table.id, 'reserved')} className="px-3 py-1.5 text-xs font-bold text-left rounded-lg hover:bg-purple-50 hover:text-purple-700 w-full flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-purple-500"></div>예약됨</button>
-                            </div>
-                        )}
-                    </div>
-                ))}
+  const moveItem = (id, rawX, rawY, mapW) => {
+    const bx = Math.max(0, Math.min(rawX, mapW - TABLE_SIZE));
+    const by = Math.max(0, Math.min(rawY, mapHeight - TABLE_SIZE));
+    setItems(prev => prev.map(i => i.id === id ? { ...i, x: bx, y: by } : i));
+  };
 
-                {items.length === 0 && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                        <MousePointer2 className="w-12 h-12 mb-4 opacity-20" />
-                        <p>등록된 테이블이 없습니다.</p>
-                    </div>
-                )}
+  /* ─── 저장 ─── */
+  const saveLayout = async () => {
+    setSaving(true);
+    try {
+      await Promise.all(items.map(item => tablesAPI.update(item.id, { x: item.x, y: item.y })));
+      setIsEditing(false);
+      onUpdate?.();
+      toast.success('레이아웃이 저장되었습니다.');
+    } catch {
+      toast.error('레이아웃 저장에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-                {/* 맵 빈 공간 클릭 시 팝오버 닫기용 오버레이 */}
-                {selectedTable && (
-                    <div className="absolute inset-0 z-40" onClick={() => setSelectedTable(null)} />
-                )}
-            </div>
+  /* ─── 상태 변경 ─── */
+  const handleStatusChange = async (e, tableId, newStatus) => {
+    e.stopPropagation();
+    try {
+      await tablesAPI.update(tableId, { status: newStatus });
+      setSelected(null);
+      onUpdate?.();
+    } catch {
+      toast.error('상태 변경에 실패했습니다.');
+    }
+  };
 
-            <div className="mt-6 flex flex-wrap gap-4 text-sm justify-center">
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full" />
-                    <span className="text-gray-600">이용 가능</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full" />
-                    <span className="text-gray-600">이용 중</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full" />
-                    <span className="text-gray-600">정리 필요</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-purple-500 rounded-full" />
-                    <span className="text-gray-600">예약됨</span>
-                </div>
-            </div>
+  /* 팝오버가 맵 밖으로 나가지 않도록 방향 결정 */
+  const popoverDir = (item) => {
+    const mapH = mapHeight;
+    return item.y + TABLE_SIZE + 160 > mapH ? 'up' : 'down';
+  };
+
+  return (
+    <div ref={containerRef} className="space-y-4">
+      {/* ── 헤더 ── */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm lg:text-base font-black text-white truncate">비주얼 테이블 맵</h3>
+          <p className="text-[10px] lg:text-xs text-slate-500 font-medium mt-0.5 hidden sm:block">
+            실제 매장 구조에 맞춰 테이블을 배치하세요.
+          </p>
         </div>
-    );
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {isEditing ? (
+            <>
+              <button
+                onClick={() => { setItems(tables.map(t => ({ ...t, x: t.x ?? 0, y: t.y ?? 0 }))); setIsEditing(false); }}
+                className="h-9 px-3 lg:px-4 bg-white/5 border border-white/10 text-slate-400 rounded-xl text-xs font-black hover:bg-white/10 transition-all"
+              >
+                취소
+              </button>
+              <button
+                onClick={saveLayout}
+                disabled={saving}
+                className="h-9 px-3 lg:px-4 bg-orange-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 hover:bg-orange-400 transition-all shadow-lg shadow-orange-500/20 disabled:opacity-60"
+              >
+                {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                저장
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="h-9 px-3 lg:px-4 bg-white/5 border border-white/10 text-slate-300 rounded-xl text-xs font-black flex items-center gap-1.5 hover:bg-white/10 transition-all"
+            >
+              <Move size={13} className="text-slate-500" />
+              위치 편집
+            </button>
+          )}
+          <button
+            onClick={onUpdate}
+            className="w-9 h-9 bg-white/5 border border-white/10 text-slate-500 rounded-xl flex items-center justify-center hover:text-white hover:bg-white/10 transition-all"
+            title="새로고침"
+          >
+            <RefreshCw size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── 지도 캔버스 ── */}
+      <div
+        ref={mapRef}
+        className={`relative w-full rounded-2xl overflow-hidden touch-none ${isEditing ? 'cursor-move' : 'cursor-default'}`}
+        style={{
+          height: mapHeight,
+          background: 'rgba(255,255,255,0.04)',
+          border: '1.5px dashed rgba(255,255,255,0.08)',
+          backgroundImage: 'radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)',
+          backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
+        }}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => !isEditing && setSelected(null)}
+      >
+        {/* 편집 모드 오버레이 안내 */}
+        {isEditing && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-4 py-1.5 bg-orange-500/90 backdrop-blur-sm text-white text-[10px] font-black rounded-full shadow-lg tracking-widest uppercase pointer-events-none">
+            드래그하여 위치 조정
+          </div>
+        )}
+
+        {items.map((table) => {
+          const st = STATUS[table.status] ?? STATUS.available;
+          const dir = popoverDir(table);
+          const isSelected = selected === table.id;
+
+          return (
+            <div
+              key={table.id}
+              draggable={isEditing}
+              onDragEnd={(e) => handleDragEnd(table.id, e)}
+              onTouchStart={(e) => handleTouchStart(table.id, e)}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isEditing) setSelected(isSelected ? null : table.id);
+              }}
+              className={`absolute flex flex-col items-center justify-center rounded-2xl border-2 transition-all select-none
+                ${st.color} ${st.border} text-white
+                ${isEditing ? 'active:scale-95 opacity-90' : 'hover:brightness-110 active:brightness-90'}
+                ${isSelected ? 'ring-2 ring-white ring-offset-2 ring-offset-transparent scale-105' : ''}
+              `}
+              style={{
+                left: table.x,
+                top: table.y,
+                width: TABLE_SIZE,
+                height: TABLE_SIZE,
+                boxShadow: `0 4px 16px -4px rgba(0,0,0,0.35)`,
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                touchAction: isEditing ? 'none' : 'auto',
+              }}
+            >
+              <span className="text-[9px] font-bold opacity-80 leading-none">{table.capacity}인석</span>
+              <span className="text-sm font-black leading-tight mt-0.5 max-w-[60px] text-center truncate px-1">
+                {table.table_number}
+              </span>
+
+              {/* 사용 중 펄스 인디케이터 */}
+              {!isEditing && table.status === 'occupied' && (
+                <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse" />
+              )}
+
+              {/* 드래그 아이콘 */}
+              {isEditing && <Move size={12} className="absolute bottom-2 opacity-50" />}
+
+              {/* 상태 팝오버 */}
+              {!isEditing && isSelected && (
+                <div
+                  className={`absolute ${dir === 'up' ? 'bottom-[calc(100%+10px)]' : 'top-[calc(100%+10px)]'} left-1/2 -translate-x-1/2 z-50`}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 w-36 space-y-0.5">
+                    <div className="flex items-center justify-between px-2 pb-1.5 border-b border-slate-100 mb-1">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">상태 변경</span>
+                      <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-slate-700">
+                        <X size={12} />
+                      </button>
+                    </div>
+                    {Object.entries(STATUS).map(([key, s]) => (
+                      <button
+                        key={key}
+                        onClick={(e) => handleStatusChange(e, table.id, key)}
+                        className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 transition-all ${s.bg} ${table.status === key ? 'bg-slate-50' : ''}`}
+                      >
+                        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${s.dot}`} />
+                        {s.label}
+                        {table.status === key && <span className="ml-auto text-[9px] font-black text-slate-400">현재</span>}
+                      </button>
+                    ))}
+                  </div>
+                  {/* 말풍선 꼬리 */}
+                  <div className={`absolute left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-slate-100 rotate-45
+                    ${dir === 'up' ? '-bottom-1.5 border-r border-b' : '-top-1.5 border-l border-t'}`} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* 빈 상태 */}
+        {items.length === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/8 flex items-center justify-center">
+              <MousePointer2 size={28} className="text-slate-700" />
+            </div>
+            <p className="text-slate-600 font-bold text-sm">등록된 테이블이 없습니다</p>
+            <p className="text-slate-700 text-xs">우측 상단 테이블 추가 버튼을 눌러보세요</p>
+          </div>
+        )}
+
+        {/* 팝오버 닫기 투명 오버레이 */}
+        {selected && !isEditing && (
+          <div className="absolute inset-0 z-40" onClick={() => setSelected(null)} />
+        )}
+      </div>
+
+      {/* ── 범례 ── */}
+      <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center">
+        {Object.entries(STATUS).map(([key, s]) => (
+          <div key={key} className="flex items-center gap-1.5">
+            <div className={`w-2.5 h-2.5 rounded-full ${s.dot}`} />
+            <span className="text-[11px] text-slate-500 font-bold">{s.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }

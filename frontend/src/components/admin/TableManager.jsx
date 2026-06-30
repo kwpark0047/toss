@@ -347,46 +347,58 @@ const TableManager = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto pb-20 px-4">
+    <div className="max-w-7xl mx-auto pb-24 px-3 lg:px-4">
       {/* 헤더 */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
-        <div className="flex items-center gap-5">
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/admin')}
-            className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white transition-all">
-            <ArrowLeft size={22} />
-          </motion.button>
-          <div>
-            <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
-              좌석 관리
-              <Sparkles size={20} className="text-orange-500 animate-pulse" />
-            </h1>
-            <p className="text-slate-500 text-xs font-bold mt-0.5 uppercase tracking-widest">{store?.name}</p>
+      <div className="flex flex-col gap-4 mb-6 lg:mb-10">
+        {/* 타이틀 행 */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 lg:gap-5 min-w-0">
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/admin')}
+              className="w-10 h-10 lg:w-12 lg:h-12 bg-white/5 border border-white/10 rounded-xl lg:rounded-2xl flex items-center justify-center text-slate-400 hover:text-white transition-all flex-shrink-0">
+              <ArrowLeft size={18} />
+            </motion.button>
+            <div className="min-w-0">
+              <h1 className="text-xl lg:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+                좌석 관리
+                <Sparkles size={16} className="text-orange-500 animate-pulse" />
+              </h1>
+              <p className="text-slate-500 text-[10px] font-bold mt-0.5 uppercase tracking-widest truncate">{store?.name}</p>
+            </div>
           </div>
+
+          {/* 테이블 추가 버튼 (우측 고정) */}
+          <button onClick={() => { setEditingTable(null); setShowModal(true); }}
+            className="flex-shrink-0 h-10 px-4 lg:px-6 bg-orange-500 text-white rounded-xl lg:rounded-2xl flex items-center gap-2 font-black text-xs tracking-wider shadow-lg shadow-orange-500/25 hover:bg-orange-400 transition-all">
+            <Plus size={15} /> 추가
+          </button>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="bg-white/5 p-1 rounded-2xl border border-white/5 flex">
+        {/* 컨트롤 행 */}
+        <div className="flex items-center gap-2">
+          {/* 뷰 토글 */}
+          <div className="bg-white/5 p-1 rounded-xl border border-white/5 flex">
             {[{ id: 'map', icon: LayoutGrid, label: '지도' }, { id: 'list', icon: List, label: '목록' }].map(v => (
               <button key={v.id} onClick={() => setViewMode(v.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[10px] tracking-widest transition-all ${
-                  viewMode === v.id ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-slate-500 hover:text-slate-300'
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-black text-[10px] tracking-widest transition-all ${
+                  viewMode === v.id ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' : 'text-slate-500 hover:text-slate-300'
                 }`}>
-                <v.icon size={13} /> {v.label}
+                <v.icon size={12} /> {v.label}
               </button>
             ))}
           </div>
 
           <button onClick={generatePDF} disabled={pdfLoading || !tables.length}
-            className="h-11 px-6 bg-white/5 border border-white/10 rounded-2xl flex items-center gap-2.5 text-slate-400 font-black text-[10px] tracking-widest hover:bg-white/10 hover:text-white transition-all disabled:opacity-30">
-            {pdfLoading ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
-            전체 PDF
+            className="h-9 px-4 bg-white/5 border border-white/10 rounded-xl flex items-center gap-2 text-slate-400 font-black text-[10px] tracking-widest hover:bg-white/10 hover:text-white transition-all disabled:opacity-30">
+            {pdfLoading ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+            PDF
           </button>
 
-          <button onClick={() => { setEditingTable(null); setShowModal(true); }}
-            className="h-11 px-6 bg-orange-500 text-white rounded-2xl flex items-center gap-2.5 font-black text-[10px] tracking-widest shadow-xl shadow-orange-500/25 hover:bg-orange-400 transition-all">
-            <Plus size={16} /> 테이블 추가
-          </button>
+          {/* 테이블 수 뱃지 */}
+          <div className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-xl border border-white/5">
+            <span className="text-[10px] font-black text-slate-500">테이블</span>
+            <span className="text-xs font-black text-white">{tables.length}</span>
+          </div>
         </div>
       </div>
 
@@ -394,13 +406,13 @@ const TableManager = () => {
       <AnimatePresence mode="wait">
         {viewMode === 'map' ? (
           <motion.div key="map" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
-            className="bg-white/5 backdrop-blur-2xl rounded-[3rem] border border-white/5 p-8 min-h-[600px] relative overflow-hidden">
+            className="bg-white/5 backdrop-blur-2xl rounded-[2rem] lg:rounded-[3rem] border border-white/5 p-4 lg:p-8 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-orange-500/4 to-transparent pointer-events-none" />
             <VisualTableMap storeId={storeId} tables={tables} onUpdate={fetchData} />
           </motion.div>
         ) : (
           <motion.div key="list" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-5">
             {tables.length === 0 ? (
               <div className="col-span-full py-40 text-center bg-white/5 rounded-[3rem] border border-dashed border-white/10">
                 <Users size={44} className="text-slate-700 mx-auto mb-4" />
@@ -409,46 +421,49 @@ const TableManager = () => {
               </div>
             ) : tables.map(table => (
               <motion.div key={table.id} layout
-                className="bg-white/5 backdrop-blur-xl border border-white/5 rounded-[2rem] p-7 hover:bg-white/10 transition-all group">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h3 className="text-xl font-black text-white tracking-tight mb-1.5">{table.table_number || table.name}</h3>
-                    <div className="flex items-center gap-1.5 text-slate-500">
-                      <Users size={12} />
-                      <span className="font-bold text-[10px] tracking-wider">{table.capacity}인석</span>
+                className="bg-white/5 backdrop-blur-xl border border-white/5 rounded-[1.5rem] lg:rounded-[2rem] p-4 lg:p-7 hover:bg-white/10 transition-all group">
+                {/* 상단: 이름 + 상태 */}
+                <div className="flex justify-between items-start mb-3 lg:mb-6 gap-2">
+                  <div className="min-w-0">
+                    <h3 className="text-base lg:text-xl font-black text-white tracking-tight mb-1 truncate">{table.table_number || table.name}</h3>
+                    <div className="flex items-center gap-1 text-slate-500">
+                      <Users size={10} />
+                      <span className="font-bold text-[10px]">{table.capacity}인석</span>
                     </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full font-black text-[9px] tracking-widest border ${
+                  <span className={`flex-shrink-0 px-2 py-0.5 rounded-full font-black text-[8px] lg:text-[9px] border ${
                     table.status === 'occupied' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
                     table.status === 'reserved' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
                     table.status === 'dirty'    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
                                                   'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                   }`}>
                     {table.status === 'occupied' ? '사용중' : table.status === 'reserved' ? '예약됨' :
-                     table.status === 'dirty' ? '청소필요' : '비어있음'}
+                     table.status === 'dirty' ? '청소' : '비어있음'}
                   </span>
                 </div>
 
-                <div className="flex gap-2.5 mb-5">
+                {/* QR + 재생성 버튼 */}
+                <div className="flex gap-2 mb-3 lg:mb-5">
                   <button onClick={() => setShowQrModal(table)}
-                    className="flex-1 h-11 bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center justify-center gap-2 text-orange-400 font-black text-[10px] tracking-widest hover:bg-orange-500 hover:text-white transition-all">
-                    <QrCode size={14} /> QR 카드
+                    className="flex-1 h-9 lg:h-11 bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center justify-center gap-1.5 text-orange-400 font-black text-[9px] lg:text-[10px] hover:bg-orange-500 hover:text-white transition-all active:scale-95">
+                    <QrCode size={12} /> QR
                   </button>
                   <button onClick={() => handleRegenerateQr(table.id)}
-                    className="w-11 h-11 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
+                    className="w-9 h-9 lg:w-11 lg:h-11 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all active:scale-95"
                     title="QR 재생성">
-                    <RefreshCw size={14} />
+                    <RefreshCw size={12} />
                   </button>
                 </div>
 
-                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                {/* 편집/삭제 — 모바일 항상 표시, 데스크탑 호버 */}
+                <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all">
                   <button onClick={() => { setEditingTable(table); setShowModal(true); }}
-                    className="w-9 h-9 bg-white/5 rounded-lg flex items-center justify-center text-slate-500 hover:text-blue-400 transition-all">
-                    <Edit size={14} />
+                    className="w-8 h-8 lg:w-9 lg:h-9 bg-white/5 rounded-lg flex items-center justify-center text-slate-500 hover:text-blue-400 transition-all active:scale-95">
+                    <Edit size={12} />
                   </button>
                   <button onClick={() => handleDelete(table.id)}
-                    className="w-9 h-9 bg-white/5 rounded-lg flex items-center justify-center text-slate-500 hover:text-rose-400 transition-all">
-                    <Trash2 size={14} />
+                    className="w-8 h-8 lg:w-9 lg:h-9 bg-white/5 rounded-lg flex items-center justify-center text-slate-500 hover:text-rose-400 transition-all active:scale-95">
+                    <Trash2 size={12} />
                   </button>
                 </div>
               </motion.div>
