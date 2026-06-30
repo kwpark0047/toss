@@ -389,59 +389,58 @@ const MenuManager = () => {
   );
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-10">
+    <div className="max-w-[1600px] mx-auto space-y-6 lg:space-y-10">
       {/* 상단 헤더 */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
-        <div className="flex items-center gap-6">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 lg:gap-8">
+        <div className="flex items-center gap-3 lg:gap-6">
           <motion.button
             whileHover={{ scale: 1.1, x: -5 }} whileTap={{ scale: 0.9 }}
             onClick={() => navigate('/admin')}
-            className="w-14 h-14 bg-white/5 rounded-[20px] border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-2xl backdrop-blur-xl"
+            className="w-10 h-10 lg:w-14 lg:h-14 bg-white/5 rounded-[16px] lg:rounded-[20px] border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-2xl backdrop-blur-xl flex-shrink-0"
           >
-            <ArrowLeft size={24} />
+            <ArrowLeft size={20} />
           </motion.button>
-          <div>
-            <h1 className="text-4xl font-black text-white tracking-tight mb-2">메뉴 매니저</h1>
-            <div className="flex items-center gap-3">
-              <div className="px-3 py-1 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+          <div className="min-w-0">
+            <h1 className="text-2xl lg:text-4xl font-black text-white tracking-tight mb-1 lg:mb-2">메뉴 관리</h1>
+            <div className="flex items-center gap-2 lg:gap-3 flex-wrap">
+              <div className="px-2.5 py-0.5 lg:px-3 lg:py-1 bg-orange-500/10 border border-orange-500/20 rounded-lg">
                 <p className="text-orange-500 font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5">
-                  <Store size={12} /> {store?.name}
+                  <Store size={10} /> {store?.name}
                 </p>
               </div>
-              <span className="text-slate-600 font-bold text-xs uppercase tracking-tighter">Product Management</span>
+              <span className="text-slate-600 font-bold text-[10px] uppercase tracking-tighter hidden sm:block">상품 관리</span>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <motion.button whileHover={{ y: -3 }} whileTap={{ scale: 0.95 }}
+        <div className="flex items-center gap-2 lg:gap-3 overflow-x-auto pb-1 scrollbar-hide">
+          <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
             onClick={() => setShowWizard(true)}
-            className="flex items-center gap-2.5 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-[20px] transition-all font-black text-sm shadow-2xl shadow-blue-500/20 relative overflow-hidden group"
+            className="flex-shrink-0 flex items-center gap-2 px-4 lg:px-8 py-2.5 lg:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-[16px] lg:rounded-[20px] transition-all font-black text-xs lg:text-sm shadow-2xl shadow-blue-500/20 relative overflow-hidden group"
           >
-            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-            <Sparkles size={18} className="animate-pulse" />
-            <span className="relative z-10">AI 메뉴 생성</span>
+            <Sparkles size={15} className="animate-pulse" />
+            <span>AI 생성</span>
           </motion.button>
 
-          <motion.button whileHover={{ y: -3 }} whileTap={{ scale: 0.95 }}
+          <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
             onClick={() => setShowBulkModal(true)}
-            className="flex items-center gap-2.5 px-8 py-4 bg-slate-800 text-white rounded-[20px] transition-all font-black text-sm shadow-2xl border border-white/5"
+            className="flex-shrink-0 flex items-center gap-2 px-4 lg:px-8 py-2.5 lg:py-4 bg-white/5 text-white rounded-[16px] lg:rounded-[20px] transition-all font-black text-xs lg:text-sm shadow-xl border border-white/10"
           >
-            <Folders size={18} /> AI 일괄 등록
+            <Folders size={15} /> 일괄 등록
           </motion.button>
 
-          <motion.button whileHover={{ y: -3 }} whileTap={{ scale: 0.95 }}
+          <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
             onClick={() => { setEditingProduct(null); setShowProductModal(true); }}
-            className="flex items-center gap-2.5 px-8 py-4 bg-white text-slate-950 rounded-[20px] transition-all font-black text-sm shadow-2xl hover:bg-orange-500 hover:text-white"
+            className="flex-shrink-0 flex items-center gap-2 px-4 lg:px-8 py-2.5 lg:py-4 bg-orange-500 text-white rounded-[16px] lg:rounded-[20px] transition-all font-black text-xs lg:text-sm shadow-xl shadow-orange-500/25 hover:bg-orange-400"
           >
-            <Plus size={22} /> 신규 메뉴 추가
+            <Plus size={16} /> 메뉴 추가
           </motion.button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* 카테고리 사이드바 */}
-        <div className="lg:col-span-3 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-10">
+        {/* 카테고리 사이드바 — 데스크탑 전용 */}
+        <div className="hidden lg:block lg:col-span-3 space-y-8">
           <div className="bg-white/5 backdrop-blur-xl rounded-[40px] border border-white/5 overflow-hidden">
             <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
               <h2 className="font-black text-white text-lg flex items-center gap-3">
@@ -550,19 +549,39 @@ const MenuManager = () => {
         </div>
 
         {/* 상품 목록 */}
-        <div className="lg:col-span-9 space-y-8">
+        <div className="lg:col-span-9 space-y-4 lg:space-y-8">
+          {/* 모바일 카테고리 탭 */}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide lg:hidden">
+            {[{ id: null, name: '전체', count: products.length }, ...categories.map(c => ({ id: c.id, name: c.name, count: (Array.isArray(products) ? products : []).filter(p => p.category_id === c.id).length }))].map(cat => (
+              <button
+                key={String(cat.id)}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[11px] font-black transition-all ${
+                  selectedCategory === cat.id
+                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+                    : 'bg-white/5 text-slate-400 border border-white/10 active:bg-white/10'
+                }`}
+              >
+                {cat.name}
+                <span className={`text-[9px] w-4 h-4 flex items-center justify-center rounded-full font-black ${selectedCategory === cat.id ? 'bg-white/25 text-white' : 'bg-white/5 text-slate-600'}`}>
+                  {cat.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
           {/* 검색 바 */}
           <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-rose-600 rounded-[32px] blur opacity-5 group-focus-within:opacity-20 transition duration-1000" />
-            <div className="relative bg-white/5 backdrop-blur-xl p-3 rounded-[32px] border border-white/5">
+            <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-rose-600 rounded-2xl lg:rounded-[32px] blur opacity-5 group-focus-within:opacity-20 transition duration-1000" />
+            <div className="relative bg-white/5 backdrop-blur-xl p-2 lg:p-3 rounded-2xl lg:rounded-[32px] border border-white/5">
               <div className="relative group/input w-full">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within/input:text-orange-500 transition-colors" size={22} />
+                <Search className="absolute left-4 lg:left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within/input:text-orange-500 transition-colors" size={18} />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="메뉴 이름 또는 설명으로 검색..."
-                  className="w-full h-16 pl-16 pr-8 bg-slate-900/50 border border-transparent focus:border-white/10 rounded-[24px] outline-none transition-all font-black text-white placeholder:text-slate-700 placeholder:font-bold"
+                  className="w-full h-11 lg:h-16 pl-11 lg:pl-16 pr-4 lg:pr-8 bg-slate-900/50 border border-transparent focus:border-white/10 rounded-xl lg:rounded-[24px] outline-none transition-all font-bold text-white placeholder:text-slate-700 placeholder:font-medium text-sm"
                 />
               </div>
             </div>
@@ -572,49 +591,43 @@ const MenuManager = () => {
           <AnimatePresence>
             {selectedProducts.length > 0 && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                className="bg-orange-500 p-5 rounded-[28px] shadow-2xl shadow-orange-500/20 flex flex-col sm:flex-row items-center justify-between gap-6"
+                initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }}
+                className="bg-orange-500 px-4 py-3 lg:p-5 rounded-2xl lg:rounded-[28px] shadow-2xl shadow-orange-500/20 flex items-center justify-between gap-3"
               >
-                <div className="flex items-center gap-6 px-4">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-orange-200 uppercase tracking-[0.2em] mb-1">Bulk Actions</span>
-                    <span className="font-black text-white text-lg tracking-tight">{selectedProducts.length}개 선택됨</span>
-                  </div>
-                  <div className="w-px h-10 bg-white/20 hidden sm:block" />
-                  <div className="flex gap-2">
-                    <button onClick={() => handleBulkStatusUpdate(true)} className="px-5 py-2.5 bg-slate-950/20 hover:bg-slate-950/40 text-white rounded-xl text-xs font-black transition-all border border-white/10">품절 처리</button>
-                    <button onClick={() => handleBulkStatusUpdate(false)} className="px-5 py-2.5 bg-slate-950/20 hover:bg-slate-950/40 text-white rounded-xl text-xs font-black transition-all border border-white/10">품절 해제</button>
+                <div className="flex items-center gap-3 lg:gap-6">
+                  <span className="font-black text-white text-sm lg:text-lg">{selectedProducts.length}개 선택</span>
+                  <div className="flex gap-1.5 lg:gap-2">
+                    <button onClick={() => handleBulkStatusUpdate(true)} className="px-3 py-1.5 lg:px-5 lg:py-2.5 bg-slate-950/20 hover:bg-slate-950/40 text-white rounded-lg lg:rounded-xl text-[11px] lg:text-xs font-black transition-all border border-white/10">품절</button>
+                    <button onClick={() => handleBulkStatusUpdate(false)} className="px-3 py-1.5 lg:px-5 lg:py-2.5 bg-slate-950/20 hover:bg-slate-950/40 text-white rounded-lg lg:rounded-xl text-[11px] lg:text-xs font-black transition-all border border-white/10">해제</button>
                   </div>
                 </div>
                 <button
                   onClick={handleBulkDelete}
-                  className="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-3 bg-slate-950 text-white rounded-2xl font-black text-sm hover:bg-rose-600 transition-all shadow-xl active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2 lg:px-8 lg:py-3 bg-slate-950 text-white rounded-xl lg:rounded-2xl font-black text-xs lg:text-sm hover:bg-rose-600 transition-all shadow-xl active:scale-95"
                 >
-                  <Trash2 size={18} /> 선택 삭제
+                  <Trash2 size={14} /> 삭제
                 </button>
               </motion.div>
             )}
           </AnimatePresence>
 
-          <div className="bg-white/5 backdrop-blur-xl rounded-[48px] border border-white/5 overflow-hidden shadow-2xl shadow-black/20">
-            <div className="p-10 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-              <div className="flex items-center gap-6">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    onChange={handleSelectAll}
-                    checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
-                    className="w-6 h-6 rounded-lg border-white/10 bg-white/5 text-orange-500 focus:ring-orange-500/50 cursor-pointer appearance-none border-2 checked:bg-orange-500 transition-all"
-                  />
-                </div>
+          <div className="bg-white/5 backdrop-blur-xl rounded-[28px] lg:rounded-[48px] border border-white/5 overflow-hidden shadow-2xl shadow-black/20">
+            <div className="px-5 py-4 lg:p-10 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+              <div className="flex items-center gap-3 lg:gap-6">
+                <input
+                  type="checkbox"
+                  onChange={handleSelectAll}
+                  checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+                  className="w-5 h-5 lg:w-6 lg:h-6 rounded-lg border-white/10 bg-white/5 text-orange-500 focus:ring-orange-500/50 cursor-pointer appearance-none border-2 checked:bg-orange-500 transition-all flex-shrink-0"
+                />
                 <div>
-                  <h3 className="font-black text-white text-xl">메뉴 목록</h3>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Product Management List</p>
+                  <h3 className="font-black text-white text-base lg:text-xl">메뉴 목록</h3>
+                  <p className="text-[9px] lg:text-[10px] font-black text-slate-500 uppercase tracking-[0.15em] mt-0.5">상품 관리</p>
                 </div>
               </div>
-              <div className="px-5 py-2 bg-slate-900 border border-white/5 rounded-xl">
-                <p className="text-xs font-black text-slate-500">
-                  TOTAL <span className="text-white ml-2">{filteredProducts.length}</span>
+              <div className="px-3 py-1.5 lg:px-5 lg:py-2 bg-slate-900 border border-white/5 rounded-xl">
+                <p className="text-[11px] lg:text-xs font-black text-slate-500">
+                  <span className="text-white">{filteredProducts.length}</span>개
                 </p>
               </div>
             </div>
@@ -633,65 +646,104 @@ const MenuManager = () => {
                   <motion.div
                     key={product.id}
                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.03 }}
-                    className={`p-8 flex items-center gap-10 hover:bg-white/[0.03] transition-all group ${selectedProducts.includes(product.id) ? 'bg-orange-500/[0.05]' : ''}`}
+                    className={`px-4 py-3 lg:p-8 flex items-center gap-3 lg:gap-10 hover:bg-white/[0.03] transition-all group ${selectedProducts.includes(product.id) ? 'bg-orange-500/[0.05]' : ''}`}
                   >
-                    <div className="flex items-center gap-8 shrink-0">
+                    {/* 체크박스 + 이미지 */}
+                    <div className="flex items-center gap-2 lg:gap-8 flex-shrink-0">
                       <input
                         type="checkbox"
                         checked={selectedProducts.includes(product.id)}
                         onChange={() => handleSelectProduct(product.id)}
-                        className="w-6 h-6 rounded-lg border-white/10 bg-white/5 text-orange-500 focus:ring-orange-500/50 cursor-pointer appearance-none border-2 checked:bg-orange-500 transition-all"
+                        className="w-5 h-5 lg:w-6 lg:h-6 rounded-lg border-white/10 bg-white/5 text-orange-500 focus:ring-orange-500/50 cursor-pointer appearance-none border-2 checked:bg-orange-500 transition-all flex-shrink-0"
                       />
-                      <div className={`w-32 h-32 bg-slate-900 rounded-[32px] overflow-hidden border border-white/10 relative shadow-2xl group-hover:scale-105 transition-all duration-500 ${product.is_sold_out ? 'grayscale opacity-40' : ''}`}>
+                      <div className={`w-14 h-14 lg:w-32 lg:h-32 bg-slate-900 rounded-2xl lg:rounded-[32px] overflow-hidden border border-white/10 relative shadow-lg lg:shadow-2xl flex-shrink-0 group-hover:scale-105 transition-all duration-500 ${product.is_sold_out ? 'grayscale opacity-40' : ''}`}>
                         {product.image_url ? (
                           <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center text-slate-800">
-                            <Image size={32} />
-                            <span className="text-[10px] mt-2 font-black tracking-widest opacity-20 uppercase">No Media</span>
+                            <Image size={18} className="lg:hidden" />
+                            <Image size={32} className="hidden lg:block" />
                           </div>
                         )}
                         {product.is_popular ? (
-                          <div className="absolute top-4 left-4 bg-amber-400 text-slate-950 p-2 rounded-xl shadow-xl shadow-amber-400/20">
-                            <Star size={14} fill="currentColor" />
+                          <div className="absolute top-1 left-1 lg:top-4 lg:left-4 bg-amber-400 text-slate-950 p-1 lg:p-2 rounded-lg shadow-lg">
+                            <Star size={9} fill="currentColor" className="lg:hidden" />
+                            <Star size={14} fill="currentColor" className="hidden lg:block" />
                           </div>
                         ) : null}
                       </div>
                     </div>
 
+                    {/* 텍스트 내용 */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-4 mb-3 flex-wrap">
-                        <h4 className={`text-2xl font-black text-white tracking-tight group-hover:text-orange-400 transition-colors ${product.is_sold_out ? 'opacity-40' : ''}`}>{product.name}</h4>
-                        <div className="flex gap-2 flex-wrap">
-                          {product.is_new ? <span className="px-3 py-1 text-[9px] bg-blue-500 text-white rounded-lg font-black tracking-[0.2em] uppercase">NEW</span> : null}
-                          {product.is_sold_out ? <span className="px-3 py-1 text-[9px] bg-rose-600 text-white rounded-lg font-black tracking-[0.2em] uppercase">SOLD OUT</span> : null}
-                          {product.spicy_level > 0 && <span className="px-3 py-1 text-[9px] bg-orange-500/10 text-orange-500 rounded-lg font-black border border-orange-500/20 uppercase">🌶️ LV.{product.spicy_level}</span>}
-                          {product.stock_quantity !== null && product.stock_quantity !== undefined && (
-                            <span className={`px-3 py-1 text-[9px] rounded-lg font-black border uppercase ${product.stock_quantity <= (product.low_stock_threshold || 5) ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20'}`}>
-                              재고 {product.stock_quantity}개
-                            </span>
-                          )}
+                      {/* 모바일: 이름+액션 한 줄 */}
+                      <div className="flex items-start justify-between gap-2 mb-1 lg:mb-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                            <h4 className={`text-sm lg:text-2xl font-black text-white tracking-tight group-hover:text-orange-400 transition-colors truncate max-w-[160px] sm:max-w-none ${product.is_sold_out ? 'opacity-40' : ''}`}>{product.name}</h4>
+                            <div className="hidden sm:flex gap-1.5 flex-wrap">
+                              {product.is_new ? <span className="px-2 py-0.5 text-[8px] bg-blue-500 text-white rounded font-black tracking-wider uppercase">NEW</span> : null}
+                              {product.is_sold_out ? <span className="px-2 py-0.5 text-[8px] bg-rose-600 text-white rounded font-black tracking-wider uppercase">품절</span> : null}
+                              {product.spicy_level > 0 && <span className="px-2 py-0.5 text-[8px] bg-orange-500/10 text-orange-500 rounded font-black border border-orange-500/20">🌶️ {product.spicy_level}</span>}
+                            </div>
+                          </div>
+                          <p className="text-[11px] lg:text-sm text-slate-500 font-medium line-clamp-1 hidden sm:block">{product.description || ''}</p>
+                        </div>
+
+                        {/* 모바일 전용 액션 버튼 */}
+                        <div className="flex gap-1.5 lg:hidden flex-shrink-0">
+                          <button
+                            onClick={() => { setEditingProduct(product); setShowProductModal(true); }}
+                            className="w-8 h-8 bg-white/5 text-slate-400 active:text-white rounded-xl flex items-center justify-center border border-white/10"
+                          >
+                            <Edit size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(product.id)}
+                            className="w-8 h-8 bg-white/5 text-slate-400 active:text-rose-400 rounded-xl flex items-center justify-center border border-white/10"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       </div>
-                      <p className="text-sm text-slate-500 font-medium line-clamp-1 mb-5 pr-10">{product.description || '상품 설명을 입력해주세요.'}</p>
-                      <div className="flex items-center gap-6">
-                        <span className="text-2xl font-black text-white">{formatPrice(product.price, true)}</span>
+
+                      {/* 모바일 뱃지 */}
+                      <div className="flex gap-1 sm:hidden mb-1 flex-wrap">
+                        {product.is_new ? <span className="px-1.5 py-0.5 text-[8px] bg-blue-500 text-white rounded font-black">NEW</span> : null}
+                        {product.is_sold_out ? <span className="px-1.5 py-0.5 text-[8px] bg-rose-600 text-white rounded font-black">품절</span> : null}
+                        {product.stock_quantity !== null && product.stock_quantity !== undefined && (
+                          <span className={`px-1.5 py-0.5 text-[8px] rounded font-black ${product.stock_quantity <= (product.low_stock_threshold || 5) ? 'bg-rose-500/10 text-rose-400' : 'bg-green-500/10 text-green-400'}`}>
+                            재고 {product.stock_quantity}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 가격 + 메타 */}
+                      <div className="flex items-center gap-2 lg:gap-6 mt-1 lg:mt-5">
+                        <span className="text-sm lg:text-2xl font-black text-white">{formatPrice(product.price, true)}</span>
                         {product.cooking_time && (
-                          <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
-                            <Clock size={14} className="text-slate-600" /> {product.cooking_time}MIN
+                          <div className="hidden lg:flex items-center gap-2 text-[10px] font-black text-slate-400 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
+                            <Clock size={14} className="text-slate-600" /> {product.cooking_time}분
                           </div>
                         )}
                         {product.tags && (
-                          <div className="flex gap-2 overflow-hidden max-w-[300px]">
+                          <div className="hidden lg:flex gap-2 overflow-hidden max-w-[300px]">
                             {product.tags.split(',').slice(0, 3).map((tag, i) => (
                               <span key={i} className="px-3 py-1 bg-white/[0.02] text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-tighter border border-white/5">#{tag.trim()}</span>
                             ))}
                           </div>
                         )}
+                        {/* 모바일 조리시간 인라인 */}
+                        {product.cooking_time && (
+                          <span className="lg:hidden text-[10px] text-slate-600 font-bold flex items-center gap-1">
+                            <Clock size={10} /> {product.cooking_time}분
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                    {/* 데스크탑 전용 호버 버튼 */}
+                    <div className="hidden lg:flex gap-3 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
                       <motion.button
                         whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                         onClick={() => { setEditingProduct(product); setShowProductModal(true); }}
@@ -1052,42 +1104,42 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
   ];
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center z-[100] p-4">
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="bg-slate-900 border border-white/10 rounded-[40px] w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl"
+        initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
+        className="bg-slate-900 border border-white/10 rounded-t-[32px] sm:rounded-[40px] w-full max-w-3xl max-h-[95vh] sm:max-h-[92vh] overflow-hidden flex flex-col shadow-2xl"
       >
-        <div className="p-10 border-b border-white/5 flex items-center justify-between">
+        <div className="px-5 py-4 sm:p-10 border-b border-white/5 flex items-center justify-between flex-shrink-0">
           <div>
-            <h3 className="text-3xl font-black text-white tracking-tight">
-              {product ? '메뉴 정보 수정' : '신규 메뉴 등록'}
+            <h3 className="text-xl sm:text-3xl font-black text-white tracking-tight">
+              {product ? '메뉴 수정' : '메뉴 등록'}
             </h3>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-2">Product Master Configuration</p>
+            <p className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">상품 정보 설정</p>
           </div>
-          <button onClick={onClose} className="w-12 h-12 bg-white/5 hover:bg-rose-500/10 hover:text-rose-500 text-slate-400 rounded-2xl flex items-center justify-center transition-all">
-            <X size={24} />
+          <button onClick={onClose} className="w-10 h-10 bg-white/5 hover:bg-rose-500/10 hover:text-rose-500 text-slate-400 rounded-2xl flex items-center justify-center transition-all flex-shrink-0">
+            <X size={20} />
           </button>
         </div>
 
         {/* 탭 네비게이션 */}
-        <div className="flex px-10 gap-6 border-b border-white/5 bg-white/[0.01] overflow-x-auto">
+        <div className="flex px-4 sm:px-10 gap-1 sm:gap-6 border-b border-white/5 bg-white/[0.01] overflow-x-auto scrollbar-hide flex-shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`py-6 flex items-center gap-3 text-xs font-black uppercase tracking-widest transition-all relative whitespace-nowrap ${activeTab === tab.id ? 'text-orange-500' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`py-4 sm:py-6 flex items-center gap-1.5 sm:gap-3 text-[10px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest transition-all relative whitespace-nowrap px-2 sm:px-0 ${activeTab === tab.id ? 'text-orange-500' : 'text-slate-500 hover:text-slate-300'}`}
             >
-              <tab.icon size={16} />
+              <tab.icon size={13} className="sm:w-4 sm:h-4" />
               {tab.label}
               {activeTab === tab.id && (
-                <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-orange-500 rounded-t-full shadow-[0_-4px_12px_rgba(249,115,22,0.4)]" />
+                <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 sm:h-1 bg-orange-500 rounded-t-full" />
               )}
             </button>
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-10 space-y-10">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-10 space-y-6 sm:space-y-10">
           {/* 기본 정보 탭 */}
           {activeTab === 'basic' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -1401,15 +1453,15 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
           )}
         </div>
 
-        <div className="p-10 border-t border-white/5 bg-white/[0.01] flex gap-4">
-          <button type="button" onClick={onClose} className="flex-1 h-16 bg-white/5 text-slate-400 rounded-2xl font-black text-sm hover:bg-white/10 transition-all">
+        <div className="px-5 py-4 sm:p-10 border-t border-white/5 bg-white/[0.01] flex gap-3 flex-shrink-0" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)' }}>
+          <button type="button" onClick={onClose} className="flex-1 h-12 sm:h-16 bg-white/5 text-slate-400 rounded-2xl font-black text-sm hover:bg-white/10 transition-all">
             취소
           </button>
           <button
             onClick={handleSubmit} disabled={loading}
-            className="flex-[3] h-16 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-2xl font-black text-sm shadow-2xl shadow-orange-500/20 active:scale-95 transition-all disabled:opacity-50"
+            className="flex-[3] h-12 sm:h-16 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-orange-500/20 active:scale-95 transition-all disabled:opacity-50"
           >
-            {loading ? '저장 중...' : product ? '메뉴 수정하기' : '메뉴 등록하기'}
+            {loading ? '저장 중...' : product ? '메뉴 수정' : '메뉴 등록'}
           </button>
         </div>
       </motion.div>
