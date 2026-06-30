@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ordersAPI } from '../api';
+import { ordersAPI, getSocket } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import {
     ChefHat, Clock, CheckCircle2, XCircle, RefreshCw,
@@ -53,7 +53,7 @@ const KitchenDisplay = () => {
     useEffect(() => {
         fetchOrders();
 
-        const socket = ordersAPI.getSocket();
+        const socket = getSocket();
         if (socket) {
             // 주방 룸 조인
             socket.emit('join-kitchen', { storeId });
