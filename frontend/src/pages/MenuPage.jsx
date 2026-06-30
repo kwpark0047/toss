@@ -3,7 +3,7 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, UtensilsCrossed, RefreshCw } from "lucide-react";
-import { storesAPI, categoriesAPI, productsAPI, ordersAPI, analyticsAPI, wakeupServer } from "@/api";
+import { storesAPI, categoriesAPI, productsAPI, ordersAPI, wakeupServer } from "@/api";
 
 // Components
 import MenuHeader from "@/components/menu/MenuHeader";
@@ -112,22 +112,8 @@ const MenuPage = () => {
   });
 
   const isLoading = profileLoading || menuLoading;
-
-  // Fetch popular items
-  const { data: orderStats = [] } = useQuery({
-    queryKey: ["menuOrderStats", storeId],
-    queryFn: async () => {
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const data = await analyticsAPI.getProducts(storeId, lastWeek, today, 5);
-        return data.map(item => item.product_id);
-      } catch {
-        return [];
-      }
-    },
-    enabled: isNumericStoreId,
-  });
+  // analytics 호출 제거: authMiddleware 필수 엔드포인트 → 401 → 토큰 갱신 실패 → 로그아웃 유발
+  const orderStats = [];
 
   // Helper functions
   const getTodayHours = () => {

@@ -79,7 +79,11 @@ api.interceptors.response.use(
         console.error('토큰 갱신 실패:', err);
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
-        if (!window.location.pathname.startsWith('/login')) {
+        // 공개 페이지(/menu, /qr)에서는 로그아웃 리다이렉트 금지
+        // — 고객이 메뉴판 접근 시 관리자 세션 만료로 로그아웃되는 문제 방지
+        const path = window.location.pathname;
+        const isPublicPage = path.startsWith('/menu') || path.startsWith('/qr') || path === '/';
+        if (!isPublicPage && !path.startsWith('/login')) {
           window.location.href = '/login';
         }
       }
