@@ -23,6 +23,8 @@ const MasterDashboard = () => {
     const [comparison, setComparison] = useState(null);
     const [isMultiView, setIsMultiView] = useState(false);
     const [multiStoreStats, setMultiStoreStats] = useState(null);
+    const [multiViewLoading, setMultiViewLoading] = useState(false);
+    const [multiViewError, setMultiViewError] = useState(false);
 
     // 애니메이션 상수
     const containerVariants = {
@@ -87,7 +89,8 @@ const MasterDashboard = () => {
     }, [timeRange]);
 
     const fetchMultiStoreData = useCallback(async () => {
-        setLoading(true);
+        setMultiViewLoading(true);
+        setMultiViewError(false);
         try {
             const now = new Date();
             let start, end;
@@ -95,24 +98,29 @@ const MasterDashboard = () => {
                 start = new Date(now.setHours(0, 0, 0, 0)).toISOString();
                 end = new Date().toISOString();
             } else if (timeRange === 'week') {
-                start = new Date(now.setDate(now.getDate() - 7)).toISOString();
-                end = new Date().toISOString();
+                const w = new Date(now);
+                w.setDate(w.getDate() - 7);
+                start = w.toISOString();
+                end = now.toISOString();
             } else {
-                start = new Date(now.setMonth(now.getMonth() - 1)).toISOString();
-                end = new Date().toISOString();
+                const m = new Date(now);
+                m.setMonth(m.getMonth() - 1);
+                start = m.toISOString();
+                end = now.toISOString();
             }
 
             const res = await analyticsAPI.getMultiStore({ start_date: start, end_date: end });
             setMultiStoreStats(res.data);
             setStats({
-                total_sales: res.data.summary.total_sales,
-                total_orders: res.data.summary.total_orders,
-                by_status: { completed: res.data.summary.total_orders } // 통합 뷰용 임시 매핑
+                total_sales: res.data?.summary?.total_sales ?? 0,
+                total_orders: res.data?.summary?.total_orders ?? 0,
+                by_status: { completed: res.data?.summary?.total_orders ?? 0 }
             });
         } catch (error) {
             console.error('다점포 데이터 로딩 실패:', error);
+            setMultiViewError(true);
         } finally {
-            setLoading(false);
+            setMultiViewLoading(false);
         }
     }, [timeRange]);
 
@@ -353,30 +361,59 @@ const MasterDashboard = () => {
                         <div className="divide-y divide-slate-100 relative z-10">
                             {isMultiView ? (
                                 <div className="p-0">
-                                    {multiStoreStats?.stores?.map((s, idx) => (
-                                        <div key={s.store_id} className="p-6 flex items-center justify-between hover:bg-white/80 transition-all border-l-4 border-l-transparent hover:border-l-indigo-600">
-                                            <div className="flex items-center gap-6">
-                                                <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-sm">
-                                                    {idx + 1}
+                                    {multiViewLoading ? (
+                                        <div className="flex flex-col items-center justify-center py-24 gap-4">
+                                            <motion.div
+                                                animate={{ rotate: 360 }}
+                                                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                                className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full"
+                                            />
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                                전체 매장 데이터 집계 중...
+                                            </p>
+                                        </div>
+                                    ) : multiViewError ? (
+                                        <div className="flex flex-col items-center justify-center py-24 gap-3">
+                                            <div className="text-3xl">⚠️</div>
+                                            <p className="text-xs font-bold text-slate-400">데이터를 불러오지 못했습니다</p>
+                                            <button
+                                                onClick={fetchMultiStoreData}
+                                                className="mt-2 px-4 py-2 text-xs font-black text-indigo-600 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-colors"
+                                            >
+                                                다시 시도
+                                            </button>
+                                        </div>
+                                    ) : multiStoreStats?.stores?.length > 0 ? (
+                                        multiStoreStats.stores.map((s, idx) => (
+                                            <div key={s.store_id} className="p-6 flex items-center justify-between hover:bg-white/80 transition-all border-l-4 border-l-transparent hover:border-l-indigo-600">
+                                                <div className="flex items-center gap-6">
+                                                    <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-sm">
+                                                        {idx + 1}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-black text-slate-900 text-lg">{s.store_name}</div>
+                                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                                                            Total Orders: {s.total_orders}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div className="font-black text-slate-900 text-lg">{s.store_name}</div>
-                                                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                                                        Total Orders: {s.total_orders}
+                                                <div className="text-right">
+                                                    <div className="text-xl font-black text-indigo-600">{formatPrice(s.total_sales)}</div>
+                                                    <div className="mt-2 h-1.5 w-32 bg-slate-100 rounded-full overflow-hidden ml-auto">
+                                                        <div
+                                                            className="h-full bg-indigo-500"
+                                                            style={{ width: `${(s.total_sales / (multiStoreStats.summary?.total_sales || 1)) * 100}%` }}
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <div className="text-xl font-black text-indigo-600">{formatPrice(s.total_sales)}</div>
-                                                <div className="mt-2 h-1.5 w-32 bg-slate-100 rounded-full overflow-hidden ml-auto">
-                                                    <div
-                                                        className="h-full bg-indigo-500"
-                                                        style={{ width: `${(s.total_sales / (multiStoreStats.summary.total_sales || 1)) * 100}%` }}
-                                                    />
-                                                </div>
-                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-24 gap-3">
+                                            <Store size={40} className="text-slate-200" />
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">해당 기간 집계 데이터 없음</p>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             ) : (
                                 <AnimatePresence mode="popLayout">
