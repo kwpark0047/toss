@@ -273,6 +273,18 @@ function ThemeSwitcher() {
 function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen, setSidebarOpen, location, filteredNavItems }) {
   const { themeId } = useAdminTheme();
   const tc = TC[themeId];
+  const [isMoreOpen, setMoreOpen] = useState(false);
+
+  const mobileBottomNav = storeId ? [
+    { label: '홈', icon: LayoutDashboard, path: '/admin' },
+    { label: '주문서', icon: UtensilsCrossed, path: `/admin/stores/${storeId}/orders` },
+    { label: '상품', icon: ShoppingBag, path: `/admin/stores/${storeId}/menu` },
+    { label: 'AI', icon: Sparkles, path: '/admin/tinkerbell' },
+  ] : [
+    { label: '홈', icon: LayoutDashboard, path: '/admin' },
+    { label: 'AI', icon: Sparkles, path: '/admin/tinkerbell' },
+    { label: '커뮤니티', icon: MessageSquare, path: '/board' },
+  ];
 
   return (
     <NotificationProvider storeId={storeId} userId={user?.id} role={user?.role}>
@@ -374,15 +386,12 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
 
         {/* Main Area */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-          <header className={`h-24 flex items-center justify-between px-10 sticky top-0 z-20 ${tc.header}`}>
-            <div className="flex items-center gap-6 lg:hidden">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-colors ${tc.mobileBtn}`}
-              >
-                <MenuIcon size={24} />
-              </button>
-              <span className={`font-black uppercase tracking-tighter ${tc.logoText}`}>WeMarket</span>
+          <header className={`h-14 lg:h-24 flex items-center justify-between px-4 lg:px-10 sticky top-0 z-20 ${tc.header}`}>
+            <div className="flex items-center gap-2.5 lg:hidden">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
+                <Store size={15} className="text-white" />
+              </div>
+              <span className={`font-black text-sm uppercase tracking-tighter ${tc.logoText}`}>WeMarket</span>
             </div>
 
             <div className={`hidden lg:flex items-center gap-3 px-4 py-2 rounded-full ${tc.operational}`}>
@@ -390,11 +399,11 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
               <span className={`text-[10px] font-black uppercase tracking-widest ${tc.operationalTxt}`}>System Operational</span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 lg:gap-3">
               <ThemeSwitcher />
               <NotificationBell />
-              <div className={`h-8 w-px mx-1 ${tc.separator}`} />
-              <div className={`flex items-center gap-4 px-5 py-2.5 rounded-[20px] ${tc.statusBox}`}>
+              <div className={`hidden md:block h-8 w-px mx-1 ${tc.separator}`} />
+              <div className={`hidden md:flex items-center gap-4 px-5 py-2.5 rounded-[20px] ${tc.statusBox}`}>
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-lg ${tc.statusIcon}`}>
                   <Sparkles size={18} />
                 </div>
@@ -406,7 +415,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto p-8 md:p-10 lg:p-12 relative">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 pb-24 lg:pb-12 relative">
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
@@ -420,54 +429,125 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
               </motion.div>
             </AnimatePresence>
           </div>
+
+          {/* Mobile Bottom Nav */}
+          <nav
+            className={`fixed bottom-0 left-0 right-0 z-30 lg:hidden border-t ${tc.separator} ${tc.header}`}
+            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          >
+            <div className="flex h-16">
+              {mobileBottomNav.map((item) => {
+                const isActive = location.pathname === item.path ||
+                  (item.path === '/admin' && location.pathname === '/admin');
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${isActive ? '' : tc.navText}`}
+                  >
+                    <div className={`w-9 h-9 rounded-[14px] flex items-center justify-center transition-all ${
+                      isActive ? `bg-gradient-to-br ${tc.navActiveBg} shadow-md ${tc.navActiveShadow}` : ''
+                    }`}>
+                      <item.icon size={18} className={isActive ? 'text-white' : ''} />
+                    </div>
+                    <span className={`text-[9px] font-bold leading-none ${isActive ? tc.textStrong : ''}`}>{item.label}</span>
+                  </Link>
+                );
+              })}
+              <button
+                onClick={() => setMoreOpen(true)}
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${tc.navText}`}
+              >
+                <div className="w-9 h-9 rounded-[14px] flex items-center justify-center">
+                  <MenuIcon size={18} />
+                </div>
+                <span className="text-[9px] font-bold leading-none">더보기</span>
+              </button>
+            </div>
+          </nav>
         </main>
 
-        {/* Mobile Drawer */}
+        {/* Mobile More Bottom Sheet */}
         <AnimatePresence>
-          {isSidebarOpen && (
+          {isMoreOpen && (
             <>
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 bg-black/60 backdrop-blur-md z-40 lg:hidden"
-                onClick={() => setSidebarOpen(false)}
+                onClick={() => setMoreOpen(false)}
               />
               <motion.div
-                initial={{ x: '-100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '-100%' }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className={`fixed inset-y-0 left-0 w-80 z-50 lg:hidden p-10 flex flex-col ${tc.drawerBg}`}
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden rounded-t-[2rem] ${tc.drawerBg} max-h-[85vh] overflow-y-auto`}
+                style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
               >
-                <div className="flex items-center justify-between mb-16">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center text-white">
-                      <Store size={24} />
-                    </div>
-                    <span className={`text-2xl font-black tracking-tighter ${tc.logoText}`}>ADMIN</span>
-                  </div>
-                  <button onClick={() => setSidebarOpen(false)} className={`p-2 transition-colors ${tc.drawerClose}`}>
-                    <X size={28} />
-                  </button>
+                {/* Handle bar */}
+                <div className="flex justify-center pt-4 pb-1">
+                  <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
 
-                <nav className="flex-1 space-y-3 overflow-y-auto scrollbar-hide">
-                  {filteredNavItems.map((item) => (
-                    <Link
-                      key={item.label}
-                      to={item.path}
-                      onClick={() => setSidebarOpen(false)}
-                      className={`flex items-center gap-4 px-6 py-5 rounded-[24px] font-bold text-lg transition-all ${
-                        location.pathname === item.path
-                          ? `shadow-xl ${tc.drawerNavActive}`
-                          : tc.drawerNavIdle
-                      }`}
-                    >
-                      <item.icon size={22} /> {item.label}
-                    </Link>
-                  ))}
-                </nav>
+                {/* User Profile Card */}
+                {user && (
+                  <div className={`mx-4 mt-3 mb-4 p-4 rounded-2xl ${tc.profile}`}>
+                    {(!user.name || !user.email) && (
+                      <Link
+                        to="/admin/profile"
+                        onClick={() => setMoreOpen(false)}
+                        className={`flex items-center gap-2 mb-3 px-3 py-2 rounded-xl ${tc.banner}`}
+                      >
+                        <div className={`w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0 ${tc.bannerDot}`} />
+                        <span className={`text-[11px] font-bold flex-1 ${tc.bannerTxt}`}>프로필을 완성해 보세요</span>
+                        <ChevronRight size={12} className={tc.bannerArrow} />
+                      </Link>
+                    )}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black flex-shrink-0 ${tc.avatarBg} ${tc.textStrong}`}>
+                        {user.name ? user.name.charAt(0) : <UserCircle size={18} className={tc.textSub} />}
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <p className={`text-sm font-black truncate ${tc.textStrong}`}>{user.name || '이름 미설정'}</p>
+                        <p className={`text-[10px] font-bold uppercase tracking-widest ${tc.textAccent}`}>{user.role || 'Admin'}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Link to="/admin/profile" onClick={() => setMoreOpen(false)}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${tc.btnBase}`}>
+                        <UserCircle size={13} /> 프로필
+                      </Link>
+                      <button onClick={() => { setMoreOpen(false); handleLogout(); }}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${tc.btnDanger}`}>
+                        <LogOut size={13} /> 로그아웃
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* All Nav Items */}
+                <div className="px-4 pb-8 space-y-1">
+                  <p className={`text-[10px] font-black uppercase tracking-[0.2em] px-2 mb-3 ${tc.textSub}`}>전체 메뉴</p>
+                  {filteredNavItems.map((item) => {
+                    const isActive = location.pathname === item.path || (item.id === 'dashboard' && location.pathname === '/admin');
+                    return (
+                      <Link
+                        key={item.label}
+                        to={item.path}
+                        onClick={() => setMoreOpen(false)}
+                        className={`flex items-center gap-4 px-4 py-4 rounded-2xl font-bold text-base transition-all ${
+                          isActive ? `shadow-lg ${tc.drawerNavActive}` : tc.drawerNavIdle
+                        }`}
+                      >
+                        <item.icon size={20} />
+                        <span className="flex-1">{item.label}</span>
+                        {isActive && <ChevronRight size={16} />}
+                      </Link>
+                    );
+                  })}
+                </div>
               </motion.div>
             </>
           )}

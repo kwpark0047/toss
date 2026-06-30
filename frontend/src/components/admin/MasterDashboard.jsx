@@ -177,30 +177,31 @@ const MasterDashboard = () => {
     const StatCard = ({ title, value, icon: Icon, trend, color, bgColor, progress }) => (
         <motion.div
             variants={itemVariants}
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="glass-panel p-6 card-hover relative overflow-hidden group border-white/40 shadow-sm"
+            whileHover={{ y: -3, scale: 1.02 }}
+            className="glass-panel p-3 md:p-6 card-hover relative overflow-hidden group border-white/40 shadow-sm"
         >
             <div className={`absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 rounded-full opacity-[0.05] blur-3xl transition-all group-hover:opacity-[0.15] ${bgColor}`}></div>
-            <div className="flex justify-between items-start mb-4">
-                <div className={`p-3 rounded-2xl ${bgColor.replace('bg-', 'bg-opacity-10 bg-')} ${color} shadow-inner`}>
-                    <Icon size={24} />
+            <div className="flex justify-between items-start mb-2 md:mb-4">
+                <div className={`p-2 md:p-3 rounded-xl md:rounded-2xl ${bgColor.replace('bg-', 'bg-opacity-10 bg-')} ${color} shadow-inner`}>
+                    <Icon size={18} className="md:hidden" />
+                    <Icon size={24} className="hidden md:block" />
                 </div>
                 {trend !== undefined && (
                     <motion.div
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className={`flex items-center text-[10px] font-black px-2.5 py-1 rounded-lg ${trend >= 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}
+                        className={`flex items-center text-[9px] md:text-[10px] font-black px-1.5 md:px-2.5 py-1 rounded-lg ${trend >= 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}
                     >
-                        {trend >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                        {trend >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                         {Math.abs(trend)}%
                     </motion.div>
                 )}
             </div>
-            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
-            <h3 className="text-3xl font-black text-slate-900">{value}</h3>
+            <p className="text-slate-500 text-[9px] md:text-xs font-bold uppercase tracking-wider mb-0.5 md:mb-1 leading-tight">{title}</p>
+            <h3 className="text-lg md:text-3xl font-black text-slate-900 leading-tight">{value}</h3>
 
             {progress !== undefined && (
-                <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div className="mt-2 md:mt-4 h-1 md:h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                     <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
@@ -217,41 +218,41 @@ const MasterDashboard = () => {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="space-y-10"
+            className="space-y-5 lg:space-y-10"
         >
             {/* Header Section */}
-            <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+            <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8">
                 <div className="space-y-1">
-                    <div className="flex items-center gap-3 text-blue-600 mb-2">
-                        <LayoutDashboard size={20} />
-                        <span className="text-xs font-black uppercase tracking-widest">Master Overview</span>
+                    <div className="flex items-center gap-2 text-blue-600 mb-1.5">
+                        <LayoutDashboard size={16} />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Master Overview</span>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-none">
+                    <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-none">
                         Command <span className="text-blue-600">Center</span>
                     </h1>
                     <div className="flex items-center gap-2 mt-2">
                         <button
                             onClick={() => setIsMultiView(false)}
-                            className={`px-3 py-1 text-[10px] font-black rounded-lg border transition-all ${!isMultiView ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-400 border-slate-200'}`}
+                            className={`px-3 py-1.5 text-[10px] font-black rounded-lg border transition-all ${!isMultiView ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-400 border-slate-200'}`}
                         >
-                            SINGLE STORE
+                            단일 매장
                         </button>
                         <button
                             onClick={() => setIsMultiView(true)}
-                            className={`px-3 py-1 text-[10px] font-black rounded-lg border transition-all ${isMultiView ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' : 'bg-white text-slate-400 border-slate-200'}`}
+                            className={`px-3 py-1.5 text-[10px] font-black rounded-lg border transition-all ${isMultiView ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' : 'bg-white text-slate-400 border-slate-200'}`}
                         >
-                            ALL STORES OVERVIEW
+                            전체 매장 통계
                         </button>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4 bg-white/50 backdrop-blur-md p-1.5 rounded-2xl border border-white shadow-sm">
+                <div className="flex flex-wrap items-center gap-2 bg-white/50 backdrop-blur-md p-1.5 rounded-2xl border border-white shadow-sm">
                     <div className="flex bg-slate-100 p-1 rounded-xl">
                         {['today', 'week', 'month'].map((range) => (
                             <button
                                 key={range}
                                 onClick={() => setTimeRange(range)}
-                                className={`px-5 py-2 text-xs font-black rounded-lg transition-all ${timeRange === range
+                                className={`px-3 md:px-5 py-2 text-xs font-black rounded-lg transition-all ${timeRange === range
                                     ? 'bg-white text-blue-600 shadow-md'
                                     : 'text-slate-500 hover:text-slate-700'
                                     }`}
@@ -262,14 +263,14 @@ const MasterDashboard = () => {
                     </div>
 
                     {!isMultiView && (
-                        <div className="relative">
+                        <div className="relative flex-1 min-w-[140px]">
                             <select
                                 value={selectedStore?.id || ''}
                                 onChange={(e) => {
                                     const store = stores.find((s) => s.id === parseInt(e.target.value));
                                     setSelectedStore(store);
                                 }}
-                                className="pl-5 pr-10 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 font-black text-xs uppercase tracking-wider focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer appearance-none min-w-[200px] shadow-sm"
+                                className="w-full pl-4 pr-8 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 font-black text-xs uppercase tracking-wider focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer appearance-none shadow-sm"
                             >
                                 {Array.isArray(stores) && stores.map((store) => (
                                     <option key={store.id} value={store.id}>
@@ -277,14 +278,14 @@ const MasterDashboard = () => {
                                     </option>
                                 ))}
                             </select>
-                            <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 rotate-90 text-slate-400 pointer-events-none" size={16} />
+                            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-slate-400 pointer-events-none" size={14} />
                         </div>
                     )}
                 </div>
             </motion.div>
 
             {/* Primary Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 <StatCard
                     title="실시간 총 매출"
                     value={formatPrice(stats?.total_sales || 0)}
@@ -351,7 +352,7 @@ const MasterDashboard = () => {
                         )}
                     </div>
 
-                    <div className="glass-panel overflow-hidden border-white/50 shadow-xl relative min-h-[500px]">
+                    <div className="glass-panel overflow-hidden border-white/50 shadow-xl relative min-h-[200px] lg:min-h-[500px]">
                         {!isMultiView && (
                             <div className="absolute top-0 right-0 w-full h-full opacity-[0.02] pointer-events-none overflow-hidden">
                                 <img src="https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=1000&auto=format&fit=crop" className="w-full h-full object-cover grayscale" alt="bg" />
@@ -438,47 +439,48 @@ const MasterDashboard = () => {
                                                 initial={{ opacity: 0, x: -20 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: idx * 0.05 }}
-                                                className="p-6 flex items-center justify-between hover:bg-white/80 transition-all group border-l-4 border-l-transparent hover:border-l-blue-600"
+                                                className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between hover:bg-white/80 transition-all group border-l-4 border-l-transparent hover:border-l-blue-600"
                                             >
-                                                <div className="flex items-center gap-5">
-                                                    <div className="relative">
-                                                        <div className={`w-16 h-16 rounded-[1.25rem] flex items-center justify-center font-black text-xs shadow-inner transition-all group-hover:scale-105 ${order.status === 'pending' ? 'bg-blue-600 text-white shadow-blue-500/20' : 'bg-slate-100 text-slate-500'
+                                                <div className="flex items-center gap-3 md:gap-5 min-w-0">
+                                                    <div className="relative flex-shrink-0">
+                                                        <div className={`w-10 h-10 md:w-16 md:h-16 rounded-2xl md:rounded-[1.25rem] flex items-center justify-center font-black text-[10px] md:text-xs shadow-inner transition-all group-hover:scale-105 ${order.status === 'pending' ? 'bg-blue-600 text-white shadow-blue-500/20' : 'bg-slate-100 text-slate-500'
                                                             }`}>
                                                             #{order.order_number.slice(-3)}
                                                         </div>
                                                         {order.status === 'pending' && (
-                                                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 border-2 border-white rounded-full"></div>
+                                                            <div className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-orange-500 border-2 border-white rounded-full"></div>
                                                         )}
                                                     </div>
-                                                    <div>
-                                                        <div className="font-black text-slate-900 group-hover:text-blue-600 transition-colors flex items-center gap-3 text-lg">
+                                                    <div className="min-w-0">
+                                                        <div className="font-black text-slate-900 group-hover:text-blue-600 transition-colors flex items-center gap-2 text-sm md:text-lg truncate">
                                                             {order.table_name || 'PICKUP'}
-                                                            <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md font-bold uppercase tracking-tighter">
+                                                            <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tighter flex-shrink-0">
                                                                 {order.customer_name || 'GUEST'}
                                                             </span>
                                                         </div>
-                                                        <div className="text-[11px] text-slate-400 font-bold flex items-center gap-2 mt-1">
-                                                            <Clock size={12} className="text-slate-300" /> {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1.5 mt-0.5">
+                                                            <Clock size={10} className="text-slate-300 flex-shrink-0" />
+                                                            {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                             <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
-                                                            <span className="text-blue-600 font-black text-sm">{formatPrice(order.total_amount)}</span>
+                                                            <span className="text-blue-600 font-black text-xs">{formatPrice(order.total_amount)}</span>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-6">
-                                                    <span className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg tracking-widest border transition-all ${order.status === 'pending' ? 'bg-blue-50 text-blue-600 border-blue-100 shadow-sm' :
+                                                <div className="flex items-center gap-2 md:gap-6 flex-shrink-0">
+                                                    <span className={`hidden sm:flex px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-[10px] font-black uppercase rounded-lg tracking-widest border transition-all ${order.status === 'pending' ? 'bg-blue-50 text-blue-600 border-blue-100 shadow-sm' :
                                                         order.status === 'preparing' ? 'bg-amber-50 text-amber-600 border-amber-100' :
                                                             order.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                                                                 'bg-slate-50 text-slate-400 border-slate-100'
                                                         }`}>
-                                                        {order.status === 'pending' ? 'WAITING' : order.status.toUpperCase()}
+                                                        {order.status === 'pending' ? '대기' : order.status.toUpperCase()}
                                                     </span>
                                                     <motion.button
                                                         whileHover={{ scale: 1.1 }}
                                                         whileTap={{ scale: 0.9 }}
-                                                        className="p-3 bg-slate-50 text-slate-300 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm"
+                                                        className="p-2 md:p-3 bg-slate-50 text-slate-300 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm"
                                                     >
-                                                        <ChevronRight size={18} />
+                                                        <ChevronRight size={16} />
                                                     </motion.button>
                                                 </div>
                                             </motion.div>
@@ -500,31 +502,32 @@ const MasterDashboard = () => {
                         <Settings size={18} className="text-slate-300" />
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
                         {[
                             { label: 'Menu Manager', to: 'menu', icon: ShoppingBag, desc: '상품 고도화 및 메뉴판 빌더', gradient: 'from-blue-500 to-blue-600' },
-                            { label: 'Visual Table Map', to: 'tables', icon: Store, desc: '실시간 좌석 및 동선 관리', gradient: 'from-indigo-500 to-indigo-600' },
-                            { label: 'Human Resources', to: 'staff', icon: Users, desc: '직원 권한 및 근태 레포트', gradient: 'from-purple-500 to-purple-600' },
+                            { label: 'Table Map', to: 'tables', icon: Store, desc: '실시간 좌석 및 동선 관리', gradient: 'from-indigo-500 to-indigo-600' },
+                            { label: 'HR 관리', to: 'staff', icon: Users, desc: '직원 권한 및 근태 레포트', gradient: 'from-purple-500 to-purple-600' },
                             { label: 'Intelligence', to: 'stats', icon: BarChart3, desc: 'AI 기반 매출 예측 분석', gradient: 'from-emerald-500 to-emerald-600' },
-                            { label: 'Settlement Hub', to: 'settlements', icon: DollarSign, desc: '정산 및 금융 통계 요약', gradient: 'from-amber-500 to-amber-600' },
+                            { label: 'Settlement', to: 'settlements', icon: DollarSign, desc: '정산 및 금융 통계 요약', gradient: 'from-amber-500 to-amber-600' },
                         ].map((tool) => (
                             <motion.div
                                 key={tool.to}
-                                whileHover={{ scale: 1.03, x: 5 }}
-                                whileTap={{ scale: 0.98 }}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.97 }}
                             >
                                 <button
                                     onClick={() => handleToolNav(tool.to)}
-                                    className="w-full glass-panel p-5 flex items-center gap-5 transition-all hover:bg-white hover:shadow-xl group relative overflow-hidden border-white/60"
+                                    className="w-full glass-panel p-3 md:p-5 flex items-center gap-3 md:gap-5 transition-all hover:bg-white hover:shadow-xl group relative overflow-hidden border-white/60"
                                 >
-                                    <div className={`p-3.5 bg-gradient-to-br ${tool.gradient} rounded-2xl text-white shadow-lg group-hover:rotate-6 transition-transform`}>
-                                        <tool.icon size={22} />
+                                    <div className={`p-2.5 md:p-3.5 bg-gradient-to-br ${tool.gradient} rounded-xl md:rounded-2xl text-white shadow-lg group-hover:rotate-6 transition-transform flex-shrink-0`}>
+                                        <tool.icon size={18} className="md:hidden" />
+                                        <tool.icon size={22} className="hidden md:block" />
                                     </div>
-                                    <div className="relative z-10 flex-grow text-left">
-                                        <div className="font-black text-slate-900 leading-tight group-hover:text-blue-600 transition-colors uppercase text-xs tracking-tight">{tool.label}</div>
-                                        <div className="text-[10px] text-slate-400 font-bold mt-1 leading-snug">{tool.desc}</div>
+                                    <div className="relative z-10 flex-grow text-left min-w-0">
+                                        <div className="font-black text-slate-900 leading-tight group-hover:text-blue-600 transition-colors uppercase text-[10px] md:text-xs tracking-tight truncate">{tool.label}</div>
+                                        <div className="text-[9px] md:text-[10px] text-slate-400 font-bold mt-0.5 leading-snug hidden sm:block">{tool.desc}</div>
                                     </div>
-                                    <ChevronRight size={18} className="text-slate-200 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+                                    <ChevronRight size={14} className="text-slate-200 group-hover:text-blue-500 group-hover:translate-x-1 transition-all flex-shrink-0 hidden md:block" />
                                 </button>
                             </motion.div>
                         ))}
