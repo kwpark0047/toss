@@ -280,9 +280,13 @@ const TableManager = () => {
     catch (e) { handleApiError(e, 'QR 재생성 실패'); }
   };
 
-  const getQrUrl      = (qrCode) => `${window.location.origin}/menu/${qrCode}`;
-  const getQrImageUrl = (qrCode, size = 200) =>
-    `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(getQrUrl(qrCode))}&bgcolor=ffffff&color=0f172a&margin=2`;
+  /* QR에 담길 실제 메뉴판 URL — storeId + table 파라미터 방식 */
+  const getMenuUrl = (table) =>
+    `${window.location.origin}/menu/${storeId}?table=${encodeURIComponent(table.table_number || table.name || '')}`;
+
+  /* QR 이미지 서비스 URL */
+  const getQrImageUrl = (menuUrl, size = 200) =>
+    `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(menuUrl)}&bgcolor=ffffff&color=0f172a&margin=2`;
 
   /* 전체 PDF 생성 */
   const generatePDF = async () => {
@@ -312,7 +316,7 @@ const TableManager = () => {
         const CVS_W = 900, CVS_H = 1300;
         const canvas = document.createElement('canvas');
         canvas.width = CVS_W; canvas.height = CVS_H;
-        canvas._qrData = getQrUrl(table.qr_code);
+        canvas._qrData = getMenuUrl(table);
         await drawCard(canvas, 'dark', store?.name || '', table.name || table.table_number || `Table ${i + 1}`, table.capacity);
         const imgData = canvas.toDataURL('image/png');
 
@@ -479,7 +483,7 @@ const TableManager = () => {
         )}
         {showQrModal && (
           <QrModal table={showQrModal} store={store}
-            qrUrl={getQrUrl(showQrModal.qr_code)}
+            qrUrl={getMenuUrl(showQrModal)}
             getQrImageUrl={getQrImageUrl}
             onClose={() => setShowQrModal(null)} />
         )}
@@ -497,7 +501,7 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
   const d = DESIGNS.find(x => x.id === design) || DESIGNS[0];
 
   const tableName = table.name || table.table_number || '';
-  const qrImgUrl  = getQrImageUrl(table.qr_code, 400);
+  const qrImgUrl  = getQrImageUrl(qrUrl, 400);
 
   /* PNG 다운로드 */
   const handleDownload = async () => {

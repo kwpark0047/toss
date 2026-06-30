@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import React, { useState, useMemo, useEffect } from "react";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { storesAPI, categoriesAPI, productsAPI, ordersAPI, analyticsAPI } from "@/api";
+import { storesAPI, categoriesAPI, productsAPI, ordersAPI, analyticsAPI, tablesAPI } from "@/api";
 
 // Components
 import MenuHeader from "@/components/menu/MenuHeader";
@@ -19,7 +19,25 @@ import CustomerPhoneSheet from "@/components/menu/CustomerPhoneSheet";
 const MenuPage = () => {
   const { storeId } = useParams();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const tableNumber = searchParams.get("table") || "1";
+
+  /* storeId가 숫자가 아닌 QR 코드 문자열인 경우 QrResolvePage로 위임 */
+  useEffect(() => {
+    if (storeId && !/^\d+$/.test(storeId)) {
+      tablesAPI.getByQrCode(storeId)
+        .then(res => {
+          const table = res?.data || res;
+          if (table?.store_id) {
+            const tableNum = encodeURIComponent(table.table_number || table.name || '');
+            navigate(`/menu/${table.store_id}?table=${tableNum}`, { replace: true });
+          } else {
+            navigate(`/qr/${storeId}`, { replace: true });
+          }
+        })
+        .catch(() => navigate(`/qr/${storeId}`, { replace: true }));
+    }
+  }, [storeId, navigate]);
   
   // State
   const [selectedCategory, setSelectedCategory] = useState("전체");
