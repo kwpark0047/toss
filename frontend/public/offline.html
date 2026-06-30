@@ -1,50 +1,416 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>오프라인 — 위마켓</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-    .icon {
-      width: 80px; height: 80px;
-      background: #F97316;
-      border-radius: 20px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 44px; font-weight: 900; color: white;
-      margin-bottom: 24px;
-    }
-    h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
-    p { font-size: 15px; color: #94a3b8; text-align: center; line-height: 1.6; max-width: 320px; }
-    button {
-      margin-top: 32px;
-      padding: 12px 28px;
-      background: #F97316;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    button:active { opacity: 0.85; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>오프라인 — 위마켓</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#060D1A;--card:#0D1B30;--border:#1E3354;
+  --accent:#F97316;--blue:#3B82F6;--green:#10B981;--red:#EF4444;
+  --text:#E2E8F0;--muted:#64748B;--dim:#334155;
+}
+html,body{min-height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px 48px;gap:0;}
+
+/* Grid background */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:44px 44px;pointer-events:none;z-index:0;
+}
+
+/* Radial glow */
+body::after{
+  content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);
+  width:700px;height:500px;
+  background:radial-gradient(ellipse at center,rgba(239,68,68,.12) 0%,transparent 65%);
+  pointer-events:none;z-index:0;transition:background 1s ease;
+}
+body.online-detected::after{
+  background:radial-gradient(ellipse at center,rgba(16,185,129,.15) 0%,transparent 65%);
+}
+
+.wrap{position:relative;z-index:1;width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:0;}
+
+/* ── WiFi Icon animated ── */
+.wifi-icon{
+  position:relative;width:96px;height:96px;
+  background:var(--card);border:2px solid var(--border);
+  border-radius:24px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:28px;
+  box-shadow:0 0 0 8px rgba(239,68,68,.08);
+}
+.wifi-svg{width:48px;height:48px;}
+.wifi-arc{
+  stroke:var(--red);stroke-width:2.5;fill:none;stroke-linecap:round;
+  animation:arc-pulse 2s ease-in-out infinite;
+  transform-origin:50% 50%;
+}
+.wifi-arc:nth-child(1){animation-delay:0s;}
+.wifi-arc:nth-child(2){animation-delay:.2s;}
+.wifi-dot{fill:var(--red);animation:dot-pulse 2s ease-in-out infinite;}
+@keyframes arc-pulse{
+  0%,100%{opacity:.2;} 50%{opacity:1;}
+}
+@keyframes dot-pulse{
+  0%,100%{opacity:.3;} 50%{opacity:1;}
+}
+/* Online state */
+body.online-detected .wifi-arc{stroke:var(--green);animation:arc-in .5s ease forwards;}
+body.online-detected .wifi-dot{fill:var(--green);}
+body.online-detected .wifi-icon{box-shadow:0 0 0 8px rgba(16,185,129,.1);}
+@keyframes arc-in{to{opacity:1;}}
+
+/* ── Status chip ── */
+.status-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 14px;border-radius:99px;
+  font-size:11px;font-weight:700;letter-spacing:.05em;
+  border:1px solid var(--red);
+  background:rgba(239,68,68,.12);color:var(--red);
+  margin-bottom:16px;transition:all .5s ease;
+}
+.status-chip.online{border-color:var(--green);background:rgba(16,185,129,.12);color:var(--green);}
+.status-dot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:ping 1.4s infinite;}
+@keyframes ping{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* ── Text ── */
+h1{font-size:22px;font-weight:800;margin-bottom:8px;text-align:center;}
+.sub{font-size:14px;color:var(--muted);text-align:center;line-height:1.65;margin-bottom:24px;}
+
+/* ── Connection info card ── */
+.info-card{
+  width:100%;background:var(--card);border:1px solid var(--border);
+  border-radius:20px;padding:16px;margin-bottom:16px;
+}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;}
+.info-row:not(:last-child){border-bottom:1px solid var(--border);}
+.info-label{font-size:12px;color:var(--muted);font-weight:600;}
+.info-val{font-size:12px;font-weight:800;color:var(--text);}
+.info-val.red{color:var(--red);}
+.info-val.green{color:var(--green);}
+.info-val.yellow{color:#FBBF24;}
+
+/* ── Offline features ── */
+.features-card{
+  width:100%;background:var(--card);border:1px solid var(--border);
+  border-radius:20px;padding:16px;margin-bottom:20px;
+}
+.features-title{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
+.feature-item{display:flex;align-items:center;gap:10px;padding:6px 0;}
+.feature-icon{
+  width:32px;height:32px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+}
+.feature-text{font-size:13px;font-weight:600;color:#94A3B8;}
+
+/* ── Retry / Redirect button ── */
+.btn-primary{
+  width:100%;padding:15px;
+  background:var(--accent);color:white;
+  border:none;border-radius:16px;
+  font-size:15px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform .15s,opacity .15s,background .3s;
+  margin-bottom:10px;
+}
+.btn-primary:active{transform:scale(.97);}
+.btn-primary.loading{opacity:.7;cursor:default;}
+.btn-primary.success{background:var(--green);}
+
+.btn-secondary{
+  width:100%;padding:12px;
+  background:transparent;color:var(--muted);
+  border:1px solid var(--border);border-radius:14px;
+  font-size:14px;font-weight:600;cursor:pointer;
+  transition:all .15s;
+}
+.btn-secondary:hover{border-color:var(--dim);color:var(--text);}
+.btn-secondary:active{transform:scale(.98);}
+
+/* ── Reconnect countdown ── */
+.redirect-bar{
+  width:100%;height:4px;background:var(--border);border-radius:9px;
+  overflow:hidden;margin-bottom:10px;display:none;
+}
+.redirect-fill{height:100%;background:var(--green);border-radius:9px;transition:width .25s linear;}
+.redirect-txt{font-size:12px;color:var(--green);font-weight:700;text-align:center;margin-bottom:16px;display:none;}
+
+/* ── Spinner ── */
+@keyframes spin{to{transform:rotate(360deg);}}
+.spin{display:inline-block;animation:spin .7s linear infinite;}
+
+/* ── Elapsed time ── */
+.elapsed{font-size:11px;color:var(--dim);margin-top:20px;font-weight:600;}
+</style>
 </head>
 <body>
-  <div class="icon">W</div>
-  <h1>인터넷 연결 없음</h1>
-  <p>네트워크 연결이 끊어졌습니다.<br>연결을 확인한 후 다시 시도해 주세요.</p>
-  <button onclick="window.location.reload()">다시 시도</button>
+<div class="wrap">
+
+  <!-- WiFi icon -->
+  <div class="wifi-icon">
+    <svg class="wifi-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path class="wifi-arc" d="M6 18C12.5 11.5 21 8 24 8s11.5 3.5 18 10" stroke-dasharray="30" stroke-dashoffset="0"/>
+      <path class="wifi-arc" d="M11 23c3.5-3.5 8-5.5 13-5.5s9.5 2 13 5.5" stroke-dasharray="22" stroke-dashoffset="0"/>
+      <path class="wifi-arc" d="M16 28c2-2 4.5-3.2 8-3.2s6 1.2 8 3.2" stroke-dasharray="14" stroke-dashoffset="0"/>
+      <circle class="wifi-dot" cx="24" cy="37" r="3"/>
+    </svg>
+  </div>
+
+  <!-- Status chip -->
+  <div class="status-chip" id="status-chip">
+    <span class="status-dot"></span>
+    <span id="status-label">오프라인</span>
+  </div>
+
+  <h1 id="main-title">인터넷 연결 없음</h1>
+  <p class="sub" id="main-sub">네트워크 연결이 끊어졌습니다.<br>연결을 확인한 후 다시 시도해 주세요.</p>
+
+  <!-- Reconnect countdown bar -->
+  <div class="redirect-bar" id="redirect-bar">
+    <div class="redirect-fill" id="redirect-fill" style="width:100%;"></div>
+  </div>
+  <p class="redirect-txt" id="redirect-txt"></p>
+
+  <!-- Connection info -->
+  <div class="info-card">
+    <div class="info-row">
+      <span class="info-label">상태</span>
+      <span class="info-val red" id="conn-status">연결 없음</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">네트워크 유형</span>
+      <span class="info-val" id="conn-type">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">마지막 연결</span>
+      <span class="info-val" id="last-online">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">재연결 시도</span>
+      <span class="info-val yellow" id="retry-count">0회</span>
+    </div>
+  </div>
+
+  <!-- Offline-available features -->
+  <div class="features-card">
+    <p class="features-title">오프라인에서 사용 가능</p>
+    <div class="feature-item">
+      <div class="feature-icon" style="background:rgba(59,130,246,.15);">📋</div>
+      <span class="feature-text">마지막으로 로드된 메뉴 보기</span>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon" style="background:rgba(249,115,22,.15);">🛒</div>
+      <span class="feature-text">장바구니 항목 확인</span>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon" style="background:rgba(16,185,129,.15);">🧾</div>
+      <span class="feature-text">최근 주문 내역 열람</span>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon" style="background:rgba(139,92,246,.15);">⚙️</div>
+      <span class="feature-text">앱 설정 및 프로필</span>
+    </div>
+  </div>
+
+  <!-- Primary action -->
+  <button class="btn-primary" id="retry-btn" onclick="manualRetry()">
+    <span id="retry-icon">↻</span>
+    <span id="retry-text">다시 연결 시도</span>
+  </button>
+
+  <!-- Go home (cached) -->
+  <button class="btn-secondary" onclick="window.location.href='/'">
+    캐시된 홈으로 이동
+  </button>
+
+  <p class="elapsed" id="elapsed-txt">오프라인 경과: 계산 중...</p>
+</div>
+
+<script>
+/* ─── State ─── */
+const LS_KEY = 'wm_last_online';
+let retryCount = 0;
+let pingInterval = null;
+let redirectTimer = null;
+let elapsedInterval = null;
+const offlineSince = Date.now();
+
+/* ─── Init ─── */
+(function init() {
+  // Save last-online timestamp if we somehow get here while online
+  if (navigator.onLine) {
+    localStorage.setItem(LS_KEY, Date.now().toString());
+  }
+
+  renderNetworkInfo();
+  startPingLoop();
+  startElapsedTimer();
+
+  window.addEventListener('online',  handleOnline);
+  window.addEventListener('offline', handleOffline);
+})();
+
+/* ─── Network info ─── */
+function renderNetworkInfo() {
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  const typeEl = document.getElementById('conn-type');
+  if (conn) {
+    const type = conn.effectiveType || conn.type || '알 수 없음';
+    typeEl.textContent = type.toUpperCase();
+    typeEl.className = 'info-val ' + (conn.downlink > 1 ? 'green' : conn.downlink > 0 ? 'yellow' : 'red');
+  } else {
+    typeEl.textContent = navigator.onLine ? '연결됨' : '연결 없음';
+  }
+
+  const stored = localStorage.getItem(LS_KEY);
+  const lastEl = document.getElementById('last-online');
+  if (stored) {
+    const diff = Math.floor((Date.now() - parseInt(stored)) / 1000);
+    lastEl.textContent = diff < 60 ? `${diff}초 전` : diff < 3600 ? `${Math.floor(diff/60)}분 전` : `${Math.floor(diff/3600)}시간 전`;
+  } else {
+    lastEl.textContent = '알 수 없음';
+  }
+}
+
+/* ─── Elapsed timer ─── */
+function startElapsedTimer() {
+  elapsedInterval = setInterval(() => {
+    const sec = Math.floor((Date.now() - offlineSince) / 1000);
+    const el = document.getElementById('elapsed-txt');
+    if (sec < 60) el.textContent = `오프라인 경과: ${sec}초`;
+    else if (sec < 3600) el.textContent = `오프라인 경과: ${Math.floor(sec/60)}분 ${sec%60}초`;
+    else el.textContent = `오프라인 경과: ${Math.floor(sec/3600)}시간 ${Math.floor((sec%3600)/60)}분`;
+  }, 1000);
+}
+
+/* ─── Ping loop (3s) ─── */
+function startPingLoop() {
+  if (pingInterval) clearInterval(pingInterval);
+  pingInterval = setInterval(pingServer, 3000);
+}
+
+async function pingServer() {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 2500);
+    await fetch('/api/health', {method:'HEAD', mode:'no-cors', cache:'no-store', signal:ctrl.signal});
+    clearTimeout(t);
+    handleOnline();
+  } catch(_) {
+    /* still offline */
+  }
+}
+
+/* ─── Manual retry ─── */
+async function manualRetry() {
+  const btn    = document.getElementById('retry-btn');
+  const icon   = document.getElementById('retry-icon');
+  const text   = document.getElementById('retry-text');
+  const cntEl  = document.getElementById('retry-count');
+
+  retryCount++;
+  cntEl.textContent = retryCount + '회';
+  btn.classList.add('loading');
+  icon.classList.add('spin');
+  text.textContent = '연결 확인 중...';
+
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    await fetch('/api/health', {method:'HEAD', mode:'no-cors', cache:'no-store', signal:ctrl.signal});
+    clearTimeout(t);
+    handleOnline();
+  } catch(_) {
+    btn.classList.remove('loading');
+    icon.classList.remove('spin');
+    icon.textContent = '↻';
+    text.textContent = '다시 연결 시도';
+    renderNetworkInfo();
+  }
+}
+
+/* ─── Online handler ─── */
+function handleOnline() {
+  if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
+  localStorage.setItem(LS_KEY, Date.now().toString());
+
+  document.body.classList.add('online-detected');
+
+  // Update chip
+  const chip  = document.getElementById('status-chip');
+  const label = document.getElementById('status-label');
+  chip.classList.add('online');
+  label.textContent = '연결 복구됨';
+
+  // Update title/sub
+  document.getElementById('main-title').textContent = '연결이 복구되었습니다!';
+  document.getElementById('main-sub').textContent = '잠시 후 자동으로 이동합니다...';
+  document.getElementById('conn-status').textContent = '정상';
+  document.getElementById('conn-status').className = 'info-val green';
+
+  // Primary button → green
+  const btn = document.getElementById('retry-btn');
+  btn.classList.remove('loading');
+  btn.classList.add('success');
+  document.getElementById('retry-icon').classList.remove('spin');
+  document.getElementById('retry-icon').textContent = '✓';
+  document.getElementById('retry-text').textContent = '지금 이동하기';
+  btn.onclick = () => window.location.href = '/';
+
+  // Countdown redirect: 3s
+  let pct = 100;
+  const bar = document.getElementById('redirect-bar');
+  const fill = document.getElementById('redirect-fill');
+  const rtxt = document.getElementById('redirect-txt');
+  bar.style.display = 'block';
+  rtxt.style.display = 'block';
+  fill.style.width = '100%';
+
+  let count = 3;
+  rtxt.textContent = `${count}초 후 자동으로 이동합니다`;
+  redirectTimer = setInterval(() => {
+    count--;
+    pct = (count / 3) * 100;
+    fill.style.width = pct + '%';
+    if (count > 0) {
+      rtxt.textContent = `${count}초 후 자동으로 이동합니다`;
+    } else {
+      clearInterval(redirectTimer);
+      window.location.href = '/';
+    }
+  }, 1000);
+}
+
+/* ─── Offline handler (e.g. toggled back while on page) ─── */
+function handleOffline() {
+  if (redirectTimer) { clearInterval(redirectTimer); }
+  document.body.classList.remove('online-detected');
+  document.getElementById('status-chip').classList.remove('online');
+  document.getElementById('status-label').textContent = '오프라인';
+  document.getElementById('main-title').textContent = '인터넷 연결 없음';
+  const subEl = document.getElementById('main-sub');
+  subEl.textContent = '';
+  subEl.appendChild(document.createTextNode('네트워크 연결이 끊어졌습니다.'));
+  subEl.appendChild(document.createElement('br'));
+  subEl.appendChild(document.createTextNode('연결을 확인한 후 다시 시도해 주세요.'));
+  document.getElementById('conn-status').textContent = '연결 없음';
+  document.getElementById('conn-status').className = 'info-val red';
+  document.getElementById('redirect-bar').style.display = 'none';
+  document.getElementById('redirect-txt').style.display = 'none';
+  const btn = document.getElementById('retry-btn');
+  btn.classList.remove('success');
+  btn.onclick = manualRetry;
+  document.getElementById('retry-icon').textContent = '↻';
+  document.getElementById('retry-text').textContent = '다시 연결 시도';
+  startPingLoop();
+  renderNetworkInfo();
+}
+</script>
 </body>
 </html>
