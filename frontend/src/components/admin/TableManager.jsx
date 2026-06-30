@@ -433,9 +433,11 @@ const TableManager = () => {
     catch (e) { handleApiError(e, 'QR 재생성 실패'); }
   };
 
-  /* QR에 담길 URL — /qr/:qrCode 고정 경로 사용 (origin 의존 없음) */
+  /* QR에 담길 URL — 백엔드 없이 메뉴 직접 경로 인코딩
+   * Render 콜드스타트 우회: /menu/{storeId}?table={번호} 로 QrResolvePage 완전 제거 */
   const SITE_ORIGIN = 'https://wemarket.vercel.app';
-  const getMenuUrl = (table) => `${SITE_ORIGIN}/qr/${table.qr_code}`;
+  const getMenuUrl = (table) =>
+    `${SITE_ORIGIN}/menu/${storeId}?table=${encodeURIComponent(table.table_number || table.name || '')}`;
 
   /* QR 이미지 서비스 URL (margin=4 로 quiet zone 확보) */
   const getQrImageUrl = (menuUrl, size = 200) =>

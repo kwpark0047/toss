@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { storesAPI, categoriesAPI, productsAPI, ordersAPI, analyticsAPI, wakeupServer } from "@/api";
 
 // Components
@@ -31,9 +31,17 @@ const MenuPage = () => {
     }
   }, [storeId, isNumericStoreId, navigate]);
 
-  /* 첫 마운트 시 Render 서버 웨이크업 */
+  /* 첫 마운트 시 Render 서버 웨이크업 + 경과 시간 추적 */
+  const startTimeRef = useRef(Date.now());
+  const [elapsed, setElapsed] = useState(0);
+
   useEffect(() => {
-    if (isNumericStoreId) wakeupServer();
+    if (!isNumericStoreId) return;
+    wakeupServer();
+    const iv = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 500);
+    return () => clearInterval(iv);
   }, [isNumericStoreId]);
 
   // State
@@ -48,8 +56,14 @@ const MenuPage = () => {
   const [currentOrderId, setCurrentOrderId] = useState(null);
   const [currentOrderAmount, setCurrentOrderAmount] = useState(0);
 
+  /* 콜드스타트 재시도 설정: 최대 10회, 5초 간격 (최대 30초 간격) */
+  const coldStartRetry = {
+    retry: 10,
+    retryDelay: (idx) => Math.min(5000 * (idx + 1), 30000),
+  };
+
   // Fetch store profile — 숫자 storeId일 때만 실행
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["storeProfile", storeId],
     queryFn: async () => {
       const raw = await storesAPI.getById(storeId);
@@ -71,6 +85,7 @@ const MenuPage = () => {
       };
     },
     enabled: isNumericStoreId,
+    ...coldStartRetry,
   });
 
   // Fetch categories
@@ -81,10 +96,11 @@ const MenuPage = () => {
       return Array.isArray(raw) ? raw : (raw?.data || []);
     },
     enabled: isNumericStoreId,
+    ...coldStartRetry,
   });
 
   // Fetch menu items
-  const { data: menuItems = [], isLoading } = useQuery({
+  const { data: menuItems = [], isLoading: menuLoading } = useQuery({
     queryKey: ["publicMenuItems", storeId],
     queryFn: async () => {
       const raw = await productsAPI.getByStore(storeId);
@@ -92,7 +108,10 @@ const MenuPage = () => {
       return data.map(item => ({ ...item, is_available: true }));
     },
     enabled: isNumericStoreId,
+    ...coldStartRetry,
   });
+
+  const isLoading = profileLoading || menuLoading;
 
   // Fetch popular items
   const { data: orderStats = [] } = useQuery({
@@ -265,14 +284,53 @@ const MenuPage = () => {
     }
   };
 
-  if (!isNumericStoreId) return null; // QrResolvePage로 이동 중 (useEffect)
+  if (!isNumericStoreId) return null;
 
   if (isLoading) {
+    const isColdStart = elapsed >= 8;
+    const progressPct = Math.min(elapsed * 1.8, 88);
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-slate-400 text-sm font-medium">메뉴를 불러오는 중...</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6">
+        <div className="text-center space-y-6 max-w-xs w-full">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+            {isColdStart
+              ? <UtensilsCrossed size={28} className="text-orange-400" />
+              : <Loader2 size={28} className="animate-spin text-orange-400" />}
+          </div>
+
+          <div>
+            <h2 className="text-white font-black text-lg mb-1.5">
+              {isColdStart ? '서버를 깨우는 중...' : '메뉴를 불러오는 중...'}
+            </h2>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              {elapsed < 8
+                ? '잠시만 기다려주세요.'
+                : elapsed < 30
+                  ? '처음 접속 시 서버를 깨우는 데 최대 30초 걸립니다.'
+                  : '거의 준비됐습니다! 조금만 더 기다려주세요...'}
+            </p>
+          </div>
+
+          <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+            <div
+              className="h-full bg-orange-500 rounded-full transition-all duration-700"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-center gap-2 text-slate-600">
+            <Loader2 size={14} className="animate-spin" />
+            <span className="text-xs">{elapsed}초 경과</span>
+          </div>
+
+          {elapsed >= 50 && (
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full py-3 bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all"
+            >
+              <RefreshCw size={15} /> 페이지 새로고침
+            </button>
+          )}
         </div>
       </div>
     );
