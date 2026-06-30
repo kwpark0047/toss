@@ -277,7 +277,7 @@ async function drawCard(canvas, designId, storeName, tableName, capacity) {
   ctx.stroke();
 
   /* QR 이미지 로드 */
-  const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(canvas._qrData || '')}&bgcolor=ffffff&color=${d.qrFg}&margin=0`;
+  const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(canvas._qrData || '')}&bgcolor=ffffff&color=${d.qrFg}&margin=4`;
   let qrImg;
   try { qrImg = await loadImg(qrImgUrl); } catch { /* fallback */ }
   if (qrImg) ctx.drawImage(qrImg, QR_CX + QR_PAD, QR_CY + QR_PAD, QR_SIZE, QR_SIZE);
@@ -433,13 +433,13 @@ const TableManager = () => {
     catch (e) { handleApiError(e, 'QR 재생성 실패'); }
   };
 
-  /* QR에 담길 실제 메뉴판 URL — storeId + table 파라미터 방식 */
-  const getMenuUrl = (table) =>
-    `${window.location.origin}/menu/${storeId}?table=${encodeURIComponent(table.table_number || table.name || '')}`;
+  /* QR에 담길 URL — /qr/:qrCode 고정 경로 사용 (origin 의존 없음) */
+  const SITE_ORIGIN = 'https://wemarket.vercel.app';
+  const getMenuUrl = (table) => `${SITE_ORIGIN}/qr/${table.qr_code}`;
 
-  /* QR 이미지 서비스 URL */
+  /* QR 이미지 서비스 URL (margin=4 로 quiet zone 확보) */
   const getQrImageUrl = (menuUrl, size = 200) =>
-    `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(menuUrl)}&bgcolor=ffffff&color=0f172a&margin=2`;
+    `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(menuUrl)}&bgcolor=ffffff&color=0f172a&margin=4`;
 
   /* 전체 PDF 생성 */
   const generatePDF = async () => {

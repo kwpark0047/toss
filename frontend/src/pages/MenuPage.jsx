@@ -3,7 +3,7 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { storesAPI, categoriesAPI, productsAPI, ordersAPI, analyticsAPI, tablesAPI } from "@/api";
+import { storesAPI, categoriesAPI, productsAPI, ordersAPI, analyticsAPI, wakeupServer } from "@/api";
 
 // Components
 import MenuHeader from "@/components/menu/MenuHeader";
@@ -22,24 +22,19 @@ const MenuPage = () => {
   const navigate = useNavigate();
   const tableNumber = searchParams.get("table") || "1";
 
-  /* storeId가 숫자가 아닌 QR 코드 문자열인 경우 — 백엔드로 resolve 후 리다이렉트 */
+  /* storeId가 숫자가 아닌 경우 → QrResolvePage로 위임 (즉시) */
   const isNumericStoreId = !!storeId && /^\d+$/.test(storeId);
 
   useEffect(() => {
     if (storeId && !isNumericStoreId) {
-      tablesAPI.getByQrCode(storeId)
-        .then(res => {
-          const table = res?.data || res;
-          if (table?.store_id) {
-            const tableNum = encodeURIComponent(table.table_number || table.name || '');
-            navigate(`/menu/${table.store_id}?table=${tableNum}`, { replace: true });
-          } else {
-            navigate(`/qr/${storeId}`, { replace: true });
-          }
-        })
-        .catch(() => navigate(`/qr/${storeId}`, { replace: true }));
+      navigate(`/qr/${storeId}`, { replace: true });
     }
   }, [storeId, isNumericStoreId, navigate]);
+
+  /* 첫 마운트 시 Render 서버 웨이크업 */
+  useEffect(() => {
+    if (isNumericStoreId) wakeupServer();
+  }, [isNumericStoreId]);
 
   // State
   const [selectedCategory, setSelectedCategory] = useState("전체");
@@ -270,17 +265,7 @@ const MenuPage = () => {
     }
   };
 
-  /* QR 코드 resolve 중 (비숫자 storeId) */
-  if (!isNumericStoreId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
-        <div className="text-center space-y-3">
-          <Loader2 className="w-8 h-8 animate-spin text-orange-500 mx-auto" />
-          <p className="text-slate-400 text-sm font-medium">메뉴판 연결 중...</p>
-        </div>
-      </div>
-    );
-  }
+  if (!isNumericStoreId) return null; // QrResolvePage로 이동 중 (useEffect)
 
   if (isLoading) {
     return (
