@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import notificationSound from '../../utils/notificationSound';
-import { formatPrice } from '../../utils/format';
+import { formatPrice, formatTime, formatDateTime } from '../../utils/format';
+import { handleApiError } from '../../utils/apiError';
 import OrderCard from './OrderCard';
 import OrderDetailModal from './OrderDetailModal';
 
@@ -72,15 +73,6 @@ const statusConfig = {
   }
 };
 
-const formatTime = (dateStr) => {
-  const date = new Date(dateStr);
-  return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-};
-
-const formatDateTime = (dateStr) => {
-  const date = new Date(dateStr);
-  return date.toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-};
 
 const OrderManager = () => {
   const { storeId } = useParams();
@@ -203,25 +195,24 @@ const OrderManager = () => {
       if (selectedOrder?.id === orderId) {
         setSelectedOrder(prev => ({ ...prev, status: newStatus }));
       }
-    } catch {
-      alert('Failed to update status.');
+    } catch (e) {
+      handleApiError(e, '주문 상태 변경에 실패했습니다');
     }
   };
 
   const handlePaymentCancel = async (orderId) => {
-    const reason = prompt('Please enter cancellation reason.', 'Admin Cancellation');
+    const reason = prompt('취소 사유를 입력하세요.', '관리자 취소');
     if (!reason) return;
 
-    if (!window.confirm('Are you sure you want to cancel this payment? This will refund the customer.')) return;
+    if (!window.confirm('결제를 취소하시겠습니까? 고객에게 환불이 진행됩니다.')) return;
 
     setLoading(true);
     try {
       await paymentsAPI.cancelByOrder(orderId, { cancelReason: reason });
-      alert('Payment cancelled successfully.');
       fetchOrders();
       setShowDetail(false);
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to cancel payment.');
+      handleApiError(err, '결제 취소에 실패했습니다');
     } finally {
       setLoading(false);
     }

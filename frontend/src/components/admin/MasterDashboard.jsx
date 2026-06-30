@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { storesAPI, ordersAPI, analyticsAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
-import { formatPrice } from '../../utils/format';
+import { formatPrice, formatTime } from '../../utils/format';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Store, ShoppingBag, DollarSign, Clock, Plus,
@@ -460,7 +460,7 @@ const MasterDashboard = () => {
                                                         </div>
                                                         <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1.5 mt-0.5">
                                                             <Clock size={10} className="text-slate-300 flex-shrink-0" />
-                                                            {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            {formatTime(order.created_at)}
                                                             <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
                                                             <span className="text-blue-600 font-black text-xs">{formatPrice(order.total_amount)}</span>
                                                         </div>

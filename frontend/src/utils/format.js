@@ -28,3 +28,19 @@ export const truncate = (str, maxLength = 100) => {
   if (!str) return '';
   return str.length > maxLength ? `${str.substring(0, maxLength)}...` : str;
 };
+
+// HH:MM 형식 (한국어 로케일)
+export const formatTime = (dateStr) => {
+  if (!dateStr) return '--:--';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '--:--';
+  return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+};
+
+// M월 D일 HH:MM 형식
+export const formatDateTime = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+};

@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
+import { toast } from 'react-toastify';
+import { handleApiError } from '../../utils/apiError';
 import BulkMenuModal from './BulkMenuModal';
 import MenuWizard from './MenuWizard';
 import OptionTemplateModal from './OptionTemplateModal';
@@ -330,7 +332,7 @@ const MenuManager = () => {
       await Promise.all(selectedProducts.map(id => productsAPI.update(id, { is_sold_out: isSoldOut ? 1 : 0 })));
       fetchData();
       setSelectedProducts([]);
-    } catch { alert('상태 변경 실패'); }
+    } catch (e) { handleApiError(e, '상태 변경 실패'); }
     finally { setLoading(false); }
   };
 
@@ -342,7 +344,7 @@ const MenuManager = () => {
       await Promise.all(selectedProducts.map(id => productsAPI.delete(id)));
       fetchData();
       setSelectedProducts([]);
-    } catch { alert('삭제 실패'); }
+    } catch (e) { handleApiError(e, '일괄 삭제 실패'); }
     finally { setLoading(false); }
   };
 
@@ -352,7 +354,7 @@ const MenuManager = () => {
       await categoriesAPI.delete(id);
       if (selectedCategory === id) setSelectedCategory(null);
       fetchData();
-    } catch (e) { alert(e.response?.data?.error || '삭제 실패'); }
+    } catch (e) { toast.error(e.response?.data?.error || '카테고리 삭제에 실패했습니다'); }
   };
 
   const handleDeleteProduct = async (id) => {
@@ -360,7 +362,7 @@ const MenuManager = () => {
     try {
       await productsAPI.delete(id);
       fetchData();
-    } catch (e) { alert(e.response?.data?.error || '삭제 실패'); }
+    } catch (e) { toast.error(e.response?.data?.error || '메뉴 삭제에 실패했습니다'); }
   };
 
   // 카테고리 드래그 정렬
@@ -519,9 +521,9 @@ const MenuManager = () => {
                     try {
                       setLoading(true);
                       await productsAPI.importFromStore(storeId, sourceStoreId);
-                      alert('데이터 가져오기 완료');
+                      toast.success('데이터 가져오기 완료');
                       fetchData();
-                    } catch { alert('데이터 가져오기 실패'); }
+                    } catch (e) { handleApiError(e, '데이터 가져오기 실패'); }
                     finally { setLoading(false); }
                   }
                 }}
@@ -779,7 +781,7 @@ const CategoryModal = ({ storeId, category, onClose, onSave }) => {
       }
       onSave();
     } catch (e) {
-      alert(e.response?.data?.error || '저장 실패');
+      handleApiError(e, '카테고리 저장 실패');
     } finally {
       setLoading(false);
     }
@@ -977,18 +979,18 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
             : url
         }));
       }
-    } catch { alert('이미지 업로드 실패'); }
+    } catch (e) { handleApiError(e, '이미지 업로드 실패'); }
     finally { setUploading(false); }
   };
 
   const handleGenerateAI = async () => {
-    if (!form.name) { alert('메뉴 이름을 입력해야 AI 설명을 생성할 수 있습니다.'); return; }
+    if (!form.name) { toast.warn('메뉴 이름을 입력해야 AI 설명을 생성할 수 있습니다.'); return; }
     setAiLoading(true);
     try {
       const catName = categories.find(c => c.id === parseInt(form.category_id))?.name || '';
       const res = await aiAPI.describeMenu({ name: form.name, category: catName, description: form.description });
       if (res?.description) setForm(prev => ({ ...prev, description: res.description }));
-    } catch { alert('AI 설명 생성 중 오류가 발생했습니다.'); }
+    } catch (e) { handleApiError(e, 'AI 설명 생성 중 오류가 발생했습니다'); }
     finally { setAiLoading(false); }
   };
 
@@ -996,7 +998,7 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
     try {
       setForm(prev => ({ ...prev, options: tpl.options || '[]' }));
       setOptionEditorKey(k => k + 1);
-    } catch { alert('템플릿 적용 실패'); }
+    } catch (e) { handleApiError(e, '템플릿 적용 실패'); }
   };
 
   const handleSubmit = async (e) => {
@@ -1011,7 +1013,7 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
           parsedOptions = form.options;
         }
       } catch {
-        alert('옵션 JSON 형식이 올바르지 않습니다.');
+        toast.error('옵션 JSON 형식이 올바르지 않습니다.');
         setLoading(false);
         return;
       }
@@ -1036,7 +1038,7 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
       }
       onSave();
     } catch (e) {
-      alert(e.response?.data?.error || '저장 실패');
+      handleApiError(e, '메뉴 저장 실패');
     } finally {
       setLoading(false);
     }

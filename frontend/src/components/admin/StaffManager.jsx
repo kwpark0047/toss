@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { staffAPI, storesAPI } from '../../api';
+import { formatTime } from '../../utils/format';
+import { handleApiError } from '../../utils/apiError';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Plus, Edit2, Trash2, Users, ChefHat,
@@ -28,7 +30,7 @@ const SOLO_CHECKLIST_ITEMS = [
 ];
 
 // ── 유틸 ───────────────────────────────────────────────────
-const fmt = (d) => d ? new Date(d).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+const fmt = (d) => formatTime(d);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('ko-KR') : '';
 const fmtHours = (h) => h != null ? `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m` : '-';
 const getInitials = (name = '') => name.slice(0, 2).toUpperCase();
@@ -444,30 +446,30 @@ const StaffManager = () => {
   useEffect(() => { if (myStaffId && tab === 0) fetchAttendance(todayStr()); }, [myStaffId]); // eslint-disable-line
 
   const handleRoleChange = async (id, role) => {
-    try { await staffAPI.updateRole(id, role); fetchStaff(); } catch (e) { alert(e.response?.data?.error || '역할 변경 실패'); }
+    try { await staffAPI.updateRole(id, role); fetchStaff(); } catch (e) { handleApiError(e, '역할 변경 실패'); }
   };
 
   const handleDelete = async (id, name) => {
     if (!confirm(`${name} 직원을 삭제하시겠습니까?`)) return;
-    try { await staffAPI.delete(id); fetchStaff(); } catch (e) { alert(e.response?.data?.error || '삭제 실패'); }
+    try { await staffAPI.delete(id); fetchStaff(); } catch (e) { handleApiError(e, '직원 삭제 실패'); }
   };
 
   const handleClockIn = async (staffId) => {
-    try { await staffAPI.clockIn(staffId); fetchAttendance(); } catch (e) { alert(e.response?.data?.error || '출근 처리 실패'); }
+    try { await staffAPI.clockIn(staffId); fetchAttendance(); } catch (e) { handleApiError(e, '출근 처리 실패'); }
   };
 
   const handleClockOut = async (staffId) => {
-    try { await staffAPI.clockOut(staffId); fetchAttendance(); } catch (e) { alert(e.response?.data?.error || '퇴근 처리 실패'); }
+    try { await staffAPI.clockOut(staffId); fetchAttendance(); } catch (e) { handleApiError(e, '퇴근 처리 실패'); }
   };
 
   const handleSoloClockIn = async (note = '') => {
     if (!myStaffId) return;
-    try { await staffAPI.clockIn(myStaffId, note); fetchAttendance(); } catch (e) { alert(e.response?.data?.error || '출근 처리 실패'); }
+    try { await staffAPI.clockIn(myStaffId, note); fetchAttendance(); } catch (e) { handleApiError(e, '출근 처리 실패'); }
   };
 
   const handleSoloClockOut = async () => {
     if (!myStaffId) return;
-    try { await staffAPI.clockOut(myStaffId); fetchAttendance(); } catch (e) { alert(e.response?.data?.error || '퇴근 처리 실패'); }
+    try { await staffAPI.clockOut(myStaffId); fetchAttendance(); } catch (e) { handleApiError(e, '퇴근 처리 실패'); }
   };
 
   const handleSelfRegister = async () => {
@@ -478,7 +480,7 @@ const StaffManager = () => {
       await fetchStaff();
       await fetchAttendance(todayStr());
     } catch (e) {
-      alert(e.response?.data?.error || '셀프 등록에 실패했습니다.');
+      handleApiError(e, '셀프 등록에 실패했습니다');
     } finally {
       setSelfRegLoading(false);
     }
