@@ -38,6 +38,7 @@ const TinkerBellManagerPage = lazy(() => import("@/pages/TinkerBellManagerPage")
 const BoardList          = lazy(() => import("@/components/board/BoardList"));
 const BoardDetail        = lazy(() => import("@/components/board/BoardDetail"));
 const BoardWrite         = lazy(() => import("@/components/board/BoardWrite"));
+const KitchenDisplayPage = lazy(() => import("@/pages/KitchenDisplay"));
 
 const queryClient = new QueryClient();
 
@@ -234,6 +235,9 @@ const AppRoutes = () => (
     } />
 
     {/* 커뮤니티 게시판 (구체적 경로 먼저) */}
+    <Route path="/kitchen/:storeId" element={
+      <ProtectedRoute><AdminSuspense><KitchenDisplayPage /></AdminSuspense></ProtectedRoute>
+    } />
     <Route path="/board/posts/:id" element={<AdminSuspense><BoardDetail /></AdminSuspense>} />
     <Route path="/board/write" element={<AdminSuspense><BoardWrite /></AdminSuspense>} />
     <Route path="/board/edit/:id" element={<AdminSuspense><BoardWrite /></AdminSuspense>} />
