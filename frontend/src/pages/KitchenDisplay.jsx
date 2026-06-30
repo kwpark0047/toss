@@ -208,7 +208,7 @@ const KitchenDisplay = () => {
                                 <div className="space-y-2 mb-6 max-h-48 overflow-y-auto">
                                     {order.items?.map((item, i) => (
                                         <div key={i} className="flex justify-between text-xl">
-                                            <span className="font-medium">{item.name}</span>
+                                            <span className="font-medium">{item.product_name || item.name}</span>
                                             <span className="font-black text-2xl">×{item.quantity}</span>
                                         </div>
                                     ))}
