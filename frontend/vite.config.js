@@ -19,18 +19,13 @@ export default defineConfig({
 
         // 런타임 캐시 전략
         runtimeCaching: [
-          // API — Network First (실시간 데이터 우선, 오프라인 시 캐시)
+          // API — Network Only (캐시 사용 안 함, Render 콜드스타트는 MenuPage retry로 처리)
+          // networkTimeoutSeconds 5초는 Render 슬립 시 즉시 캐시 낙오 → offline.html 서빙 버그 유발
           {
             urlPattern: /^https?:\/\/.+\/api\//,
-            handler: 'NetworkFirst',
+            handler: 'NetworkOnly',
             options: {
               cacheName: 'wemarket-api',
-              networkTimeoutSeconds: 5,
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 5,     // 5분
-              },
-              cacheableResponse: { statuses: [0, 200] },
             },
           },
           // 메뉴 이미지 / 업로드 파일 — Cache First
@@ -84,9 +79,11 @@ export default defineConfig({
           },
         ],
 
-        // 오프라인 폴백
-        navigateFallback: '/offline.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/sw\.js$/],
+        // SPA 네비게이션 폴백: index.html 서빙 (offline.html 금지)
+        // offline.html을 설정하면 SW가 /menu/:id 등 미캐시 경로를 offline.html로 서빙,
+        // online 감지 후 '/'로 자동 리다이렉트 → 로그아웃처럼 보이는 버그 유발
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//, /^\/sw\.js$/, /^\/firebase-messaging-sw\.js$/],
 
         // 기존 sw.js와 충돌 방지
         cleanupOutdatedCaches: true,
