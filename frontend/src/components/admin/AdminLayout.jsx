@@ -17,6 +17,7 @@ const TC = {
     root:            'bg-slate-950 text-slate-300',
     grid:            'bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)]',
     sidebar:         'bg-slate-900/50 backdrop-blur-3xl border-r border-white/5',
+    bottomNav:       'bg-slate-900 backdrop-blur-3xl',
     navText:         'text-slate-500',
     navHover:        'hover:text-slate-200',
     navActiveBg:     'from-orange-500 to-rose-600',
@@ -54,6 +55,7 @@ const TC = {
     root:            'bg-slate-100 text-slate-600',
     grid:            'bg-[linear-gradient(rgba(0,0,0,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.04)_1px,transparent_1px)]',
     sidebar:         'bg-white backdrop-blur-3xl border-r border-slate-200',
+    bottomNav:       'bg-white backdrop-blur-3xl',
     navText:         'text-slate-400',
     navHover:        'hover:text-slate-700',
     navActiveBg:     'from-orange-500 to-rose-600',
@@ -91,6 +93,7 @@ const TC = {
     root:            'bg-[#050e1f] text-blue-200/70',
     grid:            'bg-[linear-gradient(rgba(59,130,246,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.04)_1px,transparent_1px)]',
     sidebar:         'bg-[#0a1628]/80 backdrop-blur-3xl border-r border-blue-500/10',
+    bottomNav:       'bg-[#081223] backdrop-blur-3xl',
     navText:         'text-blue-300/40',
     navHover:        'hover:text-blue-200',
     navActiveBg:     'from-blue-600 to-violet-600',
@@ -128,6 +131,7 @@ const TC = {
     root:            'bg-[#130a04] text-orange-200/70',
     grid:            'bg-[linear-gradient(rgba(249,115,22,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(249,115,22,0.04)_1px,transparent_1px)]',
     sidebar:         'bg-[#1a0c04]/80 backdrop-blur-3xl border-r border-orange-500/10',
+    bottomNav:       'bg-[#1a0c04] backdrop-blur-3xl',
     navText:         'text-orange-300/40',
     navHover:        'hover:text-orange-200',
     navActiveBg:     'from-orange-600 to-red-700',
@@ -165,6 +169,7 @@ const TC = {
     root:            'bg-[#030d06] text-emerald-200/70',
     grid:            'bg-[linear-gradient(rgba(34,197,94,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.04)_1px,transparent_1px)]',
     sidebar:         'bg-[#041008]/80 backdrop-blur-3xl border-r border-emerald-500/10',
+    bottomNav:       'bg-[#041008] backdrop-blur-3xl',
     navText:         'text-emerald-300/40',
     navHover:        'hover:text-emerald-200',
     navActiveBg:     'from-emerald-600 to-cyan-600',
@@ -432,7 +437,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
 
           {/* Mobile Bottom Nav */}
           <nav
-            className={`fixed bottom-0 left-0 right-0 z-30 lg:hidden border-t ${tc.separator} ${tc.header}`}
+            className={`fixed bottom-0 left-0 right-0 z-30 lg:hidden border-t ${tc.separator} ${tc.bottomNav}`}
             style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
           >
             <div className="flex h-16">
