@@ -38,3 +38,4 @@ toss-miniapp-examples/
 wemarket-miniapp/
 .vercel
 .env*
+.env*.local
