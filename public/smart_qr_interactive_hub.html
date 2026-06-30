@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>WeMarket · Smart QR Interactive Hub</title>
+<!-- SRI note: cdn.tailwindcss.com is a dynamic JIT compiler; a fixed SRI hash
+     cannot be pre-computed. For production, replace with a Tailwind CLI build. -->
+<script src="https://cdn.tailwindcss.com" crossorigin="anonymous"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans KR',system-ui,sans-serif;}
+
+/* ── Phone Mockup ── */
+.phone-frame{
+  width:375px;height:780px;
+  background:#080E1A;
+  border-radius:52px;
+  padding:12px;
+  box-shadow:0 60px 120px rgba(0,0,0,.6),0 0 0 2px #1E293B,inset 0 0 0 2px #080E1A;
+  position:relative;flex-shrink:0;
+}
+.phone-notch{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  width:130px;height:28px;background:#080E1A;
+  border-radius:0 0 18px 18px;z-index:30;
+}
+.phone-screen{
+  width:100%;height:100%;
+  border-radius:42px;overflow:hidden;
+  background:#f8fafc;position:relative;
+}
+.screen-content{
+  position:absolute;inset:0;
+  overflow-y:auto;overflow-x:hidden;
+  scroll-behavior:smooth;
+}
+.screen-content::-webkit-scrollbar{width:0;}
+
+/* ── Screen panels ── */
+.screen-panel{display:none;flex-direction:column;min-height:100%;}
+.screen-panel.active{display:flex;}
+
+/* ── Stars ── */
+.star-btn{cursor:pointer;transition:transform .15s;color:#d1d5db;font-size:36px;line-height:1;}
+.star-btn:hover{transform:scale(1.2);}
+.star-btn.lit{color:#f59e0b;}
+
+/* ── Option chips ── */
+.chip{
+  cursor:pointer;border:2px solid #e2e8f0;
+  border-radius:9999px;padding:6px 14px;
+  font-size:12px;font-weight:700;color:#64748b;
+  transition:all .15s;white-space:nowrap;
+  background:white;
+}
+.chip.on{border-color:#3b82f6;background:#eff6ff;color:#1d4ed8;}
+
+/* ── Toss Pay spinner ── */
+.toss-ring{
+  width:56px;height:56px;
+  border:4px solid rgba(0,100,255,.2);
+  border-top-color:#0064FF;
+  border-radius:50%;
+  animation:tspin .8s linear infinite;
+}
+@keyframes tspin{to{transform:rotate(360deg);}}
+
+/* ── Timer progress bar ── */
+.bar-fill{height:100%;border-radius:9999px;transition:width 1s linear,background .5s;}
+
+/* ── Zeigarnik blink (crimson, <10 s) ── */
+@keyframes crimson-blink{
+  0%,100%{background:#e11d48;transform:scaleY(1);}
+  50%{background:#f43f5e;transform:scaleY(1.25);opacity:.5;}
+}
+.bar-urgent{animation:crimson-blink .35s ease-in-out infinite;background:#e11d48!important;}
+
+/* ── Shake warning ── */
+@keyframes shake{
+  10%,90%{transform:translate3d(-2px,0,0);}
+  20%,80%{transform:translate3d(4px,0,0);}
+  30%,50%,70%{transform:translate3d(-6px,0,0);}
+  40%,60%{transform:translate3d(6px,0,0);}
+}
+.shake{animation:shake .45s cubic-bezier(.36,.07,.19,.97) both;}
+
+/* ── Pop-in ── */
+@keyframes pop-in{
+  0%{transform:scale(0) rotate(-8deg);opacity:0;}
+  60%{transform:scale(1.12) rotate(2deg);opacity:1;}
+  100%{transform:scale(1) rotate(0deg);opacity:1;}
+}
+.pop-in{animation:pop-in .55s cubic-bezier(.68,-.55,.265,1.55) forwards;}
+
+/* ── Slide-up ── */
+@keyframes slide-up{
+  from{opacity:0;transform:translateY(20px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.slide-up{animation:slide-up .4s cubic-bezier(.22,1,.36,1) forwards;}
+
+/* ── Float points ── */
+@keyframes float-pts{
+  0%{opacity:0;transform:translateY(10px) scale(.8);}
+  30%{opacity:1;}
+  100%{opacity:0;transform:translateY(-80px) scale(1.1);}
+}
+.float-pts{animation:float-pts 1.8s ease-out forwards;}
+
+/* ── State inspector monospace ── */
+.mono{font-family:'Courier New',monospace;font-size:11px;line-height:1.7;}
+.sk{color:#93c5fd;}.sv{color:#86efac;}.ss{color:#fcd34d;}
+.sn{color:#f9a8d4;}.st{color:#4ade80;}.sf{color:#f87171;}
+
+/* ── Cart badge ── */
+.cbadge{
+  position:absolute;top:-6px;right:-6px;
+  width:20px;height:20px;
+  background:#ef4444;color:white;
+  border-radius:50%;font-size:10px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* ── Cart bar ── */
+#cart-bar{max-width:375px;margin:0 auto;}
+</style>
+</head>
+<body class="min-h-screen text-white" style="background:linear-gradient(135deg,#020817 0%,#0c1a3a 50%,#030b1a 100%);">
+
+<!-- Background grid -->
+<div class="fixed inset-0 pointer-events-none" style="background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:44px 44px;"></div>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header class="relative z-10 text-center py-10 px-4">
+  <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold tracking-widest mb-4" style="background:rgba(59,130,246,.15);border-color:rgba(96,165,250,.3);color:#93c5fd;">
+    <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse inline-block"></span>
+    INTERACTIVE DEMO · WEMARKET QR HUB
+  </div>
+  <h1 class="text-3xl md:text-4xl font-black tracking-tight mb-2">
+    Smart QR <span style="background:linear-gradient(90deg,#60a5fa,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Interactive Hub</span>
+  </h1>
+  <p class="text-slate-400 text-sm max-w-xl mx-auto">고객 주문 → 포인트 적립 → 사장님 설문까지, QR 결제 전체 라이프사이클을 체험하세요.</p>
+</header>
+
+<!-- ══════════════ STAGE ══════════════ -->
+<main class="relative z-10 flex flex-col lg:flex-row items-start justify-center gap-8 px-4 pb-20 max-w-6xl mx-auto">
+
+  <!-- Left: Step guide -->
+  <div class="hidden lg:block w-52 pt-2 sticky top-8">
+    <div id="step-guide" class="space-y-1"></div>
+  </div>
+
+  <!-- Center: Phone -->
+  <div class="flex-shrink-0">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+        <div class="screen-content" id="screen-wrap">
+
+          <!-- ══ S0: LANDING ══ -->
+          <div class="screen-panel active" id="s0">
+            <div class="flex flex-col items-center justify-center flex-1 p-8 text-center" style="background:linear-gradient(150deg,#2563eb,#4f46e5);">
+              <div class="w-36 h-36 bg-white rounded-3xl flex items-center justify-center mb-6 shadow-2xl pop-in">
+                <svg width="96" height="96" viewBox="0 0 96 96" fill="none">
+                  <rect x="4" y="4" width="28" height="28" rx="4" fill="#1e293b"/>
+                  <rect x="8" y="8" width="20" height="20" rx="2" fill="white"/>
+                  <rect x="12" y="12" width="12" height="12" rx="1" fill="#1e293b"/>
+                  <rect x="64" y="4" width="28" height="28" rx="4" fill="#1e293b"/>
+                  <rect x="68" y="8" width="20" height="20" rx="2" fill="white"/>
+                  <rect x="72" y="12" width="12" height="12" rx="1" fill="#1e293b"/>
+                  <rect x="4" y="64" width="28" height="28" rx="4" fill="#1e293b"/>
+                  <rect x="8" y="68" width="20" height="20" rx="2" fill="white"/>
+                  <rect x="12" y="72" width="12" height="12" rx="1" fill="#1e293b"/>
+                  <rect x="40" y="4" width="8" height="8" rx="1" fill="#3b82f6"/>
+                  <rect x="52" y="4" width="8" height="8" rx="1" fill="#3b82f6"/>
+                  <rect x="4" y="40" width="8" height="8" rx="1" fill="#3b82f6"/>
+                  <rect x="4" y="52" width="8" height="8" rx="1" fill="#3b82f6"/>
+                  <rect x="40" y="40" width="16" height="16" rx="3" fill="#1e293b"/>
+                  <rect x="44" y="44" width="8" height="8" rx="1" fill="white"/>
+                  <rect x="60" y="40" width="8" height="8" rx="1" fill="#3b82f6"/>
+                  <rect x="40" y="60" width="8" height="8" rx="1" fill="#3b82f6"/>
+                  <rect x="52" y="52" width="8" height="8" rx="1" fill="#3b82f6"/>
+                  <rect x="68" y="68" width="8" height="8" rx="1" fill="#3b82f6"/>
+                  <rect x="80" y="68" width="8" height="8" rx="1" fill="#3b82f6"/>
+                  <rect x="68" y="80" width="8" height="8" rx="1" fill="#3b82f6"/>
+                  <rect x="80" y="80" width="8" height="8" rx="1" fill="#3b82f6"/>
+                </svg>
+              </div>
+              <div class="text-white slide-up">
+                <p class="text-xs font-black tracking-widest mb-1" style="color:#bfdbfe;">TABLE 7 · 위마켓 시그니처 카페</p>
+                <h2 class="text-2xl font-black">QR 스캔 완료!</h2>
+                <p class="text-sm mt-2" style="color:#bfdbfe;">메뉴를 확인하고 주문해 보세요</p>
+              </div>
+              <div id="restore-badge" class="hidden mt-3 px-4 py-2 rounded-full text-xs font-bold border" style="background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.4);color:#fbbf24;">
+                🔄 이전 세션이 복원되었습니다
+              </div>
+              <button onclick="go(1)" class="mt-8 w-full py-4 bg-white font-black text-base rounded-2xl shadow-xl active:scale-95 transition-transform" style="color:#1d4ed8;">
+                메뉴 보기 →
+              </button>
+              <p class="mt-3 text-xs" style="color:#bfdbfe;">익명 세션으로 시작 · 결제 후 포인트 등록 가능</p>
+            </div>
+          </div>
+
+          <!-- ══ S1: MENU ══ -->
+          <div class="screen-panel" id="s1">
+            <div class="sticky top-0 z-10 text-white px-4 pt-10 pb-3" style="background:linear-gradient(135deg,#2563eb,#1d4ed8);">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs font-bold" style="color:#bfdbfe;">테이블 7</p>
+                  <h2 class="text-lg font-black">위마켓 시그니처 카페</h2>
+                </div>
+                <button onclick="go(2)" class="relative p-2">
+                  <svg width="24" height="24" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2 8h14"/><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg>
+                  <span class="cbadge" id="cart-badge" style="display:none;">0</span>
+                </button>
+              </div>
+              <div class="flex gap-2 mt-3 overflow-x-auto pb-1">
+                <span class="px-4 py-1.5 bg-white rounded-full text-xs font-bold whitespace-nowrap" style="color:#1d4ed8;">☕ 음료</span>
+                <span class="px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap" style="background:rgba(255,255,255,.2);color:#bfdbfe;">🍰 디저트</span>
+                <span class="px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap" style="background:rgba(255,255,255,.2);color:#bfdbfe;">🧁 베이커리</span>
+              </div>
+            </div>
+            <div class="flex-1 p-3 space-y-2.5 pb-32" style="background:#f8fafc;" id="menu-list"></div>
+            <!-- Cart bottom bar -->
+            <div id="cart-bar" class="hidden fixed bottom-0 left-0 right-0 z-20 px-3 pb-4">
+              <div class="rounded-2xl p-4 flex items-center justify-between shadow-2xl" style="background:#1d4ed8;">
+                <div>
+                  <p class="text-xs font-bold" style="color:#bfdbfe;">장바구니</p>
+                  <p class="font-black text-sm text-white" id="cart-bar-text">0개 · ₩0</p>
+                </div>
+                <button onclick="go(2)" class="bg-white font-black text-sm px-4 py-2 rounded-xl" style="color:#1d4ed8;">결제하기 →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ S2: CART / CHECKOUT ══ -->
+          <div class="screen-panel" id="s2">
+            <div class="bg-white flex flex-col min-h-full">
+              <div class="flex items-center gap-3 px-4 pt-10 pb-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+                <button onclick="go(1)" class="p-2 rounded-xl hover:bg-gray-100">
+                  <svg width="20" height="20" fill="none" stroke="#374151" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+                </button>
+                <h2 class="text-base font-black text-gray-900">주문 확인</h2>
+              </div>
+              <div class="flex-1 p-4 space-y-4 overflow-y-auto">
+                <div id="checkout-items" class="bg-gray-50 rounded-2xl overflow-hidden"></div>
+                <div class="bg-blue-50 rounded-2xl p-4 flex items-center justify-between">
+                  <span class="font-bold text-gray-700">합계</span>
+                  <span class="text-xl font-black text-blue-700" id="checkout-total">₩0</span>
+                </div>
+                <div class="rounded-2xl p-3 flex items-center gap-3 border" style="background:#fffbeb;border-color:#fde68a;">
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-xs flex-shrink-0" style="background:#f59e0b;">P</div>
+                  <div>
+                    <p class="text-xs font-bold" style="color:#92400e;">적립 예정 포인트</p>
+                    <p class="font-black" style="color:#d97706;" id="checkout-pts">+0 P</p>
+                  </div>
+                </div>
+
+                <!-- Toss Pay block -->
+                <div class="border-2 border-slate-100 rounded-2xl p-4 space-y-3 bg-white">
+                  <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#0064FF;">
+                      <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+                    </div>
+                    <span class="font-black text-slate-800 text-sm">토스페이로 결제</span>
+                  </div>
+
+                  <div>
+                    <label class="text-xs font-bold text-slate-600 block mb-1.5">휴대폰 번호</label>
+                    <input id="phone-input" type="tel" placeholder="010-0000-0000" maxlength="13"
+                      oninput="handlePhone(this)"
+                      class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base font-bold text-slate-800 focus:outline-none transition-colors"
+                      style="font-family:inherit;"/>
+                    <!-- Error -->
+                    <div id="phone-err" class="hidden mt-1.5 flex items-center gap-1.5">
+                      <svg width="14" height="14" fill="#ef4444" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                      <p id="phone-err-msg" class="text-red-500 text-xs font-bold"></p>
+                    </div>
+                    <!-- Valid -->
+                    <div id="phone-ok" class="hidden mt-1.5 flex items-center gap-1.5">
+                      <svg width="14" height="14" fill="#10b981" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                      <p class="text-emerald-600 text-xs font-bold">유효한 번호입니다</p>
+                    </div>
+                  </div>
+
+                  <button id="pay-btn" onclick="startPay()" disabled
+                    class="w-full py-4 text-white font-black text-base rounded-2xl transition-all active:scale-95 disabled:cursor-not-allowed"
+                    style="background:#0064FF;opacity:.4;">
+                    토스페이로 결제하기
+                  </button>
+                </div>
+                <div class="h-8"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ S3: TOSS AUTH (LOADING) ══ -->
+          <div class="screen-panel" id="s3">
+            <div class="relative flex-1 flex flex-col items-center justify-center bg-white">
+              <!-- Blur bg -->
+              <div class="absolute inset-0 overflow-hidden">
+                <div style="width:100%;height:100%;filter:blur(20px);opacity:.35;background:linear-gradient(135deg,#0064FF,#5b93ff,#c7d9ff);"></div>
+              </div>
+              <div class="absolute inset-0" style="background:rgba(255,255,255,.65);backdrop-filter:blur(4px);"></div>
+              <!-- Card -->
+              <div class="relative z-10 flex flex-col items-center gap-6 slide-up">
+                <div class="w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl" style="background:#0064FF;box-shadow:0 20px 60px rgba(0,100,255,.4);">
+                  <svg width="36" height="36" fill="white" viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+                </div>
+                <div class="toss-ring"></div>
+                <div class="text-center">
+                  <p class="font-black text-slate-800 text-lg">토스페이 인증 중</p>
+                  <p class="text-slate-500 text-sm mt-1">잠시만 기다려 주세요...</p>
+                </div>
+                <div class="flex gap-2">
+                  <span class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay:0s"></span>
+                  <span class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay:.15s"></span>
+                  <span class="w-2 h-2 bg-blue-200 rounded-full animate-bounce" style="animation-delay:.3s"></span>
+                </div>
+                <p class="text-slate-400 text-xs font-bold tracking-widest">TOSS PAY · SECURE AUTH</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ S4: SUCCESS ══ -->
+          <div class="screen-panel" id="s4">
+            <div class="flex-1 flex flex-col items-center justify-center px-6 text-center py-12" style="background:linear-gradient(180deg,#ecfdf5 0%,#f8fafc 60%);">
+              <div class="w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-xl pop-in" style="background:#10b981;box-shadow:0 20px 60px rgba(16,185,129,.3);">
+                <svg width="48" height="48" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+              </div>
+              <h2 class="text-2xl font-black text-gray-900 mb-1">결제 완료!</h2>
+              <p class="text-gray-500 text-sm mb-6" id="pay-amount-txt">₩0 결제되었습니다</p>
+
+              <div class="w-full rounded-3xl p-5 text-white mb-4 slide-up" style="background:linear-gradient(135deg,#f59e0b,#ea580c);box-shadow:0 12px 40px rgba(245,158,11,.3);">
+                <p class="text-xs font-black tracking-widest mb-1" style="color:#fef3c7;">적립 포인트</p>
+                <div class="flex items-center justify-between">
+                  <span class="text-4xl font-black" id="pay-pts-txt">+0P</span>
+                  <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl font-black" style="background:rgba(255,255,255,.2);">P</div>
+                </div>
+                <div class="mt-3 pt-3 flex items-center justify-between text-xs" style="border-top:1px solid rgba(255,255,255,.25);">
+                  <span style="color:#fef3c7;">유효기간</span>
+                  <span class="font-bold">60초 내 등록 필요</span>
+                </div>
+              </div>
+
+              <div class="w-full rounded-2xl p-4 mb-6 text-left" style="background:#f8fafc;">
+                <p class="text-xs text-gray-400 font-bold mb-1">주문번호</p>
+                <p class="font-black text-gray-800 text-sm" id="pay-order-no">-</p>
+              </div>
+
+              <button onclick="go(5)" class="w-full py-4 text-white font-black text-base rounded-2xl active:scale-95 transition-transform shadow-lg" style="background:#2563eb;box-shadow:0 10px 30px rgba(37,99,235,.3);">
+                포인트 등록하기 (60초)
+              </button>
+            </div>
+          </div>
+
+          <!-- ══ S5: ZEIGARNIK TIMER ══ -->
+          <div class="screen-panel" id="s5">
+            <div class="flex-1 flex flex-col px-5 pt-14 pb-6" style="background:linear-gradient(160deg,#0f172a,#1e3a5f);">
+              <div class="text-center mb-8">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-4 border" style="background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.35);color:#fbbf24;">
+                  ⚡ 포인트 보존 타이머
+                </div>
+                <h2 class="text-2xl font-black text-white">지금 등록하면</h2>
+                <p class="text-sm mt-1" style="color:#93c5fd;">포인트가 <strong style="color:#fbbf24;">계정에 귀속</strong>됩니다</p>
+              </div>
+
+              <!-- Timer circle -->
+              <div class="flex items-center justify-center mb-6">
+                <div class="w-36 h-36 rounded-full flex items-center justify-center" style="border:4px solid #1e3a5f;background:rgba(15,23,42,.6);">
+                  <div class="text-center">
+                    <span class="text-5xl font-black text-white" id="timer-num">60</span>
+                    <p class="text-xs font-bold" style="color:#64748b;">초</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Progress bar -->
+              <div class="mb-6">
+                <div class="flex justify-between text-xs font-bold mb-2" style="color:#64748b;">
+                  <span>포인트 보존율</span>
+                  <span id="timer-pct">100%</span>
+                </div>
+                <div class="h-3 rounded-full overflow-hidden" style="background:#1e293b;">
+                  <div id="timer-bar" class="bar-fill" style="width:100%;background:linear-gradient(90deg,#10b981,#34d399);"></div>
+                </div>
+              </div>
+
+              <div class="rounded-2xl p-4 mb-6 flex items-center justify-between" style="background:rgba(255,255,255,.08);">
+                <div>
+                  <p class="text-xs font-bold" style="color:#94a3b8;">보존 대기</p>
+                  <p class="text-2xl font-black" style="color:#fbbf24;" id="timer-pts">+0P</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs font-bold" style="color:#94a3b8;">누적 포인트</p>
+                  <p class="text-lg font-black text-white" id="timer-acc">0P</p>
+                </div>
+              </div>
+
+              <button onclick="doRegister()" class="w-full py-4 font-black text-lg rounded-2xl active:scale-95 transition-all mb-3 shadow-xl text-white" style="background:linear-gradient(90deg,#2563eb,#1d4ed8);">
+                지금 포인트 등록하기
+              </button>
+              <button onclick="skipTimer()" class="w-full py-3 font-bold text-sm" style="color:#475569;">
+                나중에 할게요 (포인트 소멸)
+              </button>
+            </div>
+          </div>
+
+          <!-- ══ S6: MERCHANT DASHBOARD ══ -->
+          <div class="screen-panel" id="s6">
+            <div class="flex-1" style="background:#f1f5f9;">
+              <div class="text-white px-4 pt-10 pb-5" style="background:#0f172a;">
+                <div class="flex items-center justify-between mb-1">
+                  <p class="text-xs font-bold" style="color:#64748b;">STORE OWNER</p>
+                  <div class="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold" style="background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.3);color:#10b981;">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block"></span>영업 중
+                  </div>
+                </div>
+                <h2 class="text-xl font-black">사장님 대시보드</h2>
+              </div>
+
+              <!-- New order card -->
+              <div class="mx-4 mt-4 bg-white rounded-2xl p-4 shadow-sm slide-up" style="border-left:4px solid #3b82f6;">
+                <div class="flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:#eff6ff;">
+                    <svg width="20" height="20" fill="none" stroke="#3b82f6" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2 8h14"/><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg>
+                  </div>
+                  <div class="flex-1">
+                    <div class="flex items-center justify-between">
+                      <p class="font-black text-slate-800 text-sm">새 주문 수신!</p>
+                      <span class="text-xs text-slate-400 font-bold">방금 전</span>
+                    </div>
+                    <div id="merch-order-items" class="mt-2 text-xs text-slate-600 font-medium flex flex-wrap gap-1"></div>
+                    <div class="mt-3 flex gap-2">
+                      <span class="px-3 py-1.5 rounded-lg text-xs font-black text-white" style="background:#3b82f6;">수락</span>
+                      <span class="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600" style="background:#f1f5f9;">지연</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stats -->
+              <div class="grid grid-cols-3 gap-3 mx-4 mt-4">
+                <div class="bg-white rounded-xl p-3 text-center shadow-sm">
+                  <p class="text-xl font-black text-blue-600" id="merch-orders">1</p>
+                  <p class="text-xs font-bold mt-0.5" style="color:#94a3b8;">오늘 주문</p>
+                </div>
+                <div class="bg-white rounded-xl p-3 text-center shadow-sm">
+                  <p class="text-sm font-black text-emerald-600" id="merch-revenue">₩0</p>
+                  <p class="text-xs font-bold mt-0.5" style="color:#94a3b8;">매출</p>
+                </div>
+                <div class="bg-white rounded-xl p-3 text-center shadow-sm">
+                  <p class="text-lg font-black text-amber-500">★ 4.8</p>
+                  <p class="text-xs font-bold mt-0.5" style="color:#94a3b8;">평점</p>
+                </div>
+              </div>
+
+              <!-- Survey CTA -->
+              <div class="mx-4 mt-4 rounded-2xl p-5 text-white" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);">
+                <p class="text-xs font-bold tracking-widest mb-1" style="color:#c4b5fd;">3분 소요 · 보상 5,000P</p>
+                <h3 class="text-lg font-black mb-2">사장님 만족도 설문</h3>
+                <p class="text-sm mb-4" style="color:#c4b5fd;">WeMarket 서비스에 대한 솔직한 피드백을 나눠주세요</p>
+                <button onclick="go(7)" class="w-full py-3 bg-white font-black text-sm rounded-xl active:scale-95 transition-transform" style="color:#4f46e5;">
+                  설문 참여하기 →
+                </button>
+              </div>
+              <div class="h-8"></div>
+            </div>
+          </div>
+
+          <!-- ══ S7: SURVEY ══ -->
+          <div class="screen-panel" id="s7">
+            <div class="bg-white flex flex-col min-h-full">
+              <div class="flex items-center gap-3 px-4 pt-10 pb-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+                <button onclick="go(6)" class="p-2 rounded-xl hover:bg-gray-100">
+                  <svg width="20" height="20" fill="none" stroke="#374151" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+                </button>
+                <div>
+                  <h2 class="text-base font-black text-gray-900">사장님 만족도 설문</h2>
+                  <p class="text-xs text-gray-400">WeMarket QR 주문 시스템</p>
+                </div>
+              </div>
+
+              <!-- Inline shake warning -->
+              <div id="survey-warn" class="hidden mx-4 mt-3 px-4 py-3 rounded-2xl flex items-center gap-2.5" style="background:#fef2f2;border:1px solid #fca5a5;">
+                <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style="background:#ef4444;">
+                  <svg width="12" height="12" fill="white" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                </div>
+                <p id="survey-warn-txt" class="text-red-700 text-xs font-bold flex-1"></p>
+              </div>
+
+              <div class="p-4 space-y-6">
+                <!-- Q1 Stars -->
+                <div>
+                  <p class="font-black text-slate-800 text-sm mb-1">1. 전반적인 만족도 <span class="text-red-500">*</span></p>
+                  <p class="text-xs text-slate-400 mb-3">WeMarket QR 서비스를 얼마나 만족하시나요?</p>
+                  <div class="flex gap-3 justify-center" id="stars-row">
+                    <button class="star-btn" onclick="pickStar(1)">★</button>
+                    <button class="star-btn" onclick="pickStar(2)">★</button>
+                    <button class="star-btn" onclick="pickStar(3)">★</button>
+                    <button class="star-btn" onclick="pickStar(4)">★</button>
+                    <button class="star-btn" onclick="pickStar(5)">★</button>
+                  </div>
+                  <p class="text-center text-xs text-slate-400 font-bold mt-2" id="star-lbl">별점을 선택해 주세요</p>
+                </div>
+                <hr class="border-gray-100"/>
+                <!-- Q2 Good Point -->
+                <div>
+                  <p class="font-black text-slate-800 text-sm mb-1">2. 가장 좋았던 점 <span class="text-red-500">*</span></p>
+                  <p class="text-xs text-slate-400 mb-3">1가지만 선택해 주세요</p>
+                  <div class="flex flex-wrap gap-2" id="good-chips">
+                    <button class="chip" onclick="pickChip('good',this,'ease')">간편한 주문</button>
+                    <button class="chip" onclick="pickChip('good',this,'speed')">빠른 처리</button>
+                    <button class="chip" onclick="pickChip('good',this,'points')">포인트 적립</button>
+                    <button class="chip" onclick="pickChip('good',this,'design')">UI 디자인</button>
+                    <button class="chip" onclick="pickChip('good',this,'admin')">관리 편의성</button>
+                  </div>
+                </div>
+                <hr class="border-gray-100"/>
+                <!-- Q3 Pain Point -->
+                <div>
+                  <p class="font-black text-slate-800 text-sm mb-1">3. 개선이 필요한 점 <span class="text-red-500">*</span></p>
+                  <p class="text-xs text-slate-400 mb-3">1가지만 선택해 주세요</p>
+                  <div class="flex flex-wrap gap-2" id="pain-chips">
+                    <button class="chip" onclick="pickChip('pain',this,'loading')">로딩 속도</button>
+                    <button class="chip" onclick="pickChip('pain',this,'fee')">수수료 부담</button>
+                    <button class="chip" onclick="pickChip('pain',this,'ui')">UI 복잡성</button>
+                    <button class="chip" onclick="pickChip('pain',this,'support')">고객 지원</button>
+                    <button class="chip" onclick="pickChip('pain',this,'none')">없음</button>
+                  </div>
+                </div>
+                <!-- Optional comment -->
+                <div>
+                  <p class="font-bold text-slate-700 text-sm mb-2">추가 의견 <span class="text-slate-400 font-normal">(선택)</span></p>
+                  <textarea id="survey-comment" rows="3" placeholder="자유롭게 작성해 주세요..."
+                    class="w-full rounded-2xl px-4 py-3 text-sm text-slate-700 focus:outline-none resize-none border-2 border-slate-100 focus:border-blue-200"></textarea>
+                </div>
+                <!-- Submit -->
+                <button onclick="submitSurvey()" class="w-full py-4 font-black text-base rounded-2xl active:scale-95 transition-transform shadow-lg text-white" style="background:linear-gradient(90deg,#4f46e5,#7c3aed);">
+                  설문 제출하기 (5,000P 보상)
+                </button>
+                <div class="h-8"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ S8: DONE ══ -->
+          <div class="screen-panel" id="s8">
+            <div class="flex-1 flex flex-col items-center justify-center px-6 text-center py-12" style="background:linear-gradient(180deg,#eef2ff 0%,#f8fafc 60%);">
+              <div class="w-24 h-24 rounded-full flex items-center justify-center mb-6 pop-in" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);box-shadow:0 20px 60px rgba(79,70,229,.3);">
+                <svg width="48" height="48" fill="white" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              </div>
+              <h2 class="text-2xl font-black text-gray-900 mb-1">데모 완료!</h2>
+              <p class="text-gray-500 text-sm mb-6">전체 QR 결제 라이프사이클을 체험했습니다</p>
+
+              <div class="w-full bg-white rounded-2xl p-4 mb-4 text-left shadow-sm">
+                <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">세션 정리 결과</p>
+                <div class="space-y-2 text-xs">
+                  <div class="flex items-center gap-2">
+                    <div class="w-5 h-5 rounded flex items-center justify-center text-red-500 font-black text-base" style="background:#fef2f2;">✕</div>
+                    <span class="text-slate-500">익명 세션 (temp_user_id) — 삭제됨</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-5 h-5 rounded flex items-center justify-center text-red-500 font-black text-base" style="background:#fef2f2;">✕</div>
+                    <span class="text-slate-500">임시 장바구니 (cart) — 삭제됨</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-5 h-5 rounded flex items-center justify-center text-emerald-600 font-black text-base" style="background:#ecfdf5;">✓</div>
+                    <span class="text-emerald-700 font-bold" id="done-owner">사장님 계정 유지</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-5 h-5 rounded flex items-center justify-center text-emerald-600 font-black text-base" style="background:#ecfdf5;">✓</div>
+                    <span class="text-emerald-700 font-bold" id="done-pts">누적 포인트 유지</span>
+                  </div>
+                </div>
+              </div>
+
+              <button onclick="resetDemo()" class="w-full py-4 text-white font-black text-base rounded-2xl active:scale-95 transition-transform" style="background:#0f172a;">
+                처음부터 다시 시작
+              </button>
+              <p class="mt-3 text-slate-400 text-xs">localStorage에서 등록된 계정만 유지됩니다</p>
+            </div>
+          </div>
+
+        </div><!-- /screen-wrap -->
+      </div><!-- /phone-screen -->
+    </div><!-- /phone-frame -->
+  </div>
+
+  <!-- Right: State Inspector -->
+  <div class="hidden lg:block w-72 pt-2 sticky top-8">
+    <div class="rounded-2xl p-4 border" style="background:#0a0f1e;border-color:#1e293b;">
+      <div class="flex items-center gap-1.5 mb-3">
+        <span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span>
+        <span class="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span>
+        <span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span>
+        <span class="ml-2 text-xs font-bold" style="color:#64748b;font-family:'Courier New',monospace;">localStorage · STATE</span>
+      </div>
+      <pre id="inspector" class="mono text-xs leading-relaxed overflow-y-auto" style="max-height:380px;white-space:pre-wrap;word-break:break-all;"></pre>
+    </div>
+    <div class="mt-3 rounded-2xl p-3 space-y-2 border" style="background:rgba(15,23,42,.6);border-color:#1e293b;">
+      <p class="text-xs font-bold tracking-widest" style="color:#475569;">DEBUG CONTROLS</p>
+      <button onclick="jumpMerchant()" class="w-full py-2 rounded-xl text-xs font-bold transition-colors" style="background:#1e293b;color:#94a3b8;">→ 사장님 뷰로 점프</button>
+      <button onclick="resetDemo()" class="w-full py-2 rounded-xl text-xs font-bold transition-colors" style="background:rgba(127,29,29,.4);color:#f87171;">🗑 전체 초기화</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div id="toast" class="fixed top-6 left-1/2 z-50 px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl border transition-all pointer-events-none" style="transform:translateX(-50%) translateY(-20px);opacity:0;background:#0f172a;color:white;border-color:rgba(255,255,255,.1);"></div>
+
+<!-- ══════════════════════════════════
+     JAVASCRIPT — State Machine
+══════════════════════════════════ -->
+<script>
+/* ─── Constants ─── */
+const LS = 'wm_qr_hub_v2';
+
+const MENU = [
+  {id:1,name:'위마켓 시그니처 라떼',price:6500,pts:65,emoji:'☕',desc:'하우스 블렌드 에스프레소'},
+  {id:2,name:'말차 라떼',price:5500,pts:55,emoji:'🍵',desc:'고급 유기농 말차'},
+  {id:3,name:'아메리카노',price:4500,pts:45,emoji:'🖤',desc:'싱글 오리진 원두'},
+  {id:4,name:'뉴욕 치즈케이크',price:7500,pts:75,emoji:'🍰',desc:'크리미 뉴욕 스타일'},
+  {id:5,name:'크루아상',price:4000,pts:40,emoji:'🥐',desc:'버터 듬뿍 바삭한 크루아상'},
+];
+
+const STEPS = [
+  {n:0,icon:'📱',lbl:'QR 스캔',desc:'익명 세션 시작'},
+  {n:1,icon:'🍽️',lbl:'메뉴 탐색',desc:'장바구니 담기'},
+  {n:2,icon:'🛒',lbl:'결제 준비',desc:'전화번호 인증'},
+  {n:3,icon:'💳',lbl:'토스페이',desc:'1.5초 인증 딜레이'},
+  {n:4,icon:'✅',lbl:'결제 완료',desc:'포인트 확인'},
+  {n:5,icon:'⏱️',lbl:'타이머',desc:'Zeigarnik 60초'},
+  {n:6,icon:'👨‍🍳',lbl:'사장님 뷰',desc:'주문 수신 대시보드'},
+  {n:7,icon:'📝',lbl:'설문',desc:'만족도 조사'},
+  {n:8,icon:'🎉',lbl:'완료',desc:'세션 정리'},
+];
+
+const STAR_LBL = ['','별로예요','아쉬워요','보통이에요','좋아요','최고예요!'];
+
+/* ─── State ─── */
+let S = {
+  screen: 0,
+  temp_user_id: null,
+  cart: [],
+  pendingPts: 0,
+  accPts: 0,
+  phone: '',
+  orderNo: null,
+  orderTotal: 0,
+  demoCompleted: false,
+  owner: {name:'이지훈', phone:'010-5678-9012', points:12500},
+  survey: {star:0, good:null, pain:null},
+};
+
+let timerTick = null;
+let timerSec = 60;
+
+/* ─── Persist / Hydrate ─── */
+function save() {
+  try {
+    localStorage.setItem(LS, JSON.stringify({
+      temp_user_id: S.temp_user_id,
+      cart: S.cart,
+      pendingPts: S.pendingPts,
+      accPts: S.accPts,
+      phone: S.phone,
+      orderNo: S.orderNo,
+      orderTotal: S.orderTotal,
+      demoCompleted: S.demoCompleted,
+      owner: S.owner,
+      survey: S.survey,
+      screen: S.screen,
+    }));
+  } catch(_){}
+  renderInspector();
+}
+
+function hydrate() {
+  try {
+    const raw = localStorage.getItem(LS);
+    if (!raw) return false;
+    Object.assign(S, JSON.parse(raw));
+    return true;
+  } catch(_) { return false; }
+}
+
+/* ─── Session Cleaner (post-survey) ─── */
+function cleanSession() {
+  const owner = {...S.owner};
+  const acc   = S.accPts;
+  S.temp_user_id  = null;
+  S.cart          = [];
+  S.pendingPts    = 0;
+  S.phone         = '';
+  S.orderNo       = null;
+  S.orderTotal    = 0;
+  S.survey        = {star:0, good:null, pain:null};
+  S.owner         = owner;   // keep registered owner
+  S.accPts        = acc;     // keep accumulated points
+  S.demoCompleted = true;
+  save();
+}
+
+/* ─── Navigation ─── */
+function go(n, silent=false) {
+  if (timerTick && n !== 5) { clearInterval(timerTick); timerTick = null; }
+  document.querySelectorAll('.screen-panel').forEach(p=>p.classList.remove('active'));
+  const panel = document.getElementById('s'+n);
+  if (panel) panel.classList.add('active');
+  const wrap = document.getElementById('screen-wrap');
+  if (wrap) wrap.scrollTop = 0;
+  S.screen = n;
+  if (!silent) updateSteps(n);
+  if (n===1) setupMenu();
+  if (n===2) setupCheckout();
+  if (n===4) setupSuccess();
+  if (n===5) startTimer();
+  if (n===6) setupMerchant();
+  if (n===8) setupDone();
+  save();
+}
+
+/* ─── Menu Screen ─── */
+function setupMenu() {
+  const el = document.getElementById('menu-list');
+  if (!el) return;
+  el.innerHTML = MENU.map(m=>`
+    <div class="bg-white rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
+      <div class="w-14 h-14 rounded-xl flex items-center justify-center text-3xl flex-shrink-0" style="background:linear-gradient(135deg,#fff7ed,#fef3c7);">${esc(m.emoji)}</div>
+      <div class="flex-1 min-w-0">
+        <p class="font-black text-slate-800 text-sm truncate">${esc(m.name)}</p>
+        <p class="text-slate-400 text-xs mt-0.5">${esc(m.desc)}</p>
+        <div class="flex items-center gap-2 mt-1">
+          <span class="font-black text-slate-700 text-sm">₩${esc(String(m.price.toLocaleString()))}</span>
+          <span class="text-xs font-bold" style="color:#d97706;">+${esc(String(m.pts))}P</span>
+        </div>
+      </div>
+      <button onclick="addCart(${esc(String(m.id))})" class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform shadow-sm" style="background:#2563eb;">
+        <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>
+      </button>
+    </div>
+  `).join('');
+  refreshCartUI();
+}
+
+function addCart(id) {
+  const m = MENU.find(x=>x.id===id);
+  if (!m) return;
+  const ex = S.cart.find(c=>c.id===id);
+  if (ex) ex.qty++;
+  else S.cart.push({...m, qty:1});
+  save();
+  refreshCartUI();
+  toast(`${m.emoji} ${m.name} 추가됨`);
+}
+
+function refreshCartUI() {
+  const total = S.cart.reduce((s,c)=>s+c.qty,0);
+  const price = S.cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const badge = document.getElementById('cart-badge');
+  if (badge) { badge.textContent=total; badge.style.display=total?'flex':'none'; }
+  const bar = document.getElementById('cart-bar');
+  if (bar) bar.classList.toggle('hidden', total===0);
+  const bt = document.getElementById('cart-bar-text');
+  if (bt) bt.textContent=`${total}개 · ₩${price.toLocaleString()}`;
+}
+
+/* ─── Checkout Screen ─── */
+function setupCheckout() {
+  const listEl = document.getElementById('checkout-items');
+  const totEl  = document.getElementById('checkout-total');
+  const ptsEl  = document.getElementById('checkout-pts');
+  const phoneEl= document.getElementById('phone-input');
+
+  if (listEl) {
+    if (!S.cart.length) {
+      listEl.innerHTML='<p class="p-4 text-center text-slate-400 text-sm font-bold">장바구니가 비어 있습니다</p>';
+    } else {
+      listEl.innerHTML = S.cart.map((c,i)=>`
+        <div class="flex items-center justify-between px-4 py-3 ${i>0?'border-t border-gray-100':''}">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">${esc(c.emoji)}</span>
+            <div>
+              <p class="font-bold text-slate-800 text-sm">${esc(c.name)}</p>
+              <p class="text-slate-400 text-xs">₩${esc(String(c.price.toLocaleString()))} × ${esc(String(c.qty))}</p>
+            </div>
+          </div>
+          <span class="font-black text-slate-700 text-sm">₩${esc(String((c.price*c.qty).toLocaleString()))}</span>
+        </div>
+      `).join('');
+    }
+  }
+
+  const total = S.cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const pts   = S.cart.reduce((s,c)=>s+c.pts*c.qty,0);
+  if (totEl) totEl.textContent=`₩${total.toLocaleString()}`;
+  if (ptsEl) ptsEl.textContent=`+${pts.toLocaleString()} P`;
+
+  if (phoneEl && S.phone) { phoneEl.value=S.phone; validatePhone(S.phone); }
+  else { validatePhone(''); }
+}
+
+/* ─── Phone Validation Guard ─── */
+function handlePhone(el) {
+  let raw = el.value.replace(/\D/g,'');
+  if (raw.length>11) raw=raw.slice(0,11);
+  let fmt = raw;
+  if (raw.length>7)      fmt=raw.slice(0,3)+'-'+raw.slice(3,7)+'-'+raw.slice(7);
+  else if (raw.length>3) fmt=raw.slice(0,3)+'-'+raw.slice(3);
+  el.value = fmt;
+  S.phone = fmt;
+  save();
+  validatePhone(fmt);
+}
+
+function validatePhone(fmt) {
+  const raw = fmt.replace(/-/g,'');
+  const errEl  = document.getElementById('phone-err');
+  const errMsg = document.getElementById('phone-err-msg');
+  const okEl   = document.getElementById('phone-ok');
+  const payBtn = document.getElementById('pay-btn');
+  const inputEl= document.getElementById('phone-input');
+
+  let msg = null;
+  if (raw.length===0) { /* silent while empty */ }
+  else if (!raw.startsWith('010'))        msg='010으로 시작하는 번호를 입력해 주세요';
+  else if (raw.length<10)                 msg='번호가 너무 짧습니다 (최소 10자리)';
+  else if (raw.length>11)                 msg='번호가 너무 깁니다 (최대 11자리)';
+  else if (!/^010\d{7,8}$/.test(raw))    msg='올바른 휴대폰 번호 형식이 아닙니다';
+
+  const valid = !msg && /^010\d{7,8}$/.test(raw);
+
+  if (errEl)  errEl.classList.toggle('hidden', !msg || raw.length===0);
+  if (errMsg) errMsg.textContent = msg||'';
+  if (okEl)   okEl.classList.toggle('hidden', !valid);
+  if (inputEl) {
+    inputEl.style.borderColor = raw.length===0?'#e2e8f0' : valid?'#10b981':'#ef4444';
+  }
+  if (payBtn) {
+    const disabled = !valid || S.cart.length===0;
+    payBtn.disabled = disabled;
+    payBtn.style.opacity = disabled?'0.4':'1';
+  }
+}
+
+/* ─── Toss Pay ─── */
+function startPay() {
+  S.orderTotal = S.cart.reduce((s,c)=>s+c.price*c.qty,0);
+  S.pendingPts = S.cart.reduce((s,c)=>s+c.pts*c.qty,0);
+  S.orderNo = 'WM-' + Date.now().toString().slice(-6);
+  save();
+  go(3);
+  setTimeout(()=>go(4), 1500);
+}
+
+/* ─── Success Screen ─── */
+function setupSuccess() {
+  const a = document.getElementById('pay-amount-txt');
+  const p = document.getElementById('pay-pts-txt');
+  const o = document.getElementById('pay-order-no');
+  if (a) a.textContent = `₩${S.orderTotal.toLocaleString()} 결제되었습니다`;
+  if (p) p.textContent = `+${S.pendingPts}P`;
+  if (o) o.textContent = `#${S.orderNo}`;
+}
+
+/* ─── Timer / Zeigarnik ─── */
+function startTimer() {
+  timerSec = 60;
+  if (timerTick) clearInterval(timerTick);
+
+  const numEl = document.getElementById('timer-num');
+  const barEl = document.getElementById('timer-bar');
+  const pctEl = document.getElementById('timer-pct');
+  const ptsEl = document.getElementById('timer-pts');
+  const accEl = document.getElementById('timer-acc');
+
+  if (ptsEl) ptsEl.textContent=`+${S.pendingPts}P`;
+  if (accEl) accEl.textContent=`${S.accPts}P`;
+
+  function tick() {
+    timerSec--;
+    const pct = Math.max(0,(timerSec/60)*100);
+
+    if (numEl) numEl.textContent = timerSec;
+    if (pctEl) pctEl.textContent = Math.round(pct)+'%';
+
+    if (barEl) {
+      barEl.style.width = pct+'%';
+      if (timerSec<=10 && timerSec>0) {
+        /* ── Zeigarnik crimson blink ── */
+        barEl.classList.add('bar-urgent');
+        barEl.style.background='';
+        if (numEl) { numEl.style.color='#fb7185'; }
+      } else {
+        barEl.classList.remove('bar-urgent');
+        if (numEl) { numEl.style.color=''; }
+        if (pct>50)      barEl.style.background='linear-gradient(90deg,#10b981,#34d399)';
+        else if (pct>25) barEl.style.background='linear-gradient(90deg,#f59e0b,#fbbf24)';
+        else             barEl.style.background='linear-gradient(90deg,#ef4444,#f87171)';
+      }
+    }
+
+    if (timerSec<=0) {
+      clearInterval(timerTick); timerTick=null;
+      S.pendingPts=0; save();
+      const pEl=document.getElementById('timer-pts');
+      if (pEl) { pEl.textContent='소멸됨'; pEl.style.color='#94a3b8'; pEl.style.textDecoration='line-through'; }
+      toast('⏰ 시간 초과 — 포인트가 소멸됩니다');
+      setTimeout(()=>go(6), 2000);
+    } else { save(); }
+  }
+
+  timerTick = setInterval(tick, 1000);
+}
+
+function doRegister() {
+  if (timerTick) { clearInterval(timerTick); timerTick=null; }
+  S.accPts += S.pendingPts;
+  S.owner.points = (S.owner.points||0) + S.pendingPts;
+  S.pendingPts=0;
+  save();
+  toast(`✅ ${S.accPts.toLocaleString()}P 등록 완료!`);
+  setTimeout(()=>go(6), 700);
+}
+
+function skipTimer() {
+  if (timerTick) { clearInterval(timerTick); timerTick=null; }
+  S.pendingPts=0; save();
+  go(6);
+}
+
+/* ─── Merchant Screen ─── */
+function setupMerchant() {
+  const itemsEl = document.getElementById('merch-order-items');
+  const revEl   = document.getElementById('merch-revenue');
+  if (itemsEl) {
+    itemsEl.innerHTML = S.cart.length
+      ? S.cart.map(c=>`<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold" style="background:#f1f5f9;color:#475569;">${esc(c.emoji)} ${esc(c.name)} ×${esc(String(c.qty))}</span>`).join('')
+      : '<span class="text-slate-400 text-xs">주문 내역 없음 (데모 점프)</span>';
+  }
+  if (revEl) revEl.textContent=`₩${S.orderTotal.toLocaleString()}`;
+}
+
+function jumpMerchant() {
+  if (!S.cart.length) {
+    S.cart=[{...MENU[0],qty:2},{...MENU[3],qty:1}];
+    S.orderTotal=S.cart.reduce((s,c)=>s+c.price*c.qty,0);
+    S.pendingPts=S.cart.reduce((s,c)=>s+c.pts*c.qty,0);
+    S.orderNo='WM-DEMO';
+  }
+  go(6);
+}
+
+/* ─── Survey ─── */
+function pickStar(n) {
+  S.survey.star=n; save();
+  document.querySelectorAll('.star-btn').forEach((s,i)=>s.classList.toggle('lit',i<n));
+  const lbl=document.getElementById('star-lbl');
+  if (lbl) lbl.textContent=STAR_LBL[n];
+  hideSurveyWarn();
+}
+
+function pickChip(type, el, val) {
+  if (type==='good') {
+    S.survey.good=val;
+    document.querySelectorAll('#good-chips .chip').forEach(c=>c.classList.remove('on'));
+  } else {
+    S.survey.pain=val;
+    document.querySelectorAll('#pain-chips .chip').forEach(c=>c.classList.remove('on'));
+  }
+  el.classList.add('on');
+  save();
+  hideSurveyWarn();
+}
+
+function submitSurvey() {
+  const miss=[];
+  if (!S.survey.star) miss.push('별점');
+  if (!S.survey.good) miss.push('좋았던 점');
+  if (!S.survey.pain) miss.push('개선점');
+
+  if (miss.length) {
+    showSurveyWarn(`필수 항목을 선택해 주세요: ${miss.join(', ')}`);
+    return;
+  }
+
+  S.accPts += 5000;
+  S.owner.points = (S.owner.points||0)+5000;
+  cleanSession();   // structured session cleaner
+  go(8);
+}
+
+function showSurveyWarn(msg) {
+  const el=document.getElementById('survey-warn');
+  const txt=document.getElementById('survey-warn-txt');
+  if (!el) return;
+  el.classList.remove('hidden','shake');
+  void el.offsetWidth;
+  el.classList.add('shake');
+  if (txt) txt.textContent=msg;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function hideSurveyWarn() {
+  document.getElementById('survey-warn')?.classList.add('hidden');
+}
+
+/* ─── Done Screen ─── */
+function setupDone() {
+  const o=document.getElementById('done-owner');
+  const p=document.getElementById('done-pts');
+  if (o) o.textContent=`${S.owner.name} (${S.owner.phone}) 유지됨`;
+  if (p) p.textContent=`누적 포인트: ${S.accPts.toLocaleString()}P`;
+}
+
+/* ─── Reset ─── */
+function resetDemo() {
+  if (timerTick) clearInterval(timerTick);
+  const owner={...S.owner};
+  localStorage.removeItem(LS);
+  S={
+    screen:0,
+    temp_user_id:'ANON_'+Math.random().toString(36).slice(2,11).toUpperCase(),
+    cart:[],pendingPts:0,accPts:0,phone:'',
+    orderNo:null,orderTotal:0,demoCompleted:false,
+    owner,survey:{star:0,good:null,pain:null},
+  };
+  // Reset UI
+  document.querySelectorAll('.star-btn').forEach(s=>s.classList.remove('lit'));
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  const lbl=document.getElementById('star-lbl');
+  if (lbl) lbl.textContent='별점을 선택해 주세요';
+  const sc=document.getElementById('survey-comment');
+  if (sc) sc.value='';
+  hideSurveyWarn();
+  const pi=document.getElementById('phone-input');
+  if (pi) pi.value='';
+  go(0);
+  save();
+}
+
+/* ─── Step Guide ─── */
+function buildSteps() {
+  const el=document.getElementById('step-guide');
+  if (!el) return;
+  el.innerHTML=STEPS.map(s=>`
+    <div id="step-${s.n}" onclick="go(${s.n})" class="flex items-start gap-2.5 p-2.5 rounded-xl cursor-pointer transition-all hover:bg-white/5">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0 transition-all" style="background:#1e293b;">${s.icon}</div>
+      <div>
+        <p class="text-slate-300 text-xs font-bold">${s.lbl}</p>
+        <p class="text-slate-500 text-[10px]">${s.desc}</p>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateSteps(active) {
+  STEPS.forEach(s=>{
+    const el=document.getElementById('step-'+s.n);
+    if (!el) return;
+    const icon=el.querySelector('div');
+    if (s.n===active) {
+      el.style.background='rgba(59,130,246,.15)';
+      el.style.border='1px solid rgba(96,165,250,.3)';
+      el.style.borderRadius='12px';
+      if (icon) icon.style.background='#2563eb';
+    } else if (s.n<active) {
+      el.style.background='';el.style.border='';
+      el.style.opacity='.55';
+      if (icon) icon.style.background='#1e293b';
+    } else {
+      el.style.background='';el.style.border='';
+      el.style.opacity='.25';
+      if (icon) icon.style.background='#1e293b';
+    }
+  });
+}
+
+/* ─── HTML escape — prevents XSS when localStorage values are injected via innerHTML ─── */
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+/* ─── State Inspector ─── */
+function renderInspector() {
+  const el=document.getElementById('inspector');
+  if (!el) return;
+  const h=(k,v)=>`<span class="sk">${esc(k)}</span>: ${v}`;
+  const str=(v)=>`<span class="ss">"${esc(v)}"</span>`;
+  const num=(v)=>`<span class="sn">${esc(String(v))}</span>`;
+  const bool=(v)=>`<span class="${v?'st':'sf'}">${v?'true':'false'}</span>`;
+
+  el.innerHTML=`<span style="color:#475569;">// ${LS}</span>
+{
+  ${h('temp_user_id', str(S.temp_user_id||'null'))},
+  ${h('cart', `[${S.cart.map(c=>`{id:${c.id},qty:${c.qty}}`).join(',')}]`)},
+  ${h('pendingPts', num(S.pendingPts))},
+  ${h('accPts', num(S.accPts))},
+  ${h('orderTotal', num(S.orderTotal))},
+  ${h('demoCompleted', bool(S.demoCompleted))},
+  ${h('owner', `{
+    name:${str(S.owner.name)},
+    points:${num(S.owner.points)}
+  }`)},
+  ${h('survey', `{
+    star:${num(S.survey.star)},
+    good:${str(S.survey.good||'null')},
+    pain:${str(S.survey.pain||'null')}
+  }`)},
+  ${h('screen', num(S.screen))}
+}`;
+}
+
+/* ─── Toast ─── */
+let toastTimer;
+function toast(msg) {
+  const el=document.getElementById('toast');
+  if (!el) return;
+  el.textContent=msg;
+  el.style.opacity='1';
+  el.style.transform='translateX(-50%) translateY(0)';
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{
+    el.style.opacity='0';
+    el.style.transform='translateX(-50%) translateY(-16px)';
+  },2400);
+}
+
+/* ─── Boot ─── */
+(function init() {
+  const restored = hydrate();
+  if (!S.temp_user_id) S.temp_user_id='ANON_'+Math.random().toString(36).slice(2,11).toUpperCase();
+  buildSteps();
+  if (restored && S.screen>0) document.getElementById('restore-badge')?.classList.remove('hidden');
+  go(S.screen, true);
+  updateSteps(S.screen);
+  renderInspector();
+})();
+</script>
+</body>
+</html>
