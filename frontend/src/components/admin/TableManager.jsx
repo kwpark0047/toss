@@ -17,59 +17,83 @@ const DESIGNS = [
   {
     id: 'dark',
     label: '다크 프리미엄',
-    preview: 'from-slate-900 to-slate-800',
+    preview: 'from-[#0c1220] to-[#1e2f4a]',
+    previewColors: ['#0c1220', '#1e2f4a'],
     dot: 'bg-orange-500',
-    bg: ['#0c1220', '#1e2f4a'],
+    bg: ['#0c1220', '#152238', '#0a0f1c'],
     accent: '#f97316',
+    accentDim: 'rgba(249,115,22,0.18)',
+    accentLine: 'rgba(249,115,22,0.45)',
     qrFg: '0c1220',
     titleColor: '#ffffff',
-    storeColor: 'rgba(255,255,255,0.65)',
-    capColor: 'rgba(255,255,255,0.38)',
-    instBg: 'rgba(255,255,255,0.05)',
-    instBorder: 'rgba(255,255,255,0.10)',
-    instText: 'rgba(255,255,255,0.88)',
-    instSub: 'rgba(255,255,255,0.35)',
-    brandText: 'rgba(255,255,255,0.18)',
-    divider: 'rgba(249,115,22,0.35)',
-    glowColor: 'rgba(249,115,22,0.09)',
+    titleGrad: ['#ffffff', '#e2e8f0'],
+    storeColor: 'rgba(255,255,255,0.60)',
+    capColor: 'rgba(255,255,255,0.32)',
+    instBg: 'rgba(255,255,255,0.04)',
+    instBorder: 'rgba(255,255,255,0.08)',
+    instText: 'rgba(255,255,255,0.92)',
+    instSub: 'rgba(255,255,255,0.38)',
+    brandText: 'rgba(255,255,255,0.14)',
+    dividerColor: 'rgba(249,115,22,0.30)',
+    glowColor: 'rgba(249,115,22,0.07)',
+    glowColor2: 'rgba(59,130,246,0.04)',
+    monoBg: 'rgba(249,115,22,0.12)',
+    monoBorder: 'rgba(249,115,22,0.40)',
+    qrBorderColor: 'rgba(249,115,22,0.60)',
   },
   {
     id: 'light',
     label: '화이트 클래식',
-    preview: 'from-white to-slate-50',
-    dot: 'bg-orange-500',
-    bg: ['#ffffff', '#f8fafc'],
+    preview: 'from-white to-slate-100',
+    previewColors: ['#ffffff', '#f1f5f9'],
+    dot: 'bg-slate-800',
+    bg: ['#ffffff', '#f8fafc', '#f1f5f9'],
     accent: '#f97316',
+    accentDim: 'rgba(249,115,22,0.10)',
+    accentLine: 'rgba(249,115,22,0.60)',
     qrFg: '0f172a',
     titleColor: '#0f172a',
+    titleGrad: ['#0f172a', '#1e293b'],
     storeColor: '#475569',
     capColor: '#94a3b8',
     instBg: '#fff7ed',
-    instBorder: '#fed7aa',
+    instBorder: '#fdba74',
     instText: '#9a3412',
     instSub: '#c2410c',
-    brandText: '#e2e8f0',
-    divider: '#e2e8f0',
+    brandText: '#cbd5e1',
+    dividerColor: '#e2e8f0',
     glowColor: 'transparent',
+    glowColor2: 'transparent',
+    monoBg: 'rgba(249,115,22,0.08)',
+    monoBorder: 'rgba(249,115,22,0.35)',
+    qrBorderColor: 'rgba(249,115,22,0.50)',
   },
   {
     id: 'brand',
     label: '브랜드 오렌지',
-    preview: 'from-orange-500 to-rose-600',
+    preview: 'from-orange-500 to-rose-700',
+    previewColors: ['#ea580c', '#9f1239'],
     dot: 'bg-white',
-    bg: ['#ea580c', '#be123c'],
+    bg: ['#c2410c', '#9f1239', '#7f1d1d'],
     accent: '#ffffff',
+    accentDim: 'rgba(255,255,255,0.15)',
+    accentLine: 'rgba(255,255,255,0.50)',
     qrFg: '0f172a',
     titleColor: '#ffffff',
-    storeColor: 'rgba(255,255,255,0.82)',
-    capColor: 'rgba(255,255,255,0.55)',
-    instBg: 'rgba(0,0,0,0.14)',
-    instBorder: 'rgba(255,255,255,0.22)',
+    titleGrad: ['#ffffff', '#fde8d8'],
+    storeColor: 'rgba(255,255,255,0.78)',
+    capColor: 'rgba(255,255,255,0.52)',
+    instBg: 'rgba(0,0,0,0.18)',
+    instBorder: 'rgba(255,255,255,0.18)',
     instText: '#ffffff',
-    instSub: 'rgba(255,255,255,0.65)',
-    brandText: 'rgba(255,255,255,0.28)',
-    divider: 'rgba(255,255,255,0.22)',
-    glowColor: 'rgba(0,0,0,0.15)',
+    instSub: 'rgba(255,255,255,0.62)',
+    brandText: 'rgba(255,255,255,0.24)',
+    dividerColor: 'rgba(255,255,255,0.20)',
+    glowColor: 'rgba(0,0,0,0.18)',
+    glowColor2: 'rgba(255,255,255,0.06)',
+    monoBg: 'rgba(255,255,255,0.14)',
+    monoBorder: 'rgba(255,255,255,0.45)',
+    qrBorderColor: 'rgba(255,255,255,0.60)',
   },
 ];
 
@@ -98,112 +122,230 @@ function loadImg(url) {
   });
 }
 
+/* ── 코너 브라켓 장식 ── */
+function drawBrackets(ctx, x, y, w, h, len, thick, r, color) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = thick;
+  ctx.lineCap = 'round';
+  const corners = [
+    [x, y, 1, 1],
+    [x + w, y, -1, 1],
+    [x, y + h, 1, -1],
+    [x + w, y + h, -1, -1],
+  ];
+  corners.forEach(([cx, cy, dx, dy]) => {
+    ctx.beginPath();
+    ctx.moveTo(cx + dx * (r + len), cy);
+    ctx.lineTo(cx + dx * r, cy);
+    ctx.arcTo(cx, cy, cx, cy + dy * r, r);
+    ctx.lineTo(cx, cy + dy * (r + len));
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+/* ── 그라디언트 구분선 ── */
+function drawDivider(ctx, W, y, d) {
+  const grd = ctx.createLinearGradient(W * 0.05, 0, W * 0.95, 0);
+  grd.addColorStop(0, 'transparent');
+  grd.addColorStop(0.35, d.dividerColor);
+  grd.addColorStop(0.65, d.dividerColor);
+  grd.addColorStop(1, 'transparent');
+  ctx.strokeStyle = grd;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(W * 0.05, y);
+  ctx.lineTo(W * 0.95, y);
+  ctx.stroke();
+
+  /* 중앙 다이아몬드 */
+  const dS = 5;
+  ctx.save();
+  ctx.translate(W / 2, y);
+  ctx.rotate(Math.PI / 4);
+  ctx.fillStyle = d.accent;
+  ctx.fillRect(-dS / 2, -dS / 2, dS, dS);
+  ctx.restore();
+}
+
 async function drawCard(canvas, designId, storeName, tableName, capacity) {
   const W = canvas.width, H = canvas.height;
   const ctx = canvas.getContext('2d');
   const d = DESIGNS.find(x => x.id === designId) || DESIGNS[0];
 
-  /* 배경 */
-  const bgGrad = ctx.createLinearGradient(0, 0, W * 0.4, H);
+  /* ── 배경 3-stop 그라디언트 ── */
+  const bgGrad = ctx.createLinearGradient(0, 0, W * 0.25, H);
   bgGrad.addColorStop(0, d.bg[0]);
-  bgGrad.addColorStop(1, d.bg[1]);
+  bgGrad.addColorStop(0.55, d.bg[1]);
+  bgGrad.addColorStop(1, d.bg[2]);
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
 
-  /* 상단 글로우 */
+  /* ── 사선 패턴 (질감) ── */
+  if (designId !== 'light') {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.018)';
+    ctx.lineWidth = 1;
+    for (let i = -H; i < W + H; i += 28) {
+      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + H, H); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* ── 상단 방사형 글로우 ── */
   if (d.glowColor !== 'transparent') {
-    const glow = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, H * 0.55);
-    glow.addColorStop(0, d.glowColor);
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, W, H);
+    const g1 = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, W * 0.9);
+    g1.addColorStop(0, d.glowColor);
+    g1.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H);
+  }
+  if (d.glowColor2 !== 'transparent') {
+    const g2 = ctx.createRadialGradient(W, H, 0, W, H, W * 0.8);
+    g2.addColorStop(0, d.glowColor2);
+    g2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
   }
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
 
-  /* WeMarket 브랜드 뱃지 */
-  const BRAND_Y = Math.round(H * 0.072);
-  ctx.font = `900 ${Math.round(H * 0.026)}px Arial, sans-serif`;
+  /* ── 상단 모노그램 뱃지 ── */
+  const TOP_PAD = Math.round(H * 0.068);
+  const MONO_R = Math.round(W * 0.048);
+  const MONO_CX = W / 2, MONO_CY = TOP_PAD + MONO_R;
+
+  /* 뱃지 원 배경 */
+  ctx.beginPath(); ctx.arc(MONO_CX, MONO_CY, MONO_R, 0, Math.PI * 2);
+  ctx.fillStyle = d.monoBg; ctx.fill();
+  ctx.strokeStyle = d.monoBorder; ctx.lineWidth = 1.5; ctx.stroke();
+
+  /* "W" 모노그램 */
+  ctx.save();
+  ctx.textBaseline = 'middle';
+  ctx.font = `900 ${Math.round(MONO_R * 1.2)}px Arial Black, Arial`;
   ctx.fillStyle = d.accent;
-  ctx.fillText('WeMarket', W / 2, BRAND_Y);
+  ctx.fillText('W', MONO_CX, MONO_CY + 1);
+  ctx.restore();
+
+  /* WeMarket 워드마크 */
+  const WM_Y = MONO_CY + MONO_R + Math.round(H * 0.03);
+  ctx.font = `800 ${Math.round(H * 0.024)}px Arial, sans-serif`;
+  ctx.fillStyle = d.accent;
+  ctx.fillText('WeMarket', W / 2, WM_Y);
 
   /* 좌우 점 장식 */
-  const dotR = Math.round(H * 0.004);
-  [W * 0.3, W * 0.7].forEach(dx => {
-    ctx.beginPath();
-    ctx.arc(dx, BRAND_Y - Math.round(H * 0.015), dotR, 0, Math.PI * 2);
-    ctx.fillStyle = d.accent + '88';
-    ctx.fill();
+  const dotR = Math.round(H * 0.0036);
+  [-1, 1].forEach(dir => {
+    const dx = W / 2 + dir * Math.round(W * 0.22);
+    ctx.beginPath(); ctx.arc(dx, WM_Y - Math.round(H * 0.016), dotR, 0, Math.PI * 2);
+    ctx.fillStyle = d.accent + 'aa'; ctx.fill();
   });
 
   /* 매장명 */
-  const STORE_Y = BRAND_Y + Math.round(H * 0.062);
-  ctx.font = `700 ${Math.round(H * 0.038)}px Arial, sans-serif`;
+  const STORE_Y = WM_Y + Math.round(H * 0.042);
+  ctx.font = `600 ${Math.round(H * 0.033)}px Arial, sans-serif`;
   ctx.fillStyle = d.storeColor;
   ctx.fillText(storeName || '', W / 2, STORE_Y);
 
-  /* 구분선 */
-  const DIV_Y = STORE_Y + Math.round(H * 0.036);
-  const divGrad = ctx.createLinearGradient(W * 0.08, 0, W * 0.92, 0);
-  divGrad.addColorStop(0, 'transparent');
-  divGrad.addColorStop(0.5, d.divider);
-  divGrad.addColorStop(1, 'transparent');
-  ctx.strokeStyle = divGrad;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(W * 0.08, DIV_Y);
-  ctx.lineTo(W * 0.92, DIV_Y);
-  ctx.stroke();
+  /* ── 그라디언트 구분선 + 다이아몬드 ── */
+  const DIV_Y = STORE_Y + Math.round(H * 0.032);
+  drawDivider(ctx, W, DIV_Y, d);
 
-  /* QR 이미지 로드 */
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(canvas._qrData || '')}&bgcolor=ffffff&color=${d.qrFg}&margin=2`;
-  let qrImg;
-  try { qrImg = await loadImg(qrUrl); } catch { /* fallback: skip */ }
+  /* ── QR 컨테이너 ── */
+  const QR_PAD = Math.round(W * 0.04);
+  const QR_SIZE = Math.round(W * 0.64);
+  const QR_CW = QR_SIZE + QR_PAD * 2;
+  const QR_CX = Math.round((W - QR_CW) / 2);
+  const QR_CY = DIV_Y + Math.round(H * 0.032);
+  const QR_R = Math.round(W * 0.052);
 
-  /* QR 컨테이너 */
-  const QR_SIZE = Math.round(W * 0.66);
-  const QR_PAD  = Math.round(W * 0.045);
-  const QR_CW   = QR_SIZE + QR_PAD * 2;
-  const QR_CX   = Math.round((W - QR_CW) / 2);
-  const QR_CY   = DIV_Y + Math.round(H * 0.034);
-  const QR_R    = Math.round(W * 0.055);
-
-  /* QR 카드 그림자 */
+  /* 외부 글로우 */
   ctx.save();
-  ctx.shadowColor  = designId === 'brand' ? 'rgba(0,0,0,0.30)' : 'rgba(0,0,0,0.18)';
-  ctx.shadowBlur   = Math.round(W * 0.07);
-  ctx.shadowOffsetY = Math.round(H * 0.012);
+  ctx.shadowColor = 'rgba(0,0,0,0.42)';
+  ctx.shadowBlur = Math.round(W * 0.10);
+  ctx.shadowOffsetY = Math.round(H * 0.016);
   ctx.fillStyle = '#ffffff';
   rrect(ctx, QR_CX, QR_CY, QR_CW, QR_CW, QR_R);
   ctx.fill();
   ctx.restore();
 
-  if (qrImg) {
-    ctx.drawImage(qrImg, QR_CX + QR_PAD, QR_CY + QR_PAD, QR_SIZE, QR_SIZE);
-  }
+  /* 얇은 악센트 테두리 */
+  ctx.strokeStyle = d.qrBorderColor;
+  ctx.lineWidth = 2;
+  rrect(ctx, QR_CX, QR_CY, QR_CW, QR_CW, QR_R);
+  ctx.stroke();
 
-  /* 테이블명 */
-  const TABLE_Y = QR_CY + QR_CW + Math.round(H * 0.072);
-  ctx.font = `900 ${Math.round(H * 0.092)}px Arial Black, Arial, sans-serif`;
-  ctx.fillStyle = d.titleColor;
-  ctx.fillText(tableName || '', W / 2, TABLE_Y);
+  /* QR 이미지 로드 */
+  const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(canvas._qrData || '')}&bgcolor=ffffff&color=${d.qrFg}&margin=0`;
+  let qrImg;
+  try { qrImg = await loadImg(qrImgUrl); } catch { /* fallback */ }
+  if (qrImg) ctx.drawImage(qrImg, QR_CX + QR_PAD, QR_CY + QR_PAD, QR_SIZE, QR_SIZE);
 
-  /* 인원 뱃지 */
+  /* 코너 브라켓 장식 */
+  drawBrackets(ctx, QR_CX - 8, QR_CY - 8, QR_CW + 16, QR_CW + 16,
+    Math.round(W * 0.065), 3, Math.round(W * 0.02), d.qrBorderColor);
+
+  /* ── 테이블 섹션 ── */
+  const TBL_BASE = QR_CY + QR_CW + Math.round(H * 0.038);
+
+  /* "TABLE" 소문자 레이블 */
+  ctx.font = `700 ${Math.round(H * 0.021)}px Arial, sans-serif`;
+  ctx.fillStyle = d.capColor;
+  ctx.fillText('T  A  B  L  E', W / 2, TBL_BASE);
+
+  /* 오렌지 강조선 */
+  const ACCENT_LINE_Y = TBL_BASE + Math.round(H * 0.014);
+  ctx.save();
+  ctx.strokeStyle = d.accent;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(W / 2 - Math.round(W * 0.09), ACCENT_LINE_Y);
+  ctx.lineTo(W / 2 + Math.round(W * 0.09), ACCENT_LINE_Y);
+  ctx.stroke();
+  ctx.restore();
+
+  /* 테이블명 - 그라디언트 텍스트 */
+  const TBL_NAME_Y = ACCENT_LINE_Y + Math.round(H * 0.088);
+  const tFS = Math.round(H * 0.092);
+  ctx.font = `900 ${tFS}px Arial Black, Arial, sans-serif`;
+
+  const tGrd = ctx.createLinearGradient(W / 2, TBL_NAME_Y - tFS, W / 2, TBL_NAME_Y);
+  tGrd.addColorStop(0, d.titleGrad[0]);
+  tGrd.addColorStop(1, d.titleGrad[1]);
+  ctx.fillStyle = tGrd;
+  ctx.fillText(tableName || '', W / 2, TBL_NAME_Y);
+
+  /* 인원 뱃지 - 알약형 */
   if (capacity) {
-    const CAP_Y = TABLE_Y + Math.round(H * 0.048);
-    const capText = `${capacity}인석`;
-    ctx.font = `700 ${Math.round(H * 0.03)}px Arial, sans-serif`;
-    ctx.fillStyle = d.capColor;
-    ctx.fillText(capText, W / 2, CAP_Y);
+    const capText = `  ${capacity}인석  `;
+    ctx.font = `700 ${Math.round(H * 0.026)}px Arial, sans-serif`;
+    const capW = ctx.measureText(capText).width + Math.round(W * 0.04);
+    const capH = Math.round(H * 0.042);
+    const capX = W / 2 - capW / 2;
+    const capY = TBL_NAME_Y + Math.round(H * 0.022);
+
+    ctx.fillStyle = d.accentDim;
+    rrect(ctx, capX, capY, capW, capH, capH / 2);
+    ctx.fill();
+    ctx.strokeStyle = d.accentLine;
+    ctx.lineWidth = 1;
+    rrect(ctx, capX, capY, capW, capH, capH / 2);
+    ctx.stroke();
+
+    ctx.fillStyle = d.accent;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${capacity}인석`, W / 2, capY + capH / 2);
+    ctx.textBaseline = 'alphabetic';
   }
 
-  /* 스캔 안내 박스 */
-  const INST_MX = Math.round(W * 0.07);
-  const INST_W  = W - INST_MX * 2;
-  const INST_H  = Math.round(H * 0.125);
-  const INST_Y  = H - INST_H - Math.round(H * 0.075);
-  const INST_R  = Math.round(W * 0.045);
+  /* ── 스캔 안내 박스 ── */
+  const INST_MX = Math.round(W * 0.065);
+  const INST_W = W - INST_MX * 2;
+  const INST_H = Math.round(H * 0.118);
+  const INST_Y = H - INST_H - Math.round(H * 0.068);
+  const INST_R = Math.round(W * 0.042);
 
   ctx.fillStyle = d.instBg;
   rrect(ctx, INST_MX, INST_Y, INST_W, INST_H, INST_R);
@@ -213,19 +355,30 @@ async function drawCard(canvas, designId, storeName, tableName, capacity) {
   rrect(ctx, INST_MX, INST_Y, INST_W, INST_H, INST_R);
   ctx.stroke();
 
-  const INST_CY = INST_Y + Math.round(INST_H * 0.42);
-  ctx.font = `bold ${Math.round(H * 0.034)}px Arial, sans-serif`;
+  /* 이모지 아이콘 행 */
+  const ICON_Y = INST_Y + Math.round(INST_H * 0.36);
+  ctx.font = `${Math.round(H * 0.03)}px Arial`;
+  ctx.textBaseline = 'middle';
+  ['📱', '→', '🍽️'].forEach((ic, i) => {
+    ctx.fillText(ic, INST_MX + INST_W * (i * 0.33 + 0.165), ICON_Y);
+  });
+  ctx.textBaseline = 'alphabetic';
+
+  /* 메인 안내 문구 */
+  const INST_TEXT_Y = ICON_Y + Math.round(INST_H * 0.37);
+  ctx.font = `bold ${Math.round(H * 0.028)}px Arial, sans-serif`;
   ctx.fillStyle = d.instText;
-  ctx.fillText('📱 스마트폰으로 스캔하여 주문하세요', W / 2, INST_CY);
+  ctx.fillText('QR 스캔하여 바로 주문하세요', W / 2, INST_TEXT_Y);
 
-  ctx.font = `${Math.round(H * 0.024)}px Arial, sans-serif`;
+  ctx.font = `${Math.round(H * 0.021)}px Arial, sans-serif`;
   ctx.fillStyle = d.instSub;
-  ctx.fillText('앱 설치 불필요 · 로그인 없이 즉시 주문', W / 2, INST_CY + Math.round(INST_H * 0.38));
+  ctx.fillText('앱 설치 불필요  ·  로그인 없이 즉시 주문', W / 2, INST_TEXT_Y + Math.round(INST_H * 0.29));
 
-  /* 하단 브랜드 */
-  ctx.font = `${Math.round(H * 0.02)}px Arial, sans-serif`;
+  /* ── 하단 브랜드 ── */
+  const FOOT_Y = H - Math.round(H * 0.022);
+  ctx.font = `${Math.round(H * 0.018)}px Arial, sans-serif`;
   ctx.fillStyle = d.brandText;
-  ctx.fillText('Powered by WeMarket', W / 2, H - Math.round(H * 0.024));
+  ctx.fillText('Powered by WeMarket', W / 2, FOOT_Y);
 }
 
 /* ─────────────────────────── TableManager ─────────────────────────── */
@@ -581,46 +734,82 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
         className="bg-slate-900 border border-white/10 rounded-[2.5rem] w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
 
         {/* ── 왼쪽: 카드 미리보기 ── */}
-        <div className="md:w-[320px] flex-shrink-0 flex flex-col items-center justify-center p-8 border-b md:border-b-0 md:border-r border-white/5"
-          style={{ background: `linear-gradient(160deg, ${d.bg[0]} 0%, ${d.bg[1]} 100%)` }}>
+        <div className="md:w-[320px] flex-shrink-0 flex flex-col items-center justify-center p-6 lg:p-8 border-b md:border-b-0 md:border-r border-white/5 relative overflow-hidden"
+          style={{ background: `linear-gradient(155deg, ${d.previewColors[0]} 0%, ${d.bg[1] || d.previewColors[1]} 60%, ${d.bg[2] || d.previewColors[1]} 100%)` }}>
 
-          {/* 프리뷰 카드 (HTML 렌더) */}
-          <div className="w-full max-w-[230px] rounded-[22px] overflow-hidden shadow-2xl"
-            style={{ background: `linear-gradient(160deg, ${d.bg[0]} 0%, ${d.bg[1]} 100%)`, border: '1px solid rgba(255,255,255,0.08)' }}>
+          {/* 배경 미묘한 패턴 */}
+          {d.id !== 'light' && (
+            <div className="absolute inset-0 opacity-[0.025]"
+              style={{ backgroundImage: 'repeating-linear-gradient(45deg, white 0, white 1px, transparent 0, transparent 50%)', backgroundSize: '20px 20px' }} />
+          )}
 
-            {/* 상단 브랜드 영역 */}
-            <div className="px-5 pt-6 pb-3 text-center">
-              <p className="text-[10px] font-black tracking-[0.3em]" style={{ color: d.accent }}>WeMarket</p>
-              <p className="text-[11px] font-bold mt-1 leading-tight" style={{ color: d.storeColor }}>
+          {/* 프리뷰 카드 */}
+          <div className="relative w-full max-w-[210px] rounded-[20px] overflow-hidden shadow-2xl"
+            style={{
+              background: `linear-gradient(155deg, ${d.previewColors[0]} 0%, ${d.bg[1] || d.previewColors[1]} 100%)`,
+              border: `1px solid ${d.id === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.08)'}`,
+              boxShadow: '0 24px 60px rgba(0,0,0,0.50)',
+            }}>
+
+            {/* 상단: 모노그램 + 워드마크 */}
+            <div className="pt-5 pb-2 px-4 text-center flex flex-col items-center gap-1.5">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center font-black text-sm"
+                style={{ background: d.monoBg, border: `1.5px solid ${d.monoBorder}`, color: d.accent }}>W</div>
+              <p className="text-[10px] font-black tracking-[0.25em]" style={{ color: d.accent }}>WeMarket</p>
+              <p className="text-[10px] font-semibold leading-tight" style={{ color: d.storeColor }}>
                 {store?.name || '매장명'}
               </p>
-              <div className="mt-2.5 h-px w-full opacity-50"
-                style={{ background: `linear-gradient(90deg, transparent, ${d.divider}, transparent)` }} />
-            </div>
-
-            {/* QR 영역 */}
-            <div className="px-4 py-3">
-              <div className="bg-white rounded-2xl p-3 shadow-xl">
-                <img src={qrImgUrl} alt="QR" className="w-full rounded-lg" crossOrigin="anonymous" />
+              {/* 구분선 + 다이아몬드 */}
+              <div className="relative w-full flex items-center justify-center mt-1">
+                <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, transparent, ${d.dividerColor})` }} />
+                <div className="w-1.5 h-1.5 rotate-45 mx-1 flex-shrink-0" style={{ background: d.accent }} />
+                <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${d.dividerColor}, transparent)` }} />
               </div>
             </div>
 
-            {/* 테이블명 */}
-            <div className="px-4 pb-2 text-center">
-              <p className="font-black text-2xl leading-none" style={{ color: d.titleColor }}>{tableName}</p>
-              <p className="text-[10px] font-bold mt-1.5" style={{ color: d.capColor }}>{table.capacity}인석</p>
+            {/* QR 영역 - 코너 브라켓 */}
+            <div className="px-3.5 py-2 relative">
+              {/* 코너 브라켓 장식 */}
+              {[['top-0 left-0', 'border-t-2 border-l-2 rounded-tl-lg'],
+                ['top-0 right-0', 'border-t-2 border-r-2 rounded-tr-lg'],
+                ['bottom-0 left-0', 'border-b-2 border-l-2 rounded-bl-lg'],
+                ['bottom-0 right-0', 'border-b-2 border-r-2 rounded-br-lg']
+              ].map(([pos, cls], i) => (
+                <div key={i} className={`absolute ${pos} w-5 h-5 ${cls}`}
+                  style={{ borderColor: d.qrBorderColor, margin: '6px' }} />
+              ))}
+              <div className="bg-white rounded-xl p-2.5 shadow-xl"
+                style={{ boxShadow: `0 8px 24px rgba(0,0,0,0.30), 0 0 0 1.5px ${d.qrBorderColor}` }}>
+                <img src={qrImgUrl} alt="QR" className="w-full rounded-sm" crossOrigin="anonymous" />
+              </div>
+            </div>
+
+            {/* 테이블 섹션 */}
+            <div className="px-4 pt-1 pb-2 text-center">
+              <p className="text-[8px] font-bold tracking-[0.2em]" style={{ color: d.capColor }}>T  A  B  L  E</p>
+              <div className="my-1 mx-auto rounded-full" style={{ height: 2, width: 40, background: d.accent }} />
+              <p className="font-black text-[22px] leading-tight" style={{ color: d.titleColor }}>{tableName}</p>
+              <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold"
+                style={{ background: d.accentDim, border: `1px solid ${d.accentLine}`, color: d.accent }}>
+                {table.capacity}인석
+              </span>
             </div>
 
             {/* 스캔 안내 */}
-            <div className="mx-4 mb-5 mt-2 rounded-xl px-3 py-2.5 text-center"
+            <div className="mx-3.5 mb-4 mt-2 rounded-xl px-3 py-2 text-center"
               style={{ background: d.instBg, border: `1px solid ${d.instBorder}` }}>
-              <p className="text-[9.5px] font-bold" style={{ color: d.instText }}>📱 스마트폰으로 스캔하여 주문하세요</p>
-              <p className="text-[8px] mt-0.5" style={{ color: d.instSub }}>앱 설치 불필요 · 로그인 없이 즉시 주문</p>
+              <div className="flex justify-center gap-2 mb-1 text-[12px]">
+                <span>📱</span><span style={{ color: d.capColor }}>→</span><span>🍽️</span>
+              </div>
+              <p className="text-[9px] font-bold" style={{ color: d.instText }}>QR 스캔하여 바로 주문하세요</p>
+              <p className="text-[7.5px] mt-0.5" style={{ color: d.instSub }}>앱 설치 불필요 · 즉시 주문</p>
             </div>
+
+            {/* 하단 */}
+            <p className="text-center text-[7px] pb-3" style={{ color: d.brandText }}>Powered by WeMarket</p>
           </div>
 
-          {/* 인쇄 정보 */}
-          <p className="text-slate-600 text-[10px] font-bold mt-4 text-center tracking-wide">
+          <p className="text-slate-500 text-[9px] font-bold mt-4 text-center tracking-wide">
             A6 (105×148mm) 출력 최적화
           </p>
         </div>
@@ -672,13 +861,21 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
               {[
                 { label: '테이블명', value: tableName },
                 { label: '수용 인원', value: `${table.capacity}인석` },
-                { label: '주문 URL', value: qrUrl, truncate: true },
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between">
                   <span className="text-slate-500 text-xs">{row.label}</span>
-                  <span className={`text-white text-xs font-bold ${row.truncate ? 'max-w-[180px] truncate' : ''}`}>{row.value}</span>
+                  <span className="text-white text-xs font-bold">{row.value}</span>
                 </div>
               ))}
+              <div>
+                <span className="text-slate-500 text-xs block mb-1.5">메뉴판 URL</span>
+                <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/5">
+                  <span className="text-emerald-400 text-[10px] font-mono flex-1 truncate">{qrUrl}</span>
+                </div>
+                <p className="text-slate-600 text-[10px] mt-1.5 ml-1">
+                  위 URL이 QR코드에 담겨있습니다. 테스트 버튼으로 확인하세요.
+                </p>
+              </div>
             </div>
 
             {/* 액션 버튼 */}
@@ -690,21 +887,27 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
                 {printing ? '인쇄 준비 중...' : '인쇄하기 (A6)'}
               </motion.button>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-2.5">
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={handleDownload} disabled={downloading}
-                  className="py-3.5 bg-white/8 hover:bg-white/12 border border-white/10 text-slate-300 hover:text-white rounded-2xl font-black text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-60">
-                  {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
-                  {downloading ? '생성 중...' : 'PNG 저장'}
+                  className="py-3.5 bg-white/8 hover:bg-white/12 border border-white/10 text-slate-300 hover:text-white rounded-2xl font-black text-[11px] flex items-center justify-center gap-1.5 transition-all disabled:opacity-60">
+                  {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  PNG
                 </motion.button>
 
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={handleCopy}
-                  className={`py-3.5 border rounded-2xl font-black text-xs flex items-center justify-center gap-2 transition-all ${
+                  className={`py-3.5 border rounded-2xl font-black text-[11px] flex items-center justify-center gap-1.5 transition-all ${
                     copied ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
                   }`}>
-                  {copied ? <Check size={15} /> : <Share2 size={15} />}
+                  {copied ? <Check size={14} /> : <Share2 size={14} />}
                   {copied ? '복사됨!' : 'URL 복사'}
+                </motion.button>
+
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => window.open(qrUrl, '_blank')}
+                  className="py-3.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white rounded-2xl font-black text-[11px] flex items-center justify-center gap-1.5 transition-all">
+                  <QrCode size={14} /> 테스트
                 </motion.button>
               </div>
             </div>

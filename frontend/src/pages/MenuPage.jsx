@@ -22,9 +22,11 @@ const MenuPage = () => {
   const navigate = useNavigate();
   const tableNumber = searchParams.get("table") || "1";
 
-  /* storeId가 숫자가 아닌 QR 코드 문자열인 경우 QrResolvePage로 위임 */
+  /* storeId가 숫자가 아닌 QR 코드 문자열인 경우 — 백엔드로 resolve 후 리다이렉트 */
+  const isNumericStoreId = !!storeId && /^\d+$/.test(storeId);
+
   useEffect(() => {
-    if (storeId && !/^\d+$/.test(storeId)) {
+    if (storeId && !isNumericStoreId) {
       tablesAPI.getByQrCode(storeId)
         .then(res => {
           const table = res?.data || res;
@@ -37,8 +39,8 @@ const MenuPage = () => {
         })
         .catch(() => navigate(`/qr/${storeId}`, { replace: true }));
     }
-  }, [storeId, navigate]);
-  
+  }, [storeId, isNumericStoreId, navigate]);
+
   // State
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [cart, setCart] = useState([]);
@@ -51,17 +53,15 @@ const MenuPage = () => {
   const [currentOrderId, setCurrentOrderId] = useState(null);
   const [currentOrderAmount, setCurrentOrderAmount] = useState(0);
 
-  // Fetch store profile
+  // Fetch store profile — 숫자 storeId일 때만 실행
   const { data: profile } = useQuery({
     queryKey: ["storeProfile", storeId],
     queryFn: async () => {
-      if (!storeId) return null;
       const raw = await storesAPI.getById(storeId);
-      // res.success()로 감싸진 경우: {success:true, data:{...}} → .data 추출
       const data = raw?.data || raw;
       let parsedTheme = null;
       if (data?.theme) {
-        try { parsedTheme = typeof data.theme === 'string' ? JSON.parse(data.theme) : data.theme; } catch { /* 파싱 실패 무시 */ }
+        try { parsedTheme = typeof data.theme === 'string' ? JSON.parse(data.theme) : data.theme; } catch { /* 무시 */ }
       }
       return {
         store_name: data?.name,
@@ -75,40 +75,34 @@ const MenuPage = () => {
         announcement_active: parsedTheme?.announcementActive || false,
       };
     },
-    enabled: !!storeId,
+    enabled: isNumericStoreId,
   });
 
   // Fetch categories
   const { data: categories = [] } = useQuery({
     queryKey: ["publicCategories", storeId],
     queryFn: async () => {
-      if (!storeId) return [];
       const raw = await categoriesAPI.getByStore(storeId);
       return Array.isArray(raw) ? raw : (raw?.data || []);
     },
-    enabled: !!storeId,
+    enabled: isNumericStoreId,
   });
 
   // Fetch menu items
   const { data: menuItems = [], isLoading } = useQuery({
     queryKey: ["publicMenuItems", storeId],
     queryFn: async () => {
-      if (!storeId) return [];
       const raw = await productsAPI.getByStore(storeId);
       const data = Array.isArray(raw) ? raw : (raw?.data || []);
-      return data.map(item => ({
-        ...item,
-        is_available: true
-      }));
+      return data.map(item => ({ ...item, is_available: true }));
     },
-    enabled: !!storeId,
+    enabled: isNumericStoreId,
   });
 
-  // Fetch popular items (Analytics API 활용)
+  // Fetch popular items
   const { data: orderStats = [] } = useQuery({
     queryKey: ["menuOrderStats", storeId],
     queryFn: async () => {
-      if (!storeId) return [];
       try {
         const today = new Date().toISOString().split('T')[0];
         const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -118,7 +112,7 @@ const MenuPage = () => {
         return [];
       }
     },
-    enabled: !!storeId,
+    enabled: isNumericStoreId,
   });
 
   // Helper functions
@@ -275,6 +269,18 @@ const MenuPage = () => {
       setIsOrdering(false);
     }
   };
+
+  /* QR 코드 resolve 중 (비숫자 storeId) */
+  if (!isNumericStoreId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-orange-500 mx-auto" />
+          <p className="text-slate-400 text-sm font-medium">메뉴판 연결 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
