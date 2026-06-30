@@ -6,7 +6,7 @@ import {
     QrCode, Store, Bell, CreditCard, Clock, BarChart3,
     Users, Smartphone, Check, ArrowRight, Menu, X, ChevronRight,
     Zap, Link2, Gift, ShieldCheck, Play, Sparkles,
-    TrendingUp, Star,
+    TrendingUp, Star, Quote, ShoppingCart,
 } from 'lucide-react';
 
 const LandingPage = () => {
@@ -99,6 +99,39 @@ const LandingPage = () => {
         red: 'bg-red-100 text-red-500', indigo: 'bg-indigo-100 text-indigo-500',
         yellow: 'bg-yellow-100 text-yellow-600', teal: 'bg-teal-100 text-teal-500',
     };
+
+    const testimonials = [
+        {
+            name: '김정호',
+            role: '한식당 사장',
+            location: '서울 마포구',
+            avatar: '👨‍🍳',
+            rating: 5,
+            text: '종이 메뉴판을 없애고 위마켓으로 전환했더니 주문 실수가 확 줄었어요. 특히 주방 알림 기능이 정말 편리하고, 매출 통계도 한눈에 볼 수 있어서 운영이 훨씬 수월해졌습니다.',
+            stat: '주문 오류 80% 감소',
+            color: 'orange',
+        },
+        {
+            name: '박수진',
+            role: '카페 운영자',
+            location: '부산 해운대구',
+            avatar: '☕',
+            rating: 5,
+            text: 'QR 하나로 테이블 관리부터 결제까지 해결돼요. 아르바이트생도 하루 만에 익혔고, 고객들이 앱 없이 바로 주문할 수 있어서 거부감이 전혀 없습니다.',
+            stat: '운영 시간 30% 단축',
+            color: 'blue',
+        },
+        {
+            name: '이동현',
+            role: '분식집·포장 전문',
+            location: '대구 수성구',
+            avatar: '🍱',
+            rating: 5,
+            text: '포인트 적립 기능으로 단골 고객이 눈에 띄게 늘었어요. 결제 후 60초 타이머로 자연스럽게 회원가입을 유도하는 방식이 정말 영리합니다. 재방문율이 크게 올랐어요.',
+            stat: '재방문율 62% 상승',
+            color: 'green',
+        },
+    ];
 
     // 데모 UX 혁신 3가지
     const demoFeatures = [
@@ -193,7 +226,13 @@ const LandingPage = () => {
             {/* ══════════════════════════════════════════════
                 히어로 섹션
             ══════════════════════════════════════════════ */}
-            <section className="pt-28 pb-20 px-6 bg-gradient-to-br from-orange-50 via-white to-slate-50">
+            <section className="pt-28 pb-20 px-6 relative overflow-hidden"
+                style={{ background: 'linear-gradient(135deg, #fff7ed 0%, #ffffff 45%, #f8faff 100%)' }}>
+                {/* 장식 블러 원 */}
+                <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-40 blur-3xl pointer-events-none"
+                    style={{ background: 'radial-gradient(circle, rgba(251,146,60,0.25) 0%, transparent 70%)' }} />
+                <div className="absolute top-20 right-0 w-80 h-80 rounded-full opacity-30 blur-3xl pointer-events-none"
+                    style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)' }} />
                 <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
 
                     {/* 왼쪽 텍스트 */}
@@ -225,15 +264,20 @@ const LandingPage = () => {
                         </div>
 
                         {/* 통계 */}
-                        <div className="flex gap-10 mt-12 pt-8 border-t border-gray-100">
+                        <div className="flex gap-8 mt-12 pt-8 border-t border-gray-100">
                             {[
-                                { value: '1,000+', label: '등록 매장' },
-                                { value: '500만+', label: '누적 주문' },
-                                { value: '99%',    label: '고객 만족도' },
+                                { value: '1,000+', label: '등록 매장', icon: Store },
+                                { value: '500만+', label: '누적 주문', icon: ShoppingCart },
+                                { value: '4.9★',   label: '평균 평점',  icon: Star },
                             ].map(stat => (
-                                <div key={stat.label}>
-                                    <p className="text-2xl font-black text-gray-900">{stat.value}</p>
-                                    <p className="text-sm text-gray-500 mt-0.5">{stat.label}</p>
+                                <div key={stat.label} className="flex items-center gap-2.5">
+                                    <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                                        <stat.icon size={16} className="text-orange-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xl font-black text-gray-900 leading-none">{stat.value}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5">{stat.label}</p>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -389,8 +433,10 @@ const LandingPage = () => {
             {/* ══════════════════════════════════════════════
                 기능 소개
             ══════════════════════════════════════════════ */}
-            <section id="features" className="py-24 px-6 bg-white">
-                <div className="max-w-7xl mx-auto">
+            <section id="features" className="py-24 px-6 bg-white relative">
+                <div className="absolute inset-0 opacity-[0.015] pointer-events-none"
+                    style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+                <div className="max-w-7xl mx-auto relative z-10">
                     <div className="text-center mb-16">
                         <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">기능 소개</span>
                         <h2 className="text-4xl font-black text-gray-900 mb-4">매장 운영에 필요한 모든 것</h2>
@@ -401,11 +447,11 @@ const LandingPage = () => {
                             <motion.div key={feature.title}
                                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
                                 transition={{ delay: i * 0.07 }} viewport={{ once: true }}
-                                className="p-6 bg-white border border-gray-100 rounded-2xl hover:shadow-md hover:-translate-y-1 transition-all cursor-default">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${iconColorMap[feature.color]}`}>
+                                className="p-6 bg-white border border-gray-100 rounded-2xl hover:shadow-lg hover:-translate-y-1.5 hover:border-orange-100 transition-all duration-300 cursor-default group">
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${iconColorMap[feature.color]} group-hover:scale-110 transition-transform duration-300`}>
                                     <feature.icon size={22} />
                                 </div>
-                                <h3 className="font-bold text-gray-900 mb-2">{feature.title}</h3>
+                                <h3 className="font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">{feature.title}</h3>
                                 <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
                             </motion.div>
                         ))}
@@ -455,6 +501,84 @@ const LandingPage = () => {
                                 </div>
                             ))}
                         </div>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════
+                고객 후기
+            ══════════════════════════════════════════════ */}
+            <section className="py-24 px-6 bg-white">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-16">
+                        <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">고객 후기</span>
+                        <h2 className="text-4xl font-black text-gray-900 mb-4">실제 사장님들의 이야기</h2>
+                        <p className="text-gray-500 text-lg">전국 소상공인들이 위마켓으로 매장을 바꿨습니다.</p>
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-6">
+                        {testimonials.map((t, i) => (
+                            <motion.div key={t.name}
+                                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.1 }} viewport={{ once: true }}
+                                className="bg-white border border-gray-100 rounded-3xl p-8 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col relative overflow-hidden group">
+                                {/* 배경 장식 */}
+                                <div className={`absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-[0.06] blur-xl ${
+                                    t.color === 'orange' ? 'bg-orange-500' : t.color === 'blue' ? 'bg-blue-500' : 'bg-green-500'
+                                }`} />
+                                {/* 따옴표 */}
+                                <Quote size={28} className={`mb-4 opacity-20 ${
+                                    t.color === 'orange' ? 'text-orange-500' : t.color === 'blue' ? 'text-blue-500' : 'text-green-500'
+                                }`} />
+                                {/* 별점 */}
+                                <div className="flex gap-1 mb-4">
+                                    {[...Array(t.rating)].map((_, j) => (
+                                        <Star key={j} size={15} className="fill-amber-400 text-amber-400" />
+                                    ))}
+                                </div>
+                                {/* 본문 */}
+                                <p className="text-gray-600 text-sm leading-relaxed mb-6 flex-1">{t.text}</p>
+                                {/* 지표 뱃지 */}
+                                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black mb-5 w-fit ${
+                                    t.color === 'orange' ? 'bg-orange-50 text-orange-600' :
+                                    t.color === 'blue'   ? 'bg-blue-50 text-blue-600' :
+                                                           'bg-green-50 text-green-600'
+                                }`}>
+                                    <TrendingUp size={12} />
+                                    {t.stat}
+                                </div>
+                                {/* 프로필 */}
+                                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl border ${
+                                        t.color === 'orange' ? 'bg-orange-50 border-orange-100' :
+                                        t.color === 'blue'   ? 'bg-blue-50 border-blue-100' :
+                                                               'bg-green-50 border-green-100'
+                                    }`}>
+                                        {t.avatar}
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-gray-900 text-sm">{t.name}</p>
+                                        <p className="text-xs text-gray-400">{t.role} · {t.location}</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                    {/* 사회적 증거 수치 */}
+                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                        className="mt-16 grid sm:grid-cols-3 gap-6">
+                        {[
+                            { value: '4.9', suffix: '/ 5.0', label: '평균 사용자 평점', note: '1,200+ 리뷰 기준' },
+                            { value: '97', suffix: '%', label: '재계약률', note: '최근 12개월 기준' },
+                            { value: '14', suffix: '일', label: '무료 체험 기간', note: '카드 등록 불필요' },
+                        ].map((s, i) => (
+                            <div key={i} className="text-center py-8 px-6 bg-gray-50 rounded-2xl border border-gray-100">
+                                <p className="text-4xl font-black text-gray-900 mb-1">
+                                    {s.value}<span className="text-2xl text-orange-500">{s.suffix}</span>
+                                </p>
+                                <p className="font-bold text-gray-700 mb-1">{s.label}</p>
+                                <p className="text-xs text-gray-400">{s.note}</p>
+                            </div>
+                        ))}
                     </motion.div>
                 </div>
             </section>
@@ -652,8 +776,10 @@ const LandingPage = () => {
             {/* ══════════════════════════════════════════════
                 요금제
             ══════════════════════════════════════════════ */}
-            <section id="pricing" className="py-24 px-6 bg-gray-50">
-                <div className="max-w-5xl mx-auto">
+            <section id="pricing" className="py-24 px-6 bg-gray-50 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-[0.4] pointer-events-none"
+                    style={{ backgroundImage: 'linear-gradient(135deg, rgba(249,115,22,0.04) 0%, transparent 50%, rgba(99,102,241,0.04) 100%)' }} />
+                <div className="max-w-5xl mx-auto relative z-10">
                     <div className="text-center mb-16">
                         <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">요금제</span>
                         <h2 className="text-4xl font-black text-gray-900 mb-4">합리적인 가격, 강력한 기능</h2>
@@ -664,10 +790,17 @@ const LandingPage = () => {
                             <motion.div key={plan.name}
                                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
                                 transition={{ delay: i * 0.1 }} viewport={{ once: true }}
-                                className={`rounded-3xl p-8 flex flex-col ${plan.popular
+                                className={`rounded-3xl p-8 flex flex-col relative overflow-hidden ${plan.popular
                                     ? 'bg-gray-900 text-white shadow-2xl md:scale-105'
-                                    : 'bg-white border border-gray-200'
+                                    : 'bg-white border border-gray-200 hover:shadow-md hover:-translate-y-1 transition-all duration-300'
                                 }`}>
+                                {plan.popular && (
+                                    <>
+                                        <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full opacity-10 blur-2xl"
+                                            style={{ background: 'radial-gradient(circle, #f97316, transparent)' }} />
+                                        <span className="absolute top-6 right-6 px-3 py-1 bg-orange-500 text-white text-[10px] font-black rounded-full">인기</span>
+                                    </>
+                                )}
                                 <h3 className={`text-lg font-bold mb-1 ${plan.popular ? 'text-gray-300' : 'text-gray-500'}`}>{plan.name}</h3>
                                 <div className="flex items-end gap-1 mb-6">
                                     <span className="text-4xl font-black">{plan.price}</span>
@@ -685,7 +818,7 @@ const LandingPage = () => {
                                 </div>
                                 <button onClick={() => navigate('/register')}
                                     className={`w-full py-3.5 rounded-full font-bold transition-all text-sm ${plan.popular
-                                        ? 'bg-orange-500 text-white hover:bg-orange-600'
+                                        ? 'bg-orange-500 text-white hover:bg-orange-400 shadow-lg shadow-orange-500/30'
                                         : 'border-2 border-gray-200 text-gray-700 hover:border-orange-300 hover:text-orange-500'
                                     }`}>
                                     {plan.cta}
@@ -699,8 +832,10 @@ const LandingPage = () => {
             {/* ══════════════════════════════════════════════
                 최종 CTA
             ══════════════════════════════════════════════ */}
-            <section className="py-24 px-6 bg-white">
-                <div className="max-w-4xl mx-auto text-center">
+            <section className="py-24 px-6 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #fff7ed 0%, #ffffff 60%, #eff6ff 100%)' }}>
+                <div className="absolute -top-20 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-30 pointer-events-none"
+                    style={{ background: 'radial-gradient(circle, rgba(251,146,60,0.3) 0%, transparent 70%)' }} />
+                <div className="max-w-4xl mx-auto text-center relative z-10">
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
                         <div className="flex justify-center gap-1 mb-6">
                             {[...Array(5)].map((_, i) => <Star key={i} size={18} className="fill-amber-400 text-amber-400" />)}
@@ -710,16 +845,21 @@ const LandingPage = () => {
                             <span className="text-orange-500">스마트하게</span>{' '}
                             운영하세요
                         </h2>
-                        <p className="text-gray-500 text-lg mb-10">14일 무료 체험 · 신용카드 불필요</p>
+                        <p className="text-gray-500 text-lg mb-3">14일 무료 체험 · 신용카드 불필요</p>
+                        <div className="flex items-center justify-center gap-4 mb-10 text-sm text-gray-400">
+                            <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-500" /> 설치 불필요</span>
+                            <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-500" /> 계약 없음</span>
+                            <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-500" /> 즉시 시작</span>
+                        </div>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                 onClick={() => navigate('/register')}
-                                className="px-10 py-4 bg-orange-500 text-white rounded-full font-black text-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200 flex items-center justify-center gap-2">
+                                className="px-10 py-4 bg-orange-500 text-white rounded-full font-black text-lg hover:bg-orange-600 transition-colors shadow-xl shadow-orange-200 flex items-center justify-center gap-2">
                                 무료로 시작하기 <ArrowRight size={22} />
                             </motion.button>
                             <Link to="/menu/demo">
                                 <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                                    className="px-10 py-4 border-2 border-gray-200 text-gray-700 rounded-full font-black text-lg hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                                    className="px-10 py-4 border-2 border-gray-200 bg-white text-gray-700 rounded-full font-black text-lg hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-2 cursor-pointer">
                                     <Play size={18} className="fill-current" /> 고객 데모 체험하기
                                 </motion.div>
                             </Link>

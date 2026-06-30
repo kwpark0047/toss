@@ -138,18 +138,24 @@ const MasterDashboard = () => {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full"
-                />
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5">
+                <div className="relative w-16 h-16">
+                    <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+                        className="absolute inset-0 rounded-full border-[3px] border-orange-500/20 border-t-orange-500"
+                    />
+                    <div className="absolute inset-3 rounded-full bg-orange-500/10 flex items-center justify-center">
+                        <LayoutDashboard size={16} className="text-orange-500" />
+                    </div>
+                </div>
                 <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="mt-6 text-slate-500 font-bold tracking-widest uppercase text-xs"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-slate-400 font-bold text-sm"
                 >
-                    Initializing Systems...
+                    대시보드 로딩 중...
                 </motion.p>
             </div>
         );
@@ -158,60 +164,64 @@ const MasterDashboard = () => {
     if (!loading && stores.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-                <div className="text-6xl">🏪</div>
-                <div className="text-center">
-                    <h2 className="text-2xl font-black text-slate-900 mb-2">등록된 매장이 없습니다</h2>
-                    <p className="text-slate-500 text-sm">매장을 먼저 생성해야 상품 관리와 메뉴 빌더를 사용할 수 있습니다.</p>
+                <div className="w-24 h-24 rounded-3xl bg-orange-50 border-2 border-orange-100 flex items-center justify-center text-4xl shadow-sm">
+                    🏪
+                </div>
+                <div className="text-center space-y-2">
+                    <h2 className="text-2xl font-black text-slate-900">등록된 매장이 없습니다</h2>
+                    <p className="text-slate-500 text-sm max-w-xs">매장을 먼저 생성해야 상품 관리와 메뉴 빌더를 사용할 수 있습니다.</p>
                 </div>
                 <button
                     onClick={() => navigate('/admin/stores/new')}
-                    className="px-8 py-4 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    className="px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-2xl transition-all hover:shadow-lg hover:shadow-orange-200 flex items-center gap-2"
                 >
                     <Plus size={20} />
-                    매장 만들기
+                    첫 매장 만들기
                 </button>
             </div>
         );
     }
 
-    const StatCard = ({ title, value, icon: Icon, trend, color, bgColor, progress }) => (
-        <motion.div
-            variants={itemVariants}
-            whileHover={{ y: -3, scale: 1.02 }}
-            className="glass-panel p-3 md:p-6 card-hover relative overflow-hidden group border-white/40 shadow-sm"
-        >
-            <div className={`absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 rounded-full opacity-[0.05] blur-3xl transition-all group-hover:opacity-[0.15] ${bgColor}`}></div>
-            <div className="flex justify-between items-start mb-2 md:mb-4">
-                <div className={`p-2 md:p-3 rounded-xl md:rounded-2xl ${bgColor.replace('bg-', 'bg-opacity-10 bg-')} ${color} shadow-inner`}>
-                    <Icon size={18} className="md:hidden" />
-                    <Icon size={24} className="hidden md:block" />
+    const StatCard = ({ title, value, icon: Icon, trend, color, bgColor, progress }) => {
+        const iconBg = bgColor.replace('-500', '-500/10');
+        return (
+            <motion.div
+                variants={itemVariants}
+                whileHover={{ y: -3, scale: 1.01 }}
+                className="glass-panel p-3 md:p-6 card-hover relative overflow-hidden group border-white/50"
+            >
+                <div className={`absolute -top-8 -right-8 w-28 h-28 rounded-full blur-2xl transition-opacity duration-500 opacity-[0.06] group-hover:opacity-[0.12] ${bgColor}`} />
+                <div className="flex justify-between items-start mb-2 md:mb-4">
+                    <div className={`p-2 md:p-3 rounded-xl md:rounded-2xl ${iconBg} ${color}`}>
+                        <Icon size={18} className="md:hidden" />
+                        <Icon size={22} className="hidden md:block" />
+                    </div>
+                    {trend !== undefined && (
+                        <motion.div
+                            initial={{ opacity: 0, x: 10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className={`flex items-center text-[10px] font-black px-2 py-1 rounded-lg gap-0.5 ${trend >= 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}
+                        >
+                            {trend >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+                            {Math.abs(trend)}%
+                        </motion.div>
+                    )}
                 </div>
-                {trend !== undefined && (
-                    <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className={`flex items-center text-[9px] md:text-[10px] font-black px-1.5 md:px-2.5 py-1 rounded-lg ${trend >= 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}
-                    >
-                        {trend >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                        {Math.abs(trend)}%
-                    </motion.div>
+                <p className="text-slate-500 text-[10px] md:text-xs font-bold tracking-wider mb-0.5 md:mb-1 leading-tight">{title}</p>
+                <h3 className="text-lg md:text-3xl font-black text-slate-900 leading-tight tabular-nums">{value}</h3>
+                {progress !== undefined && (
+                    <div className="mt-2 md:mt-4 h-1 md:h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.min(progress, 100)}%` }}
+                            transition={{ duration: 1.2, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                            className={`h-full rounded-full ${bgColor}`}
+                        />
+                    </div>
                 )}
-            </div>
-            <p className="text-slate-500 text-[9px] md:text-xs font-bold uppercase tracking-wider mb-0.5 md:mb-1 leading-tight">{title}</p>
-            <h3 className="text-lg md:text-3xl font-black text-slate-900 leading-tight">{value}</h3>
-
-            {progress !== undefined && (
-                <div className="mt-2 md:mt-4 h-1 md:h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progress}%` }}
-                        transition={{ duration: 1, delay: 0.5 }}
-                        className={`h-full ${bgColor}`}
-                    />
-                </div>
-            )}
-        </motion.div>
-    );
+            </motion.div>
+        );
+    };
 
     return (
         <motion.div
@@ -223,23 +233,23 @@ const MasterDashboard = () => {
             {/* Header Section */}
             <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8">
                 <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-blue-600 mb-1.5">
+                    <div className="flex items-center gap-2 text-orange-500 mb-1.5">
                         <LayoutDashboard size={16} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Master Overview</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">전체 현황</span>
                     </div>
                     <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-none">
-                        Command <span className="text-blue-600">Center</span>
+                        운영 <span className="text-orange-500">대시보드</span>
                     </h1>
                     <div className="flex items-center gap-2 mt-2">
                         <button
                             onClick={() => setIsMultiView(false)}
-                            className={`px-3 py-1.5 text-[10px] font-black rounded-lg border transition-all ${!isMultiView ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-400 border-slate-200'}`}
+                            className={`px-3 py-1.5 text-[10px] font-black rounded-lg border transition-all ${!isMultiView ? 'bg-orange-500 text-white border-orange-500 shadow-sm shadow-orange-100' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
                         >
                             단일 매장
                         </button>
                         <button
                             onClick={() => setIsMultiView(true)}
-                            className={`px-3 py-1.5 text-[10px] font-black rounded-lg border transition-all ${isMultiView ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' : 'bg-white text-slate-400 border-slate-200'}`}
+                            className={`px-3 py-1.5 text-[10px] font-black rounded-lg border transition-all ${isMultiView ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-100' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
                         >
                             전체 매장 통계
                         </button>
@@ -270,7 +280,7 @@ const MasterDashboard = () => {
                                     const store = stores.find((s) => s.id === parseInt(e.target.value));
                                     setSelectedStore(store);
                                 }}
-                                className="w-full pl-4 pr-8 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 font-black text-xs uppercase tracking-wider focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer appearance-none shadow-sm"
+                                className="w-full pl-4 pr-8 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 font-black text-xs focus:ring-4 focus:ring-orange-500/10 outline-none transition-all cursor-pointer appearance-none shadow-sm hover:border-slate-300"
                             >
                                 {Array.isArray(stores) && stores.map((store) => (
                                     <option key={store.id} value={store.id}>
@@ -287,16 +297,16 @@ const MasterDashboard = () => {
             {/* Primary Stats Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 <StatCard
-                    title="실시간 총 매출"
+                    title="총 매출"
                     value={formatPrice(stats?.total_sales || 0)}
                     icon={DollarSign}
                     trend={comparison?.growth?.sales}
-                    color="text-blue-600"
-                    bgColor="bg-blue-500"
+                    color="text-orange-600"
+                    bgColor="bg-orange-500"
                     progress={100}
                 />
                 <StatCard
-                    title="신규 주문 요청"
+                    title="총 주문 수"
                     value={`${stats?.total_orders || 0}건`}
                     icon={ShoppingBag}
                     trend={comparison?.growth?.orders}
@@ -305,7 +315,7 @@ const MasterDashboard = () => {
                     progress={stats?.total_orders > 0 ? 100 : 0}
                 />
                 <StatCard
-                    title="현재 정산 완료율"
+                    title="완료율"
                     value={stats?.total_orders > 0
                         ? `${Math.round(((stats.by_status?.completed || 0) / stats.total_orders) * 100)}%`
                         : '0%'}
@@ -317,8 +327,8 @@ const MasterDashboard = () => {
                         : 0}
                 />
                 <StatCard
-                    title="매장 가동 효율"
-                    value={stats?.total_orders > 0 ? "High" : "Idle"}
+                    title="매장 상태"
+                    value={stats?.total_orders > 0 ? "활성" : "대기"}
                     icon={Activity}
                     color="text-emerald-600"
                     bgColor="bg-emerald-500"
@@ -335,28 +345,31 @@ const MasterDashboard = () => {
                         <h2 className="text-xl font-black flex items-center gap-3">
                             {isMultiView ? (
                                 <>
-                                    <TrendingUp className="text-indigo-500" size={24} />
-                                    Store Performance Rankings
+                                    <TrendingUp className="text-indigo-500" size={22} />
+                                    매장별 실적 순위
                                 </>
                             ) : (
                                 <>
-                                    <span className="w-2 h-2 bg-rose-500 rounded-full animate-ping" />
-                                    Live Order Feed
+                                    <span className="relative flex h-2.5 w-2.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                                    </span>
+                                    실시간 주문
                                 </>
                             )}
                         </h2>
                         {!isMultiView && (
-                            <Link to={`/admin/stores/${selectedStore?.id}/orders`} className="group text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1 hover:underline">
-                                View All History <ArrowUpRight size={14} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+                            <Link to={`/admin/stores/${selectedStore?.id}/orders`} className="group text-[10px] font-black text-orange-500 flex items-center gap-1 hover:text-orange-600 transition-colors">
+                                전체 내역 <ArrowUpRight size={14} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
                             </Link>
                         )}
                     </div>
 
                     <div className="glass-panel overflow-hidden border-white/50 shadow-xl relative min-h-[200px] lg:min-h-[500px]">
                         {!isMultiView && (
-                            <div className="absolute top-0 right-0 w-full h-full opacity-[0.02] pointer-events-none overflow-hidden">
-                                <img src="https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=1000&auto=format&fit=crop" className="w-full h-full object-cover grayscale" alt="bg" />
-                            </div>
+                            <div className="absolute inset-0 pointer-events-none opacity-30"
+                                style={{ background: 'radial-gradient(ellipse at 80% 20%, rgba(249,115,22,0.06) 0%, transparent 60%), radial-gradient(ellipse at 20% 80%, rgba(99,102,241,0.04) 0%, transparent 50%)' }}
+                            />
                         )}
 
                         <div className="divide-y divide-slate-100 relative z-10">
@@ -393,8 +406,8 @@ const MasterDashboard = () => {
                                                     </div>
                                                     <div>
                                                         <div className="font-black text-slate-900 text-lg">{s.store_name}</div>
-                                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                                                            Total Orders: {s.total_orders}
+                                                        <div className="text-[10px] text-slate-400 font-bold mt-0.5">
+                                                            총 {s.total_orders}건
                                                         </div>
                                                     </div>
                                                 </div>
@@ -422,66 +435,73 @@ const MasterDashboard = () => {
                                         <motion.div
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
-                                            className="p-32 text-center space-y-6"
+                                            className="py-24 text-center space-y-5 px-8"
                                         >
-                                            <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto text-slate-200 border border-slate-100">
-                                                <ShoppingBag size={48} />
+                                            <div className="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center mx-auto border border-orange-100/80">
+                                                <ShoppingBag size={36} className="text-orange-300" />
                                             </div>
                                             <div>
-                                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Incoming Stream Empty</p>
-                                                <p className="text-slate-300 text-sm">현재 들어오는 주문이 없습니다.</p>
+                                                <p className="text-slate-700 font-black text-base mb-1">아직 주문이 없습니다</p>
+                                                <p className="text-slate-400 text-sm">QR 스캔 후 고객이 주문하면 여기에 표시됩니다.</p>
                                             </div>
                                         </motion.div>
                                     ) : (
                                         recentOrders.map((order, idx) => (
                                             <motion.div
                                                 key={order.id}
-                                                initial={{ opacity: 0, x: -20 }}
+                                                initial={{ opacity: 0, x: -16 }}
                                                 animate={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: idx * 0.05 }}
-                                                className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between hover:bg-white/80 transition-all group border-l-4 border-l-transparent hover:border-l-blue-600"
+                                                transition={{ delay: idx * 0.04, ease: [0.22, 1, 0.36, 1] }}
+                                                className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between hover:bg-orange-50/40 transition-all group border-l-4 border-l-transparent hover:border-l-orange-400 cursor-default"
                                             >
                                                 <div className="flex items-center gap-3 md:gap-5 min-w-0">
                                                     <div className="relative flex-shrink-0">
-                                                        <div className={`w-10 h-10 md:w-16 md:h-16 rounded-2xl md:rounded-[1.25rem] flex items-center justify-center font-black text-[10px] md:text-xs shadow-inner transition-all group-hover:scale-105 ${order.status === 'pending' ? 'bg-blue-600 text-white shadow-blue-500/20' : 'bg-slate-100 text-slate-500'
-                                                            }`}>
+                                                        <div className={`w-10 h-10 md:w-14 md:h-14 rounded-2xl flex items-center justify-center font-black text-[10px] md:text-xs transition-all group-hover:scale-105 ${
+                                                            order.status === 'pending' ? 'bg-orange-500 text-white shadow-md shadow-orange-200' : 'bg-slate-100 text-slate-500'
+                                                        }`}>
                                                             #{order.order_number.slice(-3)}
                                                         </div>
                                                         {order.status === 'pending' && (
-                                                            <div className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-orange-500 border-2 border-white rounded-full"></div>
+                                                            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                                                                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-orange-500 border-2 border-white" />
+                                                            </span>
                                                         )}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <div className="font-black text-slate-900 group-hover:text-blue-600 transition-colors flex items-center gap-2 text-sm md:text-lg truncate">
-                                                            {order.table_name || 'PICKUP'}
-                                                            <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tighter flex-shrink-0">
-                                                                {order.customer_name || 'GUEST'}
+                                                        <div className="font-black text-slate-900 group-hover:text-orange-600 transition-colors flex items-center gap-2 text-sm md:text-base truncate">
+                                                            {order.table_name || '포장'}
+                                                            <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-bold flex-shrink-0">
+                                                                {order.customer_name || '비회원'}
                                                             </span>
                                                         </div>
                                                         <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1.5 mt-0.5">
                                                             <Clock size={10} className="text-slate-300 flex-shrink-0" />
                                                             {formatTime(order.created_at)}
-                                                            <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
-                                                            <span className="text-blue-600 font-black text-xs">{formatPrice(order.total_amount)}</span>
+                                                            <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                                                            <span className="text-orange-500 font-black text-xs">{formatPrice(order.total_amount)}</span>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-2 md:gap-6 flex-shrink-0">
-                                                    <span className={`hidden sm:flex px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-[10px] font-black uppercase rounded-lg tracking-widest border transition-all ${order.status === 'pending' ? 'bg-blue-50 text-blue-600 border-blue-100 shadow-sm' :
+                                                <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+                                                    <span className={`hidden sm:flex px-2 md:px-3 py-1 md:py-1.5 text-[10px] font-black rounded-lg border transition-all ${
+                                                        order.status === 'pending'   ? 'bg-orange-50 text-orange-600 border-orange-100' :
                                                         order.status === 'preparing' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                                            order.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                                                'bg-slate-50 text-slate-400 border-slate-100'
-                                                        }`}>
-                                                        {order.status === 'pending' ? '대기' : order.status.toUpperCase()}
+                                                        order.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                                                       'bg-slate-50 text-slate-400 border-slate-100'
+                                                    }`}>
+                                                        {order.status === 'pending' ? '접수' : order.status === 'preparing' ? '조리중' : order.status === 'completed' ? '완료' : '취소'}
                                                     </span>
-                                                    <motion.button
-                                                        whileHover={{ scale: 1.1 }}
-                                                        whileTap={{ scale: 0.9 }}
-                                                        className="p-2 md:p-3 bg-slate-50 text-slate-300 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm"
-                                                    >
-                                                        <ChevronRight size={16} />
-                                                    </motion.button>
+                                                    <Link to={`/admin/stores/${selectedStore?.id}/orders`}>
+                                                        <motion.div
+                                                            whileHover={{ scale: 1.1 }}
+                                                            whileTap={{ scale: 0.9 }}
+                                                            className="p-2 md:p-2.5 bg-slate-50 text-slate-300 rounded-xl group-hover:bg-orange-500 group-hover:text-white transition-all shadow-sm"
+                                                        >
+                                                            <ChevronRight size={15} />
+                                                        </motion.div>
+                                                    </Link>
                                                 </div>
                                             </motion.div>
                                         ))
@@ -496,19 +516,19 @@ const MasterDashboard = () => {
                 <motion.div variants={itemVariants} className="space-y-8">
                     <div className="flex items-center justify-between px-2">
                         <h2 className="text-xl font-black flex items-center gap-3">
-                            <Target className="text-indigo-500" size={24} />
-                            Operation Tools
+                            <Zap className="text-orange-500" size={22} />
+                            운영 도구
                         </h2>
-                        <Settings size={18} className="text-slate-300" />
+                        <Settings size={16} className="text-slate-300" />
                     </div>
 
                     <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
                         {[
-                            { label: 'Menu Manager', to: 'menu', icon: ShoppingBag, desc: '상품 고도화 및 메뉴판 빌더', gradient: 'from-blue-500 to-blue-600' },
-                            { label: 'Table Map', to: 'tables', icon: Store, desc: '실시간 좌석 및 동선 관리', gradient: 'from-indigo-500 to-indigo-600' },
-                            { label: 'HR 관리', to: 'staff', icon: Users, desc: '직원 권한 및 근태 레포트', gradient: 'from-purple-500 to-purple-600' },
-                            { label: 'Intelligence', to: 'stats', icon: BarChart3, desc: 'AI 기반 매출 예측 분석', gradient: 'from-emerald-500 to-emerald-600' },
-                            { label: 'Settlement', to: 'settlements', icon: DollarSign, desc: '정산 및 금융 통계 요약', gradient: 'from-amber-500 to-amber-600' },
+                            { label: '메뉴 관리', to: 'menu',        icon: ShoppingBag, desc: '상품 등록 및 메뉴판 빌더',   gradient: 'from-blue-500 to-blue-600' },
+                            { label: '좌석 관리', to: 'tables',      icon: Store,       desc: '실시간 좌석 및 동선 관리', gradient: 'from-indigo-500 to-indigo-600' },
+                            { label: '직원 관리', to: 'staff',       icon: Users,       desc: '직원 권한 및 근태 관리',   gradient: 'from-purple-500 to-purple-600' },
+                            { label: '매출 분석', to: 'stats',       icon: BarChart3,   desc: 'AI 기반 매출 예측 분석',   gradient: 'from-emerald-500 to-emerald-600' },
+                            { label: '정산 관리', to: 'settlements', icon: DollarSign,  desc: '정산 및 금융 통계 요약',   gradient: 'from-amber-500 to-amber-600' },
                         ].map((tool) => (
                             <motion.div
                                 key={tool.to}
@@ -517,47 +537,56 @@ const MasterDashboard = () => {
                             >
                                 <button
                                     onClick={() => handleToolNav(tool.to)}
-                                    className="w-full glass-panel p-3 md:p-5 flex items-center gap-3 md:gap-5 transition-all hover:bg-white hover:shadow-xl group relative overflow-hidden border-white/60"
+                                    className="w-full glass-panel p-3 md:p-4 flex items-center gap-3 md:gap-4 transition-all hover:bg-white hover:shadow-lg group relative overflow-hidden border-white/60"
                                 >
-                                    <div className={`p-2.5 md:p-3.5 bg-gradient-to-br ${tool.gradient} rounded-xl md:rounded-2xl text-white shadow-lg group-hover:rotate-6 transition-transform flex-shrink-0`}>
-                                        <tool.icon size={18} className="md:hidden" />
-                                        <tool.icon size={22} className="hidden md:block" />
+                                    <div className={`p-2.5 md:p-3 bg-gradient-to-br ${tool.gradient} rounded-xl text-white shadow-md group-hover:scale-110 transition-transform flex-shrink-0`}>
+                                        <tool.icon size={17} className="md:hidden" />
+                                        <tool.icon size={20} className="hidden md:block" />
                                     </div>
                                     <div className="relative z-10 flex-grow text-left min-w-0">
-                                        <div className="font-black text-slate-900 leading-tight group-hover:text-blue-600 transition-colors uppercase text-[10px] md:text-xs tracking-tight truncate">{tool.label}</div>
-                                        <div className="text-[9px] md:text-[10px] text-slate-400 font-bold mt-0.5 leading-snug hidden sm:block">{tool.desc}</div>
+                                        <div className="font-black text-slate-900 leading-tight group-hover:text-orange-600 transition-colors text-xs md:text-sm truncate">{tool.label}</div>
+                                        <div className="text-[10px] text-slate-400 font-medium mt-0.5 leading-snug hidden sm:block">{tool.desc}</div>
                                     </div>
-                                    <ChevronRight size={14} className="text-slate-200 group-hover:text-blue-500 group-hover:translate-x-1 transition-all flex-shrink-0 hidden md:block" />
+                                    <ChevronRight size={14} className="text-slate-300 group-hover:text-orange-400 group-hover:translate-x-1 transition-all flex-shrink-0 hidden md:block" />
                                 </button>
                             </motion.div>
                         ))}
                     </div>
 
-                    {/* Premium Upgrade Banner */}
+                    {/* 프리미엄 업그레이드 배너 */}
                     <motion.div
-                        whileHover={{ y: -5 }}
-                        className="bg-slate-950 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl group border border-white/10"
+                        whileHover={{ y: -4 }}
+                        className="rounded-3xl p-7 text-white relative overflow-hidden shadow-xl group border border-white/10"
+                        style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)' }}
                     >
-                        <div className="absolute inset-0 opacity-40 group-hover:opacity-60 transition-opacity duration-700">
-                            <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800" className="w-full h-full object-cover grayscale" alt="premium" />
-                        </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
-                        <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-blue-500/20 rounded-full blur-[60px]" />
+                        {/* 장식 원 */}
+                        <div className="absolute -top-10 -right-10 w-44 h-44 rounded-full opacity-20 blur-2xl"
+                            style={{ background: 'radial-gradient(circle, #6366f1, transparent)' }} />
+                        <div className="absolute -bottom-6 -left-6 w-32 h-32 rounded-full opacity-15 blur-2xl"
+                            style={{ background: 'radial-gradient(circle, #f97316, transparent)' }} />
+                        {/* 그리드 패턴 */}
+                        <div className="absolute inset-0 opacity-[0.04]"
+                            style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
 
                         <div className="relative z-10">
-                            <div className="flex items-center gap-2 text-blue-400 mb-4 animate-pulse">
-                                <Sparkles size={20} />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Upgrade Available</span>
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
+                                    <Sparkles size={15} className="text-indigo-400" />
+                                </div>
+                                <span className="text-[10px] font-black text-indigo-400 tracking-widest uppercase">프리미엄</span>
                             </div>
-                            <h4 className="text-2xl font-black mb-3 leading-tight">Premium <br /> Intelligence</h4>
-                            <p className="text-[11px] text-slate-400 leading-relaxed font-medium mb-8 pr-12">빅데이터를 활용한 고객 방문 시간대 예측 및 인기 메뉴 자동 추천 기능을 사용해 보세요.</p>
-
+                            <h4 className="text-xl font-black mb-2 leading-tight">AI 매출 예측<br />
+                                <span className="text-indigo-400">인사이트</span>
+                            </h4>
+                            <p className="text-[11px] text-slate-400 leading-relaxed mb-6">
+                                고객 방문 패턴 분석, 인기 메뉴 자동 추천, 피크타임 예측으로 매출을 극대화하세요.
+                            </p>
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                className="w-full py-4 bg-white text-slate-950 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all shadow-xl"
+                                className="w-full py-3.5 bg-indigo-500 hover:bg-indigo-400 text-white rounded-2xl font-black text-sm transition-all shadow-lg shadow-indigo-500/30"
                             >
-                                Get Started Now
+                                지금 시작하기
                             </motion.button>
                         </div>
                     </motion.div>

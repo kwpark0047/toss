@@ -195,6 +195,62 @@
     @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-md;
   }
 
+  /* ── 범용 글래스모피즘 패널 (라이트 배경) ── */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    border-radius: 1.5rem;
+    box-shadow: 0 4px 24px -8px rgba(0, 0, 0, 0.08);
+  }
+
+  /* ── 다크 배경용 글래스 패널 ── */
+  .glass-panel-dark {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 1.5rem;
+  }
+
+  /* ── 고객 메뉴 상단 고정 헤더 (Glassmorphism) ── */
+  .glass-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 2px 20px -4px rgba(0, 0, 0, 0.07);
+  }
+
+  /* ── 카드 호버 효과 ── */
+  .card-hover {
+    transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.12);
+  }
+
+  /* ── 소프트 그림자 ── */
+  .shadow-soft {
+    box-shadow: 0 2px 16px -4px rgba(0, 0, 0, 0.07),
+                0 1px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+
+  /* ── 스크롤바 숨기기 ── */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   .gradient-text {
     @apply bg-clip-text text-transparent;
     background-image: var(--gradient-primary);
