@@ -306,7 +306,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
               </div>
               <div>
                 <span className={`text-xl font-black tracking-tighter block leading-none mb-1 uppercase ${tc.logoText}`}>WeMarket</span>
-                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${tc.logoSub}`}>Master Admin</span>
+                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${tc.logoSub}`}>관리자 센터</span>
               </div>
             </Link>
           </div>
@@ -360,7 +360,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
                   </div>
                   <div className="overflow-hidden flex-1">
                     <p className={`text-sm font-black truncate ${tc.textStrong}`}>{user.name || '이름 미설정'}</p>
-                    <p className={`text-[10px] font-black uppercase tracking-widest ${tc.textAccent}`}>{user.role || 'Admin'}</p>
+                    <p className={`text-[10px] font-black uppercase tracking-widest ${tc.textAccent}`}>{user.role === 'super_admin' ? '슈퍼관리자' : user.role === 'manager' ? '매니저' : user.role === 'staff' ? '직원' : '관리자'}</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -396,12 +396,12 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
                 <Store size={15} className="text-white" />
               </div>
-              <span className={`font-black text-sm uppercase tracking-tighter ${tc.logoText}`}>WeMarket</span>
+              <span className={`font-black text-sm tracking-tight ${tc.logoText}`}>위마켓 관리자</span>
             </div>
 
             <div className={`hidden lg:flex items-center gap-3 px-4 py-2 rounded-full ${tc.operational}`}>
               <div className={`w-2 h-2 rounded-full animate-pulse ${tc.operationalDot}`} />
-              <span className={`text-[10px] font-black uppercase tracking-widest ${tc.operationalTxt}`}>System Operational</span>
+              <span className={`text-[10px] font-black uppercase tracking-widest ${tc.operationalTxt}`}>시스템 정상 운영 중</span>
             </div>
 
             <div className="flex items-center gap-2 lg:gap-3">
@@ -413,8 +413,8 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
                   <Sparkles size={18} />
                 </div>
                 <div className="hidden sm:block">
-                  <p className={`text-[10px] font-black uppercase tracking-widest leading-none mb-1 ${tc.statusLabel}`}>Status</p>
-                  <p className={`text-xs font-black leading-none ${tc.textStrong}`}>Admin Active</p>
+                  <p className={`text-[10px] font-black uppercase tracking-widest leading-none mb-1 ${tc.statusLabel}`}>상태</p>
+                  <p className={`text-xs font-black leading-none ${tc.textStrong}`}>관리자 활성</p>
                 </div>
               </div>
             </div>
@@ -516,7 +516,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <p className={`text-sm font-black truncate ${tc.textStrong}`}>{user.name || '이름 미설정'}</p>
-                        <p className={`text-[10px] font-bold uppercase tracking-widest ${tc.textAccent}`}>{user.role || 'Admin'}</p>
+                        <p className={`text-[10px] font-bold uppercase tracking-widest ${tc.textAccent}`}>{user.role === 'super_admin' ? '슈퍼관리자' : user.role === 'manager' ? '매니저' : user.role === 'staff' ? '직원' : '관리자'}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -588,7 +588,7 @@ const AdminLayout = ({ children }) => {
           <div className="w-24 h-24 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-2xl shadow-orange-500/20">
             <Store className="w-12 h-12 text-white" />
           </div>
-          <h2 className="text-3xl font-black text-white mb-4 tracking-tight">Access Denied</h2>
+          <h2 className="text-3xl font-black text-white mb-4 tracking-tight">접근 권한 없음</h2>
           <p className="mb-10 text-slate-400 font-medium">진입 권한이 없습니다.<br />관리자 계정으로 로그인해 주세요.</p>
           <Link to="/login" className="w-full py-4 bg-white text-slate-950 rounded-2xl font-black text-sm hover:shadow-xl hover:shadow-white/10 transition-all block">
             로그인 페이지로 이동
