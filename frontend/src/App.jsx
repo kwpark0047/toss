@@ -36,6 +36,7 @@ const InventoryManager      = lazy(() => import("@/components/admin/InventoryMan
 const TableManager          = lazy(() => import("@/components/admin/TableManager"));
 const ProfilePage           = lazy(() => import("@/pages/ProfilePage"));
 const TinkerBellManagerPage = lazy(() => import("@/pages/TinkerBellManagerPage"));
+const StoreSetupWizard      = lazy(() => import("@/components/admin/StoreSetupWizard"));
 const BoardList          = lazy(() => import("@/components/board/BoardList"));
 const BoardDetail        = lazy(() => import("@/components/board/BoardDetail"));
 const BoardWrite         = lazy(() => import("@/components/board/BoardWrite"));
@@ -108,6 +109,13 @@ const AppRoutes = () => (
       <AdminPage>
         <AdminSuspense><MasterDashboard /></AdminSuspense>
       </AdminPage>
+    } />
+
+    {/* 첫 매장 설정 마법사 (팅커벨 온보딩) */}
+    <Route path="/admin/setup" element={
+      <ProtectedRoute>
+        <AdminSuspense><StoreSetupWizard /></AdminSuspense>
+      </ProtectedRoute>
     } />
 
     {/* 매장 생성 */}

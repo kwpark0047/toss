@@ -242,9 +242,9 @@ const LandingPage = () => {
                             🚀 QR 하나로 완성하는 스마트 매장
                         </div>
                         <h1 className="text-5xl md:text-6xl font-black leading-[1.2] mb-6 text-gray-900">
-                            앱 설치 없이<br />
-                            <span className="text-orange-500">QR 스캔 한 번</span>으로<br />
-                            주문부터 결제까지
+                            사장님께<br />
+                            <span className="text-orange-500">단골고객 관리리스트</span>를<br />
+                            만들어 드립니다.
                         </h1>
                         <p className="text-lg text-gray-500 mb-8 leading-relaxed max-w-lg">
                             위마켓은 종이 메뉴판과 복잡한 POS를 대체하는 올인원 QR 메뉴판 플랫폼입니다.
