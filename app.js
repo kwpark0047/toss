@@ -34,7 +34,8 @@ const allowedOrigins = [
     'https://frontend-gamma-ten-89.vercel.app',
     'https://wemarket-toss.onrender.com',
     'https://wemarket.onrender.com',
-    'https://wemarket.vercel.app'
+    'https://wemarket.vercel.app',
+    'https://250105.vercel.app'
 ];
 
 if (process.env.CORS_ORIGIN) {
