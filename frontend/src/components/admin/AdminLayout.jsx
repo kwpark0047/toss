@@ -599,7 +599,8 @@ const AdminLayout = ({ children }) => {
   }
 
   const rawStoreId = location.pathname.split('/')[3];
-  const storeId = rawStoreId && rawStoreId !== 'undefined' ? rawStoreId : undefined;
+  // 'new', 'undefined', 영문 경로 등 비숫자 값은 storeId로 인정하지 않음
+  const storeId = rawStoreId && /^\d+$/.test(rawStoreId) ? rawStoreId : undefined;
 
   const navItems = [
     { label: '대시보드',      icon: LayoutDashboard, path: '/admin',                                           id: 'dashboard', roles: [] },

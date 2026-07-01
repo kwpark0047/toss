@@ -21,25 +21,25 @@ const defaultTheme = {
 };
 
 const fontOptions = [
-  { value: 'Pretendard', label: 'Pretendard (Default)' },
+  { value: 'Pretendard', label: 'Pretendard (기본)' },
   { value: 'Noto Sans KR', label: 'Noto Sans KR' },
-  { value: 'Nanum Gothic', label: 'Nanum Gothic' },
+  { value: 'Nanum Gothic', label: '나눔고딕' },
   { value: 'Spoqa Han Sans Neo', label: 'Spoqa Han Sans' }
 ];
 
 const presetThemes = [
-  { name: 'Orange', primary: '#f97316', secondary: '#1e3a5f', accent: '#10b981' },
-  { name: 'Ocean', primary: '#3b82f6', secondary: '#1e293b', accent: '#f59e0b' },
-  { name: 'Emerald', primary: '#10b981', secondary: '#064e3b', accent: '#f97316' },
-  { name: 'Midnight', primary: '#8b5cf6', secondary: '#1e1b4b', accent: '#ec4899' },
-  { name: 'Crimson', primary: '#ef4444', secondary: '#1f2937', accent: '#fbbf24' },
-  { name: 'Cyberpunk', primary: '#ec4899', secondary: '#4a044e', accent: '#06b6d4' }
+  { name: '오렌지', primary: '#f97316', secondary: '#1e3a5f', accent: '#10b981' },
+  { name: '오션', primary: '#3b82f6', secondary: '#1e293b', accent: '#f59e0b' },
+  { name: '에메랄드', primary: '#10b981', secondary: '#064e3b', accent: '#f97316' },
+  { name: '미드나잇', primary: '#8b5cf6', secondary: '#1e1b4b', accent: '#ec4899' },
+  { name: '크림슨', primary: '#ef4444', secondary: '#1f2937', accent: '#fbbf24' },
+  { name: '사이버펑크', primary: '#ec4899', secondary: '#4a044e', accent: '#06b6d4' }
 ];
 
 const planOptions = [
-  { value: 'free', label: 'Free', desc: '1 Store, Basic Features', icon: Building2, color: 'text-slate-400', bg: 'bg-slate-400/10' },
-  { value: 'pro', label: 'Pro', desc: '5 Stores, Advanced Analytics', icon: Zap, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-  { value: 'enterprise', label: 'Enterprise', desc: 'Unlimited, Dedicated Support', icon: Crown, color: 'text-orange-400', bg: 'bg-orange-400/10' }
+  { value: 'free', label: 'Free', desc: '매장 1개, 기본 기능', icon: Building2, color: 'text-slate-400', bg: 'bg-slate-400/10' },
+  { value: 'pro', label: 'Pro', desc: '매장 5개, 고급 분석', icon: Zap, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+  { value: 'enterprise', label: 'Enterprise', desc: '무제한 매장, 전담 지원', icon: Crown, color: 'text-orange-400', bg: 'bg-orange-400/10' }
 ];
 
 const StoreForm = () => {
@@ -96,12 +96,12 @@ const StoreForm = () => {
         requested_plan: requestPlan,
         reason: requestReason
       });
-      setRequestSuccess('Plan upgrade request has been submitted!');
+      setRequestSuccess('플랜 업그레이드 신청이 접수되었습니다!');
       setRequestReason('');
       const pr = await planRequestsAPI.getByStore(id);
       setPlanRequests(pr.data || []);
     } catch (err) {
-      setError(err.message || 'Request failed');
+      setError(err.message || '신청에 실패했습니다');
     } finally {
       setRequestLoading(false);
     }
@@ -117,7 +117,7 @@ const StoreForm = () => {
       else await storesAPI.create(data);
       navigate('/admin');
     } catch (err) {
-      setError(err.response?.data?.error || 'Save failed');
+      setError(err.response?.data?.error || '저장에 실패했습니다');
     } finally { setLoading(false); }
   };
 
@@ -132,15 +132,15 @@ const StoreForm = () => {
         <div className="w-10 h-10 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center group-hover:bg-orange-500/10 group-hover:border-orange-500/50 transition-all">
           <ArrowLeft size={20} />
         </div>
-        BACK TO DASHBOARD
+        대시보드로 돌아가기
       </motion.button>
 
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="lg:w-64 shrink-0 space-y-2">
           {[
-            { id: 'info', label: 'STORE INFO', icon: Info },
-            { id: 'theme', label: 'DESIGN SYSTEM', icon: Palette },
-            { id: 'plan', label: 'SERVICE PLAN', icon: Crown, hide: isSuperAdmin || !isEdit }
+            { id: 'info', label: '매장 정보', icon: Info },
+            { id: 'theme', label: '디자인 시스템', icon: Palette },
+            { id: 'plan', label: '서비스 플랜', icon: Crown, hide: isSuperAdmin || !isEdit }
           ].filter(t => !t.hide).map((tab) => (
             <button
               key={tab.id}
@@ -192,72 +192,72 @@ const StoreForm = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-4">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                          <Building2 size={14} className="text-orange-500" /> STORE NAME
+                          <Building2 size={14} className="text-orange-500" /> 매장명
                         </label>
-                        <input 
-                          type="text" 
-                          name="name" 
-                          value={form.name} 
-                          onChange={handleChange} 
-                          required 
-                          className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold placeholder:text-slate-700 outline-none focus:border-orange-500/50 focus:bg-white/10 transition-all" 
-                          placeholder="Enter store name" 
+                        <input
+                          type="text"
+                          name="name"
+                          value={form.name}
+                          onChange={handleChange}
+                          required
+                          className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold placeholder:text-slate-700 outline-none focus:border-orange-500/50 focus:bg-white/10 transition-all"
+                          placeholder="매장 이름을 입력하세요"
                         />
                       </div>
                       <div className="space-y-4">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                          <ChefHat size={14} className="text-orange-500" /> BUSINESS CATEGORY
+                          <ChefHat size={14} className="text-orange-500" /> 업종 분류
                         </label>
-                        <select 
-                          name="business_type" 
-                          value={form.business_type} 
-                          onChange={handleChange} 
+                        <select
+                          name="business_type"
+                          value={form.business_type}
+                          onChange={handleChange}
                           className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold outline-none focus:border-orange-500/50 appearance-none transition-all"
                         >
-                          <option value="cafe" className="bg-slate-900">CAFE</option>
-                          <option value="restaurant" className="bg-slate-900">RESTAURANT</option>
-                          <option value="bar" className="bg-slate-900">BAR / PUB</option>
-                          <option value="bakery" className="bg-slate-900">BAKERY</option>
-                          <option value="fastfood" className="bg-slate-900">FAST FOOD</option>
+                          <option value="cafe" className="bg-slate-900">카페</option>
+                          <option value="restaurant" className="bg-slate-900">레스토랑</option>
+                          <option value="bar" className="bg-slate-900">바 / 펍</option>
+                          <option value="bakery" className="bg-slate-900">베이커리</option>
+                          <option value="fastfood" className="bg-slate-900">패스트푸드</option>
                         </select>
                       </div>
                     </div>
 
                     <div className="space-y-4">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                        <MapPin size={14} className="text-orange-500" /> LOCATION ADDRESS
+                        <MapPin size={14} className="text-orange-500" /> 매장 주소
                       </label>
-                      <input 
-                        type="text" 
-                        name="address" 
-                        value={form.address || ''} 
-                        onChange={handleChange} 
-                        className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold placeholder:text-slate-700 outline-none focus:border-orange-500/50 transition-all" 
-                        placeholder="Enter full address" 
+                      <input
+                        type="text"
+                        name="address"
+                        value={form.address || ''}
+                        onChange={handleChange}
+                        className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold placeholder:text-slate-700 outline-none focus:border-orange-500/50 transition-all"
+                        placeholder="전체 주소를 입력하세요"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-4">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                          <Phone size={14} className="text-orange-500" /> CONTACT PHONE
+                          <Phone size={14} className="text-orange-500" /> 연락처
                         </label>
-                        <input 
-                          type="tel" 
-                          name="phone" 
-                          value={form.phone || ''} 
-                          onChange={handleChange} 
-                          className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold placeholder:text-slate-700 outline-none focus:border-orange-500/50 transition-all" 
-                          placeholder="010-0000-0000" 
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={form.phone || ''}
+                          onChange={handleChange}
+                          className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold placeholder:text-slate-700 outline-none focus:border-orange-500/50 transition-all"
+                          placeholder="010-0000-0000"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-4">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">OPENING</label>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">영업 시작</label>
                           <input type="time" name="open_time" value={form.open_time} onChange={handleChange} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold outline-none appearance-none transition-all" />
                         </div>
                         <div className="space-y-4">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">CLOSING</label>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">영업 종료</label>
                           <input type="time" name="close_time" value={form.close_time} onChange={handleChange} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold outline-none appearance-none transition-all" />
                         </div>
                       </div>
@@ -265,15 +265,15 @@ const StoreForm = () => {
 
                     <div className="space-y-4">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                        <Layout size={14} className="text-orange-500" /> STORE INTRODUCTION
+                        <Layout size={14} className="text-orange-500" /> 매장 소개
                       </label>
-                      <textarea 
-                        name="description" 
-                        value={form.description || ''} 
-                        onChange={handleChange} 
-                        rows={4} 
-                        className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold placeholder:text-slate-700 outline-none focus:border-orange-500/50 transition-all resize-none" 
-                        placeholder="Tell customers about your store..." 
+                      <textarea
+                        name="description"
+                        value={form.description || ''}
+                        onChange={handleChange}
+                        rows={4}
+                        className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold placeholder:text-slate-700 outline-none focus:border-orange-500/50 transition-all resize-none"
+                        placeholder="고객에게 매장을 소개해주세요..."
                       />
                     </div>
 
@@ -285,8 +285,8 @@ const StoreForm = () => {
                               <Smartphone size={24} />
                             </div>
                             <div>
-                              <p className="font-black text-white text-sm">SMS MARKETING PERMISSION</p>
-                              <p className="text-xs text-slate-500 font-bold uppercase tracking-tighter mt-1">Allow store admin to send SMS notifications to customers</p>
+                              <p className="font-black text-white text-sm">SMS 마케팅 권한</p>
+                              <p className="text-xs text-slate-500 font-bold uppercase tracking-tighter mt-1">매장 관리자가 고객에게 SMS 알림을 발송할 수 있도록 허용</p>
                             </div>
                           </div>
                           <button
@@ -317,7 +317,7 @@ const StoreForm = () => {
                       <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 blur-[100px] -mr-32 -mt-32" />
                       <div className="relative z-10 flex items-center justify-between gap-10">
                         <div>
-                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Current Active Plan</p>
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">현재 활성 플랜</p>
                           <h3 className="text-4xl font-black text-white uppercase tracking-tight">{form.plan || 'FREE'}</h3>
                         </div>
                         <div className="w-24 h-24 bg-white/5 rounded-3xl border border-white/10 flex items-center justify-center text-orange-500 shadow-2xl">
@@ -332,15 +332,15 @@ const StoreForm = () => {
                           <Clock size={28} className="animate-pulse" />
                         </div>
                         <div>
-                          <p className="font-black text-white text-lg">UPGRADE PENDING REVIEW</p>
+                          <p className="font-black text-white text-lg">업그레이드 검토 중</p>
                           <p className="text-sm font-bold text-slate-500 mt-1 uppercase">
-                            Your request for {planRequests.find(r => r.status === 'pending')?.requested_plan.toUpperCase()} plan is being processed
+                            {planRequests.find(r => r.status === 'pending')?.requested_plan.toUpperCase()} 플랜 업그레이드 요청이 처리 중입니다
                           </p>
                         </div>
                       </div>
                     ) : form.plan !== 'enterprise' && (
                       <div className="space-y-8">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">SELECT PREMIUM TIERS</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">프리미엄 플랜 선택</label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {planOptions.filter(p => p.value !== 'free' && p.value !== form.plan).map((plan) => (
                             <button
@@ -368,11 +368,11 @@ const StoreForm = () => {
                         </div>
 
                         <div className="space-y-4">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">REASON FOR UPGRADE</label>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">업그레이드 사유</label>
                           <textarea
                             value={requestReason}
                             onChange={(e) => setRequestReason(e.target.value)}
-                            placeholder="Tell us more about your business needs..."
+                            placeholder="비즈니스 요구사항을 알려주세요..."
                             rows={3}
                             className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold placeholder:text-slate-700 outline-none focus:border-orange-500/50 transition-all resize-none"
                           />
@@ -395,7 +395,7 @@ const StoreForm = () => {
                           disabled={requestLoading}
                           className="w-full h-16 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-2xl font-black text-sm tracking-[0.2em] shadow-2xl shadow-orange-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                         >
-                          {requestLoading ? 'PROCESSING REQUEST...' : `REQUEST ${requestPlan.toUpperCase()} ACCESS`}
+                          {requestLoading ? '처리 중...' : `${requestPlan.toUpperCase()} 업그레이드 신청`}
                         </button>
                       </div>
                     )}
@@ -412,7 +412,7 @@ const StoreForm = () => {
                     className="space-y-12"
                   >
                     <div>
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 block">PRESET THEME ARCHITECTURE</label>
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 block">프리셋 테마</label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
                         {presetThemes.map((preset, idx) => (
                           <button 
@@ -433,11 +433,11 @@ const StoreForm = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                       <div className="space-y-8">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">COLOR SYSTEM</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">색상 시스템</label>
                         {[
-                          { key: 'primaryColor', label: 'PRIMARY BRAND' },
-                          { key: 'secondaryColor', label: 'SECONDARY ACCENT' },
-                          { key: 'accentColor', label: 'INTERACTIVE POINT' }
+                          { key: 'primaryColor', label: '기본 색상' },
+                          { key: 'secondaryColor', label: '보조 색상' },
+                          { key: 'accentColor', label: '강조 색상' }
                         ].map(item => (
                           <div key={item.key} className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
                             <input 
@@ -459,7 +459,7 @@ const StoreForm = () => {
                         ))}
                         
                         <div className="pt-4">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 block">TYPOGRAPHY FAMILY</label>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 block">폰트 종류</label>
                           <div className="relative">
                             <Type className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                             <select 
@@ -473,20 +473,20 @@ const StoreForm = () => {
                         </div>
 
                         <div>
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 block">BRAND LOGO TEXT</label>
-                          <input 
-                            type="text" 
-                            value={theme.logoText} 
-                            onChange={(e) => handleThemeChange('logoText', e.target.value)} 
-                            className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold outline-none focus:border-orange-500/50 transition-all" 
-                            placeholder="Enter display logo text" 
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 block">브랜드 로고 텍스트</label>
+                          <input
+                            type="text"
+                            value={theme.logoText}
+                            onChange={(e) => handleThemeChange('logoText', e.target.value)}
+                            className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold outline-none focus:border-orange-500/50 transition-all"
+                            placeholder="로고에 표시할 텍스트 입력"
                           />
                         </div>
                       </div>
 
                       {/* 실시간 미리보기 */}
                       <div className="space-y-6">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">LIVE MOBILE PREVIEW</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">실시간 모바일 미리보기</label>
                         <div className="relative mx-auto w-[320px] aspect-[9/18] bg-slate-900 rounded-[3rem] border-[12px] border-slate-800 shadow-2xl overflow-hidden ring-4 ring-white/5">
                           {/* 스크린 내부 */}
                           <div className="absolute inset-0 flex flex-col" style={{ backgroundColor: theme.backgroundColor, fontFamily: theme.fontFamily }}>
