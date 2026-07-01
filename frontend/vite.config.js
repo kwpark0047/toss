@@ -87,8 +87,8 @@ export default defineConfig({
 
         // 기존 sw.js와 충돌 방지
         cleanupOutdatedCaches: true,
-        skipWaiting: true,             // autoUpdate: 새 SW 즉시 활성화
-        clientsClaim: true,
+        skipWaiting: true,             // 새 SW 설치 즉시 activate (waiting 건너뜀)
+        clientsClaim: true,            // activate 후 모든 탭을 즉시 제어
       },
 
       devOptions: {

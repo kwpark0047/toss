@@ -568,6 +568,11 @@ const AdminLayout = ({ children }) => {
   const location = useLocation();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
+  // 어드민 경로를 sessionStorage에 저장 → offline.html 복귀 시 원래 경로 복원
+  useEffect(() => {
+    try { sessionStorage.setItem('wm_last_path', location.pathname); } catch (_) {}
+  }, [location.pathname]);
+
   const handleLogout = () => {
     logout();
     navigate('/login');

@@ -241,6 +241,47 @@ let redirectTimer = null;
 let elapsedInterval = null;
 const offlineSince = Date.now();
 
+/* ─── SW 즉시 업데이트 ───────────────────────────────────────────────────────
+ * 구 SW(navigateFallback: offline.html)가 이 페이지를 서빙한 경우:
+ * 1. 새 SW가 있으면 즉시 설치 + 활성화
+ * 2. 새 SW가 컨트롤러가 되면 '/'로 이동 → 새 SW가 index.html을 올바르게 서빙
+ */
+(function initSWUpdate() {
+  if (!('serviceWorker' in navigator)) return;
+
+  // 새 SW 활성화 시 '/'로 이동 (새 SW는 navigateFallback: '/index.html' 사용)
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.replace('/');
+  });
+
+  navigator.serviceWorker.ready.then(reg => {
+    // 최신 SW 확인 요청
+    reg.update().catch(() => {});
+
+    // 이미 waiting 상태인 새 SW가 있으면 즉시 활성화
+    if (reg.waiting) {
+      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      return;
+    }
+
+    // 설치 중인 SW 상태 감시
+    const onInstalling = (worker) => {
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed') {
+          worker.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    };
+
+    if (reg.installing) {
+      onInstalling(reg.installing);
+    }
+    reg.addEventListener('updatefound', () => {
+      if (reg.installing) onInstalling(reg.installing);
+    });
+  }).catch(() => {});
+})();
+
 /* ─── Init ─── */
 (function init() {
   // Save last-online timestamp if we somehow get here while online
@@ -335,6 +376,18 @@ async function manualRetry() {
   }
 }
 
+/* ─── 목적지 경로 결정 ───────────────────────────────────────────────────────
+ * 구 SW가 offline.html로 리다이렉트한 경우, 원래 접근하려던 경로를 알 수 없다.
+ * sessionStorage에 마지막으로 방문한 admin 경로가 있으면 그곳으로 복원한다.
+ */
+function getRedirectTarget() {
+  try {
+    const last = sessionStorage.getItem('wm_last_path');
+    if (last && last.startsWith('/admin')) return last;
+  } catch(_) {}
+  return '/';
+}
+
 /* ─── Online handler ─── */
 function handleOnline() {
   if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
@@ -347,6 +400,8 @@ function handleOnline() {
   const label = document.getElementById('status-label');
   chip.classList.add('online');
   label.textContent = '연결 복구됨';
+
+  const target = getRedirectTarget();
 
   // Update title/sub
   document.getElementById('main-title').textContent = '연결이 복구되었습니다!';
@@ -361,14 +416,13 @@ function handleOnline() {
   document.getElementById('retry-icon').classList.remove('spin');
   document.getElementById('retry-icon').textContent = '✓';
   document.getElementById('retry-text').textContent = '지금 이동하기';
-  btn.onclick = () => window.location.href = '/';
+  btn.onclick = () => { clearInterval(redirectTimer); doNavigate(target); };
 
   // Countdown redirect: 3s
-  let pct = 100;
-  const bar = document.getElementById('redirect-bar');
+  const bar  = document.getElementById('redirect-bar');
   const fill = document.getElementById('redirect-fill');
   const rtxt = document.getElementById('redirect-txt');
-  bar.style.display = 'block';
+  bar.style.display  = 'block';
   rtxt.style.display = 'block';
   fill.style.width = '100%';
 
@@ -376,15 +430,20 @@ function handleOnline() {
   rtxt.textContent = `${count}초 후 자동으로 이동합니다`;
   redirectTimer = setInterval(() => {
     count--;
-    pct = (count / 3) * 100;
-    fill.style.width = pct + '%';
+    fill.style.width = ((count / 3) * 100) + '%';
     if (count > 0) {
       rtxt.textContent = `${count}초 후 자동으로 이동합니다`;
     } else {
       clearInterval(redirectTimer);
-      window.location.href = '/';
+      doNavigate(target);
     }
   }, 1000);
+}
+
+/* SW 업데이트 대기 후 이동 */
+function doNavigate(target) {
+  // 새 SW가 이미 컨트롤러라면 바로 이동 (controllerchange에서 '/'로 가는 경우 중복 방지 고려 불필요)
+  window.location.replace(target);
 }
 
 /* ─── Offline handler (e.g. toggled back while on page) ─── */
