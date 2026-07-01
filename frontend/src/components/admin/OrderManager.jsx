@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import notificationSound from '../../utils/notificationSound';
-import { onNewOrder } from '../../utils/socket';
+import { onNewOrder, onOrderUpdated } from '../../utils/socket';
 import { formatPrice, formatTime, formatDateTime } from '../../utils/format';
 import { handleApiError } from '../../utils/apiError';
 import OrderCard from './OrderCard';
@@ -158,7 +158,7 @@ const OrderManager = () => {
     }
   }, [autoRefresh, fetchOrders]);
 
-  // 실시간 소켓 리스너: 새 주문 접수 즉시 목록 갱신
+  // 새 주문 접수 → 목록 갱신 + 알림음
   useEffect(() => {
     const cleanup = onNewOrder(() => {
       fetchOrders();
@@ -168,6 +168,16 @@ const OrderManager = () => {
     });
     return cleanup;
   }, [fetchOrders, soundEnabled]);
+
+  // 주문 상태 변경 → 해당 주문만 즉시 인플레이스 업데이트 (전체 재조회 없이)
+  useEffect(() => {
+    const cleanup = onOrderUpdated((payload) => {
+      setOrders(prev => prev.map(o =>
+        o.id === payload.order_id ? { ...o, status: payload.status } : o
+      ));
+    });
+    return cleanup;
+  }, []);
 
   const filteredOrders = useMemo(() => {
     if (!searchTerm) return orders;

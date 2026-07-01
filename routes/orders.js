@@ -218,25 +218,42 @@ router.put('/:id/status', authMiddleware, catchAsync(async (req, res) => {
 
     const customerToken = updatedOrder.customer_fcm_token;
     notificationService.notifyOrderStatus(updatedOrder, status, customerToken);
+    notificationService.notifyOrderStatusDB(updatedOrder, status).catch(() => {});
 
     const io = req.app.get('io');
-    const customerPhone = updatedOrder.customer_phone;
-    if (io && customerPhone) {
-        const normalized = customerPhone.replace(/[^0-9]/g, '');
-        const STATUS_LABELS = {
-            preparing: '조리 중입니다',
-            ready: '준비가 완료되었습니다',
-            completed: '주문이 완료되었습니다',
-            cancelled: '주문이 취소되었습니다'
-        };
-        io.to(`customer-orders-${normalized}`).emit('order-status-updated', {
-            order_id: updatedOrder.id,
-            order_number: updatedOrder.order_number,
-            status,
-            status_label: STATUS_LABELS[status] || `상태 변경: ${status}`,
-            store_name: updatedOrder.stores?.name,
-            updated_at: new Date().toISOString()
-        });
+    const STATUS_LABELS = {
+        confirmed: '주문이 확인되었습니다',
+        preparing: '조리 중입니다',
+        ready: '준비가 완료되었습니다',
+        completed: '주문이 완료되었습니다',
+        cancelled: '주문이 취소되었습니다'
+    };
+
+    const orderUpdatePayload = {
+        order_id: updatedOrder.id,
+        order_number: updatedOrder.order_number,
+        status,
+        status_label: STATUS_LABELS[status] || `상태 변경: ${status}`,
+        store_id: updatedOrder.store_id,
+        table_id: updatedOrder.table_id,
+        table_name: updatedOrder.table_name || null,
+        updated_at: new Date().toISOString()
+    };
+
+    if (io) {
+        // 어드민 주문 패널 즉시 갱신
+        io.to(`store - ${updatedOrder.store_id}`).emit('order-updated', orderUpdatePayload);
+        // 주방 디스플레이 즉시 갱신
+        io.to(`kitchen - ${updatedOrder.store_id}`).emit('order-updated', orderUpdatePayload);
+        // 개별 주문 추적 (고객 OrderStatusModal)
+        io.to(`order - ${updatedOrder.id}`).emit('order-updated', orderUpdatePayload);
+
+        // 전화번호 기반 고객 알림 채널
+        const customerPhone = updatedOrder.customer_phone;
+        if (customerPhone) {
+            const normalized = customerPhone.replace(/[^0-9]/g, '');
+            io.to(`customer-orders-${normalized}`).emit('order-status-updated', orderUpdatePayload);
+        }
     }
 
     res.json({ success: true, order: updatedOrder, message: '주문 상태가 변경되었습니다' });

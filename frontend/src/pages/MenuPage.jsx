@@ -261,7 +261,7 @@ const MenuPage = () => {
       setCart([]);
       setIsCartOpen(false);
 
-      // 주문 후 포인트 등록 시트 표시 (주문 현황보다 먼저)
+      // 포인트 등록 시트 → 닫힌 후 주문 현황 자동 열기 (handlePhoneSheetClose에서 처리)
       setTimeout(() => setIsPhoneSheetOpen(true), 400);
     } catch {
       toast.error("주문에 실패했습니다. 다시 시도해주세요.");
@@ -421,7 +421,8 @@ const MenuPage = () => {
       {storeId && (
         <OrderStatusModal
           isOpen={isOrderStatusOpen}
-          onClose={() => setIsOrderStatusOpen(false)}
+          onClose={() => { setIsOrderStatusOpen(false); }}
+          orderId={currentOrderId}
           storeId={storeId}
           tableNumber={tableNumber}
         />

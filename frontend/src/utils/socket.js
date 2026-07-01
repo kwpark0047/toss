@@ -48,6 +48,25 @@ export const onNewOrder = (callback) => {
   return () => socket.off('new-order', callback);
 };
 
+// 주문 상태 변경 이벤트 리스너 (어드민·주방·고객 공통)
+export const onOrderUpdated = (callback) => {
+  socket.on('order-updated', callback);
+  return () => socket.off('order-updated', callback);
+};
+
+// 특정 주문 룸 구독 (고객 OrderStatusModal — join-order)
+export const joinOrderRoom = (orderId) => {
+  if (!socket.connected) socket.connect();
+  socket.emit('join-order', orderId);
+};
+
+// 전화번호 기반 고객 알림 채널 구독
+export const joinCustomerOrders = (phone) => {
+  if (!socket.connected) socket.connect();
+  const normalized = String(phone).replace(/[^0-9]/g, '');
+  socket.emit('join-customer-orders', { phone: normalized });
+};
+
 // 연결 상태 이벤트
 export const onConnect = (callback) => {
   socket.on('connect', callback);
