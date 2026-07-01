@@ -156,6 +156,8 @@ const schemas = {
     order: {
         create: Joi.object({
             store_id: Joi.number().integer().required(),
+            table_id: Joi.alternatives().try(Joi.number().integer(), Joi.string()).allow(null).optional(),
+            table_number: Joi.string().allow('', null).optional(),
             total_amount: Joi.number().min(0).required(),
             payment_method: Joi.string().valid('card', 'cash', 'point', 'mixed', 'toss').required(),
             items: Joi.array().items(
@@ -164,6 +166,7 @@ const schemas = {
                     product_name: Joi.string().required(),
                     quantity: Joi.number().integer().min(1).required(),
                     price: Joi.number().min(0).required(),
+                    subtotal: Joi.number().min(0).optional(),
                     options: Joi.array().optional()
                 })
             ).min(1).required(),

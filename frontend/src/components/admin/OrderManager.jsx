@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import notificationSound from '../../utils/notificationSound';
+import { onNewOrder } from '../../utils/socket';
 import { formatPrice, formatTime, formatDateTime } from '../../utils/format';
 import { handleApiError } from '../../utils/apiError';
 import OrderCard from './OrderCard';
@@ -17,59 +18,59 @@ import OrderDetailModal from './OrderDetailModal';
  * [정적 설정] 주문 상태별 프리미엄 설정
  */
 const statusConfig = {
-  pending: { 
-    label: 'PENDING', 
-    color: 'text-amber-400', 
-    bg: 'bg-amber-400/10', 
+  pending: {
+    label: '대기 중',
+    color: 'text-amber-400',
+    bg: 'bg-amber-400/10',
     border: 'border-amber-400/20',
     glow: 'shadow-amber-400/20',
-    icon: Clock, 
-    next: 'confirmed' 
+    icon: Clock,
+    next: 'confirmed'
   },
-  confirmed: { 
-    label: 'CONFIRMED', 
-    color: 'text-blue-400', 
-    bg: 'bg-blue-400/10', 
+  confirmed: {
+    label: '주문 확인',
+    color: 'text-blue-400',
+    bg: 'bg-blue-400/10',
     border: 'border-blue-400/20',
     glow: 'shadow-blue-400/20',
-    icon: CheckCircle, 
-    next: 'preparing' 
+    icon: CheckCircle,
+    next: 'preparing'
   },
-  preparing: { 
-    label: 'PREPARING', 
-    color: 'text-purple-400', 
-    bg: 'bg-purple-400/10', 
+  preparing: {
+    label: '조리 중',
+    color: 'text-purple-400',
+    bg: 'bg-purple-400/10',
     border: 'border-purple-400/20',
     glow: 'shadow-purple-400/20',
-    icon: ChefHat, 
-    next: 'ready' 
+    icon: ChefHat,
+    next: 'ready'
   },
-  ready: { 
-    label: 'READY', 
-    color: 'text-emerald-400', 
-    bg: 'bg-emerald-400/10', 
+  ready: {
+    label: '준비 완료',
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-400/10',
     border: 'border-emerald-400/20',
     glow: 'shadow-emerald-400/20',
-    icon: Package, 
-    next: 'completed' 
+    icon: Package,
+    next: 'completed'
   },
-  completed: { 
-    label: 'COMPLETED', 
-    color: 'text-slate-400', 
-    bg: 'bg-slate-400/10', 
+  completed: {
+    label: '완료',
+    color: 'text-slate-400',
+    bg: 'bg-slate-400/10',
     border: 'border-slate-400/20',
     glow: 'shadow-slate-400/20',
-    icon: CheckCircle, 
-    next: null 
+    icon: CheckCircle,
+    next: null
   },
-  cancelled: { 
-    label: 'CANCELLED', 
-    color: 'text-rose-400', 
-    bg: 'bg-rose-400/10', 
+  cancelled: {
+    label: '취소',
+    color: 'text-rose-400',
+    bg: 'bg-rose-400/10',
     border: 'border-rose-400/20',
     glow: 'shadow-rose-400/20',
-    icon: XCircle, 
-    next: null 
+    icon: XCircle,
+    next: null
   }
 };
 
@@ -156,6 +157,17 @@ const OrderManager = () => {
       return () => clearInterval(interval);
     }
   }, [autoRefresh, fetchOrders]);
+
+  // 실시간 소켓 리스너: 새 주문 접수 즉시 목록 갱신
+  useEffect(() => {
+    const cleanup = onNewOrder(() => {
+      fetchOrders();
+      if (soundEnabled) notificationSound.playNewOrder();
+      setNewOrderAlert(true);
+      setTimeout(() => setNewOrderAlert(false), 5000);
+    });
+    return cleanup;
+  }, [fetchOrders, soundEnabled]);
 
   const filteredOrders = useMemo(() => {
     if (!searchTerm) return orders;
@@ -247,8 +259,8 @@ const OrderManager = () => {
                 <Bell size={20} />
               </div>
               <div>
-                <p className="font-black text-sm uppercase tracking-tighter">New Order Received!</p>
-                <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Please check the pending list</p>
+                <p className="font-black text-sm tracking-tighter">🛎️ 새 주문 접수!</p>
+                <p className="text-[10px] font-bold opacity-80 tracking-widest">대기 목록을 확인해주세요</p>
               </div>
             </div>
           </motion.div>
@@ -265,10 +277,10 @@ const OrderManager = () => {
           </motion.div>
           <div>
             <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-4">
-              ORDER KDS
+              주문 현황
               <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
             </h1>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">{store?.name} Real-time Monitor</p>
+            <p className="text-slate-500 font-bold tracking-widest text-xs mt-1">{store?.name} 실시간 모니터</p>
           </div>
         </div>
 
@@ -276,7 +288,7 @@ const OrderManager = () => {
           {pendingCount > 0 && (
             <div className="px-6 py-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
               <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping" />
-              <span className="text-amber-500 font-black text-sm tracking-tighter">{pendingCount} PENDING</span>
+              <span className="text-amber-500 font-black text-sm tracking-tighter">{pendingCount}건 대기 중</span>
             </div>
           )}
           
@@ -296,7 +308,7 @@ const OrderManager = () => {
             }`}
           >
             <RefreshCw size={18} className={autoRefresh ? 'animate-spin' : ''} />
-            AUTO REFRESH
+            자동 갱신
           </button>
 
           <motion.button 
@@ -318,7 +330,7 @@ const OrderManager = () => {
           }`}
         >
           <List size={20} className="mb-4" />
-          <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total Orders</p>
+          <p className="text-[10px] font-black uppercase tracking-widest opacity-60">전체 주문</p>
           <p className="text-2xl font-black">{statusCounts.all}</p>
         </button>
         
@@ -342,8 +354,8 @@ const OrderManager = () => {
         <div className="flex-1 relative">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
           <input 
-            type="text" 
-            placeholder="SEARCH BY ORDER ID, CUSTOMER, OR TABLE..." 
+            type="text"
+            placeholder="주문번호, 고객명, 테이블로 검색..."
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
             className="w-full pl-16 pr-6 py-5 bg-white/5 border border-white/5 rounded-2xl text-white font-bold placeholder:text-slate-700 outline-none focus:border-orange-500/30 transition-all uppercase text-xs tracking-widest" 
@@ -379,8 +391,8 @@ const OrderManager = () => {
             <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-700">
               <Package size={48} />
             </div>
-            <h3 className="text-2xl font-black text-slate-300 mb-2 uppercase tracking-tight">System Idle</h3>
-            <p className="text-slate-600 font-bold uppercase tracking-widest text-xs">No active orders matching current filters</p>
+            <h3 className="text-2xl font-black text-slate-300 mb-2 tracking-tight">주문 없음</h3>
+            <p className="text-slate-600 font-bold tracking-widest text-xs">현재 필터 조건에 맞는 주문이 없습니다</p>
           </motion.div>
         ) : (
           <motion.div 

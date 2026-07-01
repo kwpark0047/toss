@@ -236,7 +236,7 @@ const MenuPage = () => {
     try {
       const orderData = {
         store_id: storeId,
-        table_id: tableNumber,
+        table_number: tableNumber, // URL 파라미터(테이블 번호 문자열) → 백엔드에서 table_id(정수)로 변환
         items: cart.map(item => ({
           product_id: item.menuItem.id,
           product_name: item.menuItem.name,
@@ -246,7 +246,7 @@ const MenuPage = () => {
           options: item.selectedOptions
         })),
         total_amount: totalPrice,
-        payment_method: 'card' // 기본값
+        payment_method: 'card'
       };
 
       const order = await ordersAPI.create(orderData);

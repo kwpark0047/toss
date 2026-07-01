@@ -168,6 +168,9 @@ const Order = {
             payments: {
               orderBy: { id: 'desc' },
               take: 1
+            },
+            tables: {
+              select: { table_number: true, name: true }
             }
           },
           orderBy: { created_at: 'desc' }
@@ -178,7 +181,10 @@ const Order = {
         orders = await prisma.orders.findMany({
           where,
           include: {
-            order_items: true
+            order_items: true,
+            tables: {
+              select: { table_number: true, name: true }
+            }
           },
           orderBy: { created_at: 'desc' }
         });
@@ -187,6 +193,7 @@ const Order = {
       return orders.map(order => ({
         ...order,
         items: order.order_items || [],
+        table_name: order.tables?.table_number || order.tables?.name || null,
         latest_payment: (order.payments && order.payments.length > 0) ? order.payments[0] : null
       }));
     } catch (error) {

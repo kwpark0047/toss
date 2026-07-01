@@ -42,6 +42,12 @@ export const onNotification = (callback) => {
   return () => socket.off('notification', callback);
 };
 
+// 새 주문 이벤트 리스너 등록 (어드민 실시간 주문 갱신용)
+export const onNewOrder = (callback) => {
+  socket.on('new-order', callback);
+  return () => socket.off('new-order', callback);
+};
+
 // 연결 상태 이벤트
 export const onConnect = (callback) => {
   socket.on('connect', callback);

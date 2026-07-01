@@ -36,6 +36,29 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
         }
     }
 
+    // table_number(문자열) → table_id(정수) 변환: QR 스캔 시 URL 파라미터로 전달된 테이블 번호를 DB ID로 매핑
+    const rawTableId = req.body.table_id;
+    const rawTableNumber = req.body.table_number;
+    let resolvedTableId = null;
+    let resolvedTableName = null;
+
+    const storeIdNum = parseInt(req.body.store_id);
+    // table_number가 명시적으로 전달된 경우 우선 사용
+    const lookupStr = rawTableNumber || (rawTableId && isNaN(parseInt(rawTableId)) ? String(rawTableId) : null);
+
+    if (lookupStr) {
+        const table = await prisma.tables.findFirst({
+            where: { store_id: storeIdNum, table_number: lookupStr }
+        });
+        resolvedTableId = table?.id || null;
+        resolvedTableName = table?.table_number || lookupStr;
+    } else if (rawTableId && !isNaN(parseInt(rawTableId))) {
+        resolvedTableId = parseInt(rawTableId);
+        // 테이블 이름 조회
+        const table = await prisma.tables.findUnique({ where: { id: resolvedTableId } });
+        resolvedTableName = table?.table_number || null;
+    }
+
     const final_amount = Math.max(0, req.body.total_amount - discount_amount);
     const orderData = { ...req.body };
     if (orderData.phone && !orderData.customer_phone) {
@@ -43,6 +66,7 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
     }
     const order = await Order.create({
         ...orderData,
+        table_id: resolvedTableId,
         total_amount: final_amount,
         discount_amount
     });
@@ -52,10 +76,11 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
         await Coupon.useCoupon(user_coupon_id, order.id);
     }
 
+    const io = req.app.get('io');
+
     if (order.table_id) {
         const Table = require('../models/Table');
         await Table.update(order.table_id, { status: 'occupied' });
-        const io = req.app.get('io');
         if (io) {
             io.emit('table-updated', { store_id: order.store_id, table_id: order.table_id });
         }
@@ -98,13 +123,27 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
         }
     }
 
+    // 실시간 주문 이벤트: 어드민 주문 패널 즉시 갱신용
+    if (io && order && order.store_id) {
+        const newOrderPayload = {
+            orderId: order.id,
+            orderNumber: order.order_number,
+            storeId: order.store_id,
+            tableId: order.table_id,
+            tableName: resolvedTableName,
+            totalAmount: order.total_amount,
+            status: order.status,
+            itemCount: order.order_items?.length || 0,
+            createdAt: order.created_at
+        };
+        io.to(`store - ${order.store_id}`).emit('new-order', newOrderPayload);
+        io.to(`kitchen - ${order.store_id}`).emit('new-order', newOrderPayload);
+    }
+
+    // DB 알림 레코드 생성 + 소켓 notification 이벤트 (알림 벨 갱신)
     if (order && order.store_id) {
-        const store = await prisma.stores.findUnique({
-            where: { id: order.store_id },
-            include: { users: true }
-        });
-        const managerTokens = store?.users?.fcm_token ? [store.users.fcm_token] : [];
-        notificationService.notifyNewOrder(order, managerTokens);
+        const orderWithTable = { ...order, table_name: resolvedTableName };
+        notificationService.notifyNewOrderDB(orderWithTable).catch(() => {});
     }
 
     res.success(order, '주문이 생성되었습니다');
