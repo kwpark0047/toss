@@ -26,6 +26,7 @@ const Register = () => {
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState('');
 
   // Step 1
   const [phone, setPhone] = useState('');
@@ -65,6 +66,9 @@ const Register = () => {
     if (digits.length < 10) return setError('올바른 핸드폰 번호를 입력해주세요.');
 
     setLoading(true);
+    setLoadingMsg('인증번호 발송 중...');
+    // 3초 후에도 로딩 중이면 서버 웨이크업 안내
+    const slowTimer = setTimeout(() => setLoadingMsg('서버 시작 중입니다. 잠시만 기다려주세요...'), 3000);
     try {
       const res = await sendOtp(phone);
       if (res?.dev_otp) setDevOtp(res.dev_otp);
@@ -73,9 +77,16 @@ const Register = () => {
       setStep(2);
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || '인증번호 발송에 실패했습니다.');
+      const isNetwork = !err.response && (err.code === 'ERR_NETWORK' || err.message === 'Network Error');
+      setError(
+        err.response?.data?.message ||
+        (isNetwork ? '서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.' : err.message) ||
+        '인증번호 발송에 실패했습니다.'
+      );
     } finally {
+      clearTimeout(slowTimer);
       setLoading(false);
+      setLoadingMsg('');
     }
   };
 
@@ -133,7 +144,11 @@ const Register = () => {
       setOtp(['', '', '', '', '', '']);
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err) {
-      setError(err.response?.data?.message || '재발송에 실패했습니다.');
+      const isNetwork = !err.response && (err.code === 'ERR_NETWORK' || err.message === 'Network Error');
+      setError(
+        err.response?.data?.message ||
+        (isNetwork ? '서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.' : '재발송에 실패했습니다.')
+      );
     } finally {
       setLoading(false);
     }
@@ -261,7 +276,10 @@ const Register = () => {
                   className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-bold text-base shadow-[0_10px_20px_rgba(249,115,22,0.2)] hover:shadow-[0_15px_30px_rgba(249,115,22,0.3)] transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
                 >
                   {loading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      {loadingMsg || '처리 중...'}
+                    </span>
                   ) : (
                     <>인증번호 받기 <ArrowRight className="w-4 h-4" /></>
                   )}

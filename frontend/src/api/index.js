@@ -11,16 +11,32 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 /**
- * Render 콜드스타트 웨이크업: 앱 최초 로드 시 health 엔드포인트를 찔러
- * 서버가 잠든 경우 깨운다. 이후 실제 API 요청들이 CORS 없이 도달하도록 보장.
+ * Render 콜드스타트 웨이크업: 서버가 슬립 상태일 때 깨울 때까지 폴링.
+ * 최대 60초, 3초 간격으로 /api/health를 호출하여 서버가 준비되면 resolve.
  */
 let _wakeupPromise = null;
 export const wakeupServer = () => {
   if (_wakeupPromise) return _wakeupPromise;
   const baseUrl = API_URL.replace('/api', '');
-  _wakeupPromise = fetch(`${baseUrl}/api/health`, { method: 'GET', mode: 'cors' })
-    .then(() => { _wakeupPromise = null; })
-    .catch(() => { _wakeupPromise = null; });
+  const MAX_WAIT_MS = 60_000;
+  const POLL_MS = 3_000;
+  const startedAt = Date.now();
+
+  _wakeupPromise = (async () => {
+    while (Date.now() - startedAt < MAX_WAIT_MS) {
+      try {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 5_000);
+        await fetch(`${baseUrl}/api/health`, { method: 'GET', mode: 'cors', signal: ctrl.signal });
+        clearTimeout(tid);
+        return; // 서버 준비 완료
+      } catch {
+        await new Promise(r => setTimeout(r, POLL_MS));
+      }
+    }
+    throw new Error('서버 웨이크업 시간 초과 (60s)');
+  })().finally(() => { _wakeupPromise = null; });
+
   return _wakeupPromise;
 };
 
@@ -48,17 +64,16 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // ── Render 콜드스타트 자동 재시도 ──
-    // 네트워크 에러(서버 슬립 중 CORS 없는 503) → 서버 웨이크업 후 1회 재시도
+    // 네트워크 에러 발생 시 서버가 준비될 때까지(최대 60초) 폴링 후 1회 재시도
     const isNetworkError = !error.response;
-    const isCorsError = error.code === 'ERR_NETWORK' || error.message?.includes('Network Error');
-    if ((isNetworkError || isCorsError) && !originalRequest._coldRetry) {
+    const isCorsOrNetworkError = error.code === 'ERR_NETWORK' || error.message?.includes('Network Error');
+    if ((isNetworkError || isCorsOrNetworkError) && !originalRequest._coldRetry) {
       originalRequest._coldRetry = true;
       try {
-        await wakeupServer();
-        await new Promise(r => setTimeout(r, 2000)); // 서버 준비 대기
+        await wakeupServer(); // 서버 준비 완료까지 블로킹 (최대 60초)
         return api(originalRequest);
       } catch {
-        // 재시도도 실패하면 원래 에러 전파
+        // 웨이크업 타임아웃 → 원래 에러 전파
       }
     }
 
