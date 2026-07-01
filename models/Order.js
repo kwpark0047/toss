@@ -152,10 +152,11 @@ const Order = {
       }
 
       if (date) {
-        const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
+        // YYYY-MM-DD 문자열을 KST 기준 하루 범위로 해석 (UTC+9)
+        // new Date('2024-01-15') → UTC 00:00. KST 00:00은 UTC 전날 15:00이므로 9h 뒤로 시작
+        const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+        const startOfDay = new Date(new Date(`${date}T00:00:00.000Z`).getTime() - KST_OFFSET_MS);
+        const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
         where.created_at = { gte: startOfDay, lte: endOfDay };
       }
 

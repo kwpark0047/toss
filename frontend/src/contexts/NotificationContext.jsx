@@ -138,10 +138,19 @@ export function NotificationProvider({ children, storeId, userId, role }) {
         return () => { if (pollTimer.current) clearInterval(pollTimer.current); };
     }, [validStoreId, fetchNotifications, fetchUnreadCount]);
 
-    // Socket.IO 연결
+    // Socket.IO 연결 관리: storeId/userId/role 변경 시만 disconnect 수행
+    // soundEnabled 변경 시 disconnect 하지 않아 룸 멤버십 유지
     useEffect(() => {
         if (!validStoreId || !userId) return;
         connectSocket(validStoreId, userId, role);
+        return () => {
+            disconnectSocket();
+        };
+    }, [validStoreId, userId, role]);
+
+    // 리스너 관리: 소켓 연결/해제 없이 콜백만 교체
+    useEffect(() => {
+        if (!validStoreId || !userId) return;
         const cleanupNotification = onNotification(addRealtimeNotification);
         const cleanupConnect = onConnect(() => setIsConnected(true));
         const cleanupDisconnect = onDisconnect(() => setIsConnected(false));
@@ -149,9 +158,8 @@ export function NotificationProvider({ children, storeId, userId, role }) {
             cleanupNotification?.();
             cleanupConnect?.();
             cleanupDisconnect?.();
-            disconnectSocket();
         };
-    }, [validStoreId, userId, role, addRealtimeNotification]);
+    }, [validStoreId, userId, addRealtimeNotification]);
 
     useEffect(() => { notificationSound.setEnabled?.(soundEnabled); }, [soundEnabled]);
 

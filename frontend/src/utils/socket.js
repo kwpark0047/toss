@@ -19,20 +19,39 @@ const socket = io(SOCKET_URL, {
   autoConnect: false,
   withCredentials: true,
   reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
 });
 
-// 소켓 연결
-export const connectSocket = (storeId, userId, role) => {
-  if (!socket.connected) {
-    socket.connect();
+// 재접속 시 자동으로 재구독할 파라미터 저장
+let _storeJoinParams = null;
+let _kitchenJoinParams = null;
+
+// 소켓 (재)연결 때마다 룸 재구독 — 자동 재접속 후 룸 소실 방지
+socket.on('connect', () => {
+  if (_storeJoinParams) {
+    socket.emit('join-store', _storeJoinParams);
   }
-  socket.emit('join-store', { storeId, userId, role });
+  if (_kitchenJoinParams) {
+    socket.emit('join-kitchen', _kitchenJoinParams);
+  }
+});
+
+// 소켓 연결 + 스토어 룸 구독
+export const connectSocket = (storeId, userId, role) => {
+  _storeJoinParams = { storeId, userId, role };
+  if (!socket.connected) {
+    socket.connect(); // connect 이벤트 핸들러가 join-store를 자동 발송
+  } else {
+    socket.emit('join-store', { storeId, userId, role });
+  }
 };
 
 // 소켓 연결 해제
 export const disconnectSocket = () => {
+  _storeJoinParams = null;
+  _kitchenJoinParams = null;
   socket.disconnect();
 };
 
@@ -86,10 +105,12 @@ export const getSocket = () => socket;
 
 // 주방 소켓 연결
 export const connectKitchen = (storeId, userId) => {
+  _kitchenJoinParams = { storeId, userId };
   if (!socket.connected) {
     socket.connect();
+  } else {
+    socket.emit('join-kitchen', { storeId, userId });
   }
-  socket.emit('join-kitchen', { storeId, userId });
 };
 
 export default socket;

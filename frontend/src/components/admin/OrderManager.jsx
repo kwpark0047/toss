@@ -81,7 +81,12 @@ const OrderManager = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // KST(UTC+9) 기준 오늘 날짜 (서버 날짜 필터와 동일한 기준)
+    const now = new Date();
+    const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    return kst.toISOString().split('T')[0];
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
@@ -92,6 +97,8 @@ const OrderManager = () => {
 
   const prevOrderIdsRef = useRef(new Set());
   const isFirstLoadRef = useRef(true);
+  const soundEnabledRef = useRef(soundEnabled);
+  useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
 
   const fetchMyRole = useCallback(async () => {
     try {
@@ -114,10 +121,10 @@ const OrderManager = () => {
   const fetchOrders = useCallback(async (signal) => {
     try {
       const status = selectedStatus === 'all' ? undefined : selectedStatus;
-      const res = await ordersAPI.getByStore(storeId, status, selectedDate, { signal });
+      const res = await ordersAPI.getByStore(storeId, status, selectedDate);
       const newOrders = res.data;
 
-      if (!isFirstLoadRef.current && soundEnabled) {
+      if (!isFirstLoadRef.current && soundEnabledRef.current) {
         const newPendingOrders = newOrders.filter(order =>
           order.status === 'pending' && !prevOrderIdsRef.current.has(order.id)
         );
@@ -135,9 +142,9 @@ const OrderManager = () => {
     } catch (err) {
       if (err.name === 'CanceledError' || err.name === 'AbortError') return;
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      setLoading(false);
     }
-  }, [storeId, selectedStatus, selectedDate, soundEnabled]);
+  }, [storeId, selectedStatus, selectedDate]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -159,15 +166,16 @@ const OrderManager = () => {
   }, [autoRefresh, fetchOrders]);
 
   // 새 주문 접수 → 목록 갱신 + 알림음
+  // soundEnabledRef 사용으로 sound 토글 시 리스너 재등록 없이 항상 최신 상태 반영
   useEffect(() => {
     const cleanup = onNewOrder(() => {
       fetchOrders();
-      if (soundEnabled) notificationSound.playNewOrder();
+      if (soundEnabledRef.current) notificationSound.playNewOrder();
       setNewOrderAlert(true);
       setTimeout(() => setNewOrderAlert(false), 5000);
     });
     return cleanup;
-  }, [fetchOrders, soundEnabled]);
+  }, [fetchOrders]);
 
   // 주문 상태 변경 → 해당 주문만 즉시 인플레이스 업데이트 (전체 재조회 없이)
   useEffect(() => {
