@@ -19,6 +19,36 @@ const speak = (text, enabled) => {
   window.speechSynthesis.speak(u);
 };
 
+// ── Step 1 필드별 가이드 메시지 (순수 함수)
+function getStep1Guide(focus, form, customBtype) {
+  const nameDone  = form.name.trim().length > 0;
+  const btypeDone = form.business_type && (form.business_type !== '__custom__' || customBtype.trim().length > 0);
+  const btypeLabel = getBtypeLabel(form.business_type, customBtype);
+
+  switch (focus) {
+    case 'name':
+      return nameDone
+        ? { msg: `"${form.name}" 좋은 이름이에요! 이름 완료 후 업종을 선택해주세요.`, happy: true }
+        : { msg: '고객들에게 보일 매장 이름을 입력해주세요! ✏️', happy: false };
+    case 'business_type':
+      return btypeDone
+        ? { msg: `${btypeLabel} 업종 완료! 이제 영업 시간을 설정해주세요.`, happy: true }
+        : { msg: '어떤 업종의 사장님이신가요? 검색하거나 목록에서 골라보세요! 😊', happy: false };
+    case 'time':
+      return { msg: '영업 시간을 설정해주세요. 오픈·마감 시간을 모두 입력해주세요!', happy: false };
+    case 'phone':
+      return { msg: '연락처를 입력하면 고객이 전화로 문의할 수 있어요. (선택사항)', happy: false };
+    case 'address':
+      return { msg: '매장 주소를 입력하면 지도에서 찾을 수 있어요! (선택사항)', happy: false };
+    case 'description':
+      return { msg: '매장을 한 줄로 소개해보세요! 첫인상이 중요하답니다. ✨ (선택사항)', happy: false };
+    default:
+      if (!nameDone)  return { msg: '먼저 매장 이름을 입력해주세요! 아래 이름 칸을 클릭해보세요 😊', happy: false };
+      if (!btypeDone) return { msg: '업종을 선택해주세요! 업종별 AI 메뉴 추천이 달라져요.', happy: false };
+      return { msg: `"${form.name}" 정보 준비 완료! 저장 버튼을 눌러주세요! 🎉`, happy: true };
+  }
+}
+
 // ────────────────────────────────────────────────────────────────────
 //  기본 테이블 레이아웃 (생성 직후 초기 배치)
 // ────────────────────────────────────────────────────────────────────
@@ -206,6 +236,89 @@ const STEPS = [
   { id: 4, label: 'QR 코드',   icon: QrCode },
 ];
 
+// ── Step 1 서식 위 인라인 팅커벨 가이드
+function Step1InlineGuide({ focus, form, customBtype, voiceEnabled }) {
+  const { msg, happy } = getStep1Guide(focus, form, customBtype);
+  const [typed, setTyped]   = useState('');
+  const [sparks, setSparks] = useState([]);
+  const typingRef  = useRef(null);
+  const sparkId    = useRef(0);
+  const prevFocus  = useRef(null);
+
+  // 타이핑 애니메이션 (msg 바뀔 때마다)
+  useEffect(() => {
+    clearInterval(typingRef.current);
+    setTyped('');
+    let i = 0;
+    typingRef.current = setInterval(() => {
+      i++;
+      setTyped(msg.slice(0, i));
+      if (i >= msg.length) clearInterval(typingRef.current);
+    }, 26);
+    return () => clearInterval(typingRef.current);
+  }, [msg]);
+
+  // 음성: focus 전환 시만 (키 입력 때마다 발화 방지)
+  useEffect(() => {
+    if (focus !== prevFocus.current) {
+      prevFocus.current = focus;
+      const g = getStep1Guide(focus, form, customBtype);
+      speak(g.msg, voiceEnabled);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus, voiceEnabled]);
+
+  // 해피 sparks
+  useEffect(() => {
+    if (!happy) return;
+    const s = Array.from({ length: 7 }, () => ({
+      id: sparkId.current++,
+      x: 4 + Math.random() * 44, y: -4 + Math.random() * 44,
+      size: 6 + Math.random() * 6, angle: Math.random() * 360,
+    }));
+    setSparks(s);
+    const t = setTimeout(() => setSparks([]), 1100);
+    return () => clearTimeout(t);
+  }, [happy, focus]);
+
+  return (
+    <div className="flex items-center gap-3 mb-5 px-3 py-3 bg-gradient-to-r from-amber-500/[0.08] to-orange-500/[0.05] rounded-2xl border border-amber-500/20">
+      {/* 소형 팅커벨 요정 */}
+      <div className="relative flex-shrink-0 w-[54px] h-[54px]">
+        {sparks.map(s => <Spark key={s.id} {...s} />)}
+        <motion.div className="relative w-[54px] h-[54px]"
+          animate={happy
+            ? { y:[0,-14,2,-7,0], scale:[1,1.13,0.93,1.05,1] }
+            : { y:[-3,5,-3], rotate:[-2.5,2.5,-2.5] }}
+          transition={happy
+            ? { duration:0.6, ease:'easeInOut' }
+            : { duration:3.2, repeat:Infinity, ease:'easeInOut' }}>
+          <motion.div className="absolute inset-0 -m-2 rounded-full"
+            style={{ background:'radial-gradient(circle, rgba(245,159,11,.55) 0%, rgba(245,159,11,.18) 50%, transparent 72%)' }}
+            animate={{ scale:[1,1.2,1], opacity:[0.55,0.95,0.55] }}
+            transition={{ duration:2.3, repeat:Infinity, ease:'easeInOut' }} />
+          <Wing side="left" /><Wing side="right" />
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[34px] h-[34px] rounded-full flex items-center justify-center"
+            style={{ background:'radial-gradient(circle at 34% 28%, #FFF8E7, #F59E0B 62%, #D97706)', boxShadow:'0 3px 14px rgba(245,159,11,.6), 0 0 0 1.5px rgba(255,255,255,.2)' }}>
+            <svg viewBox="0 0 24 24" fill="white" width="16" height="16">
+              <path d="M12 2l1.8 6.6c.2.7.8 1.3 1.5 1.5L22 12l-6.7 1.9c-.7.2-1.3.8-1.5 1.5L12 22l-1.8-6.6c-.2-.7-.8-1.3-1.5-1.5L2 12l6.7-1.9c.7-.2 1.3-.8 1.5-1.5L12 2z" />
+            </svg>
+          </div>
+        </motion.div>
+      </div>
+      {/* 말풍선 텍스트 */}
+      <div className="flex-1 min-h-[36px] flex items-center">
+        <AnimatePresence mode="wait">
+          <motion.p key={msg.slice(0, 14)} initial={{ opacity:0, y:4 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
+            className="text-[13px] font-bold text-white leading-relaxed">
+            {typed}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
 // ── 1인 사업자 인기 업종 (첫 화면에 노출)
 const POPULAR_VALUES = ['cafe', 'korean', 'chicken', 'bakery', 'food_truck', 'hair', 'fitness', 'academy'];
 
@@ -303,7 +416,7 @@ const getBtypeLabel = (value, custom = '') =>
   ALL_BTYPES.find(b => b.value === value)?.label || custom || value || '기타';
 
 // ── 업종 선택 피커 컴포넌트
-function BusinessTypePicker({ value, customValue, onChange, onCustomChange }) {
+function BusinessTypePicker({ value, customValue, onChange, onCustomChange, onPickerFocus }) {
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(false);
 
@@ -335,7 +448,7 @@ function BusinessTypePicker({ value, customValue, onChange, onCustomChange }) {
             type="text"
             value={search}
             onChange={e => { setSearch(e.target.value); setExpanded(true); }}
-            onFocus={() => setExpanded(true)}
+            onFocus={() => { setExpanded(true); onPickerFocus?.(); }}
             placeholder={isCustom ? customValue || '업종 검색...' : (selectedLabel || '업종 검색...')}
             className="w-full pl-8 pr-3 py-2 bg-white/10 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-xs font-bold focus:outline-none focus:border-amber-500/50 transition-all"
           />
@@ -400,6 +513,7 @@ function BusinessTypePicker({ value, customValue, onChange, onCustomChange }) {
               type="text"
               value={customValue}
               onChange={e => { onCustomChange(e.target.value); onChange('__custom__'); }}
+              onFocus={() => onPickerFocus?.()}
               placeholder="목록에 없으면 직접 입력 (예: 꽃배달, 반찬가게)"
               className="flex-1 px-3 py-2 bg-white/5 border border-dashed border-white/20 rounded-xl text-white placeholder:text-slate-600 text-xs focus:outline-none focus:border-violet-500/50 transition-all"
             />
@@ -433,6 +547,7 @@ export default function StoreSetupWizard() {
     address: '', open_time: '09:00', close_time: '22:00',
   });
   const [customBtype, setCustomBtype] = useState(''); // 직접 입력 업종
+  const [step1Focus, setStep1Focus]   = useState(null); // 현재 포커스된 필드
 
   // Step 2 menu
   const [menuItems, setMenuItems]     = useState([{ name: '', price: '', description: '' }]);
@@ -457,6 +572,7 @@ export default function StoreSetupWizard() {
       3: '기본 테이블이 자동으로 배치됐어요! 드래그해서 위치를 바꾸거나 × 버튼으로 삭제할 수 있어요.',
       4: 'QR 코드가 준비됐어요! 인쇄해서 각 테이블에 붙여주세요. 손님들이 바로 주문할 수 있어요! 🎉',
     };
+    if (step === 1) setStep1Focus(null);
     if (scripts[step]) sayWithDelay(scripts[step], 300, step === 4);
   }, [step, sayWithDelay]);
 
@@ -710,48 +826,67 @@ export default function StoreSetupWizard() {
               {step === 1 && (
                 <motion.div key="s1" initial={{ opacity:0, x:30 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-30 }}
                   className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-7">
-                  <h2 className="text-xl font-black text-white mb-5 flex items-center gap-2"><Store size={20} className="text-amber-400" /> 매장 정보 입력</h2>
+                  <h2 className="text-xl font-black text-white mb-4 flex items-center gap-2"><Store size={20} className="text-amber-400" /> 매장 정보 입력</h2>
+
+                  {/* 팅커벨 인라인 가이드 — 서식 위에서 입력 순서 안내 */}
+                  <Step1InlineGuide focus={step1Focus} form={storeForm} customBtype={customBtype} voiceEnabled={voiceEnabled} />
+
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-wider block mb-1.5">매장 이름 *</label>
-                      <input type="text" value={storeForm.name} onChange={e => setStoreForm(p => ({...p, name: e.target.value}))}
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-wider block mb-1.5">① 매장 이름 *</label>
+                      <input type="text" value={storeForm.name}
+                        onChange={e => setStoreForm(p => ({...p, name: e.target.value}))}
+                        onFocus={() => setStep1Focus('name')}
                         placeholder="예: 홍길동 카페"
                         className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:bg-white/15 transition-all text-sm font-bold" />
                     </div>
                     <div>
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-wider block mb-2">업종 *</label>
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-wider block mb-2">② 업종 *</label>
                       <BusinessTypePicker
                         value={storeForm.business_type}
                         customValue={customBtype}
                         onChange={v => setStoreForm(p => ({...p, business_type: v}))}
                         onCustomChange={setCustomBtype}
+                        onPickerFocus={() => setStep1Focus('business_type')}
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1"><Clock size={11} /> 영업 시작</label>
-                        <input type="time" value={storeForm.open_time} onChange={e => setStoreForm(p => ({...p, open_time: e.target.value}))}
+                        <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1"><Clock size={11} /> ③ 영업 시작</label>
+                        <input type="time" value={storeForm.open_time}
+                          onChange={e => setStoreForm(p => ({...p, open_time: e.target.value}))}
+                          onFocus={() => setStep1Focus('time')}
                           className="w-full px-3 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500/50 transition-all" />
                       </div>
                       <div>
                         <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1"><Clock size={11} /> 영업 마감</label>
-                        <input type="time" value={storeForm.close_time} onChange={e => setStoreForm(p => ({...p, close_time: e.target.value}))}
+                        <input type="time" value={storeForm.close_time}
+                          onChange={e => setStoreForm(p => ({...p, close_time: e.target.value}))}
+                          onFocus={() => setStep1Focus('time')}
                           className="w-full px-3 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500/50 transition-all" />
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1"><Phone size={11} /> 연락처</label>
-                      <input type="tel" value={storeForm.phone} onChange={e => setStoreForm(p => ({...p, phone: e.target.value}))} placeholder="010-1234-5678"
+                      <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1"><Phone size={11} /> ④ 연락처 (선택)</label>
+                      <input type="tel" value={storeForm.phone}
+                        onChange={e => setStoreForm(p => ({...p, phone: e.target.value}))}
+                        onFocus={() => setStep1Focus('phone')}
+                        placeholder="010-1234-5678"
                         className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-all text-sm" />
                     </div>
                     <div>
-                      <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1"><MapPin size={11} /> 주소</label>
-                      <input type="text" value={storeForm.address} onChange={e => setStoreForm(p => ({...p, address: e.target.value}))} placeholder="서울시 강남구..."
+                      <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1"><MapPin size={11} /> ⑤ 주소 (선택)</label>
+                      <input type="text" value={storeForm.address}
+                        onChange={e => setStoreForm(p => ({...p, address: e.target.value}))}
+                        onFocus={() => setStep1Focus('address')}
+                        placeholder="서울시 강남구..."
                         className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-all text-sm" />
                     </div>
                     <div>
-                      <label className="text-xs font-black text-slate-400 block mb-1.5">매장 소개 (선택)</label>
-                      <textarea rows={2} value={storeForm.description} onChange={e => setStoreForm(p => ({...p, description: e.target.value}))}
+                      <label className="text-xs font-black text-slate-400 block mb-1.5">⑥ 매장 소개 (선택)</label>
+                      <textarea rows={2} value={storeForm.description}
+                        onChange={e => setStoreForm(p => ({...p, description: e.target.value}))}
+                        onFocus={() => setStep1Focus('description')}
                         placeholder="매장에 대한 간단한 소개"
                         className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-all text-sm resize-none" />
                     </div>
@@ -945,10 +1080,12 @@ export default function StoreSetupWizard() {
 
             </AnimatePresence>
 
-            {/* 팅커벨 */}
-            <div className="flex justify-end">
-              <WizardTinkerbell message={tbMsg} isHappy={tbHappy} voiceEnabled={voiceEnabled} />
-            </div>
+            {/* 팅커벨 — Step 1은 서식 위 인라인 가이드 사용, Step 2+ 에만 하단 표시 */}
+            {step > 1 && (
+              <div className="flex justify-end">
+                <WizardTinkerbell message={tbMsg} isHappy={tbHappy} voiceEnabled={voiceEnabled} />
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
