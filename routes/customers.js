@@ -200,8 +200,10 @@ router.get('/:storeId/stats', authMiddleware, checkStorePermission('owner'), cat
  * GET /api/customers/:storeId/customer/:customerId/history
  */
 router.get('/:storeId/customer/:customerId/history', authMiddleware, checkStorePermission('owner'), catchAsync(async (req, res) => {
-    const { customerId } = req.params;
-    const customer = await prisma.store_customers.findUnique({ where: { id: parseInt(customerId) } });
+    const { storeId, customerId } = req.params;
+    const customer = await prisma.store_customers.findFirst({
+        where: { id: parseInt(customerId), store_id: parseInt(storeId) },
+    });
     if (!customer) return res.status(404).json({ success: false, error: '고객 정보 없음' });
 
     const [pointInfo, recentOrders, pointHistory, activeCoupons, tiers] = await Promise.all([
@@ -272,7 +274,9 @@ router.post('/:storeId/customer/:customerId/coupon', authMiddleware, checkStoreP
     const { coupon_id } = req.body;
     if (!coupon_id) return res.status(400).json({ success: false, error: 'coupon_id 필요' });
 
-    const customer = await prisma.store_customers.findUnique({ where: { id: parseInt(req.params.customerId) } });
+    const customer = await prisma.store_customers.findFirst({
+        where: { id: parseInt(req.params.customerId), store_id: parseInt(req.params.storeId) },
+    });
     if (!customer) return res.status(404).json({ success: false, error: '고객 없음' });
 
     const coupon = await prisma.coupons.findFirst({
