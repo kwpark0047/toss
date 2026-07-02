@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { storesAPI, ordersAPI, analyticsAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAdminTheme } from '../../contexts/AdminThemeContext';
 import { formatPrice, formatTime } from '../../utils/format';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -62,6 +63,12 @@ const StatCard = ({ title, value, icon: Icon, trend, color, bgColor, progress })
 
 const MasterDashboard = () => {
     const { user, consumeStoresCache } = useAuth();
+    const { themeId } = useAdminTheme();
+    const isLight = themeId === 'arctic';
+    // 라이트 테마(arctic)에서 text-white가 흰 배경에 사라지는 문제 방지
+    const tx  = isLight ? 'text-slate-900' : 'text-white';
+    const txs = isLight ? 'text-slate-500' : 'text-slate-400';
+    const cardBg = isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-800/60 border-white/8';
     const navigate = useNavigate();
     const [stores, setStores] = useState([]);
     const [selectedStore, setSelectedStore] = useState(null);
@@ -194,8 +201,8 @@ const MasterDashboard = () => {
             <div className="flex flex-col items-center justify-center min-h-[50vh] gap-5">
                 <div className="text-4xl">⚠️</div>
                 <div className="text-center space-y-1">
-                    <p className="text-white font-black text-lg">데이터를 불러오지 못했습니다</p>
-                    <p className="text-slate-500 text-sm">서버가 응답하지 않거나 권한이 없습니다.</p>
+                    <p className={`${tx} font-black text-lg`}>데이터를 불러오지 못했습니다</p>
+                    <p className={`${txs} text-sm`}>서버가 응답하지 않거나 권한이 없습니다.</p>
                 </div>
                 <button
                     onClick={() => selectedStore && fetchStoreData(selectedStore.id)}
@@ -251,8 +258,8 @@ const MasterDashboard = () => {
                     🏪
                 </div>
                 <div className="text-center space-y-2">
-                    <h2 className="text-2xl font-black text-white">등록된 매장이 없습니다</h2>
-                    <p className="text-slate-400 text-sm max-w-xs">매장을 먼저 생성해야 상품 관리와 메뉴 빌더를 사용할 수 있습니다.</p>
+                    <h2 className={`text-2xl font-black ${tx}`}>등록된 매장이 없습니다</h2>
+                    <p className={`${txs} text-sm max-w-xs`}>매장을 먼저 생성해야 상품 관리와 메뉴 빌더를 사용할 수 있습니다.</p>
                 </div>
                 <button
                     onClick={() => navigate('/admin/stores/new')}
@@ -279,7 +286,7 @@ const MasterDashboard = () => {
                         <LayoutDashboard size={16} />
                         <span className="text-[10px] font-black uppercase tracking-widest">전체 현황</span>
                     </div>
-                    <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-none">
+                    <h1 className={`text-3xl md:text-5xl font-black ${tx} tracking-tight leading-none`}>
                         운영 <span className="text-orange-500">대시보드</span>
                     </h1>
                     <div className="flex items-center gap-2 mt-2">
@@ -305,8 +312,8 @@ const MasterDashboard = () => {
                                 key={range}
                                 onClick={() => setTimeRange(range)}
                                 className={`px-3 md:px-5 py-2 text-xs font-black rounded-lg transition-all ${timeRange === range
-                                    ? 'bg-white/15 text-white shadow-sm'
-                                    : 'text-slate-400 hover:text-slate-200'
+                                    ? (isLight ? 'bg-slate-200 text-slate-800 shadow-sm' : 'bg-white/15 text-white shadow-sm')
+                                    : (isLight ? 'text-slate-500 hover:text-slate-800' : 'text-slate-400 hover:text-slate-200')
                                     }`}
                             >
                                 {range === 'today' ? '오늘' : range === 'week' ? '주간' : '월간'}
@@ -322,7 +329,7 @@ const MasterDashboard = () => {
                                     const store = stores.find((s) => s.id === parseInt(e.target.value));
                                     setSelectedStore(store);
                                 }}
-                                className="w-full pl-4 pr-8 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white font-black text-xs outline-none transition-all cursor-pointer appearance-none hover:border-white/20 focus:border-orange-500/50"
+                                className={`w-full pl-4 pr-8 py-2.5 border rounded-xl font-black text-xs outline-none transition-all cursor-pointer appearance-none focus:border-orange-500/50 ${isLight ? 'bg-white border-slate-200 text-slate-800 hover:border-slate-300' : 'bg-white/5 border-white/10 text-white hover:border-white/20'}`}
                             >
                                 {Array.isArray(stores) && stores.map((store) => (
                                     <option key={store.id} value={store.id} className="bg-slate-900 text-white">
@@ -384,7 +391,7 @@ const MasterDashboard = () => {
                 {/* Live Orders / Multi-Store */}
                 <motion.div variants={itemVariants} className="lg:col-span-2 space-y-4">
                     <div className="flex items-center justify-between px-1">
-                        <h2 className="text-lg font-black text-white flex items-center gap-3">
+                        <h2 className={`text-lg font-black ${tx} flex items-center gap-3`}>
                             {isMultiView ? (
                                 <>
                                     <TrendingUp className="text-indigo-400" size={20} />
@@ -475,7 +482,7 @@ const MasterDashboard = () => {
                                                 <ShoppingBag size={36} className="text-orange-400" />
                                             </div>
                                             <div>
-                                                <p className="text-white font-black text-base mb-1">아직 주문이 없습니다</p>
+                                                <p className={`${tx} font-black text-base mb-1`}>아직 주문이 없습니다</p>
                                                 <p className="text-slate-500 text-sm">QR 스캔 후 고객이 주문하면 여기에 표시됩니다.</p>
                                             </div>
                                         </motion.div>
@@ -503,7 +510,7 @@ const MasterDashboard = () => {
                                                         )}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <div className="font-black text-white group-hover:text-orange-400 transition-colors flex items-center gap-2 text-sm truncate">
+                                                        <div className={`font-black ${tx} group-hover:text-orange-400 transition-colors flex items-center gap-2 text-sm truncate`}>
                                                             {order.table_name || '포장'}
                                                             <span className="text-[9px] bg-white/10 text-slate-400 px-1.5 py-0.5 rounded-md font-bold flex-shrink-0">
                                                                 {order.customer_name || '비회원'}
@@ -549,7 +556,7 @@ const MasterDashboard = () => {
                 {/* Right: Operational Toolkit */}
                 <motion.div variants={itemVariants} className="space-y-6">
                     <div className="flex items-center justify-between px-1">
-                        <h2 className="text-lg font-black text-white flex items-center gap-3">
+                        <h2 className={`text-lg font-black ${tx} flex items-center gap-3`}>
                             <Zap className="text-orange-500" size={20} />
                             운영 도구
                         </h2>
@@ -573,7 +580,7 @@ const MasterDashboard = () => {
                                         <tool.icon size={18} />
                                     </div>
                                     <div className="flex-grow text-left min-w-0">
-                                        <div className="font-black text-white group-hover:text-orange-400 transition-colors text-sm truncate">{tool.label}</div>
+                                        <div className={`font-black ${tx} group-hover:text-orange-400 transition-colors text-sm truncate`}>{tool.label}</div>
                                         <div className="text-[10px] text-slate-500 font-medium mt-0.5 hidden sm:block">{tool.desc}</div>
                                     </div>
                                     <ChevronRight size={14} className="text-slate-600 group-hover:text-orange-400 group-hover:translate-x-1 transition-all flex-shrink-0 hidden md:block" />

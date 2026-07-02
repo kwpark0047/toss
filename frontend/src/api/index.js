@@ -47,10 +47,10 @@ if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' &&
 
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 20000, // Render cold start 대비 20s — 이후 cold-start retry가 담당
   headers: {
     'Content-Type': 'application/json',
   },
-  // Bearer 토큰을 사용하므로 withCredentials는 일단 제거 (CORS 이슈 방지)
 });
 
 // 요청 인터셉터 - 토큰 추가
@@ -72,7 +72,8 @@ api.interceptors.response.use(
     // 네트워크 에러 발생 시 서버가 준비될 때까지(최대 60초) 폴링 후 1회 재시도
     const isNetworkError = !error.response;
     const isCorsOrNetworkError = error.code === 'ERR_NETWORK' || error.message?.includes('Network Error');
-    if ((isNetworkError || isCorsOrNetworkError) && !originalRequest._coldRetry) {
+    const isTimeoutError = error.code === 'ECONNABORTED' || error.code === 'ERR_CANCELED';
+    if ((isNetworkError || isCorsOrNetworkError || isTimeoutError) && !originalRequest._coldRetry) {
       originalRequest._coldRetry = true;
       try {
         await wakeupServer(); // 서버 준비 완료까지 블로킹 (최대 60초)
