@@ -7,6 +7,8 @@ import {
     Users, Smartphone, Check, ArrowRight, Menu, X, ChevronRight,
     Zap, Link2, Gift, ShieldCheck, Play, Sparkles,
     TrendingUp, Star, Quote, ShoppingCart,
+    Heart, Crown, Award, BadgeCheck, CalendarDays, UserPlus,
+    Building2, Share2, Megaphone, MapPin, Repeat2, Target,
 } from 'lucide-react';
 
 const LandingPage = () => {
@@ -58,6 +60,8 @@ const LandingPage = () => {
         { icon: CreditCard,  title: '다양한 결제 수단',     desc: '현금, 계좌이체는 물론 다양한 간편결제까지 지원합니다.', color: 'indigo' },
         { icon: Clock,       title: '대기·예약 관리',       desc: '대기 번호 자동 발급, 사전 예약 관리로 고객 경험을 향상시킵니다.', color: 'yellow' },
         { icon: BarChart3,   title: '매출 분석',            desc: '일별, 월별, 연도별 매출 통계와 결제 수단별 분석 리포트를 제공합니다.', color: 'teal' },
+        { icon: Heart,       title: '단골고객 관리리스트',  desc: '방문 이력·포인트·VIP 등급 자동 추적. 개인화 쿠폰과 재방문 메시지로 단골을 키웁니다.', color: 'rose' },
+        { icon: Building2,   title: '지역 커뮤니티',        desc: '주변 제휴 매장과 연결해 공동 이벤트, 포인트 공유, 지역 피드로 상권 전체를 활성화합니다.', color: 'sky' },
     ];
 
     const steps = [
@@ -98,6 +102,7 @@ const LandingPage = () => {
         green: 'bg-green-100 text-green-500', purple: 'bg-purple-100 text-purple-500',
         red: 'bg-red-100 text-red-500', indigo: 'bg-indigo-100 text-indigo-500',
         yellow: 'bg-yellow-100 text-yellow-600', teal: 'bg-teal-100 text-teal-500',
+        rose: 'bg-rose-100 text-rose-500', sky: 'bg-sky-100 text-sky-500',
     };
 
     const testimonials = [
@@ -442,7 +447,7 @@ const LandingPage = () => {
                         <h2 className="text-4xl font-black text-gray-900 mb-4">매장 운영에 필요한 모든 것</h2>
                         <p className="text-gray-500 text-lg">종이 메뉴판, 복잡한 POS, 예약 수첩… 이제 위마켓 하나로 통합하세요.</p>
                     </div>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
                         {features.map((feature, i) => (
                             <motion.div key={feature.title}
                                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
@@ -455,6 +460,284 @@ const LandingPage = () => {
                                 <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
                             </motion.div>
                         ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════
+                단골고객 관리리스트 상세 섹션
+            ══════════════════════════════════════════════ */}
+            <section className="py-24 px-6 bg-gradient-to-br from-rose-50 via-white to-orange-50 overflow-hidden relative">
+                <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full blur-3xl opacity-30 pointer-events-none"
+                    style={{ background: 'radial-gradient(circle, rgba(244,63,94,0.2) 0%, transparent 70%)' }} />
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <div className="flex flex-col lg:flex-row items-center gap-16">
+
+                        {/* 왼쪽: 설명 */}
+                        <motion.div initial={{ opacity:0, x:-30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }} className="flex-1">
+                            <div className="flex items-center gap-2 mb-5">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 text-rose-600 rounded-full text-xs font-black">
+                                    <Heart size={12} className="fill-rose-500" /> 단골고객 관리리스트
+                                </span>
+                                <span className="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-[10px] font-black">핵심 기능</span>
+                            </div>
+                            <h2 className="text-4xl font-black text-gray-900 mb-4 leading-tight">
+                                단골고객이 스스로<br />
+                                <span className="text-rose-500">다시 찾아오는</span> 매장
+                            </h2>
+                            <p className="text-gray-500 text-lg mb-8 leading-relaxed">
+                                QR 스캔 한 번으로 방문이 기록되고, 포인트가 쌓이고, VIP 등급이 자동 분류됩니다.
+                                사장님은 아무것도 하지 않아도 위마켓이 단골을 관리합니다.
+                            </p>
+
+                            <div className="space-y-4 mb-10">
+                                {[
+                                    { icon: BadgeCheck,    color:'text-rose-500',  bg:'bg-rose-50',  title:'방문 자동 기록',       desc:'QR 스캔 시 방문 이력 자동 저장. 번거로운 스탬프 카드 불필요.' },
+                                    { icon: Award,         color:'text-amber-500', bg:'bg-amber-50', title:'포인트 & 스탬프',       desc:'결제 금액의 일정 % 자동 적립. 스탬프 카드도 디지털로 발급.' },
+                                    { icon: Crown,         color:'text-violet-500',bg:'bg-violet-50',title:'VIP 자동 등급 분류',    desc:'방문 횟수·누적 금액 기준으로 일반→단골→VIP→VVIP 자동 승급.' },
+                                    { icon: CalendarDays,  color:'text-pink-500',  bg:'bg-pink-50',  title:'생일·기념일 자동 쿠폰', desc:'등록된 생일에 맞춤 혜택을 자동 발송. 단골이 먼저 연락해 옵니다.' },
+                                    { icon: UserPlus,      color:'text-emerald-500',bg:'bg-emerald-50',title:'개인화 재방문 유도',  desc:'"오랫동안 못 뵀네요 😊" 장기 미방문 고객에게 자동 메시지 발송.' },
+                                    { icon: TrendingUp,    color:'text-blue-500',  bg:'bg-blue-50',  title:'고객 패턴 분석',       desc:'자주 오는 시간대·선호 메뉴·평균 객단가를 차트로 한눈에.' },
+                                ].map((f, i) => (
+                                    <motion.div key={i} initial={{ opacity:0, x:-16 }} whileInView={{ opacity:1, x:0 }}
+                                        transition={{ delay: i * 0.08 }} viewport={{ once:true }}
+                                        className="flex items-start gap-4 p-4 bg-white rounded-2xl border border-gray-100 hover:border-rose-200 hover:shadow-md transition-all">
+                                        <div className={`w-10 h-10 ${f.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                                            <f.icon size={18} className={f.color} />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-gray-900 text-sm mb-0.5">{f.title}</p>
+                                            <p className="text-gray-500 text-xs leading-relaxed">{f.desc}</p>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+
+                            <motion.button whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}
+                                onClick={() => navigate('/register')}
+                                className="inline-flex items-center gap-2 px-7 py-3.5 bg-rose-500 text-white rounded-full font-black text-sm hover:bg-rose-600 transition-colors shadow-lg shadow-rose-200">
+                                단골고객 관리 시작하기 <ArrowRight size={16} />
+                            </motion.button>
+                        </motion.div>
+
+                        {/* 오른쪽: 고객 리스트 목업 */}
+                        <motion.div initial={{ opacity:0, x:30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }}
+                            className="flex-1 flex flex-col gap-4 max-w-md w-full">
+
+                            {/* 상단 통계 */}
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { value:'+62%', label:'재방문율', color:'text-rose-600', bg:'bg-rose-50', border:'border-rose-100' },
+                                    { value:'+28%', label:'평균 객단가', color:'text-amber-600', bg:'bg-amber-50', border:'border-amber-100' },
+                                    { value:'41%',  label:'VIP 전환율', color:'text-violet-600', bg:'bg-violet-50', border:'border-violet-100' },
+                                ].map(s => (
+                                    <div key={s.label} className={`text-center py-4 ${s.bg} border ${s.border} rounded-2xl`}>
+                                        <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* 고객 리스트 카드 */}
+                            <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
+                                <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+                                    <p className="font-black text-gray-900 text-sm flex items-center gap-2"><Heart size={14} className="text-rose-500 fill-rose-500" /> 단골고객 리스트</p>
+                                    <span className="text-xs text-gray-400">총 284명</span>
+                                </div>
+                                <div className="divide-y divide-gray-50">
+                                    {[
+                                        { name:'김민준', emoji:'👑', badge:'VVIP', visits:87, amount:'₩1,240,000', color:'text-violet-600', bg:'bg-violet-50' },
+                                        { name:'이수진', emoji:'⭐', badge:'VIP',  visits:42, amount:'₩580,000',  color:'text-amber-600', bg:'bg-amber-50' },
+                                        { name:'박정호', emoji:'💛', badge:'단골',  visits:18, amount:'₩226,000', color:'text-rose-500',  bg:'bg-rose-50' },
+                                        { name:'최유진', emoji:'🌱', badge:'신규',   visits: 3, amount:'₩38,000',  color:'text-emerald-600',bg:'bg-emerald-50' },
+                                    ].map((c, i) => (
+                                        <motion.div key={i} initial={{ opacity:0, y:8 }} whileInView={{ opacity:1, y:0 }}
+                                            transition={{ delay: i * 0.1 }} viewport={{ once:true }}
+                                            className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors">
+                                            <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-lg flex-shrink-0">{c.emoji}</div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-gray-900 text-sm">{c.name} 님</p>
+                                                <p className="text-xs text-gray-400">{c.visits}회 방문</p>
+                                            </div>
+                                            <div className="text-right flex-shrink-0">
+                                                <p className="text-xs font-bold text-gray-700">{c.amount}</p>
+                                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${c.bg} ${c.color}`}>{c.badge}</span>
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                                {/* 알림 미리보기 */}
+                                <div className="px-5 py-4 bg-rose-50/60 border-t border-rose-100">
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-8 h-8 bg-rose-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                            <CalendarDays size={14} className="text-rose-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-black text-gray-900">🎂 생일 쿠폰 자동 발송</p>
+                                            <p className="text-[11px] text-gray-500 mt-0.5">이수진 님 생일 D-3 · 20% 할인 쿠폰 예약 발송</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 포인트 적립 토스트 */}
+                            <motion.div animate={{ y:[0,-6,0] }} transition={{ duration:3.5, repeat:Infinity, ease:'easeInOut' }}
+                                className="flex items-center gap-3 px-5 py-3 bg-amber-500 rounded-2xl shadow-lg self-end">
+                                <span className="text-lg">✨</span>
+                                <div>
+                                    <p className="text-white text-xs font-black">포인트 적립!</p>
+                                    <p className="text-amber-100 text-[10px]">+₩4,200 → 누적 ₩58,000</p>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════
+                지역 커뮤니티 상세 섹션
+            ══════════════════════════════════════════════ */}
+            <section className="py-24 px-6 bg-gradient-to-br from-sky-50 via-white to-blue-50 overflow-hidden relative">
+                <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full blur-3xl opacity-25 pointer-events-none"
+                    style={{ background: 'radial-gradient(circle, rgba(14,165,233,0.25) 0%, transparent 70%)' }} />
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <div className="flex flex-col lg:flex-row-reverse items-center gap-16">
+
+                        {/* 오른쪽(reversed): 설명 */}
+                        <motion.div initial={{ opacity:0, x:30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }} className="flex-1">
+                            <div className="flex items-center gap-2 mb-5">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 rounded-full text-xs font-black">
+                                    <Building2 size={12} /> 지역 커뮤니티
+                                </span>
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-[10px] font-black">상권 활성화</span>
+                            </div>
+                            <h2 className="text-4xl font-black text-gray-900 mb-4 leading-tight">
+                                동네 매장과 함께<br />
+                                <span className="text-sky-500">상권을 키우세요</span>
+                            </h2>
+                            <p className="text-gray-500 text-lg mb-8 leading-relaxed">
+                                혼자 힘들게 마케팅할 필요 없습니다. 주변 제휴 매장과 연결해 고객을 나누고,
+                                지역 이벤트를 함께 기획하면 모두가 성장합니다.
+                            </p>
+
+                            <div className="space-y-4 mb-10">
+                                {[
+                                    { icon: Share2,     color:'text-sky-500',    bg:'bg-sky-50',     title:'제휴 매장 네트워크',    desc:'주변 매장과 연결해 고객을 서로 추천. 빈 테이블 없는 상권을 만듭니다.' },
+                                    { icon: Megaphone,  color:'text-blue-500',   bg:'bg-blue-50',    title:'공동 이벤트 & 프로모션', desc:'지역 한정 이벤트를 함께 기획해 홍보 비용은 나누고 효과는 극대화.' },
+                                    { icon: Repeat2,    color:'text-indigo-500', bg:'bg-indigo-50',  title:'통합 포인트 공유',       desc:'제휴 매장 어디서나 쌓고 쓸 수 있는 지역 통합 포인트 시스템.' },
+                                    { icon: Target,     color:'text-violet-500', bg:'bg-violet-50',  title:'이웃 추천 보상',         desc:'단골이 이웃에게 추천하면 추천인·신규 고객 모두에게 즉시 보상.' },
+                                    { icon: MapPin,     color:'text-rose-500',   bg:'bg-rose-50',    title:'지역 검색 우선 노출',    desc:'위마켓 앱과 지도 검색에서 내 매장이 지역 인근 고객에게 먼저 표시.' },
+                                    { icon: Zap,        color:'text-amber-500',  bg:'bg-amber-50',   title:'실시간 지역 피드',       desc:'오늘의 특가, 이벤트, 새 메뉴를 지역 주민에게 실시간으로 푸시.' },
+                                ].map((f, i) => (
+                                    <motion.div key={i} initial={{ opacity:0, x:16 }} whileInView={{ opacity:1, x:0 }}
+                                        transition={{ delay: i * 0.08 }} viewport={{ once:true }}
+                                        className="flex items-start gap-4 p-4 bg-white rounded-2xl border border-gray-100 hover:border-sky-200 hover:shadow-md transition-all">
+                                        <div className={`w-10 h-10 ${f.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                                            <f.icon size={18} className={f.color} />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-gray-900 text-sm mb-0.5">{f.title}</p>
+                                            <p className="text-gray-500 text-xs leading-relaxed">{f.desc}</p>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+
+                            <motion.button whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}
+                                onClick={() => navigate('/register')}
+                                className="inline-flex items-center gap-2 px-7 py-3.5 bg-sky-500 text-white rounded-full font-black text-sm hover:bg-sky-600 transition-colors shadow-lg shadow-sky-200">
+                                지역 커뮤니티 참여하기 <ArrowRight size={16} />
+                            </motion.button>
+                        </motion.div>
+
+                        {/* 왼쪽(reversed): 커뮤니티 시각화 */}
+                        <motion.div initial={{ opacity:0, x:-30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }}
+                            className="flex-1 flex flex-col gap-4 max-w-md w-full">
+
+                            {/* 상단 통계 */}
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { value:'+43%', label:'신규 고객 유입', color:'text-sky-600',    bg:'bg-sky-50',    border:'border-sky-100' },
+                                    { value:'+85%', label:'지역 충성도',    color:'text-blue-600',   bg:'bg-blue-50',   border:'border-blue-100' },
+                                    { value:'+31%', label:'제휴 매출 증가', color:'text-indigo-600', bg:'bg-indigo-50', border:'border-indigo-100' },
+                                ].map(s => (
+                                    <div key={s.label} className={`text-center py-4 ${s.bg} border ${s.border} rounded-2xl`}>
+                                        <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* 네트워크 맵 */}
+                            <div className="bg-white rounded-3xl border border-gray-100 shadow-xl p-6">
+                                <p className="font-black text-gray-900 text-sm mb-5 flex items-center gap-2">
+                                    <Building2 size={14} className="text-sky-500" /> 동네 제휴 매장 네트워크
+                                </p>
+                                {/* SVG 네트워크 */}
+                                <div className="relative h-52">
+                                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 340 200">
+                                        {/* 연결선 */}
+                                        <line x1="170" y1="100" x2="60"  y2="44"  stroke="#bae6fd" strokeWidth="2" strokeDasharray="5,4" />
+                                        <line x1="170" y1="100" x2="280" y2="44"  stroke="#bae6fd" strokeWidth="2" strokeDasharray="5,4" />
+                                        <line x1="170" y1="100" x2="50"  y2="164" stroke="#bae6fd" strokeWidth="2" strokeDasharray="5,4" />
+                                        <line x1="170" y1="100" x2="290" y2="164" stroke="#bae6fd" strokeWidth="2" strokeDasharray="5,4" />
+                                        <line x1="170" y1="100" x2="170" y2="10"  stroke="#bae6fd" strokeWidth="2" strokeDasharray="5,4" />
+                                    </svg>
+                                    {/* 내 매장 (중앙) */}
+                                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                                        <div className="w-16 h-16 bg-gradient-to-br from-sky-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-sky-200">
+                                            <span className="text-white text-xs font-black text-center leading-tight">내<br/>매장</span>
+                                        </div>
+                                        <motion.div animate={{ scale:[1,1.4,1], opacity:[0.5,0,0.5] }}
+                                            transition={{ duration:2.5, repeat:Infinity }}
+                                            className="absolute inset-0 rounded-2xl bg-sky-400/30" />
+                                    </div>
+                                    {/* 제휴 매장들 */}
+                                    {[
+                                        { top:'-2px', left:'42px', emoji:'☕', label:'카페' },
+                                        { top:'-2px', right:'22px', emoji:'🍕', label:'피자' },
+                                        { bottom:'-2px', left:'28px', emoji:'💇', label:'헤어' },
+                                        { bottom:'-2px', right:'14px', emoji:'🍱', label:'분식' },
+                                        { top:'-8px', left:'50%', transform:'translateX(-50%)', emoji:'🥐', label:'베이커리' },
+                                    ].map((s, i) => (
+                                        <motion.div key={i} initial={{ scale:0 }} whileInView={{ scale:1 }}
+                                            transition={{ delay: i * 0.15, type:'spring' }} viewport={{ once:true }}
+                                            className="absolute flex flex-col items-center gap-1" style={s}>
+                                            <div className="w-11 h-11 bg-white border-2 border-sky-100 rounded-xl shadow-md flex items-center justify-center text-xl">
+                                                {s.emoji}
+                                            </div>
+                                            <span className="text-[9px] font-bold text-gray-500">{s.label}</span>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 지역 피드 */}
+                            <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
+                                <div className="px-5 py-3 border-b border-gray-50 flex items-center gap-2">
+                                    <Megaphone size={14} className="text-sky-500" />
+                                    <p className="font-black text-gray-900 text-sm">지역 실시간 피드</p>
+                                </div>
+                                <div className="divide-y divide-gray-50">
+                                    {[
+                                        { emoji:'🎉', store:'홍길동 카페', msg:'오늘 오후 2~4시 아메리카노 1+1 이벤트!', time:'방금', color:'bg-amber-50' },
+                                        { emoji:'🍕', store:'강남 피자집', msg:'평일 점심 세트 20% 할인 중입니다', time:'12분 전', color:'bg-sky-50' },
+                                        { emoji:'💇', store:'수진 헤어샵', msg:'이번 주 남성커트 ₩5,000 특가 진행 중', time:'1시간 전', color:'bg-rose-50' },
+                                    ].map((f, i) => (
+                                        <motion.div key={i} initial={{ opacity:0, y:6 }} whileInView={{ opacity:1, y:0 }}
+                                            transition={{ delay: i * 0.1 }} viewport={{ once:true }}
+                                            className={`flex items-start gap-3 px-4 py-3 ${f.color}/40`}>
+                                            <span className="text-xl flex-shrink-0">{f.emoji}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-black text-gray-800">{f.store}</p>
+                                                <p className="text-[11px] text-gray-500 mt-0.5 truncate">{f.msg}</p>
+                                            </div>
+                                            <span className="text-[10px] text-gray-400 flex-shrink-0">{f.time}</span>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            </div>
+                        </motion.div>
                     </div>
                 </div>
             </section>
