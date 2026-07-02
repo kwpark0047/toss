@@ -145,7 +145,9 @@ const AppRoutes = () => (
     {/* 첫 매장 설정 마법사 (팅커벨 온보딩) */}
     <Route path="/admin/setup" element={
       <ProtectedRoute>
-        <AdminSuspense><StoreSetupWizard /></AdminSuspense>
+        <AdminErrorBoundary>
+          <AdminSuspense><StoreSetupWizard /></AdminSuspense>
+        </AdminErrorBoundary>
       </ProtectedRoute>
     } />
 
