@@ -75,6 +75,7 @@ const MasterDashboard = () => {
     const [stats, setStats] = useState(null);
     const [recentOrders, setRecentOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showSlowMsg, setShowSlowMsg] = useState(false);
     const [timeRange, setTimeRange] = useState('week');
     const [comparison, setComparison] = useState(null);
     const [isMultiView, setIsMultiView] = useState(false);
@@ -193,6 +194,13 @@ const MasterDashboard = () => {
 
     useEffect(() => { fetchStores(); }, [fetchStores]);
 
+    // 5초 이상 로딩 중이면 서버 기동 메시지 표시 (Render 콜드스타트 안내)
+    useEffect(() => {
+        if (!loading) { setShowSlowMsg(false); return; }
+        const t = setTimeout(() => setShowSlowMsg(true), 5000);
+        return () => clearTimeout(t);
+    }, [loading]);
+
     useEffect(() => {
         if (isMultiView) {
             fetchMultiStoreData();
@@ -220,40 +228,36 @@ const MasterDashboard = () => {
     }
 
     if (loading) {
-        const sk1 = isLight ? 'bg-slate-200' : 'bg-white/10';
-        const sk2 = isLight ? 'bg-slate-100' : 'bg-white/5';
-        const skCard = isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-800/60 border-white/8';
         return (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div className="space-y-2">
-                        <div className={`h-7 w-48 ${sk1} rounded-xl animate-pulse`} />
-                        <div className={`h-4 w-32 ${sk2} rounded-lg animate-pulse`} />
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-center justify-center min-h-[60vh] gap-6"
+            >
+                <div className="relative">
+                    <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-2xl shadow-orange-500/30">
+                        <Store className="w-10 h-10 text-white" />
                     </div>
-                    <div className={`h-10 w-32 ${sk1} rounded-xl animate-pulse`} />
+                    <div className="absolute -inset-2 rounded-[2rem] border-2 border-orange-500/40 animate-ping" />
                 </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className={`${skCard} rounded-2xl p-5 border space-y-3`}>
-                            <div className={`h-4 w-20 ${sk1} rounded animate-pulse`} />
-                            <div className={`h-8 w-28 ${sk1} rounded-xl animate-pulse`} />
-                            <div className={`h-3 w-16 ${sk2} rounded animate-pulse`} />
-                        </div>
+                <div className="text-center space-y-2">
+                    <p className={`text-xl font-black ${tx}`}>대시보드 로딩 중</p>
+                    {showSlowMsg ? (
+                        <p className={`text-sm ${txs} max-w-xs`}>
+                            서버를 기동하는 중입니다. 최초 실행 시 약 30~60초 소요됩니다.
+                        </p>
+                    ) : (
+                        <p className={`text-sm ${txs}`}>매장 정보를 불러오는 중...</p>
+                    )}
+                </div>
+                <div className="flex gap-1.5">
+                    {[0, 1, 2].map(i => (
+                        <div
+                            key={i}
+                            className="w-2 h-2 rounded-full bg-orange-500 animate-bounce"
+                            style={{ animationDelay: `${i * 0.15}s` }}
+                        />
                     ))}
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div className={`lg:col-span-2 ${skCard} rounded-2xl p-5 border h-64 animate-pulse`} />
-                    <div className={`${skCard} rounded-2xl p-5 border space-y-3`}>
-                        {[...Array(5)].map((_, i) => (
-                            <div key={i} className="flex items-center gap-3">
-                                <div className={`w-9 h-9 rounded-xl ${sk1} animate-pulse flex-shrink-0`} />
-                                <div className="flex-1 space-y-1.5">
-                                    <div className={`h-3 w-full ${sk1} rounded animate-pulse`} />
-                                    <div className={`h-3 w-2/3 ${sk2} rounded animate-pulse`} />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
                 </div>
             </motion.div>
         );
