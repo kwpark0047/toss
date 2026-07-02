@@ -75,9 +75,6 @@ const MasterDashboard = () => {
             setStores(storeList);
             if (storeList.length > 0) {
                 setSelectedStore(storeList[0]);
-            } else if (user?.role !== 'super_admin' && !sessionStorage.getItem('wm_setup_skipped')) {
-                // 첫 가입 사업자: 팅커벨 온보딩 마법사로 이동 (건너뛴 경우 제외)
-                navigate('/admin/setup');
             }
         } catch (error) {
             console.error('매장 로딩 실패:', error);
