@@ -262,167 +262,143 @@ const OrderManager = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto pb-20 px-4">
+    <div className="max-w-7xl mx-auto pb-24 px-3 lg:px-4">
       {/* 1. 실시간 알림 팝업 */}
       <AnimatePresence>
         {newOrderAlert && (
-          <motion.div 
-            initial={{ opacity: 0, y: -100, scale: 0.8 }}
+          <motion.div
+            initial={{ opacity: 0, y: -80, scale: 0.85 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -100, scale: 0.8 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-[100]"
+            exit={{ opacity: 0, y: -80, scale: 0.85 }}
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-[100]"
           >
-            <div className="px-8 py-4 bg-orange-500 text-white rounded-[2rem] shadow-2xl shadow-orange-500/40 flex items-center gap-4 border border-orange-400/50">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
-                <Bell size={20} />
-              </div>
+            <div className="px-5 py-3 bg-orange-500 text-white rounded-2xl shadow-2xl shadow-orange-500/40 flex items-center gap-3 border border-orange-400/50">
+              <Bell size={18} className="animate-pulse" />
               <div>
-                <p className="font-black text-sm tracking-tighter">🛎️ 새 주문 접수!</p>
-                <p className="text-[10px] font-bold opacity-80 tracking-widest">대기 목록을 확인해주세요</p>
+                <p className="font-black text-sm">🛎️ 새 주문 접수!</p>
+                <p className="text-[10px] font-bold opacity-80">대기 목록을 확인해주세요</p>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 2. 헤더 섹션 */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-12">
-        <div className="flex items-center gap-6">
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Link to="/admin" className="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white transition-all">
-              <ArrowLeft size={24} />
-            </Link>
-          </motion.div>
-          <div>
-            <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-4">
+      {/* 2. 헤더 — 모바일 컴팩트 */}
+      <div className="flex items-center justify-between gap-3 mb-5 pt-1">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link to="/admin"
+            className="flex-shrink-0 w-9 h-9 lg:w-11 lg:h-11 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition-all">
+            <ArrowLeft size={16} />
+          </Link>
+          <div className="min-w-0">
+            <h1 className="text-xl lg:text-3xl font-black text-white tracking-tight flex items-center gap-2">
               주문 현황
-              <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+              <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
             </h1>
-            <p className="text-slate-500 font-bold tracking-widest text-xs mt-1">{store?.name} 실시간 모니터</p>
+            <p className="text-slate-500 font-bold text-[10px] mt-0.5 truncate">{store?.name}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
+        {/* 우측 컨트롤 */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           {pendingCount > 0 && (
-            <div className="px-6 py-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
-              <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping" />
-              <span className="text-amber-500 font-black text-sm tracking-tighter">{pendingCount}건 대기 중</span>
+            <div className="hidden sm:flex px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping" />
+              <span className="text-amber-400 font-black text-xs">{pendingCount}건 대기</span>
             </div>
           )}
-          
-          <button 
-            onClick={toggleSound} 
-            className={`w-14 h-14 rounded-2xl border transition-all flex items-center justify-center ${
-              soundEnabled ? 'bg-orange-500 border-orange-400 text-white shadow-lg shadow-orange-500/20' : 'bg-white/5 border-white/10 text-slate-500'
-            }`}
-          >
-            {soundEnabled ? <Volume2 size={24} /> : <VolumeX size={24} />}
+          <button onClick={toggleSound}
+            className={`w-9 h-9 rounded-xl border transition-all flex items-center justify-center ${
+              soundEnabled ? 'bg-orange-500 border-orange-400 text-white' : 'bg-white/5 border-white/10 text-slate-500'
+            }`}>
+            {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
           </button>
-
-          <button 
-            onClick={() => setAutoRefresh(!autoRefresh)} 
-            className={`px-6 h-14 rounded-2xl border transition-all flex items-center gap-3 font-black text-xs tracking-widest ${
-              autoRefresh ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-white/5 border-white/10 text-slate-500'
-            }`}
-          >
-            <RefreshCw size={18} className={autoRefresh ? 'animate-spin' : ''} />
-            자동 갱신
+          <button onClick={() => setAutoRefresh(!autoRefresh)}
+            className={`hidden sm:flex h-9 px-3 rounded-xl border transition-all items-center gap-1.5 font-black text-[10px] ${
+              autoRefresh ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-500'
+            }`}>
+            <RefreshCw size={13} className={autoRefresh ? 'animate-spin' : ''} />
+            자동
           </button>
-
-          <motion.button 
-            whileTap={{ rotate: 180 }}
-            onClick={() => fetchOrders()} 
-            className="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white transition-all"
-          >
-            <RefreshCw size={24} />
+          <motion.button whileTap={{ rotate: 180 }} onClick={() => fetchOrders()}
+            className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition-all">
+            <RefreshCw size={15} />
           </motion.button>
         </div>
       </div>
 
-      {/* 3. 상태 요약 보드 */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-        <button 
-          onClick={() => setSelectedStatus('all')}
-          className={`p-6 rounded-[2rem] border transition-all text-left ${
-            selectedStatus === 'all' ? 'bg-orange-500 border-orange-400 text-white' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'
-          }`}
-        >
-          <List size={20} className="mb-4" />
-          <p className="text-[10px] font-black uppercase tracking-widest opacity-60">전체 주문</p>
-          <p className="text-2xl font-black">{statusCounts.all}</p>
+      {/* 모바일 대기 카운트 */}
+      {pendingCount > 0 && (
+        <div className="sm:hidden flex px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl items-center gap-2 mb-4">
+          <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping" />
+          <span className="text-amber-400 font-black text-sm">{pendingCount}건 대기 중</span>
+        </div>
+      )}
+
+      {/* 3. 상태 필터 — 가로 스크롤 칩 (모바일) / 그리드 (데스크탑) */}
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-4 scrollbar-hide lg:grid lg:grid-cols-7 lg:gap-2">
+        {/* 전체 */}
+        <button onClick={() => setSelectedStatus('all')}
+          className={`flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 lg:py-3 rounded-xl border transition-all min-w-[68px] lg:min-w-0 ${
+            selectedStatus === 'all'
+              ? 'bg-orange-500 border-orange-400 text-white'
+              : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'
+          }`}>
+          <List size={14} className="mb-1" />
+          <p className="text-[9px] font-black opacity-70 whitespace-nowrap">전체</p>
+          <p className="text-base font-black leading-none">{statusCounts.all}</p>
         </button>
-        
-        {Object.entries(statusConfig).map(([key, config]) => (
-          <button 
-            key={key}
-            onClick={() => setSelectedStatus(key)}
-            className={`p-6 rounded-[2rem] border transition-all text-left ${
-              selectedStatus === key ? `${config.bg} ${config.border} ${config.color}` : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'
-            }`}
-          >
-            <config.icon size={20} className="mb-4" />
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">{config.label}</p>
-            <p className="text-2xl font-black">{statusCounts[key]}</p>
+
+        {Object.entries(statusConfig).map(([key, conf]) => (
+          <button key={key} onClick={() => setSelectedStatus(key)}
+            className={`flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 lg:py-3 rounded-xl border transition-all min-w-[68px] lg:min-w-0 ${
+              selectedStatus === key
+                ? `${conf.bg} ${conf.border} ${conf.color}`
+                : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'
+            }`}>
+            <conf.icon size={14} className="mb-1" />
+            <p className="text-[9px] font-black opacity-70 whitespace-nowrap">{conf.label}</p>
+            <p className="text-base font-black leading-none">{statusCounts[key]}</p>
           </button>
         ))}
       </div>
 
-      {/* 4. 제어 패널 */}
-      <div className="bg-white/5 backdrop-blur-xl rounded-[2.5rem] border border-white/5 p-6 mb-12 flex flex-col md:flex-row gap-6">
+      {/* 4. 검색·날짜 바 */}
+      <div className="flex gap-2 mb-5">
         <div className="flex-1 relative">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
-          <input 
-            type="text"
-            placeholder="주문번호, 고객명, 테이블로 검색..."
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)} 
-            className="w-full pl-16 pr-6 py-5 bg-white/5 border border-white/5 rounded-2xl text-white font-bold placeholder:text-slate-700 outline-none focus:border-orange-500/30 transition-all uppercase text-xs tracking-widest" 
-          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+          <input type="text" placeholder="주문번호, 테이블 검색..."
+            value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-3 py-2.5 bg-white/5 border border-white/5 rounded-xl text-white text-sm font-bold placeholder:text-slate-600 outline-none focus:border-orange-500/30 transition-all" />
         </div>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-            <input 
-              type="date" 
-              value={selectedDate} 
-              onChange={(e) => setSelectedDate(e.target.value)} 
-              className="pl-14 pr-6 py-5 bg-white/5 border border-white/5 rounded-2xl text-white font-bold outline-none appearance-none focus:border-orange-500/30 transition-all text-xs tracking-widest" 
-            />
-          </div>
-          <button 
-            onClick={() => { setSearchTerm(''); setSelectedStatus('all'); setSelectedDate(new Date().toISOString().split('T')[0]); }}
-            className="w-14 h-14 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-center text-slate-500 hover:text-white transition-all"
-          >
-            <Filter size={20} />
-          </button>
+        <div className="relative flex-shrink-0">
+          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={13} />
+          <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+            className="pl-9 pr-2 py-2.5 bg-white/5 border border-white/5 rounded-xl text-white text-sm font-bold outline-none appearance-none focus:border-orange-500/30 transition-all w-36" />
         </div>
+        <button onClick={() => { setSearchTerm(''); setSelectedStatus('all'); setSelectedDate(new Date().toISOString().split('T')[0]); }}
+          className="flex-shrink-0 w-10 h-10 bg-white/5 border border-white/5 rounded-xl flex items-center justify-center text-slate-500 hover:text-white transition-all">
+          <Filter size={14} />
+        </button>
       </div>
 
       {/* 5. 주문 그리드 */}
       <AnimatePresence mode="popLayout">
         {filteredOrders.length === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white/2 border border-dashed border-white/10 rounded-[3rem] py-32 text-center"
-          >
-            <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-700">
-              <Package size={48} />
-            </div>
-            <h3 className="text-2xl font-black text-slate-300 mb-2 tracking-tight">주문 없음</h3>
-            <p className="text-slate-600 font-bold tracking-widest text-xs">현재 필터 조건에 맞는 주문이 없습니다</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="border border-dashed border-white/10 rounded-3xl py-20 text-center">
+            <Package size={36} className="text-slate-700 mx-auto mb-4" />
+            <p className="text-lg font-black text-slate-400">주문 없음</p>
+            <p className="text-slate-600 text-xs mt-1">현재 필터 조건에 맞는 주문이 없습니다</p>
           </motion.div>
         ) : (
-          <motion.div 
-            layout
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-          >
+          <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
             {filteredOrders.map(order => (
               <OrderCard
                 key={order.id}
                 order={order}
                 statusConfig={statusConfig}
-                onShowDetail={(ord) => { setSelectedOrder(ord); setShowDetail(true); }}
+                onShowDetail={ord => { setSelectedOrder(ord); setShowDetail(true); }}
                 onStatusChange={handleStatusChange}
                 formatTime={formatTime}
               />
