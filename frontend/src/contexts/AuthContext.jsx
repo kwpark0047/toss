@@ -31,13 +31,12 @@ export const AuthProvider = ({ children }) => {
         setUser({ id: payload.id, name: payload.name, role: payload.role });
         setLoading(false);
 
-        // 백그라운드에서 서버 검증 (UI 차단 없음)
-        authAPI.me()
-          .then(res => { const u = res?.data || res?.user || res; if (u?.id) setUser(u); })
-          .catch(() => {
-            // 네트워크/서버 일시 오류 시 로컬 JWT가 유효하므로 로그아웃하지 않음.
-            // 401 인증 만료는 Axios 인터셉터가 token refresh 또는 /login 리다이렉트로 처리.
-          });
+        // 백그라운드 서버 검증 — 2s 지연으로 storesAPI.getMy()와 DB 커넥션 경쟁 방지
+        setTimeout(() => {
+          authAPI.me()
+            .then(res => { const u = res?.data || res?.user || res; if (u?.id) setUser(u); })
+            .catch(() => {});
+        }, 2000);
         return;
       }
 

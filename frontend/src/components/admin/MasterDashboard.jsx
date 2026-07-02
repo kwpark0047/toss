@@ -216,33 +216,36 @@ const MasterDashboard = () => {
     }
 
     if (loading) {
+        const sk1 = isLight ? 'bg-slate-200' : 'bg-white/10';
+        const sk2 = isLight ? 'bg-slate-100' : 'bg-white/5';
+        const skCard = isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-800/60 border-white/8';
         return (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div className="space-y-2">
-                        <div className="h-7 w-48 bg-white/10 rounded-xl animate-pulse" />
-                        <div className="h-4 w-32 bg-white/5 rounded-lg animate-pulse" />
+                        <div className={`h-7 w-48 ${sk1} rounded-xl animate-pulse`} />
+                        <div className={`h-4 w-32 ${sk2} rounded-lg animate-pulse`} />
                     </div>
-                    <div className="h-10 w-32 bg-white/10 rounded-xl animate-pulse" />
+                    <div className={`h-10 w-32 ${sk1} rounded-xl animate-pulse`} />
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="bg-slate-800/60 rounded-2xl p-5 border border-white/8 space-y-3">
-                            <div className="h-4 w-20 bg-white/10 rounded animate-pulse" />
-                            <div className="h-8 w-28 bg-white/10 rounded-xl animate-pulse" />
-                            <div className="h-3 w-16 bg-white/5 rounded animate-pulse" />
+                        <div key={i} className={`${skCard} rounded-2xl p-5 border space-y-3`}>
+                            <div className={`h-4 w-20 ${sk1} rounded animate-pulse`} />
+                            <div className={`h-8 w-28 ${sk1} rounded-xl animate-pulse`} />
+                            <div className={`h-3 w-16 ${sk2} rounded animate-pulse`} />
                         </div>
                     ))}
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div className="lg:col-span-2 bg-slate-800/60 rounded-2xl p-5 border border-white/8 h-64 animate-pulse" />
-                    <div className="bg-slate-800/60 rounded-2xl p-5 border border-white/8 space-y-3">
+                    <div className={`lg:col-span-2 ${skCard} rounded-2xl p-5 border h-64 animate-pulse`} />
+                    <div className={`${skCard} rounded-2xl p-5 border space-y-3`}>
                         {[...Array(5)].map((_, i) => (
                             <div key={i} className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-white/10 animate-pulse flex-shrink-0" />
+                                <div className={`w-9 h-9 rounded-xl ${sk1} animate-pulse flex-shrink-0`} />
                                 <div className="flex-1 space-y-1.5">
-                                    <div className="h-3 w-full bg-white/10 rounded animate-pulse" />
-                                    <div className="h-3 w-2/3 bg-white/5 rounded animate-pulse" />
+                                    <div className={`h-3 w-full ${sk1} rounded animate-pulse`} />
+                                    <div className={`h-3 w-2/3 ${sk2} rounded animate-pulse`} />
                                 </div>
                             </div>
                         ))}
