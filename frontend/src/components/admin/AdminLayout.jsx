@@ -8,7 +8,7 @@ import {
   Store, LogOut, LayoutDashboard, UtensilsCrossed,
   Settings, Users, Receipt, Wallet, Palette,
   Menu as MenuIcon, X, MessageSquare, LogIn, Smartphone, CalendarCheck, Sparkles, Package,
-  UserCircle, ChevronRight, Check, ShoppingBag,
+  UserCircle, ChevronRight, Check, ShoppingBag, Building2,
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 
@@ -288,7 +288,8 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
   ] : [
     { label: '홈', icon: LayoutDashboard, path: '/admin' },
     { label: 'AI', icon: Sparkles, path: '/admin/tinkerbell' },
-    { label: '커뮤니티', icon: MessageSquare, path: '/board' },
+    { label: '지역커뮤니티', icon: Building2, path: '/admin/community' },
+    { label: '게시판', icon: MessageSquare, path: '/board' },
   ];
 
   return (
@@ -619,9 +620,10 @@ const AdminLayout = ({ children }) => {
     { label: '단골 관리',     icon: Users,             path: `/admin/stores/${storeId}/customers`,               show: !!storeId, roles: [] },
     { label: '팀원 관리',     icon: Users,             path: `/admin/stores/${storeId}/staff`,                   show: !!storeId, roles: [] },
     { label: '매장 환경설정', icon: Settings,          path: `/admin/stores/${storeId}/settings`,               show: !!storeId, roles: [] },
-    { label: 'AI 팅커벨',     icon: Sparkles,           path: '/admin/tinkerbell',                                                roles: [] },
-    { label: '통합 SMS 발송', icon: Smartphone,         path: '/admin/bulk-sms',                                                  roles: ['super_admin'] },
-    { label: '커뮤니티',      icon: MessageSquare,      path: '/board',                                           id: 'board',     roles: [] },
+    { label: 'AI 팅커벨',     icon: Sparkles,     path: '/admin/tinkerbell',   roles: [] },
+    { label: '통합 SMS 발송', icon: Smartphone,   path: '/admin/bulk-sms',     roles: ['super_admin'] },
+    { label: '지역 커뮤니티', icon: Building2,    path: '/admin/community',    roles: [] },
+    { label: '게시판',        icon: MessageSquare, path: '/board',             id: 'board', roles: [] },
   ];
 
   const filteredNavItems = navItems.filter(item => {

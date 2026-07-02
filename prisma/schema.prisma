@@ -461,6 +461,9 @@ model stores {
   users                  users                    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   tables                 tables[]
   waiting_list           waiting_list[]
+  community_posts        community_posts[]
+  store_partnerships_as_requester store_partnerships[] @relation("partnerships_requester")
+  store_partnerships_as_target    store_partnerships[] @relation("partnerships_target")
 
   @@index([user_id], map: "idx_stores_user_id")
 }
@@ -538,8 +541,61 @@ model users {
   store_staff                                                      store_staff[]
   stores                                                           stores[]
   user_points                                                      user_points[]
+  community_post_likes                                             community_post_likes[]
 
   @@index([email], map: "idx_users_email")
+}
+
+model community_posts {
+  id          Int                    @id @default(autoincrement())
+  store_id    Int
+  type        String                 @default("NEWS")  // EVENT | PROMOTION | NEWS | PRODUCT
+  title       String
+  content     String
+  image_url   String?
+  district    String?
+  expires_at  DateTime?
+  like_count  Int                    @default(0)
+  view_count  Int                    @default(0)
+  is_active   Boolean                @default(true)
+  created_at  DateTime               @default(now())
+  updated_at  DateTime               @default(now())
+  stores      stores                 @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  post_likes  community_post_likes[]
+
+  @@index([store_id])
+  @@index([district])
+  @@index([type])
+  @@index([created_at(sort: Desc)])
+}
+
+model community_post_likes {
+  id              Int              @id @default(autoincrement())
+  post_id         Int
+  user_id         Int?
+  created_at      DateTime         @default(now())
+  community_posts community_posts  @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  users           users?           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([post_id, user_id])
+  @@index([post_id])
+}
+
+model store_partnerships {
+  id              Int      @id @default(autoincrement())
+  requester_id    Int
+  target_id       Int
+  status          String   @default("pending")  // pending | accepted | rejected
+  message         String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @default(now())
+  requester_store stores   @relation("partnerships_requester", fields: [requester_id], references: [id], onDelete: Cascade)
+  target_store    stores   @relation("partnerships_target",    fields: [target_id],    references: [id], onDelete: Cascade)
+
+  @@unique([requester_id, target_id])
+  @@index([requester_id])
+  @@index([target_id])
+  @@index([status])
 }
 
 model phone_otps {

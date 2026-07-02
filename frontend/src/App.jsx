@@ -41,6 +41,7 @@ const BoardList          = lazy(() => import("@/components/board/BoardList"));
 const BoardDetail        = lazy(() => import("@/components/board/BoardDetail"));
 const BoardWrite         = lazy(() => import("@/components/board/BoardWrite"));
 const KitchenDisplayPage = lazy(() => import("@/pages/KitchenDisplay"));
+const CommunityPage      = lazy(() => import("@/components/admin/CommunityPage"));
 
 const queryClient = new QueryClient();
 
@@ -241,6 +242,13 @@ const AppRoutes = () => (
     <Route path="/admin/profile" element={
       <AdminPage>
         <AdminSuspense><ProfilePage /></AdminSuspense>
+      </AdminPage>
+    } />
+
+    {/* 지역 커뮤니티 */}
+    <Route path="/admin/community" element={
+      <AdminPage>
+        <AdminSuspense><CommunityPage /></AdminSuspense>
       </AdminPage>
     } />
 

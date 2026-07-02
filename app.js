@@ -319,7 +319,8 @@ const routes = {
     staffGamification: require('./routes/staffGamification'),
     aiAssistant: require('./routes/aiAssistant'),
     export: require('./routes/export'),
-    inventory: require('./routes/inventory')
+    inventory: require('./routes/inventory'),
+    community: require('./routes/community')
 };
 
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)

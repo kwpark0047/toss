@@ -568,6 +568,38 @@ export const inventoryAPI = {
     api.get(`/inventory/products/${productId}/history`, { params }),
 };
 
+export const communityAPI = {
+  // 지역 피드 조회 (공개)
+  getFeed: (params = {}) => api.get('/community/feed', { params }),
+
+  // 내 매장 피드 목록
+  getMyPosts: (params = {}) => api.get('/community/my-posts', { params }),
+
+  // 피드 작성
+  createPost: (data) => api.post('/community/posts', data),
+
+  // 피드 수정
+  updatePost: (id, data) => api.put(`/community/posts/${id}`, data),
+
+  // 피드 삭제
+  deletePost: (id) => api.delete(`/community/posts/${id}`),
+
+  // 좋아요 토글
+  likePost: (id) => api.post(`/community/posts/${id}/like`),
+
+  // 주변 매장 조회
+  getNearby: (params = {}) => api.get('/community/nearby', { params }),
+
+  // 제휴 현황 조회
+  getPartnerships: (storeId) => api.get('/community/partnerships', { params: { store_id: storeId } }),
+
+  // 제휴 신청
+  requestPartnership: (data) => api.post('/community/partnerships', data),
+
+  // 제휴 승인/거절
+  respondPartnership: (id, action) => api.put(`/community/partnerships/${id}/respond`, { action }),
+};
+
 export default api;
 
 
