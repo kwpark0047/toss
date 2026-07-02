@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { authAPI, storesAPI } from '../api';
+import api from '../api';
 
 const AuthContext = createContext(null);
 
@@ -31,9 +32,9 @@ export const AuthProvider = ({ children }) => {
         setUser({ id: payload.id, name: payload.name, role: payload.role });
         setLoading(false);
 
-        // 백그라운드 서버 검증 — 2s 지연으로 storesAPI.getMy()와 DB 커넥션 경쟁 방지
+        // 백그라운드 서버 검증 — _skipRedirect로 401 시 자동 로그아웃/리다이렉트 방지
         setTimeout(() => {
-          authAPI.me()
+          api.get('/auth/me', { _skipRedirect: true })
             .then(res => { const u = res?.data || res?.user || res; if (u?.id) setUser(u); })
             .catch(() => {});
         }, 2000);

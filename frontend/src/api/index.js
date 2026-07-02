@@ -83,6 +83,11 @@ api.interceptors.response.use(
       }
     }
 
+    // 401 에러 처리 - _skipRedirect 요청은 인터셉터 로직 전체 생략 (백그라운드 silent check용)
+    if (originalRequest._skipRedirect) {
+      return Promise.reject(error);
+    }
+
     // 401 에러 처리 - 토큰 갱신
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -100,12 +105,10 @@ api.interceptors.response.use(
         console.error('토큰 갱신 실패:', err);
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
-        // 공개 페이지(/menu, /qr)에서는 로그아웃 리다이렉트 금지
-        // — 고객이 메뉴판 접근 시 관리자 세션 만료로 로그아웃되는 문제 방지
+        // /admin/* 에서만 /auth로 리다이렉트 — 로그인/공개 페이지에선 금지
         const path = window.location.pathname;
-        const isPublicPage = path.startsWith('/menu') || path.startsWith('/qr') || path === '/';
-        if (!isPublicPage && !path.startsWith('/login')) {
-          window.location.href = '/login';
+        if (path.startsWith('/admin')) {
+          window.location.href = '/auth';
         }
       }
     }
