@@ -259,10 +259,10 @@ export default function NotificationBell() {
 
                     {/* 푸터 */}
                     <div className={`flex-shrink-0 flex items-center justify-center gap-1.5 py-2 text-[10px] font-black border-t border-white/5
-                        ${isConnected ? 'text-emerald-500 bg-emerald-500/5' : 'text-red-500 bg-red-500/5'}`}>
+                        ${isConnected ? 'text-emerald-500 bg-emerald-500/5' : 'text-slate-500 bg-slate-500/5'}`}>
                         {isConnected
                             ? <><Wifi size={10} /> 실시간 연결됨</>
-                            : <><WifiOff size={10} /> 연결 끊김 — 재연결 중...</>
+                            : <><WifiOff size={10} /> 연결 중...</>
                         }
                     </div>
                 </div>
