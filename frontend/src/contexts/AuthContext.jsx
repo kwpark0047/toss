@@ -1,20 +1,51 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI } from '../api';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { authAPI, storesAPI } from '../api';
 
 const AuthContext = createContext(null);
+
+// JWT 페이로드를 네트워크 없이 즉시 디코드 (서명 검증 없음 — 만료 확인용)
+const decodeToken = (token) => {
+  try {
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(b64));
+  } catch { return null; }
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // 로그인 직후 프리패치한 stores 캐시 (MasterDashboard가 즉시 소비)
+  const storesCacheRef = useRef(null);
 
   useEffect(() => {
     const loadUser = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) { setLoading(false); return; }
+
+      // 1) JWT 로컬 디코드 — 네트워크 없이 즉시 유효성 확인
+      const payload = decodeToken(token);
+      const validFor = payload?.exp ? payload.exp * 1000 - Date.now() : 0;
+
+      if (payload && validFor > 60_000) {
+        // 토큰 유효: user 즉시 세팅 → 앱 즉시 언블록
+        setUser({ id: payload.id, name: payload.name, role: payload.role });
+        setLoading(false);
+
+        // 백그라운드에서 서버 검증 (UI 차단 없음)
+        authAPI.me()
+          .then(res => { const u = res?.data || res?.user || res; if (u?.id) setUser(u); })
+          .catch(() => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            setUser(null);
+          });
+        return;
+      }
+
+      // 2) 토큰 만료 또는 디코드 실패 → 서버에서 갱신 시도
       try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          const res = await authAPI.me();
-          setUser(res.data || res.user || res);
-        }
+        const res = await authAPI.me();
+        setUser(res?.data || res?.user || res);
       } catch {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
@@ -47,6 +78,15 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', token);
     if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
     setUser(userData);
+
+    // 로그인 즉시 stores 프리패치 → 대시보드 진입 시 API 대기 없이 즉시 렌더
+    storesAPI.getMy()
+      .then(res => {
+        const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+        storesCacheRef.current = { list, ts: Date.now() };
+      })
+      .catch(() => {});
+
     return { token, user: userData };
   };
 
@@ -80,8 +120,19 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // MasterDashboard가 캐시를 소비하는 함수 (한 번만 사용 가능)
+  const consumeStoresCache = () => {
+    const cache = storesCacheRef.current;
+    if (cache && Date.now() - cache.ts < 30_000) {
+      storesCacheRef.current = null;
+      return cache.list;
+    }
+    storesCacheRef.current = null;
+    return null;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, sendOtp, verifyOtp, login, register, updateProfile, changePassword, logout }}>
+    <AuthContext.Provider value={{ user, loading, sendOtp, verifyOtp, login, register, updateProfile, changePassword, logout, consumeStoresCache }}>
       {children}
     </AuthContext.Provider>
   );

@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 const MasterDashboard = () => {
-    const { user } = useAuth();
+    const { user, consumeStoresCache } = useAuth();
     const navigate = useNavigate();
     const [stores, setStores] = useState([]);
     const [selectedStore, setSelectedStore] = useState(null);
@@ -48,11 +48,30 @@ const MasterDashboard = () => {
 
     const fetchStores = useCallback(async () => {
         try {
+            // 로그인 직후 프리패치 캐시 우선 사용 → 대기 없이 즉시 렌더
+            const cached = consumeStoresCache?.();
+            let storeList;
+            if (cached) {
+                storeList = cached;
+                setStores(storeList);
+                if (storeList.length > 0) setSelectedStore(storeList[0]);
+                setLoading(false);
+                // 백그라운드에서 최신 데이터로 갱신
+                storesAPI.getMy()
+                    .then(res => {
+                        const fresh = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+                        setStores(fresh);
+                        if (fresh.length > 0) setSelectedStore(s => s ?? fresh[0]);
+                    })
+                    .catch(() => {});
+                return;
+            }
+
             const res = user?.role === 'super_admin'
                 ? await storesAPI.getAll()
                 : await storesAPI.getMy();
             // 응답이 배열 직접이거나 {success, data:[]} 래퍼 둘 다 처리
-            const storeList = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+            storeList = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
             setStores(storeList);
             if (storeList.length > 0) {
                 setSelectedStore(storeList[0]);
@@ -65,7 +84,7 @@ const MasterDashboard = () => {
         } finally {
             setLoading(false);
         }
-    }, [user?.role, navigate]);
+    }, [user?.role, navigate, consumeStoresCache]);
 
     const handleToolNav = useCallback((toolPath) => {
         const store = selectedStore || stores[0];
@@ -141,26 +160,41 @@ const MasterDashboard = () => {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5">
-                <div className="relative w-16 h-16">
-                    <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-                        className="absolute inset-0 rounded-full border-[3px] border-orange-500/20 border-t-orange-500"
-                    />
-                    <div className="absolute inset-3 rounded-full bg-orange-500/10 flex items-center justify-center">
-                        <LayoutDashboard size={16} className="text-orange-500" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 space-y-6">
+                {/* 헤더 스켈레톤 */}
+                <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                        <div className="h-7 w-48 bg-slate-200 rounded-xl animate-pulse" />
+                        <div className="h-4 w-32 bg-slate-100 rounded-lg animate-pulse" />
+                    </div>
+                    <div className="h-10 w-32 bg-slate-200 rounded-xl animate-pulse" />
+                </div>
+                {/* 통계 카드 스켈레톤 */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="bg-white rounded-2xl p-5 border border-slate-100 space-y-3">
+                            <div className="h-4 w-20 bg-slate-100 rounded animate-pulse" />
+                            <div className="h-8 w-28 bg-slate-200 rounded-xl animate-pulse" />
+                            <div className="h-3 w-16 bg-slate-100 rounded animate-pulse" />
+                        </div>
+                    ))}
+                </div>
+                {/* 차트/테이블 스켈레톤 */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-100 h-64 animate-pulse" />
+                    <div className="bg-white rounded-2xl p-5 border border-slate-100 space-y-3">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-slate-100 animate-pulse flex-shrink-0" />
+                                <div className="flex-1 space-y-1.5">
+                                    <div className="h-3 w-full bg-slate-100 rounded animate-pulse" />
+                                    <div className="h-3 w-2/3 bg-slate-100 rounded animate-pulse" />
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
-                <motion.p
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-slate-400 font-bold text-sm"
-                >
-                    대시보드 로딩 중...
-                </motion.p>
-            </div>
+            </motion.div>
         );
     }
 

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Store, Phone, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
+import { wakeupServer } from '../api';
+import { Store, Phone, Mail, Lock, AlertCircle, ArrowRight, ServerCrash } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const isEmail = (value) => value.includes('@');
@@ -20,6 +21,16 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [serverStatus, setServerStatus] = useState('idle'); // idle | waking | ready
+
+  // 로그인 페이지 진입 즉시 서버 예열
+  useEffect(() => {
+    if (window.location.hostname === 'localhost') return;
+    setServerStatus('waking');
+    wakeupServer()
+      .then(() => setServerStatus('ready'))
+      .catch(() => setServerStatus('idle'));
+  }, []);
 
   const handleIdentifierChange = (e) => {
     const raw = e.target.value;
@@ -142,7 +153,7 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 space-y-3">
               <motion.button
                 whileHover={{ scale: 1.01, translateY: -2 }}
                 whileTap={{ scale: 0.98, translateY: 0 }}
@@ -151,7 +162,10 @@ const Login = () => {
                 className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-bold text-lg shadow-[0_10px_20px_rgba(249,115,22,0.2)] hover:shadow-[0_15px_30px_rgba(249,115,22,0.3)] transition-all disabled:opacity-50 flex items-center justify-center gap-2 group"
               >
                 {loading ? (
-                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>로그인 중...</span>
+                  </>
                 ) : (
                   <>
                     <span>로그인</span>
@@ -159,6 +173,34 @@ const Login = () => {
                   </>
                 )}
               </motion.button>
+
+              {/* 서버 상태 표시기 */}
+              <AnimatePresence>
+                {serverStatus === 'waking' && (
+                  <motion.div
+                    key="waking"
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center justify-center gap-2 text-xs text-amber-500 font-medium"
+                  >
+                    <div className="w-3 h-3 border-2 border-amber-400/40 border-t-amber-500 rounded-full animate-spin" />
+                    서버 준비 중입니다... (최초 접속 시 잠시 소요)
+                  </motion.div>
+                )}
+                {serverStatus === 'ready' && (
+                  <motion.div
+                    key="ready"
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center justify-center gap-1.5 text-xs text-emerald-500 font-medium"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                    서버 준비 완료
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </form>
 

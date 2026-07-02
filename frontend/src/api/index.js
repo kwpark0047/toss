@@ -40,6 +40,11 @@ export const wakeupServer = () => {
   return _wakeupPromise;
 };
 
+// 프로덕션에서 모듈 로드 즉시 서버 웨이크업 시작 (로그인 전부터 서버를 예열)
+if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+  wakeupServer().catch(() => {});
+}
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
