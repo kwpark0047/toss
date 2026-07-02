@@ -63,9 +63,13 @@ router.get('/my-posts', authMiddleware, catchAsync(async (req, res) => {
   const userStores = await prisma.stores.findMany({
     where: { user_id: req.user.id }, select: { id: true },
   });
+  const ownedIds = new Set(userStores.map(s => s.id));
+  if (store_id && !ownedIds.has(parseInt(store_id))) {
+    return res.status(403).json({ success: false, error: '권한 없음' });
+  }
   const storeIds = store_id
     ? [parseInt(store_id)]
-    : userStores.map(s => s.id);
+    : [...ownedIds];
 
   const posts = await prisma.community_posts.findMany({
     where: { store_id: { in: storeIds }, is_active: true },
