@@ -119,6 +119,7 @@ const MasterDashboard = () => {
             }
         } catch (error) {
             console.error('매장 로딩 실패:', error);
+            setDataError(true);
         } finally {
             setLoading(false);
         }
