@@ -74,6 +74,7 @@ const MasterDashboard = () => {
     const [multiStoreStats, setMultiStoreStats] = useState(null);
     const [multiViewLoading, setMultiViewLoading] = useState(false);
     const [multiViewError, setMultiViewError] = useState(false);
+    const [dataError, setDataError] = useState(false);
 
     const fetchStores = useCallback(async () => {
         try {
@@ -121,18 +122,17 @@ const MasterDashboard = () => {
     }, [selectedStore, stores, navigate]);
 
     const fetchStoreData = useCallback(async (storeId) => {
-        try {
-            const [statsRes, ordersRes, compRes] = await Promise.all([
-                ordersAPI.getStats(storeId),
-                ordersAPI.getByStore(storeId),
-                analyticsAPI.getComparison(storeId, timeRange === 'month' ? 'monthly' : 'weekly')
-            ]);
-            setStats(statsRes.data);
-            setRecentOrders(ordersRes.data.slice(0, 8));
-            setComparison(compRes.data);
-        } catch (error) {
-            console.error('데이터 로딩 실패:', error);
-        }
+        setDataError(false);
+        const [statsResult, ordersResult, compResult] = await Promise.allSettled([
+            ordersAPI.getStats(storeId),
+            ordersAPI.getByStore(storeId),
+            analyticsAPI.getComparison(storeId, timeRange === 'month' ? 'monthly' : 'weekly')
+        ]);
+        const anyOk = [statsResult, ordersResult, compResult].some(r => r.status === 'fulfilled');
+        if (!anyOk) { setDataError(true); return; }
+        if (statsResult.status  === 'fulfilled') setStats(statsResult.value.data);
+        if (ordersResult.status === 'fulfilled') setRecentOrders(ordersResult.value.data.slice(0, 8));
+        if (compResult.status   === 'fulfilled') setComparison(compResult.value.data);
     }, [timeRange]);
 
     const fetchMultiStoreData = useCallback(async () => {
@@ -180,6 +180,24 @@ const MasterDashboard = () => {
             fetchStoreData(selectedStore.id);
         }
     }, [isMultiView, selectedStore, fetchStoreData, fetchMultiStoreData]);
+
+    if (!loading && dataError) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] gap-5">
+                <div className="text-4xl">⚠️</div>
+                <div className="text-center space-y-1">
+                    <p className="text-white font-black text-lg">데이터를 불러오지 못했습니다</p>
+                    <p className="text-slate-500 text-sm">서버가 응답하지 않거나 권한이 없습니다.</p>
+                </div>
+                <button
+                    onClick={() => selectedStore && fetchStoreData(selectedStore.id)}
+                    className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-xl transition-all"
+                >
+                    다시 시도
+                </button>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
