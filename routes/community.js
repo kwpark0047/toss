@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../config/prisma');
 const authMiddleware = require('../middleware/auth');
-const { optionalAuth } = require('../middleware/auth');
 const catchAsync = require('../utils/catchAsync');
 
 // 주소 → 지역(구/군) 추출
@@ -146,17 +145,10 @@ router.delete('/posts/:id', authMiddleware, catchAsync(async (req, res) => {
   res.success(null, '삭제되었습니다.');
 }));
 
-// ── [6] 좋아요 토글 ───────────────────────────────────────────────
-router.post('/posts/:id/like', optionalAuth, catchAsync(async (req, res) => {
+// ── [6] 좋아요 토글 (인증 필수 — unique(post_id, user_id)로 중복 방지) ───
+router.post('/posts/:id/like', authMiddleware, catchAsync(async (req, res) => {
   const post_id = parseInt(req.params.id);
-  const user_id = req.user?.id || null;
-
-  if (!user_id) {
-    await prisma.community_posts.update({
-      where: { id: post_id }, data: { like_count: { increment: 1 } },
-    });
-    return res.success({ liked: true });
-  }
+  const user_id = req.user.id;
 
   const existing = await prisma.community_post_likes.findUnique({
     where: { post_id_user_id: { post_id, user_id } },
