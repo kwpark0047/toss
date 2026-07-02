@@ -85,45 +85,49 @@ const MasterDashboard = () => {
 
     const fetchStores = useCallback(async () => {
         try {
+            // 캐시가 있고 빈 배열이 아닐 때만 사용 (빈 배열 캐시는 DB 오류 가능성)
             const cached = consumeStoresCache?.();
-            let storeList;
-            if (cached) {
-                storeList = cached;
-                setStores(storeList);
-                if (storeList.length > 0) setSelectedStore(storeList[0]);
+            if (cached && cached.length > 0) {
+                setStores(cached);
+                setSelectedStore(cached[0]);
                 setLoading(false);
+                // 백그라운드 최신화
                 storesAPI.getMy()
                     .then(res => {
                         const fresh = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : null);
-                        if (fresh !== null) {
+                        if (fresh && fresh.length > 0) {
                             setStores(fresh);
-                            if (fresh.length > 0) setSelectedStore(s => s ?? fresh[0]);
+                            setSelectedStore(s => s ?? fresh[0]);
                         }
                     })
                     .catch(() => {});
                 return;
             }
 
-            const res = user?.role === 'super_admin'
-                ? await storesAPI.getAll()
-                : await storesAPI.getMy();
-            // null = 파싱 실패(예상치 못한 형식), [] = 확정 빈 배열
-            const parsed = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : null);
-            storeList = parsed ?? [];
-            setStores(storeList);
-            if (storeList.length > 0) {
-                setSelectedStore(storeList[0]);
-            } else if (parsed !== null && user?.role !== 'super_admin' && !sessionStorage.getItem('wm_setup_skipped')) {
-                // 파싱 성공 후 명시적 빈 배열일 때만 온보딩으로 이동
-                navigate('/admin/setup');
+            const apiFn = () => user?.role === 'super_admin'
+                ? storesAPI.getAll()
+                : storesAPI.getMy();
+
+            let res;
+            try {
+                res = await apiFn();
+            } catch {
+                // 첫 번째 시도 실패(Prisma 콜드스타트/타임아웃) → 3s 후 1회 재시도
+                await new Promise(r => setTimeout(r, 3000));
+                res = await apiFn();
             }
+
+            const parsed = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : null);
+            const storeList = parsed ?? [];
+            setStores(storeList);
+            if (storeList.length > 0) setSelectedStore(storeList[0]);
         } catch (error) {
             console.error('매장 로딩 실패:', error);
             setDataError(true);
         } finally {
             setLoading(false);
         }
-    }, [user?.role, navigate, consumeStoresCache]);
+    }, [user?.role, consumeStoresCache]);
 
     const handleToolNav = useCallback((toolPath) => {
         const store = selectedStore || stores[0];
@@ -255,22 +259,28 @@ const MasterDashboard = () => {
         );
     }
 
-    if (!loading && stores.length === 0) {
+    if (!loading && !dataError && stores.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
                 <div className="w-24 h-24 rounded-3xl bg-orange-500/10 border-2 border-orange-500/20 flex items-center justify-center text-4xl">
                     🏪
                 </div>
                 <div className="text-center space-y-2">
-                    <h2 className={`text-2xl font-black ${tx}`}>등록된 매장이 없습니다</h2>
-                    <p className={`${txs} text-sm max-w-xs`}>매장을 먼저 생성해야 상품 관리와 메뉴 빌더를 사용할 수 있습니다.</p>
+                    <h2 className="text-2xl font-black text-white">등록된 매장이 없습니다</h2>
+                    <p className="text-slate-400 text-sm max-w-xs">AI 팅커벨 마법사로 첫 매장을 쉽게 설정해보세요!</p>
                 </div>
                 <button
-                    onClick={() => navigate('/admin/stores/new')}
-                    className="px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-2xl transition-all hover:shadow-lg hover:shadow-orange-500/20 flex items-center gap-2"
+                    onClick={() => navigate('/admin/setup')}
+                    className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-black rounded-2xl transition-all hover:shadow-lg hover:shadow-orange-500/30 flex items-center gap-2"
                 >
                     <Plus size={20} />
-                    첫 매장 만들기
+                    팅커벨 마법사로 시작하기
+                </button>
+                <button
+                    onClick={() => navigate('/admin/stores/new')}
+                    className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                    직접 매장 만들기
                 </button>
             </div>
         );
