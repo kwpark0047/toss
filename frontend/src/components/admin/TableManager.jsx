@@ -381,139 +381,6 @@ async function drawCard(canvas, designId, storeName, tableName, capacity) {
   ctx.fillText('Powered by WeMarket', W / 2, FOOT_Y);
 }
 
-/* ─────────────────────────── HTML 인쇄 생성기 ─────────────────────────── */
-function esc(s) {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function buildPrintHtml(cards, storeName, designId, layout) {
-  const d = DESIGNS.find(x => x.id === designId) || DESIGNS[0];
-  const isA6 = layout === 'a6';
-
-  const cssVars = `
-    --accent:${d.accent};--accent-dim:${d.accentDim};--accent-line:${d.accentLine};
-    --title:${d.titleColor};--store:${d.storeColor};--cap:${d.capColor};
-    --inst-bg:${d.instBg};--inst-bd:${d.instBorder};--inst-tx:${d.instText};--inst-sub:${d.instSub};
-    --mono-bg:${d.monoBg};--mono-bd:${d.monoBorder};--div:${d.dividerColor};
-    --brand:${d.brandText};--qr-bd:${d.qrBorderColor};
-    --bg1:${d.bg[0]};--bg2:${d.bg[1]};--bg3:${d.bg[2]};`;
-
-  const cardHtml = (card) => {
-    const name    = esc(card.name || card.table_number || '');
-    const rawName = (card.name || card.table_number || '').length;
-    const nfs     = rawName > 8 ? '6mm' : rawName > 5 ? '9mm' : '13mm';
-    const qrSrc   = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(card.menuUrl)}&bgcolor=ffffff&color=${d.qrFg}&margin=6`;
-    return `
-<div class="card">
-  <div class="ci">
-    <div class="hd">
-      <div class="mono">W</div>
-      <div class="wm">WeMarket</div>
-      <div class="sn">${esc(storeName)}</div>
-      <div class="dvr"><div class="dl"></div><div class="dd"></div><div class="dl"></div></div>
-    </div>
-    <div class="qw">
-      <div class="br tl"></div><div class="br tr"></div>
-      <div class="br bl"></div><div class="br br2"></div>
-      <div class="qb"><img src="${qrSrc}" alt="QR" crossorigin="anonymous"/></div>
-    </div>
-    <div class="ts">
-      <p class="tl2">T &nbsp; A &nbsp; B &nbsp; L &nbsp; E</p>
-      <div class="ab"></div>
-      <p class="tn" style="font-size:${nfs}">${name}</p>
-      <span class="cb">${card.capacity}인석</span>
-    </div>
-    <div class="ib">
-      <div class="ii">📱 → 🍽️</div>
-      <p class="im">QR 스캔하여 바로 주문하세요</p>
-      <p class="is">앱 설치 불필요 · 로그인 없이 즉시 주문</p>
-    </div>
-    <p class="ft">Powered by WeMarket</p>
-  </div>
-</div>`;
-  };
-
-  const allCards = cards.map(c => cardHtml(c)).join('');
-  const texture  = d.id !== 'light'
-    ? 'background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.018) 0,rgba(255,255,255,.018) .3mm,transparent 0,transparent 6mm);'
-    : '';
-
-  const pageCss = isA6
-    ? `@page{size:105mm 148mm portrait;margin:0}
-       body{width:105mm;height:148mm;overflow:hidden}
-       .card{width:105mm;height:148mm;border:none;padding:0}
-       .ci{border-radius:0}`
-    : `@page{size:A4 portrait;margin:6mm}
-       .grid{display:grid;grid-template-columns:1fr 1fr;gap:5mm}`;
-
-  return `<!DOCTYPE html>
-<html lang="ko"><head><meta charset="UTF-8">
-<title>WeMarket QR 카드</title>
-<style>
-:root{${cssVars}}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-body{font-family:Arial,Helvetica,sans-serif;background:#e8edf2}
-@media print{body{background:white}.hint{display:none}}
-${pageCss}
-
-.hint{text-align:center;padding:4mm 0 3mm;font-size:3mm;color:#999;font-style:italic}
-
-.card{border:1.5px dashed #ccc;border-radius:7mm;padding:2.5mm;break-inside:avoid;page-break-inside:avoid;display:flex}
-.ci{
-  flex:1;border-radius:5.5mm;overflow:hidden;
-  display:flex;flex-direction:column;align-items:center;
-  padding:6mm 5mm 4mm;position:relative;
-  background:linear-gradient(155deg,var(--bg1) 0%,var(--bg2) 60%,var(--bg3) 100%);
-  ${texture}
-}
-
-/* header */
-.hd{display:flex;flex-direction:column;align-items:center;width:100%;gap:1.2mm}
-.mono{width:10mm;height:10mm;border-radius:50%;background:var(--mono-bg);border:.5mm solid var(--mono-bd);display:flex;align-items:center;justify-content:center;font-size:5.5mm;font-weight:900;color:var(--accent);line-height:1}
-.wm{font-size:3.5mm;font-weight:900;letter-spacing:2mm;color:var(--accent)}
-.sn{font-size:3.2mm;font-weight:600;color:var(--store)}
-.dvr{display:flex;align-items:center;width:75%;gap:2mm;margin:1.5mm 0 0}
-.dl{flex:1;height:.3mm;background:var(--div)}
-.dd{width:2mm;height:2mm;background:var(--accent);transform:rotate(45deg);flex-shrink:0}
-
-/* QR */
-.qw{position:relative;width:72%;margin:2.5mm 0}
-.qb{background:white;border-radius:3mm;padding:3mm;box-shadow:0 3mm 8mm rgba(0,0,0,.35);border:.6mm solid var(--qr-bd)}
-.qb img{width:100%;height:auto;display:block;border-radius:1mm}
-.br{position:absolute;width:5mm;height:5mm}
-.br.tl{top:-2.5mm;left:-2.5mm;border-top:.8mm solid var(--qr-bd);border-left:.8mm solid var(--qr-bd);border-radius:1mm 0 0 0}
-.br.tr{top:-2.5mm;right:-2.5mm;border-top:.8mm solid var(--qr-bd);border-right:.8mm solid var(--qr-bd);border-radius:0 1mm 0 0}
-.br.bl{bottom:-2.5mm;left:-2.5mm;border-bottom:.8mm solid var(--qr-bd);border-left:.8mm solid var(--qr-bd);border-radius:0 0 0 1mm}
-.br.br2{bottom:-2.5mm;right:-2.5mm;border-bottom:.8mm solid var(--qr-bd);border-right:.8mm solid var(--qr-bd);border-radius:0 0 1mm 0}
-
-/* table section */
-.ts{display:flex;flex-direction:column;align-items:center;gap:1mm;width:100%}
-.tl2{font-size:2.5mm;font-weight:700;letter-spacing:1.5mm;color:var(--cap)}
-.ab{width:14mm;height:.7mm;background:var(--accent);border-radius:1mm}
-.tn{font-weight:900;color:var(--title);line-height:1.1;text-align:center;word-break:break-all}
-.cb{font-size:2.8mm;font-weight:700;color:var(--accent);background:var(--accent-dim);border:.3mm solid var(--accent-line);border-radius:10mm;padding:.6mm 3mm;margin-top:.5mm}
-
-/* instruction */
-.ib{width:88%;margin-top:auto;background:var(--inst-bg);border:.4mm solid var(--inst-bd);border-radius:3mm;padding:2mm 3mm;text-align:center}
-.ii{font-size:4.5mm;margin-bottom:1mm}
-.im{font-size:2.8mm;font-weight:700;color:var(--inst-tx)}
-.is{font-size:2.3mm;color:var(--inst-sub);margin-top:.6mm}
-.ft{font-size:2mm;color:var(--brand);margin-top:2mm}
-</style></head>
-<body>
-${isA6 ? '' : '<p class="hint">✂ 점선을 따라 재단하세요</p>'}
-${isA6 ? allCards : `<div class="grid">${allCards}</div>`}
-<script>
-window.onload=function(){
-  var imgs=document.querySelectorAll('img'),n=0;
-  function go(){n++;if(n>=imgs.length)setTimeout(function(){window.print()},400);}
-  if(!imgs.length){setTimeout(function(){window.print()},400);return;}
-  imgs.forEach(function(i){if(i.complete)go();else{i.onload=go;i.onerror=go;}});
-};
-</script>
-</body></html>`;
-}
-
 /* ─────────────────────────── TableManager ─────────────────────────── */
 const TableManager = () => {
   const { storeId } = useParams();
@@ -773,8 +640,6 @@ const TableManager = () => {
           <QrModal table={showQrModal} store={store}
             qrUrl={getMenuUrl(showQrModal)}
             getQrImageUrl={getQrImageUrl}
-            tables={tables}
-            getMenuUrl={getMenuUrl}
             onClose={() => setShowQrModal(null)} />
         )}
       </AnimatePresence>
@@ -783,60 +648,17 @@ const TableManager = () => {
 };
 
 /* ─────────────────────────── QR 카드 모달 ─────────────────────────── */
-const LAYOUTS = [
-  { id: 'a6',  label: 'A6 단일',    desc: '105×148mm 카드 1장' },
-  { id: 'a4',  label: 'A4 모아찍기', desc: 'A4 1장에 카드 4장 (재단 가이드 포함)' },
-];
-
-const QrModal = ({ table, store, qrUrl, getQrImageUrl, tables, getMenuUrl, onClose }) => {
-  const [design, setDesign]           = useState('dark');
-  const [layout, setLayout]           = useState('a4');
+const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
+  const [design, setDesign]         = useState('dark');
   const [downloading, setDownloading] = useState(false);
-  const [printing, setPrinting]       = useState(false);
-  const [printingAll, setPrintingAll] = useState(false);
-  const [copied, setCopied]           = useState(false);
+  const [printing, setPrinting]     = useState(false);
+  const [copied, setCopied]         = useState(false);
   const d = DESIGNS.find(x => x.id === design) || DESIGNS[0];
 
   const tableName = table.name || table.table_number || '';
   const qrImgUrl  = getQrImageUrl(qrUrl, 400);
-  const storeName = store?.name || '';
 
-  /* ── 인쇄 공통: HTML 창 열기 ── */
-  const openPrintWindow = (cards) => {
-    const html = buildPrintHtml(cards, storeName, design, layout);
-    const win  = window.open('', '_blank');
-    if (!win) { toast.error('팝업이 차단되었습니다. 팝업 허용 후 다시 시도하세요.'); return; }
-    win.document.write(html);
-    win.document.close();
-  };
-
-  /* ── 이 테이블만 인쇄 ── */
-  const handlePrint = () => {
-    setPrinting(true);
-    try {
-      openPrintWindow([{ ...table, menuUrl: qrUrl }]);
-    } finally {
-      setPrinting(false);
-    }
-  };
-
-  /* ── 전체 테이블 인쇄 (항상 A4) ── */
-  const handlePrintAll = () => {
-    if (!tables?.length) return;
-    setPrintingAll(true);
-    try {
-      const cards = tables.map(t => ({ ...t, menuUrl: getMenuUrl(t) }));
-      const html  = buildPrintHtml(cards, storeName, design, 'a4');
-      const win   = window.open('', '_blank');
-      if (!win) { toast.error('팝업이 차단되었습니다. 팝업 허용 후 다시 시도하세요.'); return; }
-      win.document.write(html);
-      win.document.close();
-    } finally {
-      setPrintingAll(false);
-    }
-  };
-
-  /* ── PNG 다운로드 (canvas 유지) ── */
+  /* PNG 다운로드 */
   const handleDownload = async () => {
     setDownloading(true);
     try {
@@ -844,7 +666,7 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, tables, getMenuUrl, onClo
       canvas.width  = 900;
       canvas.height = 1300;
       canvas._qrData = qrUrl;
-      await drawCard(canvas, design, storeName, tableName, table.capacity);
+      await drawCard(canvas, design, store?.name || '', tableName, table.capacity);
       const link = document.createElement('a');
       link.href     = canvas.toDataURL('image/png');
       link.download = `${tableName}_QR카드_${design}.png`;
@@ -857,7 +679,46 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, tables, getMenuUrl, onClo
     }
   };
 
-  /* ── URL 복사 ── */
+  /* 브라우저 인쇄 */
+  const handlePrint = async () => {
+    setPrinting(true);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width  = 900;
+      canvas.height = 1300;
+      canvas._qrData = qrUrl;
+      await drawCard(canvas, design, store?.name || '', tableName, table.capacity);
+      const imgSrc = canvas.toDataURL('image/png');
+
+      const win = window.open('', '_blank', 'width=500,height=700');
+      const doc = win.document;
+
+      /* 스타일 */
+      const style = doc.createElement('style');
+      style.textContent = [
+        '@page{size:105mm 148mm;margin:0}',
+        'body{margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f1f5f9}',
+        'img{width:105mm;height:148mm;display:block}',
+        '@media print{body{background:none}}',
+      ].join('');
+      doc.head.appendChild(style);
+      doc.title = `${tableName} QR 카드`;
+
+      /* 이미지 (data: URI만 — 외부 URL 아님) */
+      const img = doc.createElement('img');
+      img.src = imgSrc;
+      doc.body.appendChild(img);
+
+      /* 로드 후 자동 인쇄 */
+      img.onload = () => setTimeout(() => { win.print(); win.close(); }, 300);
+    } catch {
+      toast.error('인쇄 준비에 실패했습니다.');
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  /* URL 복사 */
   const handleCopy = () => {
     navigator.clipboard.writeText(qrUrl).then(() => {
       setCopied(true);
@@ -875,33 +736,42 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, tables, getMenuUrl, onClo
         className="bg-slate-900 border border-white/10 rounded-[2.5rem] w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
 
         {/* ── 왼쪽: 카드 미리보기 ── */}
-        <div className="md:w-[300px] flex-shrink-0 flex flex-col items-center justify-center p-6 border-b md:border-b-0 md:border-r border-white/5 relative overflow-hidden"
+        <div className="md:w-[320px] flex-shrink-0 flex flex-col items-center justify-center p-6 lg:p-8 border-b md:border-b-0 md:border-r border-white/5 relative overflow-hidden"
           style={{ background: `linear-gradient(155deg, ${d.previewColors[0]} 0%, ${d.bg[1] || d.previewColors[1]} 60%, ${d.bg[2] || d.previewColors[1]} 100%)` }}>
 
+          {/* 배경 미묘한 패턴 */}
           {d.id !== 'light' && (
             <div className="absolute inset-0 opacity-[0.025]"
               style={{ backgroundImage: 'repeating-linear-gradient(45deg, white 0, white 1px, transparent 0, transparent 50%)', backgroundSize: '20px 20px' }} />
           )}
 
           {/* 프리뷰 카드 */}
-          <div className="relative w-full max-w-[200px] rounded-[18px] overflow-hidden shadow-2xl"
+          <div className="relative w-full max-w-[210px] rounded-[20px] overflow-hidden shadow-2xl"
             style={{
               background: `linear-gradient(155deg, ${d.previewColors[0]} 0%, ${d.bg[1] || d.previewColors[1]} 100%)`,
               border: `1px solid ${d.id === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.08)'}`,
               boxShadow: '0 24px 60px rgba(0,0,0,0.50)',
             }}>
+
+            {/* 상단: 모노그램 + 워드마크 */}
             <div className="pt-5 pb-2 px-4 text-center flex flex-col items-center gap-1.5">
               <div className="w-8 h-8 rounded-full flex items-center justify-center font-black text-sm"
                 style={{ background: d.monoBg, border: `1.5px solid ${d.monoBorder}`, color: d.accent }}>W</div>
               <p className="text-[10px] font-black tracking-[0.25em]" style={{ color: d.accent }}>WeMarket</p>
-              <p className="text-[10px] font-semibold leading-tight" style={{ color: d.storeColor }}>{storeName || '매장명'}</p>
+              <p className="text-[10px] font-semibold leading-tight" style={{ color: d.storeColor }}>
+                {store?.name || '매장명'}
+              </p>
+              {/* 구분선 + 다이아몬드 */}
               <div className="relative w-full flex items-center justify-center mt-1">
                 <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, transparent, ${d.dividerColor})` }} />
                 <div className="w-1.5 h-1.5 rotate-45 mx-1 flex-shrink-0" style={{ background: d.accent }} />
                 <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${d.dividerColor}, transparent)` }} />
               </div>
             </div>
+
+            {/* QR 영역 - 코너 브라켓 */}
             <div className="px-3.5 py-2 relative">
+              {/* 코너 브라켓 장식 */}
               {[['top-0 left-0', 'border-t-2 border-l-2 rounded-tl-lg'],
                 ['top-0 right-0', 'border-t-2 border-r-2 rounded-tr-lg'],
                 ['bottom-0 left-0', 'border-b-2 border-l-2 rounded-bl-lg'],
@@ -915,15 +785,19 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, tables, getMenuUrl, onClo
                 <img src={qrImgUrl} alt="QR" className="w-full rounded-sm" crossOrigin="anonymous" />
               </div>
             </div>
+
+            {/* 테이블 섹션 */}
             <div className="px-4 pt-1 pb-2 text-center">
               <p className="text-[8px] font-bold tracking-[0.2em]" style={{ color: d.capColor }}>T  A  B  L  E</p>
               <div className="my-1 mx-auto rounded-full" style={{ height: 2, width: 40, background: d.accent }} />
-              <p className="font-black leading-tight" style={{ color: d.titleColor, fontSize: tableName.length > 5 ? '16px' : '22px' }}>{tableName}</p>
+              <p className="font-black text-[22px] leading-tight" style={{ color: d.titleColor }}>{tableName}</p>
               <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold"
                 style={{ background: d.accentDim, border: `1px solid ${d.accentLine}`, color: d.accent }}>
                 {table.capacity}인석
               </span>
             </div>
+
+            {/* 스캔 안내 */}
             <div className="mx-3.5 mb-4 mt-2 rounded-xl px-3 py-2 text-center"
               style={{ background: d.instBg, border: `1px solid ${d.instBorder}` }}>
               <div className="flex justify-center gap-2 mb-1 text-[12px]">
@@ -932,17 +806,19 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, tables, getMenuUrl, onClo
               <p className="text-[9px] font-bold" style={{ color: d.instText }}>QR 스캔하여 바로 주문하세요</p>
               <p className="text-[7.5px] mt-0.5" style={{ color: d.instSub }}>앱 설치 불필요 · 즉시 주문</p>
             </div>
+
+            {/* 하단 */}
             <p className="text-center text-[7px] pb-3" style={{ color: d.brandText }}>Powered by WeMarket</p>
           </div>
 
-          <p className="text-slate-500 text-[9px] font-bold mt-4 text-center tracking-wide opacity-60">
-            실제 출력 미리보기
+          <p className="text-slate-500 text-[9px] font-bold mt-4 text-center tracking-wide">
+            A6 (105×148mm) 출력 최적화
           </p>
         </div>
 
         {/* ── 오른쪽: 컨트롤 패널 ── */}
         <div className="flex-1 flex flex-col overflow-y-auto">
-          <div className="flex items-center justify-between p-6 pb-4">
+          <div className="flex items-center justify-between p-8 pb-4">
             <div>
               <h3 className="text-2xl font-black text-white">{tableName}</h3>
               <p className="text-slate-500 text-xs mt-0.5">QR 카드 생성 및 출력</p>
@@ -953,26 +829,26 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, tables, getMenuUrl, onClo
             </button>
           </div>
 
-          <div className="px-6 pb-6 space-y-5 flex-1">
+          <div className="px-8 pb-8 space-y-7 flex-1">
             {/* 디자인 선택 */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Palette size={13} className="text-orange-400" />
-                <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">카드 디자인</p>
+                <Palette size={14} className="text-orange-400" />
+                <p className="text-xs font-black text-slate-400 tracking-widest uppercase">카드 디자인</p>
               </div>
-              <div className="grid grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-3 gap-3">
                 {DESIGNS.map(dOpt => (
                   <button key={dOpt.id} onClick={() => setDesign(dOpt.id)}
-                    className={`relative h-16 rounded-xl overflow-hidden border-2 transition-all ${
+                    className={`relative h-20 rounded-2xl overflow-hidden border-2 transition-all ${
                       design === dOpt.id ? 'border-orange-500 scale-105 shadow-lg shadow-orange-500/20' : 'border-white/10 hover:border-white/25'
                     }`}>
                     <div className={`absolute inset-0 bg-gradient-to-br ${dOpt.preview}`} />
                     {design === dOpt.id && (
-                      <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center">
-                        <Check size={9} className="text-white" />
+                      <div className="absolute top-2 right-2 w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
+                        <Check size={10} className="text-white" />
                       </div>
                     )}
-                    <span className="absolute bottom-1.5 inset-x-0 text-center text-[9px] font-black"
+                    <span className="absolute bottom-2 inset-x-0 text-center text-[9px] font-black"
                       style={{ color: dOpt.id === 'light' ? '#1e293b' : '#ffffff' }}>
                       {dOpt.label}
                     </span>
@@ -981,35 +857,9 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, tables, getMenuUrl, onClo
               </div>
             </div>
 
-            {/* 인쇄 레이아웃 선택 */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <FileText size={13} className="text-blue-400" />
-                <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">출력 레이아웃</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                {LAYOUTS.map(lo => (
-                  <button key={lo.id} onClick={() => setLayout(lo.id)}
-                    className={`relative p-3.5 rounded-xl border-2 text-left transition-all ${
-                      layout === lo.id
-                        ? 'border-blue-500 bg-blue-500/10'
-                        : 'border-white/10 bg-white/5 hover:border-white/25'
-                    }`}>
-                    {layout === lo.id && (
-                      <div className="absolute top-2 right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                        <Check size={9} className="text-white" />
-                      </div>
-                    )}
-                    <p className={`text-[11px] font-black mb-0.5 ${layout === lo.id ? 'text-blue-300' : 'text-white'}`}>{lo.label}</p>
-                    <p className="text-[9px] text-slate-500 leading-tight">{lo.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* 테이블 정보 */}
-            <div className="bg-white/5 border border-white/5 rounded-xl p-4 space-y-2.5">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">테이블 정보</p>
+            <div className="bg-white/5 border border-white/5 rounded-2xl p-5 space-y-3">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">테이블 정보</p>
               {[
                 { label: '테이블명', value: tableName },
                 { label: '수용 인원', value: `${table.capacity}인석` },
@@ -1020,66 +870,56 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, tables, getMenuUrl, onClo
                 </div>
               ))}
               <div>
-                <span className="text-slate-500 text-[10px] block mb-1">메뉴판 URL</span>
-                <div className="bg-white/5 rounded-lg px-3 py-1.5 border border-white/5">
-                  <span className="text-emerald-400 text-[9px] font-mono truncate block">{qrUrl}</span>
+                <span className="text-slate-500 text-xs block mb-1.5">메뉴판 URL</span>
+                <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/5">
+                  <span className="text-emerald-400 text-[10px] font-mono flex-1 truncate">{qrUrl}</span>
                 </div>
+                <p className="text-slate-600 text-[10px] mt-1.5 ml-1">
+                  위 URL이 QR코드에 담겨있습니다. 테스트 버튼으로 확인하세요.
+                </p>
               </div>
             </div>
 
-            {/* 인쇄 버튼 */}
-            <div className="space-y-2.5">
-              {/* 이 테이블 인쇄 */}
+            {/* 액션 버튼 */}
+            <div className="space-y-3">
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                 onClick={handlePrint} disabled={printing}
-                className="w-full py-3.5 bg-orange-500 hover:bg-orange-400 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-orange-500/25 transition-all disabled:opacity-60">
-                {printing ? <Loader2 size={16} className="animate-spin" /> : <Printer size={16} />}
-                {printing ? '인쇄 준비 중...' : `이 테이블만 인쇄 (${layout === 'a6' ? 'A6' : 'A4'})`}
+                className="w-full py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 shadow-xl shadow-orange-500/25 transition-all disabled:opacity-60">
+                {printing ? <Loader2 size={18} className="animate-spin" /> : <Printer size={18} />}
+                {printing ? '인쇄 준비 중...' : '인쇄하기 (A6)'}
               </motion.button>
 
-              {/* 전체 테이블 인쇄 */}
-              {tables?.length > 1 && (
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={handlePrintAll} disabled={printingAll}
-                  className="w-full py-3.5 bg-blue-600/90 hover:bg-blue-500 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-blue-500/20 transition-all disabled:opacity-60">
-                  {printingAll ? <Loader2 size={16} className="animate-spin" /> : <Printer size={16} />}
-                  {printingAll ? '준비 중...' : `전체 ${tables.length}개 테이블 일괄 인쇄 (A4)`}
-                </motion.button>
-              )}
-
-              {/* 보조 버튼 */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2.5">
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={handleDownload} disabled={downloading}
-                  className="py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white rounded-xl font-black text-[10px] flex items-center justify-center gap-1.5 transition-all disabled:opacity-60">
-                  {downloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                  className="py-3.5 bg-white/8 hover:bg-white/12 border border-white/10 text-slate-300 hover:text-white rounded-2xl font-black text-[11px] flex items-center justify-center gap-1.5 transition-all disabled:opacity-60">
+                  {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                   PNG
                 </motion.button>
 
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={handleCopy}
-                  className={`py-3 border rounded-xl font-black text-[10px] flex items-center justify-center gap-1.5 transition-all ${
+                  className={`py-3.5 border rounded-2xl font-black text-[11px] flex items-center justify-center gap-1.5 transition-all ${
                     copied ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
                   }`}>
-                  {copied ? <Check size={13} /> : <Share2 size={13} />}
-                  {copied ? '복사됨!' : 'URL'}
+                  {copied ? <Check size={14} /> : <Share2 size={14} />}
+                  {copied ? '복사됨!' : 'URL 복사'}
                 </motion.button>
 
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => window.open(qrUrl, '_blank')}
-                  className="py-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white rounded-xl font-black text-[10px] flex items-center justify-center gap-1.5 transition-all">
-                  <QrCode size={13} /> 테스트
+                  className="py-3.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white rounded-2xl font-black text-[11px] flex items-center justify-center gap-1.5 transition-all">
+                  <QrCode size={14} /> 테스트
                 </motion.button>
               </div>
             </div>
 
             {/* 출력 팁 */}
-            <div className="bg-amber-500/8 border border-amber-500/15 rounded-xl p-4 text-[11px] text-slate-400 space-y-1.5">
-              <p className="text-amber-400 font-black text-[10px] uppercase tracking-widest mb-2">출력 안내</p>
-              <p>• <span className="text-white font-bold">A4 모아찍기</span>: 1장에 4개 카드, 점선 따라 재단하여 사용</p>
-              <p>• <span className="text-white font-bold">A6 단일</span>: A6 용지 또는 포토 용지에 바로 출력</p>
-              <p>• 코팅 처리하면 장기간 사용 가능합니다</p>
-              <p>• 아크릴 스탠드 또는 양면테이프로 테이블에 부착</p>
+            <div className="bg-indigo-500/8 border border-indigo-500/15 rounded-2xl p-4 text-xs text-slate-400 space-y-1.5">
+              <p className="text-indigo-400 font-black text-[10px] uppercase tracking-widest mb-2">출력 팁</p>
+              <p>• A4 용지에 인쇄 후 A6(105×148mm) 크기로 재단하세요.</p>
+              <p>• 코팅 처리 시 장기간 사용이 가능합니다.</p>
+              <p>• 아크릴 테이블 스탠드 또는 양면테이프로 부착하세요.</p>
             </div>
           </div>
         </div>

@@ -67,30 +67,40 @@ const Store = {
     },
 
     findByUserId: async (userId) => {
-        const uid = parseInt(userId);
-        if (isNaN(uid)) return [];
+        try {
+            const uid = parseInt(userId);
+            if (isNaN(uid)) return [];
 
-        // 1. 소유한 매장 조회
-        const ownedStores = await prisma.stores.findMany({
-            where: { user_id: uid, is_active: { not: false } }
-        });
+            // 1. 소유한 매장 조회 (is_active null 포함)
+            const ownedStores = await prisma.stores.findMany({
+                where: { user_id: uid, is_active: { not: false } }
+            });
 
-        // 2. 직원으로 등록된 매장 조회
-        const staffed = await prisma.staff.findMany({
-            where: { user_id: uid },
-            include: { stores: true }
-        });
+            // 2. 직원으로 등록된 매장 조회 (schema 모델명: staff)
+            const staffed = await prisma.staff.findMany({
+                where: { user_id: uid },
+                include: { stores: true }
+            });
 
-        const result = new Map();
-        ownedStores.forEach(store => {
-            result.set(store.id, { ...store, role: 'owner' });
-        });
-        staffed.forEach(item => {
-            if (item.stores && item.stores.is_active && !result.has(item.stores.id)) {
-                result.set(item.stores.id, { ...item.stores, role: item.role });
-            }
-        });
-        return Array.from(result.values());
+            const result = new Map();
+
+            // 소유 매장 추가 (role: owner)
+            ownedStores.forEach(store => {
+                result.set(store.id, { ...store, role: 'owner' });
+            });
+
+            // 직원 매장 추가 (소유 매장이 아닐 경우에만)
+            staffed.forEach(item => {
+                if (item.stores && item.stores.is_active && !result.has(item.stores.id)) {
+                    result.set(item.stores.id, { ...item.stores, role: item.role });
+                }
+            });
+
+            return Array.from(result.values());
+        } catch (error) {
+            console.error(`[Prisma Error] Store.findByUserId failed for User: ${userId}`, error);
+            return [];
+        }
     },
 
     findAll: async () => {

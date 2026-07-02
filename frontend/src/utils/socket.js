@@ -19,9 +19,9 @@ const socket = io(SOCKET_URL, {
   autoConnect: false,
   withCredentials: true,
   reconnection: true,
-  reconnectionAttempts: Infinity,
-  reconnectionDelay: 2000,
-  reconnectionDelayMax: 30000,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
 });
 
 // 재접속 시 자동으로 재구독할 파라미터 저장

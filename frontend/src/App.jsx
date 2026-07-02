@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
-import { lazy, Suspense, Component } from "react";
+import { lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import MenuPage from "./pages/MenuPage";
@@ -42,34 +42,6 @@ const BoardDetail        = lazy(() => import("@/components/board/BoardDetail"));
 const BoardWrite         = lazy(() => import("@/components/board/BoardWrite"));
 const KitchenDisplayPage = lazy(() => import("@/pages/KitchenDisplay"));
 const CommunityPage      = lazy(() => import("@/components/admin/CommunityPage"));
-
-class AdminErrorBoundary extends Component {
-  constructor(props) { super(props); this.state = { error: null }; }
-  static getDerivedStateFromError(error) { return { error }; }
-  render() {
-    if (this.state.error) {
-      return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-          <div className="max-w-lg w-full bg-slate-900 border border-rose-500/30 rounded-2xl p-8 text-center">
-            <div className="text-rose-400 text-5xl mb-4">⚠️</div>
-            <h2 className="text-white font-black text-xl mb-2">화면 로딩 오류</h2>
-            <p className="text-slate-400 text-sm mb-6">관리자 페이지를 불러오는 중 오류가 발생했습니다.</p>
-            <pre className="text-left text-xs text-rose-300 bg-slate-950 rounded-xl p-4 mb-6 overflow-auto max-h-40 whitespace-pre-wrap">
-              {this.state.error?.message || String(this.state.error)}
-            </pre>
-            <button
-              onClick={() => { this.setState({ error: null }); window.location.reload(); }}
-              className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-xl transition-all"
-            >
-              새로고침
-            </button>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 const queryClient = new QueryClient();
 
@@ -114,13 +86,11 @@ const ValidStoreRoute = ({ children }) => {
 // Admin Layout Wrapper
 const AdminPage = ({ children }) => (
   <ProtectedRoute>
-    <AdminErrorBoundary>
-      <AdminSuspense>
-        <AdminLayout>
-          {children}
-        </AdminLayout>
-      </AdminSuspense>
-    </AdminErrorBoundary>
+    <AdminSuspense>
+      <AdminLayout>
+        {children}
+      </AdminLayout>
+    </AdminSuspense>
   </ProtectedRoute>
 );
 
@@ -145,9 +115,7 @@ const AppRoutes = () => (
     {/* 첫 매장 설정 마법사 (팅커벨 온보딩) */}
     <Route path="/admin/setup" element={
       <ProtectedRoute>
-        <AdminErrorBoundary>
-          <AdminSuspense><StoreSetupWizard /></AdminSuspense>
-        </AdminErrorBoundary>
+        <AdminSuspense><StoreSetupWizard /></AdminSuspense>
       </ProtectedRoute>
     } />
 

@@ -28,7 +28,7 @@ const MasterDashboard = () => {
 
     // 애니메이션 상수
     const containerVariants = {
-        hidden: { opacity: 1 },
+        hidden: { opacity: 0 },
         visible: {
             opacity: 1,
             transition: {
