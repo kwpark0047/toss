@@ -373,6 +373,7 @@ app.use(`${API_PREFIX}/staff-gamification`, routes.staffGamification);
 app.use(`${API_PREFIX}/ai-assistant`, routes.aiAssistant);
 app.use(`${API_PREFIX}/export`, routes.export);
 app.use(`${API_PREFIX}/inventory`, routes.inventory);
+app.use(`${API_PREFIX}/community`, routes.community);
 
 // 정적 파일 서빙
 app.use(express.static(path.join(__dirname, 'public')));
