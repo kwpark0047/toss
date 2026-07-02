@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { authAPI, storesAPI } from '../api';
 
 const AuthContext = createContext(null);
@@ -35,9 +35,8 @@ export const AuthProvider = ({ children }) => {
         authAPI.me()
           .then(res => { const u = res?.data || res?.user || res; if (u?.id) setUser(u); })
           .catch(() => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            setUser(null);
+            // 네트워크/서버 일시 오류 시 로컬 JWT가 유효하므로 로그아웃하지 않음.
+            // 401 인증 만료는 Axios 인터셉터가 token refresh 또는 /login 리다이렉트로 처리.
           });
         return;
       }
@@ -121,7 +120,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   // MasterDashboard가 캐시를 소비하는 함수 (한 번만 사용 가능)
-  const consumeStoresCache = () => {
+  // useCallback([], []) — storesCacheRef는 Ref라 항상 최신값 참조. 참조 안정화로 fetchStores 재실행 방지.
+  const consumeStoresCache = useCallback(() => {
     const cache = storesCacheRef.current;
     if (cache && Date.now() - cache.ts < 30_000) {
       storesCacheRef.current = null;
@@ -129,7 +129,7 @@ export const AuthProvider = ({ children }) => {
     }
     storesCacheRef.current = null;
     return null;
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, sendOtp, verifyOtp, login, register, updateProfile, changePassword, logout, consumeStoresCache }}>

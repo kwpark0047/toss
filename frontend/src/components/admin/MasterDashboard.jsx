@@ -87,9 +87,11 @@ const MasterDashboard = () => {
                 setLoading(false);
                 storesAPI.getMy()
                     .then(res => {
-                        const fresh = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
-                        setStores(fresh);
-                        if (fresh.length > 0) setSelectedStore(s => s ?? fresh[0]);
+                        const fresh = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : null);
+                        if (fresh !== null) {
+                            setStores(fresh);
+                            if (fresh.length > 0) setSelectedStore(s => s ?? fresh[0]);
+                        }
                     })
                     .catch(() => {});
                 return;
@@ -98,11 +100,14 @@ const MasterDashboard = () => {
             const res = user?.role === 'super_admin'
                 ? await storesAPI.getAll()
                 : await storesAPI.getMy();
-            storeList = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+            // null = 파싱 실패(예상치 못한 형식), [] = 확정 빈 배열
+            const parsed = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : null);
+            storeList = parsed ?? [];
             setStores(storeList);
             if (storeList.length > 0) {
                 setSelectedStore(storeList[0]);
-            } else if (user?.role !== 'super_admin' && !sessionStorage.getItem('wm_setup_skipped')) {
+            } else if (parsed !== null && user?.role !== 'super_admin' && !sessionStorage.getItem('wm_setup_skipped')) {
+                // 파싱 성공 후 명시적 빈 배열일 때만 온보딩으로 이동
                 navigate('/admin/setup');
             }
         } catch (error) {
@@ -130,9 +135,12 @@ const MasterDashboard = () => {
         ]);
         const anyOk = [statsResult, ordersResult, compResult].some(r => r.status === 'fulfilled');
         if (!anyOk) { setDataError(true); return; }
-        if (statsResult.status  === 'fulfilled') setStats(statsResult.value.data);
-        if (ordersResult.status === 'fulfilled') setRecentOrders(ordersResult.value.data.slice(0, 8));
-        if (compResult.status   === 'fulfilled') setComparison(compResult.value.data);
+        if (statsResult.status  === 'fulfilled') setStats(statsResult.value?.data ?? null);
+        if (ordersResult.status === 'fulfilled') {
+            const od = ordersResult.value?.data;
+            setRecentOrders(Array.isArray(od) ? od.slice(0, 8) : []);
+        }
+        if (compResult.status   === 'fulfilled') setComparison(compResult.value?.data ?? null);
     }, [timeRange]);
 
     const fetchMultiStoreData = useCallback(async () => {
