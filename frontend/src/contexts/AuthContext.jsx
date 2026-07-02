@@ -3,12 +3,32 @@ import { authAPI, storesAPI } from '../api';
 
 const AuthContext = createContext(null);
 
+const API_URL = 'https://wemarket.onrender.com/api';
+
 // JWT 페이로드를 네트워크 없이 즉시 디코드 (서명 검증 없음 — 만료 확인용)
 const decodeToken = (token) => {
   try {
     const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
     return JSON.parse(atob(b64));
   } catch { return null; }
+};
+
+// refreshToken으로 새 accessToken 발급 (Prisma 직접 조회 없이 빠름)
+const refreshAccessToken = async () => {
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) return null;
+  const res = await fetch(`${API_URL}/auth/refresh-token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  });
+  if (!res.ok) return null;
+  const json = await res.json();
+  const d = json?.data || json;
+  if (!d?.token) return null;
+  localStorage.setItem('token', d.token);
+  if (d.refreshToken) localStorage.setItem('refreshToken', d.refreshToken);
+  return d.token;
 };
 
 export const AuthProvider = ({ children }) => {
@@ -26,26 +46,36 @@ export const AuthProvider = ({ children }) => {
       const payload = decodeToken(token);
       const validFor = payload?.exp ? payload.exp * 1000 - Date.now() : 0;
 
-      if (payload && validFor > 60_000) {
-        // 토큰 유효: user 즉시 세팅 → 앱 즉시 언블록
+      if (payload && validFor > 0) {
+        // 토큰 유효: user 즉시 세팅 → 앱 즉시 언블록 (서버 호출 없음)
         setUser({ id: payload.id, name: payload.name, role: payload.role });
         setLoading(false);
-
-        // 백그라운드에서 서버 검증 (UI 차단 없음)
-        authAPI.me()
-          .then(res => { const u = res?.data || res?.user || res; if (u?.id) setUser(u); })
-          .catch(() => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            setUser(null);
-          });
+        // 만료 임박 시 백그라운드 갱신 (UI 차단 없음, 실패해도 로그아웃 안 함)
+        if (validFor <= 300_000) {
+          refreshAccessToken()
+            .then(newToken => {
+              if (newToken) {
+                const p = decodeToken(newToken);
+                if (p) setUser(u => ({ ...u, id: p.id, name: p.name, role: p.role }));
+              }
+            })
+            .catch(() => {});
+        }
         return;
       }
 
-      // 2) 토큰 만료 또는 디코드 실패 → 서버에서 갱신 시도
+      // 2) 토큰 만료 → refreshToken으로 갱신 시도 (authAPI.me() 호출 안 함 — Prisma 콜드스타트 방지)
       try {
-        const res = await authAPI.me();
-        setUser(res?.data || res?.user || res);
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          const newPayload = decodeToken(newToken);
+          if (newPayload) setUser({ id: newPayload.id, name: newPayload.name, role: newPayload.role });
+          else setUser(null);
+        } else {
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          setUser(null);
+        }
       } catch {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
