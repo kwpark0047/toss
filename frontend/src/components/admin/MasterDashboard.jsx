@@ -13,12 +13,12 @@ import {
 } from 'lucide-react';
 
 const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
+    hidden: { opacity: 1 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.06 } }
 };
 const itemVariants = {
-    hidden: { opacity: 0, y: 16 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } }
+    hidden: { opacity: 0, y: 12 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } }
 };
 
 const StatCard = ({ title, value, icon: Icon, trend, color, bgColor, progress }) => {
@@ -266,12 +266,12 @@ const MasterDashboard = () => {
     if (!loading && !dataError && stores.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-                <div className="w-24 h-24 rounded-3xl bg-orange-500/10 border-2 border-orange-500/20 flex items-center justify-center text-4xl">
+                <div className={`w-24 h-24 rounded-3xl flex items-center justify-center text-4xl border-2 ${isLight ? 'bg-orange-50 border-orange-200' : 'bg-orange-500/10 border-orange-500/20'}`}>
                     🏪
                 </div>
                 <div className="text-center space-y-2">
-                    <h2 className="text-2xl font-black text-white">등록된 매장이 없습니다</h2>
-                    <p className="text-slate-400 text-sm max-w-xs">AI 팅커벨 마법사로 첫 매장을 쉽게 설정해보세요!</p>
+                    <h2 className={`text-2xl font-black ${tx}`}>등록된 매장이 없습니다</h2>
+                    <p className={`${txs} text-sm max-w-xs`}>AI 팅커벨 마법사로 첫 매장을 쉽게 설정해보세요!</p>
                 </div>
                 <button
                     onClick={() => navigate('/admin/setup')}
@@ -282,7 +282,7 @@ const MasterDashboard = () => {
                 </button>
                 <button
                     onClick={() => navigate('/admin/stores/new')}
-                    className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
+                    className={`text-sm ${txs} transition-colors`}
                 >
                     직접 매장 만들기
                 </button>
