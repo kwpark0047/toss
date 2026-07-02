@@ -147,6 +147,154 @@ router.post('/phone-join', catchAsync(async (req, res) => {
 }));
 
 /**
+ * [매장별 단골고객 통계 요약]
+ * GET /api/customers/:storeId/stats
+ */
+router.get('/:storeId/stats', authMiddleware, checkStorePermission('owner'), catchAsync(async (req, res) => {
+    const sid = parseInt(req.params.storeId);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
+    const [all, newThisMonth, tierCounts, churned, tiers] = await Promise.all([
+        prisma.store_customers.aggregate({
+            where: { store_id: sid },
+            _count: { id: true },
+            _avg: { visit_count: true, total_spent: true },
+        }),
+        prisma.store_customers.count({
+            where: { store_id: sid, created_at: { gte: startOfMonth } },
+        }),
+        prisma.store_customers.groupBy({
+            by: ['tier'],
+            where: { store_id: sid },
+            _count: { id: true },
+        }),
+        prisma.store_customers.count({
+            where: { store_id: sid, last_visit_at: { lt: thirtyDaysAgo } },
+        }),
+        prisma.store_tier_settings.findMany({
+            where: { store_id: sid }, orderBy: { min_spent: 'asc' },
+        }),
+    ]);
+
+    const tierMap = {};
+    tierCounts.forEach(t => { tierMap[t.tier] = t._count.id; });
+
+    res.json({
+        success: true,
+        data: {
+            total_customers: all._count.id || 0,
+            new_this_month: newThisMonth,
+            avg_visit_count: Math.round((all._avg.visit_count || 0) * 10) / 10,
+            avg_spent: Math.round(all._avg.total_spent || 0),
+            tier_distribution: tierMap,
+            churned_30d: churned,
+            tiers,
+        },
+    });
+}));
+
+/**
+ * [단골고객 상세 이력 조회]
+ * GET /api/customers/:storeId/customer/:customerId/history
+ */
+router.get('/:storeId/customer/:customerId/history', authMiddleware, checkStorePermission('owner'), catchAsync(async (req, res) => {
+    const { customerId } = req.params;
+    const customer = await prisma.store_customers.findUnique({ where: { id: parseInt(customerId) } });
+    if (!customer) return res.status(404).json({ success: false, error: '고객 정보 없음' });
+
+    const [pointInfo, recentOrders, pointHistory, activeCoupons, tiers] = await Promise.all([
+        prisma.user_points.findFirst({
+            where: { phone: customer.customer_phone },
+            select: { total_points: true, lifetime_earned: true, lifetime_used: true },
+        }),
+        prisma.orders.findMany({
+            where: { store_id: customer.store_id, customer_phone: customer.customer_phone },
+            orderBy: { created_at: 'desc' },
+            take: 10,
+            select: { id: true, total_amount: true, status: true, created_at: true, order_type: true },
+        }),
+        prisma.point_transactions.findMany({
+            where: { store_id: customer.store_id, user_points: { phone: customer.customer_phone } },
+            orderBy: { created_at: 'desc' },
+            take: 15,
+            select: { id: true, type: true, amount: true, balance_after: true, description: true, created_at: true },
+        }),
+        prisma.user_coupons.findMany({
+            where: { customer_phone: customer.customer_phone, status: 'UNUSED', OR: [{ expires_at: null }, { expires_at: { gte: new Date() } }] },
+            include: { coupons: { select: { name: true, amount: true, type: true, store_id: true } } },
+            orderBy: { created_at: 'desc' },
+            take: 10,
+        }),
+        prisma.store_tier_settings.findMany({
+            where: { store_id: customer.store_id }, orderBy: { min_spent: 'asc' },
+        }),
+    ]);
+
+    const nextTier = tiers
+        .filter(t => t.min_spent > customer.total_spent)
+        .sort((a, b) => a.min_spent - b.min_spent)[0] || null;
+
+    res.json({
+        success: true,
+        data: {
+            customer,
+            point_balance: pointInfo?.total_points || 0,
+            lifetime_earned: pointInfo?.lifetime_earned || 0,
+            lifetime_used: pointInfo?.lifetime_used || 0,
+            recent_orders: recentOrders,
+            point_history: pointHistory,
+            active_coupons: activeCoupons,
+            tiers,
+            next_tier: nextTier,
+        },
+    });
+}));
+
+/**
+ * [매장 쿠폰 목록 조회 (발급용)]
+ * GET /api/customers/:storeId/coupons
+ */
+router.get('/:storeId/coupons', authMiddleware, checkStorePermission('owner'), catchAsync(async (req, res) => {
+    const coupons = await prisma.coupons.findMany({
+        where: { store_id: parseInt(req.params.storeId), is_active: 1 },
+        orderBy: { created_at: 'desc' },
+    });
+    res.json({ success: true, data: coupons });
+}));
+
+/**
+ * [고객에게 쿠폰 발급]
+ * POST /api/customers/:storeId/customer/:customerId/coupon
+ */
+router.post('/:storeId/customer/:customerId/coupon', authMiddleware, checkStorePermission('owner'), catchAsync(async (req, res) => {
+    const { coupon_id } = req.body;
+    if (!coupon_id) return res.status(400).json({ success: false, error: 'coupon_id 필요' });
+
+    const customer = await prisma.store_customers.findUnique({ where: { id: parseInt(req.params.customerId) } });
+    if (!customer) return res.status(404).json({ success: false, error: '고객 없음' });
+
+    const coupon = await prisma.coupons.findFirst({
+        where: { id: parseInt(coupon_id), store_id: parseInt(req.params.storeId), is_active: 1 },
+    });
+    if (!coupon) return res.status(404).json({ success: false, error: '쿠폰 없음' });
+
+    const alreadyHas = await prisma.user_coupons.findFirst({
+        where: { customer_phone: customer.customer_phone, coupon_id: coupon.id, status: 'UNUSED' },
+    });
+    if (alreadyHas) return res.status(409).json({ success: false, error: '이미 보유 중인 쿠폰입니다.' });
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + (coupon.valid_days || 30));
+
+    const issued = await prisma.user_coupons.create({
+        data: { customer_phone: customer.customer_phone, coupon_id: coupon.id, status: 'UNUSED', expires_at: expiresAt },
+    });
+    res.json({ success: true, data: issued, message: `${coupon.name} 쿠폰이 발급되었습니다.` });
+}));
+
+/**
  * [매장별 단골고객 리스트 조회]
  * GET /api/customers/:storeId
  */
