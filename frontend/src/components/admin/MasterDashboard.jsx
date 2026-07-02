@@ -175,7 +175,7 @@ const MasterDashboard = () => {
                     <p className="text-slate-400 text-sm max-w-xs">매장을 먼저 생성해야 상품 관리와 메뉴 빌더를 사용할 수 있습니다.</p>
                 </div>
                 <button
-                    onClick={() => navigate('/admin/stores/new')}
+                    onClick={() => navigate('/admin/setup')}
                     className="px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-2xl transition-all flex items-center gap-2"
                 >
                     <Plus size={20} /> 첫 매장 만들기
