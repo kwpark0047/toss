@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Store, ChefHat, LayoutGrid, QrCode, Check, Plus, Trash2,
   Volume2, VolumeX, Sparkles, ArrowRight, ArrowLeft, Loader2,
-  Clock, Phone, MapPin, PartyPopper, Move, X
+  Clock, Phone, MapPin, PartyPopper, Move, X, Search, ChevronDown, ChevronUp, PenLine
 } from 'lucide-react';
 import { storesAPI, categoriesAPI, productsAPI, tablesAPI, aiAPI } from '../../api';
 
@@ -206,14 +206,209 @@ const STEPS = [
   { id: 4, label: 'QR 코드',   icon: QrCode },
 ];
 
-const BTYPE_OPTIONS = [
-  { value: 'cafe',      label: '카페',     icon: '☕' },
-  { value: 'restaurant',label: '레스토랑', icon: '🍽️' },
-  { value: 'bar',       label: '바/술집',  icon: '🍺' },
-  { value: 'bakery',    label: '베이커리', icon: '🥐' },
-  { value: 'fastfood',  label: '패스트푸드',icon: '🍔' },
-  { value: 'etc',       label: '기타',     icon: '🏪' },
+// ── 1인 사업자 인기 업종 (첫 화면에 노출)
+const POPULAR_VALUES = ['cafe', 'korean', 'chicken', 'bakery', 'food_truck', 'hair', 'fitness', 'academy'];
+
+// ── 전체 업종 그룹 (가나다 / 업종 계열별 분류)
+const BTYPE_GROUPS = [
+  {
+    group: '☕ 음료 · 카페',
+    types: [
+      { value: 'cafe',         label: '카페/커피숍',   icon: '☕' },
+      { value: 'dessert_cafe', label: '디저트카페',     icon: '🍰' },
+      { value: 'bubble_tea',   label: '버블티/음료',   icon: '🧋' },
+      { value: 'juice_bar',    label: '과일주스/스무디',icon: '🥤' },
+      { value: 'tearoom',      label: '티룸/전통찻집', icon: '🍵' },
+    ],
+  },
+  {
+    group: '🍽️ 음식점',
+    types: [
+      { value: 'korean',    label: '한식',           icon: '🍲' },
+      { value: 'chinese',   label: '중식',           icon: '🥢' },
+      { value: 'japanese',  label: '일식/초밥',      icon: '🍱' },
+      { value: 'western',   label: '양식/파스타',    icon: '🍝' },
+      { value: 'chicken',   label: '치킨/닭요리',    icon: '🍗' },
+      { value: 'pizza',     label: '피자',           icon: '🍕' },
+      { value: 'snack',     label: '분식',           icon: '🍜' },
+      { value: 'bbq',       label: '고기/바베큐',    icon: '🥩' },
+      { value: 'seafood',   label: '해산물/회',      icon: '🐟' },
+      { value: 'soup',      label: '국밥/찌개',      icon: '🥘' },
+    ],
+  },
+  {
+    group: '🚚 특수 외식',
+    types: [
+      { value: 'food_truck', label: '푸드트럭',      icon: '🚚' },
+      { value: 'bakery',     label: '베이커리/빵집', icon: '🥐' },
+      { value: 'fastfood',   label: '패스트푸드',    icon: '🍔' },
+      { value: 'bar',        label: '술집/바',       icon: '🍺' },
+      { value: 'pub',        label: '호프/포차',     icon: '🍻' },
+      { value: 'buffet',     label: '뷔페/셀프식당', icon: '🍱' },
+      { value: 'nightclub',  label: '클럽/라운지',  icon: '🎵' },
+    ],
+  },
+  {
+    group: '📚 교육 · 스포츠',
+    types: [
+      { value: 'academy',   label: '학원/교습소',    icon: '📚' },
+      { value: 'fitness',   label: '헬스클럽/피트니스', icon: '💪' },
+      { value: 'yoga',      label: '요가/필라테스',  icon: '🧘' },
+      { value: 'swimming',  label: '수영장',         icon: '🏊' },
+      { value: 'sports',    label: '스포츠시설',     icon: '⚽' },
+      { value: 'golf',      label: '골프/스크린골프', icon: '⛳' },
+      { value: 'dance',     label: '댄스/무술학원',  icon: '🕺' },
+      { value: 'reading',   label: '독서실/스터디카페', icon: '📖' },
+    ],
+  },
+  {
+    group: '💇 뷰티 · 웰니스',
+    types: [
+      { value: 'hair',      label: '미용실/헤어샵',  icon: '💇' },
+      { value: 'nail',      label: '네일샵',         icon: '💅' },
+      { value: 'spa',       label: '마사지/스파',    icon: '💆' },
+      { value: 'skincare',  label: '피부관리실',     icon: '✨' },
+      { value: 'tatoo',     label: '타투/반영구',    icon: '🎨' },
+      { value: 'barber',    label: '이발소/남성헤어', icon: '💈' },
+    ],
+  },
+  {
+    group: '🏪 소매 · 생활',
+    types: [
+      { value: 'convenience', label: '편의점/마트',  icon: '🏪' },
+      { value: 'flower',      label: '꽃집',         icon: '💐' },
+      { value: 'pet',         label: '반려동물샵',   icon: '🐾' },
+      { value: 'laundry',     label: '세탁소',       icon: '👕' },
+      { value: 'pharmacy',    label: '약국',         icon: '💊' },
+      { value: 'stationery',  label: '문구/잡화점',  icon: '✏️' },
+      { value: 'bookstore',   label: '서점',         icon: '📕' },
+    ],
+  },
+  {
+    group: '🎮 엔터 · 기타',
+    types: [
+      { value: 'karaoke',   label: '노래방',         icon: '🎤' },
+      { value: 'pc_cafe',   label: 'PC방/게임방',    icon: '🎮' },
+      { value: 'pool',      label: '당구장',         icon: '🎱' },
+      { value: 'coin_laundry', label: '코인세탁방',  icon: '🌀' },
+      { value: 'parking',   label: '주차장',         icon: '🅿️' },
+      { value: 'etc',       label: '기타',           icon: '🏠' },
+    ],
+  },
 ];
+
+// 전체 평탄화 목록
+const ALL_BTYPES = BTYPE_GROUPS.flatMap(g => g.types);
+const getBtypeLabel = (value, custom = '') =>
+  ALL_BTYPES.find(b => b.value === value)?.label || custom || value || '기타';
+
+// ── 업종 선택 피커 컴포넌트
+function BusinessTypePicker({ value, customValue, onChange, onCustomChange }) {
+  const [search, setSearch] = useState('');
+  const [expanded, setExpanded] = useState(false);
+
+  const popular = POPULAR_VALUES.map(v => ALL_BTYPES.find(b => b.value === v)).filter(Boolean);
+  const filtered = search.trim()
+    ? ALL_BTYPES.filter(b => b.label.includes(search) || b.value.includes(search.toLowerCase()))
+    : null;
+
+  const isCustom = value === '__custom__';
+  const selectedLabel = isCustom ? customValue : getBtypeLabel(value);
+
+  const select = (v) => { onChange(v); setSearch(''); setExpanded(false); };
+
+  const CardBtn = ({ opt }) => (
+    <button type="button" onClick={() => select(opt.value)}
+      className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-2xl border text-center transition-all ${value === opt.value ? 'bg-amber-500/20 border-amber-500/50 text-amber-300' : 'bg-white/5 border-white/10 text-slate-400 hover:border-amber-500/30 hover:text-amber-300'}`}>
+      <span className="text-lg leading-none">{opt.icon}</span>
+      <span className="text-[11px] font-bold leading-tight">{opt.label}</span>
+    </button>
+  );
+
+  return (
+    <div className="space-y-2">
+      {/* 선택된 업종 표시 + 검색 */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => { setSearch(e.target.value); setExpanded(true); }}
+            onFocus={() => setExpanded(true)}
+            placeholder={isCustom ? customValue || '업종 검색...' : (selectedLabel || '업종 검색...')}
+            className="w-full pl-8 pr-3 py-2 bg-white/10 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-xs font-bold focus:outline-none focus:border-amber-500/50 transition-all"
+          />
+        </div>
+        {(value || isCustom) && (
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black flex-shrink-0 ${isCustom ? 'bg-violet-500/20 border border-violet-500/30 text-violet-300' : 'bg-amber-500/20 border border-amber-500/30 text-amber-300'}`}>
+            <span>{isCustom ? '✍️' : ALL_BTYPES.find(b => b.value === value)?.icon}</span>
+            <span className="max-w-[80px] truncate">{selectedLabel}</span>
+          </div>
+        )}
+      </div>
+
+      {/* 검색 결과 */}
+      {filtered && filtered.length > 0 && (
+        <div className="grid grid-cols-4 gap-1.5 max-h-40 overflow-y-auto">
+          {filtered.map(opt => <CardBtn key={opt.value} opt={opt} />)}
+        </div>
+      )}
+      {filtered && filtered.length === 0 && (
+        <p className="text-xs text-slate-500 text-center py-2">검색 결과 없음 — 직접 입력을 사용해보세요</p>
+      )}
+
+      {/* 인기 업종 (기본 노출) */}
+      {!filtered && (
+        <>
+          <p className="text-[10px] font-black text-slate-600 uppercase tracking-wider">⭐ 인기 업종</p>
+          <div className="grid grid-cols-4 gap-1.5">
+            {popular.map(opt => <CardBtn key={opt.value} opt={opt} />)}
+          </div>
+
+          {/* 전체 업종 보기 토글 */}
+          <button type="button" onClick={() => setExpanded(v => !v)}
+            className="w-full flex items-center justify-center gap-1 py-1.5 text-xs text-slate-500 hover:text-amber-400 transition-colors font-bold">
+            {expanded ? <><ChevronUp size={12} /> 접기</> : <><ChevronDown size={12} /> 전체 업종 보기</>}
+          </button>
+
+          {/* 전체 그룹 목록 */}
+          <AnimatePresence>
+            {expanded && (
+              <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} exit={{ opacity:0, height:0 }}
+                className="overflow-hidden space-y-3 max-h-64 overflow-y-auto pr-0.5">
+                {BTYPE_GROUPS.map(grp => (
+                  <div key={grp.group}>
+                    <p className="text-[10px] font-black text-slate-600 mb-1.5">{grp.group}</p>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {grp.types.map(opt => <CardBtn key={opt.value} opt={opt} />)}
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      )}
+
+      {/* 직접 입력 */}
+      {!filtered && (
+        <div className="border-t border-white/10 pt-2">
+          <div className="flex items-center gap-2">
+            <PenLine size={11} className="text-slate-500 flex-shrink-0" />
+            <input
+              type="text"
+              value={customValue}
+              onChange={e => { onCustomChange(e.target.value); onChange('__custom__'); }}
+              placeholder="목록에 없으면 직접 입력 (예: 꽃배달, 반찬가게)"
+              className="flex-1 px-3 py-2 bg-white/5 border border-dashed border-white/20 rounded-xl text-white placeholder:text-slate-600 text-xs focus:outline-none focus:border-violet-500/50 transition-all"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ────────────────────────────────────────────────────────────────────
 //  메인 마법사
@@ -237,6 +432,7 @@ export default function StoreSetupWizard() {
     name: '', business_type: 'cafe', description: '', phone: '',
     address: '', open_time: '09:00', close_time: '22:00',
   });
+  const [customBtype, setCustomBtype] = useState(''); // 직접 입력 업종
 
   // Step 2 menu
   const [menuItems, setMenuItems]     = useState([{ name: '', price: '', description: '' }]);
@@ -269,7 +465,14 @@ export default function StoreSetupWizard() {
     if (!storeForm.name.trim()) return;
     setSaving(true);
     try {
-      const res = await storesAPI.create(storeForm);
+      const apiData = {
+        ...storeForm,
+        // custom 업종이면 실제 입력값을 business_type으로 전송
+        business_type: storeForm.business_type === '__custom__'
+          ? (customBtype.trim() || 'etc')
+          : storeForm.business_type,
+      };
+      const res = await storesAPI.create(apiData);
       const store = res?.data || res;
       setCreatedStore(store);
 
@@ -307,7 +510,7 @@ export default function StoreSetupWizard() {
     setAiLoadingIdx(idx);
     sayWithDelay('잠깐만요! AI가 메뉴 정보를 분석 중이에요 ✨', 0);
     try {
-      const btype = BTYPE_OPTIONS.find(b => b.value === storeForm.business_type)?.label || '카페';
+      const btype = getBtypeLabel(storeForm.business_type, customBtype);
       const res = await aiAPI.proposeMenuFull({ name, categoryName: btype });
       const p = res?.proposal;
       if (p) {
@@ -516,15 +719,13 @@ export default function StoreSetupWizard() {
                         className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 focus:bg-white/15 transition-all text-sm font-bold" />
                     </div>
                     <div>
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-wider block mb-1.5">업종 *</label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {BTYPE_OPTIONS.map(opt => (
-                          <button key={opt.value} type="button" onClick={() => setStoreForm(p => ({...p, business_type: opt.value}))}
-                            className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl text-sm font-bold border transition-all ${storeForm.business_type === opt.value ? 'bg-amber-500/20 border-amber-500/50 text-amber-300' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}>
-                            <span>{opt.icon}</span> {opt.label}
-                          </button>
-                        ))}
-                      </div>
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-wider block mb-2">업종 *</label>
+                      <BusinessTypePicker
+                        value={storeForm.business_type}
+                        customValue={customBtype}
+                        onChange={v => setStoreForm(p => ({...p, business_type: v}))}
+                        onCustomChange={setCustomBtype}
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
