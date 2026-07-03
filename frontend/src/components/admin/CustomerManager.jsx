@@ -18,8 +18,8 @@ const TIER_META = {
   PLATINUM: { label: '플래티넘', color: 'bg-rose-100 text-rose-700',  bar: 'bg-rose-500',   icon: Crown,   ring: 'ring-rose-300' },
 };
 
-function getTierMeta(tier = 'GENERAL') {
-  return TIER_META[tier.toUpperCase()] || TIER_META.GENERAL;
+function getTierMeta(tier) {
+  return TIER_META[(tier ?? 'GENERAL').toUpperCase()] || TIER_META.GENERAL;
 }
 
 // ── 날짜 헬퍼 ─────────────────────────────────────────────────────

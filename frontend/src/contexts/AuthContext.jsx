@@ -3,7 +3,8 @@ import { authAPI, storesAPI } from '../api';
 
 const AuthContext = createContext(null);
 
-const API_URL = 'https://wemarket.onrender.com/api';
+const API_URL = import.meta.env.VITE_API_URL ||
+  (window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://wemarket.onrender.com/api');
 
 // JWT 페이로드를 네트워크 없이 즉시 디코드 (서명 검증 없음 — 만료 확인용)
 const decodeToken = (token) => {

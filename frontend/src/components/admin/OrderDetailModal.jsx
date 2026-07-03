@@ -23,8 +23,8 @@ const OrderDetailModal = ({ order, statusConfig, onClose, onStatusChange, onPaym
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <span className="text-2xl font-bold text-navy-900">#{order.order_number}</span>
-                            <span className={'px-4 py-2 rounded-full font-medium ' + statusConfig[order.status].color}>
-                                {statusConfig[order.status].label}
+                            <span className={'px-4 py-2 rounded-full font-medium ' + (statusConfig[order.status]?.color ?? 'bg-gray-100 text-gray-600')}>
+                                {statusConfig[order.status]?.label ?? order.status}
                             </span>
                         </div>
                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -56,13 +56,13 @@ const OrderDetailModal = ({ order, statusConfig, onClose, onStatusChange, onPaym
                                 <Eye className="w-4 h-4" /> 입금 증빙 사진 (송금 확인증)
                             </h3>
                             <a
-                                href={order.proof_image_url.startsWith('http') ? order.proof_image_url : `http://localhost:3000${order.proof_image_url}`}
+                                href={order.proof_image_url.startsWith('http') ? order.proof_image_url : `https://wemarket.onrender.com${order.proof_image_url}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="block rounded-xl overflow-hidden border-2 border-white shadow-sm hover:opacity-90 transition-opacity"
                             >
                                 <img
-                                    src={order.proof_image_url.startsWith('http') ? order.proof_image_url : `http://localhost:3000${order.proof_image_url}`}
+                                    src={order.proof_image_url.startsWith('http') ? order.proof_image_url : `https://wemarket.onrender.com${order.proof_image_url}`}
                                     alt="입금 증빙"
                                     className="w-full h-auto max-h-64 object-contain bg-white"
                                 />
@@ -78,7 +78,7 @@ const OrderDetailModal = ({ order, statusConfig, onClose, onStatusChange, onPaym
                         <h3 className="font-bold text-navy-900 mb-3">주문 항목</h3>
                         <div className="space-y-3">
                             {(order.items || []).map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                                <div key={item.id ?? `${item.product_id}-${idx}`} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
                                     <div>
                                         <p className="font-medium text-navy-900">{item.product_name}</p>
                                         <p className="text-sm text-navy-500">{formatPrice(item.price, true)} x {item.quantity}</p>

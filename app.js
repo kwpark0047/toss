@@ -338,10 +338,6 @@ if (process.env.NODE_ENV !== 'production') {
 // [API 라우트 명시적 그룹화 등록]
 const API_PREFIX = '/api';
 
-console.log(`[라우트] auth 라우터 등록됨: ${routes.auth.stack.length}개 경로`);
-routes.auth.stack.forEach(l => {
-    if (l.route) console.log(`  → ${l.route.path} [${Object.keys(l.route.methods).join(',')}]`);
-});
 app.use(`${API_PREFIX}/auth`, routes.auth);
 app.use(`${API_PREFIX}/stores`, routes.stores);
 app.use(`${API_PREFIX}/products`, routes.products);
@@ -395,8 +391,10 @@ const io = new Server(httpServer, {
     }
 });
 
+const logger = require('./utils/logger');
+
 io.on('connection', (socket) => {
-    console.log(`[Socket] 클라이언트 연결됨: ${socket.id}`);
+    logger.debug(`[Socket] 연결됨: ${socket.id}`);
     socket.on('join-order', (orderId) => socket.join(`order - ${orderId}`));
     socket.on('join-store', (data) => {
         const storeId = typeof data === 'object' ? data.storeId : data;
@@ -408,13 +406,12 @@ io.on('connection', (socket) => {
         socket.join(`kitchen - ${storeId}`);
         if (userId) socket.join(`user - ${userId}`);
     });
-    socket.on('disconnect', () => console.log(`[Socket] 클라이언트 연결 해제됨: ${socket.id}`));
+    socket.on('disconnect', () => logger.debug(`[Socket] 연결 해제됨: ${socket.id}`));
 
     // --- [채팅 관련 소켓 이벤트] ---
     // 채팅방 참여
     socket.on('join-chat-room', ({ roomId }) => {
         socket.join(`chat - ${roomId}`);
-        console.log(`[Socket] 채팅방 입장: chat - ${roomId}`);
     });
 
     // 메시지 전송
@@ -447,7 +444,6 @@ io.on('connection', (socket) => {
     // 테이블 장바구니 룸 참여
     socket.on('join-table-cart', ({ tableId }) => {
         socket.join(`table - cart - ${tableId}`);
-        console.log(`[Socket] 테이블 공유 장바구니 입장: table - cart - ${tableId}`);
     });
 
     // 장바구니 업데이트 브로드캐스트
@@ -466,20 +462,17 @@ io.on('connection', (socket) => {
     socket.on('join-customer-orders', ({ phone }) => {
         const normalized = phone.replace(/[^0-9]/g, '');
         socket.join(`customer-orders-${normalized}`);
-        console.log(`[Socket] 고객 주문 알림 채널 입장: customer-orders-${normalized}`);
     });
 
     // --- [스마트 웨이팅 관련 소켓 이벤트] ---
     // 특정 매장의 대기 관리 채널 참여 (관리자/직원용)
     socket.on('join-store-waiting', ({ storeId }) => {
         socket.join(`store - waiting - ${storeId}`);
-        console.log(`[Socket] 매장 대기 관리 채널 입장: store - waiting - ${storeId}`);
     });
 
     // 내 대기 상태 추적 채널 참여 (고객용)
     socket.on('join-my-waiting', ({ phone }) => {
         socket.join(`customer - waiting - ${phone}`);
-        console.log(`[Socket] 개인 대기 추적 채널 입장: customer - waiting - ${phone}`);
     });
 
     // 대기 상태 변경 알림 (동기화)

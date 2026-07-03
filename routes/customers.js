@@ -299,28 +299,9 @@ router.post('/:storeId/customer/:customerId/coupon', authMiddleware, checkStoreP
 }));
 
 /**
- * [매장별 단골고객 리스트 조회]
- * GET /api/customers/:storeId
- */
-router.get('/:storeId', authMiddleware, checkStorePermission('owner'), catchAsync(async (req, res) => {
-    const { storeId } = req.params;
-    const { sortBy, order, limit, search } = req.query;
-    const customers = await StoreCustomer.findByStoreId(storeId, {
-        sortBy,
-        order,
-        limit: limit ? parseInt(limit) : 50,
-        search
-    });
-
-    res.json({
-        success: true,
-        data: customers
-    });
-}));
-
-/**
  * [특정 단골고객 상세 조회]
  * GET /api/customers/detail/:customerId
+ * ⚠️ /:storeId 보다 먼저 등록해야 "detail"이 storeId로 매칭되는 버그 방지
  */
 router.get('/detail/:customerId', authMiddleware, catchAsync(async (req, res) => {
     const { customerId } = req.params;
@@ -337,6 +318,26 @@ router.get('/detail/:customerId', authMiddleware, catchAsync(async (req, res) =>
     res.json({
         success: true,
         data: customer
+    });
+}));
+
+/**
+ * [매장별 단골고객 리스트 조회]
+ * GET /api/customers/:storeId
+ */
+router.get('/:storeId', authMiddleware, checkStorePermission('owner'), catchAsync(async (req, res) => {
+    const { storeId } = req.params;
+    const { sortBy, order, limit, search } = req.query;
+    const customers = await StoreCustomer.findByStoreId(storeId, {
+        sortBy,
+        order,
+        limit: limit ? parseInt(limit) : 50,
+        search
+    });
+
+    res.json({
+        success: true,
+        data: customers
     });
 }));
 
