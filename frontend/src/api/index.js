@@ -158,7 +158,17 @@ export const storesAPI = {
 };
 
 export const storeAccountAPI = {
-  get: (storeId) => api.get('/stores/' + storeId + '/account'), // 매장 계좌 정보 조회
+  get: (storeId) => api.get('/stores/' + storeId + '/account'),              // 관리자용 (인증 필요)
+  getPublic: (storeId) => api.get('/stores/' + storeId + '/account/public'), // 고객용 (송금 표시용)
+  update: (storeId, data) => api.put('/stores/' + storeId + '/account', data),
+};
+
+export const businessAPI = {
+  get: (storeId) => api.get('/stores/' + storeId + '/business'),
+  update: (storeId, data) => api.put('/stores/' + storeId + '/business', data),
+  issueInvoice: (storeId, settlementId) => api.post(`/admin/stores/${storeId}/settlements/${settlementId}/tax-invoice`),
+  confirmStoreCard: (orderId, data) => api.post(`/payments/order/${orderId}/confirm-store-card`, data),
+  confirmTransfer: (orderId, data) => api.post(`/payments/order/${orderId}/confirm-transfer`, data),
 };
 
 
@@ -219,6 +229,7 @@ export const ordersAPI = {
   },
   create: (data) => api.post('/orders', data), // 주문 생성
   updateStatus: (id, status, staffId = null) => api.put('/orders/' + id + '/status', { status, staff_id: staffId }), // 주문 상태 및 처리자 업데이트
+  cancel: (id) => api.post('/orders/' + id + '/cancel'), // 취소 + 재고 복구
   delete: (id) => api.delete('/orders/' + id),
   getById: (id) => api.get('/orders/' + id), // 주문 상세
 
@@ -240,7 +251,8 @@ export const paymentsAPI = {
   getById: (id) => api.get('/payments/' + id),
   confirm: (id, data) => api.post('/payments/' + id + '/confirm', data), // 결제 승인
   cancel: (id, data) => api.post('/payments/' + id + '/cancel', data), // 결제 키/ID 기반 취소
-  cancelByOrder: (orderId, data) => api.post('/payments/order/' + orderId + '/cancel', data), // 주문 번호로 결제 취소
+  cancelByOrder: (orderId, data) => api.post('/payments/order/' + orderId + '/cancel', data), // 주문 번호로 결제 취소 (재고 복구 포함)
+  partialCancel: (orderId, cancelAmount, cancelReason) => api.post('/payments/order/' + orderId + '/partial-cancel', { cancelAmount, cancelReason }), // 부분 환불
   uploadProof: (id, formData) => api.post(`/payments/${id}/proof`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
@@ -396,10 +408,13 @@ export const exportAPI = {
 
 // === [9. 정산 및 영수증 설정] ===
 export const adminAPI = {
-  getSettlements: (storeId) => api.get(`/admin/stores/${storeId}/settlements`), // 정산 내역 조회
-  generateSettlement: (storeId, data) => api.post(`/admin/stores/${storeId}/settlements/generate`, data), // 정산 생성
-  getReceiptSettings: (storeId) => api.get(`/admin/stores/${storeId}/receipt-settings`), // 영수증 설정 조회
-  updateReceiptSettings: (storeId, data) => api.put(`/admin/stores/${storeId}/receipt-settings`, data), // 영수증 설정 업데이트
+  getSettlements: (storeId) => api.get(`/admin/stores/${storeId}/settlements`),
+  getSettlement: (storeId, id) => api.get(`/admin/stores/${storeId}/settlements/${id}`),
+  generateSettlement: (storeId, data) => api.post(`/admin/stores/${storeId}/settlements/generate`, data),
+  updateSettlementStatus: (storeId, id, status) => api.patch(`/admin/stores/${storeId}/settlements/${id}/status`, { status }),
+  issueTaxInvoice: (storeId, id) => api.post(`/admin/stores/${storeId}/settlements/${id}/tax-invoice`),
+  getReceiptSettings: (storeId) => api.get(`/admin/stores/${storeId}/receipt-settings`),
+  updateReceiptSettings: (storeId, data) => api.put(`/admin/stores/${storeId}/receipt-settings`, data),
 };
 
 // === [10. 플랜 업그레이드 신청] ===
@@ -602,6 +617,21 @@ export const communityAPI = {
 
   // 제휴 승인/거절
   respondPartnership: (id, action) => api.put(`/community/partnerships/${id}/respond`, { action }),
+};
+
+// ── 법적 의무 정보 API ──────────────────────────────────────────────────────
+export const legalAPI = {
+    // 공개 엔드포인트 (인증 불필요)
+    getInfo:    (storeId) => api.get(`/legal/stores/${storeId}`),
+    getTerms:   (storeId) => api.get(`/legal/stores/${storeId}/terms`),
+    getPrivacy: (storeId) => api.get(`/legal/stores/${storeId}/privacy`),
+    getRefund:  (storeId) => api.get(`/legal/stores/${storeId}/refund`),
+
+    // 관리자 전용
+    adminGet:    (storeId) => api.get(`/legal/admin/stores/${storeId}`),
+    adminUpdate: (storeId, data) => api.put(`/legal/admin/stores/${storeId}`, data),
+    verifyBizNum:(storeId, business_number) =>
+        api.post(`/legal/admin/stores/${storeId}/verify-business`, { business_number }),
 };
 
 export default api;

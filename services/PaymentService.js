@@ -207,8 +207,15 @@ class PaymentService {
     async processCancellation(orderId, cancelReason, requesterInfo) {
         // 1. 취소 대상 결제 찾기
         const payments = await Payment.findByOrderId(orderId);
-        const payment = payments.find(p => p.status === 'DONE');
 
+        // 멱등성: 이미 취소된 결제는 재처리 없이 즉시 반환 (중복 취소 방지)
+        const alreadyCanceled = payments.find(p => ['CANCELED', 'CANCELLED'].includes(p.status));
+        if (alreadyCanceled) {
+            logger.info('[PaymentService] 중복 취소 요청 무시 (멱등성):', alreadyCanceled.payment_key);
+            return { success: true, message: '이미 취소 처리된 결제입니다.' };
+        }
+
+        const payment = payments.find(p => p.status === 'DONE');
         if (!payment) {
             throw new Error('취소할 유효한 결제 내역이 없습니다.');
         }
@@ -271,6 +278,43 @@ class PaymentService {
         // 6. 주문 상태 업데이트
         await Order.updatePayment(payment.order_id, payment.method, 'refunded');
         await Order.updateStatus(payment.order_id, 'cancelled');
+
+        // 7. 재고 복구: 취소된 주문의 상품 수량을 원복
+        try {
+            const items = await prisma.order_items.findMany({
+                where: { order_id: payment.order_id },
+                select: { product_id: true, quantity: true }
+            });
+            for (const item of items) {
+                if (!item.product_id) continue;
+                await prisma.$transaction(async (tx) => {
+                    const product = await tx.products.findUnique({
+                        where: { id: item.product_id },
+                        select: { id: true, store_id: true, stock_quantity: true }
+                    });
+                    if (!product || product.stock_quantity === null) return;
+
+                    const restoredQty = product.stock_quantity + item.quantity;
+                    await tx.products.update({
+                        where: { id: item.product_id },
+                        data: { stock_quantity: restoredQty, is_sold_out: false }
+                    });
+                    await tx.stock_history.create({
+                        data: {
+                            product_id: item.product_id,
+                            store_id: product.store_id,
+                            change: item.quantity,
+                            qty_after: restoredQty,
+                            reason: 'CANCEL',
+                            order_id: payment.order_id
+                        }
+                    });
+                });
+                logger.info(`[PaymentService] 재고 복구: product_id=${item.product_id}, +${item.quantity}개`);
+            }
+        } catch (e) {
+            logger.warn('[PaymentService] 재고 복구 실패 (취소는 완료):', e.message);
+        }
 
         return { success: true, message: '결제 취소 및 환불 처리가 완료되었습니다.' };
     }

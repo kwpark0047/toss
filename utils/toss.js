@@ -1,13 +1,15 @@
 const axios = require('axios');
+const cb = require('./circuitBreaker');
 
 /**
  * [토스페이먼츠 API 연동 유틸리티]
  * 결제 승인, 조회, 취소 등 토스페이먼츠 API와의 통신을 담당합니다.
+ * Circuit Breaker 적용: 연속 5회 실패 시 30초 동안 자동 차단.
  */
 
-// 토스페이먼츠 시크릿 키 (상용 환경에서는 반드시 .env에 실제 키를 설정하세요)
 const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY;
 const logger = require('../utils/logger');
+const tossCircuit = cb.get('toss-api', { failureThreshold: 5, cooldownMs: 30_000, timeoutMs: 10_000 });
 
 if (!TOSS_SECRET_KEY) {
     logger.warn('[Warning] TOSS_SECRET_KEY가 설정되지 않았습니다. 결제 기능이 제한될 수 있습니다.');
@@ -46,21 +48,23 @@ const TossAPI = {
             };
         }
 
-        try {
-            const response = await axios.post(
-                'https://api.tosspayments.com/v1/payments/confirm',
-                { paymentKey, orderId, amount },
-                { headers: getAuthHeader() }
-            );
-            return response.data;
-        } catch (error) {
-            logger.error(error);
-            throw {
-                code: error.response?.data?.code || 'PAYMENT_CONFIRM_ERROR',
-                message: error.response?.data?.message || '결제 승인 중 오류가 발생했습니다.',
-                statusCode: error.response?.status || 500
-            };
-        }
+        return tossCircuit.call(async () => {
+            try {
+                const response = await axios.post(
+                    'https://api.tosspayments.com/v1/payments/confirm',
+                    { paymentKey, orderId, amount },
+                    { headers: getAuthHeader() }
+                );
+                return response.data;
+            } catch (error) {
+                logger.error(error);
+                throw {
+                    code: error.response?.data?.code || 'PAYMENT_CONFIRM_ERROR',
+                    message: error.response?.data?.message || '결제 승인 중 오류가 발생했습니다.',
+                    statusCode: error.response?.status || 500
+                };
+            }
+        });
     },
 
     /**
@@ -121,20 +125,22 @@ const TossAPI = {
             };
         }
 
-        try {
-            const response = await axios.post(
-                `https://api.tosspayments.com/v1/payments/${paymentKey}/cancel`,
-                { cancelReason, cancelAmount },
-                { headers: getAuthHeader() }
-            );
-            return response.data;
-        } catch (error) {
-            throw {
-                code: error.response?.data?.code || 'PAYMENT_CANCEL_ERROR',
-                message: error.response?.data?.message || '결제 취소 중 오류가 발생했습니다.',
-                statusCode: error.response?.status || 500
-            };
-        }
+        return tossCircuit.call(async () => {
+            try {
+                const response = await axios.post(
+                    `https://api.tosspayments.com/v1/payments/${paymentKey}/cancel`,
+                    { cancelReason, cancelAmount },
+                    { headers: getAuthHeader() }
+                );
+                return response.data;
+            } catch (error) {
+                throw {
+                    code: error.response?.data?.code || 'PAYMENT_CANCEL_ERROR',
+                    message: error.response?.data?.message || '결제 취소 중 오류가 발생했습니다.',
+                    statusCode: error.response?.status || 500
+                };
+            }
+        });
     },
 
     /**

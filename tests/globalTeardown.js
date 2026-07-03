@@ -1,3 +1,5 @@
 module.exports = async () => {
-  global.__SERVER__.close();
+    if (global.__SERVER__ && typeof global.__SERVER__.close === 'function') {
+        await new Promise((resolve) => global.__SERVER__.close(resolve));
+    }
 };

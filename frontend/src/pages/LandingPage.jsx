@@ -1183,9 +1183,9 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between border-t border-gray-100 pt-8 gap-4">
                     <p className="text-xs text-gray-400">© 2026 WeMarket. All rights reserved.</p>
                     <div className="flex gap-6 text-xs text-gray-400">
-                        <a href="#" className="hover:text-gray-600 transition-colors">개인정보처리방침</a>
-                        <a href="#" className="hover:text-gray-600 transition-colors">이용약관</a>
-                        <a href="#" className="hover:text-gray-600 transition-colors">사업자정보</a>
+                        <Link to="/legal/1/privacy" className="hover:text-gray-600 transition-colors">개인정보처리방침</Link>
+                        <Link to="/legal/1/terms" className="hover:text-gray-600 transition-colors">이용약관</Link>
+                        <Link to="/legal/1/refund" className="hover:text-gray-600 transition-colors">환불정책</Link>
                     </div>
                 </div>
             </footer>

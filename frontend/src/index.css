@@ -264,3 +264,20 @@
     box-shadow: 0 12px 40px -8px hsl(24 95% 53% / 0.4);
   }
 }
+
+/* ── prefers-reduced-motion: 전역 애니메이션 제거 ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* framer-motion이 설정하는 will-change 초기화 */
+  [data-framer-component-type] {
+    will-change: auto !important;
+  }
+}

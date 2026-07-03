@@ -4,6 +4,7 @@ const Store = require('../models/Store');
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
+const prisma = require('../config/prisma');
 
 // 전체 매장 목록 조회
 router.get('/', catchAsync(async (req, res) => {
@@ -40,6 +41,105 @@ router.put('/:id', authMiddleware, bridgeStoreId, checkStorePermission('store:up
     if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다' });
     const updated = await Store.update(req.params.id, req.body);
     res.success(updated, '매장 정보가 수정되었습니다');
+}));
+
+// ── 사업자 정보 조회 ──────────────────────────────────────────────────────────
+router.get('/:id/business', authMiddleware, bridgeStoreId, checkStorePermission('settings:read'), catchAsync(async (req, res) => {
+    const sid = parseInt(req.params.id);
+    const store = await prisma.stores.findUnique({
+        where: { id: sid },
+        select: {
+            business_number: true,
+            business_name: true,
+            ceo_name: true,
+            tax_invoice_email: true,
+            settlement_cycle: true,
+            commission_rate: true,
+            vat_rate: true,
+            enabled_payment_methods: true,
+            store_accounts: {
+                select: {
+                    bank_code: true, bank_name: true,
+                    account_number: true, account_holder: true,
+                    is_active: true
+                }
+            }
+        }
+    });
+    if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다' });
+
+    let enabledMethods = ['cash', 'store_card', 'transfer'];
+    try { enabledMethods = JSON.parse(store.enabled_payment_methods || '[]'); } catch {}
+
+    res.success({ ...store, enabled_payment_methods: enabledMethods });
+}));
+
+// ── 사업자 정보 저장 ──────────────────────────────────────────────────────────
+router.put('/:id/business', authMiddleware, bridgeStoreId, checkStorePermission('settings:write'), catchAsync(async (req, res) => {
+    const sid = parseInt(req.params.id);
+    const {
+        business_number, business_name, ceo_name, tax_invoice_email,
+        settlement_cycle, enabled_payment_methods
+    } = req.body;
+
+    // 사업자번호 형식 검증 (000-00-00000)
+    if (business_number && !/^\d{3}-\d{2}-\d{5}$/.test(business_number)) {
+        return res.status(400).json({ success: false, error: '사업자번호 형식이 올바르지 않습니다. (예: 123-45-67890)' });
+    }
+
+    const validCycles = ['DAILY', 'WEEKLY', 'MONTHLY', 'MANUAL'];
+    if (settlement_cycle && !validCycles.includes(settlement_cycle)) {
+        return res.status(400).json({ success: false, error: '정산 주기가 올바르지 않습니다.' });
+    }
+
+    const updateData = {};
+    if (business_number !== undefined) updateData.business_number = business_number;
+    if (business_name !== undefined) updateData.business_name = business_name;
+    if (ceo_name !== undefined) updateData.ceo_name = ceo_name;
+    if (tax_invoice_email !== undefined) updateData.tax_invoice_email = tax_invoice_email;
+    if (settlement_cycle !== undefined) updateData.settlement_cycle = settlement_cycle;
+    if (enabled_payment_methods !== undefined) {
+        updateData.enabled_payment_methods = JSON.stringify(
+            Array.isArray(enabled_payment_methods) ? enabled_payment_methods : []
+        );
+    }
+
+    const updated = await prisma.stores.update({ where: { id: sid }, data: updateData });
+    res.success(updated, '사업자 정보가 저장되었습니다.');
+}));
+
+// ── 계좌이체 계좌 조회 (관리자용 — 전체 정보) ────────────────────────────────
+router.get('/:id/account', authMiddleware, bridgeStoreId, checkStorePermission('settings:read'), catchAsync(async (req, res) => {
+    const sid = parseInt(req.params.id);
+    const account = await prisma.store_accounts.findUnique({ where: { store_id: sid } });
+    res.success(account || null);
+}));
+
+// ── 계좌이체 계좌 조회 (고객용 — 송금 표시 정보만, 민감정보 최소화) ────────────
+router.get('/:id/account/public', catchAsync(async (req, res) => {
+    const sid = parseInt(req.params.id);
+    const account = await prisma.store_accounts.findUnique({
+        where: { store_id: sid },
+        select: { bank_name: true, account_number: true, account_holder: true }
+    });
+    res.success(account || null);
+}));
+
+// ── 계좌이체 계좌 등록·수정 ───────────────────────────────────────────────────
+router.put('/:id/account', authMiddleware, bridgeStoreId, checkStorePermission('settings:write'), catchAsync(async (req, res) => {
+    const sid = parseInt(req.params.id);
+    const { bank_code, bank_name, account_number, account_holder } = req.body;
+
+    if (!bank_name || !account_number || !account_holder) {
+        return res.status(400).json({ success: false, error: '은행명, 계좌번호, 예금주명은 필수입니다.' });
+    }
+
+    const account = await prisma.store_accounts.upsert({
+        where: { store_id: sid },
+        create: { store_id: sid, bank_code: bank_code || '', bank_name, account_number, account_holder, is_active: true },
+        update: { bank_code: bank_code || bank_name, bank_name, account_number, account_holder, is_active: true, updated_at: new Date() }
+    });
+    res.success(account, '계좌 정보가 저장되었습니다.');
 }));
 
 // 매장 삭제 (소프트 딜리트)

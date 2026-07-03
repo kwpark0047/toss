@@ -1,0 +1,113 @@
+# ============================================================
+# WeMarket 점심 피크타임 부하 테스트
+# Artillery 사용: npx artillery run scripts/load-test.yml
+#
+# 시나리오:
+#   1단계(0~2분)  : 워밍업 — 5 VU
+#   2단계(2~7분)  : 점심 피크 — 50 VU (12시 주문 폭주 시뮬레이션)
+#   3단계(7~9분)  : 쿨다운 — 10 VU
+#
+# 환경변수 필요:
+#   LOAD_TEST_BASE_URL   (기본: http://localhost:3000)
+#   LOAD_TEST_STORE_ID   (기본: 1)
+#   LOAD_TEST_AUTH_TOKEN (Bearer 토큰)
+# ============================================================
+config:
+  target: "{{ $processEnvironment.LOAD_TEST_BASE_URL || 'http://localhost:3000' }}"
+  http:
+    timeout: 15
+    pool: 50
+  phases:
+    - name: "워밍업"
+      duration: 120
+      arrivalRate: 5
+    - name: "피크타임 (점심)"
+      duration: 300
+      arrivalRate: 50
+    - name: "쿨다운"
+      duration: 120
+      arrivalRate: 10
+  defaults:
+    headers:
+      Content-Type: "application/json"
+  variables:
+    storeId: "{{ $processEnvironment.LOAD_TEST_STORE_ID || '1' }}"
+  plugins:
+    expect: {}
+
+scenarios:
+  # ── 시나리오 1: 메뉴 조회 + 주문 생성 (가장 흔한 경로, 가중치 60%) ──────
+  - name: "메뉴조회-주문생성"
+    weight: 60
+    flow:
+      # 1. 헬스체크
+      - get:
+          url: "/api/health"
+          expect:
+            - statusCode: 200
+            - hasProperty: "status"
+
+      # 2. 매장 상품 목록 조회
+      - get:
+          url: "/api/products?store_id={{ storeId }}"
+          expect:
+            - statusCode: 200
+          capture:
+            - json: "$.data[0].id"
+              as: "productId"
+            - json: "$.data[0].price"
+              as: "productPrice"
+
+      # 3. 주문 + 현금결제 동시 생성 (동시성 테스트 핵심)
+      - post:
+          url: "/api/payments"
+          json:
+            store_id: "{{ storeId }}"
+            payment_method: "cash"
+            total_amount: "{{ productPrice }}"
+            phone: "010{{ $randomNumber(10000000, 99999999) }}"
+            items:
+              - product_id: "{{ productId }}"
+                product_name: "테스트 메뉴"
+                price: "{{ productPrice }}"
+                quantity: 1
+                subtotal: "{{ productPrice }}"
+          expect:
+            - statusCode:
+                - 200
+                - 201
+                - 409   # 품절 동시성 충돌 — 정상 에러코드로 허용
+
+  # ── 시나리오 2: 주문 현황 폴링 (관리자 화면, 가중치 25%) ────────────────
+  - name: "주문현황-폴링"
+    weight: 25
+    flow:
+      - get:
+          url: "/api/orders?store_id={{ storeId }}&status=pending&limit=20"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.LOAD_TEST_AUTH_TOKEN }}"
+          expect:
+            - statusCode:
+                - 200
+                - 401  # 토큰 없으면 허용
+
+      - think: 3
+
+      - get:
+          url: "/api/orders?store_id={{ storeId }}&status=paid&limit=20"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.LOAD_TEST_AUTH_TOKEN }}"
+
+  # ── 시나리오 3: 헬스체크 & SLA 확인 (모니터링 봇, 가중치 15%) ─────────
+  - name: "헬스체크"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/health"
+          expect:
+            - statusCode: 200
+      - think: 5
+      - get:
+          url: "/api/health/sla"
+          expect:
+            - statusCode: 200

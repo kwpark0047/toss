@@ -27,6 +27,8 @@ const StaffManager     = lazy(() => import("@/components/admin/StaffManager"));
 const SalesStats       = lazy(() => import("@/components/admin/SalesStats"));
 const AnalyticsDashboard = lazy(() => import("@/components/admin/AnalyticsDashboard"));
 const SettlementManager  = lazy(() => import("@/components/admin/SettlementManager"));
+const BusinessSettings   = lazy(() => import("@/components/admin/BusinessSettings"));
+const SystemStatus       = lazy(() => import("@/components/admin/SystemStatus"));
 const ReceiptSettings    = lazy(() => import("@/components/admin/ReceiptSettings"));
 const CustomerManager    = lazy(() => import("@/components/admin/CustomerManager"));
 const ReservationManager = lazy(() => import("@/components/admin/ReservationManager"));
@@ -42,6 +44,8 @@ const BoardDetail        = lazy(() => import("@/components/board/BoardDetail"));
 const BoardWrite         = lazy(() => import("@/components/board/BoardWrite"));
 const KitchenDisplayPage = lazy(() => import("@/pages/KitchenDisplay"));
 const CommunityPage      = lazy(() => import("@/components/admin/CommunityPage"));
+const LegalSettings      = lazy(() => import("@/components/admin/LegalSettings"));
+const LegalPage          = lazy(() => import("@/pages/LegalPage"));
 
 const queryClient = new QueryClient();
 
@@ -190,6 +194,20 @@ const AppRoutes = () => (
       </AdminPage>
     } />
 
+    {/* 시스템 현황 */}
+    <Route path="/admin/system-status" element={
+      <AdminPage>
+        <AdminSuspense><SystemStatus /></AdminSuspense>
+      </AdminPage>
+    } />
+
+    {/* 사업자 & 결제 설정 */}
+    <Route path="/admin/stores/:storeId/business-settings" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><BusinessSettings /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
     {/* 영수증 설정 */}
     <Route path="/admin/stores/:storeId/receipt-settings" element={
       <AdminPage>
@@ -259,6 +277,16 @@ const AppRoutes = () => (
         <AdminSuspense><CommunityPage /></AdminSuspense>
       </AdminPage>
     } />
+
+    {/* 법적 의무 정보 관리 (관리자) */}
+    <Route path="/admin/stores/:storeId/legal" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><LegalSettings /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
+    {/* 공개 법적 문서 (이용약관·개인정보처리방침·환불정책) — 인증 불필요 */}
+    <Route path="/legal/:storeId/:type" element={<Suspense fallback={null}><LegalPage /></Suspense>} />
 
     {/* 커뮤니티 게시판 (구체적 경로 먼저) */}
     <Route path="/kitchen/:storeId" element={

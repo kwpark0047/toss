@@ -51,14 +51,38 @@ router.patch('/stores/:storeId/settlements/:id/status', authMiddleware, checkSto
     res.success(updated, '정산 상태가 업데이트되었습니다.');
 }));
 
+// 세금계산서 발행 (COMPLETED/PAID 상태에서만)
+router.post('/stores/:storeId/settlements/:id/tax-invoice', authMiddleware, checkStorePermission('settings:write'), catchAsync(async (req, res) => {
+    const updated = await Settlement.issueTaxInvoice(req.params.id);
+    res.success(updated, `세금계산서가 발행되었습니다. (${updated.tax_invoice_number})`);
+}));
+
+// 매장 수수료율 설정 (super_admin 전용)
+router.put('/stores/:storeId/commission', authMiddleware, checkStorePermission('admin'), catchAsync(async (req, res) => {
+    const { commission_rate, vat_rate } = req.body;
+    if (commission_rate !== undefined && (commission_rate < 0 || commission_rate > 0.3)) {
+        return res.status(400).json({ error: '수수료율은 0% ~ 30% 범위여야 합니다.' });
+    }
+    const updateData = {};
+    if (commission_rate !== undefined) updateData.commission_rate = parseFloat(commission_rate);
+    if (vat_rate !== undefined) updateData.vat_rate = parseFloat(vat_rate);
+
+    await prisma.stores.update({ where: { id: parseInt(req.params.storeId) }, data: updateData });
+    res.success(null, '수수료율이 업데이트되었습니다.');
+}));
+
 // 정산 상세 조회
 router.get('/stores/:storeId/settlements/:id', authMiddleware, checkStorePermission('stats:read'), catchAsync(async (req, res) => {
     const settlement = await prisma.settlements.findUnique({
         where: { id: parseInt(req.params.id) },
-        include: { stores: { select: { name: true, business_type: true } } }
+        include: { stores: { select: { name: true, business_type: true, business_name: true, business_number: true, ceo_name: true } } }
     });
     if (!settlement) return res.status(404).json({ error: '정산 내역을 찾을 수 없습니다.' });
-    res.success(settlement);
+
+    let breakdown = {};
+    try { breakdown = JSON.parse(settlement.payment_method_breakdown || '{}'); } catch {}
+
+    res.success({ ...settlement, breakdown });
 }));
 
 // === [영수증 설정 API] ===

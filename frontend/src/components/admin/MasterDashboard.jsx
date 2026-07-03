@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { storesAPI, ordersAPI, analyticsAPI } from '../../api';
+import { storesAPI, ordersAPI, analyticsAPI, exportAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatPrice, formatTime } from '../../utils/format';
 import {
@@ -10,7 +10,66 @@ import {
     Sparkles, LayoutDashboard, Settings, RefreshCw,
     Bell, QrCode, LayoutGrid, Home, ReceiptText,
     BadgeCheck, ChefHat, AlertCircle, CalendarDays,
+    Download, FileSpreadsheet, FileText, Loader2,
 } from 'lucide-react';
+
+/* ─── 내보내기 패널 ─── */
+const ExportPanel = ({ storeId }) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const [startDate, setStartDate] = useState(thirtyDaysAgo);
+    const [endDate, setEndDate] = useState(today);
+    const [loading, setLoading] = useState('');
+    const [error, setError] = useState('');
+
+    const run = async (label, fn) => {
+        setLoading(label);
+        setError('');
+        try { await fn(); }
+        catch (e) { setError(e.message || '다운로드 실패'); }
+        finally { setLoading(''); }
+    };
+
+    const buttons = [
+        { label: '매출 통계', icon: FileSpreadsheet, color: 'from-emerald-500 to-teal-500', fn: () => exportAPI.salesExcel(storeId, startDate, endDate) },
+        { label: '주문 내역', icon: FileSpreadsheet, color: 'from-blue-500 to-cyan-500',    fn: () => exportAPI.ordersExcel(storeId, startDate, endDate) },
+        { label: '고객 리스트', icon: FileSpreadsheet, color: 'from-violet-500 to-purple-500', fn: () => exportAPI.customersExcel(storeId) },
+        { label: '메뉴 분석', icon: FileSpreadsheet, color: 'from-amber-500 to-orange-500', fn: () => exportAPI.menuExcel(storeId, startDate, endDate) },
+        { label: 'PDF 보고서', icon: FileText,        color: 'from-rose-500 to-pink-500',   fn: () => exportAPI.reportPdf(storeId, startDate, endDate) },
+    ];
+
+    return (
+        <div>
+            <div className="flex items-center gap-2 mb-3">
+                <Download size={15} className="text-blue-400" />
+                <h2 className="text-sm font-black text-white">데이터 내보내기</h2>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                        className="flex-1 text-[11px] bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-slate-300 outline-none" />
+                    <span className="text-slate-600 text-xs">~</span>
+                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                        className="flex-1 text-[11px] bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-slate-300 outline-none" />
+                </div>
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                    {buttons.map(({ label, icon: Icon, color, fn }) => (
+                        <button key={label} onClick={() => run(label, fn)} disabled={!!loading}
+                            className="flex flex-col items-center gap-1.5 p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all disabled:opacity-50 active:scale-95">
+                            <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${color} flex items-center justify-center`}>
+                                {loading === label
+                                    ? <Loader2 size={13} className="text-white animate-spin" />
+                                    : <Icon size={13} className="text-white" />}
+                            </div>
+                            <span className="text-[10px] font-black text-slate-400 text-center leading-tight">{label}</span>
+                        </button>
+                    ))}
+                </div>
+                {error && <p className="text-[11px] text-rose-400 font-bold">{error}</p>}
+            </div>
+        </div>
+    );
+};
 
 /* ─── 날짜 포맷 ─── */
 const getGreeting = () => {
@@ -449,6 +508,11 @@ const MasterDashboard = () => {
                     최근 갱신: {lastRefresh.getHours().toString().padStart(2,'0')}:{lastRefresh.getMinutes().toString().padStart(2,'0')}:{lastRefresh.getSeconds().toString().padStart(2,'0')} · 60초 자동 갱신
                 </p>
             </div>
+
+            {/* ── 데이터 내보내기 ── */}
+            {selectedStore && !isMultiView && (
+                <ExportPanel storeId={selectedStore.id} />
+            )}
 
             {/* ── 추가 도구 (데스크톱용 / 모바일에선 하단 네비로 대체) ── */}
             <div className="hidden md:block">

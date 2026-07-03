@@ -8,6 +8,7 @@ const { order: schema } = require('../utils/validationSchemas');
 const notificationService = require('../services/notificationService');
 const prisma = require('../config/prisma');
 const catchAsync = require('../utils/catchAsync');
+const logger = require('../utils/logger');
 
 // 주문 생성 (공개)
 router.post('/', validate(schema.create), catchAsync(async (req, res) => {
@@ -59,6 +60,28 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
         resolvedTableName = table?.table_number || null;
     }
 
+    // 품절·재고 사전 검증 (주문 생성 전 선제 차단 — 동시성 1차 방어선)
+    const itemsToValidate = req.body.items || [];
+    if (itemsToValidate.length > 0) {
+        const insufficient = [];
+        for (const item of itemsToValidate) {
+            if (!item.product_id) continue;
+            const product = await prisma.products.findUnique({
+                where: { id: parseInt(item.product_id) },
+                select: { name: true, stock_quantity: true, is_sold_out: true }
+            });
+            if (!product) continue;
+            if (product.is_sold_out) {
+                insufficient.push(`'${product.name}' 품절`);
+            } else if (product.stock_quantity !== null && product.stock_quantity < (item.quantity || 1)) {
+                insufficient.push(`'${product.name}' 재고 부족 (재고 ${product.stock_quantity}개)`);
+            }
+        }
+        if (insufficient.length > 0) {
+            return res.status(409).json({ success: false, error: insufficient.join(', ') });
+        }
+    }
+
     const final_amount = Math.max(0, req.body.total_amount - discount_amount);
     const orderData = { ...req.body };
     if (orderData.phone && !orderData.customer_phone) {
@@ -93,19 +116,28 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
         });
         for (const item of items) {
             if (!item.product_id) continue;
-            const product = await prisma.products.findUnique({
-                where: { id: item.product_id },
-                select: { id: true, name: true, store_id: true, stock_quantity: true, low_stock_threshold: true }
-            });
-            if (!product || product.stock_quantity === null) continue;
-
-            const newQty = Math.max(0, product.stock_quantity - item.quantity);
-            await prisma.$transaction([
-                prisma.products.update({
+            // 원자적 재고 차감: 트랜잭션 내에서 재고 확인 → 조건부 차감 → 이력 기록
+            // stock_quantity가 부족하면 차감하지 않고 경고만 남김 (동시성 2차 방어선)
+            const result = await prisma.$transaction(async (tx) => {
+                const product = await tx.products.findUnique({
+                    where: { id: item.product_id },
+                    select: { id: true, store_id: true, stock_quantity: true, low_stock_threshold: true }
+                });
+                if (!product || product.stock_quantity === null) return null;
+                if (product.stock_quantity < item.quantity) {
+                    logger.warn(`[Orders] 재고 동시성 충돌: product_id=${item.product_id}, 재고=${product.stock_quantity}, 요청=${item.quantity}`);
+                    await tx.products.update({
+                        where: { id: item.product_id },
+                        data: { is_sold_out: true }
+                    });
+                    return null;
+                }
+                const newQty = product.stock_quantity - item.quantity;
+                await tx.products.update({
                     where: { id: item.product_id },
                     data: { stock_quantity: newQty, is_sold_out: newQty === 0 }
-                }),
-                prisma.stock_history.create({
+                });
+                await tx.stock_history.create({
                     data: {
                         product_id: item.product_id,
                         store_id: product.store_id,
@@ -114,11 +146,11 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
                         reason: 'ORDER',
                         order_id: order.id
                     }
-                })
-            ]);
-
-            if (newQty <= product.low_stock_threshold) {
-                notificationService.notifyLowStockDB({ ...product, stock_quantity: newQty }).catch(() => {});
+                });
+                return { newQty, threshold: product.low_stock_threshold };
+            });
+            if (result && result.newQty <= result.threshold) {
+                notificationService.notifyLowStockDB({ id: item.product_id, stock_quantity: result.newQty }).catch(() => {});
             }
         }
     }
@@ -257,6 +289,66 @@ router.put('/:id/status', authMiddleware, catchAsync(async (req, res) => {
     }
 
     res.json({ success: true, order: updatedOrder, message: '주문 상태가 변경되었습니다' });
+}));
+
+// 주문 취소 (재고 복구 포함 — 결제 없는 주문 또는 관리자 강제 취소)
+router.post('/:id/cancel', authMiddleware, catchAsync(async (req, res) => {
+    const id = parseInt(req.params.id);
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ error: '주문을 찾을 수 없습니다' });
+
+    // 멱등성: 이미 취소된 주문이면 재처리 없이 반환
+    if (order.status === 'cancelled') {
+        return res.json({ success: true, message: '이미 취소된 주문입니다.' });
+    }
+
+    await Order.updateStatus(id, 'cancelled');
+
+    // 재고 복구
+    const items = await prisma.order_items.findMany({
+        where: { order_id: id },
+        select: { product_id: true, quantity: true }
+    });
+    for (const item of items) {
+        if (!item.product_id) continue;
+        try {
+            await prisma.$transaction(async (tx) => {
+                const product = await tx.products.findUnique({
+                    where: { id: item.product_id },
+                    select: { id: true, store_id: true, stock_quantity: true }
+                });
+                if (!product || product.stock_quantity === null) return;
+                const restoredQty = product.stock_quantity + item.quantity;
+                await tx.products.update({
+                    where: { id: item.product_id },
+                    data: { stock_quantity: restoredQty, is_sold_out: false }
+                });
+                await tx.stock_history.create({
+                    data: {
+                        product_id: item.product_id,
+                        store_id: product.store_id,
+                        change: item.quantity,
+                        qty_after: restoredQty,
+                        reason: 'CANCEL',
+                        order_id: id
+                    }
+                });
+            });
+        } catch (e) {
+            logger.warn(`[Orders] 취소 재고 복구 실패: product_id=${item.product_id}`, e.message);
+        }
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+        io.to(`store - ${order.store_id}`).emit('order-updated', {
+            order_id: id,
+            status: 'cancelled',
+            store_id: order.store_id
+        });
+    }
+
+    res.json({ success: true, message: '주문이 취소되었습니다.' });
 }));
 
 // 주문 삭제

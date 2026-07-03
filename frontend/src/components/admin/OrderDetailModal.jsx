@@ -1,12 +1,34 @@
-import { X, Eye, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { X, Eye, RefreshCw, Scissors } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
+import { paymentsAPI } from '../../api';
 
-/**
- * [관리자용 주문 상세 모달 컴포넌트]
- * 주문의 모든 세부 항목, 요청사항, 결제 정보 및 환불 기능을 표시합니다.
- */
 const OrderDetailModal = ({ order, statusConfig, onClose, onStatusChange, onPaymentCancel, formatDateTime }) => {
+    const [showPartialRefund, setShowPartialRefund] = useState(false);
+    const [partialAmount, setPartialAmount] = useState('');
+    const [partialReason, setPartialReason] = useState('');
+    const [partialLoading, setPartialLoading] = useState(false);
+    const [partialError, setPartialError] = useState('');
+
     if (!order) return null;
+
+    const handlePartialRefund = async () => {
+        const amount = parseInt(partialAmount.replace(/,/g, ''), 10);
+        if (!amount || amount <= 0) { setPartialError('금액을 입력하세요.'); return; }
+        if (amount > order.total_amount) { setPartialError('결제 금액을 초과합니다.'); return; }
+        setPartialLoading(true);
+        setPartialError('');
+        try {
+            await paymentsAPI.partialCancel(order.id, amount, partialReason || '부분 환불');
+            setShowPartialRefund(false);
+            setPartialAmount('');
+            onClose();
+        } catch (e) {
+            setPartialError(e?.response?.data?.error || e.message || '부분 환불 실패');
+        } finally {
+            setPartialLoading(false);
+        }
+    };
 
     return (
         <div className="fixed inset-0 bg-navy-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -105,37 +127,74 @@ const OrderDetailModal = ({ order, statusConfig, onClose, onStatusChange, onPaym
                         <span className="text-2xl font-bold text-primary-600">{formatPrice(order.total_amount, true)}</span>
                     </div>
 
+                    {/* 부분 환불 입력폼 */}
+                    {showPartialRefund && (
+                        <div className="border border-orange-200 rounded-2xl p-4 bg-orange-50 space-y-3">
+                            <p className="text-sm font-bold text-orange-800">부분 환불 금액 입력</p>
+                            <input
+                                type="number"
+                                placeholder="환불 금액 (원)"
+                                value={partialAmount}
+                                onChange={e => setPartialAmount(e.target.value)}
+                                className="w-full border border-orange-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-300"
+                            />
+                            <input
+                                type="text"
+                                placeholder="환불 사유 (선택)"
+                                value={partialReason}
+                                onChange={e => setPartialReason(e.target.value)}
+                                className="w-full border border-orange-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-300"
+                            />
+                            {partialError && <p className="text-xs text-red-500 font-medium">{partialError}</p>}
+                            <div className="flex gap-2">
+                                <button onClick={() => setShowPartialRefund(false)}
+                                    className="flex-1 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium">
+                                    취소
+                                </button>
+                                <button onClick={handlePartialRefund} disabled={partialLoading}
+                                    className="flex-1 py-2 bg-orange-500 text-white rounded-xl text-sm font-bold disabled:opacity-50">
+                                    {partialLoading ? '처리중...' : '부분 환불 실행'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* 모달 하단 버튼 섹션: 상태 변경 및 환불 제어 */}
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-3">
                         {order.status !== 'completed' && order.status !== 'cancelled' && (
                             <>
-                                {statusConfig[order.status].next && (
+                                {statusConfig[order.status]?.next && (
                                     <button
-                                        onClick={() => {
-                                            onStatusChange(order.id, statusConfig[order.status].next);
-                                        }}
+                                        onClick={() => onStatusChange(order.id, statusConfig[order.status].next)}
                                         className="flex-1 py-4 btn-primary text-white rounded-2xl font-medium text-lg"
                                     >
-                                        {statusConfig[statusConfig[order.status].next].label}으로 변경
+                                        {statusConfig[statusConfig[order.status].next]?.label}으로 변경
                                     </button>
                                 )}
                                 {order.status === 'pending' && (
                                     <button
-                                        onClick={() => {
-                                            onStatusChange(order.id, 'cancelled');
-                                        }}
+                                        onClick={() => onStatusChange(order.id, 'cancelled')}
                                         className="px-6 py-4 bg-red-50 text-red-500 rounded-2xl font-medium hover:bg-red-100 transition-colors border border-red-100"
                                     >
                                         주문 거절
                                     </button>
                                 )}
-                                {/* 결제 취소(환불) 버튼 */}
-                                {order.payment_status === 'paid' && order.status !== 'cancelled' && (
+                                {/* 전체 환불 버튼 */}
+                                {order.payment_status === 'paid' && (
                                     <button
                                         onClick={() => onPaymentCancel(order.id)}
-                                        className="px-6 py-4 bg-orange-100 text-orange-600 rounded-2xl font-bold hover:bg-orange-200 transition-all border border-orange-200 flex items-center justify-center gap-2"
+                                        className="px-5 py-4 bg-orange-100 text-orange-600 rounded-2xl font-bold hover:bg-orange-200 transition-all border border-orange-200 flex items-center justify-center gap-2"
                                     >
-                                        <RefreshCw className="w-5 h-5" /> 결제 취소(환불)
+                                        <RefreshCw className="w-4 h-4" /> 전체 취소
+                                    </button>
+                                )}
+                                {/* 부분 환불 버튼 */}
+                                {order.payment_status === 'paid' && !showPartialRefund && (
+                                    <button
+                                        onClick={() => setShowPartialRefund(true)}
+                                        className="px-5 py-4 bg-amber-50 text-amber-700 rounded-2xl font-bold hover:bg-amber-100 transition-all border border-amber-200 flex items-center justify-center gap-2"
+                                    >
+                                        <Scissors className="w-4 h-4" /> 부분 환불
                                     </button>
                                 )}
                             </>

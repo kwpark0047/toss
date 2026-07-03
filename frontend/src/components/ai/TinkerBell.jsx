@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useMotionSafe } from '../../hooks/useMotionSafe';
 
 // ── 다국어 대사 ──────────────────────────────────────────────────────────────
 const I18N = {
@@ -174,6 +175,7 @@ export default function TinkerBell({
   previewTrigger = 0,   // 증가할 때마다 미리보기에서 인사 재실행
   adminMode = false,    // true면 사업자 전용 대사
 }) {
+  const { isAnimationSafe, motionIntensity } = useMotionSafe();
   const [isHappy,  setIsHappy]  = useState(false);
   const [isBusy,   setIsBusy]   = useState(false);
   const [visible,  setVisible]  = useState(false);
@@ -333,12 +335,35 @@ export default function TinkerBell({
 
   if (!visible) return null;
 
-  return (
-    <div style={wrapperStyle}>
-      {/* 반짝이 */}
-      <div className="absolute inset-0">
-        {sparks.map(s => <Spark key={s.id} {...s} />)}
+  // 저사양·모션 감소 모드: 정적 폴백
+  if (motionIntensity === 'none') {
+    return (
+      <div style={wrapperStyle} data-testid="tinkerbell-static">
+        {bubble.show && (
+          <div
+            style={{ position: 'absolute', ...bubbleStyle, zIndex: 10 }}
+            className={`bg-slate-900 text-white rounded-2xl shadow-xl px-3 py-2.5 leading-relaxed ${largeFont ? 'text-sm' : 'text-xs'} font-semibold`}>
+            {bubble.ctx && <span className="block text-amber-400 font-black text-[10px] mb-1">{bubble.ctx}</span>}
+            <span>{bubble.typed || bubble.full}</span>
+            <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-slate-900 rotate-45 rounded-[1px]" />
+          </div>
+        )}
+        <StaticFairyIcon />
       </div>
+    );
+  }
+
+  // 저사양 'reduced' 모드: 단순 트랜지션만
+  const useSimpleMotion = motionIntensity === 'reduced';
+
+  return (
+    <div style={wrapperStyle} data-testid="tinkerbell-animated">
+      {/* 반짝이 (저사양 기기에서 생략) */}
+      {!useSimpleMotion && (
+        <div className="absolute inset-0">
+          {sparks.map(s => <Spark key={s.id} {...s} />)}
+        </div>
+      )}
 
       {/* 말풍선 */}
       <AnimatePresence>
@@ -347,26 +372,44 @@ export default function TinkerBell({
             key="bubble"
             style={{ position: 'absolute', ...bubbleStyle, zIndex: 10 }}
             className={`bg-slate-900 text-white rounded-2xl shadow-xl px-3 py-2.5 leading-relaxed ${largeFont ? 'text-sm' : 'text-xs'} font-semibold`}
-            initial={{ opacity: 0, scale: 0.88, y: 6 }}
+            initial={{ opacity: 0, scale: useSimpleMotion ? 1 : 0.88, y: useSimpleMotion ? 0 : 6 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 4 }}>
+            exit={{ opacity: 0, scale: useSimpleMotion ? 1 : 0.94, y: useSimpleMotion ? 0 : 4 }}>
             {bubble.ctx && (
               <span className="block text-amber-400 font-black text-[10px] mb-1">{bubble.ctx}</span>
             )}
             <span>{bubble.typed}</span>
             <span className="inline-block w-1.5 h-3.5 bg-amber-400 ml-0.5 align-middle animate-pulse rounded-[1px]" />
-            {/* 꼬리 */}
             <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-slate-900 rotate-45 rounded-[1px]" />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 요정 본체 */}
-      <motion.div
-        animate={{ y: floatY }}
-        transition={{ type: 'spring', stiffness: 55, damping: 18 }}>
+      {/* 요정 본체 (저사양: float 없음) */}
+      {useSimpleMotion ? (
         <FairyBody isHappy={isHappy} />
-      </motion.div>
+      ) : (
+        <motion.div
+          animate={{ y: floatY }}
+          transition={{ type: 'spring', stiffness: 55, damping: 18 }}>
+          <FairyBody isHappy={isHappy} />
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+// 저사양/reduced-motion 폴백: 아이콘만 표시
+function StaticFairyIcon() {
+  return (
+    <div className="w-[78px] h-[78px] flex items-center justify-center" data-testid="fairy-static">
+      <div
+        className="w-[46px] h-[46px] rounded-full flex items-center justify-center"
+        style={{ background: 'radial-gradient(circle at 34% 28%, #FFF8E7, #F59E0B 62%, #D97706)', boxShadow: '0 4px 20px rgba(245,159,11,.65)' }}>
+        <svg viewBox="0 0 24 24" fill="white" width="22" height="22">
+          <path d="M12 2l1.8 6.6c.2.7.8 1.3 1.5 1.5L22 12l-6.7 1.9c-.7.2-1.3.8-1.5 1.5L12 22l-1.8-6.6c-.2-.7-.8-1.3-1.5-1.5L2 12l6.7-1.9c.7-.2 1.3-.8 1.5-1.5L12 2z" />
+        </svg>
+      </div>
     </div>
   );
 }

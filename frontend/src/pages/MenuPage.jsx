@@ -15,6 +15,7 @@ import CartModal from "@/components/menu/CartModal";
 import OptionSelectionModal from "@/components/menu/OptionSelectionModal";
 import OrderStatusModal from "@/components/menu/OrderStatusModal";
 import CustomerPhoneSheet from "@/components/menu/CustomerPhoneSheet";
+import LegalFooter from "@/components/customer/LegalFooter";
 
 const MenuPage = () => {
   const { storeId } = useParams();
@@ -455,6 +456,9 @@ const MenuPage = () => {
         totalAmount={currentOrderAmount}
         storeName={profile?.store_name || "위마켓"}
       />
+
+      {/* 전자상거래법 §13 필수 사업자 정보 표시 */}
+      <LegalFooter storeId={storeId} />
     </div>
   );
 };

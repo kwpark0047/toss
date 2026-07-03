@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const express = require('express');
 const prisma = require('../config/prisma');
 const router = express.Router();
@@ -10,8 +11,27 @@ const authMiddleware = require('../middleware/auth');
 const PaymentService = require('../services/PaymentService');
 const Point = require('../models/Point');
 const Ledger = require('../models/Ledger');
+const TossAPI = require('../utils/toss');
 const catchAsync = require('../utils/catchAsync');
-// const { checkStorePermission, getStoreRole } = require('../middleware/storeAuth'); // 현재 미사용으로 주석 처리
+const logger = require('../utils/logger');
+const { getStoreRole } = require('../middleware/storeAuth');
+
+// 매장 직원 권한 체크 헬퍼 (order에서 store_id를 추출한 후 사용)
+const assertStoreAccess = async (user, storeId, permission = 'orders:manage') => {
+    if (user.role === 'super_admin') return;
+    const role = await getStoreRole(user.id, storeId);
+    const rolePermissions = {
+        owner: ['store:update', 'store:delete', 'items:manage', 'orders:manage', 'staff:manage', 'stats:read', 'order:read'],
+        manager: ['store:update', 'items:manage', 'orders:manage', 'staff:manage', 'stats:read', 'order:read'],
+        staff: ['orders:manage', 'order:read'],
+        kitchen: ['orders:manage', 'order:read']
+    };
+    if (!role || !rolePermissions[role]?.includes(permission)) {
+        const err = new Error('해당 매장에 대한 권한이 없습니다.');
+        err.statusCode = 403;
+        throw err;
+    }
+};
 
 // [업로드 설정] 계좌이체 증빙 이미지 저장소 설정
 const storage = multer.diskStorage({
@@ -75,9 +95,10 @@ router.post('/', catchAsync(async (req, res) => {
     });
 
     const logger = require('../utils/logger');
-    // 3. 현장결제(CASH) 또는 포인트 전액 결제(POINT) 즉시 처리 로직
+    // 3. 즉시완료 결제: 현금(cash), 포인트(point), 매장카드(store_card), 계좌이체(transfer)
     logger.info(`결제 방식 확인: ${payment_method}`);
-    if (payment_method === 'cash' || payment_method === 'point') {
+    const IMMEDIATE_METHODS = ['cash', 'point', 'store_card', 'transfer'];
+    if (IMMEDIATE_METHODS.includes(payment_method)) {
       logger.info(`즉시 결제 처리 시작: order=${order.id}`);
       // 3-1. 포인트 사용 처리 (복합 결제 또는 포인트 결제 시)
       if (point_amount > 0) {
@@ -229,6 +250,57 @@ router.post('/order/:orderId/cancel', authMiddleware, catchAsync(async (req, res
     const result = await paymentService.processCancellation(orderId, cancelReason, req.user);
 
     res.json(result);
+}));
+
+/**
+ * 4-1. [부분 환불]
+ * POST /api/payments/order/:orderId/partial-cancel
+ * Body: { cancelAmount: number, cancelReason?: string }
+ * 특정 금액만 부분 환불. Toss cancelPayment(key, reason, amount) 호출.
+ */
+router.post('/order/:orderId/partial-cancel', authMiddleware, catchAsync(async (req, res) => {
+    const { orderId } = req.params;
+    const { cancelAmount, cancelReason } = req.body;
+
+    if (!cancelAmount || Number(cancelAmount) <= 0) {
+        return res.status(400).json({ success: false, error: '환불 금액이 올바르지 않습니다.' });
+    }
+    const amount = Number(cancelAmount);
+
+    const payments = await Payment.findByOrderId(orderId);
+    const payment = payments.find(p => p.status === 'DONE');
+    if (!payment) {
+        return res.status(404).json({ success: false, error: '취소할 유효한 결제 내역이 없습니다.' });
+    }
+    if (amount > payment.amount) {
+        return res.status(400).json({
+            success: false,
+            error: `환불 금액(${amount.toLocaleString()}원)이 결제 금액(${payment.amount.toLocaleString()}원)을 초과합니다.`
+        });
+    }
+
+    // Toss 부분 취소 API 호출 (3번째 인자에 cancelAmount 전달 → 부분 환불)
+    const tossResponse = await TossAPI.cancelPayment(payment.payment_key, cancelReason || '부분 환불', amount);
+    logger.info(`[Payments] 부분 환불 완료: orderId=${orderId}, amount=${amount}`);
+
+    // 장부 기록
+    Ledger.add({
+        store_id: payment.store_id,
+        order_id: payment.order_id,
+        payment_id: payment.id,
+        type: 'REFUND',
+        category: 'PARTIAL_CANCEL',
+        amount: -amount,
+        method: payment.method,
+        description: `부분 환불: ${cancelReason || '부분 환불'} (${amount.toLocaleString()}원)`
+    });
+
+    res.json({
+        success: true,
+        message: `${amount.toLocaleString()}원 부분 환불이 완료되었습니다.`,
+        refundedAmount: amount,
+        tossResponse
+    });
 }));
 
 /**
@@ -489,6 +561,170 @@ router.post('/split/pay', catchAsync(async (req, res) => {
       is_fully_paid: txResult.isFullyPaid,
       message: txResult.isFullyPaid ? '분할 결제가 모두 완료되었습니다.' : `분할 결제 중 — ${txResult.totalPaid.toLocaleString()}원 / ${txResult.order.total_amount.toLocaleString()}원`
     }, '분할 결제가 처리되었습니다.');
+}));
+
+/**
+ * [망취소 웹훅 - Toss Payments]
+ * Toss 서버에서 결제 승인 이벤트를 받아 망취소 시나리오를 처리합니다.
+ *
+ * 망취소 시나리오: Toss에서 결제가 DONE 됐지만 우리 DB에 주문이 없는 경우
+ * → 자동으로 Toss 취소 API를 호출해 고객에게 자동 환불
+ *
+ * Toss 웹훅 설정: https://developers.toss.im/reference/webhook
+ * 서명 검증: Authorization: Basic base64(secretKey:)
+ */
+router.post('/webhooks/toss', catchAsync(async (req, res) => {
+    // Toss 웹훅 서명 검증: Authorization: Basic base64(secretKey:)
+    const auth = req.headers['authorization'] || '';
+    const expectedRaw = (process.env.TOSS_SECRET_KEY || '') + ':';
+    const expected = 'Basic ' + Buffer.from(expectedRaw).toString('base64');
+    const authBuf     = Buffer.alloc(expected.length);
+    const expectedBuf = Buffer.from(expected);
+    authBuf.write(auth);
+    if (!crypto.timingSafeEqual(authBuf, expectedBuf)) {
+        logger.warn('[Webhook/Toss] 서명 검증 실패 - 요청 무시');
+        return res.status(401).end();
+    }
+
+    const event = req.body;
+    const eventType = event?.eventType;
+    const data = event?.data;
+
+    logger.info(`[Webhook/Toss] 이벤트 수신: ${eventType}`, { orderId: data?.orderId });
+
+    if (eventType === 'PAYMENT_STATUS_CHANGED' && data?.status === 'DONE') {
+        const { paymentKey, orderId: tossOrderId, totalAmount } = data;
+
+        // 우리 DB에서 해당 주문 확인
+        const order = await prisma.orders.findFirst({
+            where: { order_number: tossOrderId }
+        });
+
+        if (!order) {
+            // 망취소: 우리 시스템에 주문이 없는데 결제가 승인됨
+            logger.warn(`[Webhook/Toss] 망취소 감지: paymentKey=${paymentKey}, orderId=${tossOrderId}`);
+            try {
+                await TossAPI.cancelPayment(paymentKey, '시스템 오류: 주문 미생성으로 인한 자동 취소');
+                logger.info(`[Webhook/Toss] 망취소 완료: ${paymentKey}`);
+            } catch (e) {
+                logger.error(`[Webhook/Toss] 망취소 API 실패: ${e.message}`);
+            }
+        } else {
+            // 정상: 결제 키가 우리 DB에 없으면 업데이트
+            const existing = await prisma.payments.findFirst({ where: { order_id: order.id, payment_key: paymentKey } });
+            if (!existing) {
+                await prisma.payments.updateMany({
+                    where: { order_id: order.id, status: 'READY' },
+                    data: { payment_key: paymentKey, status: 'DONE', approved_at: new Date() }
+                });
+                logger.info(`[Webhook/Toss] 결제키 동기화: order=${order.id}`);
+            }
+        }
+    }
+
+    // Toss는 200 OK 응답을 기대함
+    res.status(200).json({ success: true });
+}));
+
+/**
+ * [매장카드 결제 확인 - 관리자용]
+ * POS 단말기로 카드 결제가 완료된 후 관리자가 수동으로 확인하는 엔드포인트
+ * POST /api/payments/order/:orderId/confirm-store-card
+ * Body: { amount_confirmed: number, terminal_receipt_no?: string }
+ */
+router.post('/order/:orderId/confirm-store-card', authMiddleware, catchAsync(async (req, res) => {
+    const { orderId } = req.params;
+    const { terminal_receipt_no } = req.body;
+
+    const order = await Order.findById(parseInt(orderId));
+    if (!order) return res.status(404).json({ error: '주문을 찾을 수 없습니다.' });
+
+    await assertStoreAccess(req.user, order.store_id, 'orders:manage');
+
+    if (order.payment_status === 'paid') return res.json({ success: true, message: '이미 결제 완료된 주문입니다.' });
+
+    const confirmed = order.total_amount; // 클라이언트 입력값 사용 금지
+
+    await prisma.$transaction([
+        prisma.payments.updateMany({
+            where: { order_id: parseInt(orderId), method: { in: ['STORE_CARD', 'store_card'] } },
+            data: { status: 'DONE', approved_at: new Date(), transfer_reference: terminal_receipt_no || null }
+        }),
+        prisma.orders.update({
+            where: { id: parseInt(orderId) },
+            data: { payment_status: 'paid', updated_at: new Date() }
+        }),
+        prisma.ledger.create({
+            data: {
+                store_id: order.store_id,
+                order_id: parseInt(orderId),
+                type: 'INCOME',
+                category: 'SALE',
+                amount: confirmed,
+                method: 'STORE_CARD',
+                description: `매장카드 확인: #${order.order_number}${terminal_receipt_no ? ` (영수증 ${terminal_receipt_no})` : ''}`
+            }
+        })
+    ]);
+
+    const io = req.app.get('io');
+    if (io) {
+        io.to(`store - ${order.store_id}`).emit('payment-confirmed', { order_id: parseInt(orderId), method: 'store_card' });
+    }
+
+    res.json({ success: true, message: '매장카드 결제가 확인되었습니다.' });
+}));
+
+/**
+ * [계좌이체 확인 - 관리자용]
+ * POST /api/payments/order/:orderId/confirm-transfer
+ * Body: { transfer_reference: string, depositor_name?: string }
+ */
+router.post('/order/:orderId/confirm-transfer', authMiddleware, catchAsync(async (req, res) => {
+    const { orderId } = req.params;
+    const { transfer_reference, depositor_name } = req.body;
+
+    const order = await Order.findById(parseInt(orderId));
+    if (!order) return res.status(404).json({ error: '주문을 찾을 수 없습니다.' });
+
+    await assertStoreAccess(req.user, order.store_id, 'orders:manage');
+
+    if (order.payment_status === 'paid') return res.json({ success: true, message: '이미 확인된 주문입니다.' });
+
+    await prisma.$transaction([
+        prisma.payments.updateMany({
+            where: { order_id: parseInt(orderId), method: { in: ['TRANSFER', 'transfer'] } },
+            data: {
+                status: 'DONE',
+                transfer_confirmed: true,
+                transfer_confirmed_at: new Date(),
+                transfer_reference: transfer_reference || null,
+                approved_at: new Date()
+            }
+        }),
+        prisma.orders.update({
+            where: { id: parseInt(orderId) },
+            data: { payment_status: 'paid', updated_at: new Date() }
+        }),
+        prisma.ledger.create({
+            data: {
+                store_id: order.store_id,
+                order_id: parseInt(orderId),
+                type: 'INCOME',
+                category: 'SALE',
+                amount: order.total_amount,
+                method: 'TRANSFER',
+                description: `계좌이체 확인: #${order.order_number}${depositor_name ? ` (입금자: ${depositor_name})` : ''}`
+            }
+        })
+    ]);
+
+    const io = req.app.get('io');
+    if (io) {
+        io.to(`store - ${order.store_id}`).emit('payment-confirmed', { order_id: parseInt(orderId), method: 'transfer' });
+    }
+
+    res.json({ success: true, message: '계좌이체 입금이 확인되었습니다.' });
 }));
 
 module.exports = router;

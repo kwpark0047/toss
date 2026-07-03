@@ -12,6 +12,13 @@ const { errorHandler } = require('./utils/errorHandler');
 const { i18nMiddleware, SUPPORTED_LANGUAGES: _SUPPORTED_LANGUAGES } = require('./utils/i18n');
 const performanceMonitor = require('./middleware/performanceMonitor');
 const Monitoring = require('./models/Monitoring');
+const { generalLimiter, orderLimiter, authLimiter, paymentLimiter } = require('./middleware/rateLimiter');
+const alerting = require('./utils/alerting');
+const healthRouter = require('./routes/health');
+const { requestTracker } = require('./routes/health');
+
+// 글로벌 미처리 예외 알림 등록
+alerting.registerGlobalHandlers();
 
 // [수정] 모든 모델은 이제 Prisma 기반으로 통달되었으므로 레거시 DB 연결 및 직접 모델 로드 제거
 // require('./config/database');
@@ -97,6 +104,8 @@ app.use(express.json());
 app.use(responseFormatter);
 app.use(i18nMiddleware);
 app.use(performanceMonitor);
+app.use(requestTracker);        // SLA 지표 수집
+app.use('/api', generalLimiter); // 전체 API 속도 제한
 
 /**
  * API 모니터링 (가장 먼저 시작)
@@ -130,24 +139,9 @@ app.use((req, res, next) => {
  * API 라우트 등록 (정적 파일보다 우선순위 높임)
  */
 /**
- * API 초기 진단 엔드포인트 (최우선 순위)
+ * 헬스체크 & SLA 모니터링 엔드포인트
  */
-app.get("/api/health", async (req, res) => {
-    let dbStatus = "unknown";
-    try {
-        const prisma = require('./config/prisma');
-        await prisma.$queryRaw`SELECT 1`;
-        dbStatus = "connected";
-    } catch (e) {
-        dbStatus = `error: ${e.message}`;
-    }
-    res.json({
-        status: "ok",
-        db: dbStatus,
-        timestamp: new Date().toISOString(),
-        version: '1.0.9'
-    });
-});
+app.use('/api/health', healthRouter);
 
 // ── 임시 시드 실행 엔드포인트 (사용 후 제거 예정) ──────────────────────────
 const { execFile } = require('child_process');
@@ -320,7 +314,8 @@ const routes = {
     aiAssistant: require('./routes/aiAssistant'),
     export: require('./routes/export'),
     inventory: require('./routes/inventory'),
-    community: require('./routes/community')
+    community: require('./routes/community'),
+    legal: require('./routes/legal')
 };
 
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
@@ -338,12 +333,12 @@ if (process.env.NODE_ENV !== 'production') {
 // [API 라우트 명시적 그룹화 등록]
 const API_PREFIX = '/api';
 
-app.use(`${API_PREFIX}/auth`, routes.auth);
+app.use(`${API_PREFIX}/auth`, authLimiter, routes.auth);
 app.use(`${API_PREFIX}/stores`, routes.stores);
 app.use(`${API_PREFIX}/products`, routes.products);
-app.use(`${API_PREFIX}/orders`, routes.orders);
+app.use(`${API_PREFIX}/orders`, orderLimiter, routes.orders);
 app.use(`${API_PREFIX}/tables`, routes.tables);
-app.use(`${API_PREFIX}/payments`, routes.payments);
+app.use(`${API_PREFIX}/payments`, paymentLimiter, routes.payments);
 app.use(`${API_PREFIX}/notifications`, routes.notifications);
 app.use(`${API_PREFIX}/categories`, routes.categories);
 app.use(`${API_PREFIX}/admin`, routes.admin);
@@ -370,6 +365,7 @@ app.use(`${API_PREFIX}/ai-assistant`, routes.aiAssistant);
 app.use(`${API_PREFIX}/export`, routes.export);
 app.use(`${API_PREFIX}/inventory`, routes.inventory);
 app.use(`${API_PREFIX}/community`, routes.community);
+app.use(`${API_PREFIX}/legal`, routes.legal);
 
 // 정적 파일 서빙
 app.use(express.static(path.join(__dirname, 'public')));
