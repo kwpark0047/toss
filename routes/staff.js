@@ -247,4 +247,73 @@ router.delete('/:id', authMiddleware, catchAsync(async (req, res, next) => {
     res.success({ success: true }, '직원이 삭제되었습니다.');
 }));
 
+// 6. 휴대폰 번호로 기존 사용자 조회 (직원 초대용)
+// GET /api/staff/lookup-user?phone=01012345678&storeId=10
+router.get('/lookup-user', authMiddleware, catchAsync(async (req, res) => {
+    const { phone, storeId } = req.query;
+    if (!phone) throw new AppError('휴대폰 번호가 필요합니다.', 400);
+
+    const normalized = phone.replace(/\D/g, '');
+    if (normalized.length < 10) throw new AppError('유효한 번호를 입력해주세요.', 400);
+
+    const user = await prisma.users.findFirst({
+        where: { phone: normalized },
+        select: { id: true, name: true, phone: true }
+    });
+
+    if (!user) return res.success({ found: false });
+
+    let alreadyStaff = false;
+    if (storeId) {
+        const existing = await prisma.staff.findFirst({
+            where: { store_id: parseInt(storeId), user_id: user.id }
+        });
+        alreadyStaff = !!existing;
+    }
+
+    const digits = (user.phone || normalized).replace(/\D/g, '');
+    const masked = digits.length === 11
+        ? `${digits.slice(0,3)}-****-${digits.slice(7)}`
+        : `${digits.slice(0,3)}-****-${digits.slice(-4)}`;
+
+    res.success({
+        found: true,
+        alreadyStaff,
+        user: { id: user.id, name: user.name || '(이름 미등록)', phone: masked }
+    });
+}));
+
+// 7. 기존 사용자를 직원으로 추가 (비밀번호 불필요)
+// POST /api/staff/add-existing  { storeId, userId, role }
+router.post('/add-existing', authMiddleware, catchAsync(async (req, res) => {
+    const { storeId, userId, role } = req.body;
+    if (!storeId || !userId) throw new AppError('storeId와 userId가 필요합니다.', 400);
+
+    const myRole = await getStoreRole(req.user.id, storeId);
+    if (!myRole || (myRole !== 'owner' && myRole !== 'manager')) {
+        throw new AppError('직원 추가 권한이 없습니다.', 403);
+    }
+
+    const existing = await prisma.staff.findFirst({
+        where: { store_id: parseInt(storeId), user_id: parseInt(userId) }
+    });
+    if (existing) throw new AppError('이미 해당 매장의 팀원입니다.', 409);
+
+    const newStaff = await prisma.staff.create({
+        data: {
+            store_id: parseInt(storeId),
+            user_id: parseInt(userId),
+            role: role || 'staff'
+        },
+        include: { users: { select: { name: true, email: true, phone: true } } }
+    });
+
+    res.success({
+        id: newStaff.id,
+        user_id: newStaff.user_id,
+        name: newStaff.users.name,
+        role: newStaff.role
+    }, '팀원이 추가되었습니다.', 201);
+}));
+
 module.exports = router;

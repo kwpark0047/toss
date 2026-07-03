@@ -265,6 +265,10 @@ export const staffAPI = {
   clockOut: (id) => api.post(`/staff/${id}/clock-out`),
   // 1인 매장 셀프 등록
   selfRegister: (storeId) => api.post('/staff/self-register', { storeId }),
+  // 휴대폰 번호로 사용자 조회 (초대용)
+  lookupByPhone: (phone, storeId) => api.get('/staff/lookup-user', { params: { phone, storeId } }),
+  // 기존 사용자를 직원으로 추가
+  addExisting: (data) => api.post('/staff/add-existing', data),
 };
 
 // === [8. 포인트 및 분석] ===

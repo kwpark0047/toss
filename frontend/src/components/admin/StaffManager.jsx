@@ -8,7 +8,8 @@ import {
   ArrowLeft, Plus, Edit2, Trash2, Users, ChefHat,
   UserCheck, User, Clock, Calendar, BarChart2, LogIn, LogOut,
   Sparkles, Check, X, AlertCircle, RefreshCw, Zap,
-  QrCode, Wifi, Timer
+  QrCode, Wifi, Timer, Phone, Search, UserPlus, ChevronDown, ChevronUp,
+  CheckCircle2, XCircle, Loader2
 } from 'lucide-react';
 
 // ── 역할 정의 ──────────────────────────────────────────────
@@ -938,13 +939,64 @@ const ReportTab = ({ report, loading, month, onMonthChange, isSoloStore, myStaff
 
 // ── 직원 추가 모달 ─────────────────────────────────────────
 const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
+  // ① 휴대폰 조회 상태
+  const [phone, setPhone] = useState('');
+  const [lookupState, setLookupState] = useState('idle'); // idle|loading|found|notFound|alreadyStaff
+  const [foundUser, setFoundUser] = useState(null);
+  const [lookupRole, setLookupRole] = useState('staff');
+
+  // ② 신규 계정 생성 폼
+  const [showNewForm, setShowNewForm] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'staff' });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const roleOptions = Object.entries(ROLES).filter(([c]) =>
+    c !== 'owner' && (c !== 'manager' || myRole === 'owner')
+  );
+
+  const formatPhone = (v) => {
+    const d = v.replace(/\D/g, '').slice(0, 11);
+    if (d.length <= 3) return d;
+    if (d.length <= 7) return `${d.slice(0,3)}-${d.slice(3)}`;
+    return `${d.slice(0,3)}-${d.slice(3,7)}-${d.slice(7)}`;
+  };
+
+  const handlePhoneChange = (e) => {
+    setPhone(formatPhone(e.target.value));
+    if (lookupState !== 'idle') { setLookupState('idle'); setFoundUser(null); }
+  };
+
+  const handleLookup = async () => {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 10) { setError('유효한 휴대폰 번호를 입력해주세요.'); return; }
     setError('');
+    setLookupState('loading');
+    try {
+      const res = await staffAPI.lookupByPhone(digits, storeId);
+      const d = res.data?.data ?? res.data;
+      if (!d.found) { setLookupState('notFound'); setShowNewForm(true); }
+      else if (d.alreadyStaff) { setLookupState('alreadyStaff'); }
+      else { setFoundUser(d.user); setLookupState('found'); }
+    } catch (e) {
+      setError(e.response?.data?.error || '조회 중 오류가 발생했습니다.');
+      setLookupState('idle');
+    }
+  };
+
+  const handleAddExisting = async () => {
+    setLoading(true); setError('');
+    try {
+      await staffAPI.addExisting({ storeId: parseInt(storeId), userId: foundUser.id, role: lookupRole });
+      onSave();
+    } catch (e) {
+      setError(e.response?.data?.error || '팀원 추가에 실패했습니다.');
+    } finally { setLoading(false); }
+  };
+
+  const handleCreateNew = async (e) => {
+    e.preventDefault(); setError('');
     if (!form.name || !form.email || !form.password) { setError('모든 필드를 입력해주세요.'); return; }
     if (form.password.length < 6) { setError('비밀번호는 6자 이상이어야 합니다.'); return; }
     setLoading(true);
@@ -960,46 +1012,170 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-10 w-full max-w-md shadow-2xl">
-        <h3 className="text-3xl font-black text-white tracking-tight mb-8">ADD STAFF</h3>
+        className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+
+        {/* Header */}
+        <div className="flex items-start justify-between mb-7">
+          <div>
+            <h3 className="text-3xl font-black text-white tracking-tight">ADD STAFF</h3>
+            <p className="text-xs text-slate-500 font-bold mt-1">팀원 초대 · 권한 부여</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-all">
+            <X size={20} className="text-slate-400" />
+          </button>
+        </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center gap-3 text-rose-400 text-sm font-bold">
+          <div className="mb-5 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center gap-3 text-rose-400 text-sm font-bold">
             <AlertCircle size={16} /> {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {[
-            { label: '이름',     field: 'name',     type: 'text',     placeholder: '홍길동' },
-            { label: '이메일',   field: 'email',    type: 'email',    placeholder: 'staff@example.com' },
-            { label: '비밀번호', field: 'password', type: 'password', placeholder: '6자 이상' },
-          ].map(({ label, field, type, placeholder }) => (
-            <div key={field} className="space-y-2">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{label}</label>
-              <input type={type} value={form[field]} onChange={e => setForm({ ...form, [field]: e.target.value })}
-                placeholder={placeholder} required
-                className="w-full px-6 py-4 bg-white/5 border border-white/5 rounded-2xl text-white font-bold outline-none focus:border-orange-500/30 transition-all text-sm" />
+        {/* ── SECTION 1: 휴대폰 조회 (MAIN) ── */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center shrink-0">
+              <span className="text-white text-[10px] font-black">1</span>
             </div>
-          ))}
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">역할</label>
-            <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}
-              className="w-full px-6 py-4 bg-white/5 border border-white/5 rounded-2xl text-white font-bold outline-none focus:border-orange-500/30 transition-all text-sm">
-              {Object.entries(ROLES).filter(([c]) => c !== 'owner' && (c !== 'manager' || myRole === 'owner')).map(([code, r]) => (
-                <option key={code} value={code} className="bg-slate-900">{r.label} — {r.perms.join(', ')}</option>
-              ))}
-            </select>
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">휴대폰 번호로 초대</span>
+            <span className="ml-auto text-[10px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full font-black shrink-0">추천</span>
           </div>
-          <div className="flex gap-4 pt-4">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-4 bg-white/5 text-slate-400 rounded-2xl font-black text-xs tracking-widest hover:text-white transition-all">취소</button>
-            <button type="submit" disabled={loading}
-              className="flex-1 py-4 bg-orange-500 text-white rounded-2xl font-black text-xs tracking-widest shadow-lg shadow-orange-500/20 hover:scale-105 transition-all disabled:opacity-50">
-              {loading ? '등록 중...' : '직원 등록'}
+
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <Phone size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                type="tel"
+                value={phone}
+                onChange={handlePhoneChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+                placeholder="010-0000-0000"
+                className="w-full pl-10 pr-4 py-4 bg-white/5 border border-white/5 rounded-2xl text-white font-bold outline-none focus:border-orange-500/50 transition-all text-sm tracking-wider"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleLookup}
+              disabled={lookupState === 'loading' || phone.replace(/\D/g,'').length < 10}
+              className="px-5 py-4 bg-orange-500 text-white rounded-2xl font-black text-xs tracking-widest shadow-lg shadow-orange-500/20 hover:scale-105 transition-all disabled:opacity-40 disabled:scale-100 flex items-center gap-2 shrink-0">
+              {lookupState === 'loading'
+                ? <Loader2 size={15} className="animate-spin" />
+                : <Search size={15} />}
+              조회
             </button>
           </div>
-        </form>
+
+          {/* 결과: 사용자 발견 */}
+          {lookupState === 'found' && foundUser && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              className="mt-4 p-5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center shrink-0">
+                  <CheckCircle2 size={20} className="text-emerald-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-white font-black truncate">{foundUser.name}</p>
+                  <p className="text-emerald-400 text-xs font-bold">{foundUser.phone}</p>
+                </div>
+                <span className="ml-auto text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-black shrink-0">계정 확인됨</span>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">역할 지정</label>
+                <select value={lookupRole} onChange={e => setLookupRole(e.target.value)}
+                  className="w-full px-5 py-3 bg-white/5 border border-white/5 rounded-xl text-white font-bold outline-none focus:border-orange-500/30 transition-all text-sm">
+                  {roleOptions.map(([code, r]) => (
+                    <option key={code} value={code} className="bg-slate-900">{r.label} — {r.perms.join(', ')}</option>
+                  ))}
+                </select>
+              </div>
+              <button type="button" onClick={handleAddExisting} disabled={loading}
+                className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-sm shadow-lg shadow-emerald-500/20 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
+                팀원으로 등록
+              </button>
+            </motion.div>
+          )}
+
+          {/* 결과: 이미 팀원 */}
+          {lookupState === 'alreadyStaff' && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
+              <AlertCircle size={16} className="text-amber-400 shrink-0" />
+              <p className="text-amber-400 text-sm font-bold">이미 이 매장의 팀원입니다.</p>
+            </motion.div>
+          )}
+
+          {/* 결과: 계정 없음 */}
+          {lookupState === 'notFound' && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              className="mt-4 p-4 bg-slate-800/60 border border-white/5 rounded-2xl flex items-center gap-3">
+              <XCircle size={16} className="text-slate-500 shrink-0" />
+              <div>
+                <p className="text-slate-300 text-sm font-bold">등록된 계정이 없습니다.</p>
+                <p className="text-slate-500 text-xs mt-0.5">아래에서 신규 계정을 생성해 주세요.</p>
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex-1 h-px bg-white/5" />
+          <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest">또는</span>
+          <div className="flex-1 h-px bg-white/5" />
+        </div>
+
+        {/* ── SECTION 2: 신규 계정 생성 (SECONDARY) ── */}
+        <div>
+          <button type="button" onClick={() => setShowNewForm(!showNewForm)}
+            className="w-full flex items-center justify-between px-5 py-4 bg-white/5 hover:bg-white/[0.08] rounded-2xl transition-all group">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 bg-slate-700 rounded-full flex items-center justify-center shrink-0">
+                <span className="text-white text-[10px] font-black">2</span>
+              </div>
+              <span className="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-300 transition-all">신규 계정 직접 생성</span>
+            </div>
+            {showNewForm ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
+          </button>
+
+          {showNewForm && (
+            <motion.form initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              onSubmit={handleCreateNew} className="mt-4 space-y-4">
+              {[
+                { label: '이름',     field: 'name',     type: 'text',     placeholder: '홍길동' },
+                { label: '이메일',   field: 'email',    type: 'email',    placeholder: 'staff@example.com' },
+                { label: '비밀번호', field: 'password', type: 'password', placeholder: '6자 이상' },
+              ].map(({ label, field, type, placeholder }) => (
+                <div key={field} className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{label}</label>
+                  <input type={type} value={form[field]} onChange={e => setForm({ ...form, [field]: e.target.value })}
+                    placeholder={placeholder}
+                    className="w-full px-5 py-4 bg-white/5 border border-white/5 rounded-2xl text-white font-bold outline-none focus:border-orange-500/30 transition-all text-sm" />
+                </div>
+              ))}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">역할</label>
+                <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}
+                  className="w-full px-5 py-4 bg-white/5 border border-white/5 rounded-2xl text-white font-bold outline-none focus:border-orange-500/30 transition-all text-sm">
+                  {roleOptions.map(([code, r]) => (
+                    <option key={code} value={code} className="bg-slate-900">{r.label} — {r.perms.join(', ')}</option>
+                  ))}
+                </select>
+              </div>
+              <button type="submit" disabled={loading}
+                className="w-full py-4 bg-orange-500 text-white rounded-2xl font-black text-sm shadow-lg shadow-orange-500/20 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
+                직원 계정 생성 후 등록
+              </button>
+            </motion.form>
+          )}
+        </div>
+
+        {/* Cancel */}
+        <button type="button" onClick={onClose}
+          className="mt-5 w-full py-3 bg-white/5 text-slate-400 rounded-2xl font-black text-xs tracking-widest hover:text-white transition-all">
+          취소
+        </button>
       </motion.div>
     </motion.div>
   );
