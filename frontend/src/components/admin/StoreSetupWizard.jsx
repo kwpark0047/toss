@@ -867,7 +867,7 @@ export default function StoreSetupWizard() {
   const getMenuUrl = (table) =>
     `${window.location.origin}/menu/${createdStore?.id}?table=${encodeURIComponent(table.table_number || '')}`;
   const getQrImgUrl = (table) =>
-    `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(getMenuUrl(table))}&bgcolor=ffffff&color=0f172a&margin=4`;
+    `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(getMenuUrl(table))}&bgcolor=ffffff&color=0f172a&margin=6`;
 
   // ── 완료
   const handleFinish = () => {
@@ -891,9 +891,86 @@ export default function StoreSetupWizard() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-start px-4 py-8">
       <style>{`
         @media print {
+          @page { size: A4 portrait; margin: 8mm; }
           body * { visibility: hidden !important; }
           #qr-print-area, #qr-print-area * { visibility: visible !important; }
-          #qr-print-area { position: fixed; inset: 0; display: flex; flex-wrap: wrap; gap: 16px; padding: 32px; align-content: flex-start; }
+          #qr-print-area {
+            position: fixed; inset: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5mm;
+            padding: 0;
+            background: white;
+          }
+          .qpc-card {
+            display: flex; flex-direction: column; align-items: center;
+            border: 0.5mm solid #cbd5e1;
+            border-radius: 5mm;
+            padding: 5mm 4mm 4mm;
+            background: white;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            position: relative;
+            overflow: hidden;
+          }
+          .qpc-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 2mm;
+            background: linear-gradient(90deg, #f59e0b, #ea580c);
+          }
+          .qpc-header {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 1.5mm; margin-top: 2mm; margin-bottom: 2mm; width: 100%;
+          }
+          .qpc-logo {
+            width: 11mm; height: 11mm; border-radius: 50%;
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 5.5mm; font-weight: 900;
+            flex-shrink: 0;
+          }
+          .qpc-store-name {
+            font-size: 4.5mm; font-weight: 900; color: #0f172a;
+            text-align: center; line-height: 1.2;
+            word-break: keep-all;
+          }
+          .qpc-divider { width: 100%; height: 0.3mm; background: #f1f5f9; margin: 2mm 0; }
+          .qpc-qr {
+            display: flex; align-items: center; justify-content: center;
+            padding: 1mm;
+          }
+          .qpc-qr img { width: 48mm; height: 48mm; display: block; }
+          .qpc-table-badge {
+            margin: 1.5mm 0 1mm;
+            font-size: 5.5mm; font-weight: 900; color: #0f172a;
+            text-align: center; letter-spacing: -0.02em;
+          }
+          .qpc-base-badge {
+            display: inline-block;
+            background: #fef3c7; color: #b45309;
+            font-size: 2.8mm; font-weight: 700;
+            padding: 0.5mm 2mm; border-radius: 1.5mm;
+            margin-bottom: 1mm;
+          }
+          .qpc-phone {
+            font-size: 3.2mm; color: #475569;
+            text-align: center; margin-bottom: 1.5mm;
+            font-weight: 600;
+          }
+          .qpc-guide {
+            font-size: 3mm; color: #64748b;
+            text-align: center; line-height: 1.6;
+            word-break: keep-all;
+          }
+          .qpc-powered {
+            margin-top: 2mm;
+            font-size: 2.2mm; color: #94a3b8;
+            text-align: center; letter-spacing: 0.02em;
+          }
+          .qpc-scan-icon {
+            font-size: 3.5mm; margin-right: 1mm;
+          }
         }
       `}</style>
 
@@ -1258,46 +1335,125 @@ export default function StoreSetupWizard() {
                 </motion.div>
               )}
 
-              {/* ── STEP 4: QR 코드 ── */}
+              {/* ── STEP 4: QR 코드 A4 인쇄 ── */}
               {step === 4 && (
                 <motion.div key="s4" initial={{ opacity:0, x:30 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-30 }}
                   className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-7">
                   <h2 className="text-xl font-black text-white mb-1 flex items-center gap-2"><QrCode size={20} className="text-amber-400" /> QR 코드 출력</h2>
-                  {/* 팅커벨 축하 배너 */}
-                  <motion.div
-                    initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.3 }}
-                    className="flex items-center gap-3 mb-5 px-4 py-3 bg-gradient-to-r from-emerald-500/15 to-teal-500/10 rounded-2xl border border-emerald-500/25">
+
+                  {/* 축하 배너 */}
+                  <motion.div initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.3 }}
+                    className="flex items-center gap-3 mb-4 px-4 py-3 bg-gradient-to-r from-emerald-500/15 to-teal-500/10 rounded-2xl border border-emerald-500/25">
                     <motion.div animate={{ rotate:[0,10,-10,0], scale:[1,1.1,1] }} transition={{ duration:1, repeat:Infinity, repeatDelay:2 }}
-                      className="text-2xl flex-shrink-0">🎉</motion.div>
+                      className="text-xl flex-shrink-0">🎉</motion.div>
                     <div className="flex-1">
                       <p className="text-[13px] font-black text-emerald-300">매장 설정 완료!</p>
-                      <p className="text-[11px] text-emerald-400/80">QR 코드를 인쇄해서 각 테이블에 붙여두면 손님들이 바로 주문할 수 있어요!</p>
+                      <p className="text-[11px] text-emerald-400/80">A4 용지에 4장씩 인쇄돼요. 코팅 후 각 테이블에 붙여두세요!</p>
                     </div>
                   </motion.div>
-                  <div id="qr-print-area" className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1 mb-5">
-                    {layoutTables.map(table => (
-                      <div key={table.id} className={`bg-white rounded-2xl p-4 flex flex-col items-center gap-2 border-2 ${table.table_number === '기본QR' ? 'border-amber-300' : 'border-slate-100'}`}>
-                        <img src={getQrImgUrl(table)} alt={`QR ${table.table_number}`} className="w-24 h-24 rounded-lg" />
-                        <p className={`text-xs font-black ${table.table_number === '기본QR' ? 'text-amber-600' : 'text-slate-800'}`}>
-                          {table.table_number}
-                        </p>
-                        <p className="text-[9px] text-slate-400 text-center break-all">{getMenuUrl(table).slice(0, 40)}...</p>
-                      </div>
+
+                  {/* 인쇄 안내 칩 */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {[
+                      { icon: '📄', text: 'A4 용지 자동 4분할' },
+                      { icon: '🏪', text: '매장 로고·상호 포함' },
+                      { icon: '📞', text: '전화번호 인쇄' },
+                      { icon: '📱', text: '스캔 안내문 포함' },
+                    ].map(c => (
+                      <span key={c.text} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/5 border border-white/10 rounded-full text-[11px] text-slate-400 font-bold">
+                        {c.icon} {c.text}
+                      </span>
                     ))}
                   </div>
+
+                  {/* ── 화면 미리보기 (스크롤 가능) ── */}
+                  <div className="max-h-80 overflow-y-auto pr-1 mb-4">
+                    {/* 실제 인쇄 영역 — print CSS가 이 div를 A4로 렌더링 */}
+                    <div id="qr-print-area" className="grid grid-cols-2 gap-3">
+                      {layoutTables.map(table => {
+                        const isBase = table.table_number === '기본QR';
+                        const storeName = createdStore?.name || '위마켓 매장';
+                        const initial  = storeName[0] || 'W';
+                        const phone    = createdStore?.phone || storeForm?.phone || '';
+                        return (
+                          <div key={table.id}
+                            className="qpc-card bg-white rounded-2xl border border-slate-200 flex flex-col items-center p-3 relative overflow-hidden"
+                            style={{ borderTop: '3px solid #f59e0b' }}>
+
+                            {/* 헤더: 로고 + 상호 */}
+                            <div className="qpc-header flex flex-col items-center gap-1 mb-2 w-full">
+                              <div className="qpc-logo w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-base flex-shrink-0"
+                                style={{ background: 'linear-gradient(135deg,#f59e0b,#ea580c)' }}>
+                                {initial}
+                              </div>
+                              <p className="qpc-store-name text-[11px] font-black text-slate-800 text-center leading-tight">{storeName}</p>
+                            </div>
+
+                            <div className="qpc-divider w-full h-px bg-slate-100 mb-2" />
+
+                            {/* QR 코드 */}
+                            <div className="qpc-qr flex items-center justify-center mb-1">
+                              <img
+                                src={getQrImgUrl(table)}
+                                alt={`QR ${table.table_number}`}
+                                className="w-20 h-20 rounded"
+                                loading="eager"
+                              />
+                            </div>
+
+                            {/* 테이블 번호 */}
+                            {isBase && (
+                              <span className="qpc-base-badge inline-block bg-amber-100 text-amber-700 text-[9px] font-bold px-2 py-0.5 rounded-full mb-0.5">
+                                매장 공통
+                              </span>
+                            )}
+                            <p className="qpc-table-badge text-[13px] font-black text-slate-900 text-center">
+                              {isBase ? '테이블 없이 주문' : table.table_number}
+                            </p>
+
+                            {/* 전화번호 */}
+                            {phone && (
+                              <p className="qpc-phone text-[9px] text-slate-500 text-center mt-0.5">
+                                📞 {phone}
+                              </p>
+                            )}
+
+                            <div className="qpc-divider w-full h-px bg-slate-100 mt-1.5 mb-1.5" />
+
+                            {/* 안내 문구 */}
+                            <p className="qpc-guide text-[9px] text-slate-500 text-center leading-relaxed">
+                              <span className="qpc-scan-icon">📱</span>
+                              QR코드를 스캔하면<br />메뉴 확인 후 바로 주문하실 수 있습니다
+                            </p>
+
+                            <p className="qpc-powered text-[8px] text-slate-300 text-center mt-1.5">
+                              Powered by 위마켓
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 인쇄 팁 */}
+                  <p className="text-[11px] text-slate-600 text-center mb-4">
+                    💡 4장 초과 시 자동으로 다음 페이지로 넘어가요 · 코팅 후 사용하면 더 오래 써요
+                  </p>
+
+                  {/* 버튼 */}
                   <div className="flex gap-3">
                     <button onClick={() => setStep(3)} className="px-5 py-3 bg-white/5 border border-white/10 text-slate-400 rounded-2xl font-bold text-sm hover:bg-white/10 transition-all flex items-center gap-1.5">
                       <ArrowLeft size={14} /> 이전
                     </button>
                     <button onClick={() => {
                       sayWithDelay(pickRandom([
-                        '인쇄 중이에요! QR을 테이블마다 붙여두면 손님이 바로 주문할 수 있어요!',
-                        'QR 코드를 코팅해서 테이블에 붙여두면 더 오래 쓸 수 있어요!',
+                        'QR 인쇄 시작! 코팅해서 테이블에 붙여두면 더 오래 쓸 수 있어요!',
+                        '인쇄 후 각 테이블에 붙여두면 손님이 바로 주문할 수 있어요!',
                       ]), 0);
                       window.print();
                     }}
-                      className="flex-1 py-3 bg-white/10 border border-white/20 text-white rounded-2xl font-bold text-sm hover:bg-white/20 transition-all flex items-center justify-center gap-2">
-                      🖨️ QR 인쇄
+                      className="flex-1 py-3 bg-gradient-to-r from-slate-700 to-slate-600 border border-slate-500/50 text-white rounded-2xl font-bold text-sm hover:from-slate-600 transition-all flex items-center justify-center gap-2">
+                      🖨️ A4 인쇄
                     </button>
                     <motion.button whileHover={{ scale:1.01 }} whileTap={{ scale:0.98 }} onClick={handleFinish}
                       className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-black text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
