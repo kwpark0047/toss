@@ -201,11 +201,10 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
         setSuggestions(prev => prev.filter((_, i) => i !== index));
     };
 
-    // 이미지 새로고침: 키워드 기반 새 Unsplash URL 생성
+    // 이미지 새로고침: picsum.photos (source.unsplash.com 서비스 폐기로 대체)
     const refreshImage = (index) => {
-        const keyword = suggestions[index].image_keyword || suggestions[index].name;
-        const seed = Math.random().toString(36).slice(2, 7);
-        const url = `https://source.unsplash.com/featured/480x480/?${encodeURIComponent(keyword)},food&_=${seed}`;
+        const seed = Math.floor(Math.random() * 1000);
+        const url = `https://picsum.photos/seed/${seed}/480/480`;
         updateSuggestion(index, 'image_url', url);
     };
 

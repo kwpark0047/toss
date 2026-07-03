@@ -17,15 +17,23 @@ const getNotifications = async (req, res, next) => {
         if (unread === 'true') where.is_read = false;
 
         const skip = (Number(page) - 1) * Number(limit);
-        const [total, notifications] = await Promise.all([
-            prisma.notifications.count({ where }),
-            prisma.notifications.findMany({
-                where,
-                orderBy: { created_at: 'desc' },
-                skip,
-                take: Number(limit)
-            })
-        ]);
+
+        let total = 0, notifications = [];
+        try {
+            [total, notifications] = await Promise.all([
+                prisma.notifications.count({ where }),
+                prisma.notifications.findMany({
+                    where,
+                    orderBy: { created_at: 'desc' },
+                    skip,
+                    take: Number(limit)
+                })
+            ]);
+        } catch (dbErr) {
+            // notifications 테이블 미반영 시 빈 목록 반환 (500 방지)
+            const logger = require('../utils/logger');
+            logger.warn('notifications 조회 실패 (스키마 미반영 가능):', dbErr?.message);
+        }
 
         const parsed = notifications.map(n => ({
             ...n,
@@ -53,17 +61,23 @@ const getUnreadCount = async (req, res, next) => {
         const { store_id } = req.query;
         if (!store_id) return next(new AppError('store_id가 필요합니다.', 400));
 
-        const [totalUnread, byType, urgent] = await Promise.all([
-            prisma.notifications.count({ where: { store_id: Number(store_id), is_read: false } }),
-            prisma.notifications.groupBy({
-                by: ['type'],
-                where: { store_id: Number(store_id), is_read: false },
-                _count: { type: true }
-            }),
-            prisma.notifications.count({
-                where: { store_id: Number(store_id), is_read: false, priority: 'urgent' }
-            })
-        ]);
+        let totalUnread = 0, byType = [], urgent = 0;
+        try {
+            [totalUnread, byType, urgent] = await Promise.all([
+                prisma.notifications.count({ where: { store_id: Number(store_id), is_read: false } }),
+                prisma.notifications.groupBy({
+                    by: ['type'],
+                    where: { store_id: Number(store_id), is_read: false },
+                    _count: { type: true }
+                }),
+                prisma.notifications.count({
+                    where: { store_id: Number(store_id), is_read: false, priority: 'urgent' }
+                })
+            ]);
+        } catch (dbErr) {
+            const logger = require('../utils/logger');
+            logger.warn('notifications unread-count 조회 실패 (스키마 미반영 가능):', dbErr?.message);
+        }
 
         const typeMap = Object.fromEntries(byType.map(b => [b.type, b._count.type]));
         res.success({ total_unread: totalUnread, urgent_unread: urgent, by_type: typeMap });

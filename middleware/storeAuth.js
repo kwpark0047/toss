@@ -12,41 +12,25 @@ const rolePermissions = {
  * 사용자의 매장 내 역할을 확인 (Prisma 기반)
  */
 const getStoreRole = async (userId, storeId) => {
-    try {
-        const sid = parseInt(storeId);
-        const uid = parseInt(userId);
+    const sid = parseInt(storeId);
+    const uid = parseInt(userId);
 
-        if (isNaN(sid) || isNaN(uid)) return null;
+    if (isNaN(sid) || isNaN(uid)) return null;
 
-        // 1. 소유자인지 확인 (stores 테이블)
-        const store = await prisma.stores.findUnique({
-            where: { id: sid },
-            select: { user_id: true }
-        });
+    // 1. 소유자 확인
+    const store = await prisma.stores.findUnique({
+        where: { id: sid },
+        select: { user_id: true }
+    });
+    if (store && store.user_id === uid) return 'owner';
 
-        if (store && store.user_id === uid) return 'owner';
+    // 2. 직원 확인
+    const staffMember = await prisma.staff.findFirst({
+        where: { store_id: sid, user_id: uid }
+    });
+    if (staffMember) return staffMember.role;
 
-        // 2. 직원인지 확인 (staff 테이블)
-        // prisma/schema.prisma의 staff 모델은 @@unique([store_id, user_id])를 가짐 (이름: sqlite_autoindex_staff_1)
-        // 하지만 Prisma에서는 복합키를 위해 @@id([store_id, user_id])를 선호함. 
-        // schema.prisma를 다시 보니 @@unique([store_id, user_id])가 있음.
-        // findUnique에서 사용하려면 schema.prisma에 정의된 이름을 사용하거나 findFirst를 사용해야 함.
-        // schema.prisma (L286): @@unique([store_id, user_id], map: "sqlite_autoindex_staff_1")
-
-        const staffMember = await prisma.staff.findFirst({
-            where: {
-                store_id: sid,
-                user_id: uid
-            }
-        });
-
-        if (staffMember) return staffMember.role;
-
-        return null;
-    } catch (error) {
-        logger.error(error);
-        return null;
-    }
+    return null;
 };
 
 /**
