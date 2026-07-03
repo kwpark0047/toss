@@ -19,6 +19,8 @@ const speak = (text, enabled) => {
   window.speechSynthesis.speak(u);
 };
 
+const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
 // ── Step 1 필드별 가이드 메시지 (순수 함수)
 function getStep1Guide(focus, form, customBtype) {
   const nameDone  = form.name.trim().length > 0;
@@ -28,24 +30,66 @@ function getStep1Guide(focus, form, customBtype) {
   switch (focus) {
     case 'name':
       return nameDone
-        ? { msg: `"${form.name}" 좋은 이름이에요! 이름 완료 후 업종을 선택해주세요.`, happy: true }
-        : { msg: '고객들에게 보일 매장 이름을 입력해주세요! ✏️', happy: false };
+        ? { msg: pickRandom([
+            `"${form.name}" 멋진 이름이에요! ✨ 이제 업종을 선택해주세요.`,
+            `좋아요! "${form.name}" 완성! 업종도 골라볼까요?`,
+            `"${form.name}"은 고객 마음에 쏙 들 것 같아요! 다음은 업종 선택이에요.`,
+          ]), happy: true }
+        : { msg: pickRandom([
+            '고객들에게 보일 매장 이름을 입력해주세요! ✏️',
+            '기억하기 쉬운 매장 이름을 지어보세요!',
+            '사장님만의 특별한 매장 이름을 알려주세요!',
+          ]), happy: false };
     case 'business_type':
       return btypeDone
-        ? { msg: `${btypeLabel} 업종 완료! 이제 영업 시간을 설정해주세요.`, happy: true }
-        : { msg: '어떤 업종의 사장님이신가요? 검색하거나 목록에서 골라보세요! 😊', happy: false };
+        ? { msg: pickRandom([
+            `${btypeLabel} 업종 완료! 이제 영업 시간을 설정해주세요.`,
+            `${btypeLabel}이군요! AI가 딱 맞는 메뉴를 추천해드릴게요. 영업 시간도 입력해볼까요?`,
+            `좋은 선택이에요! ${btypeLabel}에 최적화된 서비스로 도와드릴게요.`,
+          ]), happy: true }
+        : { msg: pickRandom([
+            '어떤 업종의 사장님이신가요? 검색하거나 목록에서 골라보세요! 😊',
+            '업종을 선택하면 AI가 딱 맞는 메뉴를 추천해드려요!',
+            '카페? 식당? 미용실? 어떤 업종을 운영하시나요?',
+          ]), happy: false };
     case 'time':
-      return { msg: '영업 시간을 설정해주세요. 오픈·마감 시간을 모두 입력해주세요!', happy: false };
+      return { msg: pickRandom([
+        '영업 시간을 설정해주세요. 오픈·마감 시간을 모두 입력해주세요!',
+        '몇 시에 문을 열고 닫으시나요? 고객이 영업 여부를 확인할 수 있어요.',
+        '영업 시간을 입력하면 손님들이 헛걸음 안 해도 돼요!',
+      ]), happy: false };
     case 'phone':
-      return { msg: '연락처를 입력하면 고객이 전화로 문의할 수 있어요. (선택사항)', happy: false };
+      return { msg: pickRandom([
+        '연락처를 입력하면 고객이 전화로 문의할 수 있어요. (선택사항)',
+        '고객 문의 전화번호를 입력해주세요! 없으면 건너뛰셔도 됩니다.',
+        '전화 주문도 받으신다면 번호를 꼭 입력해두세요!',
+      ]), happy: false };
     case 'address':
-      return { msg: '매장 주소를 입력하면 지도에서 찾을 수 있어요! (선택사항)', happy: false };
+      return { msg: pickRandom([
+        '매장 주소를 입력하면 지도에서 찾을 수 있어요! (선택사항)',
+        '주소를 입력하면 손님들이 더 쉽게 찾아올 수 있어요.',
+        '매장 위치를 알려주면 지역 검색에서 노출될 수 있어요!',
+      ]), happy: false };
     case 'description':
-      return { msg: '매장을 한 줄로 소개해보세요! 첫인상이 중요하답니다. ✨ (선택사항)', happy: false };
+      return { msg: pickRandom([
+        '매장을 한 줄로 소개해보세요! 첫인상이 중요하답니다. ✨ (선택사항)',
+        '어떤 매장인지 한 줄로 설명해보세요. 예: "직접 볶은 원두로 내린 스페셜티 커피"',
+        '매력적인 소개 문구 하나가 단골 손님을 만들어요!',
+      ]), happy: false };
     default:
-      if (!nameDone)  return { msg: '먼저 매장 이름을 입력해주세요! 아래 이름 칸을 클릭해보세요 😊', happy: false };
-      if (!btypeDone) return { msg: '업종을 선택해주세요! 업종별 AI 메뉴 추천이 달라져요.', happy: false };
-      return { msg: `"${form.name}" 정보 준비 완료! 저장 버튼을 눌러주세요! 🎉`, happy: true };
+      if (!nameDone)  return { msg: pickRandom([
+        '먼저 매장 이름을 입력해주세요! 아래 이름 칸을 클릭해보세요 😊',
+        '매장 이름 칸을 눌러주세요! 첫 번째 단계예요.',
+      ]), happy: false };
+      if (!btypeDone) return { msg: pickRandom([
+        '업종을 선택해주세요! 업종별 AI 메뉴 추천이 달라져요.',
+        '어떤 종류의 매장인지 골라주세요! AI가 최적의 도움을 드릴게요.',
+      ]), happy: false };
+      return { msg: pickRandom([
+        `"${form.name}" 정보 준비 완료! 저장 버튼을 눌러주세요! 🎉`,
+        `완벽해요! 이제 저장만 하면 메뉴 등록으로 넘어가요!`,
+        `멋진 매장 정보네요! 저장 버튼을 눌러볼까요?`,
+      ]), happy: true };
   }
 }
 
@@ -535,6 +579,8 @@ export default function StoreSetupWizard() {
   const [saving, setSaving]           = useState(false);
   const [tbMsg, setTbMsg]             = useState('');
   const [tbHappy, setTbHappy]         = useState(false);
+  const voiceEnabledRef = useRef(true);
+  useEffect(() => { voiceEnabledRef.current = voiceEnabled; }, [voiceEnabled]);
 
   const [createdStore,    setCreatedStore]    = useState(null);
   const [createdCategory, setCreatedCategory] = useState(null);
@@ -566,14 +612,48 @@ export default function StoreSetupWizard() {
 
   useEffect(() => {
     const scripts = {
-      0: '안녕하세요, 사장님! 저는 팅커벨이에요! ✨ 위마켓 가입을 환영합니다! 지금부터 매장 설정을 함께 해볼까요?',
-      1: '먼저 매장 이름과 업종을 입력해주세요! 정보는 나중에 언제든지 수정할 수 있어요.',
-      2: '이번엔 메뉴를 등록해볼까요? AI 자동완성 버튼을 눌러보세요!',
-      3: '기본 테이블이 자동으로 배치됐어요! 드래그해서 위치를 바꾸거나 × 버튼으로 삭제할 수 있어요.',
-      4: 'QR 코드가 준비됐어요! 인쇄해서 각 테이블에 붙여주세요. 손님들이 바로 주문할 수 있어요! 🎉',
+      0: [
+        '안녕하세요, 사장님! 저는 AI 도우미 팅커벨이에요! ✨ 함께 멋진 매장을 만들어볼까요?',
+        '어서 오세요! 4단계만 따라오시면 위마켓 매장이 뚝딱 완성돼요! 지금 시작해볼까요?',
+        '반갑습니다, 사장님! 오늘부터 스마트한 QR 주문 매장 운영이 시작돼요!',
+      ],
+      1: [
+        '먼저 매장 이름과 업종을 입력해주세요! 정보는 나중에 언제든지 수정할 수 있어요.',
+        '매장 이름, 업종, 영업 시간을 알려주세요! 2분이면 충분해요.',
+        '① 매장 이름부터 시작해볼까요? 고객들에게 보여질 이름이에요!',
+      ],
+      2: [
+        '이번엔 메뉴를 등록해볼까요? 메뉴 이름 입력 후 AI 버튼을 눌러보세요!',
+        '메뉴 이름만 입력하면 AI가 설명과 가격까지 자동으로 완성해줘요!',
+        '대표 메뉴부터 입력해보세요! AI가 금방 도와드릴게요. 여러 개 추가도 가능해요!',
+      ],
+      3: [
+        '기본 테이블이 자동으로 배치됐어요! 드래그해서 위치를 바꾸거나 테이블을 추가해보세요.',
+        '매장 레이아웃에 맞게 테이블을 배치해주세요. 테이블 번호가 QR 주문에 사용돼요!',
+        '테이블을 원하는 대로 자유롭게 배치해보세요! 나중에도 수정할 수 있어요.',
+      ],
+      4: [
+        'QR 코드가 준비됐어요! 인쇄해서 각 테이블에 붙여주세요. 손님들이 바로 주문할 수 있어요! 🎉',
+        '드디어 마지막 단계예요! QR 코드를 인쇄해서 테이블에 붙여두면 바로 운영 시작!',
+        '완성이 눈앞이에요! QR 코드를 출력하면 오늘부터 스마트 매장이 돼요!',
+      ],
     };
     if (step === 1) setStep1Focus(null);
-    if (scripts[step]) sayWithDelay(scripts[step], 300, step === 4);
+    const candidates = scripts[step];
+    if (!candidates) return;
+    const msg = pickRandom(candidates);
+    sayWithDelay(msg, 300, step === 4);
+    // step 0, 1은 WizardTinkerbell이 없으므로 직접 speak() 호출
+    if (step <= 1) setTimeout(() => speak(msg, voiceEnabledRef.current), 500);
+    // step 4 진입 시 추가 축하 메시지 시퀀스
+    if (step === 4) {
+      const extras = [
+        { msg: '사장님 정말 대단해요! 단 몇 분 만에 완성하셨어요!', delay: 3500, happy: true },
+        { msg: 'QR 인쇄 후 테이블에 붙이면 바로 주문 받을 수 있어요!', delay: 6500, happy: false },
+      ];
+      extras.forEach(({ msg: m, delay: d, happy: h }) => sayWithDelay(m, d, h));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, sayWithDelay]);
 
   // ── Step 1: 매장 저장 + 기본 테이블 자동 생성
@@ -597,7 +677,10 @@ export default function StoreSetupWizard() {
       setCreatedCategory(catRes?.data || catRes);
 
       // 기본 테이블 4개 자동 생성 (기본QR + 테이블01,02,03)
-      sayWithDelay('매장 정보 저장 완료! 기본 테이블도 자동으로 만들고 있어요...', 100, true);
+      sayWithDelay(pickRandom([
+        '매장 정보 저장 완료! 기본 테이블도 자동으로 만들고 있어요...',
+        `"${storeForm.name}" 매장이 생성됐어요! 테이블도 자동 배치 중이에요!`,
+      ]), 100, true);
       const created = await Promise.all(
         DEFAULT_TABLES.map(t =>
           tablesAPI.create({ store_id: store.id, table_number: t.table_number, capacity: t.capacity, x: t.x, y: t.y })
@@ -609,7 +692,11 @@ export default function StoreSetupWizard() {
       });
       setLayoutTables(tables);
 
-      sayWithDelay('완벽해요! 이제 메뉴를 등록해볼까요? 😊', 800, true);
+      sayWithDelay(pickRandom([
+        '완벽해요! 이제 메뉴를 등록해볼까요? 😊',
+        '매장 준비 완료! 다음은 손님들이 볼 메뉴를 등록해볼게요!',
+        '훌륭해요! 메뉴만 등록하면 반 이상 완성이에요!',
+      ]), 800, true);
       setTimeout(() => setStep(2), 1600);
     } catch (e) {
       sayWithDelay('앗, 저장 중 오류가 발생했어요. 다시 시도해주세요!', 100);
@@ -622,9 +709,19 @@ export default function StoreSetupWizard() {
   // ── Step 2: AI 메뉴 자동완성
   const handleAISuggest = async (idx) => {
     const name = menuItems[idx]?.name?.trim();
-    if (!name) { sayWithDelay('메뉴 이름을 먼저 입력해주세요!', 0); return; }
+    if (!name) {
+      sayWithDelay(pickRandom([
+        '메뉴 이름을 먼저 입력해주세요!',
+        '메뉴 이름 칸에 이름을 적어야 AI가 도울 수 있어요!',
+      ]), 0);
+      return;
+    }
     setAiLoadingIdx(idx);
-    sayWithDelay('잠깐만요! AI가 메뉴 정보를 분석 중이에요 ✨', 0);
+    sayWithDelay(pickRandom([
+      `"${name}" 분석 중이에요! AI가 최적의 정보를 찾고 있어요 ✨`,
+      '잠깐만요! AI가 메뉴 정보를 분석 중이에요!',
+      `AI가 "${name}"에 딱 맞는 설명과 가격을 찾고 있어요!`,
+    ]), 0);
     try {
       const btype = getBtypeLabel(storeForm.business_type, customBtype);
       const res = await aiAPI.proposeMenuFull({ name, categoryName: btype });
@@ -633,12 +730,22 @@ export default function StoreSetupWizard() {
         const newItems = [...menuItems];
         newItems[idx] = { ...newItems[idx], description: p.description || '', price: p.price ? String(p.price) : newItems[idx].price };
         setMenuItems(newItems);
-        sayWithDelay(`"${name}" 메뉴 정보 완성! 가격이나 설명을 수정해도 돼요!`, 100, true);
+        sayWithDelay(pickRandom([
+          `"${name}" 완성! 가격이나 설명을 수정해도 돼요!`,
+          `AI가 "${name}" 정보를 완성했어요! 확인하고 필요하면 수정해주세요.`,
+          `"${name}" 메뉴 자동완성 성공! 다른 메뉴도 추가해볼까요?`,
+        ]), 100, true);
       } else {
-        sayWithDelay('AI 추천을 받지 못했어요. 직접 입력해주세요!', 0);
+        sayWithDelay(pickRandom([
+          'AI 추천을 받지 못했어요. 직접 설명과 가격을 입력해주세요!',
+          '이 메뉴는 AI가 잘 모르는 것 같아요. 사장님이 직접 입력해주세요!',
+        ]), 0);
       }
     } catch {
-      sayWithDelay('AI 서비스에 일시적인 문제가 있어요. 직접 입력해주세요!', 0);
+      sayWithDelay(pickRandom([
+        'AI 서비스에 일시적인 문제가 있어요. 직접 입력해주세요!',
+        'AI가 잠깐 쉬고 있어요. 직접 입력하거나 잠시 후 다시 시도해주세요!',
+      ]), 0);
     } finally {
       setAiLoadingIdx(null);
     }
@@ -647,8 +754,18 @@ export default function StoreSetupWizard() {
   // ── Step 2: 메뉴 저장
   const handleSaveMenus = async () => {
     const valid = menuItems.filter(m => m.name.trim() && m.price);
-    if (valid.length === 0) { sayWithDelay('메뉴를 최소 한 개 이상 입력해주세요!', 0); return; }
+    if (valid.length === 0) {
+      sayWithDelay(pickRandom([
+        '메뉴를 최소 한 개 이상 입력해주세요!',
+        '메뉴 이름과 가격을 하나 이상 입력해야 저장할 수 있어요!',
+      ]), 0);
+      return;
+    }
     setSaving(true);
+    sayWithDelay(pickRandom([
+      `${valid.length}개 메뉴를 저장하고 있어요! 잠깐만요...`,
+      '맛있는 메뉴들을 등록하고 있어요!',
+    ]), 0);
     try {
       const products = valid.map(m => ({
         name: m.name.trim(), price: parseInt(m.price, 10) || 0,
@@ -656,10 +773,17 @@ export default function StoreSetupWizard() {
       }));
       const res = await productsAPI.bulkCreate({ store_id: createdStore.id, products });
       setCreatedMenus(res?.data || res || []);
-      sayWithDelay('맛있겠다! 메뉴 등록 완료! 이제 테이블 배치를 확인해볼까요? 🍽️', 100, true);
+      sayWithDelay(pickRandom([
+        `${valid.length}개 메뉴 등록 완료! 이제 테이블 배치를 확인해볼까요? 🍽️`,
+        '메뉴 저장 성공! 손님들이 정말 좋아하실 것 같아요! 다음은 테이블 배치예요.',
+        '맛있겠다! 메뉴 등록 완료! 테이블 배치로 넘어가볼게요!',
+      ]), 100, true);
       setTimeout(() => setStep(3), 900);
     } catch (e) {
-      sayWithDelay('저장 중 오류가 발생했어요. 다시 시도해주세요!', 0);
+      sayWithDelay(pickRandom([
+        '저장 중 오류가 발생했어요. 다시 시도해주세요!',
+        '앗, 잠깐 문제가 생겼어요! 잠시 후 다시 눌러주세요.',
+      ]), 0);
       console.error(e);
     } finally {
       setSaving(false);
@@ -674,8 +798,13 @@ export default function StoreSetupWizard() {
   // ── Step 3: 테이블 삭제
   const handleDeleteTable = async (id) => {
     try {
+      const target = layoutTables.find(t => t.id === id);
       await tablesAPI.delete(id);
       setLayoutTables(prev => prev.filter(t => t.id !== id));
+      sayWithDelay(pickRandom([
+        `${target?.table_number || '테이블'} 삭제했어요! 필요하면 다시 추가할 수 있어요.`,
+        `삭제 완료! 테이블 배치를 원하는 대로 조정해보세요.`,
+      ]), 0);
     } catch (e) {
       console.error('테이블 삭제 실패:', e);
     }
@@ -696,7 +825,11 @@ export default function StoreSetupWizard() {
       const t = res?.data || res;
       setLayoutTables(prev => [...prev, { ...t, x: t.x ?? Math.min(safeX, 500), y: t.y ?? 180 }]);
       setNewTableName(''); setNewTableCap(4); setAddingTable(false);
-      sayWithDelay(`${newTableName} 테이블이 추가됐어요!`, 0, true);
+      sayWithDelay(pickRandom([
+        `${newTableName} 테이블이 추가됐어요! 드래그해서 위치를 잡아보세요.`,
+        `${newTableName} 완성! 테이블을 원하는 위치로 옮겨볼까요?`,
+        `${newTableName} 추가 완료! 매장이 점점 완성되어 가요!`,
+      ]), 0, true);
     } catch (e) {
       console.error('테이블 추가 실패:', e);
     } finally {
@@ -707,13 +840,23 @@ export default function StoreSetupWizard() {
   // ── Step 3: 배치 저장 (위치 일괄 업데이트 후 Step 4)
   const handleSaveLayout = async () => {
     setSaving(true);
-    sayWithDelay('테이블 배치를 저장하고 있어요!', 0);
+    sayWithDelay(pickRandom([
+      '테이블 배치를 저장하고 있어요! 잠깐만요...',
+      `${layoutTables.length}개 테이블 배치를 저장 중이에요!`,
+    ]), 0);
     try {
       await Promise.all(layoutTables.map(t => tablesAPI.update(t.id, { x: t.x, y: t.y })));
-      sayWithDelay('테이블 배치 저장 완료! QR 코드를 확인해볼까요? 🎉', 100, true);
+      sayWithDelay(pickRandom([
+        '테이블 배치 저장 완료! 이제 QR 코드만 출력하면 끝이에요! 🎉',
+        `${layoutTables.length}개 테이블 배치 완료! 드디어 마지막 단계예요!`,
+        '완벽한 레이아웃이에요! QR 코드를 출력하러 가볼까요?',
+      ]), 100, true);
       setTimeout(() => setStep(4), 900);
     } catch (e) {
-      sayWithDelay('저장 중 오류가 발생했어요. 다시 시도해주세요!', 0);
+      sayWithDelay(pickRandom([
+        '저장 중 오류가 발생했어요. 다시 시도해주세요!',
+        '앗, 잠깐 문제가 생겼어요! 다시 한 번 시도해볼까요?',
+      ]), 0);
       console.error(e);
     } finally {
       setSaving(false);
@@ -729,9 +872,13 @@ export default function StoreSetupWizard() {
   // ── 완료
   const handleFinish = () => {
     sessionStorage.setItem('wm_setup_skipped', '1');
-    sayWithDelay('축하드려요 사장님! 이제 영업 시작! 팅커벨이 항상 응원할게요! ✨', 0, true);
+    const celebrations = [
+      { msg: '🎉 완성! 사장님 정말 대단해요! 이제 스마트 매장 운영을 시작해볼까요?', delay: 0, happy: true },
+      { msg: '팅커벨이 항상 응원할게요! 주문이 쏟아지기 시작할 거예요!', delay: 2500, happy: true },
+    ];
+    celebrations.forEach(({ msg, delay, happy }) => sayWithDelay(msg, delay, happy));
     const dest = createdStore?.id ? `/admin/stores/${createdStore.id}/orders` : '/admin';
-    setTimeout(() => navigate(dest), 1500);
+    setTimeout(() => navigate(dest), 2000);
   };
 
   // ── 메뉴 아이템 관리
@@ -793,12 +940,19 @@ export default function StoreSetupWizard() {
               </div>
               <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.97 }} onClick={() => setStep(1)}
                 className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-black text-base shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2">
-                시작하기 <ArrowRight size={18} />
+                지금 시작하기 <ArrowRight size={18} />
               </motion.button>
-              <button onClick={() => { sessionStorage.setItem('wm_setup_skipped','1'); navigate('/admin'); }}
-                className="mt-4 text-xs text-slate-600 hover:text-slate-400 transition-colors">
-                건너뛰고 대시보드로 가기
-              </button>
+              <div className="flex items-center justify-between mt-4">
+                <button onClick={() => { sessionStorage.setItem('wm_setup_skipped','1'); navigate('/admin'); }}
+                  className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
+                  건너뛰고 대시보드로 가기
+                </button>
+                <button onClick={() => setVoiceEnabled(v => !v)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${voiceEnabled ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>
+                  {voiceEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
+                  음성 {voiceEnabled ? 'ON' : 'OFF'}
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
@@ -909,13 +1063,44 @@ export default function StoreSetupWizard() {
                 <motion.div key="s2" initial={{ opacity:0, x:30 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-30 }}
                   className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-7">
                   <h2 className="text-xl font-black text-white mb-1 flex items-center gap-2"><ChefHat size={20} className="text-amber-400" /> 메뉴 등록</h2>
-                  <p className="text-xs text-slate-500 mb-5">메뉴 이름 입력 후 AI 버튼으로 설명/가격을 자동완성 해보세요</p>
+                  {/* 팅커벨 상단 안내 */}
+                  <div className="flex items-center gap-3 mb-5 px-3 py-2.5 bg-gradient-to-r from-violet-500/[0.08] to-purple-500/[0.05] rounded-2xl border border-violet-500/20">
+                    <div className="relative flex-shrink-0 w-[38px] h-[38px]">
+                      <motion.div className="relative w-[38px] h-[38px]"
+                        animate={{ y:[-3,5,-3], rotate:[-2.5,2.5,-2.5] }}
+                        transition={{ duration:3.2, repeat:Infinity, ease:'easeInOut' }}>
+                        <motion.div className="absolute inset-0 -m-1.5 rounded-full"
+                          style={{ background:'radial-gradient(circle, rgba(139,92,246,.5) 0%, transparent 72%)' }}
+                          animate={{ scale:[1,1.2,1], opacity:[0.5,0.9,0.5] }}
+                          transition={{ duration:2.3, repeat:Infinity, ease:'easeInOut' }} />
+                        <Wing side="left" /><Wing side="right" />
+                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[24px] h-[24px] rounded-full flex items-center justify-center"
+                          style={{ background:'radial-gradient(circle at 34% 28%, #FFF8E7, #F59E0B 62%, #D97706)', boxShadow:'0 2px 10px rgba(245,159,11,.5)' }}>
+                          <svg viewBox="0 0 24 24" fill="white" width="12" height="12">
+                            <path d="M12 2l1.8 6.6c.2.7.8 1.3 1.5 1.5L22 12l-6.7 1.9c-.7.2-1.3.8-1.5 1.5L12 22l-1.8-6.6c-.2-.7-.8-1.3-1.5-1.5L2 12l6.7-1.9c.7-.2 1.3-.8 1.5-1.5L12 2z" />
+                          </svg>
+                        </div>
+                      </motion.div>
+                    </div>
+                    <p className="text-[12px] font-bold text-violet-200 leading-relaxed flex-1">
+                      메뉴 이름을 입력한 뒤 <span className="text-violet-300 font-black">AI ✨ 버튼</span>을 눌러보세요! 설명과 가격을 자동으로 완성해드려요.
+                    </p>
+                  </div>
                   <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                     {menuItems.map((item, idx) => (
                       <motion.div key={idx} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
                         className="bg-white/5 border border-white/10 rounded-2xl p-4">
                         <div className="flex gap-2 mb-2">
                           <input type="text" value={item.name} onChange={e => updateMenuItem(idx, 'name', e.target.value)}
+                            onFocus={() => {
+                              if (!item.name.trim()) {
+                                sayWithDelay(pickRandom([
+                                  '대표 메뉴 이름을 입력해보세요! AI가 설명과 가격을 완성해줄게요!',
+                                  '메뉴 이름 입력 후 AI 버튼을 눌러보세요!',
+                                  '어떤 메뉴를 판매하시나요? 이름만 입력하면 AI가 도와드려요!',
+                                ]), 0);
+                              }
+                            }}
                             placeholder="메뉴 이름 (예: 아메리카노)"
                             className="flex-1 px-3 py-2 bg-white/10 border border-white/10 rounded-xl text-white placeholder:text-slate-600 text-sm font-bold focus:outline-none focus:border-amber-500/50 transition-all" />
                           <input type="number" value={item.price} onChange={e => updateMenuItem(idx, 'price', e.target.value)}
@@ -962,7 +1147,7 @@ export default function StoreSetupWizard() {
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h2 className="text-xl font-black text-white flex items-center gap-2"><LayoutGrid size={20} className="text-amber-400" /> 테이블 배치</h2>
-                      <p className="text-xs text-slate-500 mt-1">드래그해서 위치 변경 · 호버 시 × 버튼으로 삭제</p>
+                      <p className="text-xs text-slate-500 mt-1">드래그로 위치 변경 · 호버 시 × 삭제 · 테이블 추가 가능</p>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-slate-500 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
                       <span className="w-3 h-3 rounded-sm bg-amber-500/30 border border-amber-500/50 inline-block" />기본QR
@@ -1053,7 +1238,17 @@ export default function StoreSetupWizard() {
                 <motion.div key="s4" initial={{ opacity:0, x:30 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-30 }}
                   className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-7">
                   <h2 className="text-xl font-black text-white mb-1 flex items-center gap-2"><QrCode size={20} className="text-amber-400" /> QR 코드 출력</h2>
-                  <p className="text-xs text-slate-500 mb-5">각 테이블의 QR 코드를 인쇄해서 붙여주세요</p>
+                  {/* 팅커벨 축하 배너 */}
+                  <motion.div
+                    initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.3 }}
+                    className="flex items-center gap-3 mb-5 px-4 py-3 bg-gradient-to-r from-emerald-500/15 to-teal-500/10 rounded-2xl border border-emerald-500/25">
+                    <motion.div animate={{ rotate:[0,10,-10,0], scale:[1,1.1,1] }} transition={{ duration:1, repeat:Infinity, repeatDelay:2 }}
+                      className="text-2xl flex-shrink-0">🎉</motion.div>
+                    <div className="flex-1">
+                      <p className="text-[13px] font-black text-emerald-300">매장 설정 완료!</p>
+                      <p className="text-[11px] text-emerald-400/80">QR 코드를 인쇄해서 각 테이블에 붙여두면 손님들이 바로 주문할 수 있어요!</p>
+                    </div>
+                  </motion.div>
                   <div id="qr-print-area" className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1 mb-5">
                     {layoutTables.map(table => (
                       <div key={table.id} className={`bg-white rounded-2xl p-4 flex flex-col items-center gap-2 border-2 ${table.table_number === '기본QR' ? 'border-amber-300' : 'border-slate-100'}`}>
@@ -1066,7 +1261,13 @@ export default function StoreSetupWizard() {
                     ))}
                   </div>
                   <div className="flex gap-3">
-                    <button onClick={() => window.print()}
+                    <button onClick={() => {
+                      sayWithDelay(pickRandom([
+                        '인쇄 중이에요! QR을 테이블마다 붙여두면 손님이 바로 주문할 수 있어요!',
+                        'QR 코드를 코팅해서 테이블에 붙여두면 더 오래 쓸 수 있어요!',
+                      ]), 0);
+                      window.print();
+                    }}
                       className="flex-1 py-3 bg-white/10 border border-white/20 text-white rounded-2xl font-bold text-sm hover:bg-white/20 transition-all flex items-center justify-center gap-2">
                       🖨️ QR 인쇄
                     </button>
@@ -1080,8 +1281,8 @@ export default function StoreSetupWizard() {
 
             </AnimatePresence>
 
-            {/* 팅커벨 — Step 1은 서식 위 인라인 가이드 사용, Step 2+ 에만 하단 표시 */}
-            {step > 1 && (
+            {/* 팅커벨 — Step 1은 인라인 가이드가 주 안내, 하단에는 Step 전환 메시지만 표시 */}
+            {step >= 2 && (
               <div className="flex justify-end">
                 <WizardTinkerbell message={tbMsg} isHappy={tbHappy} voiceEnabled={voiceEnabled} />
               </div>
