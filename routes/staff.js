@@ -247,12 +247,22 @@ router.delete('/:id', authMiddleware, catchAsync(async (req, res, next) => {
     res.success({ success: true }, '직원이 삭제되었습니다.');
 }));
 
+// 역할 허용 목록 — owner는 이 엔드포인트로 부여 불가
+const ASSIGNABLE_ROLES = ['staff', 'kitchen', 'manager'];
+
 // 6. 휴대폰 번호로 기존 사용자 조회 (직원 초대용)
 // GET /api/staff/lookup-user?phone=01012345678&storeId=10
 router.get('/lookup-user', authMiddleware, catchAsync(async (req, res) => {
     const { phone, storeId } = req.query;
-    if (!phone) throw new AppError('휴대폰 번호가 필요합니다.', 400);
 
+    // storeId 필수 + 호출자 권한 확인 (PII 열거 방지)
+    if (!storeId) throw new AppError('storeId가 필요합니다.', 400);
+    const myRole = await getStoreRole(req.user.id, storeId);
+    if (!myRole || (myRole !== 'owner' && myRole !== 'manager')) {
+        throw new AppError('팀원 조회 권한이 없습니다.', 403);
+    }
+
+    if (!phone) throw new AppError('휴대폰 번호가 필요합니다.', 400);
     const normalized = phone.replace(/\D/g, '');
     if (normalized.length < 10) throw new AppError('유효한 번호를 입력해주세요.', 400);
 
@@ -263,13 +273,9 @@ router.get('/lookup-user', authMiddleware, catchAsync(async (req, res) => {
 
     if (!user) return res.success({ found: false });
 
-    let alreadyStaff = false;
-    if (storeId) {
-        const existing = await prisma.staff.findFirst({
-            where: { store_id: parseInt(storeId), user_id: user.id }
-        });
-        alreadyStaff = !!existing;
-    }
+    const existing = await prisma.staff.findFirst({
+        where: { store_id: parseInt(storeId), user_id: user.id }
+    });
 
     const digits = (user.phone || normalized).replace(/\D/g, '');
     const masked = digits.length === 11
@@ -278,7 +284,7 @@ router.get('/lookup-user', authMiddleware, catchAsync(async (req, res) => {
 
     res.success({
         found: true,
-        alreadyStaff,
+        alreadyStaff: !!existing,
         user: { id: user.id, name: user.name || '(이름 미등록)', phone: masked }
     });
 }));
@@ -289,9 +295,20 @@ router.post('/add-existing', authMiddleware, catchAsync(async (req, res) => {
     const { storeId, userId, role } = req.body;
     if (!storeId || !userId) throw new AppError('storeId와 userId가 필요합니다.', 400);
 
+    // 호출자 권한 확인
     const myRole = await getStoreRole(req.user.id, storeId);
     if (!myRole || (myRole !== 'owner' && myRole !== 'manager')) {
         throw new AppError('직원 추가 권한이 없습니다.', 403);
+    }
+
+    // 역할 서버사이드 검증 (권한 상승 방지)
+    const assignedRole = role || 'staff';
+    if (!ASSIGNABLE_ROLES.includes(assignedRole)) {
+        throw new AppError('유효하지 않은 역할입니다.', 400);
+    }
+    // 매니저는 manager 역할을 부여할 수 없음 (owner만 가능)
+    if (assignedRole === 'manager' && myRole !== 'owner') {
+        throw new AppError('매니저 역할은 오너만 부여할 수 있습니다.', 403);
     }
 
     const existing = await prisma.staff.findFirst({
@@ -303,7 +320,7 @@ router.post('/add-existing', authMiddleware, catchAsync(async (req, res) => {
         data: {
             store_id: parseInt(storeId),
             user_id: parseInt(userId),
-            role: role || 'staff'
+            role: assignedRole
         },
         include: { users: { select: { name: true, email: true, phone: true } } }
     });
