@@ -1261,6 +1261,9 @@ export default function StoreSetupWizard() {
                     ))}
                   </div>
                   <div className="flex gap-3">
+                    <button onClick={() => setStep(3)} className="px-5 py-3 bg-white/5 border border-white/10 text-slate-400 rounded-2xl font-bold text-sm hover:bg-white/10 transition-all flex items-center gap-1.5">
+                      <ArrowLeft size={14} /> 이전
+                    </button>
                     <button onClick={() => {
                       sayWithDelay(pickRandom([
                         '인쇄 중이에요! QR을 테이블마다 붙여두면 손님이 바로 주문할 수 있어요!',
