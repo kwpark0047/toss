@@ -27,11 +27,18 @@ router.post('/stores/:storeId/coupons', authMiddleware, checkStorePermission('se
 
 // 매장 캠페인 목록 조회
 router.get('/stores/:storeId/campaigns', authMiddleware, checkStorePermission('settings:read'), catchAsync(async (req, res) => {
+    const sid = parseInt(req.params.storeId);
     const campaigns = await prisma.campaign_settings.findMany({
-        where: { store_id: parseInt(req.params.storeId) },
-        include: { coupons: true }
+        where: { store_id: sid }
     });
-    res.success(campaigns);
+    // campaign_settings 스키마에 coupons 관계 미정의 → coupon_id로 개별 조회
+    const couponIds = [...new Set(campaigns.map(c => c.coupon_id).filter(Boolean))];
+    const coupons = couponIds.length
+        ? await prisma.coupons.findMany({ where: { id: { in: couponIds } } })
+        : [];
+    const couponMap = Object.fromEntries(coupons.map(c => [c.id, c]));
+    const result = campaigns.map(c => ({ ...c, coupon: couponMap[c.coupon_id] ?? null }));
+    res.success(result);
 }));
 
 // 캠페인 저장/수정
