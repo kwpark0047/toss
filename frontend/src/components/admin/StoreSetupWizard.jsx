@@ -1140,56 +1140,79 @@ export default function StoreSetupWizard() {
                 </motion.div>
               )}
 
-              {/* ── STEP 3: 테이블 배치 (드래그 레이아웃) ── */}
+              {/* ── STEP 3: 테이블 설정 (모바일 최적화 리스트) ── */}
               {step === 3 && (
                 <motion.div key="s3" initial={{ opacity:0, x:30 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-30 }}
                   className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-7">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h2 className="text-xl font-black text-white flex items-center gap-2"><LayoutGrid size={20} className="text-amber-400" /> 테이블 배치</h2>
-                      <p className="text-xs text-slate-500 mt-1">드래그로 위치 변경 · 호버 시 × 삭제 · 테이블 추가 가능</p>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
-                      <span className="w-3 h-3 rounded-sm bg-amber-500/30 border border-amber-500/50 inline-block" />기본QR
-                      <span className="w-3 h-3 rounded-sm bg-slate-600 border border-slate-500/50 inline-block ml-2" />테이블
-                    </div>
+                  <h2 className="text-xl font-black text-white mb-1 flex items-center gap-2"><LayoutGrid size={20} className="text-amber-400" /> 테이블 설정</h2>
+                  <p className="text-xs text-slate-500 mb-4">테이블을 추가하거나 삭제해보세요. QR 주문 시 테이블 번호가 표시돼요.</p>
+
+                  {/* 팅커벨 인라인 힌트 */}
+                  <div className="flex items-center gap-2.5 mb-4 px-3 py-2.5 bg-gradient-to-r from-amber-500/[0.07] to-orange-500/[0.04] rounded-2xl border border-amber-500/20">
+                    <span className="text-base flex-shrink-0">✨</span>
+                    <p className="text-[12px] font-bold text-amber-200/80 leading-relaxed">
+                      기본 테이블 3개가 자동 추가됐어요! 필요에 따라 삭제하거나 더 추가해보세요.
+                    </p>
                   </div>
 
-                  {/* ── 플로어맵 캔버스 ── */}
-                  <div
-                    ref={canvasRef}
-                    className="relative w-full rounded-2xl border border-white/10 overflow-hidden"
-                    style={{
-                      height: 280,
-                      background: 'radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)',
-                      backgroundSize: '24px 24px',
-                      backgroundColor: 'rgba(15,23,42,0.6)',
-                    }}
-                  >
-                    {/* 빈 상태 */}
+                  {/* 테이블 카드 리스트 — 1열 (모바일 기본) */}
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                     {layoutTables.length === 0 && (
-                      <div className="absolute inset-0 flex items-center justify-center text-slate-600 text-sm font-bold">
+                      <div className="py-10 text-center text-slate-600 text-sm font-bold">
                         테이블을 추가해주세요
                       </div>
                     )}
-
-                    {/* 테이블 카드들 */}
-                    {layoutTables.map(table => (
-                      <TableLayoutCard
-                        key={table.id}
-                        table={table}
-                        canvasRef={canvasRef}
-                        onMove={handleMoveTable}
-                        onDelete={handleDeleteTable}
-                      />
-                    ))}
+                    <AnimatePresence>
+                      {layoutTables.map((table, idx) => {
+                        const isBase = table.table_number === '기본QR';
+                        return (
+                          <motion.div
+                            key={table.id}
+                            initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, x:-20, height:0 }}
+                            transition={{ delay: idx * 0.04 }}
+                            className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all ${
+                              isBase
+                                ? 'bg-amber-500/10 border-amber-500/30'
+                                : 'bg-white/5 border-white/10 hover:border-white/20'
+                            }`}>
+                            {/* 아이콘 */}
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                              isBase ? 'bg-amber-500/20' : 'bg-slate-700/70'
+                            }`}>
+                              {isBase
+                                ? <QrCode size={16} className="text-amber-400" />
+                                : <LayoutGrid size={16} className="text-slate-300" />
+                              }
+                            </div>
+                            {/* 정보 */}
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-black truncate ${isBase ? 'text-amber-300' : 'text-white'}`}>
+                                {table.table_number}
+                              </p>
+                              <p className={`text-[11px] ${isBase ? 'text-amber-500/80' : 'text-slate-500'}`}>
+                                {isBase ? '매장 공통 QR — 테이블 미지정 주문용' : `${table.capacity}인석`}
+                              </p>
+                            </div>
+                            {/* 삭제 버튼 (기본QR은 삭제 불가) */}
+                            {!isBase && (
+                              <button
+                                onClick={() => handleDeleteTable(table.id)}
+                                className="p-2 text-rose-400/50 hover:text-rose-400 rounded-xl hover:bg-rose-500/10 transition-all flex-shrink-0"
+                              >
+                                <X size={15} />
+                              </button>
+                            )}
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
                   </div>
 
                   {/* 테이블 카운트 + 추가 버튼 */}
                   <div className="flex items-center justify-between mt-3 mb-1">
                     <span className="text-xs text-slate-500 font-bold">
-                      총 <span className="text-white">{layoutTables.length}</span>개 테이블
-                      <span className="ml-2 text-slate-600">(기본QR 포함)</span>
+                      총 <span className="text-white">{layoutTables.length}</span>개
+                      <span className="ml-1 text-slate-600">(기본QR 포함)</span>
                     </span>
                     <button
                       onClick={() => setAddingTable(v => !v)}
@@ -1203,19 +1226,21 @@ export default function StoreSetupWizard() {
                     {addingTable && (
                       <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} exit={{ opacity:0, height:0 }}
                         className="overflow-hidden">
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mt-2 flex gap-2 items-center">
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mt-2 space-y-2">
                           <input type="text" value={newTableName} onChange={e => setNewTableName(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && handleAddTable()}
-                            placeholder="테이블 이름 (예: 테이블04)"
-                            className="flex-1 px-3 py-2 bg-white/10 border border-white/10 rounded-xl text-white placeholder:text-slate-600 text-sm font-bold focus:outline-none focus:border-amber-500/50 transition-all" />
-                          <select value={newTableCap} onChange={e => setNewTableCap(Number(e.target.value))}
-                            className="w-20 px-2 py-2 bg-white/10 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500/50 transition-all">
-                            {[2,4,6,8,10].map(n => <option key={n} value={n}>{n}인석</option>)}
-                          </select>
-                          <button onClick={handleAddTable} disabled={!newTableName.trim() || saving}
-                            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white rounded-xl text-sm font-black disabled:opacity-40 transition-all flex items-center gap-1">
-                            {saving ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} 추가
-                          </button>
+                            placeholder="테이블 이름 (예: 테이블04, 룸A, 야외1)"
+                            className="w-full px-3 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white placeholder:text-slate-600 text-sm font-bold focus:outline-none focus:border-amber-500/50 transition-all" />
+                          <div className="flex gap-2">
+                            <select value={newTableCap} onChange={e => setNewTableCap(Number(e.target.value))}
+                              className="flex-1 px-3 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500/50 transition-all">
+                              {[2,4,6,8,10].map(n => <option key={n} value={n}>{n}인석</option>)}
+                            </select>
+                            <button onClick={handleAddTable} disabled={!newTableName.trim() || saving}
+                              className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-white rounded-xl text-sm font-black disabled:opacity-40 transition-all flex items-center justify-center gap-1.5">
+                              {saving ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} 추가
+                            </button>
+                          </div>
                         </div>
                       </motion.div>
                     )}
@@ -1227,7 +1252,7 @@ export default function StoreSetupWizard() {
                     </button>
                     <motion.button whileHover={{ scale:1.01 }} whileTap={{ scale:0.98 }} onClick={handleSaveLayout} disabled={saving}
                       className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-black text-sm shadow-lg shadow-orange-500/20 disabled:opacity-40 flex items-center justify-center gap-2">
-                      {saving ? <><Loader2 size={16} className="animate-spin" /> 저장 중...</> : <>배치 저장 <ArrowRight size={14} /></>}
+                      {saving ? <><Loader2 size={16} className="animate-spin" /> 저장 중...</> : <>다음 단계 <ArrowRight size={14} /></>}
                     </motion.button>
                   </div>
                 </motion.div>
