@@ -3,7 +3,12 @@ node_modules
 
 # 빌드 결과물
 frontend/dist/
+frontend/dev-dist/
 generated/
+
+# 테스트 아티팩트
+playwright-report/
+test-results/
 
 # 데이터베이스
 *.db
