@@ -272,6 +272,10 @@ router.post('/order/:orderId/partial-cancel', authMiddleware, catchAsync(async (
     if (!payment) {
         return res.status(404).json({ success: false, error: '취소할 유효한 결제 내역이 없습니다.' });
     }
+
+    // 매장 접근 권한 검증 (IDOR 방지)
+    await assertStoreAccess(req.user, payment.store_id, 'orders:manage');
+
     if (amount > payment.amount) {
         return res.status(400).json({
             success: false,

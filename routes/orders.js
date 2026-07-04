@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
 const authMiddleware = require('../middleware/auth');
-const { checkStorePermission } = require('../middleware/storeAuth');
+const { checkStorePermission, getStoreRole } = require('../middleware/storeAuth');
 const validate = require('../middleware/validate');
 const { order: schema } = require('../utils/validationSchemas');
 const notificationService = require('../services/notificationService');
@@ -296,6 +296,15 @@ router.post('/:id/cancel', authMiddleware, catchAsync(async (req, res) => {
     const id = parseInt(req.params.id);
     const order = await Order.findById(id);
     if (!order) return res.status(404).json({ error: '주문을 찾을 수 없습니다' });
+
+    // 매장 접근 권한 검증 (IDOR 방지)
+    if (req.user?.role !== 'super_admin') {
+        const role = await getStoreRole(req.user?.id, order.store_id);
+        const allowed = ['owner', 'manager', 'staff', 'kitchen'];
+        if (!role || !allowed.includes(role)) {
+            return res.status(403).json({ error: '해당 매장에 대한 권한이 없습니다.' });
+        }
+    }
 
     // 멱등성: 이미 취소된 주문이면 재처리 없이 반환
     if (order.status === 'cancelled') {
