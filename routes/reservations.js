@@ -5,7 +5,7 @@ const authMiddleware = require('../middleware/auth');
 const logger = require('../utils/logger');
 const { sendReservationNotification } = require('../utils/notifications');
 const catchAsync = require('../utils/catchAsync');
-const { encryptPhone, decryptPhoneFields } = require('../utils/phoneEncryption');
+const { encryptPhone, decryptPhoneFields, phoneSearchCandidates } = require('../utils/phoneEncryption');
 
 // [POST] 예약 신청 (고객용)
 router.post('/register', catchAsync(async (req, res) => {
@@ -63,10 +63,9 @@ router.patch('/:id/status', authMiddleware, catchAsync(async (req, res) => {
 // [GET] 내 예약 상태 조회 (휴대폰 번호 기준)
 router.get('/my/:phone', catchAsync(async (req, res) => {
     const { phone } = req.params;
-    const encPhone = encryptPhone(phone);
     const entries = await prisma.reservations.findMany({
         where: {
-            customer_phone: { in: [encPhone, phone] },
+            customer_phone: { in: [...phoneSearchCandidates(phone), phone] },
             status: { in: ['PENDING', 'CONFIRMED'] }
         },
         include: { stores: true },

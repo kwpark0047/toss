@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { phoneSearchCandidates } = require('../utils/phoneEncryption');
 
 /**
  * 주문 모델 (Prisma 기반)
@@ -208,7 +209,8 @@ const Order = {
       if (!phone && !tossUserKey) return [];
 
       const where = { OR: [] };
-      if (phone) where.OR.push({ customer_phone: phone });
+      // customer_phone은 암호화 저장되므로 현행/레거시/평문 후보로 검색
+      if (phone) where.OR.push({ customer_phone: { in: phoneSearchCandidates(phone) } });
       if (tossUserKey) where.OR.push({ toss_user_key: tossUserKey });
 
       const orders = await prisma.orders.findMany({

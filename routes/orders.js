@@ -154,7 +154,8 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
                 return { newQty, threshold: product.low_stock_threshold };
             });
             if (result && result.newQty <= result.threshold) {
-                notificationService.notifyLowStockDB({ id: item.product_id, stock_quantity: result.newQty }).catch(() => {});
+                notificationService.notifyLowStockDB({ id: item.product_id, stock_quantity: result.newQty })
+                    .catch(err => logger.warn(`[알림 실패] 재고 부족 알림 (product ${item.product_id}): ${err.message}`));
             }
         }
     }
@@ -179,7 +180,8 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
     // DB 알림 레코드 생성 + 소켓 notification 이벤트 (알림 벨 갱신)
     if (order && order.store_id) {
         const orderWithTable = { ...order, table_name: resolvedTableName };
-        notificationService.notifyNewOrderDB(orderWithTable).catch(() => {});
+        notificationService.notifyNewOrderDB(orderWithTable)
+            .catch(err => logger.warn(`[알림 실패] 신규 주문 알림 (order ${order.id}): ${err.message}`));
     }
 
     res.success(order, '주문이 생성되었습니다');
@@ -254,7 +256,8 @@ router.put('/:id/status', authMiddleware, catchAsync(async (req, res) => {
 
     const customerToken = updatedOrder.customer_fcm_token;
     notificationService.notifyOrderStatus(updatedOrder, status, customerToken);
-    notificationService.notifyOrderStatusDB(updatedOrder, status).catch(() => {});
+    notificationService.notifyOrderStatusDB(updatedOrder, status)
+        .catch(err => logger.warn(`[알림 실패] 주문 상태 알림 (order ${updatedOrder.id}, ${status}): ${err.message}`));
 
     const io = req.app.get('io');
     const STATUS_LABELS = {

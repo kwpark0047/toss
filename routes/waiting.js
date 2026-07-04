@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../config/prisma');
 const catchAsync = require('../utils/catchAsync');
-const { encryptPhone, decryptPhone, decryptPhoneFields } = require('../utils/phoneEncryption');
+const { encryptPhone, decryptPhone, decryptPhoneFields, phoneSearchCandidates } = require('../utils/phoneEncryption');
 
 // [GET] 특정 매장의 현재 대기 현황 조회
 router.get('/store/:storeId/status', catchAsync(async (req, res) => {
@@ -78,11 +78,10 @@ router.patch('/:id/status', catchAsync(async (req, res) => {
 // [GET] 내 대기 상태 조회 (휴대폰 번호 기준)
 router.get('/my/:phone', catchAsync(async (req, res) => {
     const { phone } = req.params;
-    const encPhone = encryptPhone(phone);
 
     const entries = await prisma.waiting_list.findMany({
         where: {
-            customer_phone: { in: [encPhone, phone] },
+            customer_phone: { in: [...phoneSearchCandidates(phone), phone] },
             status: { in: ['waiting', 'called'] }
         },
         include: { stores: true },

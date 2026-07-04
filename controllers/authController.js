@@ -4,7 +4,7 @@ const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const { AppError } = require('../utils/errorHandler');
 const { sendSms } = require('../utils/smsService');
-const { encryptPhone, decryptPhone, encryptPhoneForSearch } = require('../utils/phoneEncryption');
+const { encryptPhone, decryptPhone, encryptPhoneForSearch, phoneSearchCandidates } = require('../utils/phoneEncryption');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET;
@@ -181,14 +181,11 @@ const login = async (req, res, next) => {
     } else {
       const normalizedPhone = normalizePhone(loginId);
       const encryptedPhone  = encryptPhoneForSearch(normalizedPhone);
-      // 1) 현재 암호화 방식으로 검색
-      user = await prisma.users.findFirst({ where: { phone: encryptedPhone } });
-      if (!user) {
-        // 2) 평문 폴백 (마이그레이션 전 데이터)
-        user = await prisma.users.findFirst({ where: { phone: normalizedPhone } });
-        if (user) {
-          await prisma.users.update({ where: { id: user.id }, data: { phone: encryptedPhone } }).catch(() => {});
-        }
+      // 현행/레거시 암호문 + 평문 후보를 한 번에 검색
+      user = await prisma.users.findFirst({ where: { phone: { in: phoneSearchCandidates(normalizedPhone) } } });
+      // 레거시/평문 레코드는 현행 방식으로 재암호화 (점진적 마이그레이션)
+      if (user && user.phone !== encryptedPhone) {
+        await prisma.users.update({ where: { id: user.id }, data: { phone: encryptedPhone } }).catch(() => {});
       }
     }
 

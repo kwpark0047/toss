@@ -7,6 +7,7 @@ const prisma = require('../config/prisma');
 const Point = require('../models/Point');
 const StoreTier = require('../models/StoreTier');
 const catchAsync = require('../utils/catchAsync');
+const logger = require('../utils/logger');
 
 /**
  * [고객 핸드폰 번호 통합 등록]
@@ -118,7 +119,7 @@ router.post('/phone-join', catchAsync(async (req, res) => {
                 message: `${normalizedPhone} 고객의 알림이 등록되었습니다.`,
                 priority: 'low'
             }
-        }).catch(() => {});
+        }).catch(err => logger.warn(`[알림 실패] 고객 알림 등록 (store ${storeId}): ${err.message}`));
     }
 
     const allTiers = await StoreTier.getTiers(storeId);
