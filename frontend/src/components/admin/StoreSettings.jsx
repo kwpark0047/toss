@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { storesAPI } from '../../api';
 import {
   Clock, Palette, Save, CheckCircle2, ChevronDown, ChevronUp,
-  Sun, Moon, Coffee, Store, Type, Layout, Brush, ToggleLeft, ToggleRight
+  Sun, Moon, Coffee, Store, Type, Layout, Brush, ToggleLeft, ToggleRight, CopyCheck
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -255,6 +255,27 @@ export default function StoreSettings() {
 
         {usePerDay && (
           <div className="space-y-2">
+            {/* 일괄 적용 버튼 */}
+            <div className="flex items-center justify-between mb-1 pb-2 border-b border-gray-100">
+              <span className="text-xs text-gray-400">요일별 시간을 개별로 조정하거나 기본 시간을 일괄 적용하세요</span>
+              <button
+                onClick={() => {
+                  const targets = ['tue', 'wed', 'thu', 'fri', 'sat'];
+                  setDayHours(prev => {
+                    const next = { ...prev };
+                    targets.forEach(k => {
+                      next[k] = { ...prev[k], open: globalOpen, close: globalClose, closed: false };
+                    });
+                    return next;
+                  });
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors shrink-0 ml-3"
+              >
+                <CopyCheck size={13} />
+                화~토 기본 시간 적용
+              </button>
+            </div>
+
             {DAYS.map(({ key, label }) => (
               <div key={key} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${dayHours[key].closed ? 'bg-gray-50 opacity-60' : 'bg-white border border-gray-100'}`}>
                 <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${
