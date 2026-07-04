@@ -63,7 +63,7 @@ router.get('/', async (req, res) => {
         uptime: Math.floor((Date.now() - START_TIME) / 1000),
         ts: new Date().toISOString(),
         version: process.env.npm_package_version || '1.x',
-        enc: !!process.env.PHONE_ENC_KEY && !!process.env.PHONE_HMAC_KEY
+        enc: !!(process.env.PHONE_ENC_KEY || process.env.JWT_SECRET)
     });
 });
 

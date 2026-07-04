@@ -6,8 +6,10 @@
  */
 const crypto = require('crypto');
 
-const ENC_KEY  = Buffer.from(process.env.PHONE_ENC_KEY  || '', 'hex'); // 32 bytes
-const HMAC_KEY = process.env.PHONE_HMAC_KEY || '';
+// JWT_SECRET(기존 설정값)에서 암호화 키 자동 도출 — 별도 환경변수 불필요
+const _base   = process.env.PHONE_ENC_KEY || process.env.JWT_SECRET || 'wemarket-fallback-key';
+const ENC_KEY  = crypto.createHash('sha256').update(_base + ':phone-enc').digest();  // 32 bytes
+const HMAC_KEY = crypto.createHash('sha256').update(_base + ':phone-hmac').digest('hex');
 
 const PREFIX = 'enc:';
 
@@ -18,8 +20,6 @@ const isEncrypted = (v) => typeof v === 'string' && v.startsWith(PREFIX);
  */
 const encryptPhone = (phone) => {
     if (!phone || isEncrypted(phone)) return phone;
-    if (!ENC_KEY.length || !HMAC_KEY) return phone; // 키 미설정 시 평문 유지
-
     const normalized = phone.replace(/[^0-9]/g, '');
     if (!normalized) return phone;
 
