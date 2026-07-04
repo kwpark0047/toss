@@ -181,12 +181,13 @@ const login = async (req, res, next) => {
     } else {
       const normalizedPhone = normalizePhone(loginId);
       const encryptedPhone  = encryptPhoneForSearch(normalizedPhone);
-      // 암호화된 값으로 먼저 검색, 없으면 평문(기존 데이터) 검색 후 자동 마이그레이션
-      user = await prisma.users.findUnique({ where: { phone: encryptedPhone } });
+      // 1) 현재 암호화 방식으로 검색
+      user = await prisma.users.findFirst({ where: { phone: encryptedPhone } });
       if (!user) {
-        user = await prisma.users.findUnique({ where: { phone: normalizedPhone } });
+        // 2) 평문 폴백 (마이그레이션 전 데이터)
+        user = await prisma.users.findFirst({ where: { phone: normalizedPhone } });
         if (user) {
-          await prisma.users.update({ where: { id: user.id }, data: { phone: encryptedPhone } });
+          await prisma.users.update({ where: { id: user.id }, data: { phone: encryptedPhone } }).catch(() => {});
         }
       }
     }
