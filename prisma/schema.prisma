@@ -438,6 +438,7 @@ model stores {
   business_type            String?
   open_time                String?
   close_time               String?
+  business_hours           String?                  // 요일별 영업시간 JSON
   latitude                 Float?
   longitude                Float?
   plan                     String?                  @default("free")

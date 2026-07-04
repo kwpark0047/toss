@@ -46,6 +46,7 @@ const KitchenDisplayPage = lazy(() => import("@/pages/KitchenDisplay"));
 const CommunityPage      = lazy(() => import("@/components/admin/CommunityPage"));
 const LegalSettings      = lazy(() => import("@/components/admin/LegalSettings"));
 const LegalPage          = lazy(() => import("@/pages/LegalPage"));
+const StoreSettings      = lazy(() => import("@/components/admin/StoreSettings"));
 
 const queryClient = new QueryClient();
 
@@ -246,7 +247,7 @@ const AppRoutes = () => (
     {/* 매장 환경설정 */}
     <Route path="/admin/stores/:storeId/settings" element={
       <AdminPage>
-        <ValidStoreRoute><AdminSuspense><StoreForm isEdit /></AdminSuspense></ValidStoreRoute>
+        <ValidStoreRoute><AdminSuspense><StoreSettings /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 

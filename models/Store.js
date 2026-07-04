@@ -120,7 +120,7 @@ const Store = {
         const {
             name, description, address, phone,
             business_type, open_time, close_time, theme, plan,
-            latitude, longitude, can_send_sms
+            latitude, longitude, can_send_sms, business_hours
         } = data;
 
         // 테마 처리
@@ -135,13 +135,14 @@ const Store = {
         if (address !== undefined) updateData.address = address;
         if (phone !== undefined) updateData.phone = phone;
         if (business_type) updateData.business_type = business_type;
-        if (open_time) updateData.open_time = open_time;
-        if (close_time) updateData.close_time = close_time;
+        if (open_time !== undefined) updateData.open_time = open_time;
+        if (close_time !== undefined) updateData.close_time = close_time;
         if (themeValue !== undefined) updateData.theme = themeValue;
         if (plan) updateData.plan = plan;
         if (latitude !== undefined) updateData.latitude = latitude;
         if (longitude !== undefined) updateData.longitude = longitude;
         if (can_send_sms !== undefined) updateData.can_send_sms = can_send_sms;
+        if (business_hours !== undefined) updateData.business_hours = business_hours;
 
         updateData.updated_at = new Date();
 
