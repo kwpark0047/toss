@@ -9,6 +9,7 @@ const notificationService = require('../services/notificationService');
 const prisma = require('../config/prisma');
 const catchAsync = require('../utils/catchAsync');
 const logger = require('../utils/logger');
+const { encryptPhone, decryptPhoneFields } = require('../utils/phoneEncryption');
 
 // 주문 생성 (공개)
 router.post('/', validate(schema.create), catchAsync(async (req, res) => {
@@ -86,6 +87,9 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
     const orderData = { ...req.body };
     if (orderData.phone && !orderData.customer_phone) {
         orderData.customer_phone = orderData.phone;
+    }
+    if (orderData.customer_phone) {
+        orderData.customer_phone = encryptPhone(orderData.customer_phone);
     }
     const order = await Order.create({
         ...orderData,
@@ -283,7 +287,8 @@ router.put('/:id/status', authMiddleware, catchAsync(async (req, res) => {
         // 전화번호 기반 고객 알림 채널
         const customerPhone = updatedOrder.customer_phone;
         if (customerPhone) {
-            const normalized = customerPhone.replace(/[^0-9]/g, '');
+            const { decryptPhone } = require('../utils/phoneEncryption');
+            const normalized = decryptPhone(customerPhone).replace(/[^0-9]/g, '');
             io.to(`customer-orders-${normalized}`).emit('order-status-updated', orderUpdatePayload);
         }
     }

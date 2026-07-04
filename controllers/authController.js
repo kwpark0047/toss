@@ -4,6 +4,7 @@ const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const { AppError } = require('../utils/errorHandler');
 const { sendSms } = require('../utils/smsService');
+const { encryptPhone, decryptPhone, encryptPhoneForSearch } = require('../utils/phoneEncryption');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET;
@@ -113,8 +114,11 @@ const register = async (req, res, next) => {
     if (!password || password.length < 6) return next(new AppError('비밀번호는 최소 6자 이상이어야 합니다.', 400));
 
     const normalized = normalizePhone(phone);
+    const encryptedPhone = encryptPhone(normalized);
 
-    const exists = await prisma.users.findUnique({ where: { phone: normalized } });
+    const exists = await prisma.users.findFirst({
+      where: { OR: [{ phone: encryptedPhone }, { phone: normalized }] }
+    });
     if (exists) return next(new AppError('이미 가입된 핸드폰 번호입니다.', 409));
 
     // OTP 인증 확인 (BYPASS_OTP=true 환경변수로 건너뛰기 가능)
@@ -143,7 +147,7 @@ const register = async (req, res, next) => {
     const hashedPassword = bcrypt.hashSync(password, 10);
     const user = await prisma.users.create({
       data: {
-        phone: normalized,
+        phone: encryptedPhone,
         password: hashedPassword,
         role: 'user',
         profile_step: 1,
@@ -176,7 +180,15 @@ const login = async (req, res, next) => {
       user = await prisma.users.findUnique({ where: { email: loginId } });
     } else {
       const normalizedPhone = normalizePhone(loginId);
-      user = await prisma.users.findUnique({ where: { phone: normalizedPhone } });
+      const encryptedPhone  = encryptPhoneForSearch(normalizedPhone);
+      // 암호화된 값으로 먼저 검색, 없으면 평문(기존 데이터) 검색 후 자동 마이그레이션
+      user = await prisma.users.findUnique({ where: { phone: encryptedPhone } });
+      if (!user) {
+        user = await prisma.users.findUnique({ where: { phone: normalizedPhone } });
+        if (user) {
+          await prisma.users.update({ where: { id: user.id }, data: { phone: encryptedPhone } });
+        }
+      }
     }
 
     if (!user || !bcrypt.compareSync(password, user.password)) {
@@ -210,7 +222,7 @@ const getMe = async (req, res, next) => {
     });
 
     if (!user) return next(new AppError('사용자를 찾을 수 없습니다.', 404));
-    res.success(user);
+    res.success({ ...user, phone: decryptPhone(user.phone) });
   } catch (error) {
     next(error);
   }

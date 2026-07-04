@@ -142,6 +142,7 @@ const WaitingSection = ({ store, onClose }) => {
                                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                         />
                                     </div>
+                                    <p className="text-xs text-slate-400 text-center mt-1">🔒 AES-256 암호화 저장</p>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700 ml-1">{t('waiting.party_size')}</label>

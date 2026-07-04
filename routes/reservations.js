@@ -5,6 +5,7 @@ const authMiddleware = require('../middleware/auth');
 const logger = require('../utils/logger');
 const { sendReservationNotification } = require('../utils/notifications');
 const catchAsync = require('../utils/catchAsync');
+const { encryptPhone, decryptPhoneFields } = require('../utils/phoneEncryption');
 
 // [POST] 예약 신청 (고객용)
 router.post('/register', catchAsync(async (req, res) => {
@@ -13,7 +14,7 @@ router.post('/register', catchAsync(async (req, res) => {
         data: {
             store_id: parseInt(store_id),
             customer_name,
-            customer_phone,
+            customer_phone: encryptPhone(customer_phone),
             party_size: parseInt(party_size),
             reservation_time: new Date(reservation_time),
             notes,
@@ -22,9 +23,9 @@ router.post('/register', catchAsync(async (req, res) => {
     });
     const io = req.app.get('io');
     if (io) {
-        io.to(`store - ${store_id}`).emit('new-reservation', entry);
+        io.to(`store - ${store_id}`).emit('new-reservation', decryptPhoneFields(entry));
     }
-    res.json({ success: true, data: entry });
+    res.json({ success: true, data: decryptPhoneFields(entry) });
 }));
 
 // [GET] 특정 매장의 예약 리스트 조회 (관리자용)
@@ -44,7 +45,7 @@ router.get('/store/:storeId', authMiddleware, catchAsync(async (req, res) => {
         where,
         orderBy: { reservation_time: 'asc' }
     });
-    res.json({ success: true, data: list });
+    res.json({ success: true, data: list.map(e => decryptPhoneFields(e)) });
 }));
 
 // [PATCH] 예약 상태 변경 (관리자)
@@ -55,22 +56,23 @@ router.patch('/:id/status', authMiddleware, catchAsync(async (req, res) => {
         where: { id: parseInt(id) },
         data: { status }
     });
-    sendReservationNotification(entry, status).catch(err => logger.error(err));
-    res.json({ success: true, data: entry });
+    sendReservationNotification(decryptPhoneFields(entry), status).catch(err => logger.error(err));
+    res.json({ success: true, data: decryptPhoneFields(entry) });
 }));
 
 // [GET] 내 예약 상태 조회 (휴대폰 번호 기준)
 router.get('/my/:phone', catchAsync(async (req, res) => {
     const { phone } = req.params;
+    const encPhone = encryptPhone(phone);
     const entries = await prisma.reservations.findMany({
         where: {
-            customer_phone: phone,
+            customer_phone: { in: [encPhone, phone] },
             status: { in: ['PENDING', 'CONFIRMED'] }
         },
         include: { stores: true },
         orderBy: { reservation_time: 'asc' }
     });
-    res.json({ success: true, data: entries });
+    res.json({ success: true, data: entries.map(e => decryptPhoneFields(e)) });
 }));
 
 // [PATCH] 고객 본인 예약 취소

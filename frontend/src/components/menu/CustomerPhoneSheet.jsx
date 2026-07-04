@@ -220,6 +220,10 @@ export default function CustomerPhoneSheet({
                 {error && (
                   <p className="mt-2 text-sm text-red-500 font-medium pl-1">{error}</p>
                 )}
+                {/* 개인정보 암호화 고지 */}
+                <p className="mt-2 text-xs text-slate-400 text-center leading-relaxed">
+                  🔒 입력하신 전화번호는 AES-256 암호화되어 안전하게 저장됩니다.
+                </p>
               </div>
 
               <button

@@ -230,6 +230,7 @@ const ReservationSection = ({ storeId }) => {
                                 onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
                                 className="w-full px-4 py-3 bg-white border border-gray-200 shadow-sm rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all"
                             />
+                            <p className="text-xs text-gray-400 text-center">🔒 AES-256 암호화 저장</p>
                         </div>
 
                         <div className="space-y-1.5">
