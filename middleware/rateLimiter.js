@@ -41,10 +41,10 @@ const orderLimiter = rateLimit({
     handler: makeHandler('주문 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.', 'order'),
 });
 
-// ── 3. 인증: 5 req / 15분 / IP (브루트포스 방지) ────────────────────────────
+// ── 3. 인증: 10 req / 15분 / IP (브루트포스 방지)
 const authLimiter = rateLimit({
     windowMs: 15 * 60_000,
-    max: 5,
+    max: 10,
     standardHeaders: true,
     legacyHeaders: false,
     validate: { xForwardedForHeader: false },
