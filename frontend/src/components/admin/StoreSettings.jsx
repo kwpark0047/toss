@@ -260,7 +260,7 @@ export default function StoreSettings() {
               <span className="text-xs text-gray-400">요일별 시간을 개별로 조정하거나 기본 시간을 일괄 적용하세요</span>
               <button
                 onClick={() => {
-                  const targets = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+                  const targets = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
                   setDayHours(prev => {
                     const next = { ...prev };
                     targets.forEach(k => {
@@ -272,7 +272,7 @@ export default function StoreSettings() {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors shrink-0 ml-3"
               >
                 <CopyCheck size={13} />
-                월~토 기본 시간 적용
+                전체 기본 시간 적용
               </button>
             </div>
 
