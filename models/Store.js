@@ -144,8 +144,6 @@ const Store = {
         if (can_send_sms !== undefined) updateData.can_send_sms = can_send_sms;
         if (business_hours !== undefined) updateData.business_hours = business_hours;
 
-        updateData.updated_at = new Date();
-
         const updatedStore = await prisma.stores.update({
             where: { id: parseInt(id) },
             data: updateData
