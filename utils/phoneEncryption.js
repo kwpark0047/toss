@@ -6,10 +6,17 @@
  */
 const crypto = require('crypto');
 
-// JWT_SECRET(기존 설정값)에서 암호화 키 자동 도출 — 별도 환경변수 불필요
-const _base   = process.env.PHONE_ENC_KEY || process.env.JWT_SECRET || 'wemarket-fallback-key';
-const ENC_KEY  = crypto.createHash('sha256').update(_base + ':phone-enc').digest();  // 32 bytes
-const HMAC_KEY = crypto.createHash('sha256').update(_base + ':phone-hmac').digest('hex');
+// IKM: PHONE_ENC_KEY 우선, 없으면 JWT_SECRET 폴백 (최소 16자 요구)
+const _ikm = process.env.PHONE_ENC_KEY || process.env.JWT_SECRET || '';
+if (!_ikm || _ikm.length < 16) {
+    // 운영 환경에서는 서버 시작 실패 처리
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('[phoneEncryption] PHONE_ENC_KEY 또는 JWT_SECRET(16자 이상)이 설정되지 않았습니다.');
+    }
+}
+// HKDF로 독립 키 도출 (IKM 재사용 방지)
+const ENC_KEY  = _ikm ? crypto.hkdfSync('sha256', Buffer.from(_ikm), 'wemarket-phone-salt', 'phone-enc',  32) : null;
+const HMAC_KEY = _ikm ? crypto.hkdfSync('sha256', Buffer.from(_ikm), 'wemarket-phone-salt', 'phone-hmac', 32).toString('hex') : null;
 
 const PREFIX = 'enc:';
 
@@ -20,6 +27,7 @@ const isEncrypted = (v) => typeof v === 'string' && v.startsWith(PREFIX);
  */
 const encryptPhone = (phone) => {
     if (!phone || isEncrypted(phone)) return phone;
+    if (!ENC_KEY || !HMAC_KEY) return phone; // 키 미설정 시 평문 유지
     const normalized = phone.replace(/[^0-9]/g, '');
     if (!normalized) return phone;
 
@@ -35,7 +43,7 @@ const encryptPhone = (phone) => {
  */
 const decryptPhone = (stored) => {
     if (!stored || !isEncrypted(stored)) return stored;
-    if (!ENC_KEY.length || !HMAC_KEY) return stored;
+    if (!ENC_KEY || !HMAC_KEY) return stored;
 
     try {
         const parts = stored.slice(PREFIX.length).split(':');
