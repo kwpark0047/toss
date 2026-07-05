@@ -1,8 +1,18 @@
 const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
+const { getStoreRole } = require('../middleware/storeAuth');
 
 const ALLOWED_TYPES = ['NEW_ORDER', 'ORDER_STATUS', 'LOW_STOCK', 'NEW_REVIEW', 'NEW_RESERVATION', 'MANAGER_CALL', 'SETTLEMENT', 'SYSTEM'];
 const ALLOWED_CHANNELS = ['push', 'socket', 'alimtalk', 'all'];
+
+// 매장 관리 권한(owner/manager)만 템플릿을 쓰기/조회할 수 있도록 확인.
+// super_admin은 모든 매장 통과. 반환 false면 권한 없음.
+async function hasStorePermission(req, storeId) {
+  if (!storeId) return false;
+  if (req.user?.role === 'super_admin') return true;
+  const role = await getStoreRole(req.user?.id, Number(storeId));
+  return role === 'owner' || role === 'manager';
+}
 
 /**
  * GET /api/notification-templates?store_id=&type=&is_active=
@@ -12,6 +22,9 @@ const getTemplates = async (req, res, next) => {
   try {
     const { store_id, type, is_active } = req.query;
     if (!store_id) return next(new AppError('store_id가 필요합니다.', 400));
+    if (!(await hasStorePermission(req, store_id))) {
+      return next(new AppError('해당 매장에 대한 권한이 없습니다.', 403));
+    }
 
     const where = {
       OR: [
@@ -48,6 +61,10 @@ const getTemplate = async (req, res, next) => {
       where: { id: Number(id) }
     });
     if (!template) return next(new AppError('템플릿을 찾을 수 없습니다.', 404));
+    // 매장 템플릿은 해당 매장 권한 필요 (전역 템플릿 store_id=null은 조회 허용)
+    if (template.store_id !== null && !(await hasStorePermission(req, template.store_id))) {
+      return next(new AppError('해당 매장에 대한 권한이 없습니다.', 403));
+    }
 
     res.success({
       ...template,
@@ -63,6 +80,16 @@ const getTemplate = async (req, res, next) => {
 const createTemplate = async (req, res, next) => {
   try {
     const { store_id, type, channel, title, message, variables, is_active } = req.body;
+
+    // 전역 템플릿(store_id 없음)은 플랫폼 관리자만 생성 가능
+    if (!store_id) {
+      if (req.user?.role !== 'super_admin') {
+        return next(new AppError('전역 템플릿은 플랫폼 관리자만 생성할 수 있습니다.', 403));
+      }
+    } else if (!(await hasStorePermission(req, store_id))) {
+      // 다른 매장에 템플릿을 심는 것 방지 (store_id는 권한 검증된 값만 사용)
+      return next(new AppError('해당 매장에 대한 권한이 없습니다.', 403));
+    }
 
     if (!type || !title || !message) {
       return next(new AppError('type, title, message는 필수 항목입니다.', 400));
@@ -104,6 +131,13 @@ const updateTemplate = async (req, res, next) => {
     });
     if (!existing) return next(new AppError('템플릿을 찾을 수 없습니다.', 404));
 
+    // 권한: 전역 템플릿은 super_admin만, 매장 템플릿은 해당 매장 owner/manager만
+    if (existing.store_id === null) {
+      if (req.user?.role !== 'super_admin') return next(new AppError('전역 템플릿은 플랫폼 관리자만 수정할 수 있습니다.', 403));
+    } else if (!(await hasStorePermission(req, existing.store_id))) {
+      return next(new AppError('해당 매장에 대한 권한이 없습니다.', 403));
+    }
+
     if (type && !ALLOWED_TYPES.includes(type)) {
       return next(new AppError(`유효하지 않은 type입니다. 허용: ${ALLOWED_TYPES.join(', ')}`, 400));
     }
@@ -134,6 +168,16 @@ const updateTemplate = async (req, res, next) => {
 const deleteTemplate = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const existing = await prisma.notification_templates.findUnique({ where: { id: Number(id) } });
+    if (!existing) return next(new AppError('템플릿을 찾을 수 없습니다.', 404));
+
+    // 권한: 전역 템플릿은 super_admin만, 매장 템플릿은 해당 매장 owner/manager만
+    if (existing.store_id === null) {
+      if (req.user?.role !== 'super_admin') return next(new AppError('전역 템플릿은 플랫폼 관리자만 삭제할 수 있습니다.', 403));
+    } else if (!(await hasStorePermission(req, existing.store_id))) {
+      return next(new AppError('해당 매장에 대한 권한이 없습니다.', 403));
+    }
+
     await prisma.notification_templates.delete({
       where: { id: Number(id) }
     });
