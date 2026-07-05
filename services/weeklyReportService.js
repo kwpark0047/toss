@@ -9,11 +9,9 @@
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const notificationService = require('./notificationService');
+const { kstNow } = require('../utils/kstTime');
 
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const POLL_INTERVAL_MS = 10 * 60 * 1000;
-
-const kstNow = () => new Date(Date.now() + KST_OFFSET_MS);
 
 const fmtWon = (n) => new Intl.NumberFormat('ko-KR').format(Math.round(n)) + '원';
 
