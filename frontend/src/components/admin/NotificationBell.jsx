@@ -180,6 +180,7 @@ export default function NotificationBell() {
                                 <div className="relative">
                                     <button onClick={() => setShowClearMenu(v => !v)} aria-label="알림 정리 메뉴" className="p-1.5 rounded-xl hover:bg-white/10 transition-all">
                                         <Trash2 size={13} className="text-slate-400" aria-hidden="true" />
+                                    </button>
                                     {showClearMenu && (
                                         <div className="absolute right-0 top-8 bg-slate-800 border border-white/10 rounded-xl shadow-xl z-10 overflow-hidden w-36">
                                             <button onClick={() => { clearNotifications('read'); setShowClearMenu(false); }}
