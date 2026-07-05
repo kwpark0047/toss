@@ -26,7 +26,9 @@
     "test:e2e:animation": "npx playwright test --project=low-spec-desktop tests/e2e/animation-fallback.spec.js",
     "test:e2e:headed": "npx playwright test --headed",
     "test:e2e:report": "npx playwright show-report playwright-report",
-    "lint:backend": "eslint ."
+    "lint:backend": "eslint .",
+    "security:scan": "semgrep --config p/javascript --config p/nodejs --config p/secrets --config p/owasp-top-ten --exclude node_modules --exclude dist --exclude frontend/dist --exclude tests routes services middleware controllers utils models config app.js index.js",
+    "security:scan:frontend": "semgrep --config p/react --config p/secrets --exclude node_modules --exclude dist frontend/src"
   },
   "keywords": [
     "wemarket",

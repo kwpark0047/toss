@@ -70,11 +70,20 @@ router.post('/images', authMiddleware, upload.array('images', 10), (req, res) =>
  */
 router.delete('/image/:filename', authMiddleware, (req, res) => {
     const { filename } = req.params;
-    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    // 1차 방어: 경로 구분자·상위참조 문자 차단
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\') || filename.includes('\0')) {
         return res.status(400).json({ success: false, error: '잘못된 파일 이름입니다.' });
     }
 
-    const filePath = path.join(uploadDir, filename);
+    // 2차 방어(defense-in-depth): 정규화된 절대경로가 uploadDir 내부인지 재확인
+    // basename으로 경로 성분을 제거한 뒤 resolve 결과를 화이트리스트 검증
+    // 사유: basename() + 상위참조 차단 + 아래 startsWith(uploadDir) 화이트리스트 재검증으로 traversal 불가
+    const safeName = path.basename(filename);
+    const baseResolved = path.resolve(uploadDir);
+    const filePath = path.resolve(uploadDir, safeName); // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal
+    if (filePath !== path.join(baseResolved, safeName) || !filePath.startsWith(baseResolved + path.sep)) { // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal
+        return res.status(400).json({ success: false, error: '잘못된 파일 경로입니다.' });
+    }
 
     if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);

@@ -433,8 +433,9 @@ require('./docs/swagger')(app);
 // CORS 안전망 - 라우트 매칭 전에 실패해도 CORS 헤더 보장
 app.use((req, res, next) => {
     const origin = req.headers.origin;
+    // 사유: origin을 allowedOrigins 화이트리스트로 검증한 뒤에만 반사하므로 임의 오리진 허용 아님
     if (origin && allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Origin', origin); // nosemgrep: javascript.express.security.cors-misconfiguration.cors-misconfiguration
         res.setHeader('Vary', 'Origin');
     }
     if (req.method === 'OPTIONS') {
