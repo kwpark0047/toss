@@ -4,6 +4,8 @@
  */
 jest.mock('../../../config/prisma', () => ({
   notifications: { create: jest.fn() },
+  stores: { findUnique: jest.fn().mockResolvedValue(null) },
+  users: { findUnique: jest.fn().mockResolvedValue(null) },
 }));
 
 jest.mock('firebase-admin', () => ({

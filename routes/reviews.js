@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../config/prisma');
 const catchAsync = require('../utils/catchAsync');
+const authMiddleware = require('../middleware/auth');
+const { getStoreRole } = require('../middleware/storeAuth');
+const aiService = require('../services/aiService');
 
 // [GET] 매장별 리뷰 목록 조회 (최신순)
 router.get('/store/:storeId', catchAsync(async (req, res) => {
@@ -80,6 +83,61 @@ router.post('/:id/like', catchAsync(async (req, res) => {
     });
 
     res.json({ success: true, action: 'liked' });
+}));
+
+// 리뷰 소속 매장에 대한 권한 확인 후 리뷰 반환 (공통 헬퍼)
+async function loadReviewWithPermission(reviewId, user) {
+    const review = await prisma.reviews.findUnique({
+        where: { id: parseInt(reviewId) },
+        include: { stores: { select: { id: true, name: true } } },
+    });
+    if (!review) return { error: { status: 404, message: '리뷰를 찾을 수 없습니다.' } };
+    if (user.role !== 'super_admin') {
+        const role = await getStoreRole(user.id, review.store_id);
+        if (!role) return { error: { status: 403, message: '해당 매장에 대한 권한이 없습니다.' } };
+    }
+    return { review };
+}
+
+// [POST] AI 답글 초안 생성 (저장하지 않고 초안만 반환)
+router.post('/:id/ai-reply', authMiddleware, catchAsync(async (req, res) => {
+    const { review, error } = await loadReviewWithPermission(req.params.id, req.user);
+    if (error) return res.status(error.status).json({ success: false, error: error.message });
+
+    const draft = await aiService.generateReviewReply(
+        { rating: review.rating, content: review.content, customer_name: review.customer_name },
+        review.stores.name,
+    );
+    res.success({ draft }, 'AI 답글 초안이 생성되었습니다.');
+}));
+
+// [PUT] 사장님 답글 저장/수정
+router.put('/:id/reply', authMiddleware, catchAsync(async (req, res) => {
+    const { reply } = req.body;
+    if (!reply || !reply.trim()) {
+        return res.status(400).json({ success: false, error: '답글 내용을 입력해주세요.' });
+    }
+
+    const { review, error } = await loadReviewWithPermission(req.params.id, req.user);
+    if (error) return res.status(error.status).json({ success: false, error: error.message });
+
+    const updated = await prisma.reviews.update({
+        where: { id: review.id },
+        data: { reply: reply.trim(), replied_at: new Date() },
+    });
+    res.success(updated, '답글이 등록되었습니다.');
+}));
+
+// [DELETE] 답글 삭제
+router.delete('/:id/reply', authMiddleware, catchAsync(async (req, res) => {
+    const { review, error } = await loadReviewWithPermission(req.params.id, req.user);
+    if (error) return res.status(error.status).json({ success: false, error: error.message });
+
+    const updated = await prisma.reviews.update({
+        where: { id: review.id },
+        data: { reply: null, replied_at: null },
+    });
+    res.success(updated, '답글이 삭제되었습니다.');
 }));
 
 module.exports = router;

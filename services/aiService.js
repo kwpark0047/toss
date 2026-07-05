@@ -587,6 +587,39 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
             };
         }
     }
+
+    /**
+     * 고객 리뷰에 대한 사장님 답글 초안 생성
+     * @param {object} review - { rating, content, customer_name }
+     * @param {string} storeName - 매장명
+     */
+    async generateReviewReply(review, storeName) {
+        const tone = review.rating >= 4
+            ? '감사 인사를 진심으로 전하고, 다음 방문을 기대하게 만드는'
+            : review.rating === 3
+                ? '방문에 감사하되 아쉬운 점을 겸허히 수용하고 개선 의지를 보이는'
+                : '불편에 대해 진정성 있게 사과하고 구체적인 개선 약속과 재방문을 정중히 요청하는';
+
+        const prompt = `
+            당신은 "${storeName}" 매장의 사장님입니다.
+            아래 고객 리뷰에 대한 답글을 작성해 주세요.
+
+            [리뷰 정보]
+            - 평점: ${review.rating}/5
+            - 고객명: ${review.customer_name || '고객'}
+            - 내용: "${review.content}"
+
+            [작성 지침]
+            1. ${tone} 톤으로 작성하세요.
+            2. 3~4문장, 200자 이내로 간결하게.
+            3. 리뷰에서 언급된 구체적 내용(메뉴, 서비스 등)을 자연스럽게 인용하세요.
+            4. 과장된 표현이나 이모지 남발은 피하고, 이모지는 최대 1개만.
+            5. 답글 텍스트만 반환하세요 (따옴표, 설명 없이).
+        `;
+
+        const text = await this.generateWithFallback(prompt);
+        return text.replace(/^["']|["']$/g, '').trim();
+    }
 }
 
 module.exports = new AIService();

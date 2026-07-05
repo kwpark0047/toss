@@ -3,6 +3,8 @@ const router = express.Router();
 const prisma = require('../config/prisma');
 const authMiddleware = require('../middleware/auth');
 const catchAsync = require('../utils/catchAsync');
+const logger = require('../utils/logger');
+const notificationService = require('../services/notificationService');
 
 // 주소 → 지역(구/군) 추출
 function extractDistrict(address) {
@@ -264,7 +266,10 @@ router.put('/partnerships/:id/respond', authMiddleware, catchAsync(async (req, r
 
   const partnership = await prisma.store_partnerships.findUnique({
     where: { id },
-    include: { target_store: { select: { user_id: true } } },
+    include: {
+      target_store:    { select: { id: true, name: true, user_id: true } },
+      requester_store: { select: { id: true, name: true } },
+    },
   });
   if (!partnership) return res.status(404).json({ success: false, error: '제휴 신청을 찾을 수 없습니다.' });
   if (partnership.target_store.user_id !== req.user.id)
@@ -274,7 +279,49 @@ router.put('/partnerships/:id/respond', authMiddleware, catchAsync(async (req, r
   const updated = await prisma.store_partnerships.update({
     where: { id }, data: { status, updated_at: new Date() },
   });
-  res.success(updated, action === 'accept' ? '제휴 수락됐습니다.' : '제휴 거절됐습니다.');
+
+  // 제휴 수락 → 양쪽 매장에 상호 홍보용 공동 쿠폰 자동 발급
+  if (action === 'accept') {
+    const pairs = [
+      { store: partnership.requester_store, partner: partnership.target_store },
+      { store: partnership.target_store,    partner: partnership.requester_store },
+    ];
+    for (const { store, partner } of pairs) {
+      try {
+        // 동일 제휴 쿠폰 중복 발급 방지
+        const couponName = `🤝 제휴 할인 · ${partner.name}`;
+        const exists = await prisma.coupons.findFirst({
+          where: { store_id: store.id, name: couponName, is_active: 1 },
+        });
+        if (!exists) {
+          await prisma.coupons.create({
+            data: {
+              store_id: store.id,
+              name: couponName,
+              type: 'percent',
+              amount: 10,
+              min_order_amount: 10000,
+              valid_days: 30,
+              is_active: 1,
+            },
+          });
+        }
+        await notificationService.createNotification({
+          store_id: store.id,
+          type: 'PARTNERSHIP',
+          title: '🤝 제휴 성사 & 공동 쿠폰 발급',
+          message: `${partner.name}와(과)의 제휴가 성사됐습니다. "제휴 할인 10%" 쿠폰이 자동 발급되었습니다. (최소 주문 10,000원 · 30일 유효)`,
+          data: { partnership_id: id, partner_store_id: partner.id, partner_name: partner.name },
+          priority: 'high',
+          link: `/admin/stores/${store.id}/coupons`,
+        });
+      } catch (err) {
+        logger.warn(`[제휴쿠폰] store ${store.id} 발급 실패: ${err.message}`);
+      }
+    }
+  }
+
+  res.success(updated, action === 'accept' ? '제휴가 수락되고 공동 쿠폰이 발급되었습니다.' : '제휴 거절됐습니다.');
 }));
 
 module.exports = router;

@@ -708,6 +708,8 @@ model reviews {
   content        String
   image_url      String?
   is_best        Boolean        @default(false)
+  reply          String?
+  replied_at     DateTime?
   created_at     DateTime?      @default(now())
   updated_at     DateTime?      @updatedAt
   likes          review_likes[]

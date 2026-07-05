@@ -183,9 +183,9 @@ class NotificationService {
     });
   }
 
-  /** 재고 부족 알림 */
+  /** 재고 부족 알림 (DB + 소켓 + 사장님 FCM 푸시) */
   async notifyLowStockDB(product) {
-    return this.createNotification({
+    const record = await this.createNotification({
       store_id: product.store_id,
       type: 'LOW_STOCK',
       title: '⚠️ 재고 부족 경고',
@@ -194,6 +194,31 @@ class NotificationService {
       priority: 'urgent',
       link: `/admin/stores/${product.store_id}/menu`
     });
+
+    // 매장 소유주에게 FCM 푸시 (앱 미접속 상태에서도 즉시 인지)
+    try {
+      const store = await prisma.stores.findUnique({
+        where: { id: Number(product.store_id) },
+        select: { user_id: true, name: true },
+      });
+      if (store?.user_id) {
+        const owner = await prisma.users.findUnique({
+          where: { id: store.user_id },
+          select: { fcm_token: true },
+        });
+        if (owner?.fcm_token) {
+          await this.sendPush(owner.fcm_token, {
+            title: `⚠️ [${store.name}] 재고 부족`,
+            body: `"${product.name}" 재고 ${product.stock_quantity}개 남음`,
+            data: { type: 'LOW_STOCK', store_id: product.store_id, product_id: product.id },
+          });
+        }
+      }
+    } catch (err) {
+      logger.warn(`[LOW_STOCK 푸시] store ${product.store_id} 발송 실패: ${err.message}`);
+    }
+
+    return record;
   }
 
   /** 새 예약 알림 */
