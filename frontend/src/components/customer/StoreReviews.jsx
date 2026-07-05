@@ -140,6 +140,14 @@ const StoreReviews = ({ storeId }) => {
               </div>
               {r.content && <p className="text-sm text-slate-600 leading-relaxed mb-2 break-words">{r.content}</p>}
               {r.image_url && <ReviewPhoto src={r.image_url} />}
+              {r.reply && (
+                <div className="mt-3 p-3 bg-orange-50/60 border-l-2 border-orange-300 rounded-r-xl">
+                  <p className="text-[11px] font-black text-orange-600 mb-1 flex items-center gap-1">
+                    <MessageSquareText size={11} aria-hidden="true" /> 사장님 답글
+                  </p>
+                  <p className="text-sm text-slate-600 leading-relaxed break-words">{r.reply}</p>
+                </div>
+              )}
               <div className="flex items-center mt-3 pt-3 border-t border-slate-50">
                 <button
                   onClick={() => handleLike(r.id)}

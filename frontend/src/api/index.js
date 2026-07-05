@@ -519,6 +519,9 @@ export const reviewsAPI = {
   getFeed: () => api.get('/reviews/feed'), // 소셜 피드 조회
   create: (data) => api.post('/reviews', data), // 리뷰 작성
   toggleLike: (id, userPhone) => api.post(`/reviews/${id}/like`, { user_phone: userPhone }), // 좋아요/취소
+  generateAiReply: (id) => api.post(`/reviews/${id}/ai-reply`), // 사장님 AI 답글 초안 (인증)
+  saveReply: (id, reply) => api.put(`/reviews/${id}/reply`, { reply }), // 답글 저장 (인증)
+  deleteReply: (id) => api.delete(`/reviews/${id}/reply`), // 답글 삭제 (인증)
 };
 
 // === [18. AI 서비스 및 상품 관리 API] ===
