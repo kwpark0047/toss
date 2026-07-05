@@ -131,7 +131,7 @@ const BulkSMSManager = () => {
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
                                     <Store size={12} /> Store Filter
                                 </label>
-                                <select
+                                <select aria-label="매장 필터"
                                     name="storeId"
                                     value={filters.storeId}
                                     onChange={handleFilterChange}
@@ -146,7 +146,7 @@ const BulkSMSManager = () => {
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
                                     <MapPin size={12} /> Region Group
                                 </label>
-                                <select
+                                <select aria-label="지역 필터"
                                     name="region"
                                     value={filters.region}
                                     onChange={handleFilterChange}
@@ -161,7 +161,7 @@ const BulkSMSManager = () => {
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
                                     <Zap size={12} /> Industry Type
                                 </label>
-                                <select
+                                <select aria-label="업종 필터"
                                     name="businessType"
                                     value={filters.businessType}
                                     onChange={handleFilterChange}

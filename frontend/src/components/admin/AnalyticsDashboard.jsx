@@ -177,7 +177,7 @@ const AnalyticsDashboard = () => {
         <div className="flex flex-wrap items-center gap-4">
           <div className="relative group">
             <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-orange-500 transition-colors" size={18} />
-            <select
+            <select aria-label="기간 선택"
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
               className="pl-12 pr-10 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm font-black text-white outline-none focus:border-orange-500/50 appearance-none transition-all"

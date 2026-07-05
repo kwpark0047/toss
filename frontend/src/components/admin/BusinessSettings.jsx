@@ -235,7 +235,7 @@ export default function BusinessSettings() {
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1.5">은행 선택</label>
-                            <select value={accountForm.bank_code}
+                            <select aria-label="은행 선택" value={accountForm.bank_code}
                                 onChange={e => {
                                     const b = BANKS.find(b => b.code === e.target.value);
                                     setAccountForm(f => ({ ...f, bank_code: e.target.value, bank_name: b?.name || '' }));

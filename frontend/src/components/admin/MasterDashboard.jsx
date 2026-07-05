@@ -265,7 +265,7 @@ const MasterDashboard = () => {
                             {isMultiView ? '전체 매장' : (selectedStore?.name || '매장')}
                         </h1>
                         {!isMultiView && stores.length > 1 && (
-                            <select
+                            <select aria-label="매장 선택"
                                 value={selectedStore?.id || ''}
                                 onChange={e => setSelectedStore(stores.find(s => s.id === parseInt(e.target.value)))}
                                 className="text-[10px] font-bold bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-slate-300 outline-none max-w-[100px]"

@@ -738,7 +738,7 @@ export default function CommunityPage() {
         {/* 매장 선택 (단일 매장이면 표시) */}
         {myStores.length > 1 && (
           <div className="relative">
-            <select
+            <select aria-label="매장 선택"
               value={selectedStore?.id || ''}
               onChange={e => setSelectedStore(myStores.find(s => s.id === parseInt(e.target.value)))}
               className="pl-3 pr-8 py-2 bg-white/8 border border-white/10 rounded-xl text-white text-sm font-bold outline-none appearance-none cursor-pointer"

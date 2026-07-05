@@ -81,20 +81,29 @@ const OptionTemplateModal = ({ storeId, onClose }) => {
                         <h4 className="font-bold text-slate-400 text-xs uppercase tracking-widest">저장된 템플릿</h4>
                         {loading ? <p>로딩 중...</p> : (
                             <div className="space-y-2">
-                                {templates.map(t => (
+                                {templates.map(t => {
+                                    const openEdit = () => {
+                                        setEditingTemplate(t);
+                                        setNewTemplate({ name: t.name, options: JSON.parse(t.options || '[]') });
+                                    };
+                                    return (
                                     <div key={t.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center group">
-                                        <div className="cursor-pointer flex-1" onClick={() => {
-                                            setEditingTemplate(t);
-                                            setNewTemplate({ name: t.name, options: JSON.parse(t.options || '[]') });
-                                        }}>
+                                        <div
+                                            className="cursor-pointer flex-1"
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={openEdit}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(); } }}
+                                        >
                                             <p className="font-black text-slate-800">{t.name}</p>
                                             <p className="text-[10px] text-slate-400 font-bold">{JSON.parse(t.options || '[]').length}개의 옵션</p>
                                         </div>
-                                        <button onClick={() => handleDelete(t.id)} className="p-2 text-slate-300 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100">
-                                            <Trash2 size={16} />
+                                        <button onClick={() => handleDelete(t.id)} aria-label={`${t.name} 템플릿 삭제`} className="p-2 text-slate-300 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100">
+                                            <Trash2 size={16} aria-hidden="true" />
                                         </button>
                                     </div>
-                                ))}
+                                    );
+                                })}
                                 {templates.length === 0 && <p className="text-sm text-slate-300 py-4">저장된 템플릿이 없습니다.</p>}
                             </div>
                         )}

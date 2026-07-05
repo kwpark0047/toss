@@ -500,7 +500,7 @@ function CustomerDrawer({ customer, storeId, onClose }) {
                 <p className="text-sm text-gray-400 text-center py-4">등록된 쿠폰이 없습니다.</p>
               ) : (
                 <>
-                  <select
+                  <select aria-label="쿠폰 선택"
                     value={selectedCoupon}
                     onChange={e => setSelectedCoupon(e.target.value)}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm"
@@ -616,7 +616,7 @@ const CustomerManager = () => {
         </div>
         {/* 정렬 */}
         <div className="flex gap-2">
-          <select
+          <select aria-label="정렬 기준"
             value={sortBy}
             onChange={e => setSortBy(e.target.value)}
             className="px-3 py-2 bg-gray-50 rounded-lg text-sm border border-gray-100 text-gray-700"

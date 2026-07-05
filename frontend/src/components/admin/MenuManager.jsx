@@ -188,7 +188,7 @@ const VisualOptionEditor = ({ value, onChange }) => {
                     placeholder="옵션 그룹 이름 (예: 굽기, 사이즈)"
                     className="flex-1 h-11 px-4 bg-white/5 border border-white/5 rounded-xl outline-none focus:border-orange-500/50 transition-all text-sm font-bold text-white placeholder:text-slate-700"
                   />
-                  <select
+                  <select aria-label="옵션 그룹 유형"
                     value={group.type}
                     onChange={(e) => updateGroup(gi, 'type', e.target.value)}
                     className="w-32 h-11 px-3 bg-white/5 border border-white/5 rounded-xl outline-none focus:border-orange-500/50 transition-all text-xs font-bold text-white appearance-none"
