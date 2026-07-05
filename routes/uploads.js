@@ -11,6 +11,14 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// 업로드 파일 절대 URL 생성.
+// Render는 프록시 뒤에 있어 req.protocol이 http로 나온다 → https 프론트(Vercel)에서
+// mixed content로 차단되므로, 프록시가 전달하는 X-Forwarded-Proto를 우선 사용한다.
+const buildUploadUrl = (req, filename) => {
+    const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
+    return `${proto}://${req.get('host')}/uploads/${filename}`;
+};
+
 // Multer 설정
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -43,7 +51,7 @@ router.post('/image', authMiddleware, upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, error: '파일이 없습니다.' });
     }
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    const imageUrl = buildUploadUrl(req, req.file.filename);
     res.json({
         success: true,
         url: imageUrl,
@@ -58,7 +66,7 @@ router.post('/images', authMiddleware, upload.array('images', 10), (req, res) =>
     if (!req.files || req.files.length === 0) {
         return res.status(400).json({ success: false, error: '파일이 없습니다.' });
     }
-    const urls = req.files.map(file => `${req.protocol}://${req.get('host')}/uploads/${file.filename}`);
+    const urls = req.files.map(file => buildUploadUrl(req, file.filename));
     res.json({
         success: true,
         urls: urls

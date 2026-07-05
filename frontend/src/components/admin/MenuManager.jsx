@@ -1047,8 +1047,11 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    let objectUrl = null;
     if (field === 'image_url') {
-      const objectUrl = URL.createObjectURL(file);
+      objectUrl = URL.createObjectURL(file);
+      // 서버 왕복 동안 로컬 blob으로 즉시 미리보기 표시 (빈 화면 방지)
+      setForm(prev => ({ ...prev, image_url: objectUrl }));
       const img = new window.Image();
       img.onload = () => {
         setImageInfo({
@@ -1058,7 +1061,6 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
           height: img.height,
           isLarge: file.size > 2 * 1024 * 1024,
         });
-        URL.revokeObjectURL(objectUrl);
       };
       img.src = objectUrl;
     }
@@ -1076,9 +1078,18 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
             ? (prev.detail_images ? prev.detail_images + '\n' + url : url)
             : url
         }));
+      } else if (objectUrl) {
+        // 업로드 응답에 URL이 없으면 로컬 미리보기 롤백
+        setForm(prev => ({ ...prev, image_url: '' }));
       }
-    } catch (e) { handleApiError(e, '이미지 업로드 실패'); }
-    finally { setUploading(false); }
+    } catch (e) {
+      if (objectUrl) setForm(prev => ({ ...prev, image_url: '' }));
+      handleApiError(e, '이미지 업로드 실패');
+    }
+    finally {
+      setUploading(false);
+      if (objectUrl) URL.revokeObjectURL(objectUrl); // 서버 URL 교체 후 blob 해제
+    }
   };
 
   const handleGenerateAI = async () => {
