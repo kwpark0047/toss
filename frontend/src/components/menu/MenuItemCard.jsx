@@ -15,7 +15,7 @@ const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disable
     >
       <div className="relative w-24 h-24 rounded-xl bg-slate-50 overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-100">
         {item.image_url ? (
-          <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+          <img src={item.image_url} alt={item.name} loading="lazy" className="w-full h-full object-cover" />
         ) : (
           <span className="text-4xl">{item.emoji || '🍽️'}</span>
         )}

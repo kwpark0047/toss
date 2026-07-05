@@ -559,7 +559,7 @@ const MenuDemo = () => {
                         <motion.button key={item.id} whileTap={{ scale: 0.96 }} onClick={() => handleAddToCart(item)}
                           className="min-w-[130px] flex-shrink-0 bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all text-left">
                           <div className="h-24 overflow-hidden bg-slate-50">
-                            <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
+                            <img src={item.image_url} alt={item.name} loading="lazy" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
                           </div>
                           <div className="p-3">
                             <p className="text-[11px] font-black text-slate-900 leading-tight line-clamp-2">{item.name}</p>

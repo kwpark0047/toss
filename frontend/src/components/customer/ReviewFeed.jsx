@@ -165,7 +165,7 @@ const ReviewFeed = () => {
                             {/* 리뷰 이미지 */}
                             {r.image_url ? (
                                 <div className="relative aspect-square">
-                                    <img src={r.image_url} alt="리뷰 사진" className="w-full h-full object-cover" />
+                                    <img src={r.image_url} alt="리뷰 사진" loading="lazy" className="w-full h-full object-cover" />
                                     {r.is_best && (
                                         <div className="absolute top-4 left-4 bg-orange-500 text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg flex items-center gap-1">
                                             <Star size={10} fill="currentColor" /> {t('review.best')}

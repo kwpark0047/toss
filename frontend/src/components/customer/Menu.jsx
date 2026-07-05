@@ -777,7 +777,7 @@ const Menu = () => {
                     className="min-w-[300px] glass-panel p-4 flex gap-4 card-hover border-blue-100/50"
                   >
                     <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 shadow-md">
-                      <img src={rec.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200&auto=format&fit=crop'} alt={rec.name} className="w-full h-full object-cover" />
+                      <img src={rec.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200&auto=format&fit=crop'} alt={rec.name} loading="lazy" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                       <div>
@@ -889,7 +889,7 @@ const Menu = () => {
                   >
                     <div className="aspect-square relative overflow-hidden bg-slate-100">
                       {p.image_url ? (
-                        <img src={p.image_url} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       ) : <div className="w-full h-full flex items-center justify-center text-slate-300"><Star size={32} /></div>}
                       {p.is_best && <span className="absolute top-3 left-3 bg-orange-500 text-white text-[9px] font-black px-2 py-1 rounded-lg">BEST</span>}
                     </div>
