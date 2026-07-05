@@ -3,6 +3,7 @@ const router = express.Router();
 const aiService = require("../services/aiService");
 const { validateBody, validateId } = require("../middleware/validator");
 const prisma = require("../config/prisma");
+const Order = require("../models/Order");
 const catchAsync = require("../utils/catchAsync");
 
 router.post("/describe-menu", validateBody(["name"]), catchAsync(async (req, res) => {
@@ -19,7 +20,6 @@ router.post("/recommend", validateId(["store_id"]), catchAsync(async (req, res) 
 
     let pastOrders = [];
     if (phone || toss_user_key) {
-        const Order = require("../models/Order");
         const history = await Order.findByCustomer(phone, toss_user_key);
         pastOrders = history
             .flatMap(order => order.items.map(item => item.product_name))

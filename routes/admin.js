@@ -8,6 +8,7 @@ const notificationService = require('../utils/notifications');
 const { sendSms } = require('../utils/smsService');
 const prisma = require('../config/prisma');
 const Store = require('../models/Store');
+const StoreTier = require('../models/StoreTier');
 const catchAsync = require('../utils/catchAsync');
 
 // === [정산 API] ===
@@ -103,21 +104,18 @@ router.put('/stores/:storeId/receipt-settings', authMiddleware, checkStorePermis
 
 // 매장 등급 설정 조회
 router.get('/stores/:storeId/tier-settings', authMiddleware, checkStorePermission('settings:read'), catchAsync(async (req, res) => {
-    const StoreTier = require('../models/StoreTier');
     const tiers = await StoreTier.getTiers(req.params.storeId);
     res.success(tiers);
 }));
 
 // 매장 등급 설정 업데이트/추가
 router.post('/stores/:storeId/tier-settings', authMiddleware, checkStorePermission('settings:write'), catchAsync(async (req, res) => {
-    const StoreTier = require('../models/StoreTier');
     const tier = await StoreTier.upsertTier(req.params.storeId, req.body);
     res.success(tier, '등급 설정이 저장되었습니다.');
 }));
 
 // 매장 등급 설정 삭제
 router.delete('/stores/:storeId/tier-settings/:tierName', authMiddleware, checkStorePermission('settings:write'), catchAsync(async (req, res) => {
-    const StoreTier = require('../models/StoreTier');
     await StoreTier.deleteTier(req.params.storeId, req.params.tierName);
     res.success(null, '등급 설정이 삭제되었습니다.');
 }));

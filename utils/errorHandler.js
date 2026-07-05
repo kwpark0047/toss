@@ -16,12 +16,12 @@ const errorTypes = {
   AUTH_INVALID_CREDENTIALS: {
     code: 1001,
     status: 401,
-    message: 'Invalid email or password'
+    message: '이메일 또는 비밀번호가 올바르지 않습니다.'
   },
   AUTH_TOKEN_EXPIRED: {
     code: 1002,
     status: 401,
-    message: 'Authentication token has expired'
+    message: '인증 토큰이 만료되었습니다.'
   },
 };
 
@@ -32,7 +32,7 @@ const errorHandler = (err, req, res, next) => {
   // Default error response
   let error = {
     success: false,
-    message: 'An unexpected error occurred',
+    message: '예상치 못한 오류가 발생했습니다.',
     code: 'INTERNAL_SERVER_ERROR',
     status: 500,
     details: {}
@@ -50,7 +50,7 @@ const errorHandler = (err, req, res, next) => {
   } else if (err.name === 'ValidationError' || err.name === 'JoiValidationError') {
     error = {
       success: false,
-      message: 'Validation Error',
+      message: '입력값 검증에 실패했습니다.',
       code: 'VALIDATION_ERROR',
       status: 400,
       details: err.details || (err.errors ? Object.values(err.errors).map(e => e.message) : err.message)

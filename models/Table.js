@@ -44,6 +44,13 @@ const Table = {
         });
     },
 
+    // [매장 ID + 테이블 번호로 테이블 조회]
+    findByStoreAndTable: async (storeId, tableNumber) => {
+        return await prisma.tables.findFirst({
+            where: { store_id: parseInt(storeId), table_number: tableNumber }
+        });
+    },
+
     // [QR 코드로 테이블 및 매장 정보 조회]
     findByQrCode: async (qrCode) => {
         return await prisma.tables.findFirst({

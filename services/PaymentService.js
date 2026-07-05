@@ -2,6 +2,7 @@ const Payment = require('../models/Payment');
 const Order = require('../models/Order');
 const Ledger = require('../models/Ledger');
 const Point = require('../models/Point');
+const StoreCustomer = require('../models/StoreCustomer');
 const TossAPI = require('../utils/toss');
 const notificationService = require('../utils/notifications');
 const prisma = require('../config/prisma');
@@ -14,6 +15,219 @@ const logger = require('../utils/logger');
 class PaymentService {
     constructor(io) {
         this.io = io; // WebSocket 인스턴스 (알림용)
+    }
+
+    // [현장/즉시 결제 처리 (cash, point, store_card, transfer)]
+    // 라우터에서 직접 처리하던 로직을 서비스 레이어로 통합
+    async processDirectPayment(paymentData) {
+        const {
+            store_id, items, total_amount, payment_method,
+            point_amount = 0, phone, toss_user_key, customer_name
+        } = paymentData;
+
+        // 1. 주문 생성
+        const order = await Order.create({
+            store_id,
+            items,
+            total_amount,
+            customer_phone: phone,
+            toss_user_key,
+            customer_name,
+            payment_method: payment_method === 'mixed' ? 'card' : payment_method,
+            status: 'pending'
+        });
+
+        // 2. 결제 기록 생성
+        const orderName = items.length > 1
+            ? `${items[0].product_name} 외 ${items.length - 1}건`
+            : items[0].product_name;
+
+        const payment = await Payment.create({
+            order_id: order.id,
+            store_id,
+            order_name: orderName,
+            amount: total_amount,
+            method: payment_method.toUpperCase(),
+            status: (payment_method === 'cash' || payment_method === 'point') ? 'DONE' : 'READY'
+        });
+
+        // 3. 즉시완료 결제 처리
+        const IMMEDIATE_METHODS = ['cash', 'point', 'store_card', 'transfer'];
+        if (IMMEDIATE_METHODS.includes(payment_method)) {
+            logger.info(`[PaymentService] 즉시 결제 처리 시작: order=${order.id}`);
+
+            // 3-1. 포인트 사용
+            if (point_amount > 0) {
+                await Point.use({
+                    identifier: { phone, toss_user_key },
+                    store_id,
+                    order_id: order.id,
+                    payment_id: payment.id,
+                    amount: point_amount,
+                    description: `주문(#${order.order_number}) 포인트 사용`
+                });
+            }
+
+            // 3-2. 포인트 적립
+            const earnPoints = await Point.calculateEarnPoints(total_amount, store_id);
+            if (earnPoints > 0) {
+                await Point.earn({
+                    identifier: { phone, toss_user_key },
+                    store_id,
+                    order_id: order.id,
+                    payment_id: payment.id,
+                    amount: earnPoints,
+                    description: `주문(#${order.order_number}) 적립`
+                });
+            }
+
+            // 3-3. 장부 기록
+            await Ledger.add({
+                store_id,
+                order_id: order.id,
+                payment_id: payment.id,
+                type: 'INCOME',
+                category: 'SALE',
+                amount: total_amount,
+                method: payment_method.toUpperCase(),
+                description: `결제 완료: ${order.order_number}`
+            });
+
+            // 3-4. 주문 상태 업데이트
+            await Order.updatePayment(order.id, payment_method.toUpperCase(), 'paid');
+            await Order.updateStatus(order.id, 'paid');
+
+            // 3-5. 단골 고객 업데이트
+            await StoreCustomer.upsertCustomer({
+                store_id,
+                customer_phone: phone,
+                customer_name,
+                toss_user_key,
+                amount: total_amount
+            });
+
+            // 3-6. 실시간 알림
+            if (this.io) {
+                this.io.to(`store - ${store_id}`).emit('new-order', order);
+                this.io.to(`store - ${store_id}`).emit('payment-success', {
+                    order_id: order.id,
+                    order_number: order.order_number,
+                    amount: total_amount
+                });
+            }
+        }
+
+        return { ...payment, order_number: order.order_number, order_id: order.id };
+    }
+
+    // [분할 결제 처리]
+    async processSplitPayment(splitData) {
+        const { order_id, amount, payer_phone, split_type: _split_type, payment_method } = splitData;
+
+        const txResult = await prisma.$transaction(async (tx) => {
+            const order = await tx.orders.findUnique({
+                where: { id: parseInt(order_id) },
+                include: { order_items: true }
+            });
+            if (!order) throw new Error('주문을 찾을 수 없습니다.');
+
+            const payment = await tx.payments.create({
+                data: {
+                    order_id: order.id,
+                    store_id: order.store_id,
+                    order_name: `분할결제 #${order.order_number}`,
+                    amount: parseInt(amount),
+                    method: (payment_method || 'CARD').toUpperCase(),
+                    status: 'DONE',
+                    payer_phone: payer_phone || null,
+                    is_partial: true,
+                    created_at: new Date(),
+                    updated_at: new Date(),
+                    approved_at: new Date()
+                }
+            });
+
+            await tx.ledger.create({
+                data: {
+                    store_id: order.store_id,
+                    order_id: order.id,
+                    payment_id: payment.id,
+                    type: 'INCOME',
+                    category: 'SALE',
+                    amount: parseInt(amount),
+                    method: (payment_method || 'CARD').toUpperCase(),
+                    description: `분할결제: #${order.order_number} (${payer_phone || '익명'})`
+                }
+            });
+
+            const donePayments = await tx.payments.findMany({
+                where: { order_id: order.id, status: 'DONE' },
+                select: { amount: true }
+            });
+            const totalPaid = donePayments.reduce((s, p) => s + p.amount, 0);
+            const isFullyPaid = totalPaid >= order.total_amount;
+
+            await tx.orders.update({
+                where: { id: order.id },
+                data: {
+                    payment_status: isFullyPaid ? 'paid' : 'partial',
+                    split_status: isFullyPaid ? 'COMPLETED' : 'PARTIAL',
+                    status: isFullyPaid ? 'paid' : undefined,
+                    updated_at: new Date()
+                }
+            });
+
+            if (payer_phone) {
+                await tx.store_customers.upsert({
+                    where: {
+                        uk_store_customer: { store_id: order.store_id, customer_phone: payer_phone }
+                    },
+                    update: {
+                        visit_count: { increment: 1 },
+                        total_spent: { increment: parseInt(amount) },
+                        last_visit_at: new Date()
+                    },
+                    create: {
+                        store_id: order.store_id,
+                        customer_phone: payer_phone,
+                        customer_name: payer_phone,
+                        visit_count: 1,
+                        total_spent: parseInt(amount),
+                        tier: 'GENERAL'
+                    }
+                });
+            }
+
+            return { payment, order, totalPaid, isFullyPaid };
+        });
+
+        if (this.io) {
+            const tableId = txResult.order.table_id;
+            if (tableId) {
+                this.io.to(`table - ${tableId}`).emit('split-payment-update', {
+                    orderId: txResult.order.id,
+                    totalAmount: txResult.order.total_amount,
+                    paidAmount: txResult.totalPaid,
+                    remainingAmount: Math.max(0, txResult.order.total_amount - txResult.totalPaid),
+                    status: txResult.isFullyPaid ? 'COMPLETED' : 'PARTIAL',
+                    payer: payer_phone || 'anonymous'
+                });
+            }
+            if (txResult.isFullyPaid) {
+                this.io.to(`store - ${txResult.order.store_id}`).emit('new-order', txResult.order);
+            }
+        }
+
+        return {
+            payment: txResult.payment,
+            order_id: txResult.order.id,
+            order_number: txResult.order.order_number,
+            total_paid: txResult.totalPaid,
+            is_fully_paid: txResult.isFullyPaid,
+            message: txResult.isFullyPaid
+                ? '분할 결제가 모두 완료되었습니다.'
+                : `분할 결제 중 — ${txResult.totalPaid.toLocaleString()}원 / ${txResult.order.total_amount.toLocaleString()}원`
+        };
     }
 
     // [결제 승인 처리]

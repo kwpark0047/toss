@@ -1,10 +1,9 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { authAPI, storesAPI } from '../api';
+import { authAPI } from '../api/auth';
+import { storesAPI } from '../api/stores';
+import { API_URL } from '../api/client';
 
 const AuthContext = createContext(null);
-
-const API_URL = import.meta.env.VITE_API_URL ||
-  (window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://wemarket.onrender.com/api');
 
 // JWT 페이로드를 네트워크 없이 즉시 디코드 (서명 검증 없음 — 만료 확인용)
 // atob()은 Latin-1 문자열을 반환하므로 한글 등 멀티바이트는 TextDecoder로 복원해야 한다
@@ -34,6 +33,28 @@ const refreshAccessToken = async () => {
   return d.token;
 };
 
+/** JWT 페이로드에서 user 객체 생성 */
+const userFromPayload = (payload) => ({
+  id: payload.id,
+  name: payload.name,
+  role: payload.role,
+});
+
+/** localStorage 인증 정보 삭제 */
+const clearAuthStorage = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
+};
+
+/** 토큰 기반 user 세팅 (decodeToken → setUser) */
+const applyUserFromToken = (token, setUser, merger) => {
+  const payload = decodeToken(token);
+  if (!payload) { setUser(null); return false; }
+  const user = userFromPayload(payload);
+  setUser(merger ? (prev) => ({ ...prev, ...user }) : user);
+  return true;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -45,43 +66,32 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       if (!token) { setLoading(false); return; }
 
-      // 1) JWT 로컬 디코드 — 네트워크 없이 즉시 유효성 확인
       const payload = decodeToken(token);
       const validFor = payload?.exp ? payload.exp * 1000 - Date.now() : 0;
 
       if (payload && validFor > 0) {
-        // 토큰 유효: user 즉시 세팅 → 앱 즉시 언블록 (서버 호출 없음)
-        setUser({ id: payload.id, name: payload.name, role: payload.role });
+        setUser(userFromPayload(payload));
         setLoading(false);
         // 만료 임박 시 백그라운드 갱신 (UI 차단 없음, 실패해도 로그아웃 안 함)
         if (validFor <= 300_000) {
           refreshAccessToken()
-            .then(newToken => {
-              if (newToken) {
-                const p = decodeToken(newToken);
-                if (p) setUser(u => ({ ...u, id: p.id, name: p.name, role: p.role }));
-              }
-            })
+            .then(newToken => { if (newToken) applyUserFromToken(newToken, setUser, true); })
             .catch(() => {});
         }
         return;
       }
 
-      // 2) 토큰 만료 → refreshToken으로 갱신 시도 (authAPI.me() 호출 안 함 — Prisma 콜드스타트 방지)
+      // 토큰 만료 → refreshToken으로 갱신 시도
       try {
         const newToken = await refreshAccessToken();
         if (newToken) {
-          const newPayload = decodeToken(newToken);
-          if (newPayload) setUser({ id: newPayload.id, name: newPayload.name, role: newPayload.role });
-          else setUser(null);
+          applyUserFromToken(newToken, setUser);
         } else {
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
+          clearAuthStorage();
           setUser(null);
         }
       } catch {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
+        clearAuthStorage();
         setUser(null);
       } finally {
         setLoading(false);

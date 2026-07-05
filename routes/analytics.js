@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
+const Store = require('../models/Store');
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
@@ -138,9 +139,9 @@ router.get('/multi-store', authMiddleware, catchAsync(async (req, res) => {
 
     let stores;
     if (req.user.role === 'super_admin') {
-    stores = await require('../models/Store').findAll();
+    stores = await Store.findAll();
     } else {
-    stores = await require('../models/Store').findByUserId(req.user.id);
+    stores = await Store.findByUserId(req.user.id);
     }
 
     if (!stores || stores.length === 0) {

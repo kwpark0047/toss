@@ -168,6 +168,44 @@ const Store = {
         cache.del('stores:all');
 
         return true;
+    },
+
+    findBusinessInfo: async (id) => {
+        return prisma.stores.findUnique({
+            where: { id: parseInt(id) },
+            select: {
+                business_number: true,
+                business_name: true,
+                ceo_name: true,
+                tax_invoice_email: true,
+                settlement_cycle: true,
+                commission_rate: true,
+                vat_rate: true,
+                enabled_payment_methods: true,
+                store_accounts: {
+                    select: {
+                        bank_code: true, bank_name: true,
+                        account_number: true, account_holder: true,
+                        is_active: true
+                    }
+                }
+            }
+        });
+    },
+
+    updateBusinessInfo: async (id, data) => {
+        const updateData = {};
+        if (data.business_number !== undefined) updateData.business_number = data.business_number;
+        if (data.business_name !== undefined) updateData.business_name = data.business_name;
+        if (data.ceo_name !== undefined) updateData.ceo_name = data.ceo_name;
+        if (data.tax_invoice_email !== undefined) updateData.tax_invoice_email = data.tax_invoice_email;
+        if (data.settlement_cycle !== undefined) updateData.settlement_cycle = data.settlement_cycle;
+        if (data.enabled_payment_methods !== undefined) {
+            updateData.enabled_payment_methods = JSON.stringify(
+                Array.isArray(data.enabled_payment_methods) ? data.enabled_payment_methods : []
+            );
+        }
+        return prisma.stores.update({ where: { id: parseInt(id) }, data: updateData });
     }
 };
 

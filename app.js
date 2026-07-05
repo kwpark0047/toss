@@ -265,6 +265,10 @@ if (process.env.NODE_ENV !== 'production') {
 // [API 라우트 명시적 그룹화 등록]
 const API_PREFIX = '/api';
 
+// ── Open Commerce Hub: 개발자 포털(내부 인증) + Open API v1(API 키 인증) ──
+app.use(`${API_PREFIX}/developer`, require('./routes/developer'));
+app.use(`${API_PREFIX}/v1`, require('./routes/v1'));
+
 app.use(`${API_PREFIX}/auth`, authLimiter, routes.auth);
 app.use(`${API_PREFIX}/stores`, routes.stores);
 app.use(`${API_PREFIX}/products`, routes.products);

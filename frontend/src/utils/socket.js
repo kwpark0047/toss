@@ -38,14 +38,19 @@ socket.on('connect', () => {
   }
 });
 
+/** 소켓 연결이 끊어졌으면 재연결, 연결되어 있으면 직접 emit */
+const ensureOrEmit = (eventName, params) => {
+  if (!socket.connected) {
+    socket.connect(); // connect 이벤트 핸들러가 _storeJoinParams / _kitchenJoinParams 기반으로 자동 재구독
+  } else {
+    socket.emit(eventName, params);
+  }
+};
+
 // 소켓 연결 + 스토어 룸 구독
 export const connectSocket = (storeId, userId, role) => {
   _storeJoinParams = { storeId, userId, role };
-  if (!socket.connected) {
-    socket.connect(); // connect 이벤트 핸들러가 join-store를 자동 발송
-  } else {
-    socket.emit('join-store', { storeId, userId, role });
-  }
+  ensureOrEmit('join-store', { storeId, userId, role });
 };
 
 // 소켓 연결 해제
@@ -106,11 +111,7 @@ export const getSocket = () => socket;
 // 주방 소켓 연결
 export const connectKitchen = (storeId, userId) => {
   _kitchenJoinParams = { storeId, userId };
-  if (!socket.connected) {
-    socket.connect();
-  } else {
-    socket.emit('join-kitchen', { storeId, userId });
-  }
+  ensureOrEmit('join-kitchen', { storeId, userId });
 };
 
 export default socket;

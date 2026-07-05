@@ -10,7 +10,7 @@ jest.mock('../../lib/supabase', () => {
     error: null
   };
   return { supabase: mockSupabase };
-});
+}, { virtual: true });
 
 const request = require('supertest');
 const { app } = require('../../app');

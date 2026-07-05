@@ -13,6 +13,9 @@ httpServer.listen(PORT, () => {
 
     // 주간 매출 리포트 스케줄러 (매주 월요일 09:00 KST)
     require('./services/weeklyReportService').start();
+
+    // Open Commerce Hub 웹훅 재시도 스케줄러
+    require('./services/webhookDispatcher').startRetryScheduler();
 });
 
 // ── Graceful Shutdown ────────────────────────────────────────────────────────

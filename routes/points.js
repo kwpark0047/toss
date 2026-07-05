@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../config/prisma');
 const Point = require('../models/Point');
+const StoreTier = require('../models/StoreTier');
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const { validateBody, validateId } = require('../middleware/validator');
@@ -71,7 +72,6 @@ router.get('/wallet-lookup', async (req, res, _next) => {
                     }
                 });
                 if (customer) {
-                    const StoreTier = require('../models/StoreTier');
                     const tiers = await StoreTier.getTiers(store_id);
                     const currentTier = tiers.find(t => t.tier_name === customer.tier) || { tier_name: 'GENERAL', earn_rate: 1.0, min_spent: 0 };
                     const nextTier = tiers.find(t => t.min_spent > customer.total_spent);

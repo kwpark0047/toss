@@ -327,7 +327,7 @@ model staff {
   orders           orders[]
   staff_attendance staff_attendance[]
 
-  @@unique([store_id, user_id], map: "sqlite_autoindex_staff_1")
+  @@unique([store_id, user_id], map: "uk_staff_store_user")
 }
 
 model staff_attendance {
@@ -368,7 +368,7 @@ model staff_account_requests {
 
 model store_accounts {
   id              Int       @id @default(autoincrement())
-  store_id        Int       @unique(map: "sqlite_autoindex_store_accounts_1")
+  store_id        Int       @unique(map: "uq_store_accounts_store")
   bank_code       String
   bank_name       String
   account_number  String
@@ -382,7 +382,7 @@ model store_accounts {
 
 model store_point_settings {
   id              Int       @id @default(autoincrement())
-  store_id        Int       @unique(map: "sqlite_autoindex_store_point_settings_1")
+  store_id        Int       @unique(map: "uq_store_point_settings_store")
   is_enabled      Boolean?  @default(true)
   earn_rate       Float?    @default(1.0)
   min_earn_amount Int?      @default(1000)
@@ -396,7 +396,7 @@ model store_point_settings {
 
 model store_receipt_settings {
   id                 Int       @id @default(autoincrement())
-  store_id           Int       @unique(map: "sqlite_autoindex_store_receipt_settings_1")
+  store_id           Int       @unique(map: "uq_store_receipt_settings_store")
   header_logo        String?
   title              String?   @default("영수증")
   greetings          String?   @default("방문해 주셔서 감사합니다.")
@@ -494,6 +494,8 @@ model stores {
   community_posts        community_posts[]
   store_partnerships_as_requester store_partnerships[] @relation("partnerships_requester")
   store_partnerships_as_target    store_partnerships[] @relation("partnerships_target")
+  api_keys                api_keys[]
+  webhook_endpoints       webhook_endpoints[]
 
   @@index([user_id], map: "idx_stores_user_id")
 }
@@ -519,7 +521,7 @@ model tables {
   id                Int                 @id @default(autoincrement())
   store_id          Int
   table_number      String
-  qr_code           String              @unique(map: "sqlite_autoindex_tables_1")
+  qr_code           String              @unique(map: "uq_tables_qr_code")
   is_active         Boolean?            @default(true)
   created_at        DateTime?           @default(now())
   capacity          Int?                @default(2)
@@ -535,7 +537,7 @@ model tables {
 model user_points {
   id                 Int                  @id @default(autoincrement())
   user_id            Int?
-  toss_user_key      String?              @unique(map: "sqlite_autoindex_user_points_1")
+  toss_user_key      String?              @unique(map: "uq_user_points_toss_key")
   phone              String?
   total_points       Int?                 @default(0)
   lifetime_earned    Int?                 @default(0)
@@ -552,7 +554,7 @@ model user_points {
 model users {
   id                                                               Int                      @id @default(autoincrement())
   name                                                             String?
-  email                                                            String?                  @unique(map: "sqlite_autoindex_users_1")
+  email                                                            String?                  @unique(map: "uq_users_email")
   phone                                                            String?                  @unique(map: "uq_users_phone")
   address                                                          String?
   profile_step                                                     Int?                     @default(1)
@@ -836,4 +838,51 @@ model option_templates {
   stores      stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
 
   @@index([store_id], map: "idx_option_templates_store")
+}
+
+model api_keys {
+  id           Int       @id @default(autoincrement())
+  store_id     Int
+  name         String
+  key_prefix   String
+  key_hash     String
+  scopes       String    @default("read")
+  last_used_at DateTime?
+  revoked      Boolean   @default(false)
+  created_at   DateTime? @default(now())
+  stores       stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id], map: "idx_api_keys_store")
+}
+
+model webhook_endpoints {
+  id         Int       @id @default(autoincrement())
+  store_id   Int
+  url        String
+  secret     String
+  events     String    @default("*")
+  active     Boolean   @default(true)
+  created_at DateTime? @default(now())
+  stores     stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  deliveries webhook_deliveries[]
+
+  @@index([store_id], map: "idx_webhook_endpoints_store")
+}
+
+model webhook_deliveries {
+  id              Int       @id @default(autoincrement())
+  endpoint_id     Int
+  event_type      String
+  payload         Json
+  status          String    @default("pending")
+  attempts        Int       @default(0)
+  response_status Int?
+  last_error      String?
+  created_at      DateTime? @default(now())
+  delivered_at    DateTime?
+  next_retry_at   DateTime?
+  endpoint        webhook_endpoints @relation(fields: [endpoint_id], references: [id], onDelete: Cascade)
+
+  @@index([endpoint_id], map: "idx_webhook_deliveries_endpoint")
+  @@index([status, next_retry_at], map: "idx_webhook_deliveries_retry")
 }

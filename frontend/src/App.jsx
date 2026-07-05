@@ -3,8 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
-import { lazy, Suspense, useState, useEffect } from "react";
-import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { lazy, Suspense, useState, useEffect, memo, useCallback } from "react";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 // 공개 페이지 지연 로딩: 각 라우트가 자기 청크만 로드해 초기 번들(index) 축소
 const Index = lazy(() => import("./pages/Index"));
 const MenuPage = lazy(() => import("./pages/MenuPage"));
@@ -52,18 +52,20 @@ const StoreSettings      = lazy(() => import("@/components/admin/StoreSettings")
 
 const queryClient = new QueryClient();
 
+const SPINNER_FALLBACK = (
+  <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
 const AdminSuspense = ({ children }) => (
-  <Suspense fallback={
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  }>
+  <Suspense fallback={SPINNER_FALLBACK}>
     {children}
   </Suspense>
 );
 
 // Protected Route Component
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = memo(({ children }) => {
   const { user, loading } = useAuth();
   const [timedOut, setTimedOut] = useState(false);
 
@@ -87,19 +89,19 @@ const ProtectedRoute = ({ children }) => {
   }
 
   return <>{children}</>;
-};
+});
 
 // storeId가 "undefined" 문자열이거나 없으면 대시보드로 리다이렉트
-const ValidStoreRoute = ({ children }) => {
+const ValidStoreRoute = memo(({ children }) => {
   const { storeId } = useParams();
   if (!storeId || storeId === 'undefined') {
     return <Navigate to="/admin" replace />;
   }
   return <>{children}</>;
-};
+});
 
 // Admin Layout Wrapper
-const AdminPage = ({ children }) => (
+const AdminPage = memo(({ children }) => (
   <ProtectedRoute>
     <AdminSuspense>
       <AdminLayout>
@@ -107,9 +109,9 @@ const AdminPage = ({ children }) => (
       </AdminLayout>
     </AdminSuspense>
   </ProtectedRoute>
-);
+));
 
-const AppRoutes = () => (
+const AppRoutes = memo(() => (
   <Routes>
     <Route path="/" element={<AdminSuspense><Index /></AdminSuspense>} />
     <Route path="/auth" element={<AdminSuspense><AuthPage /></AdminSuspense>} />
@@ -311,7 +313,7 @@ const AppRoutes = () => (
     {/* 404 */}
     <Route path="*" element={<AdminSuspense><NotFound /></AdminSuspense>} />
   </Routes>
-);
+));
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

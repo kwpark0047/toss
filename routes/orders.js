@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
+const Coupon = require('../models/Coupon');
+const Table = require('../models/Table');
+const Product = require('../models/Product');
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission, getStoreRole } = require('../middleware/storeAuth');
 const validate = require('../middleware/validate');
@@ -17,10 +20,7 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
     let discount_amount = 0;
 
     if (user_coupon_id) {
-        const userCoupon = await prisma.user_coupons.findUnique({
-            where: { id: parseInt(user_coupon_id) },
-            include: { coupons: true }
-        });
+        const userCoupon = await Coupon.findUserCoupon(user_coupon_id);
 
         if (!userCoupon || userCoupon.status !== 'UNUSED') {
             return res.status(400).json({ error: '유효하지 않은 쿠폰입니다.' });
@@ -49,15 +49,12 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
     const lookupStr = rawTableNumber || (rawTableId && isNaN(parseInt(rawTableId)) ? String(rawTableId) : null);
 
     if (lookupStr) {
-        const table = await prisma.tables.findFirst({
-            where: { store_id: storeIdNum, table_number: lookupStr }
-        });
+        const table = await Table.findByStoreAndTable(storeIdNum, lookupStr);
         resolvedTableId = table?.id || null;
         resolvedTableName = table?.table_number || lookupStr;
     } else if (rawTableId && !isNaN(parseInt(rawTableId))) {
         resolvedTableId = parseInt(rawTableId);
-        // 테이블 이름 조회
-        const table = await prisma.tables.findUnique({ where: { id: resolvedTableId } });
+        const table = await Table.findById(resolvedTableId);
         resolvedTableName = table?.table_number || null;
     }
 
@@ -67,10 +64,7 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
         const insufficient = [];
         for (const item of itemsToValidate) {
             if (!item.product_id) continue;
-            const product = await prisma.products.findUnique({
-                where: { id: parseInt(item.product_id) },
-                select: { name: true, stock_quantity: true, is_sold_out: true }
-            });
+            const product = await Product.findById(item.product_id);
             if (!product) continue;
             if (product.is_sold_out) {
                 insufficient.push(`'${product.name}' 품절`);
@@ -99,14 +93,12 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
     });
 
     if (user_coupon_id) {
-        const Coupon = require('../models/Coupon');
         await Coupon.useCoupon(user_coupon_id, order.id);
     }
 
     const io = req.app.get('io');
 
     if (order.table_id) {
-        const Table = require('../models/Table');
         await Table.update(order.table_id, { status: 'occupied' });
         if (io) {
             io.emit('table-updated', { store_id: order.store_id, table_id: order.table_id });
@@ -182,6 +174,11 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
         const orderWithTable = { ...order, table_name: resolvedTableName };
         notificationService.notifyNewOrderDB(orderWithTable)
             .catch(err => logger.warn(`[알림 실패] 신규 주문 알림 (order ${order.id}): ${err.message}`));
+        // Open Commerce Hub 웹훅 발행 (order.created)
+        require('../services/webhookDispatcher').emitEvent(order.store_id, 'order.created', {
+            order_id: order.id, order_number: order.order_number,
+            total_amount: order.total_amount, table_id: order.table_id, source: 'qr',
+        });
     }
 
     res.success(order, '주문이 생성되었습니다');
@@ -246,7 +243,6 @@ router.put('/:id/status', authMiddleware, catchAsync(async (req, res) => {
     const updatedOrder = await Order.updateStatus(parseInt(id), status, staff_id);
 
     if (['completed', 'ready'].includes(status) && updatedOrder.table_id) {
-        const Table = require('../models/Table');
         await Table.update(updatedOrder.table_id, { status: 'dirty' });
         const io = req.app.get('io');
         if (io) {
@@ -258,6 +254,17 @@ router.put('/:id/status', authMiddleware, catchAsync(async (req, res) => {
     notificationService.notifyOrderStatus(updatedOrder, status, customerToken);
     notificationService.notifyOrderStatusDB(updatedOrder, status)
         .catch(err => logger.warn(`[알림 실패] 주문 상태 알림 (order ${updatedOrder.id}, ${status}): ${err.message}`));
+
+    // Open Commerce Hub 웹훅 발행 (order.updated + 완료 시 order.completed)
+    const _wh = require('../services/webhookDispatcher');
+    _wh.emitEvent(updatedOrder.store_id, 'order.updated', {
+        order_id: updatedOrder.id, order_number: updatedOrder.order_number, status,
+    });
+    if (status === 'completed') {
+        _wh.emitEvent(updatedOrder.store_id, 'order.completed', {
+            order_id: updatedOrder.id, order_number: updatedOrder.order_number, total_amount: updatedOrder.total_amount,
+        });
+    }
 
     const io = req.app.get('io');
     const STATUS_LABELS = {

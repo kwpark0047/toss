@@ -6,7 +6,7 @@ jest.mock('../../config/database', () => ({
     get: jest.fn(() => ({ id: 'test-order-id', store_id: 'test-store-id' })),
     run: jest.fn(),
   })),
-}));
+}), { virtual: true });
 
 jest.mock('../../models/Payment', () => ({
   create: jest.fn((data) => ({ id: 'new-payment-id', ...data })),

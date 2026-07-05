@@ -63,6 +63,16 @@ const Coupon = {
     },
 
     /**
+     * [사용자 쿠폰 상세 조회 (쿠폰 정보 포함)]
+     */
+    findUserCoupon: async (userCouponId) => {
+        return await prisma.user_coupons.findUnique({
+            where: { id: parseInt(userCouponId) },
+            include: { coupons: true }
+        });
+    },
+
+    /**
      * [쿠폰 사용 처리]
      */
     useCoupon: async (userCouponId, orderId) => {

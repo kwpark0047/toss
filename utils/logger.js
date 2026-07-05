@@ -24,14 +24,14 @@ const logger = winston.createLogger({
                 logFormat
             )
         }),
-        // 2. 파일 출력 (에러 전용)
+        // 2. 파일 출력 (에러 전용) — LOG_DIR 환경변수로 경로 변경 가능
         new winston.transports.File({
-            filename: path.join(__dirname, '../logs/error.log'),
+            filename: path.join(process.env.LOG_DIR || path.join(__dirname, '../logs'), 'error.log'),
             level: 'error'
         }),
         // 3. 파일 출력 (전체 로그)
         new winston.transports.File({
-            filename: path.join(__dirname, '../logs/combined.log')
+            filename: path.join(process.env.LOG_DIR || path.join(__dirname, '../logs'), 'combined.log')
         })
     ]
 });

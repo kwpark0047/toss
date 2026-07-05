@@ -53,26 +53,7 @@ router.put('/:id', authMiddleware, bridgeStoreId, checkStorePermission('store:up
 // ── 사업자 정보 조회 ──────────────────────────────────────────────────────────
 router.get('/:id/business', authMiddleware, bridgeStoreId, checkStorePermission('settings:read'), catchAsync(async (req, res) => {
     const sid = parseInt(req.params.id);
-    const store = await prisma.stores.findUnique({
-        where: { id: sid },
-        select: {
-            business_number: true,
-            business_name: true,
-            ceo_name: true,
-            tax_invoice_email: true,
-            settlement_cycle: true,
-            commission_rate: true,
-            vat_rate: true,
-            enabled_payment_methods: true,
-            store_accounts: {
-                select: {
-                    bank_code: true, bank_name: true,
-                    account_number: true, account_holder: true,
-                    is_active: true
-                }
-            }
-        }
-    });
+    const store = await Store.findBusinessInfo(sid);
     if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다' });
 
     let enabledMethods = ['cash', 'store_card', 'transfer'];
@@ -99,19 +80,7 @@ router.put('/:id/business', authMiddleware, bridgeStoreId, checkStorePermission(
         return res.status(400).json({ success: false, error: '정산 주기가 올바르지 않습니다.' });
     }
 
-    const updateData = {};
-    if (business_number !== undefined) updateData.business_number = business_number;
-    if (business_name !== undefined) updateData.business_name = business_name;
-    if (ceo_name !== undefined) updateData.ceo_name = ceo_name;
-    if (tax_invoice_email !== undefined) updateData.tax_invoice_email = tax_invoice_email;
-    if (settlement_cycle !== undefined) updateData.settlement_cycle = settlement_cycle;
-    if (enabled_payment_methods !== undefined) {
-        updateData.enabled_payment_methods = JSON.stringify(
-            Array.isArray(enabled_payment_methods) ? enabled_payment_methods : []
-        );
-    }
-
-    const updated = await prisma.stores.update({ where: { id: sid }, data: updateData });
+    const updated = await Store.updateBusinessInfo(sid, req.body);
     res.success(updated, '사업자 정보가 저장되었습니다.');
 }));
 

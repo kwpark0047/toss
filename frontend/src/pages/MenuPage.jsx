@@ -1,9 +1,12 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, UtensilsCrossed, RefreshCw } from "lucide-react";
-import { storesAPI, categoriesAPI, productsAPI, ordersAPI, wakeupServer } from "@/api";
+import { storesAPI } from "@/api/stores";
+import { categoriesAPI, productsAPI } from "@/api/products";
+import { ordersAPI } from "@/api/orders";
+import { wakeupServer } from "@/api/wakeup";
 
 // Components
 import MenuHeader from "@/components/menu/MenuHeader";
@@ -18,6 +21,93 @@ import CustomerPhoneSheet from "@/components/menu/CustomerPhoneSheet";
 import ReviewModal from "@/components/customer/ReviewModal";
 import StoreReviews from "@/components/customer/StoreReviews";
 import LegalFooter from "@/components/customer/LegalFooter";
+
+/** 순수 함수: 항목이 최근 7일 이내 생성되었는지 확인 */
+const isNewItem = (item) => {
+  if (!item.created_at) return false;
+  const createdDate = new Date(item.created_at);
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  return createdDate > sevenDaysAgo;
+};
+
+/** 순수 함수: 메뉴 항목의 옵션 목록 파싱 */
+const getOptionsForMenuItem = (menuItems, itemId) => {
+  const item = menuItems.find(i => i.id === itemId);
+  if (!item?.options) return [];
+  try {
+    const parsed = typeof item.options === 'string' ? JSON.parse(item.options) : item.options;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+/** 콜드스타트 로딩 화면 */
+const ColdStartLoading = ({ elapsed }) => {
+  const isColdStart = elapsed >= 8;
+  const progressPct = Math.min(elapsed * 1.8, 88);
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6">
+      <div className="text-center space-y-6 max-w-xs w-full">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+          {isColdStart
+            ? <UtensilsCrossed size={28} className="text-orange-400" />
+            : <Loader2 size={28} className="animate-spin text-orange-400" />}
+        </div>
+
+        <div>
+          <h2 className="text-white font-black text-lg mb-1.5">
+            {isColdStart ? '서버를 깨우는 중...' : '메뉴를 불러오는 중...'}
+          </h2>
+          <p className="text-slate-500 text-sm leading-relaxed">
+            {elapsed < 8
+              ? '잠시만 기다려주세요.'
+              : elapsed < 30
+                ? '처음 접속 시 서버를 깨우는 데 최대 30초 걸립니다.'
+                : '거의 준비됐습니다! 조금만 더 기다려주세요...'}
+          </p>
+        </div>
+
+        <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+          <div
+            className="h-full bg-orange-500 rounded-full transition-all duration-700"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+
+        <div className="flex items-center justify-center gap-2 text-slate-600">
+          <Loader2 size={14} className="animate-spin" />
+          <span className="text-xs">{elapsed}초 경과</span>
+        </div>
+
+        {elapsed >= 50 && (
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full py-3 bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all"
+          >
+            <RefreshCw size={15} /> 페이지 새로고침
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/** 테마 설정 → CSS 변수 객체 변환 */
+const buildThemeStyle = (theme) => {
+  if (!theme) return {};
+  return {
+    '--color-primary': theme.primaryColor || '#f97316',
+    '--color-secondary': theme.secondaryColor || '#1e3a5f',
+    '--color-accent': theme.accentColor || '#10b981',
+    '--color-bg': theme.backgroundColor || '#f8fafc',
+    '--color-card': theme.cardColor || '#ffffff',
+    '--color-text': theme.textColor || '#1e293b',
+    fontFamily: theme.fontFamily || 'inherit',
+    backgroundColor: theme.backgroundColor || undefined,
+    color: theme.textColor || undefined,
+  };
+};
 
 const MenuPage = () => {
   const { storeId } = useParams();
@@ -120,12 +210,12 @@ const MenuPage = () => {
   const orderStats = [];
 
   // Helper functions
-  const getTodayHours = () => {
+  const getTodayHours = useCallback(() => {
     if (!profile?.open_time || !profile?.close_time) return null;
     return { open: profile.open_time, close: profile.close_time };
-  };
+  }, [profile?.open_time, profile?.close_time]);
 
-  const isStoreOpen = () => {
+  const isStoreOpen = useCallback(() => {
     if (!profile?.open_time || !profile?.close_time) return true; // 시간 미설정 시 항상 영업 중
     const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes();
@@ -139,25 +229,7 @@ const MenuPage = () => {
     } catch {
       return true;
     }
-  };
-
-  const getOptionsForMenuItem = (itemId) => {
-    const item = menuItems.find(i => i.id === itemId);
-    if (!item?.options) return [];
-    try {
-      const parsed = typeof item.options === 'string' ? JSON.parse(item.options) : item.options;
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const isNewItem = (item) => {
-    if (!item.created_at) return false;
-    const createdDate = new Date(item.created_at);
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return createdDate > sevenDaysAgo;
-  };
+  }, [profile?.open_time, profile?.close_time]);
 
   // Computed values
   const todayHours = getTodayHours();
@@ -176,13 +248,13 @@ const MenuPage = () => {
   const totalPrice = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
 
   // Handlers
-  const handleAddToCartClick = async (item) => {
+  const handleAddToCartClick = useCallback(async (item) => {
     if (!storeOpen) {
       toast.error("영업시간이 아닙니다. 영업시간을 확인해주세요.");
       return;
     }
     
-    const options = getOptionsForMenuItem(item.id);
+    const options = getOptionsForMenuItem(menuItems, item.id);
     
     if (options.length > 0) {
       setOptionModalItem(item);
@@ -190,9 +262,9 @@ const MenuPage = () => {
     } else {
       addToCartDirect(item, 1, [], item.price);
     }
-  };
+  }, [storeOpen, menuItems]);
 
-  const addToCartDirect = (item, quantity, selectedOptions, unitPrice) => {
+  const addToCartDirect = useCallback((item, quantity, selectedOptions, unitPrice) => {
     const cartItemId = `${item.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     setCart(prev => [...prev, {
@@ -204,18 +276,18 @@ const MenuPage = () => {
     }]);
     
     toast.success(`${item.name}을(를) 담았습니다`);
-  };
+  }, []);
 
-  const handleOptionConfirm = (quantity, selectedOptions, totalPrice) => {
+  const handleOptionConfirm = useCallback((quantity, selectedOptions, totalPrice) => {
     if (!optionModalItem) return;
     
     const unitPrice = totalPrice / quantity;
     addToCartDirect(optionModalItem, quantity, selectedOptions, unitPrice);
     setOptionModalItem(null);
     setOptionModalGroups([]);
-  };
+  }, [optionModalItem, addToCartDirect]);
 
-  const updateQuantity = (cartItemId, delta) => {
+  const updateQuantity = useCallback((cartItemId, delta) => {
     setCart(prev => {
       return prev.map(item => {
         if (item.cartItemId === cartItemId) {
@@ -226,9 +298,9 @@ const MenuPage = () => {
         return item;
       }).filter(Boolean);
     });
-  };
+  }, []);
 
-  const handleOrder = async () => {
+  const handleOrder = useCallback(async () => {
     if (!storeId || cart.length === 0) return;
     
     if (!storeOpen) {
@@ -272,72 +344,31 @@ const MenuPage = () => {
     } finally {
       setIsOrdering(false);
     }
-  };
+  }, [storeId, cart, storeOpen, tableNumber, totalPrice]);
+
+  // Stable callbacks for JSX props (prevents child re-renders from inline closures)
+  const handleOpenOrderHistory = useCallback(() => setIsOrderStatusOpen(true), []);
+  const handleOpenCart = useCallback(() => setIsCartOpen(true), []);
+  const handleCloseCart = useCallback(() => setIsCartOpen(false), []);
+  const handleCloseOrderStatus = useCallback(() => setIsOrderStatusOpen(false), []);
+  const handleCloseReview = useCallback(() => setReviewOrder(null), []);
+  const handleWriteReview = useCallback((order) => {
+    setIsOrderStatusOpen(false);
+    setReviewOrder(order || { id: currentOrderId, store_id: Number(storeId), store_name: profile?.store_name });
+  }, [currentOrderId, storeId, profile?.store_name]);
+  const handleCloseOptionModal = useCallback(() => {
+    setOptionModalItem(null);
+    setOptionModalGroups([]);
+  }, []);
+  const handleClosePhoneSheet = useCallback(() => {
+    setIsPhoneSheetOpen(false);
+    setTimeout(() => setIsOrderStatusOpen(true), 300);
+  }, []);
 
   if (!isNumericStoreId) return null;
+  if (isLoading) return <ColdStartLoading elapsed={elapsed} />;
 
-  if (isLoading) {
-    const isColdStart = elapsed >= 8;
-    const progressPct = Math.min(elapsed * 1.8, 88);
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6">
-        <div className="text-center space-y-6 max-w-xs w-full">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-            {isColdStart
-              ? <UtensilsCrossed size={28} className="text-orange-400" />
-              : <Loader2 size={28} className="animate-spin text-orange-400" />}
-          </div>
-
-          <div>
-            <h2 className="text-white font-black text-lg mb-1.5">
-              {isColdStart ? '서버를 깨우는 중...' : '메뉴를 불러오는 중...'}
-            </h2>
-            <p className="text-slate-500 text-sm leading-relaxed">
-              {elapsed < 8
-                ? '잠시만 기다려주세요.'
-                : elapsed < 30
-                  ? '처음 접속 시 서버를 깨우는 데 최대 30초 걸립니다.'
-                  : '거의 준비됐습니다! 조금만 더 기다려주세요...'}
-            </p>
-          </div>
-
-          <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
-            <div
-              className="h-full bg-orange-500 rounded-full transition-all duration-700"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-
-          <div className="flex items-center justify-center gap-2 text-slate-600">
-            <Loader2 size={14} className="animate-spin" />
-            <span className="text-xs">{elapsed}초 경과</span>
-          </div>
-
-          {elapsed >= 50 && (
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full py-3 bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all"
-            >
-              <RefreshCw size={15} /> 페이지 새로고침
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // 테마 CSS 변수 생성
-  const themeStyle = profile?.theme ? {
-    '--color-primary': profile.theme.primaryColor || '#f97316',
-    '--color-secondary': profile.theme.secondaryColor || '#1e3a5f',
-    '--color-accent': profile.theme.accentColor || '#10b981',
-    '--color-bg': profile.theme.backgroundColor || '#f8fafc',
-    '--color-card': profile.theme.cardColor || '#ffffff',
-    '--color-text': profile.theme.textColor || '#1e293b',
-    fontFamily: profile.theme.fontFamily || 'inherit',
-    backgroundColor: profile.theme.backgroundColor || undefined,
-    color: profile.theme.textColor || undefined,
-  } : {};
+  const themeStyle = buildThemeStyle(profile?.theme);
 
   return (
     <div className="min-h-screen pb-24 font-sans tracking-tight" style={themeStyle}>
@@ -353,7 +384,7 @@ const MenuPage = () => {
       <MenuHeader
         storeName={profile?.store_name || "위마켓"}
         tableNumber={tableNumber}
-        onOrderHistoryClick={() => setIsOrderStatusOpen(true)}
+        onOrderHistoryClick={handleOpenOrderHistory}
       />
 
       {/* Store Info */}
@@ -383,7 +414,7 @@ const MenuPage = () => {
         ) : (
           <div className="space-y-4">
             {filteredItems.map(item => {
-              const options = getOptionsForMenuItem(item.id);
+    const options = getOptionsForMenuItem(menuItems, item.id);
               const isPopular = orderStats.includes(item.id);
               const isNew = isNewItem(item);
               
@@ -410,13 +441,13 @@ const MenuPage = () => {
       <CartButton
         totalItems={totalItems}
         totalPrice={totalPrice}
-        onClick={() => setIsCartOpen(true)}
+        onClick={handleOpenCart}
       />
 
       {/* Cart Modal */}
       <CartModal
         isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
+        onClose={handleCloseCart}
         cart={cart}
         onUpdateQuantity={updateQuantity}
         onOrder={handleOrder}
@@ -428,23 +459,20 @@ const MenuPage = () => {
       {storeId && (
         <OrderStatusModal
           isOpen={isOrderStatusOpen}
-          onClose={() => { setIsOrderStatusOpen(false); }}
+          onClose={handleCloseOrderStatus}
           orderId={currentOrderId}
           storeId={storeId}
           tableNumber={tableNumber}
-          onWriteReview={(order) => {
-            setIsOrderStatusOpen(false);
-            setReviewOrder(order || { id: currentOrderId, store_id: Number(storeId), store_name: profile?.store_name });
-          }}
+          onWriteReview={handleWriteReview}
         />
       )}
 
       {/* 리뷰 작성 모달 (주문 상태에서 진입, 실제 사진 첨부 지원) */}
       <ReviewModal
         isOpen={!!reviewOrder}
-        onClose={() => setReviewOrder(null)}
+        onClose={handleCloseReview}
         order={reviewOrder}
-        onSuccess={() => setReviewOrder(null)}
+        onSuccess={handleCloseReview}
       />
 
       {/* Option Selection Modal */}
@@ -452,10 +480,7 @@ const MenuPage = () => {
         <OptionSelectionModal
           key={optionModalItem.id}
           isOpen={!!optionModalItem}
-          onClose={() => {
-            setOptionModalItem(null);
-            setOptionModalGroups([]);
-          }}
+          onClose={handleCloseOptionModal}
           onConfirm={handleOptionConfirm}
           item={optionModalItem}
           optionGroups={optionModalGroups}
@@ -465,10 +490,7 @@ const MenuPage = () => {
       {/* 주문 후 핸드폰 번호 등록 (포인트·알림·회원가입 통합) */}
       <CustomerPhoneSheet
         isOpen={isPhoneSheetOpen}
-        onClose={() => {
-          setIsPhoneSheetOpen(false);
-          setTimeout(() => setIsOrderStatusOpen(true), 300);
-        }}
+        onClose={handleClosePhoneSheet}
         storeId={storeId}
         orderId={currentOrderId}
         totalAmount={currentOrderAmount}
