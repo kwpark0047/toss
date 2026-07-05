@@ -50,6 +50,7 @@ const LegalSettings      = lazy(() => import("@/components/admin/LegalSettings")
 const LegalPage          = lazy(() => import("@/pages/LegalPage"));
 const StoreSettings      = lazy(() => import("@/components/admin/StoreSettings"));
 const NotificationTemplatesManager = lazy(() => import("@/components/admin/NotificationTemplatesManager"));
+const DeveloperConsole = lazy(() => import("@/components/admin/DeveloperConsole"));
 
 const queryClient = new QueryClient();
 
@@ -302,6 +303,13 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/notification-templates" element={
       <AdminPage>
         <ValidStoreRoute><AdminSuspense><NotificationTemplatesManager /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
+    {/* 개발자 콘솔 (Open Commerce Hub API · 웹훅) */}
+    <Route path="/admin/stores/:storeId/developer" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><DeveloperConsole /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 

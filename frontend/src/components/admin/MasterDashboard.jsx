@@ -10,7 +10,7 @@ import {
     Sparkles, LayoutDashboard, Settings, RefreshCw,
     Bell, QrCode, LayoutGrid, Home, ReceiptText,
     BadgeCheck, ChefHat, AlertCircle, CalendarDays,
-    Download, FileSpreadsheet, FileText, Loader2, MessageSquareText,
+    Download, FileSpreadsheet, FileText, Loader2, MessageSquareText, Code2,
 } from 'lucide-react';
 
 /* ─── 내보내기 패널 ─── */
@@ -528,6 +528,8 @@ const MasterDashboard = () => {
                         { label: '예약 관리',   path: 'reservations',  icon: CalendarDays,desc: '테이블 예약 및 일정 관리',   grad: 'from-rose-500 to-pink-500' },
                         { label: '영수증 설정', path: 'receipt-settings', icon: ReceiptText, desc: '인쇄 양식 설정',           grad: 'from-amber-500 to-orange-500' },
                         { label: '분석 대시보드',path: 'analytics',    icon: BarChart3,   desc: '고급 데이터 분석',           grad: 'from-emerald-500 to-teal-500' },
+                        { label: '알림 템플릿', path: 'notification-templates', icon: Bell, desc: '자동 알림 문구 관리',      grad: 'from-sky-500 to-indigo-500' },
+                        { label: '개발자 콘솔', path: 'developer',     icon: Code2,       desc: 'Open API·웹훅 연동',         grad: 'from-slate-500 to-gray-600' },
                         { label: 'AI 팅커벨',   path: null,            icon: Sparkles,    desc: 'AI 도우미 서비스',           grad: 'from-indigo-500 to-violet-500', navTo: '/admin/tinkerbell' },
                     ].map(tool => (
                         <button key={tool.label}
