@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const authMiddleware = require('../middleware/auth');
+const { generalLimiter } = require('../middleware/rateLimiter');
 
 // 업로드 디렉토리 확인 및 생성
 const uploadDir = path.join(__dirname, '../public/uploads');
@@ -55,6 +56,22 @@ router.post('/image', authMiddleware, upload.single('image'), (req, res) => {
     res.json({
         success: true,
         url: imageUrl,
+        filename: req.file.filename
+    });
+});
+
+/**
+ * 리뷰 이미지 업로드 (고객용, 무인증)
+ * 고객은 로그인하지 않으므로 인증 없이 허용하되, rate limit + 5MB + 이미지 타입
+ * 제한(multer 설정)으로 남용을 방어한다. 클라이언트에서 1차 압축 후 업로드된다.
+ */
+router.post('/review-image', generalLimiter, upload.single('image'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ success: false, error: '파일이 없습니다.' });
+    }
+    res.json({
+        success: true,
+        url: buildUploadUrl(req, req.file.filename),
         filename: req.file.filename
     });
 });

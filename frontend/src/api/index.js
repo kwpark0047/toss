@@ -551,6 +551,10 @@ export const uploadsAPI = {
   uploadImages: (formData) => api.post('/uploads/images', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  // 고객 리뷰 이미지 업로드 (무인증)
+  uploadReviewImage: (formData) => api.post('/uploads/review-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   deleteImage: (filename) => api.delete(`/uploads/image/${filename}`)
 };
 

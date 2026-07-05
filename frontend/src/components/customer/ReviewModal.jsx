@@ -1,32 +1,43 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { reviewsAPI } from '../../api';
+import { reviewsAPI, uploadsAPI } from '../../api';
 import { useTranslation } from 'react-i18next';
 import { Camera, Send, Loader2, CheckCircle, X, Star } from "lucide-react";
+import { compressImage } from '../../utils/imageCompress';
 
 /**
  * 리뷰 작성 모달 컴포넌트
- * 주문 완료 후 별점과 리뷰 내용을 작성하며, 데모용 사진 첨부 기능을 포함합니다.
+ * 주문 완료 후 별점과 리뷰 내용을 작성하며, 실제 사진 첨부(휴대폰 촬영/앨범)를 지원합니다.
  */
 const ReviewModal = ({ isOpen, onClose, order, onSuccess }) => {
     const { t } = useTranslation();
     const [rating, setRating] = useState(5);
     const [content, setContent] = useState('');
-    const [imageUrl, setImageUrl] = useState(''); // 데모용 이미지 URL
+    const [imageUrl, setImageUrl] = useState('');
     const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const fileInputRef = useRef(null);
 
-    // [데모용] 사진 첨부 시 랜덤 고화질 이미지 주입
-    const handleAttachPhoto = () => {
-        const demoImages = [
-            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800',
-            'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800',
-            'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800',
-            'https://images.unsplash.com/photo-1567620905732-2d1ec7bb7445?w=800'
-        ];
-        const randomImg = demoImages[Math.floor(Math.random() * demoImages.length)];
-        setImageUrl(randomImg);
-        alert('테스트용 사진이 첨부되었습니다.');
+    // 실제 사진 첨부: 파일 선택 → 클라이언트 압축 → 무인증 리뷰 업로드
+    const handleFileChange = async (e) => {
+        const original = e.target.files?.[0];
+        if (!original) return;
+        setUploading(true);
+        try {
+            const { file } = await compressImage(original, { maxDim: 1200, quality: 0.82 });
+            const fd = new FormData();
+            fd.append('image', file);
+            const res = await uploadsAPI.uploadReviewImage(fd);
+            const url = res?.url || res?.data?.url;
+            if (url) setImageUrl(url);
+            else alert('사진 업로드에 실패했습니다. 다시 시도해주세요.');
+        } catch {
+            alert('사진 업로드에 실패했습니다. 다시 시도해주세요.');
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
     };
 
     const handleSubmit = async () => {
@@ -119,25 +130,37 @@ const ReviewModal = ({ isOpen, onClose, order, onSuccess }) => {
                                     />
                                 </div>
 
-                                {/* 사진 첨부 (데모) */}
+                                {/* 사진 첨부 (실제 촬영/앨범, 자동 압축) */}
                                 <div className="space-y-3">
                                     {imageUrl && (
                                         <div className="relative w-full h-32 rounded-2xl overflow-hidden ring-2 ring-orange-500/20">
-                                            <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                                            <img src={imageUrl} alt="첨부한 리뷰 사진 미리보기" className="w-full h-full object-cover" />
                                             <button
                                                 onClick={() => setImageUrl('')}
+                                                aria-label="첨부 사진 제거"
                                                 className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full"
                                             >
-                                                <X size={14} />
+                                                <X size={14} aria-hidden="true" />
                                             </button>
                                         </div>
                                     )}
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        className="hidden"
+                                        onChange={handleFileChange}
+                                    />
                                     <button
-                                        onClick={handleAttachPhoto}
-                                        className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center gap-2 text-slate-400 hover:border-orange-200 hover:text-orange-400 transition-colors"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={uploading}
+                                        className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center gap-2 text-slate-400 hover:border-orange-200 hover:text-orange-400 transition-colors disabled:opacity-50"
                                     >
-                                        <Camera size={20} />
-                                        <span className="font-bold">{imageUrl ? '다른 사진으로 변경' : t('review.attach_photo') || '사진 첨부 (선택)'}</span>
+                                        {uploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+                                        <span className="font-bold">
+                                            {uploading ? '사진 업로드 중…' : (imageUrl ? '다른 사진으로 변경' : (t('review.attach_photo') || '사진 첨부 (선택)'))}
+                                        </span>
                                     </button>
                                 </div>
 
