@@ -5,7 +5,7 @@ import {
   ArrowLeft, Plus, Edit, Trash2, Clock, Star, Sparkles, Flame, AlertTriangle,
   Image, Tag, FileText, Wand2, ShoppingBag, Download, Store, Folders, Search,
   Upload, Settings, GripVertical, X, ChevronDown, ChevronUp, Package, Leaf,
-  LayoutGrid, Check, Info
+  LayoutGrid, Check, Info, Loader2, ImageOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
@@ -21,6 +21,52 @@ const formatFileSize = (bytes) => {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
+
+// ── 대표 이미지 미리보기 (로딩/성공/에러 3상태, 모바일 반응형) ────────────────
+function ImagePreview({ src, onRemove }) {
+  const [status, setStatus] = useState('loading');
+  // src가 바뀌면 로딩 상태로 리셋 (깨진 이미지 아이콘 대신 스피너/폴백 표시)
+  useEffect(() => { setStatus('loading'); }, [src]);
+
+  return (
+    <div className="relative w-full max-w-[220px] sm:w-48 mx-auto sm:mx-0">
+      <div className="absolute -inset-2 bg-gradient-to-r from-orange-500 to-rose-600 rounded-[28px] blur opacity-20" />
+      <div className="relative aspect-square rounded-[20px] overflow-hidden border border-white/10 shadow-2xl bg-slate-900">
+        {status !== 'error' && (
+          <img
+            src={src}
+            alt="대표 이미지 미리보기"
+            decoding="async"
+            onLoad={() => setStatus('loaded')}
+            onError={() => setStatus('error')}
+            className={`w-full h-full object-cover transition-opacity duration-300 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+          />
+        )}
+        {status === 'loading' && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 text-slate-600 animate-spin" aria-hidden="true" />
+            <span className="sr-only">이미지 불러오는 중</span>
+          </div>
+        )}
+        {status === 'error' && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
+            <ImageOff className="w-8 h-8 text-slate-600" aria-hidden="true" />
+            <p className="text-[11px] font-black text-slate-400">이미지를 불러올 수 없습니다</p>
+            <p className="text-[10px] text-slate-600 break-all line-clamp-2">URL 또는 파일을 다시 확인해주세요</p>
+          </div>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label="대표 이미지 제거"
+        className="absolute -top-2 -right-2 w-8 h-8 bg-slate-800 hover:bg-rose-500 text-white rounded-full flex items-center justify-center transition-all border border-white/10 shadow-lg"
+      >
+        <X size={13} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
 
 // ── 업종별 샘플 이미지 ────────────────────────────────────────────────────────
 const SAMPLE_IMAGES = {
@@ -1303,21 +1349,12 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
                   )}
                 </AnimatePresence>
 
-                {/* 이미지 미리보기 */}
+                {/* 이미지 미리보기 (로딩/성공/에러 3상태) */}
                 {form.image_url && (
-                  <div className="relative w-48">
-                    <div className="absolute -inset-2 bg-gradient-to-r from-orange-500 to-rose-600 rounded-[28px] blur opacity-20" />
-                    <div className="relative aspect-square rounded-[20px] overflow-hidden border border-white/10 shadow-2xl">
-                      <img src={form.image_url} alt="미리보기" className="w-full h-full object-cover" />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => { setForm(prev => ({ ...prev, image_url: '' })); setImageInfo(null); }}
-                      className="absolute -top-2 -right-2 w-7 h-7 bg-slate-800 hover:bg-rose-500 text-white rounded-full flex items-center justify-center transition-all border border-white/10 shadow-lg"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
+                  <ImagePreview
+                    src={form.image_url}
+                    onRemove={() => { setForm(prev => ({ ...prev, image_url: '' })); setImageInfo(null); }}
+                  />
                 )}
               </div>
 
