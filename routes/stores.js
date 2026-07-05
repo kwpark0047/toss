@@ -5,6 +5,7 @@ const authMiddleware = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const prisma = require('../config/prisma');
+const cache = require('../utils/cache');
 
 // 전체 매장 목록 조회
 router.get('/', catchAsync(async (req, res) => {
@@ -18,10 +19,15 @@ router.get('/my', authMiddleware, catchAsync(async (req, res) => {
     res.success(stores);
 }));
 
-// 매장 상세 조회
+// 매장 상세 조회 — 고객 메뉴판 진입 시 매번 호출되는 핫 경로라 60초 캐시 적용
 router.get('/:id', catchAsync(async (req, res) => {
+    const cacheKey = `store:${req.params.id}:profile`;
+    const cached = cache.get(cacheKey);
+    if (cached) return res.success(cached);
+
     const store = await Store.findById(req.params.id);
     if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다' });
+    cache.set(cacheKey, store, 60);
     res.success(store);
 }));
 
@@ -40,6 +46,7 @@ router.put('/:id', authMiddleware, bridgeStoreId, checkStorePermission('store:up
     const store = await Store.findById(req.params.id);
     if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다' });
     const updated = await Store.update(req.params.id, req.body);
+    cache.flushByStore(req.params.id);
     res.success(updated, '매장 정보가 수정되었습니다');
 }));
 

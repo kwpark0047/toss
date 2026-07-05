@@ -82,10 +82,11 @@ router.get('/deep', async (req, res) => {
     let overallOk = true;
 
     // 1. DB — 3초 초과 지연은 장애 전조로 warn 표시 (overall은 유지)
+    // SELECT 1: 테이블 스캔 없는 순수 연결+왕복 지연 측정
     const t0 = Date.now();
     try {
         await Promise.race([
-            prisma.$queryRaw`SELECT COUNT(*) FROM stores`,
+            prisma.$queryRaw`SELECT 1`,
             new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 5000))
         ]);
         const latencyMs = Date.now() - t0;
@@ -155,7 +156,9 @@ router.get('/sla', (req, res) => {
     const SLO_UPTIME_PCT = 99.5;
 
     res.json({
-        target: { uptimePct: SLO_UPTIME_PCT, maxDowntimePerQuarterMin: 648, p99MaxMs: 2000, errorRateMaxPct: 1.0 },
+        // p99 목표 3000ms: Render(미국)↔Supabase(싱가포르) 크로스리전 왕복을 반영한 현실 값.
+        // 리전 정렬 또는 세션 모드 전환 후 2000ms로 복원 권장
+        target: { uptimePct: SLO_UPTIME_PCT, maxDowntimePerQuarterMin: 648, p99MaxMs: 3000, errorRateMaxPct: 1.0 },
         current: {
             uptimeSeconds: uptimeSec,
             uptimeFormatted: _formatUptime(uptimeSec),

@@ -5,11 +5,19 @@ const authMiddleware = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { product: schema } = require('../utils/validationSchemas');
 const catchAsync = require('../utils/catchAsync');
+const cache = require('../utils/cache');
 
-// 매장별 상품 목록 조회
+// 매장별 상품 목록 조회 — 고객 메뉴판의 최다 호출 경로라 60초 캐시 적용
+// (Render↔Supabase 크로스리전 왕복이 쿼리당 1초 이상이라 캐시 효과가 큼)
 router.get('/store/:storeId', catchAsync(async (req, res) => {
     const { category_id } = req.query;
+    const cacheKey = `store:${req.params.storeId}:products:${category_id || 'all'}`;
+
+    const cached = cache.get(cacheKey);
+    if (cached) return res.success(cached);
+
     const products = await Product.findByStoreId(req.params.storeId, category_id);
+    cache.set(cacheKey, products, 60);
     res.success(products);
 }));
 
@@ -25,12 +33,14 @@ router.post('/', authMiddleware, validate(schema.create), catchAsync(async (req,
     const logger = require('../utils/logger');
     logger.info(`상품 생성: store=${req.body.store_id}, name=${req.body.name}, price=${req.body.price}`);
     const product = await Product.create(req.body);
+    cache.flushByStore(req.body.store_id);
     res.success(product, '상품이 생성되었습니다', 201);
 }));
 
 // 상품 정보 수정
 router.put('/:id', authMiddleware, catchAsync(async (req, res) => {
     const product = await Product.update(req.params.id, req.body);
+    if (product?.store_id) cache.flushByStore(product.store_id);
 
     const io = req.app.get('io');
     if (io && product.store_id) {
@@ -49,7 +59,9 @@ router.put('/:id', authMiddleware, catchAsync(async (req, res) => {
 
 // 상품 삭제
 router.delete('/:id', authMiddleware, catchAsync(async (req, res) => {
+    const existing = await Product.findById(req.params.id);
     await Product.delete(req.params.id);
+    if (existing?.store_id) cache.flushByStore(existing.store_id);
     res.success(null, '상품이 삭제되었습니다');
 }));
 
@@ -62,6 +74,7 @@ router.post('/bulk', authMiddleware, catchAsync(async (req, res) => {
     const createdProducts = await Promise.all(
         products.map(p => Product.create({ ...p, store_id: parseInt(store_id) }))
     );
+    cache.flushByStore(store_id);
     res.success(createdProducts, `${createdProducts.length}개의 상품이 등록되었습니다.`, 201);
 }));
 
@@ -76,6 +89,7 @@ router.post('/import', authMiddleware, catchAsync(async (req, res) => {
             return Product.create({ ...rest, store_id: parseInt(target_store_id) });
         })
     );
+    cache.flushByStore(target_store_id);
 
     res.success(imported, `${imported.length}개의 메뉴를 성공적으로 가져왔습니다.`);
 }));
