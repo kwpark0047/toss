@@ -5,14 +5,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import Index from "./pages/Index";
-import MenuPage from "./pages/MenuPage";
-import QrResolvePage from "./pages/QrResolvePage";
-import MenuDemo from "./components/customer/MenuDemo";
-import AuthPage from "./pages/AuthPage";
-import Register from "./components/Register";
-import StoreSearchPage from "./pages/StoreSearchPage";
-import NotFound from "./pages/NotFound";
+// 공개 페이지 지연 로딩: 각 라우트가 자기 청크만 로드해 초기 번들(index) 축소
+const Index = lazy(() => import("./pages/Index"));
+const MenuPage = lazy(() => import("./pages/MenuPage"));
+const QrResolvePage = lazy(() => import("./pages/QrResolvePage"));
+const MenuDemo = lazy(() => import("./components/customer/MenuDemo"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const Register = lazy(() => import("./components/Register"));
+const StoreSearchPage = lazy(() => import("./pages/StoreSearchPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 import PWAInstallBanner from "@/components/common/PWAInstallBanner";
 import PWAUpdateNotification from "@/components/common/PWAUpdateNotification";
 import OfflineBanner from "@/components/common/OfflineBanner";
@@ -109,14 +110,14 @@ const AdminPage = ({ children }) => (
 
 const AppRoutes = () => (
   <Routes>
-    <Route path="/" element={<Index />} />
-    <Route path="/auth" element={<AuthPage />} />
+    <Route path="/" element={<AdminSuspense><Index /></AdminSuspense>} />
+    <Route path="/auth" element={<AdminSuspense><AuthPage /></AdminSuspense>} />
     <Route path="/login" element={<Navigate to="/auth" replace />} />
-    <Route path="/register" element={<Register />} />
-    <Route path="/search" element={<StoreSearchPage />} />
-    <Route path="/menu/demo" element={<MenuDemo />} />
-    <Route path="/menu/:storeId" element={<MenuPage />} />
-    <Route path="/qr/:qrCode" element={<QrResolvePage />} />
+    <Route path="/register" element={<AdminSuspense><Register /></AdminSuspense>} />
+    <Route path="/search" element={<AdminSuspense><StoreSearchPage /></AdminSuspense>} />
+    <Route path="/menu/demo" element={<AdminSuspense><MenuDemo /></AdminSuspense>} />
+    <Route path="/menu/:storeId" element={<AdminSuspense><MenuPage /></AdminSuspense>} />
+    <Route path="/qr/:qrCode" element={<AdminSuspense><QrResolvePage /></AdminSuspense>} />
 
     {/* Admin 메인 대시보드 */}
     <Route path="/admin" element={
@@ -300,7 +301,7 @@ const AppRoutes = () => (
     <Route path="/board" element={<AdminSuspense><BoardList /></AdminSuspense>} />
 
     {/* 404 */}
-    <Route path="*" element={<NotFound />} />
+    <Route path="*" element={<AdminSuspense><NotFound /></AdminSuspense>} />
   </Routes>
 );
 
