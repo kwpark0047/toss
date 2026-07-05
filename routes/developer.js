@@ -11,6 +11,7 @@ const authMiddleware = require('../middleware/auth');
 const { getStoreRole } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const { generateApiKey } = require('../utils/apiKey');
+const { validateWebhookUrl } = require('../utils/ssrfGuard');
 
 // 매장 권한 확인 (소유주/매니저만)
 async function ensureStorePermission(req, res) {
@@ -74,9 +75,9 @@ router.get('/stores/:storeId/webhooks', authMiddleware, catchAsync(async (req, r
 router.post('/stores/:storeId/webhooks', authMiddleware, catchAsync(async (req, res) => {
     const storeId = await ensureStorePermission(req, res); if (!storeId) return;
     const { url, events } = req.body;
-    // 프로덕션은 https 강제, 개발 환경은 http(localhost 테스트) 허용
-    const urlOk = process.env.NODE_ENV === 'production' ? /^https:\/\//.test(url) : /^https?:\/\//.test(url);
-    if (!url || !urlOk) return res.status(400).json({ error: 'https URL을 입력해주세요.' });
+    // SSRF 방어: 프로토콜 검증 + DNS 해석 후 내부(사설/loopback/링크로컬/메타데이터) 대역 차단
+    const check = await validateWebhookUrl(url);
+    if (!check.ok) return res.status(400).json({ error: check.reason });
     const eventStr = Array.isArray(events) ? events.join(',') : (events || '*');
     const secret = 'whsec_' + crypto.randomBytes(24).toString('hex');
     const created = await prisma.webhook_endpoints.create({

@@ -21,6 +21,10 @@ jest.mock('../../config/prisma', () => mockPrisma);
 
 jest.mock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
 
+// SSRF 가드 모킹 — 발송 로직 자체를 테스트하므로 URL 검증은 통과시킴
+// (실제 SSRF 차단 동작은 ssrfGuard 전용 테스트에서 검증)
+jest.mock('../../utils/ssrfGuard', () => ({ validateWebhookUrl: jest.fn().mockResolvedValue({ ok: true }) }));
+
 const { emitEvent, attemptDelivery, sign, startRetryScheduler, MAX_ATTEMPTS } = require('../../services/webhookDispatcher');
 
 const EP_ID = 99;

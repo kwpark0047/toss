@@ -36,8 +36,8 @@ const notificationService = require('./services/notificationService');
 /**
  * CORS 설정
  */
+const isProduction = process.env.NODE_ENV === 'production';
 const allowedOrigins = [
-    'http://localhost:3000',
     'http://localhost:3002',
     'http://localhost:5173',
     'http://localhost:5174',
@@ -47,6 +47,10 @@ const allowedOrigins = [
     'https://wemarket.vercel.app',
     'https://250105.vercel.app'
 ];
+// 프로덕션에서 localhost는 CORS 목록에서 제외 (불필요한 공격 표면 감소)
+if (!isProduction) {
+    allowedOrigins.push('http://localhost:3000');
+}
 
 if (process.env.CORS_ORIGIN) {
     process.env.CORS_ORIGIN.split(',').forEach(origin => {
@@ -149,7 +153,7 @@ app.use('/api/health', healthRouter);
 // ── 운영 편의 엔드포인트 (시드/DB push) ────────────────────────────────────
 // 임의 명령 실행을 노출하므로 프로덕션에서는 기본 비활성. 한시적으로 필요할 때만
 // ENABLE_DEV_OPS=true 로 켠다. 라우터 내부에서 SEED_KEY 인증을 강제한다.
-if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEV_OPS === 'true') {
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEV_OPS) {
     app.use('/api/_devops', require('./routes/_devOps'));
     require('./utils/logger').warn('[app] 운영 편의 엔드포인트(/api/_devops) 활성화됨');
 }
@@ -179,35 +183,40 @@ if (process.env.NODE_ENV !== 'production') {
     });
 }
 
-// Firebase 설정은 프론트엔드 VITE env 변수로 직접 주입 (개발 환경에서만 API 확인용)
-if (process.env.NODE_ENV !== 'production') {
-    app.get("/api/config/firebase", (req, res) => {
-        res.json({
-            apiKey: process.env.FIREBASE_API_KEY,
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-            appId: process.env.FIREBASE_APP_ID
-        });
+// Firebase 설정 API - Service Worker가 fetch하여 초기화 (CSP/XSS 리스크 완화)
+// env 값을 JS에 직접 삽입하지 않고 런타임 Fetch로 가져옴
+app.get("/api/config/firebase", (req, res) => {
+    res.json({
+        apiKey: process.env.FIREBASE_API_KEY || '',
+        projectId: process.env.FIREBASE_PROJECT_ID || '',
+        messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '',
+        appId: process.env.FIREBASE_APP_ID || ''
     });
-}
+});
 
-
-
-// [보안/동적] Firebase Messaging Service Worker를 환경변수 기반으로 동적 생성하여 제공
+// Firebase Messaging Service Worker - config 엔드포인트에서 Fetch로 초기화
 app.get("/firebase-messaging-sw.js", (req, res) => {
     res.setHeader('Content-Type', 'application/javascript');
     const script = `
         importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
         importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
-        firebase.initializeApp({
-            apiKey: "${process.env.FIREBASE_API_KEY || ''}",
-            projectId: "${process.env.FIREBASE_PROJECT_ID || ''}",
-            messagingSenderId: "${process.env.FIREBASE_MESSAGING_SENDER_ID || ''}",
-            appId: "${process.env.FIREBASE_APP_ID || ''}"
-        });
+        self.addEventListener('install', () => self.skipWaiting());
 
-        const messaging = firebase.messaging();
+        fetch('/api/config/firebase')
+            .then(function(r) { return r.json(); })
+            .then(function(config) {
+                firebase.initializeApp({
+                    apiKey: config.apiKey || '',
+                    projectId: config.projectId || '',
+                    messagingSenderId: config.messagingSenderId || '',
+                    appId: config.appId || ''
+                });
+                var messaging = firebase.messaging();
+            })
+            .catch(function() {
+                console.warn('[SW] Firebase config fetch failed — push notifications disabled');
+            });
     `;
     res.send(script);
 });
@@ -239,6 +248,7 @@ const routes = {
     coupons: require('./routes/coupons'),
     reservations: require('./routes/reservations'),
     staff: require('./routes/staff'),
+    notificationTemplates: require('./routes/notificationTemplates'),
     uploads: require('./routes/uploads'),
     crm: require('./routes/crm'),
     menuOptimization: require('./routes/menuOptimization'),
@@ -276,6 +286,7 @@ app.use(`${API_PREFIX}/orders`, orderLimiter, routes.orders);
 app.use(`${API_PREFIX}/tables`, routes.tables);
 app.use(`${API_PREFIX}/payments`, paymentLimiter, routes.payments);
 app.use(`${API_PREFIX}/notifications`, routes.notifications);
+app.use(`${API_PREFIX}/notification-templates`, routes.notificationTemplates);
 app.use(`${API_PREFIX}/categories`, routes.categories);
 app.use(`${API_PREFIX}/admin`, routes.admin);
 app.use(`${API_PREFIX}/points`, routes.points);

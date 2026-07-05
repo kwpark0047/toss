@@ -49,6 +49,7 @@ const CommunityPage      = lazy(() => import("@/components/admin/CommunityPage")
 const LegalSettings      = lazy(() => import("@/components/admin/LegalSettings"));
 const LegalPage          = lazy(() => import("@/pages/LegalPage"));
 const StoreSettings      = lazy(() => import("@/components/admin/StoreSettings"));
+const NotificationTemplatesManager = lazy(() => import("@/components/admin/NotificationTemplatesManager"));
 
 const queryClient = new QueryClient();
 
@@ -294,6 +295,13 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/legal" element={
       <AdminPage>
         <ValidStoreRoute><AdminSuspense><LegalSettings /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
+    {/* 알림 템플릿 관리 */}
+    <Route path="/admin/stores/:storeId/notification-templates" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><NotificationTemplatesManager /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 

@@ -16,16 +16,19 @@ if (!JWT_SECRET && !IS_DEV) {
 }
 
 
+const JWT_ACCESS_EXPIRY = process.env.JWT_ACCESS_EXPIRY || '2h';
+const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d';
+
 const signTokens = (user) => {
   const token = jwt.sign(
     { id: user.id, name: user.name, role: user.role || 'user', type: 'access' },
     JWT_SECRET,
-    { expiresIn: '2h' }
+    { expiresIn: JWT_ACCESS_EXPIRY }
   );
   const refreshToken = jwt.sign(
     { id: user.id, type: 'refresh' },
     JWT_REFRESH_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: JWT_REFRESH_EXPIRY }
   );
   return { token, refreshToken };
 };

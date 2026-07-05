@@ -11,6 +11,7 @@
 const crypto = require('crypto');
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
+const { validateWebhookUrl } = require('../utils/ssrfGuard');
 
 const MAX_ATTEMPTS = 5;
 const TIMEOUT_MS = 8000;
@@ -30,8 +31,13 @@ async function attemptDelivery(delivery, endpoint) {
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     let responseStatus = null, ok = false, errMsg = null;
     try {
+        // SSRF 재검증: 등록 후 DNS 레코드가 내부 주소로 바뀌었을 수 있으므로 발송 직전 재확인
+        const revalidate = await validateWebhookUrl(endpoint.url);
+        if (!revalidate.ok) throw new Error(`blocked: ${revalidate.reason}`);
+
         const res = await fetch(endpoint.url, {
             method: 'POST',
+            redirect: 'manual', // 리다이렉트로 내부 주소 우회 방지 (3xx는 실패 처리)
             headers: {
                 'Content-Type': 'application/json',
                 'User-Agent': 'WeMarket-Webhook/1.0',
@@ -44,7 +50,8 @@ async function attemptDelivery(delivery, endpoint) {
         });
         responseStatus = res.status;
         ok = res.status >= 200 && res.status < 300;
-        if (!ok) errMsg = `HTTP ${res.status}`;
+        if (res.status >= 300 && res.status < 400) errMsg = `redirect blocked (HTTP ${res.status})`;
+        else if (!ok) errMsg = `HTTP ${res.status}`;
     } catch (e) {
         errMsg = e.name === 'AbortError' ? 'timeout' : e.message;
     } finally {

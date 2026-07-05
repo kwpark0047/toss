@@ -477,6 +477,7 @@ model stores {
   products               products[]
   reservations           reservations[]
   notifications          notifications[]
+  notification_templates notification_templates[]
   reviews                reviews[]
   settlements            settlements[]
   staff                  staff[]
@@ -867,6 +868,23 @@ model webhook_endpoints {
   deliveries webhook_deliveries[]
 
   @@index([store_id], map: "idx_webhook_endpoints_store")
+}
+
+model notification_templates {
+  id         Int      @id @default(autoincrement())
+  store_id   Int?
+  type       String   // NEW_ORDER | ORDER_STATUS | LOW_STOCK | NEW_REVIEW | NEW_RESERVATION | MANAGER_CALL | SETTLEMENT | SYSTEM
+  channel    String   @default("all") // push | socket | alimtalk | all
+  title      String
+  message    String
+  variables  String?  // JSON: 사용 가능한 변수 목록 (e.g. ["orderNumber", "customerName"])
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  stores     stores?  @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id, type], map: "idx_nt_store_type")
+  @@index([store_id, is_active], map: "idx_nt_store_active")
 }
 
 model webhook_deliveries {

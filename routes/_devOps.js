@@ -3,32 +3,45 @@
  *
  * ⚠️ 보안: 이 라우터는 임의 명령 실행(execFile) 및 raw SQL을 노출하므로
  * 기본적으로 프로덕션에서 마운트되지 않는다. 프로덕션에서 한시적으로 필요할 때만
- * 환경변수 ENABLE_DEV_OPS=true 로 명시적으로 켜야 하며, 모든 요청은 SEED_KEY
+ * 환경변수 ENABLE_DEV_OPS=<고유값> 으로 명시적으로 켜야 하며, 모든 요청은 SEED_KEY
  * (timingSafeEqual) 인증을 통과해야 한다. 사용 후 즉시 플래그를 내릴 것.
  *
+ * ENABLE_DEV_OPS 단순히 "true"가 아니라 특정 토큰값을 요구하도록 변경:
+ *   process.env.ENABLE_DEV_OPS 가 문자열 "true"가 아닌, 설정한 실제 값과
+ *   x-devops-token 헤더가 일치해야 접근 가능 (2중 인증).
+ *
  * app.js에서 조건부 마운트:
- *   if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEV_OPS === 'true')
+ *   if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEV_OPS)
  *       app.use('/api/_devops', require('./routes/_devOps'));
+ *   (ENABLE_DEV_OPS= 가 설정된 값과 x-devops-token 헤더가 일치해야 접근 가능)
  */
 const router = require('express').Router();
-const crypto = require('crypto');
+const { timingSafeEqual } = require('crypto');
 const { execFile } = require('child_process');
 const logger = require('../utils/logger');
 
-const _SEED_KEY = Buffer.from(process.env.SEED_KEY || 'wm-seed-2026');
+const _SEED_KEY = Buffer.from(process.env.SEED_KEY || '');
+const _DEVOPS_TOKEN = process.env.ENABLE_DEV_OPS || '';
 
 function checkSeedKey(k) {
     if (!k) return false;
     try {
         const b = Buffer.from(String(k));
-        return b.length === _SEED_KEY.length && crypto.timingSafeEqual(b, _SEED_KEY);
+        return b.length === _SEED_KEY.length && timingSafeEqual(b, _SEED_KEY);
     } catch { return false; }
 }
 
-// 모든 devops 라우트에 공통 인증
+// 모든 devops 라우트에 공통 인증 (2중 검증)
 router.use((req, res, next) => {
+    // 1차: ENABLE_DEV_OPS 토큰 일치 확인 (단순 "true" 방지)
+    const tokenHeader = req.headers['x-devops-token'] || '';
+    if (!_DEVOPS_TOKEN || _DEVOPS_TOKEN === 'true' || !timingSafeEqual(Buffer.from(_DEVOPS_TOKEN), Buffer.from(tokenHeader))) {
+        logger.warn(`[devOps] 토큰 인증 실패: ${req.method} ${req.originalUrl} from ${req.ip}`);
+        return res.status(403).json({ error: 'forbidden' });
+    }
+    // 2차: SEED_KEY 일치 확인
     if (!checkSeedKey(req.headers['x-seed-key'])) {
-        logger.warn(`[devOps] 인증 실패: ${req.method} ${req.originalUrl} from ${req.ip}`);
+        logger.warn(`[devOps] SEED_KEY 인증 실패: ${req.method} ${req.originalUrl} from ${req.ip}`);
         return res.status(403).json({ error: 'forbidden' });
     }
     next();

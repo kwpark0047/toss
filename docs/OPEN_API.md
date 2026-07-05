@@ -114,6 +114,31 @@ function verify(rawBody, header, secret) {
 
 ---
 
+## ESC/POS 주방 프린팅 (제로 하드웨어 교체)
+
+기존 POS를 교체하지 않고 QR 주문을 기존 주방 프린터로 자동 출력한다. 클라우드는
+로컬 프린터에 직접 접근하지 않고, 매장 로컬에서 실행되는 **프린트 브리지**가
+아웃바운드 폴링으로 잡을 가져가 인쇄한다(NAT 안쪽, 방화벽 설정 불필요).
+
+**흐름**: 주문 생성 → 서버가 ESC/POS 바이트(CP949 한글) 생성 → `print_jobs` 적재
+→ 브리지가 claim → 로컬 프린터(RAW 9100/USB) 전송 → ack.
+
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| POST | `/v1/print/jobs/claim` | 대기 잡 원자적 수령(FOR UPDATE SKIP LOCKED, 중복 방지). `{max}` |
+| POST | `/v1/print/jobs/:id/ack` | 인쇄 결과 보고 `{success, error}` (실패 시 3회까지 재시도) |
+
+잡 응답의 `payload_b64`는 인쇄 준비가 끝난 ESC/POS 바이트(base64). 브리지는
+디코딩해 프린터로 그대로 흘려보내면 된다(인코딩·포맷은 서버가 완결).
+
+**브리지 실행** (매장 로컬):
+```bash
+WM_API_KEY=wm_live_xxx PRINTER_HOST=192.168.0.50 node scripts/print-bridge.js
+```
+LAN 프린터는 RAW 9100 소켓으로 무의존 전송, USB는 node-escpos 옵션(스크립트 주석 참고).
+
+---
+
 ## 아키텍처 노트
 
 - **격리**: API 키 → store_id 매핑으로 모든 쿼리가 자동 스코프. 타 매장 데이터 접근 불가.

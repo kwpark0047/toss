@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Store, LogOut, LayoutDashboard, UtensilsCrossed,
   Settings, Users, Receipt, Wallet, Palette,
-  Menu as MenuIcon, X, MessageSquare, LogIn, Smartphone, CalendarCheck, Sparkles, Package,
+  Menu as MenuIcon, X, MessageSquare, LogIn, Smartphone, CalendarCheck, Sparkles, Package, Bell,
   UserCircle, ChevronRight, Check, ShoppingBag, Building2, Activity, Scale,
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
@@ -613,6 +613,7 @@ const AdminLayout = ({ children }) => {
     { label: '단골 관리',     icon: Users,             path: `/admin/stores/${storeId}/customers`,               show: !!storeId, roles: [] },
     { label: '팀원 관리',     icon: Users,             path: `/admin/stores/${storeId}/staff`,                   show: !!storeId, roles: [] },
     { label: '매장 환경설정', icon: Settings,          path: `/admin/stores/${storeId}/settings`,               show: !!storeId, roles: [] },
+    { label: '알림 템플릿',   icon: Bell,              path: `/admin/stores/${storeId}/notification-templates`,  show: !!storeId, roles: [] },
     { label: '시스템 현황',   icon: Activity,     path: '/admin/system-status', roles: [] },
     { label: 'AI 팅커벨',     icon: Sparkles,     path: '/admin/tinkerbell',   roles: [] },
     { label: '통합 SMS 발송', icon: Smartphone,   path: '/admin/bulk-sms',     roles: ['super_admin'] },

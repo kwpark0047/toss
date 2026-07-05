@@ -64,7 +64,7 @@ router.get('/orders', catchAsync(async (req, res) => {
         total_amount: o.total_amount, table_id: o.table_id,
         customer_phone: maskPhone(o.customer_phone),
         created_at: o.created_at,
-        items: (o.order_items || []).map(i => ({ name: i.item_name, quantity: i.quantity, price: i.price })),
+        items: (o.order_items || []).map(i => ({ name: i.product_name, quantity: i.quantity, price: i.price })),
     }));
     res.json({ data, meta: { count: data.length } });
 }));
@@ -78,7 +78,7 @@ router.get('/orders/:id', catchAsync(async (req, res) => {
     res.json({ data: {
         id: o.id, order_number: o.order_number, status: o.status, total_amount: o.total_amount,
         table_id: o.table_id, customer_phone: maskPhone(o.customer_phone), created_at: o.created_at,
-        items: (o.order_items || []).map(i => ({ name: i.item_name, quantity: i.quantity, price: i.price })),
+        items: (o.order_items || []).map(i => ({ name: i.product_name, quantity: i.quantity, price: i.price })),
     }});
 }));
 
@@ -137,6 +137,44 @@ router.get('/analytics/summary', catchAsync(async (req, res) => {
         avg_order_value: orders.length ? Math.round(revenue / orders.length) : 0,
         period: date || 'all_time',
     }});
+}));
+
+// ── 프린트 잡 (온프레미스 프린트 브리지용, write 스코프) ──────────────────────
+// 브리지가 주기적으로 claim → 로컬 프린터로 payload_b64(ESC/POS) 전송 → ack.
+router.post('/print/jobs/claim', requireScope('write'), catchAsync(async (req, res) => {
+    const max = Math.min(parseInt(req.body?.max) || 5, 20);
+    // pending 중 오래된 순으로 원자적 claim (동시 브리지 중복 방지)
+    const claimed = await prisma.$queryRawUnsafe(
+        `UPDATE print_jobs SET status='printing', claimed_at=NOW(), attempts=attempts+1
+         WHERE id IN (
+           SELECT id FROM print_jobs WHERE store_id=$1 AND status='pending'
+           ORDER BY created_at ASC LIMIT $2 FOR UPDATE SKIP LOCKED
+         ) RETURNING id, order_id, kind, payload_b64, attempts`,
+        req.apiClient.storeId, max
+    );
+    res.json({ data: claimed, meta: { count: claimed.length } });
+}));
+
+router.post('/print/jobs/:id/ack', requireScope('write'), catchAsync(async (req, res) => {
+    const { success, error } = req.body || {};
+    const id = parseInt(req.params.id);
+    if (success) {
+        await prisma.$executeRawUnsafe(
+            `UPDATE print_jobs SET status='done', printed_at=NOW(), error=NULL WHERE id=$1 AND store_id=$2`,
+            id, req.apiClient.storeId
+        );
+    } else {
+        // 3회 미만이면 재시도(pending 복귀), 이상이면 failed
+        const rows = await prisma.$queryRawUnsafe(
+            `SELECT attempts FROM print_jobs WHERE id=$1 AND store_id=$2`, id, req.apiClient.storeId
+        );
+        const status = (rows[0]?.attempts || 0) >= 3 ? 'failed' : 'pending';
+        await prisma.$executeRawUnsafe(
+            `UPDATE print_jobs SET status=$1, error=$2 WHERE id=$3 AND store_id=$4`,
+            status, String(error || '').slice(0, 300), id, req.apiClient.storeId
+        );
+    }
+    res.json({ data: { id, ok: true } });
 }));
 
 module.exports = router;

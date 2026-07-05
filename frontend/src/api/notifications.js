@@ -16,3 +16,16 @@ export const notificationsAPI = {
   registerToken: (token) =>
     api.post('/notifications/register-token', { token }),
 };
+
+export const notificationTemplatesAPI = {
+  getList: (storeId, params = {}) =>
+    api.get('/notification-templates', { params: { store_id: storeId, ...params } }),
+  get: (id) =>
+    api.get(`/notification-templates/${id}`),
+  create: (data) =>
+    api.post('/notification-templates', data),
+  update: (id, data) =>
+    api.put(`/notification-templates/${id}`, data),
+  delete: (id) =>
+    api.delete(`/notification-templates/${id}`),
+};

@@ -179,6 +179,9 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
             order_id: order.id, order_number: order.order_number,
             total_amount: order.total_amount, table_id: order.table_id, source: 'qr',
         });
+        // ESC/POS 주방 프린트 잡 생성 (온프레미스 브리지가 수령·인쇄)
+        require('../services/printService').createKitchenJob(order, { tableName: resolvedTableName })
+            .catch(err => logger.warn(`[print] 잡 생성 오류 (order ${order.id}): ${err.message}`));
     }
 
     res.success(order, '주문이 생성되었습니다');
