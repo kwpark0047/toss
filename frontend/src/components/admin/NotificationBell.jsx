@@ -86,9 +86,10 @@ function NotificationItem({ notification, onRead, onDelete, onNavigate }) {
             </div>
             <button
                 onClick={(e) => { e.stopPropagation(); onDelete(notification.id); }}
+                aria-label="알림 삭제"
                 className="flex-shrink-0 opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-white/10 transition-all"
             >
-                <X size={12} className="text-slate-500" />
+                <X size={12} className="text-slate-500" aria-hidden="true" />
             </button>
         </div>
     );
@@ -125,9 +126,11 @@ export default function NotificationBell() {
             {/* 벨 버튼 */}
             <button
                 onClick={() => { setIsOpen(o => !o); if (!isOpen) refresh(); }}
+                aria-label={unreadCount > 0 ? `알림 ${unreadCount}건` : '알림'}
+                aria-expanded={isOpen}
                 className="relative w-12 h-12 flex items-center justify-center bg-white/5 text-slate-400 rounded-2xl border border-white/5 hover:text-orange-400 hover:border-orange-500/30 transition-all"
             >
-                <Bell size={20} className={unreadCount > 0 ? 'text-orange-400' : ''} />
+                <Bell size={20} className={unreadCount > 0 ? 'text-orange-400' : ''} aria-hidden="true" />
                 {unreadCount > 0 && (
                     <span className={`absolute -top-1.5 -right-1.5 min-w-[20px] h-5 flex items-center justify-center text-white text-[10px] font-black rounded-full px-1 border-2 border-slate-950
                         ${urgentCount > 0 ? 'bg-red-500 animate-pulse' : 'bg-orange-500'}`}>
@@ -163,21 +166,20 @@ export default function NotificationBell() {
                                 )}
                             </div>
                             <div className="flex items-center gap-1">
-                                <button onClick={refresh} className="p-1.5 rounded-xl hover:bg-white/10 transition-all" title="새로고침">
-                                    <RefreshCw size={13} className={`text-slate-400 ${loading ? 'animate-spin' : ''}`} />
+                                <button onClick={refresh} aria-label="새로고침" className="p-1.5 rounded-xl hover:bg-white/10 transition-all" title="새로고침">
+                                    <RefreshCw size={13} className={`text-slate-400 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
                                 </button>
-                                <button onClick={() => setSoundEnabled(s => !s)} className="p-1.5 rounded-xl hover:bg-white/10 transition-all">
-                                    {soundEnabled ? <Volume2 size={13} className="text-slate-400" /> : <VolumeX size={13} className="text-slate-500" />}
+                                <button onClick={() => setSoundEnabled(s => !s)} aria-label={soundEnabled ? '알림음 끄기' : '알림음 켜기'} className="p-1.5 rounded-xl hover:bg-white/10 transition-all">
+                                    {soundEnabled ? <Volume2 size={13} className="text-slate-400" aria-hidden="true" /> : <VolumeX size={13} className="text-slate-500" aria-hidden="true" />}
                                 </button>
                                 {unreadCount > 0 && (
-                                    <button onClick={markAllAsRead} className="p-1.5 rounded-xl hover:bg-white/10 transition-all" title="전체 읽음">
-                                        <Check size={13} className="text-slate-400" />
+                                    <button onClick={markAllAsRead} aria-label="전체 읽음" className="p-1.5 rounded-xl hover:bg-white/10 transition-all" title="전체 읽음">
+                                        <Check size={13} className="text-slate-400" aria-hidden="true" />
                                     </button>
                                 )}
                                 <div className="relative">
-                                    <button onClick={() => setShowClearMenu(v => !v)} className="p-1.5 rounded-xl hover:bg-white/10 transition-all">
-                                        <Trash2 size={13} className="text-slate-400" />
-                                    </button>
+                                    <button onClick={() => setShowClearMenu(v => !v)} aria-label="알림 정리 메뉴" className="p-1.5 rounded-xl hover:bg-white/10 transition-all">
+                                        <Trash2 size={13} className="text-slate-400" aria-hidden="true" />
                                     {showClearMenu && (
                                         <div className="absolute right-0 top-8 bg-slate-800 border border-white/10 rounded-xl shadow-xl z-10 overflow-hidden w-36">
                                             <button onClick={() => { clearNotifications('read'); setShowClearMenu(false); }}
