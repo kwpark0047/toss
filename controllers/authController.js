@@ -4,7 +4,7 @@ const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const { AppError } = require('../utils/errorHandler');
 const { sendSms } = require('../utils/smsService');
-const { encryptPhone, decryptPhone, encryptPhoneForSearch, phoneSearchCandidates } = require('../utils/phoneEncryption');
+const { normalizePhone, encryptPhone, decryptPhone, encryptPhoneForSearch, phoneSearchCandidates } = require('../utils/phoneEncryption');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET;
@@ -15,7 +15,6 @@ if (!JWT_SECRET && !IS_DEV) {
   process.exit(1);
 }
 
-const normalizePhone = (phone) => phone.replace(/[^0-9]/g, '');
 
 const signTokens = (user) => {
   const token = jwt.sign(

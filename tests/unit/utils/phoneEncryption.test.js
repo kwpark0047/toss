@@ -11,6 +11,7 @@ process.env.PHONE_ENC_KEY = 'test-phone-enc-key-32chars-long!';
 
 const crypto = require('crypto');
 const {
+    normalizePhone,
     encryptPhone,
     decryptPhone,
     encryptPhoneForSearch,
@@ -21,6 +22,19 @@ const {
 
 describe('phoneEncryption', () => {
     const PHONE = '01012345678';
+
+    describe('normalizePhone', () => {
+        test('하이픈·공백·문자를 제거하고 숫자만 남긴다', () => {
+            expect(normalizePhone('010-1234-5678')).toBe('01012345678');
+            expect(normalizePhone('010 1234 5678')).toBe('01012345678');
+            expect(normalizePhone('+82 10-1234-5678')).toBe('821012345678');
+        });
+        test('null/undefined/빈값은 빈 문자열', () => {
+            expect(normalizePhone(null)).toBe('');
+            expect(normalizePhone(undefined)).toBe('');
+            expect(normalizePhone('')).toBe('');
+        });
+    });
 
     describe('encryptPhone / decryptPhone 왕복', () => {
         test('암호화 후 복호화하면 원본 번호가 나온다', () => {

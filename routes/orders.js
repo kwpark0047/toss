@@ -290,8 +290,8 @@ router.put('/:id/status', authMiddleware, catchAsync(async (req, res) => {
         // 전화번호 기반 고객 알림 채널
         const customerPhone = updatedOrder.customer_phone;
         if (customerPhone) {
-            const { decryptPhone } = require('../utils/phoneEncryption');
-            const normalized = decryptPhone(customerPhone).replace(/[^0-9]/g, '');
+            const { decryptPhone, normalizePhone } = require('../utils/phoneEncryption');
+            const normalized = normalizePhone(decryptPhone(customerPhone));
             io.to(`customer-orders-${normalized}`).emit('order-status-updated', orderUpdatePayload);
         }
     }

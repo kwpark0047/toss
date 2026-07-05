@@ -8,6 +8,7 @@ const Point = require('../models/Point');
 const StoreTier = require('../models/StoreTier');
 const catchAsync = require('../utils/catchAsync');
 const logger = require('../utils/logger');
+const { normalizePhone } = require('../utils/phoneEncryption');
 
 /**
  * [고객 핸드폰 번호 통합 등록]
@@ -21,7 +22,7 @@ router.post('/phone-join', catchAsync(async (req, res) => {
         return res.status(400).json({ success: false, message: '핸드폰 번호와 매장 ID는 필수입니다.' });
     }
 
-    const normalizedPhone = phone.replace(/[^0-9]/g, '');
+    const normalizedPhone = normalizePhone(phone);
     const storeId = parseInt(store_id);
     const amount = parseInt(total_amount) || 0;
     const orderId = order_id ? parseInt(order_id) : null;

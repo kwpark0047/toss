@@ -33,6 +33,9 @@ const PREFIX = 'enc:';
 
 const isEncrypted = (v) => typeof v === 'string' && v.startsWith(PREFIX);
 
+// 전화번호에서 숫자만 남긴다 (여러 모듈에 흩어져 있던 정규화 로직 통합)
+const normalizePhone = (phone) => String(phone || '').replace(/[^0-9]/g, '');
+
 const encryptWithIvKey = (normalized, ivKey) => {
     const iv = crypto.createHmac('sha256', ivKey).update(normalized).digest().slice(0, 16);
     const cipher = crypto.createCipheriv('aes-256-cbc', ENC_KEY, iv);
@@ -46,7 +49,7 @@ const encryptWithIvKey = (normalized, ivKey) => {
 const encryptPhone = (phone) => {
     if (!phone || isEncrypted(phone)) return phone;
     if (!ENC_KEY || !HMAC_KEY) return phone; // 키 미설정 시 평문 유지
-    const normalized = phone.replace(/[^0-9]/g, '');
+    const normalized = normalizePhone(phone);
     if (!normalized) return phone;
     return encryptWithIvKey(normalized, HMAC_KEY);
 };
@@ -77,8 +80,7 @@ const decryptPhone = (stored) => {
  * DB의 암호화된 값과 비교 가능
  */
 const encryptPhoneForSearch = (phone) => {
-    const normalized = phone.replace(/[^0-9]/g, '');
-    return encryptPhone(normalized);
+    return encryptPhone(normalizePhone(phone));
 };
 
 /**
@@ -86,7 +88,7 @@ const encryptPhoneForSearch = (phone) => {
  * 레거시 IV 키로 저장된 기존 레코드와 평문(마이그레이션 전) 레코드를 모두 커버한다.
  */
 const phoneSearchCandidates = (phone) => {
-    const normalized = String(phone || '').replace(/[^0-9]/g, '');
+    const normalized = normalizePhone(phone);
     if (!normalized) return [];
     const candidates = [normalized];
     if (ENC_KEY && HMAC_KEY) {
@@ -108,4 +110,4 @@ const decryptPhoneFields = (obj, fields = ['phone', 'customer_phone']) => {
     return result;
 };
 
-module.exports = { encryptPhone, decryptPhone, encryptPhoneForSearch, phoneSearchCandidates, decryptPhoneFields, isEncrypted };
+module.exports = { normalizePhone, encryptPhone, decryptPhone, encryptPhoneForSearch, phoneSearchCandidates, decryptPhoneFields, isEncrypted };
