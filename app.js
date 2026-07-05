@@ -17,6 +17,9 @@ const alerting = require('./utils/alerting');
 const healthRouter = require('./routes/health');
 const { requestTracker } = require('./routes/health');
 
+// 앱 버전 단일 소스: package.json (엔드포인트 간 불일치 방지)
+const APP_VERSION = require('./package.json').version;
+
 // 글로벌 미처리 예외 알림 등록
 alerting.registerGlobalHandlers();
 
@@ -143,93 +146,22 @@ app.use((req, res, next) => {
  */
 app.use('/api/health', healthRouter);
 
-// ── 임시 시드 실행 엔드포인트 (사용 후 제거 예정) ──────────────────────────
-const { execFile } = require('child_process');
-let _seedJob = null; // { status, output, startedAt }
-
-const _SEED_KEY = Buffer.from(process.env.SEED_KEY || 'wm-seed-2026');
-function _checkSeedKey(k) {
-    if (!k) return false;
-    try { const b = Buffer.from(k); return b.length === _SEED_KEY.length && require('crypto').timingSafeEqual(b, _SEED_KEY); } catch { return false; }
+// ── 운영 편의 엔드포인트 (시드/DB push) ────────────────────────────────────
+// 임의 명령 실행을 노출하므로 프로덕션에서는 기본 비활성. 한시적으로 필요할 때만
+// ENABLE_DEV_OPS=true 로 켠다. 라우터 내부에서 SEED_KEY 인증을 강제한다.
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEV_OPS === 'true') {
+    app.use('/api/_devops', require('./routes/_devOps'));
+    require('./utils/logger').warn('[app] 운영 편의 엔드포인트(/api/_devops) 활성화됨');
 }
 
-app.post('/api/_seed-start', (req, res) => {
-    if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
-    if (_seedJob?.status === 'running') return res.json({ status: 'already_running', output: _seedJob.output });
-
-    _seedJob = { status: 'running', output: '', startedAt: new Date().toISOString() };
-    const child = execFile('node', ['scripts/seed_test.js'], {
-        cwd: process.cwd(), timeout: 900000, env: process.env, maxBuffer: 10 * 1024 * 1024
-    });
-    child.stdout?.on('data', d => { _seedJob.output += d; });
-    child.stderr?.on('data', d => { _seedJob.output += '[ERR] ' + d; });
-    child.on('close', code => {
-        _seedJob.status = code === 0 ? 'done' : 'failed';
-        _seedJob.exitCode = code;
-        _seedJob.finishedAt = new Date().toISOString();
-    });
-
-    res.json({ status: 'started', message: '시드 실행 시작. /api/_seed-status 로 확인하세요.' });
-});
-
-app.get('/api/_seed-status', (req, res) => {
-    if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
-    res.json(_seedJob || { status: 'not_started' });
-});
-
-let _dbPushJob = null;
-app.post('/api/_db-push', (req, res) => {
-    if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
-    if (_dbPushJob?.status === 'running') return res.json({ status: 'already_running' });
-
-    _dbPushJob = { status: 'running', output: '', startedAt: new Date().toISOString() };
-    const child = execFile('npx', ['prisma', 'db', 'push', '--accept-data-loss', '--skip-generate'], {
-        cwd: process.cwd(), timeout: 120000, env: process.env, maxBuffer: 5 * 1024 * 1024
-    });
-    child.stdout?.on('data', d => { _dbPushJob.output += d; });
-    child.stderr?.on('data', d => { _dbPushJob.output += d; });
-    child.on('close', code => {
-        _dbPushJob.status = code === 0 ? 'done' : 'failed';
-        _dbPushJob.exitCode = code;
-        _dbPushJob.finishedAt = new Date().toISOString();
-    });
-    res.json({ status: 'started', message: 'prisma db push 실행 중. /api/_db-push-status 로 확인하세요.' });
-});
-app.get('/api/_db-push-status', (req, res) => {
-    if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
-    res.json(_dbPushJob || { status: 'not_started' });
-});
-
-app.post('/api/_migrate-attendance', async (req, res) => {
-    if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
-    try {
-        const prisma = require('./config/prisma');
-        await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS staff_attendance (id SERIAL PRIMARY KEY, staff_id INTEGER NOT NULL, store_id INTEGER NOT NULL, clock_in TIMESTAMPTZ NOT NULL DEFAULT NOW(), clock_out TIMESTAMPTZ, work_hours FLOAT, note TEXT, created_at TIMESTAMPTZ DEFAULT NOW(), CONSTRAINT fk_sa_staff FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE, CONSTRAINT fk_sa_store FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE)`);
-        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_attendance_staff_time ON staff_attendance(staff_id, clock_in)`);
-        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_attendance_store_time ON staff_attendance(store_id, clock_in)`);
-        res.json({ success: true, message: 'staff_attendance 테이블 생성 완료' });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.get('/api/_db-tables', async (req, res) => {
-    if (!_checkSeedKey(req.headers['x-seed-key'])) return res.status(403).json({ error: 'forbidden' });
-    try {
-        const prisma = require('./config/prisma');
-        const rows = await prisma.$queryRaw`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name`;
-        res.json({ tables: rows.map(r => r.table_name) });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
-// ── 임시 시드 엔드포인트 끝 ─────────────────────────────────────────────────
-
-// 버전/디버그 엔드포인트 (개발 환경에서만 상세 정보 노출)
+// 버전 엔드포인트 — package.json 단일 소스에서 읽어 불일치 방지
 app.get('/api/version', (req, res) => {
     const info = {
-        version: '1.0.9',
+        version: APP_VERSION,
         environment: process.env.NODE_ENV || 'production'
     };
     if (process.env.NODE_ENV !== 'production') {
         info.deployedAt = new Date().toISOString();
-        info.message = 'Direct DB Connection Verification Active';
     }
     res.json(info);
 });
@@ -242,7 +174,7 @@ if (process.env.NODE_ENV !== 'production') {
             platform: process.platform,
             nodeVersion: process.version,
             timestamp: new Date().toISOString(),
-            version: '1.0.8-final-mega'
+            version: APP_VERSION
         });
     });
 }

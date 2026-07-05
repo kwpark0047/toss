@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
     logger.info(`[서버] WeMarket API 서버 실행 중: http://localhost:${PORT}`);
     logger.info(`[환경] NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-    logger.info(`[버전] v1.1.0 - 가용성·모니터링 고도화`);
+    logger.info(`[버전] v${require('./package.json').version}`);
 
     // 주간 매출 리포트 스케줄러 (매주 월요일 09:00 KST)
     require('./services/weeklyReportService').start();
