@@ -73,6 +73,28 @@ const MenuSkeleton = ({ pageBg }) => (
   </div>
 );
 
+// 메뉴 상품 이미지: 로드 실패 시 깨진 아이콘 대신 이미지 없을 때와 동일한 placeholder로 대체
+const MenuItemImage = ({ src, alt, isMagazine }) => {
+  const [failed, setFailed] = useState(false);
+  const phCls = isMagazine ? 'w-full h-full' : 'w-28 h-28 rounded-[1.5rem]';
+  if (!src || failed) {
+    return (
+      <div className={`${phCls} bg-slate-50 flex items-center justify-center text-slate-300 shrink-0 border border-slate-100`}>
+        <Star size={32} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className={`${isMagazine ? 'w-full h-full' : 'w-28 h-28 rounded-[1.5rem] ring-4 ring-white'} object-cover shadow-lg group-hover:scale-105 transition-transform duration-700`}
+    />
+  );
+};
+
 const Menu = () => {
   const { t, i18n } = useTranslation();
   const { qrCode } = useParams();
@@ -932,17 +954,7 @@ const Menu = () => {
 
                   {/* 이미지 영역 */}
                   <div className={`${isMagazine ? 'col-span-2 -m-5 mr-5 rounded-none' : 'relative shrink-0'}`}>
-                    {p.image_url ? (
-                      <img
-                        src={p.image_url}
-                        alt={p.name}
-                        className={`${isMagazine ? 'w-full h-full' : 'w-28 h-28 rounded-[1.5rem] ring-4 ring-white'} object-cover shadow-lg group-hover:scale-105 transition-transform duration-700`}
-                      />
-                    ) : (
-                      <div className={`${isMagazine ? 'w-full h-full' : 'w-28 h-28 rounded-[1.5rem]'} bg-slate-50 flex items-center justify-center text-slate-300 shrink-0 border border-slate-100`}>
-                        <Star size={32} />
-                      </div>
-                    )}
+                    <MenuItemImage src={p.image_url} alt={p.name} isMagazine={isMagazine} />
                     {p.is_best && !isMagazine && (
                       <span className="absolute -top-2 -left-2 bg-orange-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg uppercase tracking-tighter">BEST</span>
                     )}
