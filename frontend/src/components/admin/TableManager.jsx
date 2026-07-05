@@ -960,7 +960,7 @@ const TableModal = ({ storeId, table, onClose, onSave }) => {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">테이블 이름</label>
-            <input type="text" value={form.table_number}
+            <input type="text" aria-label="테이블 이름" value={form.table_number}
               onChange={e => setForm({ ...form, table_number: e.target.value })}
               placeholder="예: 테이블 A-01, 창가석 1번"
               required
@@ -968,7 +968,7 @@ const TableModal = ({ storeId, table, onClose, onSave }) => {
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">수용 인원</label>
-            <input type="number" value={form.capacity}
+            <input type="number" aria-label="수용 인원" value={form.capacity}
               onChange={e => setForm({ ...form, capacity: parseInt(e.target.value) })}
               placeholder="인원 수" min={1} max={50}
               className="w-full px-5 py-3.5 bg-white/5 border border-white/5 rounded-2xl text-white font-bold outline-none focus:border-orange-500/40 transition-all text-sm" />

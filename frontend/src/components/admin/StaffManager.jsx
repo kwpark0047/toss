@@ -733,7 +733,7 @@ const AttendTab = ({ staff, attendance, loading, date, onDateChange, onClockIn, 
       <div className="flex items-center gap-4 mb-8">
         <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-5 py-3">
           <Calendar size={16} className="text-slate-400" />
-          <input type="date" value={date} onChange={e => onDateChange(e.target.value)}
+          <input type="date" aria-label="날짜 선택" value={date} onChange={e => onDateChange(e.target.value)}
             className="bg-transparent text-white font-bold text-sm outline-none" />
         </div>
         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={onRefresh}
@@ -852,7 +852,7 @@ const ReportTab = ({ report, loading, month, onMonthChange, isSoloStore, myStaff
       <div className="flex items-center gap-4 mb-8">
         <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-5 py-3">
           <Calendar size={16} className="text-slate-400" />
-          <input type="month" value={month} onChange={e => onMonthChange(e.target.value)}
+          <input type="month" aria-label="월 선택" value={month} onChange={e => onMonthChange(e.target.value)}
             className="bg-transparent text-white font-bold text-sm outline-none" />
         </div>
         <div className="flex gap-3 ml-auto">
@@ -1148,7 +1148,7 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
               ].map(({ label, field, type, placeholder }) => (
                 <div key={field} className="space-y-2">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{label}</label>
-                  <input type={type} value={form[field]} onChange={e => setForm({ ...form, [field]: e.target.value })}
+                  <input type={type} aria-label={label} value={form[field]} onChange={e => setForm({ ...form, [field]: e.target.value })}
                     placeholder={placeholder}
                     className="w-full px-5 py-4 bg-white/5 border border-white/5 rounded-2xl text-white font-bold outline-none focus:border-orange-500/30 transition-all text-sm" />
                 </div>

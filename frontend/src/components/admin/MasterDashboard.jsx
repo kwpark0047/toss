@@ -46,10 +46,10 @@ const ExportPanel = ({ storeId }) => {
             </div>
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
                 <div className="flex items-center gap-2">
-                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                    <input type="date" aria-label="조회 시작일" value={startDate} onChange={e => setStartDate(e.target.value)}
                         className="flex-1 text-[11px] bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-slate-300 outline-none" />
                     <span className="text-slate-600 text-xs">~</span>
-                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                    <input type="date" aria-label="조회 종료일" value={endDate} onChange={e => setEndDate(e.target.value)}
                         className="flex-1 text-[11px] bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-slate-300 outline-none" />
                 </div>
                 <div className="grid grid-cols-3 md:grid-cols-5 gap-2">

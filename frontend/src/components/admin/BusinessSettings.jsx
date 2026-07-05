@@ -184,20 +184,20 @@ export default function BusinessSettings() {
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1.5">상호명 (법인명)</label>
-                                <input type="text" placeholder="(주)위마켓" value={bizForm.business_name}
+                                <input type="text" aria-label="상호명" placeholder="(주)위마켓" value={bizForm.business_name}
                                     onChange={e => setBizForm(f => ({ ...f, business_name: e.target.value }))}
                                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-300" />
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1.5">대표자명</label>
-                                <input type="text" placeholder="홍길동" value={bizForm.ceo_name}
+                                <input type="text" aria-label="대표자명" placeholder="홍길동" value={bizForm.ceo_name}
                                     onChange={e => setBizForm(f => ({ ...f, ceo_name: e.target.value }))}
                                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-300" />
                             </div>
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1.5">세금계산서 수신 이메일</label>
-                            <input type="email" placeholder="billing@example.com" value={bizForm.tax_invoice_email}
+                            <input type="email" aria-label="세금계산서 수신 이메일" placeholder="billing@example.com" value={bizForm.tax_invoice_email}
                                 onChange={e => setBizForm(f => ({ ...f, tax_invoice_email: e.target.value }))}
                                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-300" />
                         </div>
@@ -247,13 +247,13 @@ export default function BusinessSettings() {
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1.5">계좌번호</label>
-                            <input type="text" placeholder="'-' 없이 숫자만 입력" value={accountForm.account_number}
+                            <input type="text" aria-label="계좌번호" placeholder="'-' 없이 숫자만 입력" value={accountForm.account_number}
                                 onChange={e => setAccountForm(f => ({ ...f, account_number: e.target.value.replace(/\D/g, '') }))}
                                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-300 font-mono" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1.5">예금주명</label>
-                            <input type="text" placeholder="(주)위마켓" value={accountForm.account_holder}
+                            <input type="text" aria-label="예금주명" placeholder="(주)위마켓" value={accountForm.account_holder}
                                 onChange={e => setAccountForm(f => ({ ...f, account_holder: e.target.value }))}
                                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-300" />
                         </div>

@@ -254,11 +254,11 @@ const StoreForm = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-4">
                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">영업 시작</label>
-                          <input type="time" name="open_time" value={form.open_time} onChange={handleChange} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold outline-none appearance-none transition-all" />
+                          <input type="time" aria-label="영업 시작 시간" name="open_time" value={form.open_time} onChange={handleChange} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold outline-none appearance-none transition-all" />
                         </div>
                         <div className="space-y-4">
                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">영업 종료</label>
-                          <input type="time" name="close_time" value={form.close_time} onChange={handleChange} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold outline-none appearance-none transition-all" />
+                          <input type="time" aria-label="영업 종료 시간" name="close_time" value={form.close_time} onChange={handleChange} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold outline-none appearance-none transition-all" />
                         </div>
                       </div>
                     </div>
@@ -441,7 +441,7 @@ const StoreForm = () => {
                         ].map(item => (
                           <div key={item.key} className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
                             <input 
-                              type="color" 
+                              type="color" aria-label={`${item.label} 색상 선택`} 
                               value={theme[item.key]} 
                               onChange={(e) => handleThemeChange(item.key, e.target.value)} 
                               className="w-14 h-14 rounded-xl cursor-pointer bg-transparent border-0" 
@@ -449,7 +449,7 @@ const StoreForm = () => {
                             <div className="flex-1">
                               <p className="text-[10px] font-black text-slate-500 tracking-widest uppercase mb-1">{item.label}</p>
                               <input 
-                                type="text" 
+                                type="text" aria-label={`${item.label} 색상 코드`} 
                                 value={theme[item.key]} 
                                 onChange={(e) => handleThemeChange(item.key, e.target.value)} 
                                 className="w-full bg-transparent text-white font-black uppercase text-sm outline-none" 

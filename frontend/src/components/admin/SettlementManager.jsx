@@ -294,12 +294,12 @@ const SettlementManager = () => {
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-600 mb-1">시작일</label>
-                                <input type="date" value={period.start} onChange={e => setPeriod({ ...period, start: e.target.value })}
+                                <input type="date" aria-label="정산 시작일" value={period.start} onChange={e => setPeriod({ ...period, start: e.target.value })}
                                     className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-600 mb-1">종료일</label>
-                                <input type="date" value={period.end} onChange={e => setPeriod({ ...period, end: e.target.value })}
+                                <input type="date" aria-label="정산 종료일" value={period.end} onChange={e => setPeriod({ ...period, end: e.target.value })}
                                     className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
                             </div>
                         </div>

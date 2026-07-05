@@ -1007,7 +1007,7 @@ export default function StoreSetupWizard() {
                   <div className="space-y-4">
                     <div>
                       <label className="text-xs font-black text-slate-400 uppercase tracking-wider block mb-1.5">① 매장 이름 *</label>
-                      <input type="text" value={storeForm.name}
+                      <input type="text" aria-label="매장 이름" value={storeForm.name}
                         onChange={e => setStoreForm(p => ({...p, name: e.target.value}))}
                         onFocus={() => setStep1Focus('name')}
                         placeholder="예: 홍길동 카페"
@@ -1026,14 +1026,14 @@ export default function StoreSetupWizard() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1"><Clock size={11} /> ③ 영업 시작</label>
-                        <input type="time" value={storeForm.open_time}
+                        <input type="time" aria-label="영업 시작 시간" value={storeForm.open_time}
                           onChange={e => setStoreForm(p => ({...p, open_time: e.target.value}))}
                           onFocus={() => setStep1Focus('time')}
                           className="w-full px-3 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500/50 transition-all" />
                       </div>
                       <div>
                         <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1"><Clock size={11} /> 영업 마감</label>
-                        <input type="time" value={storeForm.close_time}
+                        <input type="time" aria-label="영업 마감 시간" value={storeForm.close_time}
                           onChange={e => setStoreForm(p => ({...p, close_time: e.target.value}))}
                           onFocus={() => setStep1Focus('time')}
                           className="w-full px-3 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500/50 transition-all" />
@@ -1041,7 +1041,7 @@ export default function StoreSetupWizard() {
                     </div>
                     <div>
                       <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1"><Phone size={11} /> ④ 연락처 (선택)</label>
-                      <input type="tel" value={storeForm.phone}
+                      <input type="tel" aria-label="연락처" value={storeForm.phone}
                         onChange={e => setStoreForm(p => ({...p, phone: e.target.value}))}
                         onFocus={() => setStep1Focus('phone')}
                         placeholder="010-1234-5678"
@@ -1049,7 +1049,7 @@ export default function StoreSetupWizard() {
                     </div>
                     <div>
                       <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1"><MapPin size={11} /> ⑤ 주소 (선택)</label>
-                      <input type="text" value={storeForm.address}
+                      <input type="text" aria-label="주소" value={storeForm.address}
                         onChange={e => setStoreForm(p => ({...p, address: e.target.value}))}
                         onFocus={() => setStep1Focus('address')}
                         placeholder="서울시 강남구..."
@@ -1110,7 +1110,7 @@ export default function StoreSetupWizard() {
                       <motion.div key={idx} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
                         className="bg-white/5 border border-white/10 rounded-2xl p-4">
                         <div className="flex gap-2 mb-2">
-                          <input type="text" value={item.name} onChange={e => updateMenuItem(idx, 'name', e.target.value)}
+                          <input type="text" aria-label="메뉴 이름" value={item.name} onChange={e => updateMenuItem(idx, 'name', e.target.value)}
                             onFocus={() => {
                               if (!item.name.trim()) {
                                 sayWithDelay(pickRandom([
@@ -1122,12 +1122,12 @@ export default function StoreSetupWizard() {
                             }}
                             placeholder="메뉴 이름 (예: 아메리카노)"
                             className="flex-1 px-3 py-2 bg-white/10 border border-white/10 rounded-xl text-white placeholder:text-slate-600 text-sm font-bold focus:outline-none focus:border-amber-500/50 transition-all" />
-                          <input type="number" value={item.price} onChange={e => updateMenuItem(idx, 'price', e.target.value)}
+                          <input type="number" aria-label="메뉴 가격" value={item.price} onChange={e => updateMenuItem(idx, 'price', e.target.value)}
                             placeholder="가격"
                             className="w-24 px-3 py-2 bg-white/10 border border-white/10 rounded-xl text-white placeholder:text-slate-600 text-sm font-bold focus:outline-none focus:border-amber-500/50 transition-all" />
                         </div>
                         <div className="flex gap-2">
-                          <input type="text" value={item.description} onChange={e => updateMenuItem(idx, 'description', e.target.value)}
+                          <input type="text" aria-label="메뉴 설명" value={item.description} onChange={e => updateMenuItem(idx, 'description', e.target.value)}
                             placeholder="메뉴 설명 (AI 자동완성 가능)"
                             className="flex-1 px-3 py-2 bg-white/10 border border-white/10 rounded-xl text-white placeholder:text-slate-600 text-xs focus:outline-none focus:border-amber-500/50 transition-all" />
                           <button onClick={() => handleAISuggest(idx)} disabled={aiLoadingIdx === idx}
@@ -1246,7 +1246,7 @@ export default function StoreSetupWizard() {
                       <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} exit={{ opacity:0, height:0 }}
                         className="overflow-hidden">
                         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mt-2 space-y-2">
-                          <input type="text" value={newTableName} onChange={e => setNewTableName(e.target.value)}
+                          <input type="text" aria-label="테이블 이름" value={newTableName} onChange={e => setNewTableName(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && handleAddTable()}
                             placeholder="테이블 이름 (예: 테이블04, 룸A, 야외1)"
                             className="w-full px-3 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white placeholder:text-slate-600 text-sm font-bold focus:outline-none focus:border-amber-500/50 transition-all" />
