@@ -44,3 +44,6 @@ wemarket-miniapp/
 .vercel
 .env*
 .env*.local
+
+# 런타임 업로드 파일
+public/uploads/
