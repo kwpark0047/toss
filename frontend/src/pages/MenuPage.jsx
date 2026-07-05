@@ -16,6 +16,7 @@ import OptionSelectionModal from "@/components/menu/OptionSelectionModal";
 import OrderStatusModal from "@/components/menu/OrderStatusModal";
 import CustomerPhoneSheet from "@/components/menu/CustomerPhoneSheet";
 import ReviewModal from "@/components/customer/ReviewModal";
+import StoreReviews from "@/components/customer/StoreReviews";
 import LegalFooter from "@/components/customer/LegalFooter";
 
 const MenuPage = () => {
@@ -400,6 +401,9 @@ const MenuPage = () => {
             })}
           </div>
         )}
+
+        {/* 매장 리뷰 목록 (첨부 사진 포함) */}
+        <StoreReviews storeId={storeId} />
       </div>
 
       {/* Cart Button */}
