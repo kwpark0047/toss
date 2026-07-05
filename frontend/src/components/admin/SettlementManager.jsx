@@ -60,7 +60,7 @@ function SettlementDetailModal({ settlement, onClose, onTaxInvoice }) {
                         <h2 className="text-lg font-black text-gray-900">정산 상세 명세서</h2>
                         <p className="text-xs text-gray-400 mt-0.5">{settlement.period_start} ~ {settlement.period_end}</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full"><X size={20} /></button>
+                    <button onClick={onClose} aria-label="닫기" className="p-2 hover:bg-gray-100 rounded-full"><X size={20} /></button>
                 </div>
 
                 <div className="p-6 space-y-5">

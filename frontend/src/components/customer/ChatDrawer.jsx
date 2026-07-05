@@ -136,9 +136,10 @@ const ChatDrawer = ({ isOpen, onClose, store, table, customerInfo }) => {
                         </div>
                         <button
                             onClick={onClose}
+                            aria-label="채팅 닫기"
                             className="p-2 bg-slate-50 rounded-xl text-slate-400 hover:text-slate-600 transition-colors"
                         >
-                            <X size={20} />
+                            <X size={20} aria-hidden="true" />
                         </button>
                     </div>
 

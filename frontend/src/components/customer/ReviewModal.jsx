@@ -75,7 +75,7 @@ const ReviewModal = ({ isOpen, onClose, order, onSuccess }) => {
                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
                 className="bg-white w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl relative"
             >
-                <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 z-10">
+                <button onClick={onClose} aria-label="닫기" className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 z-10">
                     <X size={24} />
                 </button>
 

@@ -100,7 +100,7 @@ const TogetherPaymentSheet = React.memo(({
                             </h2>
                             <p className="text-sm text-gray-500 font-medium">나누어 결제하면 토스 포인트도 각각 적립돼요!</p>
                         </div>
-                        <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
+                        <button onClick={onClose} aria-label="닫기" className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
                             <X size={24} className="text-gray-600" />
                         </button>
                     </div>

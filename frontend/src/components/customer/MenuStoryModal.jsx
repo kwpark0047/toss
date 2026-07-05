@@ -56,9 +56,10 @@ const MenuStoryModal = ({ isOpen, onClose, product, storeName }) => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     <button
                         onClick={onClose}
+                        aria-label="닫기"
                         className="absolute top-6 right-6 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-colors"
                     >
-                        <X size={20} />
+                        <X size={20} aria-hidden="true" />
                     </button>
                     <div className="absolute bottom-8 left-8 right-8 text-white">
                         <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest border border-white/30">

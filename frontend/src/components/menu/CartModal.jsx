@@ -31,7 +31,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
             
             <div className="px-6 pb-4 flex items-center justify-between border-b border-slate-50">
               <h2 className="text-xl font-black text-slate-900">장바구니</h2>
-              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+              <button onClick={onClose} aria-label="닫기" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                 <X className="w-6 h-6 text-slate-400" />
               </button>
             </div>

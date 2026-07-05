@@ -96,7 +96,7 @@ const WaitingSection = ({ store, onClose }) => {
                 className="bg-white w-full max-w-xl rounded-t-[40px] p-8 shadow-2xl relative"
             >
                 {/* 상단 닫기 버튼 */}
-                <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
+                <button onClick={onClose} aria-label="닫기" className="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
                     <X size={20} />
                 </button>
 
