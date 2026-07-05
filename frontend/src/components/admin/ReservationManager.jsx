@@ -88,11 +88,11 @@ const ReservationManager = () => {
         <div className="max-w-6xl mx-auto space-y-8">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3">
-                        <CalendarCheck className="text-blue-600" size={32} />
+                    <h1 className="text-3xl font-black text-white flex items-center gap-3">
+                        <CalendarCheck className="text-blue-400" size={32} />
                         스마트 예약 관리
                     </h1>
-                    <p className="mt-2 text-gray-500">고객의 예약 접수 현황을 확인하고 관리하세요.</p>
+                    <p className="mt-2 text-slate-400">고객의 예약 접수 현황을 확인하고 관리하세요.</p>
                 </div>
             </div>
 

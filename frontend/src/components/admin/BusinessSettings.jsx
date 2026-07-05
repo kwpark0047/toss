@@ -154,8 +154,8 @@ export default function BusinessSettings() {
     return (
         <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-4">
             <div className="mb-6">
-                <h1 className="text-2xl font-black text-gray-900">사업자 & 결제 설정</h1>
-                <p className="text-sm text-gray-500 mt-1">사업자번호, 계좌이체 계좌, 결제수단, 정산 주기를 관리합니다.</p>
+                <h1 className="text-2xl font-black text-white">사업자 & 결제 설정</h1>
+                <p className="text-sm text-slate-400 mt-1">사업자번호, 계좌이체 계좌, 결제수단, 정산 주기를 관리합니다.</p>
             </div>
 
             {/* ── 사업자 정보 ── */}

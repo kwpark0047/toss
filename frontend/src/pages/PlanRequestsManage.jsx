@@ -96,7 +96,7 @@ const PlanRequestsManage = () => {
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
                     <Crown className="text-purple-500" size={32} />
-                    <h1 className="text-2xl font-bold text-navy-900">플랜 업그레이드 신청 관리</h1>
+                    <h1 className="text-2xl font-bold text-slate-900">플랜 업그레이드 신청 관리</h1>
                 </div>
 
                 {/* 필터 */}
@@ -105,7 +105,7 @@ const PlanRequestsManage = () => {
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === f ? 'bg-white shadow text-navy-900' : 'text-navy-500 hover:text-navy-700'
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === f ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             {f === 'pending' ? '대기' : f === 'approved' ? '승인' : f === 'rejected' ? '거절' : '전체'}
@@ -116,7 +116,7 @@ const PlanRequestsManage = () => {
 
             {loading ? (
                 <div className="flex items-center justify-center min-h-[300px]">
-                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
                 </div>
             ) : requests.length === 0 ? (
                 <div className="text-center py-16">
@@ -130,7 +130,7 @@ const PlanRequestsManage = () => {
                     {requests.map((req) => (
                         <div
                             key={req.id}
-                            className={`bg-white rounded-2xl border-2 transition-all ${selectedRequest?.id === req.id ? 'border-primary-500 shadow-lg' : 'border-gray-100 hover:border-gray-200'
+                            className={`bg-white rounded-2xl border-2 transition-all ${selectedRequest?.id === req.id ? 'border-orange-500 shadow-lg' : 'border-gray-100 hover:border-gray-200'
                                 }`}
                         >
                             <div className="p-6">
@@ -140,8 +140,8 @@ const PlanRequestsManage = () => {
                                             <Store className="text-white" size={24} />
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-navy-900">{req.store_name || `매장 #${req.store_id}`}</h3>
-                                            <p className="text-sm text-navy-500 flex items-center gap-2 mt-1">
+                                            <h3 className="font-bold text-slate-900">{req.store_name || `매장 #${req.store_id}`}</h3>
+                                            <p className="text-sm text-slate-500 flex items-center gap-2 mt-1">
                                                 <User size={14} />
                                                 {req.user_name || req.user_email}
                                             </p>
@@ -158,10 +158,10 @@ const PlanRequestsManage = () => {
 
                                 {req.reason && (
                                     <div className="mb-4 p-3 bg-gray-50 rounded-xl">
-                                        <p className="text-sm text-navy-500 flex items-center gap-2 mb-1">
+                                        <p className="text-sm text-slate-500 flex items-center gap-2 mb-1">
                                             <MessageSquare size={14} />신청 사유
                                         </p>
-                                        <p className="text-sm text-navy-700">{req.reason}</p>
+                                        <p className="text-sm text-slate-700">{req.reason}</p>
                                     </div>
                                 )}
 
@@ -208,7 +208,7 @@ const PlanRequestsManage = () => {
                                         ) : (
                                             <button
                                                 onClick={() => setSelectedRequest(req)}
-                                                className="w-full py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600"
+                                                className="w-full py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600"
                                             >
                                                 처리하기
                                             </button>
@@ -219,7 +219,7 @@ const PlanRequestsManage = () => {
                                 {req.admin_note && req.status !== 'pending' && (
                                     <div className="mt-3 p-3 bg-gray-50 rounded-xl">
                                         <p className="text-xs text-gray-500 mb-1">관리자 메모</p>
-                                        <p className="text-sm text-navy-700">{req.admin_note}</p>
+                                        <p className="text-sm text-slate-700">{req.admin_note}</p>
                                     </div>
                                 )}
                             </div>

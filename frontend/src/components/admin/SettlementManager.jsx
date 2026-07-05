@@ -237,14 +237,14 @@ const SettlementManager = () => {
         <div className="max-w-6xl mx-auto p-6 max-h-[calc(100vh-80px)] overflow-y-auto">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        <DollarSign className="text-emerald-500" /> 정산 관리 시스템
+                    <h1 className="text-2xl font-black text-white flex items-center gap-2">
+                        <DollarSign className="text-emerald-400" /> 정산 관리 시스템
                     </h1>
-                    <p className="text-gray-500 mt-1">매출에서 수수료(공급가액 + 부가세) 차감 후 점주 수취액을 관리합니다.</p>
+                    <p className="text-slate-400 mt-1">매출에서 수수료(공급가액 + 부가세) 차감 후 점주 수취액을 관리합니다.</p>
                 </div>
                 <button
                     onClick={() => setShowGenerate(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 active:scale-95 transition-all"
+                    className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 active:scale-95 transition-all"
                 >
                     <Calculator size={20} /> 정산 데이터 생성
                 </button>
@@ -257,7 +257,7 @@ const SettlementManager = () => {
                         <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600"><TrendingUp /></div>
                         <div>
                             <p className="text-sm text-gray-400">누적 수취액 (점주)</p>
-                            <h4 className="text-xl font-black">{formatPrice(totalNet, true)}</h4>
+                            <h4 className="text-xl font-black text-gray-900">{formatPrice(totalNet, true)}</h4>
                         </div>
                     </div>
                     <div className="text-xs text-gray-400">수수료 차감 후 최종 수취 합계</div>

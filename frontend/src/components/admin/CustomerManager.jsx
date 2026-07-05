@@ -585,14 +585,14 @@ const CustomerManager = () => {
       {/* 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Users size={22} className="text-sky-500" /> 단골고객 관리
+          <h1 className="text-xl font-black text-white flex items-center gap-2">
+            <Users size={22} className="text-sky-400" /> 단골고객 관리
           </h1>
-          <p className="text-sm text-gray-400">방문 이력·포인트·VIP 등급을 한눈에 관리하세요</p>
+          <p className="text-sm text-slate-400">방문 이력·포인트·VIP 등급을 한눈에 관리하세요</p>
         </div>
         <button
           onClick={() => { fetchStats(); fetchCustomers(); }}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+          className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-sm text-slate-300 hover:bg-white/10 hover:text-white transition-colors"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> 새로고침
         </button>

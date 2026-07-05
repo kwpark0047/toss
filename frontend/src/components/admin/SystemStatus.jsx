@@ -91,10 +91,10 @@ export default function SystemStatus() {
             {/* 헤더 */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-                        <Activity className="text-blue-500" /> 시스템 현황
+                    <h1 className="text-2xl font-black text-white flex items-center gap-2">
+                        <Activity className="text-blue-400" /> 시스템 현황
                     </h1>
-                    <p className="text-sm text-gray-400 mt-0.5">
+                    <p className="text-sm text-slate-400 mt-0.5">
                         {lastRefresh ? `마지막 갱신: ${lastRefresh.toLocaleTimeString()}` : '불러오는 중...'}
                         {' '}(30초 자동 갱신)
                     </p>

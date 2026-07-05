@@ -126,7 +126,7 @@ const SalesStats = () => {
   if (loading && !stats) {
     return (
       <div className="flex items-center justify-center py-20">
-        <RefreshCw className="w-8 h-8 text-primary-500 animate-spin" />
+        <RefreshCw className="w-8 h-8 text-orange-500 animate-spin" />
       </div>
     );
   }
@@ -137,17 +137,17 @@ const SalesStats = () => {
       {/* 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <Link to="/admin" className="w-10 h-10 rounded-xl bg-white shadow-soft flex items-center justify-center hover:shadow-card transition-all">
-            <ArrowLeft className="w-5 h-5 text-navy-600" />
+          <Link to="/admin" className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all">
+            <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-navy-900">매출 통계</h1>
-            <p className="text-navy-500 text-sm">{store?.name}</p>
+            <h1 className="text-2xl font-black text-white">매출 통계</h1>
+            <p className="text-slate-400 text-sm">{store?.name}</p>
           </div>
         </div>
-        <button onClick={fetchStats} className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-soft hover:shadow-card transition-all">
-          <RefreshCw className={'w-4 h-4 text-navy-600 ' + (loading ? 'animate-spin' : '')} />
-          <span className="text-navy-600 font-medium">새로고침</span>
+        <button onClick={fetchStats} className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:bg-white/10 hover:text-white transition-all">
+          <RefreshCw className={'w-4 h-4 ' + (loading ? 'animate-spin' : '')} />
+          <span className="font-medium">새로고침</span>
         </button>
       </div>
 
@@ -165,7 +165,7 @@ const SalesStats = () => {
                 key={item.key}
                 onClick={() => setDateRange(item.key)}
                 className={'px-4 py-2 rounded-lg font-medium text-sm transition-all ' +
-                  (dateRange === item.key ? 'bg-white text-navy-900 shadow-soft' : 'text-navy-500 hover:text-navy-700')}
+                  (dateRange === item.key ? 'bg-white text-slate-900 shadow-soft' : 'text-slate-500 hover:text-slate-700')}
               >
                 {item.label}
               </button>
@@ -178,14 +178,14 @@ const SalesStats = () => {
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
-                className="px-3 py-2 bg-gray-50 rounded-xl border-0 focus:ring-2 focus:ring-primary-500 outline-none"
+                className="px-3 py-2 bg-gray-50 rounded-xl border-0 focus:ring-2 focus:ring-orange-500 outline-none"
               />
-              <span className="text-navy-400">~</span>
+              <span className="text-slate-400">~</span>
               <input
                 type="date"
                 value={customEndDate}
                 onChange={(e) => setCustomEndDate(e.target.value)}
-                className="px-3 py-2 bg-gray-50 rounded-xl border-0 focus:ring-2 focus:ring-primary-500 outline-none"
+                className="px-3 py-2 bg-gray-50 rounded-xl border-0 focus:ring-2 focus:ring-orange-500 outline-none"
               />
             </div>
           )}
@@ -196,12 +196,12 @@ const SalesStats = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-2xl shadow-soft p-5 card-hover">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
               <DollarSign className="w-6 h-6 text-white" />
             </div>
           </div>
-          <p className="text-sm text-navy-500 mb-1">총 매출</p>
-          <p className="text-2xl font-bold text-navy-900">{formatPrice(stats?.summary?.total_sales, true)}</p>
+          <p className="text-sm text-slate-500 mb-1">총 매출</p>
+          <p className="text-2xl font-bold text-slate-900">{formatPrice(stats?.summary?.total_sales, true)}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-soft p-5 card-hover">
@@ -210,8 +210,8 @@ const SalesStats = () => {
               <ShoppingBag className="w-6 h-6 text-white" />
             </div>
           </div>
-          <p className="text-sm text-navy-500 mb-1">총 주문</p>
-          <p className="text-2xl font-bold text-navy-900">{formatNumber(stats?.summary?.total_orders)}건</p>
+          <p className="text-sm text-slate-500 mb-1">총 주문</p>
+          <p className="text-2xl font-bold text-slate-900">{formatNumber(stats?.summary?.total_orders)}건</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-soft p-5 card-hover">
@@ -220,8 +220,8 @@ const SalesStats = () => {
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
           </div>
-          <p className="text-sm text-navy-500 mb-1">평균 주문금액</p>
-          <p className="text-2xl font-bold text-navy-900">{formatPrice(Math.round(stats?.summary?.avg_order_amount || 0), true)}</p>
+          <p className="text-sm text-slate-500 mb-1">평균 주문금액</p>
+          <p className="text-2xl font-bold text-slate-900">{formatPrice(Math.round(stats?.summary?.avg_order_amount || 0), true)}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-soft p-5 card-hover">
@@ -230,8 +230,8 @@ const SalesStats = () => {
               <BarChart3 className="w-6 h-6 text-white" />
             </div>
           </div>
-          <p className="text-sm text-navy-500 mb-1">완료율</p>
-          <p className="text-2xl font-bold text-navy-900">
+          <p className="text-sm text-slate-500 mb-1">완료율</p>
+          <p className="text-2xl font-bold text-slate-900">
             {stats?.summary?.total_orders > 0
               ? Math.round((stats.summary.completed_orders / stats.summary.total_orders) * 100)
               : 0}%
@@ -243,18 +243,18 @@ const SalesStats = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* 일별 매출 차트 */}
         <div className="bg-white rounded-2xl shadow-soft p-6">
-          <h3 className="font-bold text-navy-900 mb-4 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-primary-500" />
+          <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-orange-500" />
             일별 매출
           </h3>
           {stats?.daily_sales?.length > 0 ? (
             <div className="space-y-3">
               {stats.daily_sales.map((day, idx) => (
                 <div key={idx} className="flex items-center gap-3">
-                  <span className="w-12 text-sm text-navy-500 flex-shrink-0">{formatDate(day.date)}</span>
+                  <span className="w-12 text-sm text-slate-500 flex-shrink-0">{formatDate(day.date)}</span>
                   <div className="flex-1 h-8 bg-gray-100 rounded-lg overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
+                      className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
                       style={{ width: maxSales > 0 ? `${Math.max((day.sales / maxSales) * 100, 5)}%` : '5%' }}
                     >
                       {day.sales > 0 && (
@@ -262,18 +262,18 @@ const SalesStats = () => {
                       )}
                     </div>
                   </div>
-                  <span className="w-10 text-sm text-navy-400 text-right">{day.order_count}건</span>
+                  <span className="w-10 text-sm text-slate-400 text-right">{day.order_count}건</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-navy-400">데이터가 없습니다</div>
+            <div className="text-center py-8 text-slate-400">데이터가 없습니다</div>
           )}
         </div>
 
         {/* 시간대별 매출 */}
         <div className="bg-white rounded-2xl shadow-soft p-6">
-          <h3 className="font-bold text-navy-900 mb-4 flex items-center gap-2">
+          <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-blue-500" />
             시간대별 매출
           </h3>
@@ -290,19 +290,19 @@ const SalesStats = () => {
                       style={{ height: `${Math.max(height, 2)}%` }}
                       title={`${i}시: ${formatPrice(sales, true)}`}
                     >
-                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-navy-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
                         {formatPrice(sales, true)}
                       </div>
                     </div>
                     {i % 4 === 0 && (
-                      <span className="text-xs text-navy-400">{i}시</span>
+                      <span className="text-xs text-slate-400">{i}시</span>
                     )}
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="text-center py-8 text-navy-400">데이터가 없습니다</div>
+            <div className="text-center py-8 text-slate-400">데이터가 없습니다</div>
           )}
         </div>
       </div>
@@ -311,7 +311,7 @@ const SalesStats = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 인기 메뉴 */}
         <div className="bg-white rounded-2xl shadow-soft p-6">
-          <h3 className="font-bold text-navy-900 mb-4 flex items-center gap-2">
+          <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
             <Award className="w-5 h-5 text-yellow-500" />
             인기 메뉴 TOP 10
           </h3>
@@ -329,23 +329,23 @@ const SalesStats = () => {
                     {idx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-navy-900 truncate">{product.product_name}</p>
-                    <p className="text-sm text-navy-400">{formatPrice(product.total_sales, true)}</p>
+                    <p className="font-medium text-slate-900 truncate">{product.product_name}</p>
+                    <p className="text-sm text-slate-400">{formatPrice(product.total_sales, true)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-navy-900">{product.total_quantity}개</p>
+                    <p className="font-bold text-slate-900">{product.total_quantity}개</p>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-navy-400">데이터가 없습니다</div>
+            <div className="text-center py-8 text-slate-400">데이터가 없습니다</div>
           )}
         </div>
 
         {/* 결제 방법별 통계 */}
         <div className="bg-white rounded-2xl shadow-soft p-6">
-          <h3 className="font-bold text-navy-900 mb-4 flex items-center gap-2">
+          <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
             <PieChart className="w-5 h-5 text-purple-500" />
             결제 방법별 통계
           </h3>
@@ -358,10 +358,10 @@ const SalesStats = () => {
                 return (
                   <div key={idx}>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium text-navy-700">{getPaymentMethodName(payment.method)}</span>
+                      <span className="font-medium text-slate-700">{getPaymentMethodName(payment.method)}</span>
                       <div className="text-right">
-                        <span className="text-navy-900 font-bold">{formatPrice(payment.total, true)}</span>
-                        <span className="text-navy-400 text-sm ml-2">({payment.count}건)</span>
+                        <span className="text-slate-900 font-bold">{formatPrice(payment.total, true)}</span>
+                        <span className="text-slate-400 text-sm ml-2">({payment.count}건)</span>
                       </div>
                     </div>
                     <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -370,20 +370,20 @@ const SalesStats = () => {
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
-                    <p className="text-right text-xs text-navy-400 mt-1">{percentage}%</p>
+                    <p className="text-right text-xs text-slate-400 mt-1">{percentage}%</p>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="text-center py-8 text-navy-400">데이터가 없습니다</div>
+            <div className="text-center py-8 text-slate-400">데이터가 없습니다</div>
           )}
         </div>
       </div>
 
       {/* 추가 통계 정보 */}
       <div className="mt-6 bg-white rounded-2xl shadow-soft p-6">
-        <h3 className="font-bold text-navy-900 mb-4">주문 상태 요약</h3>
+        <h3 className="font-bold text-slate-900 mb-4">주문 상태 요약</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="text-center p-4 bg-green-50 rounded-xl">
             <p className="text-3xl font-bold text-green-600">{formatNumber(stats?.summary?.completed_orders)}</p>

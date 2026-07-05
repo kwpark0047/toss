@@ -101,8 +101,8 @@ const BulkSMSManager = () => {
                         <Smartphone size={24} className="animate-bounce" />
                         <span className="text-xs font-black uppercase tracking-[0.2em]">Unified Marketing</span>
                     </div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">Bulk <span className="text-blue-600">SMS</span> Console</h1>
-                    <p className="text-slate-500 mt-2 font-medium">전체 매장의 단골 고객데이터를 지역/업종별로 타겟팅하여 발송합니다.</p>
+                    <h1 className="text-4xl font-black text-white tracking-tight">Bulk <span className="text-blue-400">SMS</span> Console</h1>
+                    <p className="text-slate-400 mt-2 font-medium">전체 매장의 단골 고객데이터를 지역/업종별로 타겟팅하여 발송합니다.</p>
                 </div>
 
                 <div className="flex items-center gap-4 bg-white p-3 rounded-2xl shadow-soft border border-slate-100">

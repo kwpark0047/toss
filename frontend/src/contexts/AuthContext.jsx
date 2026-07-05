@@ -7,10 +7,12 @@ const API_URL = import.meta.env.VITE_API_URL ||
   (window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://wemarket.onrender.com/api');
 
 // JWT 페이로드를 네트워크 없이 즉시 디코드 (서명 검증 없음 — 만료 확인용)
+// atob()은 Latin-1 문자열을 반환하므로 한글 등 멀티바이트는 TextDecoder로 복원해야 한다
 const decodeToken = (token) => {
   try {
     const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(atob(b64));
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder('utf-8').decode(bytes));
   } catch { return null; }
 };
 

@@ -191,13 +191,13 @@ export default function StoreSettings() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">매장 설정</h1>
-          <p className="text-sm text-gray-500 mt-0.5">영업시간, 메뉴판 테마를 관리합니다</p>
+          <h1 className="text-2xl font-black text-white">매장 설정</h1>
+          <p className="text-sm text-slate-400 mt-0.5">영업시간, 메뉴판 테마를 관리합니다</p>
         </div>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-lg shadow-blue-200"
+          className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-400 transition-colors disabled:opacity-50 shadow-lg shadow-orange-500/25"
         >
           {saving
             ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />

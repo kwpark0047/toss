@@ -535,7 +535,7 @@ const StoreForm = () => {
 
 
             <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-100">
-              <button type="button" onClick={() => navigate(-1)} className="px-6 py-3 bg-gray-100 text-navy-700 rounded-xl font-medium hover:bg-gray-200">취소</button>
+              <button type="button" onClick={() => navigate(-1)} className="px-6 py-3 bg-gray-100 text-slate-700 rounded-xl font-medium hover:bg-gray-200">취소</button>
               <button type="submit" disabled={loading} className="flex items-center gap-2 px-6 py-3 btn-primary text-white rounded-xl font-medium shadow-lg disabled:opacity-50">
                 <Save size={18} />{loading ? '저장 중...' : '저장'}
               </button>

@@ -51,15 +51,15 @@ const ReceiptSettings = () => {
         <div className="max-w-6xl mx-auto p-6 max-h-[calc(100vh-80px)] overflow-y-auto">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        <Store className="text-blue-500" /> 영수증 설정
+                    <h1 className="text-2xl font-black text-white flex items-center gap-2">
+                        <Store className="text-blue-400" /> 영수증 설정
                     </h1>
-                    <p className="text-gray-500 mt-1">고객에게 제공되는 영수증의 디자인과 내용을 관리합니다.</p>
+                    <p className="text-slate-400 mt-1">고객에게 제공되는 영수증의 디자인과 내용을 관리합니다.</p>
                 </div>
                 <button
                     onClick={handleUpdate}
                     disabled={saving}
-                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50"
+                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 hover:bg-blue-500 active:scale-95 transition-all disabled:opacity-50"
                 >
                     {saving ? '저장 중...' : <><Save size={20} /> 설정 저장</>}
                 </button>

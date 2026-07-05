@@ -186,11 +186,11 @@ const KakaoMap = ({ stores, onStoreSelect, selectedStore }) => {
           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-6">
             <MapPin className="w-8 h-8 text-slate-300" />
           </div>
-          <p className="text-navy-900 font-black mb-2">지도를 불러올 수 없습니다</p>
-          <p className="text-navy-400 text-sm font-medium mb-6 leading-relaxed">{error}</p>
+          <p className="text-slate-900 font-black mb-2">지도를 불러올 수 없습니다</p>
+          <p className="text-slate-400 text-sm font-medium mb-6 leading-relaxed">{error}</p>
           <div className="p-4 bg-white/80 rounded-2xl text-left border border-white">
-            <h4 className="text-[10px] font-black text-navy-800 mb-2 tracking-widest uppercase">Checklist</h4>
-            <ul className="text-[10px] text-navy-400 space-y-1.5 font-bold list-disc pl-4">
+            <h4 className="text-[10px] font-black text-slate-800 mb-2 tracking-widest uppercase">Checklist</h4>
+            <ul className="text-[10px] text-slate-400 space-y-1.5 font-bold list-disc pl-4">
               <li>카카오 개발자 콘솔 JavaScript 키 확인</li>
               <li>플랫폼 도메인(localhost:5173) 등록 여부</li>
               <li>네트워크 상태 및 API 호출 가능 여부</li>
@@ -209,7 +209,7 @@ const KakaoMap = ({ stores, onStoreSelect, selectedStore }) => {
       <div className="absolute top-6 right-6 flex flex-col gap-3 z-10">
         <button
           onClick={handleMyLocation}
-          className="w-12 h-12 bg-white/90 backdrop-blur rounded-[1.2rem] shadow-heavy flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all active:scale-90"
+          className="w-12 h-12 bg-white/90 backdrop-blur rounded-[1.2rem] shadow-heavy flex items-center justify-center hover:bg-orange-500 hover:text-white transition-all active:scale-90"
           title="내 위치"
         >
           <Navigation className="w-5 h-5" />
@@ -219,13 +219,13 @@ const KakaoMap = ({ stores, onStoreSelect, selectedStore }) => {
             onClick={handleZoomIn}
             className="w-12 h-12 flex items-center justify-center hover:bg-slate-50 border-b border-slate-100 transition-colors"
           >
-            <ZoomIn className="w-5 h-5 text-navy-600" />
+            <ZoomIn className="w-5 h-5 text-slate-600" />
           </button>
           <button
             onClick={handleZoomOut}
             className="w-12 h-12 flex items-center justify-center hover:bg-slate-50 transition-colors"
           >
-            <ZoomOut className="w-5 h-5 text-navy-600" />
+            <ZoomOut className="w-5 h-5 text-slate-600" />
           </button>
         </div>
       </div>
