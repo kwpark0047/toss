@@ -10,7 +10,7 @@ import {
     Sparkles, LayoutDashboard, Settings, RefreshCw,
     Bell, QrCode, LayoutGrid, Home, ReceiptText,
     BadgeCheck, ChefHat, AlertCircle, CalendarDays,
-    Download, FileSpreadsheet, FileText, Loader2,
+    Download, FileSpreadsheet, FileText, Loader2, MessageSquareText,
 } from 'lucide-react';
 
 /* ─── 내보내기 패널 ─── */
@@ -249,6 +249,7 @@ const MasterDashboard = () => {
         { label: '테이블',    path: 'tables',   icon: LayoutGrid,  color: 'from-violet-500 to-purple-500',  badge: 0 },
         { label: '매출 분석', path: 'stats',    icon: BarChart3,   color: 'from-emerald-500 to-teal-500',   badge: 0 },
         { label: '직원 관리', path: 'staff',    icon: Users,       color: 'from-rose-500 to-pink-500',      badge: 0 },
+        { label: '리뷰 관리', path: 'reviews',  icon: MessageSquareText, color: 'from-fuchsia-500 to-pink-500', badge: 0 },
         { label: '정산',      path: 'settlements', icon: DollarSign, color: 'from-amber-500 to-yellow-500', badge: 0 },
     ];
 

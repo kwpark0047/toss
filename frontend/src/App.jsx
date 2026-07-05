@@ -26,6 +26,7 @@ const MenuManager      = lazy(() => import("@/components/admin/MenuManager"));
 const MenuBuilder      = lazy(() => import("@/components/admin/MenuBuilder"));
 const StaffManager     = lazy(() => import("@/components/admin/StaffManager"));
 const SalesStats       = lazy(() => import("@/components/admin/SalesStats"));
+const ReviewManager    = lazy(() => import("@/components/admin/ReviewManager"));
 const AnalyticsDashboard = lazy(() => import("@/components/admin/AnalyticsDashboard"));
 const SettlementManager  = lazy(() => import("@/components/admin/SettlementManager"));
 const BusinessSettings   = lazy(() => import("@/components/admin/BusinessSettings"));
@@ -179,6 +180,13 @@ const AppRoutes = () => (
     <Route path="/admin/stores/:storeId/stats" element={
       <AdminPage>
         <ValidStoreRoute><AdminSuspense><SalesStats /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
+    {/* 리뷰 관리 */}
+    <Route path="/admin/stores/:storeId/reviews" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><ReviewManager /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
