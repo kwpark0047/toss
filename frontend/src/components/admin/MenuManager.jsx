@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
 import { toast } from 'react-toastify';
 import { handleApiError } from '../../utils/apiError';
+import { compressImage } from '../../utils/imageCompress';
 import BulkMenuModal from './BulkMenuModal';
 import MenuWizard from './MenuWizard';
 import OptionTemplateModal from './OptionTemplateModal';
@@ -1044,8 +1045,18 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
   }, [storeId]);
 
   const handleFileUpload = async (e, field) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const original = e.target.files[0];
+    if (!original) return;
+
+    setUploading(true);
+
+    // 휴대폰 카메라 사진(4000px·수 MB)을 업로드 전에 리사이즈·압축 → 모바일 최적화
+    let file = original;
+    let compressResult = null;
+    try {
+      compressResult = await compressImage(original, { maxDim: 1200, quality: 0.82 });
+      file = compressResult.file;
+    } catch { /* 압축 실패 시 원본 업로드 (안전) */ }
 
     let objectUrl = null;
     if (field === 'image_url') {
@@ -1054,18 +1065,20 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
       setForm(prev => ({ ...prev, image_url: objectUrl }));
       const img = new window.Image();
       img.onload = () => {
+        const c = compressResult;
         setImageInfo({
           name: file.name,
-          size: formatFileSize(file.size),
+          // 압축됐으면 "원본 → 압축" 크기 표시
+          size: c?.compressed ? `${formatFileSize(c.originalSize)} → ${formatFileSize(c.size)}` : formatFileSize(file.size),
           width: img.width,
           height: img.height,
           isLarge: file.size > 2 * 1024 * 1024,
+          compressed: !!c?.compressed,
         });
       };
       img.src = objectUrl;
     }
 
-    setUploading(true);
     const fd = new FormData();
     fd.append('image', file);
     try {
@@ -1353,7 +1366,10 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
                       <span className="shrink-0">{imageInfo.size}</span>
                       <span className="text-slate-600 shrink-0">·</span>
                       <span className="shrink-0">{imageInfo.width}×{imageInfo.height}px</span>
-                      {imageInfo.isLarge && (
+                      {imageInfo.compressed && (
+                        <span className="ml-auto shrink-0 text-emerald-400 font-black">✨ 모바일 최적화됨</span>
+                      )}
+                      {imageInfo.isLarge && !imageInfo.compressed && (
                         <span className="ml-auto shrink-0 text-rose-400 font-black">용량 초과 — 압축 권장</span>
                       )}
                     </motion.div>
