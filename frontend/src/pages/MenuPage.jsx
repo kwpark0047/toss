@@ -7,6 +7,8 @@ import { storesAPI } from "@/api/stores";
 import { categoriesAPI, productsAPI } from "@/api/products";
 import { ordersAPI } from "@/api/orders";
 import { wakeupServer } from "@/api/wakeup";
+import { useKioskMode } from "@/hooks/useKioskMode";
+import { Maximize2 } from "lucide-react";
 
 // Components
 import MenuHeader from "@/components/menu/MenuHeader";
@@ -114,6 +116,7 @@ const MenuPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const tableNumber = searchParams.get("table") || "1";
+  const { isKiosk, isFullscreen, enterFullscreen } = useKioskMode();
 
   /* storeId가 숫자가 아닌 경우 → QrResolvePage로 위임 (즉시) */
   const isNumericStoreId = !!storeId && /^\d+$/.test(storeId);
@@ -372,6 +375,17 @@ const MenuPage = () => {
 
   return (
     <div className="min-h-screen pb-24 font-sans tracking-tight" style={themeStyle}>
+      {/* 키오스크 모드: 전체화면 진입 안내 (미진입 상태에서만) */}
+      {isKiosk && !isFullscreen && (
+        <button
+          onClick={enterFullscreen}
+          className="w-full px-4 py-2.5 flex items-center justify-center gap-2 bg-orange-500 text-white text-sm font-black"
+          aria-label="전체화면으로 전환"
+        >
+          <Maximize2 size={16} /> 화면을 터치하면 전체화면 키오스크 모드로 전환됩니다
+        </button>
+      )}
+
       {/* 공지사항 배너 */}
       {profile?.announcement_active && profile?.announcement && (
         <div className="px-4 py-2.5 flex items-center gap-2" style={{ backgroundColor: '#fbbf24' }}>

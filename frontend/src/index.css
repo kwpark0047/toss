@@ -281,3 +281,22 @@
     will-change: auto !important;
   }
 }
+/* ── 키오스크 모드 (F1) — 태블릿/키오스크 터치 최적화 ──────────────────── */
+.kiosk-mode {
+  /* 텍스트 선택·드래그 방지 (오조작 방지) */
+  -webkit-user-select: none;
+  user-select: none;
+  /* 기본 폰트 확대로 가독성 향상 */
+  font-size: 1.12rem;
+  cursor: none; /* 터치 전용 — 마우스 커서 숨김 */
+}
+/* 버튼·터치 타깃 확대 (Apple HIG/Material 권장 44~56px 이상) */
+.kiosk-mode button,
+.kiosk-mode a[role="button"],
+.kiosk-mode [role="button"] {
+  min-height: 56px;
+}
+/* 장바구니/주문 등 주요 CTA 더 크게 */
+.kiosk-mode .container { max-width: 100%; }
+/* 스크롤바 숨김 (키오스크 깔끔한 화면) */
+.kiosk-mode ::-webkit-scrollbar { width: 0; height: 0; }
