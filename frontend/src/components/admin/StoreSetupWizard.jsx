@@ -460,6 +460,15 @@ const getBtypeLabel = (value, custom = '') =>
   ALL_BTYPES.find(b => b.value === value)?.label || custom || value || '기타';
 
 // ── 업종 선택 피커 컴포넌트
+// 모듈 레벨 컴포넌트: 리스트 렌더마다 재생성 방지 (react-best-practices: rerender-no-inline-components)
+const CardBtn = ({ opt, selected, onSelect }) => (
+  <button type="button" onClick={() => onSelect(opt.value)}
+    className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-2xl border text-center transition-all ${selected === opt.value ? 'bg-amber-500/20 border-amber-500/50 text-amber-300' : 'bg-white/5 border-white/10 text-slate-400 hover:border-amber-500/30 hover:text-amber-300'}`}>
+    <span className="text-lg leading-none">{opt.icon}</span>
+    <span className="text-[11px] font-bold leading-tight">{opt.label}</span>
+  </button>
+);
+
 function BusinessTypePicker({ value, customValue, onChange, onCustomChange, onPickerFocus }) {
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(false);
@@ -473,14 +482,6 @@ function BusinessTypePicker({ value, customValue, onChange, onCustomChange, onPi
   const selectedLabel = isCustom ? customValue : getBtypeLabel(value);
 
   const select = (v) => { onChange(v); setSearch(''); setExpanded(false); };
-
-  const CardBtn = ({ opt }) => (
-    <button type="button" onClick={() => select(opt.value)}
-      className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-2xl border text-center transition-all ${value === opt.value ? 'bg-amber-500/20 border-amber-500/50 text-amber-300' : 'bg-white/5 border-white/10 text-slate-400 hover:border-amber-500/30 hover:text-amber-300'}`}>
-      <span className="text-lg leading-none">{opt.icon}</span>
-      <span className="text-[11px] font-bold leading-tight">{opt.label}</span>
-    </button>
-  );
 
   return (
     <div className="space-y-2">
@@ -508,7 +509,7 @@ function BusinessTypePicker({ value, customValue, onChange, onCustomChange, onPi
       {/* 검색 결과 */}
       {filtered && filtered.length > 0 && (
         <div className="grid grid-cols-4 gap-1.5 max-h-40 overflow-y-auto">
-          {filtered.map(opt => <CardBtn key={opt.value} opt={opt} />)}
+          {filtered.map(opt => <CardBtn key={opt.value} opt={opt} selected={value} onSelect={select} />)}
         </div>
       )}
       {filtered && filtered.length === 0 && (
@@ -520,7 +521,7 @@ function BusinessTypePicker({ value, customValue, onChange, onCustomChange, onPi
         <>
           <p className="text-[10px] font-black text-slate-600 uppercase tracking-wider">⭐ 인기 업종</p>
           <div className="grid grid-cols-4 gap-1.5">
-            {popular.map(opt => <CardBtn key={opt.value} opt={opt} />)}
+            {popular.map(opt => <CardBtn key={opt.value} opt={opt} selected={value} onSelect={select} />)}
           </div>
 
           {/* 전체 업종 보기 토글 */}
@@ -538,7 +539,7 @@ function BusinessTypePicker({ value, customValue, onChange, onCustomChange, onPi
                   <div key={grp.group}>
                     <p className="text-[10px] font-black text-slate-600 mb-1.5">{grp.group}</p>
                     <div className="grid grid-cols-4 gap-1.5">
-                      {grp.types.map(opt => <CardBtn key={opt.value} opt={opt} />)}
+                      {grp.types.map(opt => <CardBtn key={opt.value} opt={opt} selected={value} onSelect={select} />)}
                     </div>
                   </div>
                 ))}

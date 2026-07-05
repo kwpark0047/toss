@@ -38,6 +38,25 @@ const SETTLEMENT_CYCLES = [
     { value: 'MANUAL', label: '수동 정산', desc: '관리자가 직접 생성' },
 ];
 
+// 모듈 레벨 컴포넌트: 부모 렌더마다 재생성되지 않도록 밖으로 추출 (react-best-practices: rerender-no-inline-components)
+const SectionHeader = ({ id, icon: Icon, title, desc, active, onToggle }) => (
+    <button
+        onClick={() => onToggle(active === id ? null : id)}
+        className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+    >
+        <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <Icon size={18} className="text-white" />
+            </div>
+            <div className="text-left">
+                <p className="font-bold text-gray-900">{title}</p>
+                <p className="text-xs text-gray-400">{desc}</p>
+            </div>
+        </div>
+        {active === id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+    </button>
+);
+
 export default function BusinessSettings() {
     const { storeId } = useParams();
     const [loading, setLoading] = useState(true);
@@ -133,24 +152,6 @@ export default function BusinessSettings() {
 
     if (loading) return <div className="p-10 text-center text-gray-400">설정을 불러오는 중...</div>;
 
-    const SectionHeader = ({ id, icon: Icon, title, desc }) => (
-        <button
-            onClick={() => setActiveSection(activeSection === id ? null : id)}
-            className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
-        >
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                    <Icon size={18} className="text-white" />
-                </div>
-                <div className="text-left">
-                    <p className="font-bold text-gray-900">{title}</p>
-                    <p className="text-xs text-gray-400">{desc}</p>
-                </div>
-            </div>
-            {activeSection === id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-        </button>
-    );
-
     return (
         <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-4">
             <div className="mb-6">
@@ -160,7 +161,7 @@ export default function BusinessSettings() {
 
             {/* ── 사업자 정보 ── */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <SectionHeader id="business" icon={Building2} title="사업자 정보" desc="사업자번호, 상호명, 대표자명, 세금계산서 이메일" />
+                <SectionHeader id="business" icon={Building2} title="사업자 정보" desc="사업자번호, 상호명, 대표자명, 세금계산서 이메일" active={activeSection} onToggle={setActiveSection} />
                 {activeSection === 'business' && (
                     <div className="px-5 pb-5 space-y-4 border-t border-gray-50">
                         <div className="mt-4 p-3 bg-blue-50 rounded-xl flex items-start gap-2">
@@ -223,7 +224,7 @@ export default function BusinessSettings() {
 
             {/* ── 계좌이체 계좌 ── */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <SectionHeader id="account" icon={Building2} title="계좌이체 계좌 등록" desc="고객 송금용 사업자 계좌번호" />
+                <SectionHeader id="account" icon={Building2} title="계좌이체 계좌 등록" desc="고객 송금용 사업자 계좌번호" active={activeSection} onToggle={setActiveSection} />
                 {activeSection === 'account' && (
                     <div className="px-5 pb-5 space-y-4 border-t border-gray-50">
                         <div className="mt-4 p-3 bg-amber-50 rounded-xl flex items-start gap-2">
@@ -277,7 +278,7 @@ export default function BusinessSettings() {
 
             {/* ── 결제수단 활성화 ── */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <SectionHeader id="methods" icon={CreditCard} title="결제수단 활성화" desc="고객에게 제공할 결제수단 선택" />
+                <SectionHeader id="methods" icon={CreditCard} title="결제수단 활성화" desc="고객에게 제공할 결제수단 선택" active={activeSection} onToggle={setActiveSection} />
                 {activeSection === 'methods' && (
                     <div className="px-5 pb-5 space-y-3 border-t border-gray-50">
                         <p className="text-xs text-gray-400 mt-4">활성화된 결제수단이 고객 결제 화면에 표시됩니다.</p>
