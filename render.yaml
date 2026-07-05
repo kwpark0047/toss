@@ -1,0 +1,67 @@
+# Render Infrastructure as Code — 백엔드 API 서버
+# 대시보드 수동 설정 대신 이 파일로 배포를 재현 가능하게 관리한다.
+# 적용: Render 대시보드 → Blueprints → 이 저장소 연결 (기존 서비스는 설정 동기화)
+#
+# 주의: sync:false 로 표시된 시크릿은 Render 대시보드에서 직접 입력해야 하며
+#       이 파일에는 절대 값을 커밋하지 않는다.
+services:
+  - type: web
+    name: wemarket
+    runtime: node
+    region: singapore          # Supabase(ap-southeast-1)와 동일 리전으로 DB 왕복 최소화
+    plan: free
+    branch: main
+    buildCommand: npm install && npx prisma generate
+    startCommand: node index.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # ── DB (Supabase) ──
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      # ── 인증·암호화 ──
+      - key: JWT_SECRET
+        sync: false
+      - key: PHONE_ENC_KEY
+        sync: false
+      # ── 결제 (Toss) ──
+      - key: TOSS_SECRET_KEY
+        sync: false
+      - key: TOSS_CLIENT_KEY
+        sync: false
+      # ── 푸시 (Firebase) ──
+      - key: FIREBASE_API_KEY
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+      - key: FIREBASE_APP_ID
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_PATH
+        sync: false
+      # ── 외부 API ──
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: UNSPLASH_ACCESS_KEY
+        sync: false
+      # ── SMS ──
+      - key: SMS_API_KEY
+        sync: false
+      - key: SMS_API_SECRET
+        sync: false
+      - key: SMS_SENDER
+        sync: false
+      - key: SMS_ENV
+        sync: false
+      # ── CORS·알림·운영 ──
+      - key: CORS_ORIGIN
+        sync: false
+      - key: ALERT_WEBHOOK_URL
+        sync: false
+      - key: SEED_KEY
+        sync: false

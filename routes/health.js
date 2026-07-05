@@ -13,6 +13,8 @@ const cb      = require('../utils/circuitBreaker');
 const alerting = require('../utils/alerting');
 
 const START_TIME = Date.now();
+// 버전 단일 소스: package.json (npm_package_version은 `node index.js` 직접 실행 시 누락됨)
+const APP_VERSION = require('../package.json').version;
 
 // ── 요청/에러 카운터 (인메모리 슬라이딩 윈도우 5분) ──────────────────────────
 const _req5m = [];
@@ -71,7 +73,7 @@ router.get('/', async (req, res) => {
         db: dbOk ? 'connected' : 'unreachable',
         uptime: Math.floor((Date.now() - START_TIME) / 1000),
         ts: new Date().toISOString(),
-        version: process.env.npm_package_version || '1.x',
+        version: APP_VERSION,
         enc: !!(process.env.PHONE_ENC_KEY || process.env.JWT_SECRET)
     });
 });
