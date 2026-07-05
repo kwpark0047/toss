@@ -15,6 +15,7 @@ import CartModal from "@/components/menu/CartModal";
 import OptionSelectionModal from "@/components/menu/OptionSelectionModal";
 import OrderStatusModal from "@/components/menu/OrderStatusModal";
 import CustomerPhoneSheet from "@/components/menu/CustomerPhoneSheet";
+import ReviewModal from "@/components/customer/ReviewModal";
 import LegalFooter from "@/components/customer/LegalFooter";
 
 const MenuPage = () => {
@@ -50,6 +51,7 @@ const MenuPage = () => {
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isOrderStatusOpen, setIsOrderStatusOpen] = useState(false);
+  const [reviewOrder, setReviewOrder] = useState(null); // 리뷰 작성 대상 주문
   const [isOrdering, setIsOrdering] = useState(false);
   const [optionModalItem, setOptionModalItem] = useState(null);
   const [optionModalGroups, setOptionModalGroups] = useState([]);
@@ -426,8 +428,20 @@ const MenuPage = () => {
           orderId={currentOrderId}
           storeId={storeId}
           tableNumber={tableNumber}
+          onWriteReview={(order) => {
+            setIsOrderStatusOpen(false);
+            setReviewOrder(order || { id: currentOrderId, store_id: Number(storeId), store_name: profile?.store_name });
+          }}
         />
       )}
+
+      {/* 리뷰 작성 모달 (주문 상태에서 진입, 실제 사진 첨부 지원) */}
+      <ReviewModal
+        isOpen={!!reviewOrder}
+        onClose={() => setReviewOrder(null)}
+        order={reviewOrder}
+        onSuccess={() => setReviewOrder(null)}
+      />
 
       {/* Option Selection Modal */}
       {optionModalItem && (

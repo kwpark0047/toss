@@ -24,7 +24,7 @@ const STATUS_MSG = {
 
 const fmt = (price) => new Intl.NumberFormat('ko-KR').format(price) + '원';
 
-const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber }) => {
+const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWriteReview }) => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -231,7 +231,17 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber }) =>
               )}
             </div>
 
-            <div className="p-6 bg-white border-t border-slate-100">
+            <div className="p-6 bg-white border-t border-slate-100 space-y-3">
+              {/* 준비완료/수령완료 주문은 리뷰 작성 유도 */}
+              {onWriteReview && (status === 'ready' || status === 'completed') && (
+                <button
+                  onClick={() => onWriteReview(order)}
+                  className="w-full h-14 bg-orange-500 text-white rounded-2xl font-black active:scale-95 transition-transform flex items-center justify-center gap-2"
+                >
+                  <BellRing className="w-5 h-5" aria-hidden="true" />
+                  리뷰 작성하고 혜택 받기
+                </button>
+              )}
               <button
                 onClick={onClose}
                 className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black active:scale-95 transition-transform"
