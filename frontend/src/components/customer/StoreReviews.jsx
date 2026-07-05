@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Star, ImageOff, MessageSquareText } from 'lucide-react';
+import { Star, ImageOff, MessageSquareText, Heart } from 'lucide-react';
 import { reviewsAPI } from '../../api';
+
+// 브라우저별 익명 좋아요 식별자 (로그인 없는 고객용, localStorage에 고정)
+const getLikerId = () => {
+  let id = localStorage.getItem('review_liker_id');
+  if (!id) {
+    id = 'anon-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem('review_liker_id', id);
+  }
+  return id;
+};
 
 // 리뷰 첨부 사진: 로드 실패 시 깨진 아이콘 대신 폴백
 const ReviewPhoto = ({ src }) => {
@@ -41,7 +51,13 @@ const StoreReviews = ({ storeId }) => {
       try {
         const res = await reviewsAPI.getStoreReviews(storeId);
         const list = res?.data || res || [];
-        if (!cancelled) setReviews(Array.isArray(list) ? list : []);
+        // _count.likes → likeCount 정규화, liked 초기값 false
+        const normalized = (Array.isArray(list) ? list : []).map(r => ({
+          ...r,
+          likeCount: r._count?.likes ?? r.like_count ?? 0,
+          liked: false,
+        }));
+        if (!cancelled) setReviews(normalized);
       } catch {
         if (!cancelled) setReviews([]);
       } finally {
@@ -50,6 +66,28 @@ const StoreReviews = ({ storeId }) => {
     })();
     return () => { cancelled = true; };
   }, [storeId]);
+
+  const handleLike = async (reviewId) => {
+    // optimistic 토글
+    setReviews(prev => prev.map(r => r.id === reviewId
+      ? { ...r, liked: !r.liked, likeCount: r.likeCount + (r.liked ? -1 : 1) }
+      : r));
+    try {
+      const res = await reviewsAPI.toggleLike(reviewId, getLikerId());
+      const data = res?.data || res;
+      // 서버 정확값으로 보정
+      if (data && typeof data.like_count === 'number') {
+        setReviews(prev => prev.map(r => r.id === reviewId
+          ? { ...r, liked: data.liked, likeCount: data.like_count }
+          : r));
+      }
+    } catch {
+      // 실패 시 롤백
+      setReviews(prev => prev.map(r => r.id === reviewId
+        ? { ...r, liked: !r.liked, likeCount: r.likeCount + (r.liked ? -1 : 1) }
+        : r));
+    }
+  };
 
   if (loading) {
     return (
@@ -102,6 +140,17 @@ const StoreReviews = ({ storeId }) => {
               </div>
               {r.content && <p className="text-sm text-slate-600 leading-relaxed mb-2 break-words">{r.content}</p>}
               {r.image_url && <ReviewPhoto src={r.image_url} />}
+              <div className="flex items-center mt-3 pt-3 border-t border-slate-50">
+                <button
+                  onClick={() => handleLike(r.id)}
+                  aria-label={r.liked ? '좋아요 취소' : '좋아요'}
+                  aria-pressed={r.liked}
+                  className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${r.liked ? 'text-rose-500' : 'text-slate-400 hover:text-rose-400'}`}
+                >
+                  <Heart size={16} fill={r.liked ? 'currentColor' : 'none'} aria-hidden="true" />
+                  <span>{r.likeCount > 0 ? r.likeCount : '좋아요'}</span>
+                </button>
+              </div>
             </article>
           ))}
         </div>

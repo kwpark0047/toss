@@ -59,30 +59,29 @@ router.post('/', catchAsync(async (req, res) => {
     res.json({ success: true, data: review });
 }));
 
-// [POST] 리뷰 좋아요
+// [POST] 리뷰 좋아요 (무인증, 브라우저별 익명 식별자로 토글)
 router.post('/:id/like', catchAsync(async (req, res) => {
-    const { id } = req.params;
+    const reviewId = parseInt(req.params.id);
     const { user_phone } = req.body;
-    const existing = await prisma.review_likes.findFirst({
-        where: {
-            review_id: parseInt(id),
-            user_phone
-        }
-    });
-
-    if (existing) {
-        await prisma.review_likes.delete({ where: { id: existing.id } });
-        return res.json({ success: true, action: 'unliked' });
+    if (!user_phone) {
+        return res.status(400).json({ success: false, error: '식별자가 필요합니다.' });
     }
 
-    await prisma.review_likes.create({
-        data: {
-            review_id: parseInt(id),
-            user_phone
-        }
+    const existing = await prisma.review_likes.findFirst({
+        where: { review_id: reviewId, user_phone }
     });
 
-    res.json({ success: true, action: 'liked' });
+    let action;
+    if (existing) {
+        await prisma.review_likes.delete({ where: { id: existing.id } });
+        action = 'unliked';
+    } else {
+        await prisma.review_likes.create({ data: { review_id: reviewId, user_phone } });
+        action = 'liked';
+    }
+
+    const like_count = await prisma.review_likes.count({ where: { review_id: reviewId } });
+    res.json({ success: true, action, liked: action === 'liked', like_count });
 }));
 
 // 리뷰 소속 매장에 대한 권한 확인 후 리뷰 반환 (공통 헬퍼)
