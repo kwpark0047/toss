@@ -15,20 +15,29 @@ const alerting = require('../utils/alerting');
 const START_TIME = Date.now();
 
 // ── 요청/에러 카운터 (인메모리 슬라이딩 윈도우 5분) ──────────────────────────
-const _req5m   = [];
-const _err5m   = [];
-const _p99_buf = []; // 응답시간 버퍼 (최근 1000건)
+const _req5m = [];
+const _err5m = [];
+// 응답시간도 5분 윈도우로 관리 — 개수 기반(최근 1000건)이면 콜드스타트 직후의
+// 느린 요청이 트래픽이 적을 때 몇 시간씩 잔류해 P99를 오염시킨다
+const _lat5m = []; // { t, ms }
 const W = 5 * 60_000;
+const LAT_MAX = 5000; // 고트래픽 시 메모리 상한
 
 const recordReq = (ms, isErr) => {
     const now = Date.now();
     _req5m.push(now);
     if (isErr) _err5m.push(now);
-    _p99_buf.push(ms);
-    if (_p99_buf.length > 1000) _p99_buf.shift();
+    _lat5m.push({ t: now, ms });
     // 만료 항목 정리
-    while (_req5m.length  && _req5m[0]  < now - W) _req5m.shift();
-    while (_err5m.length  && _err5m[0]  < now - W) _err5m.shift();
+    while (_req5m.length && _req5m[0]   < now - W) _req5m.shift();
+    while (_err5m.length && _err5m[0]   < now - W) _err5m.shift();
+    while (_lat5m.length && (_lat5m[0].t < now - W || _lat5m.length > LAT_MAX)) _lat5m.shift();
+};
+
+// 현재 윈도우의 지연시간 배열 (읽기 시점에도 만료 반영)
+const latencies = () => {
+    const cutoff = Date.now() - W;
+    return _lat5m.filter(x => x.t >= cutoff).map(x => x.ms);
 };
 
 const percentile = (arr, p) => {
@@ -72,14 +81,15 @@ router.get('/deep', async (req, res) => {
     const checks = {};
     let overallOk = true;
 
-    // 1. DB
+    // 1. DB — 3초 초과 지연은 장애 전조로 warn 표시 (overall은 유지)
     const t0 = Date.now();
     try {
         await Promise.race([
             prisma.$queryRaw`SELECT COUNT(*) FROM stores`,
             new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 5000))
         ]);
-        checks.database = { status: 'ok', latencyMs: Date.now() - t0 };
+        const latencyMs = Date.now() - t0;
+        checks.database = { status: latencyMs > 3000 ? 'warn' : 'ok', latencyMs };
     } catch (e) {
         checks.database = { status: 'error', error: e.message };
         overallOk = false;
@@ -115,9 +125,9 @@ router.get('/deep', async (req, res) => {
         req5m: _req5m.length,
         err5m: _err5m.length,
         errorRatePct: errorRate,
-        p50Ms: percentile(_p99_buf, 50),
-        p95Ms: percentile(_p99_buf, 95),
-        p99Ms: percentile(_p99_buf, 99)
+        p50Ms: percentile(latencies(), 50),
+        p95Ms: percentile(latencies(), 95),
+        p99Ms: percentile(latencies(), 99)
     };
 
     const payload = {
@@ -152,9 +162,9 @@ router.get('/sla', (req, res) => {
             req5m: _req5m.length,
             err5m: _err5m.length,
             errorRatePct: _req5m.length ? ((_err5m.length / _req5m.length) * 100).toFixed(2) : '0.00',
-            p50Ms: percentile(_p99_buf, 50),
-            p95Ms: percentile(_p99_buf, 95),
-            p99Ms: percentile(_p99_buf, 99),
+            p50Ms: percentile(latencies(), 50),
+            p95Ms: percentile(latencies(), 95),
+            p99Ms: percentile(latencies(), 99),
         },
         ts: new Date().toISOString()
     });

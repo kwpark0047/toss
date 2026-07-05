@@ -53,14 +53,19 @@ export default function SystemStatus() {
         setLoading(true);
         setError(null);
         try {
+            // deep은 이상 시 503 + 상세 본문을 반환하므로, HTTP 에러여도 본문을 살려서 렌더링
+            const fetchBody = (path) =>
+                api.get(path).catch(e => { if (e?.response?.data) return e.response.data; throw e; });
             const [hRes, sRes, cRes] = await Promise.all([
-                api.get('/health/deep'),
-                api.get('/health/sla'),
-                api.get('/health/circuits'),
+                fetchBody('/health/deep'),
+                fetchBody('/health/sla'),
+                fetchBody('/health/circuits'),
             ]);
-            setHealth(hRes.data);
-            setSla(sRes.data);
-            setCircuits(cRes.data?.circuits || []);
+            // axios 인터셉터가 이미 response.data를 반환하므로 응답 본문을 직접 사용
+            // (health 라우트는 responseFormatter의 {success, data} 래핑을 쓰지 않음)
+            setHealth(hRes?.data ?? hRes);
+            setSla(sRes?.data ?? sRes);
+            setCircuits((cRes?.data ?? cRes)?.circuits || []);
             setLastRefresh(new Date());
         } catch (e) {
             setError('시스템 상태를 불러오지 못했습니다. 서버 연결을 확인하세요.');
