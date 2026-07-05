@@ -243,7 +243,7 @@ export default function PaymentSheet({
                         {step === 'transfer' && '계좌이체'}
                         {(step === 'processing' || step === 'result') && '결제 처리'}
                     </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-5 h-5" /></button>
+                    <button onClick={onClose} aria-label="결제 닫기" className="p-2 hover:bg-gray-100 rounded-full"><X className="w-5 h-5" aria-hidden="true" /></button>
                 </div>
 
                 <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 72px)' }}>
