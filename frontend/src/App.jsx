@@ -52,6 +52,7 @@ const StoreSettings      = lazy(() => import("@/components/admin/StoreSettings")
 const NotificationTemplatesManager = lazy(() => import("@/components/admin/NotificationTemplatesManager"));
 const DeveloperConsole = lazy(() => import("@/components/admin/DeveloperConsole"));
 const QrCustomizer = lazy(() => import("@/components/admin/QrCustomizer"));
+const PartnershipManager = lazy(() => import("@/components/admin/PartnershipManager"));
 
 const queryClient = new QueryClient();
 
@@ -318,6 +319,13 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/qr-customizer" element={
       <AdminPage>
         <ValidStoreRoute><AdminSuspense><QrCustomizer /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
+    {/* 제휴 마케팅 (F7) */}
+    <Route path="/admin/stores/:storeId/partnerships" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><PartnershipManager /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
