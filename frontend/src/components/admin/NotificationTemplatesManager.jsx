@@ -9,6 +9,7 @@ import {
 import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
+import Button from '../common/Button';
 
 const NOTIFICATION_TYPES = [
   { value: 'NEW_ORDER', label: '새 주문' },
@@ -215,14 +216,10 @@ const NotificationTemplatesManager = () => {
             </div>
 
             <div className="flex gap-3 pt-4 border-t border-white/5">
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-1 flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50"
-              >
+              <Button type="submit" variant="gradient" size="md" fullWidth loading={saving} className="flex-1">
                 <Save size={16} />
-                {saving ? '저장 중...' : '저장'}
-              </button>
+                저장
+              </Button>
               <button
                 type="button"
                 onClick={() => setEditing(null)}
@@ -255,12 +252,9 @@ const NotificationTemplatesManager = () => {
           </h1>
           <p className="text-slate-400 mt-1">매장 알림 메시지 템플릿을 관리합니다. 기본 템플릿은 자동으로 적용됩니다.</p>
         </div>
-        <button
-          onClick={() => setEditing('new')}
-          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all"
-        >
+        <Button variant="gradient" size="md" onClick={() => setEditing('new')}>
           <Plus size={16} /> 새 템플릿
-        </button>
+        </Button>
       </div>
 
       {/* Template List */}

@@ -14,6 +14,8 @@ const VARIANTS = {
   secondary: 'bg-primary/10 text-primary hover:bg-primary/15',
   neutral: 'bg-slate-100 text-slate-700 hover:bg-slate-200',
   outline: 'border border-slate-200 text-slate-700 bg-white hover:bg-slate-50',
+  // 관리자 다크 화면 주요 CTA (오렌지 그라디언트)
+  gradient: 'bg-gradient-to-r from-orange-500 to-rose-600 text-white shadow-lg shadow-orange-500/20 hover:opacity-90',
 };
 
 const SIZES = {

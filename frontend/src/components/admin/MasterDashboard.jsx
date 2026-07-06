@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatPrice, formatTime } from '../../utils/format';
 import EmptyState from '../common/EmptyState';
 import Skeleton from '../common/Skeleton';
+import Button from '../common/Button';
 import {
     Store, ShoppingBag, DollarSign, Clock, Plus,
     ChevronRight, BarChart3, Users, TrendingUp,
@@ -238,10 +239,9 @@ const MasterDashboard = () => {
                 title="등록된 매장이 없습니다"
                 description="팅커벨 도우미와 함께 첫 매장을 설정해보세요!"
                 action={
-                    <button onClick={() => navigate('/admin/setup')}
-                        className="w-full max-w-xs py-4 px-8 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black rounded-2xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 text-base">
+                    <Button variant="gradient" size="lg" onClick={() => navigate('/admin/setup')} className="px-8">
                         <Plus size={20} /> 첫 매장 만들기
-                    </button>
+                    </Button>
                 }
             />
         </div>

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { inventoryAPI } from '../../api';
 import EmptyState from '../common/EmptyState';
+import Button from '../common/Button';
 
 const STATUS_META = {
     ok:        { label: '정상',   color: 'text-emerald-400', bg: 'bg-emerald-500/10', icon: CheckCircle,  border: 'border-emerald-500/30' },
@@ -215,13 +216,16 @@ function AdjustModal({ product, onClose, onSuccess }) {
                         <div className="mt-3 text-xs text-red-400 bg-red-500/10 px-3 py-2 rounded-xl">{error}</div>
                     )}
 
-                    <button
+                    <Button
+                        variant="gradient"
+                        size="md"
+                        fullWidth
+                        loading={loading}
                         onClick={mode === 'adjust' ? handleAdjust : handleSet}
-                        disabled={loading}
-                        className="w-full mt-5 py-3.5 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-xl font-black text-sm disabled:opacity-50 hover:shadow-lg hover:shadow-orange-500/20 transition-all"
+                        className="mt-5"
                     >
-                        {loading ? '처리 중...' : mode === 'adjust' ? '재고 조정' : '설정 저장'}
-                    </button>
+                        {mode === 'adjust' ? '재고 조정' : '설정 저장'}
+                    </Button>
                 </div>
             </motion.div>
         </div>
