@@ -2,6 +2,7 @@ const admin = require('firebase-admin');
 const path = require('path');
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
+const { resolveTemplate } = require('../utils/notificationTemplate');
 
 /**
  * [NotificationService]
@@ -154,29 +155,39 @@ class NotificationService {
     }
   }
 
-  /** 주문 생성 시 NEW_ORDER 알림 */
+  /** 주문 생성 시 NEW_ORDER 알림 (관리자 커스텀 템플릿 우선 적용) */
   async notifyNewOrderDB(order) {
+    const tableName = order.table_name || '테이블';
+    const orderNumber = order.order_number || order.id;
+    const tpl = await resolveTemplate(order.store_id, 'NEW_ORDER', {
+      tableName, orderNumber, storeId: order.store_id,
+    });
     return this.createNotification({
       store_id: order.store_id,
       type: 'NEW_ORDER',
-      title: '🛎️ 새 주문 접수',
-      message: `${order.table_name || '테이블'}에서 주문이 들어왔습니다. (주문번호: ${order.order_number || order.id})`,
+      title: tpl?.title || '🛎️ 새 주문 접수',
+      message: tpl?.message || `${tableName}에서 주문이 들어왔습니다. (주문번호: ${orderNumber})`,
       data: { orderId: order.id, orderNumber: order.order_number, tableId: order.table_id },
       priority: 'high',
       link: `/admin/stores/${order.store_id}/orders`
     });
   }
 
-  /** 주문 상태 변경 시 알림 */
+  /** 주문 상태 변경 시 알림 (관리자 커스텀 템플릿 우선 적용) */
   async notifyOrderStatusDB(order, newStatus) {
     const labels = { confirmed: '주문 확인', preparing: '조리 시작', ready: '준비 완료', completed: '완료', cancelled: '취소됨' };
     const icons = { confirmed: '✅', preparing: '👨‍🍳', ready: '🔔', completed: '🎉', cancelled: '❌' };
     const priorities = { ready: 'high', cancelled: 'high', confirmed: 'normal', preparing: 'normal', completed: 'low' };
+    const statusLabel = labels[newStatus] || newStatus;
+    const orderNumber = order.order_number || order.id;
+    const tpl = await resolveTemplate(order.store_id, 'ORDER_STATUS', {
+      orderNumber, status: statusLabel, tableName: order.table_name || '테이블',
+    });
     return this.createNotification({
       store_id: order.store_id,
       type: 'ORDER_STATUS',
-      title: `${icons[newStatus] || '📦'} 주문 ${labels[newStatus] || newStatus}`,
-      message: `주문 #${order.order_number || order.id} 상태가 "${labels[newStatus] || newStatus}"(으)로 변경되었습니다.`,
+      title: tpl?.title || `${icons[newStatus] || '📦'} 주문 ${statusLabel}`,
+      message: tpl?.message || `주문 #${orderNumber} 상태가 "${statusLabel}"(으)로 변경되었습니다.`,
       data: { orderId: order.id, newStatus },
       priority: priorities[newStatus] || 'normal',
       link: `/admin/stores/${order.store_id}/orders`
