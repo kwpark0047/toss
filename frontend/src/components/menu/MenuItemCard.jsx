@@ -45,15 +45,15 @@ const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disable
       {/* Content — 타이틀 + 설명 */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <h3 className="font-bold text-slate-900 leading-tight text-[15px] truncate">{item.name}</h3>
+          <h3 className="tds-body-strong text-grey-900 truncate">{item.name}</h3>
           {hasOptions && (
-            <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold whitespace-nowrap flex-shrink-0">옵션</span>
+            <span className="text-[9px] bg-grey-100 text-grey-500 px-1.5 py-0.5 rounded font-bold whitespace-nowrap flex-shrink-0">옵션</span>
           )}
         </div>
         {item.description && (
-          <p className="text-[12px] text-slate-500 line-clamp-1 leading-relaxed mt-0.5">{item.description}</p>
+          <p className="tds-caption text-grey-500 line-clamp-1 mt-0.5">{item.description}</p>
         )}
-        <span className="block text-[15px] font-black text-slate-900 mt-1">{formatPrice(item.price)}</span>
+        <span className="block tds-body-strong text-grey-900 mt-1">{formatPrice(item.price)}</span>
       </div>
 
       {/* Trailing — 담기 */}

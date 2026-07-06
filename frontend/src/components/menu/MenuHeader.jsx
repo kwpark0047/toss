@@ -25,9 +25,9 @@ const MenuHeader = ({ storeName, tableNumber, onOrderHistoryClick }) => {
 
         {/* Center — 타이틀 + 서브타이틀 (중앙 정렬, 넘치면 말줄임) */}
         <div className="min-w-0 text-center px-1">
-          <h1 className="text-[17px] font-bold text-slate-900 leading-tight truncate">{storeName}</h1>
+          <h1 className="tds-subtitle text-grey-900 truncate">{storeName}</h1>
           {tableNumber && (
-            <p className="text-xs text-primary font-medium leading-tight truncate">{tableNumber}번 테이블</p>
+            <p className="tds-caption text-primary truncate">{tableNumber}번 테이블</p>
           )}
         </div>
 

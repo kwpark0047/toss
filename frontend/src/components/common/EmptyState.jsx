@@ -12,8 +12,8 @@ export default function EmptyState({ icon = '🍽️', title, description, actio
   return (
     <div className={`flex flex-col items-center justify-center text-center py-16 px-6 ${className}`}>
       <div className="text-5xl mb-4 select-none" aria-hidden="true">{icon}</div>
-      <h4 className="text-slate-700 font-black text-base">{title}</h4>
-      {description && <p className="text-sm text-slate-400 mt-1.5 leading-relaxed max-w-[240px]">{description}</p>}
+      <h4 className="tds-subtitle text-grey-800">{title}</h4>
+      {description && <p className="tds-body text-grey-500 mt-1.5 max-w-[240px]">{description}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
   );
