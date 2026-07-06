@@ -11,7 +11,7 @@ const Order = {
   create: async (data) => {
     try {
       const {
-        store_id, table_id, customer_name, customer_phone,
+        store_id, table_id, customer_name, customer_phone, customer_fcm_token,
         total_amount, status = 'pending',
         method, notes, items, is_takeout = false
       } = data;
@@ -77,6 +77,7 @@ const Order = {
             order_number,
             customer_name: customer_name || null,
             customer_phone: customer_phone || null,
+            customer_fcm_token: customer_fcm_token || null,
             total_amount: parseFloat(total_amount),
             status,
             method: method || null,

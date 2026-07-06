@@ -84,6 +84,7 @@ model orders {
   order_number       String               @unique
   customer_name      String?
   customer_phone     String?
+  customer_fcm_token String?
   notes              String?
   status             String?              @default("pending")
   method             String?

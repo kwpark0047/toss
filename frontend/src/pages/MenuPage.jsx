@@ -9,6 +9,7 @@ import { ordersAPI } from "@/api/orders";
 import { wakeupServer } from "@/api/wakeup";
 import { useKioskMode } from "@/hooks/useKioskMode";
 import { withOfflineCache } from "@/utils/menuCache";
+import { requestNotificationPermission } from "@/firebase";
 import { Maximize2 } from "lucide-react";
 
 // Components
@@ -325,6 +326,14 @@ const MenuPage = () => {
     setIsOrdering(true);
     try {
       const notifyDigits = notifyPhone.replace(/\D/g, '');
+      const hasPhone = notifyDigits.length >= 10;
+
+      // 전화번호 미입력(거부) 시 FCM 푸시 토큰을 발급받아 대체 알림 채널로 사용
+      let fcmToken = null;
+      if (!hasPhone) {
+        try { fcmToken = await requestNotificationPermission(); } catch { fcmToken = null; }
+      }
+
       const orderData = {
         store_id: storeId,
         table_number: tableNumber, // URL 파라미터(테이블 번호 문자열) → 백엔드에서 table_id(정수)로 변환
@@ -339,10 +348,12 @@ const MenuPage = () => {
         total_amount: totalPrice,
         payment_method: 'card',
         // 알림 받을 번호 (입력 시 주문에 연결, 유효할 때만 전송)
-        ...(notifyDigits.length >= 10 ? { customer_phone: notifyDigits } : {})
+        ...(hasPhone ? { customer_phone: notifyDigits } : {}),
+        // 전화번호 거부 시 FCM 토큰으로 푸시 알림 수신
+        ...(!hasPhone && fcmToken ? { customer_fcm_token: fcmToken } : {})
       };
       // 재방문 자동입력을 위해 유효 번호 저장
-      if (notifyDigits.length >= 10) {
+      if (hasPhone) {
         try { localStorage.setItem('wm_customer_phone', notifyDigits); } catch { /* 무시 */ }
       }
 
