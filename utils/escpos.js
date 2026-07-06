@@ -8,6 +8,7 @@
  * 프린터 코드페이지 설정: ESC t 0x12 (CP949, 삼성/빅솔론 등 국내 프린터 표준).
  */
 const iconv = require('iconv-lite');
+const { fmtWon } = require('./format');
 
 const ESC = 0x1b, GS = 0x1d, LF = 0x0a;
 
@@ -33,8 +34,6 @@ function padRow(left, right, width = 32) {
     const gap = Math.max(1, width - w(left) - w(right));
     return left + ' '.repeat(gap) + right;
 }
-
-const fmtWon = (n) => new Intl.NumberFormat('ko-KR').format(Math.round(n || 0)) + '원';
 
 /**
  * 주방 영수증 ESC/POS 바이트 생성.

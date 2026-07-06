@@ -1,6 +1,6 @@
 const prisma = require('../config/prisma');
 const { phoneSearchCandidates } = require('../utils/phoneEncryption');
-const { kstDayRange } = require('../utils/kstTime');
+const { kstDayRange, KST_OFFSET_MS } = require('../utils/kstTime');
 
 /**
  * 주문 모델 (Prisma 기반)
@@ -351,7 +351,7 @@ const Order = {
    * 시간/요일은 KST(UTC+9) 기준으로 산정한다.
    */
   getAdvancedInsights: async (storeId, startDate, endDate) => {
-    const KST = 9 * 60 * 60 * 1000;
+    const KST = KST_OFFSET_MS;
     const empty = {
       heatmap: [],
       repeat: { total_customers: 0, repeat_customers: 0, rate: 0 },

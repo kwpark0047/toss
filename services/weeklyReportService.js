@@ -9,11 +9,10 @@
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const notificationService = require('./notificationService');
-const { kstNow } = require('../utils/kstTime');
+const { kstNow, KST_OFFSET_MS } = require('../utils/kstTime');
+const { fmtWon } = require('../utils/format');
 
 const POLL_INTERVAL_MS = 10 * 60 * 1000;
-
-const fmtWon = (n) => new Intl.NumberFormat('ko-KR').format(Math.round(n)) + '원';
 
 /** 매장 1곳의 지난 7일 통계 집계 */
 async function buildStoreReport(storeId, from, to) {
@@ -102,7 +101,7 @@ async function sendWeeklyReports() {
 async function sendMonthlyReports() {
     const k = kstNow();
     // 지난 달 1일 00:00 ~ 이번 달 1일 00:00 (KST 기준을 UTC로 환산)
-    const KST = 9 * 60 * 60 * 1000;
+    const KST = KST_OFFSET_MS;
     const thisMonthStartUtc = new Date(Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), 1) - KST);
     const lastMonthStartUtc = new Date(Date.UTC(k.getUTCFullYear(), k.getUTCMonth() - 1, 1) - KST);
 

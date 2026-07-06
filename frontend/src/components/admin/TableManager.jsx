@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import VisualTableMap from './VisualTableMap';
 import { getSocket } from '../../utils/socket';
+import { buildMenuUrl } from '../../utils/site';
 import { handleApiError } from '../../utils/apiError';
 
 /* ─────────────────────────── 카드 디자인 테마 ─────────────────────────── */
@@ -435,9 +436,8 @@ const TableManager = () => {
 
   /* QR에 담길 URL — 백엔드 없이 메뉴 직접 경로 인코딩
    * Render 콜드스타트 우회: /menu/{storeId}?table={번호} 로 QrResolvePage 완전 제거 */
-  const SITE_ORIGIN = 'https://wemarket.vercel.app';
   const getMenuUrl = (table) =>
-    `${SITE_ORIGIN}/menu/${storeId}?table=${encodeURIComponent(table.table_number || table.name || '')}`;
+    buildMenuUrl(storeId, table.table_number || table.name || '');
 
   /* QR 이미지 서비스 URL (margin=4 로 quiet zone 확보) */
   const getQrImageUrl = (menuUrl, size = 200) =>

@@ -4,9 +4,7 @@ import QRCode from 'qrcode';
 import { storesAPI } from '../../api/stores';
 import { ArrowLeft, Download, RotateCcw, Loader2, QrCode as QrIcon, Save } from 'lucide-react';
 import { toast } from 'sonner';
-
-// 매장 메뉴 URL (TableManager와 동일 규칙)
-const SITE_ORIGIN = 'https://wemarket.vercel.app';
+import { buildMenuUrl } from '../../utils/site';
 
 const DEFAULT_STYLE = { fg: '#0f172a', bg: '#ffffff', logo: '', size: 640 };
 
@@ -23,7 +21,7 @@ export default function QrCustomizer() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const menuUrl = `${SITE_ORIGIN}/menu/${storeId}`;
+  const menuUrl = buildMenuUrl(storeId);
 
   // 초기 로드: 매장 + 저장된 qrStyle
   useEffect(() => {
