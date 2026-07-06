@@ -293,6 +293,8 @@ export default function CustomerPhoneSheet({
       }
       setResult(res);
       setStep('done');
+      // 개인화 추천(F9)·재방문 편의를 위해 고객 전화번호 저장
+      try { localStorage.setItem('wm_customer_phone', digits); } catch { /* 저장 실패 무시 */ }
       const socket = getSocket();
       if (socket && res.socket_channel) {
         socket.emit('join-customer-orders', { phone: digits });

@@ -21,6 +21,7 @@ import CartModal from "@/components/menu/CartModal";
 import OptionSelectionModal from "@/components/menu/OptionSelectionModal";
 import OrderStatusModal from "@/components/menu/OrderStatusModal";
 import CustomerPhoneSheet from "@/components/menu/CustomerPhoneSheet";
+import PersonalizedRecommendations from "@/components/menu/PersonalizedRecommendations";
 import ReviewModal from "@/components/customer/ReviewModal";
 import StoreReviews from "@/components/customer/StoreReviews";
 import LegalFooter from "@/components/customer/LegalFooter";
@@ -409,6 +410,14 @@ const MenuPage = () => {
         address={profile?.address}
         isOpen={storeOpen}
         todayHours={todayHours}
+      />
+
+      {/* AI 개인화 추천 (F9) */}
+      <PersonalizedRecommendations
+        storeId={storeId}
+        storeOpen={storeOpen}
+        onAddToCart={handleAddToCartClick}
+        menuItems={menuItems}
       />
 
       {/* Category Tabs */}
