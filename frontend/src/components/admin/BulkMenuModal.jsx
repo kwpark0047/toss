@@ -6,7 +6,6 @@ import {
     RefreshCw, ImageOff
 } from 'lucide-react';
 import { aiAPI, productsAPI, categoriesAPI } from '../../api';
-import { formatPrice } from '../../utils/format';
 import * as XLSX from 'xlsx';
 
 // 엑셀 샘플 데이터

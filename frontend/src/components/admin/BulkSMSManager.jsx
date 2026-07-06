@@ -6,7 +6,6 @@ import {
     Store, MapPin, Zap, MessageSquare, AlertCircle,
     CheckCircle, Clock, Trash2, ChevronRight, RefreshCcw
 } from 'lucide-react';
-import { formatPrice } from '../../utils/format';
 
 const BulkSMSManager = () => {
     const [options, setOptions] = useState({ stores: [], regions: [], businessTypes: [] });

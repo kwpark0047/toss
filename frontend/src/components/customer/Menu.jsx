@@ -11,7 +11,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../common/LanguageSwitcher";
 import { aiAPI } from "../../api";
-import axios from "axios";
 import PaymentSheet from "./payment/PaymentSheet";
 import TogetherPaymentSheet from "./payment/TogetherPaymentSheet"; // [추가] 분할 결제 시트
 import ManagerCallSheet from "./ManagerCallSheet";

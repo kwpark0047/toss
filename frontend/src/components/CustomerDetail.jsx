@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { customersAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Edit, Trash2, Mail, Phone, Building, Calendar, FileText } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Mail, Phone, Building, Calendar } from 'lucide-react';
 
 const statusColors = {
   active: 'bg-green-100 text-green-800',

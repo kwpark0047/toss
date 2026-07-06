@@ -8,7 +8,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import notificationSound from '../../utils/notificationSound';
 import { onNewOrder, onOrderUpdated } from '../../utils/socket';
-import { formatPrice, formatTime, formatDateTime } from '../../utils/format';
+import { formatTime, formatDateTime } from '../../utils/format';
 import { handleApiError } from '../../utils/apiError';
 import OrderCard from './OrderCard';
 import OrderDetailModal from './OrderDetailModal';

@@ -18,7 +18,7 @@ import {
     Trophy,
     User
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 const Wallet = () => {
     const [searchParams] = useSearchParams();

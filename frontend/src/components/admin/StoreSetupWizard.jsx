@@ -654,7 +654,7 @@ export default function StoreSetupWizard() {
       ];
       extras.forEach(({ msg: m, delay: d, happy: h }) => sayWithDelay(m, d, h));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [step, sayWithDelay]);
 
   // ── Step 1: 매장 저장 + 기본 테이블 자동 생성

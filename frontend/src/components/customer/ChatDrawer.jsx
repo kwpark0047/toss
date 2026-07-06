@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, User, ShieldCheck, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { X, Send, ShieldCheck, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { chatAPI, getSocket } from '../../api';
 
 /**

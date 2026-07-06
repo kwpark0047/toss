@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Globe, CloudRain, Sun, Snowflake, Flame, Volume2, Type, ToggleLeft, ToggleRight, RefreshCw, TrendingUp, ShoppingCart, Users, Star, ChevronRight, Info, Save, Loader2 } from 'lucide-react';
+import { Sparkles, Globe, CloudRain, Sun, Snowflake, Flame, Type, ToggleLeft, ToggleRight, RefreshCw, TrendingUp, ShoppingCart, ChevronRight, Info, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { loadTinkerBellSettings, saveTinkerBellSettings } from '../utils/tinkerbell';
 import TinkerBell from '../components/ai/TinkerBell';

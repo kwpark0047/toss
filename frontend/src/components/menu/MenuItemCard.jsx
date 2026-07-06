@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Flame, Sparkles } from 'lucide-react';
 

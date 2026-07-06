@@ -1,6 +1,5 @@
-import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, MapPin, Phone, Clock, Megaphone } from 'lucide-react';
+import { MapPin, Phone, Clock, Megaphone } from 'lucide-react';
 
 const StoreInfoBanner = ({ 
   description, 

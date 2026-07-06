@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * Skeleton — TDS 시머 로딩 플레이스홀더.

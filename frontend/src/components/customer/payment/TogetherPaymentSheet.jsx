@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, ShoppingBag, CreditCard, ChevronRight, CheckCircle2, Info, AlertCircle } from 'lucide-react';
+import { X, Users, ShoppingBag, CreditCard, ChevronRight, CheckCircle2, Info } from 'lucide-react';
 
 /**
  * [TogetherPaymentSheet]

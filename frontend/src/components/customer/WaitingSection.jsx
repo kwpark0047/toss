@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Clock, Phone, User, X, ChevronRight, BellRing, Sparkles, CheckCircle } from 'lucide-react';
+import { Users, Phone, User, X, ChevronRight, BellRing, Sparkles, CheckCircle } from 'lucide-react';
 import { waitingAPI, ordersAPI } from '../../api';
 import { useTranslation } from 'react-i18next';
 

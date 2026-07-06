@@ -1,7 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { storesAPI, planRequestsAPI, staffRequestsAPI } from '../../api';
-import { formatPrice } from '../../utils/format';
+import { storesAPI, planRequestsAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 

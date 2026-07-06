@@ -2,7 +2,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { analyticsAPI, storesAPI, staffAPI, exportAPI } from '../../api';
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Users, Award, Clock, BarChart3, PieChart, Calendar, ChevronRight, Activity, Zap, Download, FileSpreadsheet, FileText } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
 import AdvancedInsights from './AdvancedInsights';
 import {

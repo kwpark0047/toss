@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * EmptyState — TDS 빈 상태 패턴 (아이콘 · 타이틀 · 설명 · 선택 액션).

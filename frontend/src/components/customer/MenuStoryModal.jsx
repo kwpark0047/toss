@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Heart, Quote, Share2, BookOpen } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { X, Heart, Quote, Share2 } from 'lucide-react';
 import { aiAPI } from '../../api';
 import { useTranslation } from 'react-i18next';
 

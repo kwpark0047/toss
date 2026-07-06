@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
-import { lazy, Suspense, useState, useEffect, memo, useCallback } from "react";
+import { lazy, Suspense, useState, useEffect, memo } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 // 공개 페이지 지연 로딩: 각 라우트가 자기 청크만 로드해 초기 번들(index) 축소
 const Index = lazy(() => import("./pages/Index"));

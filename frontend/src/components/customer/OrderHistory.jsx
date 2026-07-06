@@ -18,7 +18,7 @@ import {
     Truck,
     BellRing
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import ManagerCallSheet from './ManagerCallSheet';
 import ChatDrawer from './ChatDrawer';
 import { formatPrice } from '../../utils/format';

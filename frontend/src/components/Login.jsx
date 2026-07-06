@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { wakeupServer } from '../api';
-import { Store, Phone, Mail, Lock, AlertCircle, ArrowRight, ServerCrash } from 'lucide-react';
+import { Store, Phone, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const isEmail = (value) => value.includes('@');
