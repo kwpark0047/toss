@@ -530,6 +530,7 @@ const MasterDashboard = () => {
                         { label: '분석 대시보드',path: 'analytics',    icon: BarChart3,   desc: '고급 데이터 분석',           grad: 'from-emerald-500 to-teal-500' },
                         { label: '알림 템플릿', path: 'notification-templates', icon: Bell, desc: '자동 알림 문구 관리',      grad: 'from-sky-500 to-indigo-500' },
                         { label: '개발자 콘솔', path: 'developer',     icon: Code2,       desc: 'Open API·웹훅 연동',         grad: 'from-slate-500 to-gray-600' },
+                        { label: 'QR 커스터마이징', path: 'qr-customizer', icon: QrCode,   desc: '브랜딩 QR(색상·로고)',      grad: 'from-teal-500 to-emerald-600' },
                         { label: 'AI 팅커벨',   path: null,            icon: Sparkles,    desc: 'AI 도우미 서비스',           grad: 'from-indigo-500 to-violet-500', navTo: '/admin/tinkerbell' },
                     ].map(tool => (
                         <button key={tool.label}

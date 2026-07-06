@@ -51,6 +51,7 @@ const LegalPage          = lazy(() => import("@/pages/LegalPage"));
 const StoreSettings      = lazy(() => import("@/components/admin/StoreSettings"));
 const NotificationTemplatesManager = lazy(() => import("@/components/admin/NotificationTemplatesManager"));
 const DeveloperConsole = lazy(() => import("@/components/admin/DeveloperConsole"));
+const QrCustomizer = lazy(() => import("@/components/admin/QrCustomizer"));
 
 const queryClient = new QueryClient();
 
@@ -310,6 +311,13 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/developer" element={
       <AdminPage>
         <ValidStoreRoute><AdminSuspense><DeveloperConsole /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
+    {/* QR 코드 커스터마이징 (F6) */}
+    <Route path="/admin/stores/:storeId/qr-customizer" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><QrCustomizer /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
