@@ -338,6 +338,7 @@ const io = new Server(httpServer, {
 });
 
 const logger = require('./utils/logger');
+const { registerSocketHandlers } = require('./socket/handlers');
 
 io.on('connection', (socket) => {
     logger.debug(`[Socket] 연결됨: ${socket.id}`);
@@ -353,92 +354,10 @@ io.on('connection', (socket) => {
         if (userId) socket.join(`user - ${userId}`);
     });
     socket.on('disconnect', () => logger.debug(`[Socket] 연결 해제됨: ${socket.id}`));
-
-    // --- [채팅 관련 소켓 이벤트] ---
-    // 채팅방 참여
-    socket.on('join-chat-room', ({ roomId }) => {
-        socket.join(`chat - ${roomId}`);
-    });
-
-    // 메시지 전송
-    socket.on('send-chat-message', (data) => {
-        const { roomId, message } = data;
-        // 해당 방의 다른 모든 이에게 메시지 전달 (매니저/고객)
-        io.to(`chat - ${roomId}`).emit('new-chat-message', message);
-
-        // 매니저 알림 (매장 채널로 이벤트 브로드캐스트)
-        if (message.sender_type === 'customer') {
-            io.to(`store - ${data.storeId}`).emit('manager-notification', {
-                type: 'CHAT_RECEPTION',
-                message: '새로운 고객 메시지가 도착했습니다.',
-                roomId: roomId
-            });
-        }
-    });
-
-    // 호출 알림 (매니저 호출 버튼 클릭 시)
-    socket.on('manager-call', (data) => {
-        const { storeId, tableName, type } = data;
-        io.to(`store - ${storeId}`).emit('manager-notification', {
-            type: 'MANAGER_CALL',
-            message: `${tableName || '고객'}님이 매니저를 호출하셨습니다. (${type})`,
-            tableName
-        });
-    });
-
-    // --- [공유 장바구니 관련 소켓 이벤트] ---
-    // 테이블 장바구니 룸 참여
-    socket.on('join-table-cart', ({ tableId }) => {
-        socket.join(`table - cart - ${tableId}`);
-    });
-
-    // 장바구니 업데이트 브로드캐스트
-    socket.on('update-shared-cart', (data) => {
-        const { tableId, item, userPhone, action } = data;
-        // 같은 테이블 인원들에게 업데이트 전파
-        io.to(`table - cart - ${tableId}`).emit('cart-item-updated', {
-            item,
-            userPhone,
-            action // 'add', 'update', 'remove', 'clear'
-        });
-    });
-
-    // --- [고객 주문 실시간 알림 채널] ---
-    // 핸드폰 번호로 phone-join 후 구독 (주문 상태 변경 실시간 수신)
-    socket.on('join-customer-orders', ({ phone }) => {
-        const normalized = phone.replace(/[^0-9]/g, '');
-        socket.join(`customer-orders-${normalized}`);
-    });
-
-    // --- [스마트 웨이팅 관련 소켓 이벤트] ---
-    // 특정 매장의 대기 관리 채널 참여 (관리자/직원용)
-    socket.on('join-store-waiting', ({ storeId }) => {
-        socket.join(`store - waiting - ${storeId}`);
-    });
-
-    // 내 대기 상태 추적 채널 참여 (고객용)
-    socket.on('join-my-waiting', ({ phone }) => {
-        socket.join(`customer - waiting - ${phone}`);
-    });
-
-    // 대기 상태 변경 알림 (동기화)
-    socket.on('update-waiting-status', (data) => {
-        const { storeId, phone, status, entry } = data;
-
-        // 1. 매장 전체 대기 리스트 갱신 (관리자 앱)
-        io.to(`store - waiting - ${storeId}`).emit('waiting-list-changed', { storeId });
-
-        // 2. 개별 고객에게 상태 변경 통보 (입장 호출 등)
-        io.to(`customer - waiting - ${phone}`).emit('waiting-status-changed', {
-            status,
-            entry,
-            message: status === 'called' ? '입장해 주세요! 점원이 기다리고 있습니다.' : '대기 상태가 업데이트되었습니다.'
-        });
-
-        // 3. 해당 매장 대기 중인 모든 고객에게 '내 앞 대기 팀' 숫자 갱신용 이벤트 전송
-        io.to(`store - waiting - ${storeId}`).emit('refresh-ahead-count');
-    });
 });
+
+// 채팅/공유장바구니/웨이팅 핸들러 (분리된 모듈)
+registerSocketHandlers(io);
 
 // 알림 서비스 초기화 (Socket.io 인스턴스 주입)
 notificationService.init(io);

@@ -58,11 +58,13 @@ const TossAPI = {
                 return response.data;
             } catch (error) {
                 logger.error(error);
-                throw {
-                    code: error.response?.data?.code || 'PAYMENT_CONFIRM_ERROR',
-                    message: error.response?.data?.message || '결제 승인 중 오류가 발생했습니다.',
-                    statusCode: error.response?.status || 500
-                };
+                throw Object.assign(
+                    new Error(error.response?.data?.message || '결제 승인 중 오류가 발생했습니다.'),
+                    {
+                        code: error.response?.data?.code || 'PAYMENT_CONFIRM_ERROR',
+                        statusCode: error.response?.status || 500
+                    }
+                );
             }
         });
     },
@@ -81,11 +83,13 @@ const TossAPI = {
             return response.data;
         } catch (error) {
             logger.error(error);
-            throw {
-                code: error.response?.data?.code || 'BRANDPAY_CONFIRM_ERROR',
-                message: error.response?.data?.message || '브랜드페이 승인 중 오류가 발생했습니다.',
-                statusCode: error.response?.status || 500
-            };
+            throw Object.assign(
+                new Error(error.response?.data?.message || '브랜드페이 승인 중 오류가 발생했습니다.'),
+                {
+                    code: error.response?.data?.code || 'BRANDPAY_CONFIRM_ERROR',
+                    statusCode: error.response?.status || 500
+                }
+            );
         }
     },
 
@@ -101,11 +105,13 @@ const TossAPI = {
             );
             return response.data;
         } catch (error) {
-            throw {
-                code: error.response?.data?.code || 'PAYMENT_GET_ERROR',
-                message: error.response?.data?.message || '결제 조회 중 오류가 발생했습니다.',
-                statusCode: error.response?.status || 500
-            };
+            throw Object.assign(
+                new Error(error.response?.data?.message || '결제 조회 중 오류가 발생했습니다.'),
+                {
+                    code: error.response?.data?.code || 'PAYMENT_GET_ERROR',
+                    statusCode: error.response?.status || 500
+                }
+            );
         }
     },
 
@@ -134,11 +140,13 @@ const TossAPI = {
                 );
                 return response.data;
             } catch (error) {
-                throw {
-                    code: error.response?.data?.code || 'PAYMENT_CANCEL_ERROR',
-                    message: error.response?.data?.message || '결제 취소 중 오류가 발생했습니다.',
-                    statusCode: error.response?.status || 500
-                };
+                throw Object.assign(
+                    new Error(error.response?.data?.message || '결제 취소 중 오류가 발생했습니다.'),
+                    {
+                        code: error.response?.data?.code || 'PAYMENT_CANCEL_ERROR',
+                        statusCode: error.response?.status || 500
+                    }
+                );
             }
         });
     },

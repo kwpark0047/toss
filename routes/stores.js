@@ -65,10 +65,8 @@ router.get('/:id/business', authMiddleware, bridgeStoreId, checkStorePermission(
 // ── 사업자 정보 저장 ──────────────────────────────────────────────────────────
 router.put('/:id/business', authMiddleware, bridgeStoreId, checkStorePermission('settings:write'), catchAsync(async (req, res) => {
     const sid = parseInt(req.params.id);
-    const {
-        business_number, business_name, ceo_name, tax_invoice_email,
-        settlement_cycle, enabled_payment_methods
-    } = req.body;
+    // 검증에 사용하는 필드만 추출 (나머지는 Store.updateBusinessInfo가 req.body로 저장)
+    const { business_number, settlement_cycle } = req.body;
 
     // 사업자번호 형식 검증 (000-00-00000)
     if (business_number && !/^\d{3}-\d{2}-\d{5}$/.test(business_number)) {

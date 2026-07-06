@@ -274,7 +274,7 @@ router.get('/:storeId/coupons', authMiddleware, checkStorePermission('owner'), c
  */
 router.post('/:storeId/customer/:customerId/coupon', authMiddleware, checkStorePermission('owner'), catchAsync(async (req, res) => {
     const { coupon_id } = req.body;
-    if (!coupon_id) return res.status(400).json({ success: false, error: 'coupon_id 필요' });
+    if (!coupon_id) return res.status(400).json({ success: false, error: '쿠폰 ID가 필요합니다' });
 
     const customer = await prisma.store_customers.findFirst({
         where: { id: parseInt(req.params.customerId), store_id: parseInt(req.params.storeId) },

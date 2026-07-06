@@ -10,11 +10,12 @@ const Order = {
   // [주문 생성]
   create: async (data) => {
     try {
-      let {
+      const {
         store_id, table_id, customer_name, customer_phone,
-        order_number, total_amount, status = 'pending',
+        total_amount, status = 'pending',
         method, notes, items, is_takeout = false
       } = data;
+      let order_number = data.order_number; // 아래에서 자동 생성 시 재할당
 
       // 주문번호 자동 생성
       if (!order_number) {
@@ -421,7 +422,7 @@ const Order = {
   },
 
   // [직원 성과 분석 스텁]
-  getStaffPerformance: async (storeId, startDate, endDate) => {
+  getStaffPerformance: async (_storeId, _startDate, _endDate) => {
     return {
       summary: { total_orders: 0, total_sales: 0 },
       staff_data: []
@@ -429,7 +430,7 @@ const Order = {
   },
 
   // [KDS 성능 분석 스텁]
-  getKdsPerformance: async (storeId, startDate, endDate) => {
+  getKdsPerformance: async (_storeId, _startDate, _endDate) => {
     return {
       avg_cooking_time: 0,
       total_orders: 0,

@@ -107,7 +107,7 @@ class AIService {
 
         try {
             const res = await this.generateWithFallback(prompt);
-            this.cache.set(cacheKey, res); // 결과 캐싱
+            this.setCache(cacheKey, res); // 결과 캐싱 (with eviction)
             return res;
         } catch (error) {
             logger.error(error);
@@ -508,7 +508,7 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
             const rawText = await this.generateWithFallback(prompt);
             const text = rawText.replace(/```json|```/g, "").trim();
             return JSON.parse(text);
-        } catch (error) {
+        } catch (_error) {
             return { brightness: 1.1, contrast: 1.1, saturate: 1.2, sepia: 0, sharpness: 1.0 };
         }
     }

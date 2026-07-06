@@ -12,7 +12,7 @@ const notificationService = require('../services/notificationService');
 const prisma = require('../config/prisma');
 const catchAsync = require('../utils/catchAsync');
 const logger = require('../utils/logger');
-const { encryptPhone, decryptPhoneFields } = require('../utils/phoneEncryption');
+const { encryptPhone } = require('../utils/phoneEncryption');
 
 // 주문 생성 (공개)
 router.post('/', validate(schema.create), catchAsync(async (req, res) => {

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../config/prisma');
 const catchAsync = require('../utils/catchAsync');
-const { encryptPhone, decryptPhone, decryptPhoneFields, phoneSearchCandidates } = require('../utils/phoneEncryption');
+const { encryptPhone, decryptPhoneFields, phoneSearchCandidates } = require('../utils/phoneEncryption');
 
 // [GET] 특정 매장의 현재 대기 현황 조회
 router.get('/store/:storeId/status', catchAsync(async (req, res) => {

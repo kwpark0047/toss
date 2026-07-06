@@ -2,10 +2,22 @@ const path = require('path');
 const logger = require('../utils/logger');
 
 /**
- * [알림 통합 유틸리티]
- * Firebase Cloud Messaging (FCM)을 통한 푸시 알림과 
- * Socket.IO를 통한 실시간 앱 내 알림을 결합하여 전송합니다.
+ * [알림 통합 유틸리티 — @deprecated]
+ *
+ * 신규 코드는 services/notificationService.js (NotificationService 싱글턴)를 사용하세요.
+ * 이 모듈은 레거시 호환성을 위해 유지되며, 추후 제거 예정입니다.
+ *
+ * 마이그레이션 대상:
+ *   sendOrderReadyNotification  → notificationService.notifyOrderStatus()
+ *   sendNewOrderNotification    → notificationService.notifyNewOrder() / notifyNewOrderDB()
+ *   sendOrderStatusNotification → notificationService.notifyOrderStatusDB()
+ *   sendSettlementNotification  → notificationService.notifySettlementDB()
+ *   sendAlimTalk                → notificationService.sendAlimTalk() (별도 구현 예정)
  */
+
+function deprecationWarning(fnName) {
+  logger.warn(`[Deprecated] utils/notifications.js의 ${fnName}()이(가) 호출되었습니다. notificationService.js로 이전하세요.`);
+}
 
 let messaging = null;
 try {
@@ -18,7 +30,7 @@ try {
         admin.initializeApp({
           credential: admin.credential.cert(require(path.resolve(serviceAccountPath)))
         });
-        console.log('[Notification] Firebase Admin SDK 초기화 완료');
+        logger.info('[Notification] Firebase Admin SDK 초기화 완료');
       } catch (e) {
         logger.error('[Notification] Firebase 초기화 실패:', e.message || e);
       }
@@ -29,12 +41,9 @@ try {
   logger.warn('[Notification] Firebase Admin SDK를 로드할 수 없습니다. 푸시 알림이 제한됩니다.');
 }
 
-/**
- * 1. FCM 푸시 알림 단일 전송 (공통 유틸)
- * @param {string} token - 대상 기기의 FCM 토큰
- * @param {Object} payload - 알림 내용 (title, body, data 등)
- */
+/** @deprecated notificationService.sendPush() 사용 */
 async function sendFCMNotification(token, payload) {
+  deprecationWarning('sendFCMNotification');
   if (!messaging || !token) return;
 
   try {
@@ -48,21 +57,15 @@ async function sendFCMNotification(token, payload) {
     };
 
     const response = await messaging.send(message);
-    console.log('[FCM] 알림 발송 성공:', response);
+    logger.info('[FCM] 알림 발송 성공:', response);
   } catch (error) {
     logger.error(error);
   }
 }
 
-/**
- * 2. 주문 준비 완료 알림 발송
- * 고객에게는 푸시(FCM)를, 주방/매니저에게는 앱 내 실시간(Socket.IO) 알림을 보냅니다.
- * @param {Object} io - Socket.io 서버 인스턴스
- * @param {Object} order - 주문 정보 (ID, 주문번호 등)
- * @param {Object} tableAssignment - 테이블 점유/배정 정보
- * @param {string} customerToken - 고객의 FCM 토큰 (있는 경우 푸시 발송)
- */
+/** @deprecated notificationService.notifyOrderStatus() 사용 */
 async function sendOrderReadyNotification(io, order, tableAssignment, customerToken = null) {
+  deprecationWarning('sendOrderReadyNotification');
   const title = '주문 준비 완료! 🍽️';
   const body = `주문하신 메뉴가 준비되었습니다. #${order.order_number || order.id}번 주문을 픽업해 주세요!`;
 
@@ -93,7 +96,9 @@ async function sendOrderReadyNotification(io, order, tableAssignment, customerTo
  * @param {Object} order - 신규 주문 정보
  * @param {string[]} managerTokens - 매니저들의 FCM 토큰 배열
  */
+/** @deprecated notificationService.notifyNewOrder() / notifyNewOrderDB() 사용 */
 async function sendNewOrderNotification(io, order, managerTokens = []) {
+  deprecationWarning('sendNewOrderNotification');
   const title = '🔔 새 주문 접수!';
   const body = `[${order.table_name || '포장'}] 새 주문이 들어왔습니다. (${(order.total_amount || 0).toLocaleString()}원)`;
 
@@ -128,10 +133,10 @@ async function sendNewOrderNotification(io, order, managerTokens = []) {
 async function sendAlimTalk(phone, templateCode, _data) {
   if (!phone) return;
 
-  console.log(`[AlimTalk] 발송 준비 - 대상: ${phone}, 템플릿: ${templateCode}`);
+  logger.info(`[AlimTalk] 발송 준비 - 대상: ${phone}, 템플릿: ${templateCode}`);
   // 실제 API 호출 로직이 들어갈 자리
   // const res = await bizmAPI.send({ phone, templateCode, data });
-  console.log(`[AlimTalk] 발송 가상 성공: ${templateCode} 메시지가 ${phone}번으로 전송되었습니다.`);
+  logger.info(`[AlimTalk] 발송 가상 성공: ${templateCode} 메시지가 ${phone}번으로 전송되었습니다.`);
   return true;
 }
 
@@ -139,7 +144,9 @@ async function sendAlimTalk(phone, templateCode, _data) {
  * 5. 정산 완료 알림
  * 점주에게 정산이 완료되었음을 푸시와 알림톡으로 알립니다.
  */
+/** @deprecated notificationService.notifySettlementDB() 사용 */
 async function sendSettlementNotification(io, store, settlement, managerTokens = []) {
+  deprecationWarning('sendSettlementNotification');
   const title = '💰 정산 완료 안내';
   const body = `${store.name}의 ${settlement.period_start}~${settlement.period_end} 정산이 완료되었습니다.`;
 
@@ -174,8 +181,10 @@ async function sendSettlementNotification(io, store, settlement, managerTokens =
 /**
  * 6. 주문 상세 상태 변경 알림 (확장)
  * (예: 대기중 -> 확인됨 -> 조리중 -> 취소됨 등)
+ * @deprecated notificationService.notifyOrderStatusDB() 사용
  */
 async function sendOrderStatusNotification(io, order, oldStatus, newStatus, customerToken = null) {
+  deprecationWarning('sendOrderStatusNotification');
   const statusLabels = {
     pending: '대기중',
     confirmed: '주문확인',
@@ -223,8 +232,10 @@ async function sendOrderStatusNotification(io, order, oldStatus, newStatus, cust
 /**
  * 7. 예약 상태 변경 알림
  * 관리자가 소규모 승인/거절, 혹은 노쇼 처리 시 고객에게 전송
+ * @deprecated notificationService.notifyNewReservationDB() 사용
  */
 async function sendReservationNotification(reservation, newStatus) {
+  deprecationWarning('sendReservationNotification');
   if (!reservation.customer_phone) return;
 
   const statusToTemplate = {

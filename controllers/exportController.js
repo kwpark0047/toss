@@ -2,7 +2,6 @@ const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
 const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
-const path = require('path');
 
 // ─── 공통 헬퍼 ────────────────────────────────────────────────────────────────
 

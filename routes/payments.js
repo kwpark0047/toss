@@ -9,7 +9,6 @@ const Payment = require('../models/Payment');
 const Order = require('../models/Order');
 const authMiddleware = require('../middleware/auth');
 const PaymentService = require('../services/PaymentService');
-const Point = require('../models/Point');
 const Ledger = require('../models/Ledger');
 const TossAPI = require('../utils/toss');
 const catchAsync = require('../utils/catchAsync');
@@ -90,10 +89,10 @@ router.post('/ready', catchAsync(async (req, res) => {
     }
 
     if (!targetStoreId) {
-      return res.status(400).json({ error: 'store_id가 필요합니다.' });
+      return res.status(400).json({ error: '매장 ID가 필요합니다.' });
     }
     if (!targetAmount) {
-      return res.status(400).json({ error: 'amount가 필요합니다.' });
+      return res.status(400).json({ error: '금액이 필요합니다.' });
     }
 
     const payment = await Payment.create({
@@ -395,7 +394,7 @@ router.post('/webhooks/toss', catchAsync(async (req, res) => {
     logger.info(`[Webhook/Toss] 이벤트 수신: ${eventType}`, { orderId: data?.orderId });
 
     if (eventType === 'PAYMENT_STATUS_CHANGED' && data?.status === 'DONE') {
-        const { paymentKey, orderId: tossOrderId, totalAmount } = data;
+        const { paymentKey, orderId: tossOrderId } = data;
 
         // 우리 DB에서 해당 주문 확인
         const order = await prisma.orders.findFirst({

@@ -75,7 +75,7 @@ const Coupon = {
     /**
      * [쿠폰 사용 처리]
      */
-    useCoupon: async (userCouponId, orderId) => {
+    useCoupon: async (userCouponId, _orderId) => {
         return await prisma.user_coupons.update({
             where: { id: parseInt(userCouponId) },
             data: {

@@ -458,7 +458,7 @@ async function seedStore(def) {
 
   // 5. 주문 이력 (60일)
   let existingOrderCount = await prisma.orders.count({ where: { store_id: sid } });
-  let totalSales = { apr:0, may:0, jun:0 };
+  const totalSales = { apr:0, may:0, jun:0 };
 
   // 재실행 시 고아 주문 정리 (payment 없는 미완성 주문)
   if (existingOrderCount > 0 && existingOrderCount < 50) {

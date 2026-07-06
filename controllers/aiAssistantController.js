@@ -8,7 +8,7 @@ const aiService = require('../services/aiService');
  */
 const chatWithAI = async (req, res, next) => {
     try {
-        const { message, storeId, menuContext } = req.body;
+        const { message, storeId: _storeId, menuContext } = req.body;
 
         if (!message || !message.trim()) {
             return next(new AppError('메시지를 입력해주세요.', 400));

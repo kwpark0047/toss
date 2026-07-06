@@ -18,13 +18,13 @@ const schemas = {
     // === [Auth] ===
     auth: {
         sendOtp: Joi.object({
-            phone: Joi.string().pattern(/^[0-9\-]{9,14}$/).required().messages({
+            phone: Joi.string().pattern(/^[0-9-]{9,14}$/).required().messages({
                 'string.pattern.base': '유효한 핸드폰 번호를 입력해주세요.',
                 'any.required': '핸드폰 번호는 필수입니다.',
             }),
         }),
         verifyOtp: Joi.object({
-            phone: Joi.string().pattern(/^[0-9\-]{9,14}$/).required().messages({
+            phone: Joi.string().pattern(/^[0-9-]{9,14}$/).required().messages({
                 'string.pattern.base': '유효한 핸드폰 번호를 입력해주세요.',
             }),
             otp: Joi.string().length(6).pattern(/^\d+$/).required().messages({
@@ -34,7 +34,7 @@ const schemas = {
             }),
         }),
         register: Joi.object({
-            phone: Joi.string().pattern(/^[0-9\-]{9,14}$/).required().messages({
+            phone: Joi.string().pattern(/^[0-9-]{9,14}$/).required().messages({
                 'string.pattern.base': '유효한 핸드폰 번호를 입력해주세요.',
                 'any.required': '핸드폰 번호는 필수입니다.',
             }),

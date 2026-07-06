@@ -25,13 +25,13 @@ async function cleanDuplicateOrders() {
             });
 
             // 3. 가장 최신(첫 번째) 주문을 제외한 나머지 삭제
-            constidsToDelete = orders.slice(1).map(o => o.id);
+            const idsToDelete = orders.slice(1).map(o => o.id);
 
-            if (constidsToDelete.length > 0) {
+            if (idsToDelete.length > 0) {
                 await prisma.orders.deleteMany({
-                    where: { id: { in: constidsToDelete } }
+                    where: { id: { in: idsToDelete } }
                 });
-                console.log(`주문번호 ${orderNumber}: ${constidsToDelete.length}개 중복 삭제 완료`);
+                console.log(`주문번호 ${orderNumber}: ${idsToDelete.length}개 중복 삭제 완료`);
             }
         }
 

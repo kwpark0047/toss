@@ -256,7 +256,7 @@ router.get('/lookup-user', authMiddleware, catchAsync(async (req, res) => {
     const { phone, storeId } = req.query;
 
     // storeId 필수 + 호출자 권한 확인 (PII 열거 방지)
-    if (!storeId) throw new AppError('storeId가 필요합니다.', 400);
+    if (!storeId) throw new AppError('매장 ID가 필요합니다.', 400);
     const myRole = await getStoreRole(req.user.id, storeId);
     if (!myRole || (myRole !== 'owner' && myRole !== 'manager')) {
         throw new AppError('팀원 조회 권한이 없습니다.', 403);

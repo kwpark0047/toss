@@ -7,7 +7,6 @@
  *   NODE_ENV
  */
 const https = require('https');
-const url   = require('url');
 const logger = require('./logger');
 
 const LEVELS = { info: 0, warn: 1, critical: 2 };

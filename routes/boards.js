@@ -209,11 +209,11 @@ router.get('/:type', optionalAuth, catchAsync(async (req, res) => {
         if (searchType === 'title') where.title = { contains: search };
         else if (searchType === 'content') where.content = { contains: search };
         else if (searchType === 'author') where.author_name = { contains: search };
-        else where.OR = [
+        else {where.OR = [
             { title: { contains: search } },
             { content: { contains: search } },
             { author_name: { contains: search } },
-        ];
+        ];}
     }
     if (tag) {
         where.tags = { contains: tag };

@@ -25,7 +25,8 @@ const errorTypes = {
   },
 };
 
-const errorHandler = (err, req, res, next) => {
+// next는 미사용이지만 Express가 4-인자 시그니처로 에러 미들웨어를 인식하므로 유지
+const errorHandler = (err, req, res, _next) => {
   // 1. 에러 로그 기록 (Winston 사용)
   logger.error(err);
 

@@ -8,7 +8,6 @@
  */
 const router  = require('express').Router();
 const prisma  = require('../config/prisma');
-const logger  = require('../utils/logger');
 const cb      = require('../utils/circuitBreaker');
 const alerting = require('../utils/alerting');
 

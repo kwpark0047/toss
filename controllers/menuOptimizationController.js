@@ -1,5 +1,4 @@
 const prisma = require('../config/prisma');
-const { AppError } = require('../utils/errorHandler');
 const aiService = require('../services/aiService');
 
 /**
