@@ -7,6 +7,9 @@ import { useEffect, useRef, useState } from 'react';
  */
 const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+// leaflet@1.9.4 공식 배포 SRI 해시 (변조된 CDN 파일 로드 차단)
+const LEAFLET_CSS_SRI = 'sha512-Zcn6bjR/8RZbLEpLIeOwNtzREBAJnUKESxces60Mpoj+2okopSAcSUIUOseddDm0cxnGQzxIR7vJgsLZbdLE3w==';
+const LEAFLET_JS_SRI = 'sha512-BwHfrr4c9kmRkLw6iXFdzcdWV/PGkVgiIyIWLLlTSXzWQzxuSg4DiQUCpauz/EWjgk5TYQqX/kvn9pG1NpYfqg==';
 
 function loadLeaflet() {
   if (window.L) return Promise.resolve(window.L);
@@ -15,6 +18,8 @@ function loadLeaflet() {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = LEAFLET_CSS;
+      link.integrity = LEAFLET_CSS_SRI;
+      link.crossOrigin = 'anonymous';
       document.head.appendChild(link);
     }
     let script = document.querySelector(`script[src="${LEAFLET_JS}"]`);
@@ -22,12 +27,54 @@ function loadLeaflet() {
     if (!script) {
       script = document.createElement('script');
       script.src = LEAFLET_JS;
+      script.integrity = LEAFLET_JS_SRI;
+      script.crossOrigin = 'anonymous';
       script.async = true;
       document.head.appendChild(script);
     }
     script.addEventListener('load', () => resolve(window.L));
     script.addEventListener('error', reject);
   });
+}
+
+/** 매장 팝업을 DOM API로 구성 — textContent로 매장 데이터를 자동 이스케이프(XSS 방지) */
+function buildPopup(s) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'font-family:Pretendard,sans-serif;min-width:160px';
+
+  const name = document.createElement('div');
+  name.style.cssText = 'font-weight:900;font-size:14px;color:#0f172a';
+  name.textContent = s.name || '';
+  wrap.appendChild(name);
+
+  if (s.business_type) {
+    const bt = document.createElement('div');
+    bt.style.cssText = 'font-size:11px;color:#f97316;font-weight:700;margin-top:2px';
+    bt.textContent = s.business_type;
+    wrap.appendChild(bt);
+  }
+  if (s.address) {
+    const addr = document.createElement('div');
+    addr.style.cssText = 'font-size:11px;color:#64748b;margin-top:3px';
+    addr.textContent = s.address;
+    wrap.appendChild(addr);
+  }
+  if (s.distance_km != null) {
+    const d = document.createElement('div');
+    d.style.cssText = 'font-size:11px;color:#2563eb;font-weight:700;margin-top:2px';
+    d.textContent = `📍 ${s.distance_km}km`;
+    wrap.appendChild(d);
+  }
+
+  const link = document.createElement('a');
+  // id는 숫자만 허용 — href 인젝션 방지
+  const safeId = /^\d+$/.test(String(s.id)) ? s.id : '';
+  link.href = safeId ? `/menu/${safeId}` : '#';
+  link.style.cssText = 'display:inline-block;margin-top:8px;background:#f97316;color:#fff;font-weight:800;font-size:12px;padding:6px 12px;border-radius:8px;text-decoration:none';
+  link.textContent = '메뉴 보기 →';
+  wrap.appendChild(link);
+
+  return wrap;
 }
 
 export default function StoreMapLeaflet({ stores = [], coords = null, onSelect }) {
@@ -79,16 +126,8 @@ export default function StoreMapLeaflet({ stores = [], coords = null, onSelect }
     stores.forEach((s) => {
       if (s.latitude == null || s.longitude == null) return;
       const m = L.marker([s.latitude, s.longitude], { icon: orangeIcon, title: s.name }).addTo(layer);
-      const dist = s.distance_km != null ? `<div style="font-size:11px;color:#2563eb;font-weight:700;margin-top:2px">📍 ${s.distance_km}km</div>` : '';
-      m.bindPopup(
-        `<div style="font-family:Pretendard,sans-serif;min-width:160px">
-          <div style="font-weight:900;font-size:14px;color:#0f172a">${s.name}</div>
-          ${s.business_type ? `<div style="font-size:11px;color:#f97316;font-weight:700;margin-top:2px">${s.business_type}</div>` : ''}
-          <div style="font-size:11px;color:#64748b;margin-top:3px">${s.address || ''}</div>
-          ${dist}
-          <a href="/menu/${s.id}" style="display:inline-block;margin-top:8px;background:#f97316;color:#fff;font-weight:800;font-size:12px;padding:6px 12px;border-radius:8px;text-decoration:none">메뉴 보기 →</a>
-        </div>`
-      );
+      // 팝업은 DOM API로 구성해 매장 데이터를 안전하게 이스케이프(XSS 방지)
+      m.bindPopup(buildPopup(s));
       m.on('click', () => onSelect?.(s));
       pts.push([s.latitude, s.longitude]);
     });
