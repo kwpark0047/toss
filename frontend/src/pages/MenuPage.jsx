@@ -8,6 +8,7 @@ import { categoriesAPI, productsAPI } from "@/api/products";
 import { ordersAPI } from "@/api/orders";
 import { wakeupServer } from "@/api/wakeup";
 import { useKioskMode } from "@/hooks/useKioskMode";
+import { withOfflineCache } from "@/utils/menuCache";
 import { Maximize2 } from "lucide-react";
 
 // Components
@@ -162,7 +163,7 @@ const MenuPage = () => {
   // Fetch store profile — 숫자 storeId일 때만 실행
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["storeProfile", storeId],
-    queryFn: async () => {
+    queryFn: () => withOfflineCache(storeId, "profile", async () => {
       const raw = await storesAPI.getById(storeId);
       const data = raw?.data || raw;
       let parsedTheme = null;
@@ -180,7 +181,7 @@ const MenuPage = () => {
         announcement: parsedTheme?.announcement || null,
         announcement_active: parsedTheme?.announcementActive || false,
       };
-    },
+    }),
     enabled: isNumericStoreId,
     ...coldStartRetry,
   });
@@ -188,10 +189,10 @@ const MenuPage = () => {
   // Fetch categories
   const { data: categories = [] } = useQuery({
     queryKey: ["publicCategories", storeId],
-    queryFn: async () => {
+    queryFn: () => withOfflineCache(storeId, "categories", async () => {
       const raw = await categoriesAPI.getByStore(storeId);
       return Array.isArray(raw) ? raw : (raw?.data || []);
-    },
+    }),
     enabled: isNumericStoreId,
     ...coldStartRetry,
   });
@@ -199,11 +200,11 @@ const MenuPage = () => {
   // Fetch menu items
   const { data: menuItems = [], isLoading: menuLoading } = useQuery({
     queryKey: ["publicMenuItems", storeId],
-    queryFn: async () => {
+    queryFn: () => withOfflineCache(storeId, "menu", async () => {
       const raw = await productsAPI.getByStore(storeId);
       const data = Array.isArray(raw) ? raw : (raw?.data || []);
       return data.map(item => ({ ...item, is_available: true }));
-    },
+    }),
     enabled: isNumericStoreId,
     ...coldStartRetry,
   });
