@@ -20,6 +20,8 @@ export const analyticsAPI = {
     api.get(`/analytics/store/${storeId}/staff?start_date=${startDate}&end_date=${endDate}`),
   getKds: (storeId, startDate, endDate) =>
     api.get(`/analytics/store/${storeId}/kds?start_date=${startDate}&end_date=${endDate}`),
+  getInsights: (storeId, startDate, endDate) =>
+    api.get(`/analytics/store/${storeId}/insights?start_date=${startDate}&end_date=${endDate}`),
   getMultiStore: (params) => api.get('/analytics/multi-store', { params }),
 };
 

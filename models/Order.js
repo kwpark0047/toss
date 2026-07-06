@@ -345,6 +345,81 @@ const Order = {
     }
   },
 
+  /**
+   * 고급 인사이트 (F3): 요일×시간 히트맵, 재구매율, 카테고리별 매출.
+   * 시간/요일은 KST(UTC+9) 기준으로 산정한다.
+   */
+  getAdvancedInsights: async (storeId, startDate, endDate) => {
+    const KST = 9 * 60 * 60 * 1000;
+    const empty = {
+      heatmap: [],
+      repeat: { total_customers: 0, repeat_customers: 0, rate: 0 },
+      categories: [],
+    };
+    try {
+      const numericStoreId = parseInt(storeId);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const where = {
+        store_id: numericStoreId,
+        created_at: { gte: start, lte: end },
+        status: { notIn: ['cancelled'] },
+      };
+
+      const orders = await prisma.orders.findMany({
+        where,
+        select: { total_amount: true, created_at: true, customer_phone: true },
+      });
+
+      // 요일(0=일~6=토) × 시간(0~23) 히트맵 — KST 기준
+      const matrix = Array.from({ length: 7 }, () =>
+        Array.from({ length: 24 }, () => ({ count: 0, amount: 0 }))
+      );
+      const custCount = {}; // 재구매율: 고객(전화번호)별 주문 수
+      orders.forEach((o) => {
+        const kst = new Date(o.created_at.getTime() + KST);
+        const day = kst.getUTCDay();
+        const hour = kst.getUTCHours();
+        matrix[day][hour].count += 1;
+        matrix[day][hour].amount += o.total_amount || 0;
+        if (o.customer_phone) custCount[o.customer_phone] = (custCount[o.customer_phone] || 0) + 1;
+      });
+      const heatmap = [];
+      for (let d = 0; d < 7; d++) {
+        for (let h = 0; h < 24; h++) {
+          if (matrix[d][h].count > 0) heatmap.push({ day: d, hour: h, ...matrix[d][h] });
+        }
+      }
+
+      const phones = Object.keys(custCount);
+      const repeatCustomers = phones.filter((p) => custCount[p] >= 2).length;
+      const repeat = {
+        total_customers: phones.length,
+        repeat_customers: repeatCustomers,
+        rate: phones.length > 0 ? Math.round((repeatCustomers / phones.length) * 1000) / 10 : 0,
+      };
+
+      // 카테고리별 매출 (order_items → products → categories)
+      const items = await prisma.order_items.findMany({
+        where: { orders: { is: where } },
+        select: { subtotal: true, quantity: true, products: { select: { categories: { select: { name: true } } } } },
+      });
+      const catMap = {};
+      items.forEach((it) => {
+        const name = it.products?.categories?.name || '미분류';
+        if (!catMap[name]) catMap[name] = { category: name, sales: 0, quantity: 0 };
+        catMap[name].sales += it.subtotal || 0;
+        catMap[name].quantity += it.quantity || 0;
+      });
+      const categories = Object.values(catMap).sort((a, b) => b.sales - a.sales);
+
+      return { heatmap, repeat, categories };
+    } catch (error) {
+      console.error(`[Prisma Error] getAdvancedInsights failed for Store: ${storeId}`, error);
+      return empty;
+    }
+  },
+
   // [직원 성과 분석 스텁]
   getStaffPerformance: async (storeId, startDate, endDate) => {
     return {

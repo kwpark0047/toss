@@ -4,6 +4,7 @@ import { analyticsAPI, storesAPI, staffAPI, exportAPI } from '../../api';
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Users, Award, Clock, BarChart3, PieChart, Calendar, ChevronRight, Activity, Zap, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
+import AdvancedInsights from './AdvancedInsights';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell, PieChart as RePieChart, Pie, Legend
@@ -526,6 +527,11 @@ const AnalyticsDashboard = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* ── 고급 인사이트 (F3): 히트맵·재구매율·카테고리 ── */}
+      <motion.div variants={itemVariants} className="bg-white/5 backdrop-blur-xl rounded-[40px] border border-white/5 p-6 sm:p-10 shadow-2xl">
+        <AdvancedInsights storeId={storeId} dateRange={dateRange} />
+      </motion.div>
 
       {/* ── 내보내기 패널 ── */}
       <motion.div variants={itemVariants} className="bg-white/5 backdrop-blur-xl rounded-[40px] border border-white/5 p-10 shadow-2xl">

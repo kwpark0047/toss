@@ -91,6 +91,23 @@ router.get('/store/:storeId/comparison', authMiddleware, checkStorePermission('s
 }));
 
 /**
+ * @route   GET /api/analytics/store/:storeId/insights
+ * @desc    고급 인사이트 (F3): 요일×시간 히트맵, 재구매율, 카테고리별 매출
+ */
+router.get('/store/:storeId/insights', authMiddleware, checkStorePermission('stats:read'), catchAsync(async (req, res) => {
+    const storeId = parseInt(req.params.storeId);
+    if (isNaN(storeId)) return res.status(400).json({ error: '유효하지 않은 매장 ID입니다.' });
+
+    const { start_date, end_date } = req.query;
+    if (!start_date || !end_date) {
+        return res.status(400).json({ error: '시작일과 종료일이 필요합니다.' });
+    }
+
+    const insights = await Order.getAdvancedInsights(storeId, start_date, end_date);
+    res.success(insights);
+}));
+
+/**
  * @route   GET /api/analytics/store/:storeId/staff
  * @desc    직원 성과 분석 데이터 조회
  */
