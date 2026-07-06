@@ -37,19 +37,22 @@ const notificationService = require('./services/notificationService');
  * CORS 설정
  */
 const isProduction = process.env.NODE_ENV === 'production';
+// 프로덕션 허용 오리진 (배포 도메인만). localhost는 개발 환경에서만 추가한다.
 const allowedOrigins = [
-    'http://localhost:3002',
-    'http://localhost:5173',
-    'http://localhost:5174',
     'https://frontend-gamma-ten-89.vercel.app',
     'https://wemarket-toss.onrender.com',
     'https://wemarket.onrender.com',
     'https://wemarket.vercel.app',
     'https://250105.vercel.app'
 ];
-// 프로덕션에서 localhost는 CORS 목록에서 제외 (불필요한 공격 표면 감소)
+// 프로덕션에서 localhost 오리진은 CORS 목록에서 전면 제외 (공격 표면 제거)
 if (!isProduction) {
-    allowedOrigins.push('http://localhost:3000');
+    allowedOrigins.push(
+        'http://localhost:3000',
+        'http://localhost:3002',
+        'http://localhost:5173',
+        'http://localhost:5174'
+    );
 }
 
 if (process.env.CORS_ORIGIN) {
@@ -82,8 +85,8 @@ app.use(helmet({
             imgSrc: ["'self'", "data:", "https:", "blob:"],
             connectSrc: [
                 "'self'",
-                "http://localhost:3000",
-                "ws://localhost:3000",
+                // localhost 연결은 개발 환경에서만 허용 (프로덕션 CSP에서 제외)
+                ...(isProduction ? [] : ["http://localhost:3000", "ws://localhost:3000"]),
                 "https://wemarket.onrender.com",
                 "wss://wemarket.onrender.com",
                 "https://wemarket-toss.onrender.com",
