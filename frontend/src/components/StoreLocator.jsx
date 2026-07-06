@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils } from 'lucide-react';
+import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils, Map as MapIcon, List, LayoutGrid } from 'lucide-react';
 import { storesAPI } from '../api/stores';
+import StoreMapLeaflet from './StoreMapLeaflet';
 
 /**
  * StoreLocator — 랜딩 "매장 위치" 섹션.
@@ -18,6 +19,7 @@ export default function StoreLocator() {
   const [loading, setLoading] = useState(true);
   const [locating, setLocating] = useState(false);
   const [geoMsg, setGeoMsg] = useState('');
+  const [view, setView] = useState('map'); // map | list | grid (지도 기본)
 
   const search = useCallback(async (over = {}) => {
     setLoading(true);
@@ -108,10 +110,32 @@ export default function StoreLocator() {
           {geoMsg && <p className="text-xs text-gray-500 mt-2 pl-1">{geoMsg}</p>}
         </div>
 
+        {/* 보기 전환 + 결과 수 */}
+        <div className="flex items-center justify-between mb-5">
+          <p className="text-sm text-gray-500 font-bold">
+            {loading ? '검색 중…' : `총 ${stores.length}개 매장`}
+          </p>
+          <div className="inline-flex bg-gray-100 rounded-xl p-1">
+            {[
+              { key: 'map', label: '지도', icon: MapIcon },
+              { key: 'list', label: '리스트', icon: List },
+              { key: 'grid', label: '그리드', icon: LayoutGrid },
+            ].map(({ key, label, icon: Icon }) => (
+              <button key={key} onClick={() => setView(key)}
+                className={`flex items-center gap-1.5 px-3 sm:px-4 h-9 rounded-lg text-sm font-black transition-all ${view === key ? 'bg-white text-orange-500 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                aria-pressed={view === key}>
+                <Icon size={15} /> <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* 결과 */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[0, 1, 2].map(i => <div key={i} className="skeleton h-28 rounded-2xl" />)}
+          <div className={view === 'map' ? '' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}>
+            {view === 'map'
+              ? <div className="skeleton h-[420px] rounded-3xl" />
+              : [0, 1, 2].map(i => <div key={i} className="skeleton h-28 rounded-2xl" />)}
           </div>
         ) : stores.length === 0 ? (
           <div className="text-center py-16">
@@ -119,14 +143,48 @@ export default function StoreLocator() {
             <p className="text-gray-500 font-bold">조건에 맞는 매장이 없어요</p>
             <p className="text-sm text-gray-400 mt-1">지역·업종을 바꾸거나 전체로 검색해 보세요.</p>
           </div>
+        ) : view === 'map' ? (
+          /* ── 지도 보기 (기본) ── */
+          <div>
+            <StoreMapLeaflet stores={stores} coords={coords} />
+            {!stores.some(s => s.latitude != null) && (
+              <p className="text-xs text-gray-400 mt-2 text-center">※ 좌표가 등록된 매장만 지도에 표시됩니다. 리스트/그리드로 전체를 확인하세요.</p>
+            )}
+          </div>
+        ) : view === 'list' ? (
+          /* ── 리스트 보기 ── */
+          <div className="space-y-2.5">
+            {stores.map((s, i) => (
+              <motion.div key={s.id}
+                initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+                transition={{ duration: 0.35, delay: Math.min(i * 0.04, 0.25) }}>
+                <Link to={`/menu/${s.id}`}
+                  className="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-4 hover:border-orange-200 hover:shadow-md transition-all group">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shrink-0 shadow-sm">
+                    <Store size={20} className="text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-black text-gray-900 truncate">{s.name}</h3>
+                      {s.business_type && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{s.business_type}</span>}
+                      {s.distance_km != null && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 flex items-center gap-0.5"><Navigation size={9} />{s.distance_km}km</span>}
+                    </div>
+                    {s.address && <p className="text-sm text-gray-500 mt-0.5 truncate flex items-center gap-1"><MapPin size={12} className="text-gray-400 shrink-0" />{s.address}</p>}
+                  </div>
+                  <ChevronRight size={18} className="text-gray-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all shrink-0" />
+                </Link>
+              </motion.div>
+            ))}
+          </div>
         ) : (
+          /* ── 그리드 보기 ── */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {stores.map((s, i) => (
               <motion.div key={s.id}
                 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: Math.min(i * 0.05, 0.3) }}>
                 <Link to={`/menu/${s.id}`}
-                  className="block bg-white border border-gray-100 rounded-2xl p-5 hover:border-orange-200 hover:shadow-lg transition-all group">
+                  className="block bg-white border border-gray-100 rounded-2xl p-5 hover:border-orange-200 hover:shadow-lg transition-all group h-full">
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shrink-0 shadow-md">
                       <Store size={22} className="text-white" />
