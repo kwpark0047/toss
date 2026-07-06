@@ -193,6 +193,7 @@ const MenuDemo = () => {
   ]);
   const [uuidTyped, setUuidTyped] = useState('');
   const [scanClicked, setScanClicked] = useState(false);
+  const [scanComplete, setScanComplete] = useState(false);
 
   // 팅커벨 AI 도우미 — 저장된 설정(음성 안내 기본 ON 등) 반영
   const [tbSettings] = useState(loadTinkerBellSettings);
@@ -266,6 +267,7 @@ const MenuDemo = () => {
       [2900, '> ZERO_FRICTION_COMPLETE ✓', 'highlight'],
     ];
     seq.forEach(([delay, text, type]) => setTimeout(() => addLog(text, type), delay));
+    setTimeout(() => setScanComplete(true), 3000);
     setTimeout(() => setScreen('menu'), 3400);
   };
 
@@ -346,22 +348,94 @@ const MenuDemo = () => {
 
           {/* ────────────────── SCREEN: entry ────────────────── */}
           {screen === 'entry' && (
-            <motion.div key="entry" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.97 }}
-              className="w-full flex flex-col items-center justify-center min-h-screen p-4">
+            <motion.div key="entry" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full flex flex-col items-center justify-center min-h-screen p-4 relative">
+              {/* 스캔 성공 오버레이 */}
+              <AnimatePresence>
+                {scanComplete && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-[2.5rem]">
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                      className="w-28 h-28 rounded-full bg-emerald-500 flex items-center justify-center shadow-2xl shadow-emerald-500/40">
+                      <CheckCircle2 className="w-14 h-14 text-white" strokeWidth={2.5} />
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="w-full max-w-sm bg-white md:rounded-[2.5rem] md:shadow-2xl overflow-hidden">
                 {/* 상단 그라디언트 */}
                 <div className="bg-gradient-to-br from-orange-500 via-rose-500 to-pink-600 px-6 pt-14 pb-10 text-center relative overflow-hidden">
-                  {[...Array(5)].map((_, i) => (
-                    <motion.div key={i} className="absolute rounded-full border border-white/20"
-                      style={{ width: 80 + i * 40, height: 80 + i * 40, left: `${(i % 3) * 35 - 10}%`, top: `${Math.floor(i / 3) * 60}%` }}
-                      animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.5, 0.2] }}
-                      transition={{ duration: 3 + i, repeat: Infinity, delay: i * 0.6 }} />
+                  {/* 앰비언트 파티클 */}
+                  {[...Array(14)].map((_, i) => (
+                    <motion.div key={`p-${i}`}
+                      className="absolute rounded-full bg-white/15"
+                      style={{
+                        width: 2 + (i % 3) * 2,
+                        height: 2 + (i % 3) * 2,
+                        left: `${4 + (i * 7) % 92}%`,
+                        top: `${8 + (i * 11) % 84}%`,
+                      }}
+                      animate={{ y: [0, -10 - (i % 4) * 6, 0], opacity: [0.1, 0.45, 0.1] }}
+                      transition={{ duration: 3.5 + (i % 4) * 1.2, repeat: Infinity, delay: i * 0.35, ease: 'easeInOut' }}
+                    />
                   ))}
-                  <motion.div className="relative" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 200 }}>
-                    <div className="w-20 h-20 bg-white/20 backdrop-blur rounded-3xl mx-auto flex items-center justify-center mb-4 shadow-xl">
-                      <QrCode className="w-10 h-10 text-white" strokeWidth={1.5} />
+
+                  {/* 글로우 스포트라이트 */}
+                  <motion.div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full pointer-events-none"
+                    style={{ background: 'radial-gradient(circle, rgba(251,146,60,0.3) 0%, transparent 70%)' }}
+                    animate={{ scale: [1, 1.25, 1], opacity: [0.6, 1, 0.6] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+
+                  {/* QR 스캐너 뷰파인더 */}
+                  <motion.div className="relative mx-auto mb-6"
+                    initial={{ scale: 0.7, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 200, delay: 0.15 }}>
+                    <div className="relative w-40 h-40 mx-auto">
+                      {/* 코너 브래킷 */}
+                      <motion.div className="absolute top-0 left-0 w-7 h-7 border-t-[3px] border-l-[3px] border-white/80 rounded-tl-lg"
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }} />
+                      <motion.div className="absolute top-0 right-0 w-7 h-7 border-t-[3px] border-r-[3px] border-white/80 rounded-tr-lg"
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }} />
+                      <motion.div className="absolute bottom-0 left-0 w-7 h-7 border-b-[3px] border-l-[3px] border-white/80 rounded-bl-lg"
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 1 }} />
+                      <motion.div className="absolute bottom-0 right-0 w-7 h-7 border-b-[3px] border-r-[3px] border-white/80 rounded-br-lg"
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }} />
+
+                      {/* 스캐닝 빔 */}
+                      <motion.div
+                        className="absolute left-3 right-3 h-0.5 rounded-full pointer-events-none"
+                        style={{
+                          background: 'linear-gradient(90deg, transparent 0%, rgba(251,191,36,0.9) 30%, rgba(251,146,60,1) 50%, rgba(251,191,36,0.9) 70%, transparent 100%)',
+                          boxShadow: '0 0 8px rgba(251,146,60,0.6), 0 0 20px rgba(251,146,60,0.3)',
+                        }}
+                        animate={{ top: ['6px', '154px', '6px'] }}
+                        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                      />
+
+                      {/* 뒤쪽 흐린 글로우 */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-28 h-28 bg-orange-400/15 rounded-full blur-3xl" />
+                      </div>
+
+                      {/* QR 코드 아이콘 */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-14 h-14 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/10 shadow-lg">
+                          <QrCode className="w-8 h-8 text-white" strokeWidth={1.5} />
+                        </div>
+                      </div>
                     </div>
+                  </motion.div>
+
+                  <motion.div className="relative" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}>
                     <h1 className="text-2xl font-black text-white tracking-tight">{STORE.name}</h1>
                     <p className="text-white/70 text-sm mt-1 font-bold">테이블 {STORE.table}</p>
                   </motion.div>
@@ -377,26 +451,48 @@ const MenuDemo = () => {
                     ].map((item, i) => (
                       <motion.div key={i} className="flex items-center gap-3 text-sm text-slate-600 font-medium"
                         initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 * i + 0.25 }}>
+                        transition={{ delay: 0.1 * i + 0.4 }}>
                         <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center flex-shrink-0">{item.icon}</div>
                         {item.text}
                       </motion.div>
                     ))}
                   </div>
 
-                  <motion.button onClick={handleScan} disabled={scanClicked} whileTap={{ scale: 0.97 }}
-                    className={`w-full h-16 rounded-2xl font-black text-base flex items-center justify-center gap-3 shadow-lg transition-all
-                      ${scanClicked
+                  <motion.button onClick={handleScan} disabled={scanClicked || scanComplete} whileTap={!scanClicked ? { scale: 0.97 } : {}}
+                    animate={!scanClicked ? {
+                      boxShadow: [
+                        '0 4px 14px rgba(249,115,22,0.3), 0 0 0 rgba(249,115,22,0)',
+                        '0 8px 25px rgba(249,115,22,0.45), 0 0 18px rgba(249,115,22,0.15)',
+                        '0 4px 14px rgba(249,115,22,0.3), 0 0 0 rgba(249,115,22,0)',
+                      ],
+                    } : {}}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    className={`w-full h-16 rounded-2xl font-black text-base flex items-center justify-center gap-3 shadow-lg transition-all duration-300 relative overflow-hidden
+                      ${scanClicked || scanComplete
                         ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                         : 'bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-orange-500/30 hover:shadow-xl'}`}>
                     {scanClicked ? (
-                      <>
-                        <motion.div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full"
-                          animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} />
-                        세션 초기화 중...
-                      </>
+                      <div className="flex flex-col items-center gap-1.5">
+                        <div className="flex items-center gap-1">
+                          {[0, 1, 2].map(i => (
+                            <motion.div key={i}
+                              className="w-2 h-5 bg-slate-400 rounded-full"
+                              animate={{ height: [5, 16, 5], opacity: [0.3, 1, 0.3] }}
+                              transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[11px] text-slate-400">세션 초기화 중...</span>
+                      </div>
                     ) : (
                       <><Scan size={20} />스캔 완료 — 주문 시작하기</>
+                    )}
+                    {/* 버튼 상단 하이라이트 */}
+                    {!scanClicked && !scanComplete && (
+                      <motion.div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                        animate={{ x: ['-100%', '100%'] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                      />
                     )}
                   </motion.button>
 
@@ -527,19 +623,19 @@ const MenuDemo = () => {
               </header>
 
               {/* 매장 정보 */}
-              <div className="bg-white border-b border-slate-100 px-4 py-4">
-                <p className="text-sm text-slate-600 leading-relaxed">{STORE.desc}</p>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[12px] text-slate-400">
-                  <div className="flex items-center gap-1"><MapPin size={11} />{STORE.address}</div>
-                  <div className="flex items-center gap-1"><Clock size={11} />{STORE.hours}</div>
+              <div className="bg-white border-b border-slate-100 px-4 py-3">
+                <p className="text-xs text-slate-600 leading-relaxed">{STORE.desc}</p>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-[11px] text-slate-400">
+                  <div className="flex items-center gap-1"><MapPin size={10} />{STORE.address}</div>
+                  <div className="flex items-center gap-1"><Clock size={10} />{STORE.hours}</div>
                 </div>
-                <div className="flex items-center gap-3 mt-3">
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[11px] font-black text-emerald-600">영업 중</span>
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 rounded-full">
+                    <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[10px] font-black text-emerald-600">영업 중</span>
                   </div>
-                  <div className="flex items-center gap-1 text-[12px] font-bold text-slate-500">
-                    <Star size={11} className="fill-amber-400 text-amber-400" />
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-slate-500">
+                    <Star size={10} className="fill-amber-400 text-amber-400" />
                     {STORE.rating}
                     <span className="text-slate-300 font-normal">({STORE.reviews.toLocaleString()})</span>
                   </div>
@@ -576,7 +672,7 @@ const MenuDemo = () => {
               </AnimatePresence>
 
               {/* 상품 목록 */}
-              <div className="px-4 py-5 pb-32 space-y-3">
+              <div className="px-4 py-3 pb-24 space-y-2">
                 {selectedCategory !== '전체' && (
                   <div className="flex items-center gap-2 mb-4">
                     <UtensilsCrossed size={13} className="text-slate-400" />
@@ -587,7 +683,8 @@ const MenuDemo = () => {
                 <AnimatePresence mode="wait">
                   <motion.div key={selectedCategory}
                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }} className="space-y-3">
+                    transition={{ duration: 0.15 }}
+                    className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-100">
                     {filtered.map(item => (
                       <div key={item.id} className="relative">
                         <MenuItemCard item={item} hasOptions={item.options?.length > 0}

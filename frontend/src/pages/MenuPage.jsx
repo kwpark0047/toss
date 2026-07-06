@@ -465,12 +465,13 @@ const MenuPage = () => {
             <p className="text-sm text-slate-300 mt-1">조금만 기다려주세요!</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          // TDS 리스트 그룹: 둥근 흰 컨테이너 + 행 사이 divider (flush)
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-100">
             {filteredItems.map(item => {
-    const options = getOptionsForMenuItem(menuItems, item.id);
+              const options = getOptionsForMenuItem(menuItems, item.id);
               const isPopular = orderStats.includes(item.id);
               const isNew = isNewItem(item);
-              
+
               return (
                 <MenuItemCard
                   key={item.id}
@@ -480,6 +481,7 @@ const MenuPage = () => {
                   isNew={isNew}
                   onAddToCart={handleAddToCartClick}
                   disabled={!storeOpen}
+                  padding="L"
                 />
               );
             })}
