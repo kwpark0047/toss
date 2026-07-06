@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap');
+/* Noto Sans KR 폰트는 index.html에서 preconnect + <link>로 조기 로드 (FCP/LCP 개선) */
 
 @theme {
   --color-background: hsl(var(--background));
