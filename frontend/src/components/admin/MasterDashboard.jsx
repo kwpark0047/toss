@@ -345,20 +345,24 @@ const MasterDashboard = () => {
                         trend: undefined, accent: pendingCount > 0 ? 'border-orange-500/40' : 'border-violet-500/20',
                     },
                 ].map(({ title, icon: Icon, color, bg, value, trend, accent }) => (
-                    <div key={title} className={`bg-white/5 border ${accent} rounded-2xl p-4 relative overflow-hidden`}>
-                        <div className="flex items-start justify-between mb-2">
-                            <div className={`p-2 rounded-xl ${bg}`}>
-                                <Icon size={16} className={color} />
-                            </div>
-                            {trend !== undefined && (
-                                <div className={`flex items-center text-[9px] font-black px-1.5 py-0.5 rounded-md gap-0.5 ${trend >= 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
-                                    {trend >= 0 ? <ArrowUpRight size={10}/> : <ArrowDownRight size={10}/>}
-                                    {Math.abs(trend)}%
-                                </div>
-                            )}
+                    <div key={title} className={`bg-white/5 border ${accent} rounded-2xl p-3 flex items-center gap-3 relative overflow-hidden`}>
+                        {/* 아이콘 (왼쪽) */}
+                        <div className={`p-2.5 rounded-xl ${bg} shrink-0`}>
+                            <Icon size={18} className={color} />
                         </div>
-                        <p className="text-[10px] text-slate-500 font-bold mb-0.5">{title}</p>
-                        <p className="text-base md:text-xl font-black text-white leading-tight tabular-nums">{value}</p>
+                        {/* 라벨 + 값 (아이콘 옆) */}
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-1">
+                                <p className="text-[11px] text-slate-500 font-bold truncate">{title}</p>
+                                {trend !== undefined && (
+                                    <div className={`shrink-0 flex items-center text-[9px] font-black px-1.5 py-0.5 rounded-md gap-0.5 ${trend >= 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                                        {trend >= 0 ? <ArrowUpRight size={10}/> : <ArrowDownRight size={10}/>}
+                                        {Math.abs(trend)}%
+                                    </div>
+                                )}
+                            </div>
+                            <p className="text-lg font-black text-white leading-tight tabular-nums truncate">{value}</p>
+                        </div>
                     </div>
                 ))}
             </div>
