@@ -2,7 +2,14 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, Trash2, CreditCard } from 'lucide-react';
 
-const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice }) => {
+const formatPhoneInput = (value) => {
+  const d = value.replace(/\D/g, '').slice(0, 11);
+  if (d.length < 4) return d;
+  if (d.length < 8) return `${d.slice(0, 3)}-${d.slice(3)}`;
+  return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+};
+
+const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice, notifyPhone = '', onNotifyPhoneChange }) => {
   const formatPrice = (price) => new Intl.NumberFormat('ko-KR').format(price) + '원';
 
   return (
@@ -131,11 +138,30 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                 <button className="text-xs font-black text-blue-600 underline">분할 결제 설정</button>
               </div>
 
+              {/* 알림 받을 번호 — 저장된 번호 자동 입력, 수정 가능 */}
+              <div className="p-4 bg-white rounded-2xl border border-slate-200">
+                <label htmlFor="notify-phone" className="block text-xs font-black text-slate-700 mb-1.5">
+                  📱 주문 알림 받을 번호
+                </label>
+                <input
+                  id="notify-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  value={notifyPhone}
+                  onChange={(e) => onNotifyPhoneChange?.(formatPhoneInput(e.target.value))}
+                  placeholder="010-0000-0000"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary"
+                />
+                <p className="text-[11px] text-slate-400 mt-1.5">
+                  {notifyPhone ? '저장된 번호가 입력되었어요. 다른 번호로 받으려면 수정하세요.' : '입력하시면 주문 상태를 문자로 안내받을 수 있어요. (선택)'}
+                </p>
+              </div>
+
               <div className="flex items-center justify-between text-slate-900 font-black text-xl">
                 <span>총 결제금액</span>
                 <span className="text-primary">{formatPrice(totalPrice)}</span>
               </div>
-              
+
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 disabled={cart.length === 0 || isOrdering}

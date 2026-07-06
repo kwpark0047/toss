@@ -146,6 +146,15 @@ const MenuPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  // 주문 알림 받을 번호 — 저장된 번호로 자동 초기화 (재방문 고객)
+  const [notifyPhone, setNotifyPhone] = useState(() => {
+    try {
+      const d = (localStorage.getItem('wm_customer_phone') || '').replace(/\D/g, '');
+      if (d.length === 11) return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+      if (d.length >= 4) return d;
+    } catch { /* 무시 */ }
+    return '';
+  });
   const [isOrderStatusOpen, setIsOrderStatusOpen] = useState(false);
   const [reviewOrder, setReviewOrder] = useState(null); // 리뷰 작성 대상 주문
   const [isOrdering, setIsOrdering] = useState(false);
@@ -315,6 +324,7 @@ const MenuPage = () => {
     
     setIsOrdering(true);
     try {
+      const notifyDigits = notifyPhone.replace(/\D/g, '');
       const orderData = {
         store_id: storeId,
         table_number: tableNumber, // URL 파라미터(테이블 번호 문자열) → 백엔드에서 table_id(정수)로 변환
@@ -327,8 +337,14 @@ const MenuPage = () => {
           options: item.selectedOptions
         })),
         total_amount: totalPrice,
-        payment_method: 'card'
+        payment_method: 'card',
+        // 알림 받을 번호 (입력 시 주문에 연결, 유효할 때만 전송)
+        ...(notifyDigits.length >= 10 ? { customer_phone: notifyDigits } : {})
       };
+      // 재방문 자동입력을 위해 유효 번호 저장
+      if (notifyDigits.length >= 10) {
+        try { localStorage.setItem('wm_customer_phone', notifyDigits); } catch { /* 무시 */ }
+      }
 
       const order = await ordersAPI.create(orderData);
 
@@ -477,6 +493,8 @@ const MenuPage = () => {
         onOrder={handleOrder}
         isOrdering={isOrdering}
         totalPrice={totalPrice}
+        notifyPhone={notifyPhone}
+        onNotifyPhoneChange={setNotifyPhone}
       />
 
       {/* Order Status Modal */}
