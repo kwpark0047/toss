@@ -12,6 +12,7 @@ import { formatPrice, formatTime, formatDateTime } from '../../utils/format';
 import { handleApiError } from '../../utils/apiError';
 import OrderCard from './OrderCard';
 import OrderDetailModal from './OrderDetailModal';
+import EmptyState from '../common/EmptyState';
 
 const statusConfig = {
   pending:   { label: '대기',    color: 'text-amber-500',   bg: 'bg-amber-50',   border: 'border-amber-200',  icon: Clock,        next: 'confirmed' },
@@ -328,17 +329,13 @@ const OrderManager = () => {
       {/* ── 주문 목록 ──────────────────────────────────────────────── */}
       <AnimatePresence mode="popLayout">
         {filteredOrders.length === 0 ? (
-          <motion.div
-            key="empty"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-24 text-center"
-          >
-            <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-700">
-              <Package size={32} />
-            </div>
-            <p className="text-lg font-black text-slate-400 mb-1">주문 없음</p>
-            <p className="text-slate-600 text-sm">현재 조건에 맞는 주문이 없습니다</p>
+          <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <EmptyState
+              tone="dark"
+              icon={<Package size={40} className="text-slate-600" aria-hidden="true" />}
+              title="주문 없음"
+              description="현재 조건에 맞는 주문이 없습니다"
+            />
           </motion.div>
         ) : (
           <motion.div

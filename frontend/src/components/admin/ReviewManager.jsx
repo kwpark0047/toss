@@ -6,6 +6,8 @@ import {
   Sparkles, Loader2, ImageOff, X, Heart
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import Skeleton from '../common/Skeleton';
+import EmptyState from '../common/EmptyState';
 
 // 리뷰 첨부 사진 (로드 실패 폴백)
 const ReviewPhoto = ({ src }) => {
@@ -204,12 +206,14 @@ export default function ReviewManager() {
 
       {/* 리뷰 목록 */}
       {loading ? (
-        <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-32 bg-white/5 rounded-2xl animate-pulse" />)}</div>
+        <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} dark className="h-32 rounded-2xl" />)}</div>
       ) : reviews.length === 0 ? (
-        <div className="py-16 text-center text-slate-500">
-          <MessageSquareText size={40} className="mx-auto mb-3 text-slate-700" />
-          <p className="font-bold">아직 등록된 리뷰가 없습니다</p>
-        </div>
+        <EmptyState
+          tone="dark"
+          icon={<MessageSquareText size={40} className="text-slate-600" aria-hidden="true" />}
+          title="아직 등록된 리뷰가 없습니다"
+          description="고객이 리뷰를 남기면 여기에 표시됩니다."
+        />
       ) : (
         <div className="space-y-3">
           {reviews.map(r => (

@@ -7,6 +7,7 @@ import {
   CircleCheck, CircleX, Clock, Loader2, Code2, ScrollText
 } from 'lucide-react';
 import { toast } from 'sonner';
+import Skeleton from '../common/Skeleton';
 
 const EVENT_TYPES = ['order.created', 'order.updated', 'order.completed'];
 
@@ -224,7 +225,7 @@ export default function DeveloperConsole() {
           </div>
         </div>
         {loading ? (
-          <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-12 bg-white/5 rounded-xl animate-pulse" />)}</div>
+          <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} dark className="h-12 rounded-xl" />)}</div>
         ) : deliveries.length === 0 ? <p className="text-sm text-slate-500 py-2">전송 이력이 없습니다.</p> : (
           <div className="space-y-1.5 max-h-[420px] overflow-y-auto">
             {deliveries.map(d => {
