@@ -378,3 +378,20 @@
 html.admin-scaled {
   font-size: clamp(20px, calc(14px + 0.7vw), 26px);
 }
+
+/* ── 랜딩 히어로: AI 강조 문구 애니메이션 그라디언트 ─────────────────────── */
+.ai-gradient-text {
+  background: linear-gradient(90deg, #f97316, #fb7185, #f59e0b, #f97316);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: ai-gradient-move 4s linear infinite;
+}
+@keyframes ai-gradient-move {
+  to { background-position: 300% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-gradient-text { animation: none; }
+}

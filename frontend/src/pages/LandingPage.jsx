@@ -243,14 +243,35 @@ const LandingPage = () => {
                     {/* 왼쪽 텍스트 */}
                     <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.7 }} className="flex-1">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-6">
-                            🚀 QR 하나로 완성하는 스마트 매장
-                        </div>
-                        <h1 className="text-5xl md:text-6xl font-black leading-[1.2] mb-6 text-gray-900">
-                            사장님께<br />
-                            <span className="text-orange-500">단골고객 관리리스트</span>를<br />
-                            만들어 드립니다.
-                        </h1>
+                        <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ duration: 0.5, delay: 0.1 }}
+                            className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-6">
+                            <Sparkles size={14} className="animate-pulse" /> 모두의 메뉴판 플랫폼
+                        </motion.div>
+                        <motion.h1
+                            className="text-4xl md:text-6xl font-black leading-[1.18] mb-6 text-gray-900"
+                            initial="hidden" animate="show"
+                            variants={{ show: { transition: { staggerChildren: 0.13, delayChildren: 0.15 } } }}
+                        >
+                            {[
+                                <>모두의 메뉴판 플랫폼</>,
+                                <>1인 자영업자에</>,
+                                <><span className="ai-gradient-text">AI 지원 단골리스트</span>를</>,
+                                <>만들어 드립니다.</>,
+                            ].map((line, i) => (
+                                <motion.span
+                                    key={i}
+                                    className="block"
+                                    variants={{
+                                        hidden: { opacity: 0, y: 26, filter: 'blur(8px)' },
+                                        show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
+                                    }}
+                                >
+                                    {line}
+                                </motion.span>
+                            ))}
+                        </motion.h1>
                         <p className="text-lg text-gray-500 mb-8 leading-relaxed max-w-lg">
                             위마켓은 종이 메뉴판과 복잡한 POS를 대체하는 올인원 QR 메뉴판 플랫폼입니다.
                             테이블마다 QR 코드 하나로 주문, 결제, 대기까지 한번에.
