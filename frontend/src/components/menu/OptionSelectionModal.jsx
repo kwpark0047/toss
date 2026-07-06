@@ -1,3 +1,4 @@
+import { formatWon } from '../../utils/format';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, Check } from 'lucide-react';
@@ -17,7 +18,6 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
     return initial;
   });
 
-  const formatPrice = (price) => new Intl.NumberFormat('ko-KR').format(price) + '원';
 
   const toggleChoice = (group, choice) => {
     if (group.max_choices === 1) {
@@ -65,7 +65,7 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
             <div className="px-6 pb-4 flex items-center justify-between border-b border-grey-50">
               <div>
                 <h2 className="tds-title text-grey-900">{item.name}</h2>
-                <p className="tds-body text-grey-500 mt-0.5">{formatPrice(item.price)}</p>
+                <p className="tds-body text-grey-500 mt-0.5">{formatWon(item.price)}</p>
               </div>
               <button onClick={onClose} className="p-2 hover:bg-grey-100 rounded-full transition-colors">
                 <X className="w-6 h-6 text-grey-400" />
@@ -103,7 +103,7 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
                           </div>
                           {choice.price_adjustment > 0 && (
                             <span className={`text-[11px] font-black ${isSelected ? 'text-primary' : 'text-grey-400'}`}>
-                              +{formatPrice(choice.price_adjustment)}
+                              +{formatWon(choice.price_adjustment)}
                             </span>
                           )}
                         </button>
@@ -136,7 +136,7 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
             <div className="px-4 py-4 bg-grey-50">
               <Button variant="primary" size="lg" fullWidth layout="between" onClick={handleConfirm}>
                 <span>장바구니 담기</span>
-                <span className="bg-white/20 px-3 py-1 rounded-full text-sm">{formatPrice(calculateTotal())}</span>
+                <span className="bg-white/20 px-3 py-1 rounded-full text-sm">{formatWon(calculateTotal())}</span>
               </Button>
             </div>
           </motion.div>

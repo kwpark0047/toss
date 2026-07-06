@@ -1,3 +1,4 @@
+import { formatWon } from '../../utils/format';
 import { motion } from 'framer-motion';
 import { Plus, Flame, Sparkles } from 'lucide-react';
 
@@ -9,7 +10,6 @@ const PADDING = { S: 'py-2', M: 'py-3', L: 'py-4', XL: 'py-5' };
  * 행은 리스트 그룹 안에서 flush 배치되며, 상하 패딩은 padding prop(S/M/L/XL)으로 조절.
  */
 const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disabled, padding = 'L' }) => {
-  const formatPrice = (price) => new Intl.NumberFormat('ko-KR').format(price) + '원';
   const py = PADDING[padding] || PADDING.L;
 
   return (
@@ -52,7 +52,7 @@ const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disable
         {item.description && (
           <p className="tds-caption text-grey-500 line-clamp-1 mt-0.5">{item.description}</p>
         )}
-        <span className="block tds-body-strong text-grey-900 mt-1">{formatPrice(item.price)}</span>
+        <span className="block tds-body-strong text-grey-900 mt-1">{formatWon(item.price)}</span>
       </div>
 
       {/* Trailing — 담기 */}

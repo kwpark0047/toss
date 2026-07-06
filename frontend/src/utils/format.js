@@ -5,6 +5,9 @@ export const formatPrice = (price, useSuffix = false) => {
   return useSuffix ? `${formatted}원` : `₩${formatted}`;
 };
 
+// 원화 접미 표기 헬퍼 (1234 → "1,234원") — 컴포넌트 로컬 중복 정의 통합용
+export const formatWon = (price) => formatPrice(price, true);
+
 // Format date with custom format
 export const formatDate = (dateString, format = 'yyyy-MM-dd') => {
   if (!dateString) return '';

@@ -1,3 +1,4 @@
+import { formatWon } from '../../utils/format';
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, CheckCircle2, ChefHat, BellRing, Package, Loader2 } from 'lucide-react';
@@ -23,7 +24,6 @@ const STATUS_MSG = {
   cancelled: '주문이 취소되었습니다.',
 };
 
-const fmt = (price) => new Intl.NumberFormat('ko-KR').format(price) + '원';
 
 const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWriteReview }) => {
   const [order, setOrder] = useState(null);
@@ -207,13 +207,13 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                             <span className="text-grey-400 font-normal"> × {item.quantity}</span>
                           </span>
                           <span className="text-grey-500">
-                            {fmt((item.price || item.unit_price || 0) * item.quantity)}
+                            {formatWon((item.price || item.unit_price || 0) * item.quantity)}
                           </span>
                         </div>
                       ))}
                       <div className="pt-3 border-t border-grey-200 flex justify-between">
                         <span className="text-sm font-black text-grey-700">합계</span>
-                        <span className="text-base font-black text-grey-900">{fmt(order.total_amount)}</span>
+                        <span className="text-base font-black text-grey-900">{formatWon(order.total_amount)}</span>
                       </div>
                     </div>
                   </div>

@@ -1,9 +1,9 @@
+import { formatWon } from '../../utils/format';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart } from 'lucide-react';
 import Button from '../common/Button';
 
 const CartButton = ({ totalItems, totalPrice, onClick }) => {
-  const formatPrice = (price) => new Intl.NumberFormat('ko-KR').format(price) + '원';
 
   return (
     <AnimatePresence>
@@ -24,7 +24,7 @@ const CartButton = ({ totalItems, totalPrice, onClick }) => {
               </div>
               <span className="text-sm">장바구니 보기</span>
             </div>
-            <span className="text-sm font-black">{formatPrice(totalPrice)}</span>
+            <span className="text-sm font-black">{formatWon(totalPrice)}</span>
           </Button>
         </motion.div>
       )}

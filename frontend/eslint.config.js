@@ -64,4 +64,18 @@ export default [
       'eqeqeq': ['error', 'always', { null: 'ignore' }],
     },
   },
+  {
+    // 서비스 워커 (importScripts/firebase 등 SW 전역)
+    files: ['**/*sw.js', 'public/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.serviceworker, importScripts: 'readonly', firebase: 'readonly' },
+    },
+  },
+  {
+    // 빌드/설정 스크립트 (Node 전역: __dirname 등)
+    files: ['*.config.js', 'vite.config.js'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
 ];

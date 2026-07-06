@@ -1,3 +1,4 @@
+import { formatWon } from '../../utils/format';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, Trash2, CreditCard } from 'lucide-react';
 import Button from '../common/Button';
@@ -11,7 +12,6 @@ const formatPhoneInput = (value) => {
 };
 
 const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice, notifyPhone = '', onNotifyPhoneChange }) => {
-  const formatPrice = (price) => new Intl.NumberFormat('ko-KR').format(price) + '원';
 
   return (
     <AnimatePresence>
@@ -73,7 +73,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                           )}
                           
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-bold text-grey-900">{formatPrice(item.unitPrice * item.quantity)}</span>
+                            <span className="text-sm font-bold text-grey-900">{formatWon(item.unitPrice * item.quantity)}</span>
                             
                             <div className="flex items-center gap-2 bg-grey-100 rounded-full p-0.5">
                               <button 
@@ -155,7 +155,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
 
               <div className="flex items-center justify-between text-grey-900 font-black text-lg">
                 <span>총 결제금액</span>
-                <span className="text-primary">{formatPrice(totalPrice)}</span>
+                <span className="text-primary">{formatWon(totalPrice)}</span>
               </div>
 
               <Button
