@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { storesAPI, ordersAPI, analyticsAPI, exportAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatPrice, formatTime } from '../../utils/format';
+import EmptyState from '../common/EmptyState';
+import Skeleton from '../common/Skeleton';
 import {
     Store, ShoppingBag, DollarSign, Clock, Plus,
     ChevronRight, BarChart3, Users, TrendingUp,
@@ -210,35 +212,38 @@ const MasterDashboard = () => {
 
     const pendingCount = recentOrders.filter(o => o.status === 'pending').length;
 
-    /* ── 로딩 ── */
+    /* ── 로딩 (TDS 다크 Skeleton) ── */
     if (loading) return (
         <div className="p-4 space-y-4">
-            <div className="h-14 bg-white/5 rounded-2xl animate-pulse" />
+            <Skeleton dark className="h-14 rounded-2xl" />
             <div className="grid grid-cols-2 gap-3">
-                {[0,1,2,3].map(i => <div key={i} className="h-24 bg-white/5 rounded-2xl animate-pulse" />)}
+                {[0,1,2,3].map(i => <Skeleton key={i} dark className="h-24 rounded-2xl" />)}
             </div>
-            <div className="h-10 bg-white/5 rounded-2xl animate-pulse" />
+            <Skeleton dark className="h-10 rounded-2xl" />
             <div className="grid grid-cols-2 gap-3">
-                {[0,1,2,3].map(i => <div key={i} className="h-20 bg-white/5 rounded-2xl animate-pulse" />)}
+                {[0,1,2,3].map(i => <Skeleton key={i} dark className="h-20 rounded-2xl" />)}
             </div>
             <div className="space-y-2">
-                {[0,1,2,3].map(i => <div key={i} className="h-16 bg-white/5 rounded-2xl animate-pulse" />)}
+                {[0,1,2,3].map(i => <Skeleton key={i} dark className="h-16 rounded-2xl" />)}
             </div>
         </div>
     );
 
     /* ── 매장 없음 ── */
     if (stores.length === 0) return (
-        <div className="flex flex-col items-center justify-center min-h-[70vh] gap-6 px-6">
-            <div className="w-24 h-24 rounded-3xl bg-orange-500/10 border-2 border-orange-500/20 flex items-center justify-center text-4xl">🏪</div>
-            <div className="text-center space-y-2">
-                <h2 className="text-2xl font-black text-white">등록된 매장이 없습니다</h2>
-                <p className="text-slate-400 text-sm max-w-xs">팅커벨 도우미와 함께 첫 매장을 설정해보세요!</p>
-            </div>
-            <button onClick={() => navigate('/admin/setup')}
-                className="w-full max-w-xs py-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black rounded-2xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 text-base">
-                <Plus size={20} /> 첫 매장 만들기
-            </button>
+        <div className="flex flex-col items-center justify-center min-h-[70vh]">
+            <EmptyState
+                tone="dark"
+                icon="🏪"
+                title="등록된 매장이 없습니다"
+                description="팅커벨 도우미와 함께 첫 매장을 설정해보세요!"
+                action={
+                    <button onClick={() => navigate('/admin/setup')}
+                        className="w-full max-w-xs py-4 px-8 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black rounded-2xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 text-base">
+                        <Plus size={20} /> 첫 매장 만들기
+                    </button>
+                }
+            />
         </div>
     );
 

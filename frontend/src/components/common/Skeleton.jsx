@@ -3,9 +3,10 @@ import React from 'react';
 /**
  * Skeleton — TDS 시머 로딩 플레이스홀더.
  * @param {string} className 크기/모양(w-, h-, rounded- 등)
+ * @param {boolean} [dark] 관리자 다크 테마용(어두운 베이스)
  */
-export default function Skeleton({ className = '' }) {
-  return <div className={`skeleton rounded-lg ${className}`} aria-hidden="true" />;
+export default function Skeleton({ className = '', dark = false }) {
+  return <div className={`${dark ? 'skeleton-dark' : 'skeleton'} rounded-lg ${className}`} aria-hidden="true" />;
 }
 
 /**

@@ -352,3 +352,21 @@
 .tds-label     { font-size: 13px; line-height: 18px; font-weight: 600; }
 .tds-caption   { font-size: 12px; line-height: 16px; font-weight: 500; }
 .tds-small     { font-size: 11px; line-height: 14px; font-weight: 500; }
+
+/* ── TDS Skeleton (다크) — 관리자 다크 테마용 ────────────────────────────── */
+.skeleton-dark {
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+.skeleton-dark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-dark::after { animation: none; }
+}
