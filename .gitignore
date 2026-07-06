@@ -44,6 +44,9 @@ wemarket-miniapp/
 .vercel
 .env*
 .env*.local
+# 예외: 공개 빌드 설정(VITE_* 는 클라이언트 번들에 포함되는 공개 값) — 커밋 허용
+!frontend/.env.production
+!frontend/.env.example
 
 # 런타임 업로드 파일
 public/uploads/

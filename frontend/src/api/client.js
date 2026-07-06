@@ -10,12 +10,14 @@ const getApiUrl = () => {
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'http://localhost:3000/api';
   }
-  // 3. 그 외 환경: VITE_API_URL 필수 (배포 시 설정되지 않으면 콘솔 경고)
+  // 3. 그 외(배포) 환경 → Render API로 안전 폴백.
+  //    .env.production의 VITE_API_URL이 최우선이며, 미주입 시에도 앱이 깨지지
+  //    않도록 알려진 프로덕션 백엔드로 폴백한다(빈 문자열 반환 금지).
   console.warn(
-    '[API] VITE_API_URL 환경변수가 설정되지 않았습니다. ' +
-    'Vercel/배포 환경에서는 .env.production 또는 Vercel Environment Variables에 설정하세요.'
+    '[API] VITE_API_URL 미설정 — 프로덕션 백엔드(Render)로 폴백합니다. ' +
+    '권장: frontend/.env.production 또는 Vercel Environment Variables에 VITE_API_URL 설정.'
   );
-  return '';
+  return 'https://wemarket.onrender.com/api';
 };
 
 const API_URL = getApiUrl();
