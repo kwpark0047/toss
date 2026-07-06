@@ -15,6 +15,8 @@ import { compressImage } from '../../utils/imageCompress';
 import BulkMenuModal from './BulkMenuModal';
 import MenuWizard from './MenuWizard';
 import OptionTemplateModal from './OptionTemplateModal';
+import Skeleton from '../common/Skeleton';
+import EmptyState from '../common/EmptyState';
 
 // ── 파일 사이즈 포맷 ──────────────────────────────────────────────────────────
 const formatFileSize = (bytes) => {
@@ -427,11 +429,9 @@ const MenuManager = () => {
   };
 
   if (loading && products.length === 0) return (
-    <div className="flex flex-col items-center justify-center py-20 animate-pulse">
-      <div className="w-16 h-16 bg-slate-100 rounded-full mb-4 flex items-center justify-center">
-        <Clock className="text-slate-300 animate-spin" />
-      </div>
-      <p className="text-slate-400 font-bold">메뉴를 불러오는 중...</p>
+    <div className="max-w-[1600px] mx-auto p-2 space-y-3">
+      <Skeleton dark className="h-11 rounded-xl" />
+      {[0, 1, 2, 3, 4].map(i => <Skeleton key={i} dark className="h-24 rounded-2xl" />)}
     </div>
   );
 
@@ -681,13 +681,12 @@ const MenuManager = () => {
 
             <div className="divide-y divide-white/5">
               {filteredProducts.length === 0 ? (
-                <div className="py-32 text-center flex flex-col items-center">
-                  <div className="w-24 h-24 bg-slate-900 rounded-[32px] flex items-center justify-center mb-8 border border-white/5 shadow-inner group">
-                    <ShoppingBag className="text-slate-800 group-hover:text-orange-500 transition-colors" size={48} />
-                  </div>
-                  <h4 className="text-white text-2xl font-black mb-3">등록된 메뉴가 없습니다</h4>
-                  <p className="text-slate-500 font-medium max-w-sm mx-auto">위 버튼을 눌러 메뉴를 추가해보세요</p>
-                </div>
+                <EmptyState
+                  tone="dark"
+                  icon={<ShoppingBag className="text-slate-600" size={44} aria-hidden="true" />}
+                  title="등록된 메뉴가 없습니다"
+                  description="위 버튼을 눌러 메뉴를 추가해보세요"
+                />
               ) : (
                 filteredProducts.map((product, idx) => (
                   <motion.div

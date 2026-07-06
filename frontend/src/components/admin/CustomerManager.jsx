@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import api from '../../api/index.js';
+import Skeleton from '../common/Skeleton';
+import EmptyState from '../common/EmptyState';
 
 // ── 등급 메타 ─────────────────────────────────────────────────────
 const TIER_META = {
@@ -57,7 +59,7 @@ function StatsBar({ stats, loading }) {
   if (loading) return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
       {Array(6).fill(0).map((_, i) => (
-        <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 animate-pulse h-20" />
+        <Skeleton key={i} className="rounded-xl h-20" />
       ))}
     </div>
   );
@@ -663,15 +665,14 @@ const CustomerManager = () => {
 
       {/* 고객 목록 */}
       {loading ? (
-        <div className="flex items-center justify-center py-20 text-gray-400">
-          <Loader2 size={28} className="animate-spin" />
-        </div>
+        <div className="space-y-2">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
       ) : customers.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
-          <Users size={40} className="mx-auto text-gray-200 mb-3" />
-          <p className="text-gray-400 text-sm">
-            {searchTerm ? '검색 결과가 없습니다.' : '아직 등록된 단골고객이 없습니다.'}
-          </p>
+        <div className="bg-white rounded-xl border border-gray-200">
+          <EmptyState
+            icon={<Users size={40} className="text-gray-300" aria-hidden="true" />}
+            title={searchTerm ? '검색 결과가 없습니다' : '아직 등록된 단골고객이 없습니다'}
+            description={searchTerm ? '다른 검색어로 시도해 보세요.' : '고객이 포인트를 적립하면 여기에 표시됩니다.'}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
