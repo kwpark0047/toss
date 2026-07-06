@@ -7,6 +7,7 @@ import {
   ChevronLeft, ChevronRight, Download
 } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
+import Skeleton from '../common/Skeleton';
 
 const SalesStats = () => {
   const { storeId } = useParams();
@@ -125,8 +126,12 @@ const SalesStats = () => {
 
   if (loading && !stats) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <RefreshCw className="w-8 h-8 text-orange-500 animate-spin" />
+      <div className="p-4 space-y-4">
+        <Skeleton dark className="h-10 w-48 rounded-xl" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[0, 1, 2, 3].map(i => <Skeleton key={i} dark className="h-24 rounded-2xl" />)}
+        </div>
+        <Skeleton dark className="h-64 rounded-2xl" />
       </div>
     );
   }

@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import { getSocket, reservationsAPI } from '../../api';
 import { CalendarCheck, Clock, Users, Phone, XCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
+import Skeleton from '../common/Skeleton';
+import EmptyState from '../common/EmptyState';
 
 const ReservationManager = () => {
     const { storeId } = useParams();
@@ -82,7 +84,11 @@ const ReservationManager = () => {
         return res.status === activeTab;
     });
 
-    if (loading) return <div className="p-8 text-center text-gray-500">로딩 중...</div>;
+    if (loading) return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-2">
+            {[0, 1, 2].map(i => <Skeleton key={i} className="h-40 rounded-2xl" />)}
+        </div>
+    );
 
     return (
         <div className="max-w-6xl mx-auto space-y-8">
@@ -142,8 +148,8 @@ const ReservationManager = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredReservations.length === 0 ? (
-                    <div className="col-span-full bg-white rounded-2xl p-12 text-center text-gray-500 border border-gray-100">
-                        선택한 날짜 및 조건에 해당하는 예약이 없습니다.
+                    <div className="col-span-full bg-white rounded-2xl border border-gray-100">
+                        <EmptyState icon="📅" title="예약이 없습니다" description="선택한 날짜 및 조건에 해당하는 예약이 없습니다." />
                     </div>
                 ) : (
                     filteredReservations.map(res => (

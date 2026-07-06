@@ -7,6 +7,7 @@ import {
     CheckCircle, AlertCircle, XCircle, BarChart3, Clock, ArrowUpDown
 } from 'lucide-react';
 import { inventoryAPI } from '../../api';
+import EmptyState from '../common/EmptyState';
 
 const STATUS_META = {
     ok:        { label: '정상',   color: 'text-emerald-400', bg: 'bg-emerald-500/10', icon: CheckCircle,  border: 'border-emerald-500/30' },
@@ -261,10 +262,11 @@ function HistoryModal({ product, onClose }) {
                             <RefreshCw size={24} className="text-slate-600 animate-spin" />
                         </div>
                     ) : history.length === 0 ? (
-                        <div className="py-12 text-center">
-                            <History size={32} className="text-slate-700 mx-auto mb-3" />
-                            <p className="text-sm text-slate-600 font-bold">이력이 없습니다</p>
-                        </div>
+                        <EmptyState
+                            tone="dark"
+                            icon={<History size={40} className="text-slate-600" aria-hidden="true" />}
+                            title="이력이 없습니다"
+                        />
                     ) : (
                         <div className="divide-y divide-white/[0.03]">
                             {history.map(h => (
@@ -434,9 +436,13 @@ export default function InventoryManager() {
                                 </tr>
                             ) : products.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="py-16 text-center">
-                                        <Package size={32} className="text-slate-700 mx-auto mb-3" />
-                                        <p className="text-sm text-slate-600 font-black">메뉴가 없습니다</p>
+                                    <td colSpan={6}>
+                                        <EmptyState
+                                            tone="dark"
+                                            icon={<Package size={40} className="text-slate-600" aria-hidden="true" />}
+                                            title="메뉴가 없습니다"
+                                            description="메뉴를 추가하면 재고를 관리할 수 있어요."
+                                        />
                                     </td>
                                 </tr>
                             ) : products.map(product => {
