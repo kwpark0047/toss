@@ -13,6 +13,7 @@ import CartButton from '../menu/CartButton';
 import CartModal from '../menu/CartModal';
 import OptionSelectionModal from '../menu/OptionSelectionModal';
 import TinkerBell from '../ai/TinkerBell';
+import { loadTinkerBellSettings } from '../../utils/tinkerbell';
 
 const DEMO_LANGS = [
   { code: 'ko', flag: '🇰🇷', label: 'KO' },
@@ -193,8 +194,9 @@ const MenuDemo = () => {
   const [uuidTyped, setUuidTyped] = useState('');
   const [scanClicked, setScanClicked] = useState(false);
 
-  // 팅커벨 AI 도우미
-  const [tbLang,         setTbLang]         = useState('ko');
+  // 팅커벨 AI 도우미 — 저장된 설정(음성 안내 기본 ON 등) 반영
+  const [tbSettings] = useState(loadTinkerBellSettings);
+  const [tbLang,         setTbLang]         = useState(tbSettings.lang || 'ko');
   const [tbLastAdded,    setTbLastAdded]    = useState(null);
   const [showLangPicker, setShowLangPicker] = useState(false);
 
@@ -418,6 +420,7 @@ const MenuDemo = () => {
                 weather="sun"
                 menuItems={PRODUCTS}
                 lastAddedItem={tbLastAdded}
+                voiceEnabled={tbSettings.voiceEnabled}
                 mode="float"
               />
 

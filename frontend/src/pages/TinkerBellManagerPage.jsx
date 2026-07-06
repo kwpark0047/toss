@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Globe, CloudRain, Sun, Snowflake, Flame, Volume2, Type, ToggleLeft, ToggleRight, RefreshCw, TrendingUp, ShoppingCart, Users, Star, ChevronRight, Info } from 'lucide-react';
+import { Sparkles, Globe, CloudRain, Sun, Snowflake, Flame, Volume2, Type, ToggleLeft, ToggleRight, RefreshCw, TrendingUp, ShoppingCart, Users, Star, ChevronRight, Info, Save, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { loadTinkerBellSettings, saveTinkerBellSettings } from '../utils/tinkerbell';
 import TinkerBell from '../components/ai/TinkerBell';
 
 // ── 데모용 메뉴 데이터 (미리보기용) ─────────────────────────────────────────
@@ -119,17 +121,27 @@ function Toggle({ on, onChange, label, desc }) {
 
 // ── 메인 페이지 ────────────────────────────────────────────────────────────────
 export default function TinkerBellManagerPage() {
-  const [enabled,      setEnabled]      = useState(true);
-  const [lang,         setLang]         = useState('ko');
+  const initial = loadTinkerBellSettings();
+  const [enabled,      setEnabled]      = useState(initial.enabled);
+  const [lang,         setLang]         = useState(initial.lang);
   const [weather,      setWeather]      = useState('sun');
-  const [voiceEnabled, setVoiceEnabled] = useState(false);
-  const [largeFont,    setLargeFont]    = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(initial.voiceEnabled);
+  const [largeFont,    setLargeFont]    = useState(initial.largeFont);
   const [triggerKey,   setTriggerKey]   = useState(0);
   const [lastAdded,    setLastAdded]    = useState(null);
-  const [customMsg,    setCustomMsg]    = useState('');
+  const [customMsg,    setCustomMsg]    = useState(initial.customMsg);
   const [activeTab,    setActiveTab]    = useState('settings'); // 'settings' | 'analytics'
+  const [saving,       setSaving]       = useState(false);
 
   const replay = () => setTriggerKey(k => k + 1);
+
+  // 설정 저장 (localStorage 영속화)
+  const handleSave = () => {
+    setSaving(true);
+    const ok = saveTinkerBellSettings({ enabled, lang, voiceEnabled, largeFont, customMsg });
+    toast[ok ? 'success' : 'error'](ok ? '팅커벨 설정이 저장되었습니다.' : '설정 저장에 실패했습니다.');
+    setSaving(false);
+  };
 
   const demoAdd = (item) => {
     setLastAdded({ name: item.name });
@@ -161,6 +173,13 @@ export default function TinkerBellManagerPage() {
               className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl text-sm font-bold hover:bg-amber-100 transition-colors">
               <RefreshCw size={13} />
               미리보기 재시작
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-black hover:bg-orange-600 transition-colors disabled:opacity-40">
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              설정 저장
             </button>
           </div>
         </div>
