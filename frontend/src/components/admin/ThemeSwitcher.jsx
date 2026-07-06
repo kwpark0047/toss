@@ -21,12 +21,16 @@ export default function ThemeSwitcher() {
   return (
     <div className="relative" ref={ref}>
       <button
+        type="button"
         onClick={() => setOpen(o => !o)}
         title="테마 변경"
+        aria-label="테마 변경"
+        aria-haspopup="true"
+        aria-expanded={open}
         className="w-12 h-12 flex items-center justify-center rounded-2xl border-2 transition-all hover:scale-105 active:scale-95"
         style={{ background: current.color, borderColor: current.accent + '60' }}
       >
-        <Palette size={16} style={{ color: current.accent }} />
+        <Palette size={16} aria-hidden="true" style={{ color: current.accent }} />
       </button>
 
       <AnimatePresence>

@@ -278,18 +278,21 @@ const MasterDashboard = () => {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                     {/* 대기 주문 알림 */}
-                    <button onClick={() => handleNav('orders')} className="relative p-2.5 bg-white/5 border border-white/10 rounded-xl">
-                        <Bell size={16} className={pendingCount > 0 ? 'text-orange-400' : 'text-slate-500'} />
+                    <button type="button" onClick={() => handleNav('orders')}
+                        aria-label={pendingCount > 0 ? `대기 주문 ${pendingCount}건 보기` : '주문서로 이동'}
+                        className="relative p-2.5 bg-white/5 border border-white/10 rounded-xl">
+                        <Bell size={16} aria-hidden="true" className={pendingCount > 0 ? 'text-orange-400' : 'text-slate-500'} />
                         {pendingCount > 0 && (
-                            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-orange-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1">
+                            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-orange-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 tabular-nums">
                                 {pendingCount}
                             </span>
                         )}
                     </button>
                     {/* 새로고침 */}
-                    <button onClick={() => isMultiView ? fetchMultiStoreData() : fetchStoreData(selectedStore?.id)}
+                    <button type="button" onClick={() => isMultiView ? fetchMultiStoreData() : fetchStoreData(selectedStore?.id)}
+                        aria-label="새로고침" aria-busy={refreshing}
                         className="p-2.5 bg-white/5 border border-white/10 rounded-xl">
-                        <RefreshCw size={15} className={`text-slate-500 ${refreshing ? 'animate-spin text-orange-400' : ''}`} />
+                        <RefreshCw size={15} aria-hidden="true" className={`text-slate-500 ${refreshing ? 'animate-spin text-orange-400' : ''}`} />
                     </button>
                 </div>
             </div>

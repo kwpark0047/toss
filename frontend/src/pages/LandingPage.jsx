@@ -467,7 +467,7 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="text-center mb-16">
                         <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">기능 소개</span>
-                        <h2 className="text-4xl font-black text-gray-900 mb-4">매장 운영에 필요한 모든 것</h2>
+                        <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">매장 운영에 필요한 모든 것</h2>
                         <p className="text-gray-500 text-lg">종이 메뉴판, 복잡한 POS, 예약 수첩… 이제 위마켓 하나로 통합하세요.</p>
                     </div>
                     <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
@@ -504,7 +504,7 @@ const LandingPage = () => {
                                 </span>
                                 <span className="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-[10px] font-black">핵심 기능</span>
                             </div>
-                            <h2 className="text-4xl font-black text-gray-900 mb-4 leading-tight">
+                            <h2 className="text-4xl font-black text-gray-900 mb-4 leading-tight text-balance">
                                 단골고객이 스스로<br />
                                 <span className="text-rose-500">다시 찾아오는</span> 매장
                             </h2>
@@ -634,7 +634,7 @@ const LandingPage = () => {
                                 </span>
                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-[10px] font-black">상권 활성화</span>
                             </div>
-                            <h2 className="text-4xl font-black text-gray-900 mb-4 leading-tight">
+                            <h2 className="text-4xl font-black text-gray-900 mb-4 leading-tight text-balance">
                                 동네 매장과 함께<br />
                                 <span className="text-sky-500">상권을 키우세요</span>
                             </h2>
@@ -777,7 +777,7 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16">
                         <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">이용 방법</span>
-                        <h2 className="text-4xl font-black text-gray-900 mb-4">단 4단계로 스마트 매장 완성</h2>
+                        <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">단 4단계로 스마트 매장 완성</h2>
                         <p className="text-gray-500 text-lg">복잡한 설정 없이 누구나 쉽게 시작할 수 있습니다.</p>
                     </div>
                     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
@@ -798,7 +798,7 @@ const LandingPage = () => {
                     {/* 고객 경험 플로우 */}
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                         className="mt-20 bg-white rounded-3xl p-10 shadow-sm border border-gray-100">
-                        <h3 className="text-2xl font-black text-gray-900 text-center mb-10">고객 입장에서는?</h3>
+                        <h3 className="text-2xl font-black text-gray-900 text-center mb-10 text-balance">고객 입장에서는?</h3>
                         <div className="flex flex-wrap justify-center items-center gap-3">
                             {customerFlow.map((item, i) => (
                                 <div key={item.label} className="flex items-center gap-3">
@@ -823,7 +823,7 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16">
                         <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">고객 후기</span>
-                        <h2 className="text-4xl font-black text-gray-900 mb-4">실제 사장님들의 이야기</h2>
+                        <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">실제 사장님들의 이야기</h2>
                         <p className="text-gray-500 text-lg">전국 소상공인들이 위마켓으로 매장을 바꿨습니다.</p>
                     </div>
                     <div className="grid md:grid-cols-3 gap-6">
@@ -909,7 +909,7 @@ const LandingPage = () => {
                             <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-500/20 text-orange-400 rounded-full text-sm font-bold mb-6 border border-orange-500/20">
                                 <Sparkles size={13} /> 고객 UX 혁신 데모
                             </span>
-                            <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
+                            <h2 className="text-4xl md:text-5xl font-black text-white mb-4 text-balance">
                                 고객 전환율을 바꾸는<br />
                                 <span className="text-orange-400">3가지 UX 혁신</span>
                             </h2>
@@ -961,7 +961,7 @@ const LandingPage = () => {
                                 <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">AI 팅커벨 도우미</span>
                                 <span className="text-[10px] font-black text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/15">NEW</span>
                             </div>
-                            <h3 className="text-2xl font-black text-white mb-3 leading-tight">
+                            <h3 className="text-2xl font-black text-white mb-3 leading-tight text-balance">
                                 24시간 AI 요정이<br />고객을 안내합니다
                             </h3>
                             <p className="text-slate-400 text-sm leading-relaxed mb-5">
@@ -1058,7 +1058,7 @@ const LandingPage = () => {
 
                         {/* 오른쪽: 텍스트 & CTA */}
                         <div className="flex-1 text-center md:text-left">
-                            <h3 className="text-2xl md:text-3xl font-black text-white mb-3">
+                            <h3 className="text-2xl md:text-3xl font-black text-white mb-3 text-balance">
                                 지금 직접 경험해보세요
                             </h3>
                             <p className="text-slate-400 mb-6 leading-relaxed">
@@ -1101,7 +1101,7 @@ const LandingPage = () => {
                 <div className="max-w-5xl mx-auto relative z-10">
                     <div className="text-center mb-16">
                         <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">요금제</span>
-                        <h2 className="text-4xl font-black text-gray-900 mb-4">합리적인 가격, 강력한 기능</h2>
+                        <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">합리적인 가격, 강력한 기능</h2>
                         <p className="text-gray-500">결제 수수료 별도 · VAT 포함 가격 · 연간 결제시 2개월 무료</p>
                     </div>
                     <div className="grid md:grid-cols-3 gap-6 items-center">
@@ -1159,7 +1159,7 @@ const LandingPage = () => {
                         <div className="flex justify-center gap-1 mb-6">
                             {[...Array(5)].map((_, i) => <Star key={i} size={18} className="fill-amber-400 text-amber-400" />)}
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4 leading-tight">
+                        <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4 leading-tight text-balance">
                             지금 바로 매장을{' '}
                             <span className="text-orange-500">스마트하게</span>{' '}
                             운영하세요
