@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import {
-  Users, Search, RefreshCw, Award, Send, X, ChevronRight,
-  Crown, Star, TrendingUp, Smartphone, Gift, Clock, Wallet,
-  AlertTriangle, UserCheck, BarChart2, Loader2, ChevronDown,
-  History, Tag, Phone,
-} from 'lucide-react';
+import { Users, Search, RefreshCw, Award, X, ChevronRight, Crown, Star, TrendingUp, Gift, Clock, Wallet, AlertTriangle, UserCheck, BarChart2, Loader2, History, Tag, Phone } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import api from '../../api/index.js';
 import Skeleton from '../common/Skeleton';

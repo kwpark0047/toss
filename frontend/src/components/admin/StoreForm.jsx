@@ -3,11 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { storesAPI, planRequestsAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowLeft, Save, Palette, Type, Eye, Crown, Zap, Building2, Send, 
-  Clock, CheckCircle, XCircle, Shield, ChefHat, Users, Info, Smartphone,
-  Settings, Layout, Image as ImageIcon, MapPin, Phone
-} from 'lucide-react';
+import { ArrowLeft, Save, Palette, Type, Crown, Zap, Building2, Clock, CheckCircle, XCircle, ChefHat, Info, Smartphone, Layout, MapPin, Phone } from 'lucide-react';
 
 const defaultTheme = {
   primaryColor: '#f97316',
@@ -531,7 +527,6 @@ const StoreForm = () => {
                     </div>
                   </motion.div>
                 )}
-
 
             <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-100">
               <button type="button" onClick={() => navigate(-1)} className="px-6 py-3 bg-gray-100 text-slate-700 rounded-xl font-medium hover:bg-gray-200">취소</button>

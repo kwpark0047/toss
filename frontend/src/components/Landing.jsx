@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Store, QrCode, BarChart3, Smartphone, Clock,
-  CheckCircle, ArrowRight, Menu, X, Zap,
-  ShieldCheck, Globe, Star, Sparkles, TrendingUp
-} from 'lucide-react';
+import { Store, QrCode, Smartphone, ArrowRight, Zap, ShieldCheck, Star, Sparkles, TrendingUp } from 'lucide-react';
 
 const Landing = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

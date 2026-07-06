@@ -1,12 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { categoriesAPI, productsAPI, storesAPI, aiAPI, uploadsAPI, optionTemplatesAPI } from '../../api';
-import {
-  ArrowLeft, Plus, Edit, Trash2, Clock, Star, Sparkles, Flame, AlertTriangle,
-  Image, Tag, FileText, Wand2, ShoppingBag, Download, Store, Folders, Search,
-  Upload, Settings, GripVertical, X, ChevronDown, ChevronUp, Package, Leaf,
-  LayoutGrid, Check, Info, Loader2, ImageOff
-} from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, Clock, Star, Sparkles, Flame, AlertTriangle, Image, Tag, FileText, ShoppingBag, Download, Store, Folders, Search, Upload, Settings, GripVertical, X, Package, Leaf, LayoutGrid, Check, Info, Loader2, ImageOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
 import { toast } from 'react-toastify';

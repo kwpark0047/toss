@@ -3,10 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ordersAPI, storesAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { formatPrice } from '../utils/format';
-import {
-    Users, ShoppingBag, BarChart3, Clock, Settings,
-    ChevronRight, TrendingUp, AlertCircle, CheckCircle2
-} from 'lucide-react';
+import { Users, ShoppingBag, BarChart3, Clock, Settings, ChevronRight, TrendingUp, AlertCircle } from 'lucide-react';
 
 // 매니저 뷰 - 주문/직원 관리, 간략 통계
 const ManagerView = () => {

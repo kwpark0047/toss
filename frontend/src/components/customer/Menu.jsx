@@ -2,11 +2,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { storesAPI, categoriesAPI, productsAPI, tablesAPI, ordersAPI, cartAPI } from "../../api";
-import {
-  ShoppingCart, Plus, Minus, X, Send, CreditCard, Banknote, Building2,
-  Clock, CheckCircle, ChevronLeft, MapPin, Phone, Timer, Star,
-  Wand2, Search, Sparkles, BellRing, Languages, Users
-} from "lucide-react";
+import { ShoppingCart, Plus, Minus, X, Send, CreditCard, Banknote, Building2, Clock, CheckCircle, ChevronLeft, MapPin, Phone, Timer, Star, Wand2, Search, Sparkles, BellRing, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../common/LanguageSwitcher";

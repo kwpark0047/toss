@@ -1,11 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ordersAPI, storesAPI } from '../../api';
-import {
-  ArrowLeft, Calendar, TrendingUp, TrendingDown, DollarSign,
-  ShoppingBag, BarChart3, PieChart, Clock, Award, RefreshCw,
-  ChevronLeft, ChevronRight, Download
-} from 'lucide-react';
+import { ArrowLeft, TrendingUp, DollarSign, ShoppingBag, BarChart3, PieChart, Clock, Award, RefreshCw } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import Skeleton from '../common/Skeleton';
 

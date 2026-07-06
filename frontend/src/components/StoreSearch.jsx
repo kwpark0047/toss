@@ -6,12 +6,7 @@ import WaitingSection from './customer/WaitingSection';
 import { storesAPI, waitingAPI, reviewsAPI } from '../api';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './common/LanguageSwitcher';
-import {
-  Store, Coffee, Utensils, Cake, Pizza, ShoppingBag,
-  MapPin, Star, BellRing, Search, X, ChevronDown,
-  Grid3X3, List, Map as MapIcon, RefreshCw, Clock,
-  Heart, Navigation, MessageCircle, Sparkles, SlidersHorizontal
-} from 'lucide-react';
+import { Store, Coffee, Utensils, Cake, Pizza, ShoppingBag, MapPin, Star, BellRing, Search, X, ChevronDown, Grid3X3, List, Map as MapIcon, RefreshCw, Heart, Navigation, MessageCircle, Sparkles, SlidersHorizontal } from 'lucide-react';
 
 const regions = [
   { id: 'all', name: '전체 지역' },

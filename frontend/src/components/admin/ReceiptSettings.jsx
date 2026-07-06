@@ -2,10 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { adminAPI } from '../../api';
 import { formatPrice } from '../../utils/format';
-import {
-    Save, Image, Type, AlignLeft, Info, Eye,
-    CheckSquare, Square, ChevronRight, Store
-} from 'lucide-react';
+import { Save, Type, Eye, CheckSquare, Square, Store } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const ReceiptSettings = () => {

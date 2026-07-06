@@ -1,23 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import {
-    Wallet as WalletIcon,
-    History,
-    Gift,
-    ChevronLeft,
-    QrCode,
-    CreditCard,
-    ArrowUpRight,
-    ArrowDownLeft,
-    Search,
-    CheckCircle2,
-    TrendingUp,
-    TrendingDown,
-    Zap,
-    Trophy,
-    User
-} from "lucide-react";
+import { Wallet as WalletIcon, History, ChevronLeft, QrCode, Search, TrendingUp, TrendingDown, Zap, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 
 const Wallet = () => {

@@ -2,10 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { notificationTemplatesAPI } from '../../api/notifications';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Bell, Plus, Pencil, Trash2, X, Check, ToggleLeft, ToggleRight,
-  Save, Megaphone, MessageSquare, Smartphone, Globe, AlertCircle
-} from 'lucide-react';
+import { Bell, Plus, Pencil, Trash2, X, ToggleLeft, ToggleRight, Save } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';

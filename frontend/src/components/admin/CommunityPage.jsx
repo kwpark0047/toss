@@ -1,12 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  MapPin, Megaphone, Share2, Heart, Eye, Plus, Trash2,
-  Store, Clock, Phone, CheckCircle, XCircle, Send,
-  Search, Building2, RefreshCw, Loader2, X, ChevronRight,
-  Sparkles, TrendingUp, Users, Bell, Filter, Star,
-  HandshakeIcon, MessageSquare, Globe, ArrowLeft, MoreHorizontal,
-  ChevronDown, Flame, Calendar, Tag
-} from 'lucide-react';
+import { MapPin, Megaphone, Share2, Heart, Eye, Plus, Trash2, Store, Clock, Phone, CheckCircle, XCircle, Send, Search, Building2, RefreshCw, Loader2, X, ChevronRight, Users, Bell, Globe, MoreHorizontal, ChevronDown, Flame, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { communityAPI } from '../../api/index.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';

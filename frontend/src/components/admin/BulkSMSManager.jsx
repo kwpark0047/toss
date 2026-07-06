@@ -1,11 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { bulkSmsAPI } from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-    Smartphone, Filter, Search, Send, Users,
-    Store, MapPin, Zap, MessageSquare, AlertCircle,
-    CheckCircle, Clock, Trash2, ChevronRight, RefreshCcw
-} from 'lucide-react';
+import { Smartphone, Filter, Send, Users, Store, MapPin, Zap, MessageSquare, AlertCircle, CheckCircle, RefreshCcw } from 'lucide-react';
 
 const BulkSMSManager = () => {
     const [options, setOptions] = useState({ stores: [], regions: [], businessTypes: [] });

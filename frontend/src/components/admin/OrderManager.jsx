@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ordersAPI, storesAPI, paymentsAPI, staffAPI } from '../../api';
-import {
-  ArrowLeft, Clock, CheckCircle, XCircle, ChefHat, Package,
-  RefreshCw, Search, Calendar, Bell, Volume2, VolumeX, Filter, List
-} from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle, XCircle, ChefHat, Package, RefreshCw, Search, Calendar, Bell, Volume2, VolumeX, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import notificationSound from '../../utils/notificationSound';
 import { onNewOrder, onOrderUpdated } from '../../utils/socket';

@@ -1,11 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-    Package, AlertTriangle, TrendingDown, TrendingUp, RefreshCw,
-    Search, Filter, ChevronDown, X, History, Plus, Minus, Edit3,
-    CheckCircle, AlertCircle, XCircle, BarChart3, Clock, ArrowUpDown
-} from 'lucide-react';
+import { Package, AlertTriangle, TrendingDown, TrendingUp, RefreshCw, Search, X, History, Plus, Minus, Edit3, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { inventoryAPI } from '../../api';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';

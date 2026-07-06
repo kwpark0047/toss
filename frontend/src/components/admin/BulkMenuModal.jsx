@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-    X, Sparkles, Plus, Wand2, Check, ShoppingBag,
-    Loader2, FileSpreadsheet, Upload, Download, Info, ChevronDown, ChevronUp,
-    RefreshCw, ImageOff
-} from 'lucide-react';
+import { X, Sparkles, Wand2, Check, Loader2, FileSpreadsheet, Upload, Download, Info, ChevronDown, ChevronUp, RefreshCw, ImageOff } from 'lucide-react';
 import { aiAPI, productsAPI, categoriesAPI } from '../../api';
 import * as XLSX from 'xlsx';
 

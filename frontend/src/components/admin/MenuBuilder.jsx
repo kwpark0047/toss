@@ -1,12 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { storesAPI, categoriesAPI, productsAPI, uploadsAPI } from '../../api';
-import {
-    ArrowLeft, Palette, Layout, Type, Image as ImageIcon,
-    Save, Eye, Smartphone, Tablet, Monitor, Sparkles,
-    Check, Info, Upload, ExternalLink, AlignLeft, Grid, BookOpen,
-    X, Bell, Clock
-} from 'lucide-react';
+import { ArrowLeft, Palette, Layout, Image as ImageIcon, Save, Smartphone, Tablet, Monitor, Sparkles, Check, Info, Upload, ExternalLink, AlignLeft, Grid, BookOpen, Bell, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
 

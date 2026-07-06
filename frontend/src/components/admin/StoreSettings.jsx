@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { storesAPI } from '../../api';
-import {
-  Clock, Palette, Save, CheckCircle2, ChevronDown, ChevronUp,
-  Sun, Moon, Coffee, Store, Type, Layout, Brush, ToggleLeft, ToggleRight, CopyCheck
-} from 'lucide-react';
+import { Clock, Palette, Save, CheckCircle2, ChevronDown, ChevronUp, Sun, Moon, Store, Type, Layout, Brush, ToggleLeft, ToggleRight, CopyCheck } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────

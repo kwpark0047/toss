@@ -1,23 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ordersAPI, getSocket } from '../../api';
-import {
-    ChevronLeft,
-    ShoppingBag,
-    Clock,
-    CheckCircle2,
-    XCircle,
-    ExternalLink,
-    MapPin,
-    Calendar,
-    RefreshCw,
-    MoreVertical,
-    ChevronRight,
-    UtensilsCrossed,
-    PackageCheck,
-    Truck,
-    BellRing
-} from 'lucide-react';
+import { ChevronLeft, ShoppingBag, Clock, CheckCircle2, XCircle, Calendar, RefreshCw, MoreVertical, ChevronRight, UtensilsCrossed, PackageCheck, BellRing } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ManagerCallSheet from './ManagerCallSheet';
 import ChatDrawer from './ChatDrawer';

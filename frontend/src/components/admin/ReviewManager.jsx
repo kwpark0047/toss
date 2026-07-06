@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { reviewsAPI, storesAPI } from '../../api';
-import {
-  ArrowLeft, RefreshCw, Star, MessageSquareText, Send, Trash2,
-  Sparkles, Loader2, ImageOff, X, Heart
-} from 'lucide-react';
+import { ArrowLeft, RefreshCw, Star, MessageSquareText, Send, Sparkles, Loader2, ImageOff, Heart } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
