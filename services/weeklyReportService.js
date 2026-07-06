@@ -98,6 +98,60 @@ async function sendWeeklyReports() {
     return sent;
 }
 
+/** 전체 매장 월간 리포트 발송 (지난 달력월 기준, 수동 트리거에서도 재사용) */
+async function sendMonthlyReports() {
+    const k = kstNow();
+    // 지난 달 1일 00:00 ~ 이번 달 1일 00:00 (KST 기준을 UTC로 환산)
+    const KST = 9 * 60 * 60 * 1000;
+    const thisMonthStartUtc = new Date(Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), 1) - KST);
+    const lastMonthStartUtc = new Date(Date.UTC(k.getUTCFullYear(), k.getUTCMonth() - 1, 1) - KST);
+
+    const activeStores = await prisma.orders.groupBy({
+        by: ['store_id'],
+        where: { created_at: { gte: lastMonthStartUtc, lt: thisMonthStartUtc } },
+    });
+
+    let sent = 0;
+    for (const { store_id } of activeStores) {
+        try {
+            // 중복 방지: 최근 25일 내 이미 발송했으면 스킵
+            const dup = await prisma.notifications.findFirst({
+                where: {
+                    store_id,
+                    type: 'MONTHLY_REPORT',
+                    created_at: { gte: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000) },
+                },
+            });
+            if (dup) continue;
+
+            const report = await buildStoreReport(store_id, lastMonthStartUtc, thisMonthStartUtc);
+            if (!report) continue;
+
+            const top = report.topItems.length ? ` 인기 메뉴: ${report.topItems.join(', ')}` : '';
+            await notificationService.createNotification({
+                store_id,
+                type: 'MONTHLY_REPORT',
+                title: '📈 월간 매출 리포트',
+                message: `지난 달 주문 ${report.orderCount}건 · 매출 ${fmtWon(report.revenue)} · 객단가 ${fmtWon(report.avgOrder)}.${top}`,
+                data: {
+                    period: { from: lastMonthStartUtc.toISOString(), to: thisMonthStartUtc.toISOString() },
+                    order_count: report.orderCount,
+                    revenue: report.revenue,
+                    avg_order: Math.round(report.avgOrder),
+                    top_items: report.topItems,
+                },
+                priority: 'normal',
+                link: `/admin/stores/${store_id}/stats`,
+            });
+            sent++;
+        } catch (err) {
+            logger.warn(`[월간리포트] store ${store_id} 발송 실패: ${err.message}`);
+        }
+    }
+    if (sent > 0) logger.info(`[월간리포트] ${sent}개 매장 발송 완료`);
+    return sent;
+}
+
 let timer = null;
 
 /** 스케줄러 시작 — index.js에서 호출 */
@@ -106,20 +160,24 @@ function start() {
     timer = setInterval(async () => {
         try {
             const k = kstNow();
-            // KST 월요일(getUTCDay on shifted date) 09시대에만 실행
+            // KST 월요일 09시대 → 주간 리포트
             if (k.getUTCDay() === 1 && k.getUTCHours() === 9) {
                 await sendWeeklyReports();
             }
+            // KST 매월 1일 09시대 → 월간 리포트
+            if (k.getUTCDate() === 1 && k.getUTCHours() === 9) {
+                await sendMonthlyReports();
+            }
         } catch (err) {
-            logger.error(`[주간리포트] 스케줄러 오류: ${err.message}`);
+            logger.error(`[리포트] 스케줄러 오류: ${err.message}`);
         }
     }, POLL_INTERVAL_MS);
     timer.unref(); // 프로세스 종료를 막지 않음
-    logger.info('[주간리포트] 스케줄러 시작 (매주 월요일 09:00 KST)');
+    logger.info('[리포트] 스케줄러 시작 (주간: 월요일 09:00 · 월간: 매월 1일 09:00 KST)');
 }
 
 function stop() {
     if (timer) { clearInterval(timer); timer = null; }
 }
 
-module.exports = { start, stop, sendWeeklyReports, buildStoreReport };
+module.exports = { start, stop, sendWeeklyReports, sendMonthlyReports, buildStoreReport };
