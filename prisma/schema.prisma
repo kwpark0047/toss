@@ -112,6 +112,7 @@ model orders {
   payments           payments[]
   point_transactions point_transactions[]
   reviews            reviews?
+  print_jobs         print_jobs[]
 
   @@index([created_at], map: "idx_orders_created_at")
   @@index([store_id], map: "idx_orders_store_id")
@@ -497,6 +498,7 @@ model stores {
   store_partnerships_as_target    store_partnerships[] @relation("partnerships_target")
   api_keys                api_keys[]
   webhook_endpoints       webhook_endpoints[]
+  print_jobs              print_jobs[]
 
   @@index([user_id], map: "idx_stores_user_id")
 }
@@ -903,4 +905,23 @@ model webhook_deliveries {
 
   @@index([endpoint_id], map: "idx_webhook_deliveries_endpoint")
   @@index([status, next_retry_at], map: "idx_webhook_deliveries_retry")
+}
+
+// ESC/POS 주방 프린트 잡 큐 (온프레미스 브리지가 claim→인쇄→ack)
+model print_jobs {
+  id          Int       @id @default(autoincrement())
+  store_id    Int
+  order_id    Int?
+  kind        String    @default("kitchen")
+  status      String    @default("pending")
+  payload_b64 String
+  attempts    Int       @default(0)
+  error       String?
+  claimed_at  DateTime?
+  printed_at  DateTime?
+  created_at  DateTime  @default(now())
+  stores      stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  orders      orders?   @relation(fields: [order_id], references: [id], onDelete: SetNull)
+
+  @@index([store_id, status, created_at], map: "idx_print_jobs_claim")
 }
