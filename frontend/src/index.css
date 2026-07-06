@@ -370,3 +370,11 @@
 @media (prefers-reduced-motion: reduce) {
   .skeleton-dark::after { animation: none; }
 }
+
+/* ── 관리자 가독성: 루트 폰트 유동 확대(≈1.5배, 브라우저 폭 반응형) ─────────
+   Tailwind rem 유틸(텍스트·간격)이 루트 폰트 기준이므로, 관리자 화면에서만
+   루트 폰트를 clamp로 키워 전체 UI가 일관되게 확대·반응형이 되도록 한다.
+   기본 16px 대비: ~1024px 1.3배 → ~1440px 1.5배 → 1920px+ 1.6배(상한). */
+html.admin-scaled {
+  font-size: clamp(20px, calc(14px + 0.7vw), 26px);
+}

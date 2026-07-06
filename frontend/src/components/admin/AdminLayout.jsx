@@ -306,6 +306,15 @@ const AdminLayout = ({ children }) => {
     try { sessionStorage.setItem('wm_last_path', location.pathname); } catch (_) {}
   }, [location.pathname]);
 
+  // 관리자 화면 가독성: 루트 폰트를 유동 확대(≈1.5배, 브라우저 폭 반응형).
+  // Tailwind rem 유틸이 루트 폰트 기준이라, 텍스트·간격이 일관 확대된다.
+  // 관리자 화면에서만 적용하고 이탈 시 원복(고객 화면 무영향).
+  useEffect(() => {
+    const el = document.documentElement;
+    el.classList.add('admin-scaled');
+    return () => el.classList.remove('admin-scaled');
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
