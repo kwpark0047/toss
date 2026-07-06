@@ -10,7 +10,7 @@ const STEPS = [
   { key: 'confirmed', label: '주문 확인',  icon: CheckCircle2,  color: 'text-blue-500',    bg: 'bg-blue-50',    ring: 'ring-blue-400' },
   { key: 'preparing', label: '조리 중',    icon: ChefHat,       color: 'text-purple-500',  bg: 'bg-purple-50',  ring: 'ring-purple-400' },
   { key: 'ready',     label: '준비 완료',  icon: BellRing,      color: 'text-emerald-500', bg: 'bg-emerald-50', ring: 'ring-emerald-400' },
-  { key: 'completed', label: '수령 완료',  icon: Package,       color: 'text-slate-400',   bg: 'bg-slate-50',   ring: 'ring-slate-300' },
+  { key: 'completed', label: '수령 완료',  icon: Package,       color: 'text-grey-400',   bg: 'bg-grey-50',   ring: 'ring-grey-300' },
 ];
 const CANCELLED = { key: 'cancelled', label: '주문 취소', icon: X, color: 'text-rose-500', bg: 'bg-rose-50', ring: 'ring-rose-400' };
 
@@ -100,14 +100,14 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] z-[70] bg-white rounded-t-[32px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl bottom-sheet"
           >
-            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3" />
+            <div className="w-12 h-1.5 bg-grey-200 rounded-full mx-auto my-3" />
 
             {/* 헤더 */}
-            <div className="px-6 pb-4 flex items-center justify-between border-b border-slate-100">
+            <div className="px-6 pb-4 flex items-center justify-between border-b border-grey-100">
               <div>
-                <h2 className="text-xl font-black text-slate-900">주문 현황</h2>
+                <h2 className="tds-title text-grey-900">주문 현황</h2>
                 {order && (
-                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  <p className="tds-caption text-grey-400 mt-0.5">
                     주문 #{order.order_number || order.id}
                     {lastUpdated && (
                       <span className="ml-1 text-emerald-500">
@@ -117,8 +117,8 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                   </p>
                 )}
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full">
-                <X className="w-6 h-6 text-slate-400" />
+              <button onClick={onClose} className="p-2 hover:bg-grey-100 rounded-full">
+                <X className="w-6 h-6 text-grey-400" />
               </button>
             </div>
 
@@ -126,7 +126,7 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
               {loading && !order ? (
                 <div className="flex flex-col items-center justify-center py-20">
                   <Loader2 className="w-10 h-10 text-orange-400 animate-spin mb-4" />
-                  <p className="text-slate-400 font-medium">주문 정보를 불러오는 중...</p>
+                  <p className="tds-body text-grey-500">주문 정보를 불러오는 중...</p>
                 </div>
               ) : !order ? (
                 <EmptyState icon="📋" title="최근 주문 내역이 없습니다" description="주문하시면 여기에서 진행 상태를 확인할 수 있어요." />
@@ -136,7 +136,7 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                   {/* ── 진행 단계 ── */}
                   <div className="relative pt-2">
                     {/* 배경 연결선 */}
-                    <div className="absolute top-8 left-6 right-6 h-0.5 bg-slate-100" />
+                    <div className="absolute top-8 left-6 right-6 h-0.5 bg-grey-100" />
                     {/* 진행 연결선 */}
                     {!isCancelled && (
                       <div
@@ -163,12 +163,12 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                                 'w-12 h-12 rounded-full flex items-center justify-center border-2 bg-white z-10 transition-all',
                                 isCur ? `ring-4 ${step.ring}/30 border-current ${step.color} ${step.bg}` :
                                 isPast ? 'border-orange-400 bg-orange-400 text-white' :
-                                'border-slate-200 text-slate-300'
+                                'border-grey-200 text-grey-300'
                               ].join(' ')}
                             >
                               {isPast ? <CheckCircle2 className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
                             </motion.div>
-                            <span className={`text-[10px] font-black text-center leading-tight ${isCur ? step.color : isPast ? 'text-orange-400' : 'text-slate-300'}`}>
+                            <span className={`text-[10px] font-black text-center leading-tight ${isCur ? step.color : isPast ? 'text-orange-400' : 'text-grey-300'}`}>
                               {step.label}
                             </span>
                           </div>
@@ -192,36 +192,36 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                     <CurIcon className={`w-6 h-6 ${curStep.color} flex-shrink-0`} />
                     <div>
                       <p className={`font-black text-sm ${curStep.color}`}>{curStep.label}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{STATUS_MSG[status] || ''}</p>
+                      <p className="text-xs text-grey-400 mt-0.5">{STATUS_MSG[status] || ''}</p>
                     </div>
                   </div>
 
                   {/* ── 주문 상품 ── */}
                   <div>
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">주문 내역</h3>
-                    <div className="bg-slate-50 rounded-2xl p-5 space-y-3">
+                    <h3 className="text-xs font-black text-grey-400 uppercase tracking-widest mb-3">주문 내역</h3>
+                    <div className="bg-grey-50 rounded-2xl p-5 space-y-3">
                       {(order.items || order.order_items || []).map((item, idx) => (
                         <div key={idx} className="flex justify-between text-sm">
-                          <span className="text-slate-700 font-bold">
+                          <span className="text-grey-700 font-bold">
                             {item.product_name || item.name}
-                            <span className="text-slate-400 font-normal"> × {item.quantity}</span>
+                            <span className="text-grey-400 font-normal"> × {item.quantity}</span>
                           </span>
-                          <span className="text-slate-500">
+                          <span className="text-grey-500">
                             {fmt((item.price || item.unit_price || 0) * item.quantity)}
                           </span>
                         </div>
                       ))}
-                      <div className="pt-3 border-t border-slate-200 flex justify-between">
-                        <span className="text-sm font-black text-slate-700">합계</span>
-                        <span className="text-base font-black text-slate-900">{fmt(order.total_amount)}</span>
+                      <div className="pt-3 border-t border-grey-200 flex justify-between">
+                        <span className="text-sm font-black text-grey-700">합계</span>
+                        <span className="text-base font-black text-grey-900">{fmt(order.total_amount)}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* 테이블 정보 */}
                   {(order.table_name || order.table_id) && (
-                    <p className="text-sm text-slate-400">
-                      <span className="font-bold text-slate-600">테이블: </span>
+                    <p className="text-sm text-grey-400">
+                      <span className="font-bold text-grey-600">테이블: </span>
                       {order.table_name || `#${order.table_id}`}
                     </p>
                   )}
@@ -229,7 +229,7 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
               )}
             </div>
 
-            <div className="p-6 bg-white border-t border-slate-100 space-y-3">
+            <div className="p-6 bg-white border-t border-grey-100 space-y-3">
               {/* 준비완료/수령완료 주문은 리뷰 작성 유도 */}
               {onWriteReview && (status === 'ready' || status === 'completed') && (
                 <button
@@ -242,7 +242,7 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
               )}
               <button
                 onClick={onClose}
-                className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black active:scale-95 transition-transform"
+                className="w-full h-14 bg-grey-900 text-white rounded-2xl font-black active:scale-95 transition-transform"
               >
                 확인
               </button>

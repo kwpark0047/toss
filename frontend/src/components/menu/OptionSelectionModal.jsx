@@ -60,15 +60,15 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
             exit={{ y: '100%' }}
             className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] z-[60] bg-white rounded-t-[32px] max-h-[85vh] overflow-hidden flex flex-col shadow-2xl bottom-sheet"
           >
-            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3" />
+            <div className="w-12 h-1.5 bg-grey-200 rounded-full mx-auto my-3" />
             
-            <div className="px-6 pb-4 flex items-center justify-between border-b border-slate-50">
+            <div className="px-6 pb-4 flex items-center justify-between border-b border-grey-50">
               <div>
-                <h2 className="text-xl font-black text-slate-900">{item.name}</h2>
-                <p className="text-sm text-slate-400 mt-0.5">{formatPrice(item.price)}</p>
+                <h2 className="tds-title text-grey-900">{item.name}</h2>
+                <p className="tds-body text-grey-500 mt-0.5">{formatPrice(item.price)}</p>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                <X className="w-6 h-6 text-slate-400" />
+              <button onClick={onClose} className="p-2 hover:bg-grey-100 rounded-full transition-colors">
+                <X className="w-6 h-6 text-grey-400" />
               </button>
             </div>
 
@@ -76,7 +76,7 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
               {optionGroups.map((group) => (
                 <div key={group.id} className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-black text-slate-800 text-sm flex items-center gap-2">
+                    <h3 className="tds-body-strong text-grey-800 flex items-center gap-2">
                       {group.name}
                       {group.is_required && <span className="bg-primary/10 text-primary text-[9px] px-1.5 py-0.5 rounded uppercase font-black">필수</span>}
                     </h3>
@@ -90,19 +90,19 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
                           key={choice.id}
                           onClick={() => toggleChoice(group, choice)}
                           className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all ${
-                            isSelected ? 'border-primary bg-primary/5' : 'border-slate-100 bg-white hover:border-slate-200'
+                            isSelected ? 'border-primary bg-primary/5' : 'border-grey-100 bg-white hover:border-grey-200'
                           }`}
                         >
                           <div className="flex items-center gap-2">
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                              isSelected ? 'bg-primary border-primary' : 'border-slate-200'
+                              isSelected ? 'bg-primary border-primary' : 'border-grey-200'
                             }`}>
                               {isSelected && <Check size={10} className="text-white" strokeWidth={4} />}
                             </div>
-                            <span className={`text-sm font-bold ${isSelected ? 'text-primary' : 'text-slate-700'}`}>{choice.name}</span>
+                            <span className={`text-sm font-bold ${isSelected ? 'text-primary' : 'text-grey-700'}`}>{choice.name}</span>
                           </div>
                           {choice.price_adjustment > 0 && (
-                            <span className={`text-[11px] font-black ${isSelected ? 'text-primary' : 'text-slate-400'}`}>
+                            <span className={`text-[11px] font-black ${isSelected ? 'text-primary' : 'text-grey-400'}`}>
                               +{formatPrice(choice.price_adjustment)}
                             </span>
                           )}
@@ -114,18 +114,18 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
               ))}
 
               <div className="space-y-3">
-                <h3 className="font-black text-slate-800 text-sm">수량 선택</h3>
-                <div className="flex items-center justify-center gap-6 bg-slate-50 rounded-2xl py-4">
+                <h3 className="tds-body-strong text-grey-800">수량 선택</h3>
+                <div className="flex items-center justify-center gap-6 bg-grey-50 rounded-2xl py-4">
                   <button 
                     onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                    className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-slate-600 active:scale-90 transition-transform"
+                    className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-grey-600 active:scale-90 transition-transform"
                   >
                     <Minus size={20} strokeWidth={3} />
                   </button>
-                  <span className="text-2xl font-black text-slate-900 w-10 text-center">{quantity}</span>
+                  <span className="text-2xl font-black text-grey-900 w-10 text-center">{quantity}</span>
                   <button 
                     onClick={() => setQuantity(q => q + 1)}
-                    className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-slate-600 active:scale-90 transition-transform"
+                    className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-grey-600 active:scale-90 transition-transform"
                   >
                     <Plus size={20} strokeWidth={3} />
                   </button>
@@ -133,7 +133,7 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
               </div>
             </div>
 
-            <div className="px-4 py-4 bg-slate-50">
+            <div className="px-4 py-4 bg-grey-50">
               <Button variant="primary" size="lg" fullWidth layout="between" onClick={handleConfirm}>
                 <span>장바구니 담기</span>
                 <span className="bg-white/20 px-3 py-1 rounded-full text-sm">{formatPrice(calculateTotal())}</span>
