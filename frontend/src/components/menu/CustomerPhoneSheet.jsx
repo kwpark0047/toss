@@ -258,7 +258,10 @@ export default function CustomerPhoneSheet({
   useEffect(() => {
     if (isOpen) {
       setStep('idle');
-      setPhone('');
+      // 재방문 고객: 이전에 저장된 알림 수신 번호를 자동 입력
+      let saved = '';
+      try { saved = localStorage.getItem('wm_customer_phone') || ''; } catch { /* 무시 */ }
+      setPhone(saved ? formatPhone(saved) : '');
       setError('');
       setResult(null);
       setTimeout(() => inputRef.current?.focus(), 300);
