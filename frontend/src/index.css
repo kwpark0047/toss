@@ -395,3 +395,26 @@ html.admin-scaled {
 @media (prefers-reduced-motion: reduce) {
   .ai-gradient-text { animation: none; }
 }
+
+/* ── 접근성/디자인 플로어 (Web Interface Guidelines 적용) ───────────────────
+   1) 키보드 포커스 가시화: 마우스 클릭엔 안 보이고 키보드 탐색 시에만 링 표시 */
+:where(a, button, input, select, textarea, [tabindex], [role="button"]):focus-visible {
+  outline: 2px solid var(--color-primary, #f97316);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* 다크(관리자) 배경에서도 대비 확보 */
+html.admin-scaled :where(a, button, input, select, textarea, [tabindex], [role="button"]):focus-visible,
+.bg-slate-950 :where(a, button, [role="button"]):focus-visible {
+  outline-color: #fb923c;
+}
+
+/* 2) 터치 지연 제거 (300ms 탭 딜레이 방지) */
+button, [role="button"], a, summary, label { touch-action: manipulation; }
+
+/* 3) 제목 줄바꿈 균형 유틸 */
+.text-balance { text-wrap: balance; }
+.text-pretty { text-wrap: pretty; }
+
+/* 4) 모달/시트 오버스크롤 체이닝 방지 */
+.bottom-sheet, [role="dialog"], .leaflet-popup-content-wrapper { overscroll-behavior: contain; }

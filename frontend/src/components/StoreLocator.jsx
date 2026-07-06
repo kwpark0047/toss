@@ -64,8 +64,8 @@ export default function StoreLocator() {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">매장 위치</span>
-          <h2 className="text-4xl font-black text-gray-900 mb-4">내 주변 위마켓 매장 찾기</h2>
-          <p className="text-lg text-gray-500">현재 위치 기준으로 가까운 매장을, 지역·업종으로 골라보세요.</p>
+          <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">내 주변 위마켓 매장 찾기</h2>
+          <p className="text-lg text-gray-500 text-pretty">현재 위치 기준으로 가까운 매장을, 지역·업종으로 골라보세요.</p>
         </div>
 
         {/* 검색 바 */}
@@ -73,37 +73,37 @@ export default function StoreLocator() {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
             {/* 지역 */}
             <div className="md:col-span-3 relative">
-              <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <MapPin size={18} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input value={district} onChange={e => setDistrict(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()}
-                placeholder="지역 (예: 강남구)" aria-label="지역"
-                className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm font-medium outline-none focus:border-orange-400" />
+                placeholder="지역 (예: 강남구)…" aria-label="지역" name="district" autoComplete="address-level2" spellCheck={false}
+                className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm font-medium outline-none focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-400/50" />
             </div>
             {/* 업종 */}
             <div className="md:col-span-3 relative">
-              <Utensils size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Utensils size={18} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <select value={businessType} onChange={e => { setBusinessType(e.target.value); search({ businessType: e.target.value }); }}
                 aria-label="업종"
-                className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm font-medium outline-none focus:border-orange-400 appearance-none">
+                className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm font-medium outline-none focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-400/50 appearance-none">
                 <option value="all">전체 업종</option>
                 {types.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             {/* 키워드 */}
             <div className="md:col-span-3 relative">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={18} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()}
-                placeholder="매장명 검색" aria-label="매장명"
-                className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm font-medium outline-none focus:border-orange-400" />
+                placeholder="매장명 검색…" aria-label="매장명" name="store-name" spellCheck={false}
+                className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm font-medium outline-none focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-400/50" />
             </div>
             {/* 액션 */}
             <div className="md:col-span-3 flex gap-2">
-              <button onClick={useMyLocation} disabled={locating}
+              <button type="button" onClick={useMyLocation} disabled={locating} aria-label="내 위치로 주변 매장 찾기"
                 className="flex-1 h-12 flex items-center justify-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 text-orange-600 text-sm font-black hover:bg-orange-100 transition-colors disabled:opacity-50">
-                {locating ? <Loader2 size={16} className="animate-spin" /> : <Navigation size={16} />} 내 주변
+                {locating ? <Loader2 size={16} aria-hidden="true" className="animate-spin" /> : <Navigation size={16} aria-hidden="true" />} 내 주변
               </button>
-              <button onClick={() => search()}
+              <button type="button" onClick={() => search()} aria-label="매장 검색"
                 className="flex-1 h-12 flex items-center justify-center gap-1.5 rounded-xl bg-orange-500 text-white text-sm font-black hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200">
-                <Search size={16} /> 검색
+                <Search size={16} aria-hidden="true" /> 검색
               </button>
             </div>
           </div>
@@ -121,10 +121,10 @@ export default function StoreLocator() {
               { key: 'list', label: '리스트', icon: List },
               { key: 'grid', label: '그리드', icon: LayoutGrid },
             ].map(({ key, label, icon: Icon }) => (
-              <button key={key} onClick={() => setView(key)}
-                className={`flex items-center gap-1.5 px-3 sm:px-4 h-9 rounded-lg text-sm font-black transition-all ${view === key ? 'bg-white text-orange-500 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                aria-pressed={view === key}>
-                <Icon size={15} /> <span className="hidden sm:inline">{label}</span>
+              <button key={key} type="button" onClick={() => setView(key)}
+                className={`flex items-center gap-1.5 px-3 sm:px-4 h-9 rounded-lg text-sm font-black transition-colors ${view === key ? 'bg-white text-orange-500 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                aria-pressed={view === key} aria-label={`${label} 보기`}>
+                <Icon size={15} aria-hidden="true" /> <span className="hidden sm:inline">{label}</span>
               </button>
             ))}
           </div>
@@ -167,7 +167,7 @@ export default function StoreLocator() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-black text-gray-900 truncate">{s.name}</h3>
                       {s.business_type && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{s.business_type}</span>}
-                      {s.distance_km != null && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 flex items-center gap-0.5"><Navigation size={9} />{s.distance_km}km</span>}
+                      {s.distance_km != null && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 flex items-center gap-0.5"><Navigation size={9} aria-hidden="true" /><span className="tabular-nums">{s.distance_km}</span>km</span>}
                     </div>
                     {s.address && <p className="text-sm text-gray-500 mt-0.5 truncate flex items-center gap-1"><MapPin size={12} className="text-gray-400 shrink-0" />{s.address}</p>}
                   </div>
@@ -197,7 +197,7 @@ export default function StoreLocator() {
                         )}
                         {s.distance_km != null && (
                           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 flex items-center gap-0.5">
-                            <Navigation size={9} /> {s.distance_km}km
+                            <Navigation size={9} aria-hidden="true" /> <span className="tabular-nums">{s.distance_km}</span>km
                           </span>
                         )}
                       </div>
