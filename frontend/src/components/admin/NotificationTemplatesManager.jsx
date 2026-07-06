@@ -7,6 +7,8 @@ import {
   Save, Megaphone, MessageSquare, Smartphone, Globe, AlertCircle
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import Skeleton from '../common/Skeleton';
+import EmptyState from '../common/EmptyState';
 
 const NOTIFICATION_TYPES = [
   { value: 'NEW_ORDER', label: '새 주문' },
@@ -237,8 +239,8 @@ const NotificationTemplatesManager = () => {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto p-6 max-h-[calc(100vh-80px)] overflow-y-auto">
-        <div className="text-center py-20 text-slate-500">로딩 중...</div>
+      <div className="max-w-6xl mx-auto p-6 max-h-[calc(100vh-80px)] overflow-y-auto space-y-3">
+        {[0, 1, 2, 3].map(i => <Skeleton key={i} dark className="h-20 rounded-2xl" />)}
       </div>
     );
   }
@@ -263,11 +265,12 @@ const NotificationTemplatesManager = () => {
 
       {/* Template List */}
       {templates.length === 0 ? (
-        <div className="text-center py-20">
-          <Bell className="mx-auto mb-4 text-slate-600" size={48} />
-          <p className="text-slate-500 font-medium">등록된 알림 템플릿이 없습니다.</p>
-          <p className="text-slate-600 text-sm mt-1">'새 템플릿' 버튼을 눌러 첫 템플릿을 추가하세요.</p>
-        </div>
+        <EmptyState
+          tone="dark"
+          icon={<Bell className="text-slate-600" size={44} aria-hidden="true" />}
+          title="등록된 알림 템플릿이 없습니다"
+          description="'새 템플릿' 버튼을 눌러 첫 템플릿을 추가하세요."
+        />
       ) : (
         <div className="space-y-3">
           {templates.map((template) => (

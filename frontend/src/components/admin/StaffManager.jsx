@@ -11,6 +11,8 @@ import {
   QrCode, Wifi, Timer, Phone, Search, UserPlus, ChevronDown, ChevronUp,
   CheckCircle2, XCircle, Loader2
 } from 'lucide-react';
+import Skeleton from '../common/Skeleton';
+import EmptyState from '../common/EmptyState';
 
 // ── 역할 정의 ──────────────────────────────────────────────
 const ROLES = {
@@ -750,13 +752,16 @@ const AttendTab = ({ staff, attendance, loading, date, onDateChange, onClockIn, 
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+        <div className="space-y-3">{[0, 1, 2].map(i => <Skeleton key={i} dark className="h-20 rounded-[2rem]" />)}</div>
       ) : (
         <div className="space-y-3">
           {visibleStaff.length === 0 && (
-            <div className="text-center py-16 text-slate-600 font-bold uppercase tracking-widest text-xs bg-white/5 rounded-[2rem] border border-dashed border-white/5">
-              {isSoloStore ? '등록된 팀원 없음 — 1인 운영 중' : '등록된 직원이 없습니다.'}
-            </div>
+            <EmptyState
+              tone="dark"
+              icon="🧑‍🍳"
+              title={isSoloStore ? '1인 운영 중' : '등록된 직원이 없습니다'}
+              description={isSoloStore ? '팀원을 추가하면 근태를 관리할 수 있어요.' : '직원을 초대해 함께 운영해 보세요.'}
+            />
           )}
           {working.length > 0 && <SectionLabel label="근무 중" color="text-emerald-400" dot="bg-emerald-400" />}
           {working.map(s => <AttendCard key={s.id} member={s} record={activeMap[s.id]} status="working" canManage={canManage} onClockOut={() => onClockOut(s.id)} />)}

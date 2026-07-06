@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { communityAPI } from '../../api/index.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import api from '../../api/index.js';
+import EmptyState from '../common/EmptyState';
 
 // ── 상수 ──────────────────────────────────────────────────────────────
 const TYPE_OPTIONS = [
@@ -876,32 +877,25 @@ export default function CommunityPage() {
               <p className="text-slate-500 text-sm">피드 불러오는 중...</p>
             </div>
           ) : filteredPosts.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-24 text-center"
-            >
-              <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Megaphone size={28} className="text-slate-700" />
-              </div>
-              <p className="text-lg font-black text-slate-400 mb-1">
-                {searchQuery ? '검색 결과 없음' : '피드 없음'}
-              </p>
-              <p className="text-slate-600 text-sm mb-4">
-                {searchQuery
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <EmptyState
+                tone="dark"
+                icon={<Megaphone size={40} className="text-slate-600" aria-hidden="true" />}
+                title={searchQuery ? '검색 결과 없음' : '피드 없음'}
+                description={searchQuery
                   ? `"${searchQuery}"에 해당하는 피드가 없습니다`
                   : feedDistrict
                   ? `${feedDistrict} 지역의 피드가 없습니다`
                   : '매장 주소를 등록하면 지역 피드가 표시됩니다'}
-              </p>
-              {myStores.length > 0 && !searchQuery && (
-                <button
-                  onClick={() => setShowPostModal(true)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-black rounded-xl shadow-lg shadow-orange-500/20"
-                >
-                  <Plus size={15} /> 첫 번째 피드 작성
-                </button>
-              )}
+                action={myStores.length > 0 && !searchQuery ? (
+                  <button
+                    onClick={() => setShowPostModal(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-black rounded-xl shadow-lg shadow-orange-500/20"
+                  >
+                    <Plus size={15} /> 첫 번째 피드 작성
+                  </button>
+                ) : null}
+              />
             </motion.div>
           ) : (
             <motion.div layout className="grid sm:grid-cols-2 gap-3">
@@ -965,22 +959,16 @@ export default function CommunityPage() {
               <p className="text-slate-500 text-sm">주변 매장 탐색 중...</p>
             </div>
           ) : !selectedStore ? (
-            <div className="text-center py-24">
-              <Store size={32} className="text-slate-700 mx-auto mb-3" />
-              <p className="text-slate-500 text-sm">매장을 먼저 등록해주세요.</p>
-            </div>
+            <EmptyState tone="dark" icon={<Store size={40} className="text-slate-600" aria-hidden="true" />} title="매장을 먼저 등록해주세요" />
           ) : !selectedStore.address ? (
-            <div className="text-center py-24">
-              <MapPin size={32} className="text-slate-700 mx-auto mb-3" />
-              <p className="text-slate-500 text-sm">매장 주소를 등록하면 주변 매장을 찾을 수 있어요.</p>
-            </div>
+            <EmptyState tone="dark" icon={<MapPin size={40} className="text-slate-600" aria-hidden="true" />} title="매장 주소가 필요해요" description="매장 주소를 등록하면 주변 매장을 찾을 수 있어요." />
           ) : filteredNearby.length === 0 ? (
-            <div className="text-center py-24">
-              <Globe size={32} className="text-slate-700 mx-auto mb-3" />
-              <p className="text-slate-500 text-sm">
-                {nearbySearch ? `"${nearbySearch}" 검색 결과가 없습니다` : '같은 지역의 다른 매장이 없습니다.'}
-              </p>
-            </div>
+            <EmptyState
+              tone="dark"
+              icon={<Globe size={40} className="text-slate-600" aria-hidden="true" />}
+              title={nearbySearch ? '검색 결과가 없습니다' : '주변 매장이 없습니다'}
+              description={nearbySearch ? `"${nearbySearch}"에 해당하는 매장이 없어요.` : '같은 지역의 다른 매장이 없습니다.'}
+            />
           ) : (
             <div className="grid sm:grid-cols-2 gap-3">
               {filteredNearby.map(store => (
