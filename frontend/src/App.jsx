@@ -10,6 +10,7 @@ const Index = lazy(() => import("./pages/Index"));
 const MenuPage = lazy(() => import("./pages/MenuPage"));
 const QrResolvePage = lazy(() => import("./pages/QrResolvePage"));
 const MenuDemo = lazy(() => import("./components/customer/MenuDemo"));
+const BusinessDemo = lazy(() => import("./components/admin/BusinessDemo"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const Register = lazy(() => import("./components/Register"));
 const StoreSearchPage = lazy(() => import("./pages/StoreSearchPage"));
@@ -123,6 +124,7 @@ const AppRoutes = memo(() => (
     <Route path="/register" element={<AdminSuspense><Register /></AdminSuspense>} />
     <Route path="/search" element={<AdminSuspense><StoreSearchPage /></AdminSuspense>} />
     <Route path="/menu/demo" element={<AdminSuspense><MenuDemo /></AdminSuspense>} />
+    <Route path="/demo/business" element={<AdminSuspense><BusinessDemo /></AdminSuspense>} />
     <Route path="/menu/:storeId" element={<AdminSuspense><MenuPage /></AdminSuspense>} />
     <Route path="/qr/:qrCode" element={<AdminSuspense><QrResolvePage /></AdminSuspense>} />
 

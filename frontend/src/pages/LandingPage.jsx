@@ -262,7 +262,7 @@ const LandingPage = () => {
                                 무료로 시작하기 <ArrowRight size={20} />
                             </motion.button>
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                                onClick={() => navigate('/menu/demo')}
+                                onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
                                 className="flex items-center justify-center gap-2 px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full font-bold text-lg hover:border-orange-300 hover:text-orange-500 transition-colors">
                                 <Play size={18} className="fill-current" /> 데모 체험하기
                             </motion.button>
@@ -1034,22 +1034,30 @@ const LandingPage = () => {
                                 지금 직접 경험해보세요
                             </h3>
                             <p className="text-slate-400 mb-6 leading-relaxed">
-                                가입 불필요, 결제 없음. QR 스캔부터 포인트 가입까지<br className="hidden md:block" />
-                                실제 고객이 경험하는 그대로를 체험할 수 있습니다.
+                                가입 불필요, 결제 없음. 고객 주문 화면과 사장님 관리 화면을<br className="hidden md:block" />
+                                실제 그대로 체험할 수 있습니다.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
                                 <Link to="/menu/demo">
                                     <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                                        className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-orange-500 text-white rounded-full font-black text-base hover:bg-orange-600 transition-colors shadow-xl shadow-orange-500/30 cursor-pointer">
+                                        className="inline-flex items-center justify-center gap-2 px-7 py-4 bg-orange-500 text-white rounded-full font-black text-base hover:bg-orange-600 transition-colors shadow-xl shadow-orange-500/30 cursor-pointer">
                                         <Play size={18} className="fill-current" />
-                                        고객 메뉴 데모 체험하기
+                                        고객 데모 체험
                                         <ArrowRight size={18} />
                                     </motion.div>
                                 </Link>
-                                <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
-                                    <ShieldCheck size={14} className="text-emerald-500" />
-                                    실제 결제 없음 · 데모 모드
-                                </div>
+                                <Link to="/demo/business">
+                                    <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+                                        className="inline-flex items-center justify-center gap-2 px-7 py-4 bg-slate-800 text-white border border-white/15 rounded-full font-black text-base hover:bg-slate-700 transition-colors shadow-xl cursor-pointer">
+                                        <Store size={18} />
+                                        사업자 데모 체험
+                                        <ArrowRight size={18} />
+                                    </motion.div>
+                                </Link>
+                            </div>
+                            <div className="flex items-center justify-center md:justify-start gap-2 text-sm text-slate-500 mt-4">
+                                <ShieldCheck size={14} className="text-emerald-500" />
+                                실제 결제 없음 · 데모 모드
                             </div>
                         </div>
                     </motion.div>
