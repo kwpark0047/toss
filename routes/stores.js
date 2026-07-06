@@ -6,6 +6,7 @@ const { checkStorePermission } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const prisma = require('../config/prisma');
 const cache = require('../utils/cache');
+const { haversineKm } = require('../utils/geo');
 
 // 전체 매장 목록 조회
 router.get('/', catchAsync(async (req, res) => {
@@ -20,13 +21,7 @@ router.get('/my', authMiddleware, catchAsync(async (req, res) => {
 }));
 
 // ── 공개 매장 검색 (지역·업종·키워드·고객위치 거리순) ──────────────────────────
-// 랜딩 "매장 위치" 섹션용. 인증 불필요, 공개 필드만 반환.
-const haversineKm = (la1, lo1, la2, lo2) => {
-    const R = 6371, rad = (d) => d * Math.PI / 180;
-    const dLa = rad(la2 - la1), dLo = rad(lo2 - lo1);
-    const a = Math.sin(dLa / 2) ** 2 + Math.cos(rad(la1)) * Math.cos(rad(la2)) * Math.sin(dLo / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
+// 랜딩 "매장 위치" 섹션용. 인증 불필요, 공개 필드만 반환. (거리계산: utils/geo)
 router.get('/search', catchAsync(async (req, res) => {
     const { district, business_type, q, lat, lng, limit = 30 } = req.query;
     const where = {};

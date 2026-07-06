@@ -5,6 +5,7 @@ const { checkStorePermission, getStoreRole } = require('../middleware/storeAuth'
 const authMiddleware = require('../middleware/auth');
 const prisma = require('../config/prisma');
 const Point = require('../models/Point');
+const { haversineKm } = require('../utils/geo');
 const StoreTier = require('../models/StoreTier');
 const catchAsync = require('../utils/catchAsync');
 const logger = require('../utils/logger');
@@ -362,20 +363,8 @@ router.post('/update-location', catchAsync(async (req, res) => {
 
     const NEARBY_DISTANCE_KM = 0.5;
 
-    // Haversine 공식: 두 좌표 간 거리(km) 계산
-    const getDistance = (lat1, lon1, lat2, lon2) => {
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
-    };
-
     const nearbyStore = activeStores.find(store => {
-        const distance = getDistance(latitude, longitude, store.latitude, store.longitude);
+        const distance = haversineKm(latitude, longitude, store.latitude, store.longitude);
         return distance <= NEARBY_DISTANCE_KM;
     });
 
