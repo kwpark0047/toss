@@ -403,7 +403,9 @@ const MenuPage = () => {
   const themeStyle = buildThemeStyle(profile?.theme);
 
   return (
-    <div className="min-h-screen pb-24 font-sans tracking-tight" style={themeStyle}>
+    // TDS 미니앱 프레임: 모바일 폭(480px) 중앙 정렬, 데스크톱에선 좌우 여백 배경
+    <div className="min-h-screen w-full flex justify-center bg-slate-200">
+    <div className="relative w-full max-w-[480px] min-h-screen pb-24 font-sans tracking-tight bg-[var(--color-bg,#f8fafc)] shadow-2xl shadow-black/10" style={themeStyle}>
       {/* 키오스크 모드: 전체화면 진입 안내 (미진입 상태에서만) */}
       {isKiosk && !isFullscreen && (
         <button
@@ -552,6 +554,7 @@ const MenuPage = () => {
 
       {/* 전자상거래법 §13 필수 사업자 정보 표시 */}
       <LegalFooter storeId={storeId} />
+    </div>
     </div>
   );
 };

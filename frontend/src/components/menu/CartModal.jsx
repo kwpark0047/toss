@@ -31,7 +31,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-[32px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+            className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] z-50 bg-white rounded-t-[32px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
           >
             {/* Handle */}
             <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3" />
@@ -43,55 +43,53 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
               {cart.length === 0 ? (
-                <div className="text-center py-20">
-                  <div className="text-5xl mb-4">🛒</div>
+                <div className="text-center py-16">
+                  <div className="text-4xl mb-3">🛒</div>
                   <p className="text-slate-400 font-medium">장바구니가 비어 있습니다</p>
                 </div>
               ) : (
                 <>
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {cart.map((item) => (
-                      <div key={item.cartItemId} className="flex gap-4">
-                        <div className="w-20 h-20 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-3xl">{item.menuItem.emoji || '🍽️'}</span>
+                      <div key={item.cartItemId} className="flex gap-3">
+                        <div className="w-16 h-16 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-2xl">{item.menuItem.emoji || '🍽️'}</span>
                         </div>
                         
-                        <div className="flex-1 flex flex-col justify-between py-0.5">
-                          <div>
-                            <div className="flex items-start justify-between gap-2">
-                              <h3 className="font-bold text-slate-900 leading-tight">{item.menuItem.name}</h3>
-                              <button 
-                                onClick={() => onUpdateQuantity(item.cartItemId, -item.quantity)}
-                                className="text-slate-300 hover:text-red-500 transition-colors"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                            {item.selectedOptions?.length > 0 && (
-                              <p className="text-[11px] text-slate-400 mt-1">
-                                {item.selectedOptions.map(opt => opt.choiceName).join(', ')}
-                              </p>
-                            )}
+                        <div className="flex-1 flex flex-col justify-center min-w-0 gap-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-bold text-slate-900 text-sm leading-tight truncate">{item.menuItem.name}</h3>
+                            <button 
+                              onClick={() => onUpdateQuantity(item.cartItemId, -item.quantity)}
+                              className="text-slate-300 hover:text-red-500 transition-colors flex-shrink-0"
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </div>
+                          {item.selectedOptions?.length > 0 && (
+                            <p className="text-[10px] text-slate-400 truncate">
+                              {item.selectedOptions.map(opt => opt.choiceName).join(', ')}
+                            </p>
+                          )}
                           
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="font-bold text-slate-900">{formatPrice(item.unitPrice * item.quantity)}</span>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-slate-900">{formatPrice(item.unitPrice * item.quantity)}</span>
                             
-                            <div className="flex items-center gap-3 bg-slate-100 rounded-full p-1">
+                            <div className="flex items-center gap-2 bg-slate-100 rounded-full p-0.5">
                               <button 
                                 onClick={() => onUpdateQuantity(item.cartItemId, -1)}
-                                className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-slate-600 shadow-sm active:scale-90 transition-transform"
+                                className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-slate-600 shadow-sm active:scale-90 transition-transform"
                               >
-                                <Minus size={14} />
+                                <Minus size={12} />
                               </button>
-                              <span className="text-sm font-black w-4 text-center">{item.quantity}</span>
+                              <span className="text-xs font-black w-3 text-center">{item.quantity}</span>
                               <button 
                                 onClick={() => onUpdateQuantity(item.cartItemId, 1)}
-                                className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-slate-600 shadow-sm active:scale-90 transition-transform"
+                                className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-slate-600 shadow-sm active:scale-90 transition-transform"
                               >
-                                <Plus size={14} />
+                                <Plus size={12} />
                               </button>
                             </div>
                           </div>
@@ -101,21 +99,21 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                   </div>
 
                   {/* AI 추천 섹션 */}
-                  <div className="pt-8 border-t border-slate-100">
-                    <div className="flex items-center gap-2 mb-4">
-                      <span className="text-lg">✨</span>
-                      <h4 className="font-black text-slate-900">함께 먹으면 더 맛있는 인기 조합</h4>
+                  <div className="pt-5 border-t border-slate-100">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-base">✨</span>
+                      <h4 className="font-black text-slate-800 text-sm">함께 먹으면 더 맛있는 인기 조합</h4>
                     </div>
-                    <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2 scrollbar-hide">
+                    <div className="flex gap-3 overflow-x-auto pb-3 -mx-2 px-2 scrollbar-hide">
                       {[1, 2, 3].map((_, i) => (
-                        <div key={i} className="min-w-[160px] p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50 flex flex-col gap-2">
-                          <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-2xl">🥤</div>
+                        <div key={i} className="min-w-[140px] p-3 bg-orange-50/50 rounded-2xl border border-orange-100/50 flex flex-col gap-1.5">
+                          <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-xl">🥤</div>
                           <div>
-                            <p className="text-xs font-bold text-orange-600">추천 페어링</p>
-                            <p className="text-sm font-black text-slate-900">시원한 에이드</p>
-                            <p className="text-xs text-slate-500 mt-1">4,500원</p>
+                            <p className="text-[10px] font-bold text-orange-600">추천 페어링</p>
+                            <p className="text-xs font-black text-slate-900">시원한 에이드</p>
+                            <p className="text-[10px] text-slate-500">4,500원</p>
                           </div>
-                          <button className="mt-2 w-full py-2 bg-white border border-orange-200 text-orange-600 text-xs font-bold rounded-lg hover:bg-orange-100 transition-colors">
+                          <button className="w-full py-1.5 bg-white border border-orange-200 text-orange-600 text-[10px] font-bold rounded-lg hover:bg-orange-100 transition-colors">
                             추가하기
                           </button>
                         </div>
@@ -126,21 +124,21 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
               )}
             </div>
 
-            <div className="p-6 bg-slate-50 space-y-4">
+            <div className="px-4 py-4 bg-slate-50 space-y-3">
               {/* 분할 결제 안내 팁 */}
-              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white">
-                    <span className="text-xs font-bold">1/N</span>
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center text-white">
+                    <span className="text-[10px] font-bold">1/N</span>
                   </div>
-                  <span className="text-sm font-bold text-blue-900">친구와 나누어 결제할까요?</span>
+                  <span className="text-xs font-bold text-blue-900">친구와 나누어 결제할까요?</span>
                 </div>
-                <button className="text-xs font-black text-blue-600 underline">분할 결제 설정</button>
+                <button className="text-[10px] font-black text-blue-600 underline">분할 결제 설정</button>
               </div>
 
               {/* 알림 받을 번호 — 저장된 번호 자동 입력, 수정 가능 */}
-              <div className="p-4 bg-white rounded-2xl border border-slate-200">
-                <label htmlFor="notify-phone" className="block text-xs font-black text-slate-700 mb-1.5">
+              <div className="p-3 bg-white rounded-xl border border-slate-200">
+                <label htmlFor="notify-phone" className="block text-[10px] font-black text-slate-700 mb-1">
                   📱 주문 알림 받을 번호
                 </label>
                 <input
@@ -150,14 +148,14 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                   value={notifyPhone}
                   onChange={(e) => onNotifyPhoneChange?.(formatPhoneInput(e.target.value))}
                   placeholder="010-0000-0000"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary"
                 />
-                <p className="text-[11px] text-slate-400 mt-1.5">
+                <p className="text-[10px] text-slate-400 mt-1">
                   {notifyPhone ? '저장된 번호가 입력되었어요. 다른 번호로 받으려면 수정하세요.' : '입력하시면 주문 상태를 문자로 안내받을 수 있어요. (선택)'}
                 </p>
               </div>
 
-              <div className="flex items-center justify-between text-slate-900 font-black text-xl">
+              <div className="flex items-center justify-between text-slate-900 font-black text-lg">
                 <span>총 결제금액</span>
                 <span className="text-primary">{formatPrice(totalPrice)}</span>
               </div>
@@ -166,13 +164,13 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                 whileTap={{ scale: 0.98 }}
                 disabled={cart.length === 0 || isOrdering}
                 onClick={onOrder}
-                className="w-full h-16 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/20 flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale transition-all"
+                className="w-full h-14 bg-primary text-white rounded-2xl font-black text-base shadow-lg shadow-primary/20 flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale transition-all"
               >
                 {isOrdering ? (
-                  <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <CreditCard size={22} />
+                    <CreditCard size={20} />
                     <span>주문하기</span>
                   </>
                 )}
