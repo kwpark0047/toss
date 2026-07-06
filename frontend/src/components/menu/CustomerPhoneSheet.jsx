@@ -328,7 +328,7 @@ export default function CustomerPhoneSheet({
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-        className="relative w-full max-w-lg bg-white rounded-t-[32px] shadow-2xl overflow-hidden"
+        className="relative w-full max-w-[480px] bg-white rounded-t-[32px] shadow-2xl overflow-hidden bottom-sheet"
       >
         <div className="w-10 h-1.5 bg-slate-200 rounded-full mx-auto mt-3 mb-1" />
 

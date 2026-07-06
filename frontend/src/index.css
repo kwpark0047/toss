@@ -300,3 +300,8 @@
 .kiosk-mode .container { max-width: 100%; }
 /* 스크롤바 숨김 (키오스크 깔끔한 화면) */
 .kiosk-mode ::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ── TDS BottomSheet 공통 — iOS 홈 인디케이터 safe-area 하단 여백 ────────── */
+.bottom-sheet {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

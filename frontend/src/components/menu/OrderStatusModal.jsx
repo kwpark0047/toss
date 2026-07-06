@@ -97,7 +97,7 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
           <motion.div
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-[70] bg-white rounded-t-[32px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+            className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] z-[70] bg-white rounded-t-[32px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl bottom-sheet"
           >
             <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3" />
 
