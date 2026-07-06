@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, Check } from 'lucide-react';
+import Button from '../common/Button';
 
 const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }) => {
   const [quantity, setQuantity] = useState(1);
@@ -133,14 +134,10 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
             </div>
 
             <div className="px-4 py-4 bg-slate-50">
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={handleConfirm}
-                className="w-full h-14 bg-primary text-white rounded-2xl font-black text-base shadow-lg shadow-primary/20 flex items-center justify-between px-6"
-              >
+              <Button variant="primary" size="lg" fullWidth layout="between" onClick={handleConfirm}>
                 <span>장바구니 담기</span>
                 <span className="bg-white/20 px-3 py-1 rounded-full text-sm">{formatPrice(calculateTotal())}</span>
-              </motion.button>
+              </Button>
             </div>
           </motion.div>
         </>

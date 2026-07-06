@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, Trash2, CreditCard } from 'lucide-react';
+import Button from '../common/Button';
 
 const formatPhoneInput = (value) => {
   const d = value.replace(/\D/g, '').slice(0, 11);
@@ -160,21 +161,17 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                 <span className="text-primary">{formatPrice(totalPrice)}</span>
               </div>
 
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                disabled={cart.length === 0 || isOrdering}
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={isOrdering}
+                disabled={cart.length === 0}
                 onClick={onOrder}
-                className="w-full h-14 bg-primary text-white rounded-2xl font-black text-base shadow-lg shadow-primary/20 flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale transition-all"
               >
-                {isOrdering ? (
-                  <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <CreditCard size={20} />
-                    <span>주문하기</span>
-                  </>
-                )}
-              </motion.button>
+                <CreditCard size={20} />
+                <span>주문하기</span>
+              </Button>
             </div>
           </motion.div>
         </>

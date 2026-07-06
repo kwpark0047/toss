@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart } from 'lucide-react';
+import Button from '../common/Button';
 
 const CartButton = ({ totalItems, totalPrice, onClick }) => {
   const formatPrice = (price) => new Intl.NumberFormat('ko-KR').format(price) + '원';
@@ -14,11 +15,7 @@ const CartButton = ({ totalItems, totalPrice, onClick }) => {
           exit={{ y: 100, opacity: 0 }}
           className="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-40 px-4"
         >
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={onClick}
-            className="w-full mx-auto bg-primary text-white h-12 rounded-xl shadow-lg shadow-primary/30 flex items-center justify-between px-4 font-bold"
-          >
+          <Button variant="primary" size="md" fullWidth layout="between" onClick={onClick} className="shadow-primary/30">
             <div className="flex items-center gap-2">
               <div className="relative">
                 <ShoppingCart className="w-5 h-5" />
@@ -29,7 +26,7 @@ const CartButton = ({ totalItems, totalPrice, onClick }) => {
               <span className="text-sm">장바구니 보기</span>
             </div>
             <span className="text-sm font-black">{formatPrice(totalPrice)}</span>
-          </motion.button>
+          </Button>
         </motion.div>
       )}
     </AnimatePresence>
