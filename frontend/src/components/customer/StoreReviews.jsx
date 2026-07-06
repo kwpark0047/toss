@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Star, ImageOff, MessageSquareText, Heart } from 'lucide-react';
 import { reviewsAPI } from '../../api';
+import Skeleton from '../common/Skeleton';
+import EmptyState from '../common/EmptyState';
 
 // 브라우저별 익명 좋아요 식별자 (로그인 없는 고객용, localStorage에 고정)
 const getLikerId = () => {
@@ -92,7 +94,7 @@ const StoreReviews = ({ storeId }) => {
   if (loading) {
     return (
       <div className="px-4 py-6 space-y-3">
-        {[1, 2].map(i => <div key={i} className="h-24 bg-slate-100 rounded-2xl animate-pulse" />)}
+        {[1, 2].map(i => <Skeleton key={i} className="h-24 rounded-2xl" />)}
       </div>
     );
   }
@@ -117,11 +119,11 @@ const StoreReviews = ({ storeId }) => {
       </div>
 
       {reviews.length === 0 ? (
-        <div className="py-10 text-center text-slate-400">
-          <MessageSquareText size={32} className="mx-auto mb-2 text-slate-300" aria-hidden="true" />
-          <p className="text-sm font-bold">아직 등록된 리뷰가 없어요</p>
-          <p className="text-xs mt-1">첫 리뷰의 주인공이 되어보세요!</p>
-        </div>
+        <EmptyState
+          icon={<MessageSquareText size={40} className="text-slate-300" aria-hidden="true" />}
+          title="아직 등록된 리뷰가 없어요"
+          description="첫 리뷰의 주인공이 되어보세요!"
+        />
       ) : (
         <div className="space-y-4">
           {reviews.map(r => (

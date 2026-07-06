@@ -1,0 +1,20 @@
+import React from 'react';
+
+/**
+ * EmptyState — TDS 빈 상태 패턴 (아이콘 · 타이틀 · 설명 · 선택 액션).
+ * @param {React.ReactNode} icon  이모지 문자열 또는 아이콘 노드
+ * @param {string} title
+ * @param {string} [description]
+ * @param {React.ReactNode} [action]  하단 버튼 등
+ * @param {string} [className]
+ */
+export default function EmptyState({ icon = '🍽️', title, description, action, className = '' }) {
+  return (
+    <div className={`flex flex-col items-center justify-center text-center py-16 px-6 ${className}`}>
+      <div className="text-5xl mb-4 select-none" aria-hidden="true">{icon}</div>
+      <h4 className="text-slate-700 font-black text-base">{title}</h4>
+      {description && <p className="text-sm text-slate-400 mt-1.5 leading-relaxed max-w-[240px]">{description}</p>}
+      {action && <div className="mt-5">{action}</div>}
+    </div>
+  );
+}

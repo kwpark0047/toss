@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, CheckCircle2, ChefHat, BellRing, Package, Loader2 } from 'lucide-react';
 import { ordersAPI } from '@/api';
 import { joinOrderRoom, onOrderUpdated } from '@/utils/socket';
+import EmptyState from '../common/EmptyState';
 
 const STEPS = [
   { key: 'pending',   label: '주문 접수',  icon: Clock,         color: 'text-amber-500',   bg: 'bg-amber-50',   ring: 'ring-amber-400' },
@@ -128,10 +129,7 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                   <p className="text-slate-400 font-medium">주문 정보를 불러오는 중...</p>
                 </div>
               ) : !order ? (
-                <div className="text-center py-20">
-                  <div className="text-5xl mb-4">📋</div>
-                  <p className="text-slate-400 font-medium">최근 주문 내역이 없습니다</p>
-                </div>
+                <EmptyState icon="📋" title="최근 주문 내역이 없습니다" description="주문하시면 여기에서 진행 상태를 확인할 수 있어요." />
               ) : (
                 <div className="space-y-8">
 

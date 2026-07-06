@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, Trash2, CreditCard } from 'lucide-react';
 import Button from '../common/Button';
+import EmptyState from '../common/EmptyState';
 
 const formatPhoneInput = (value) => {
   const d = value.replace(/\D/g, '').slice(0, 11);
@@ -46,10 +47,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
 
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
               {cart.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="text-4xl mb-3">🛒</div>
-                  <p className="text-slate-400 font-medium">장바구니가 비어 있습니다</p>
-                </div>
+                <EmptyState icon="🛒" title="장바구니가 비어 있습니다" description="메뉴를 담아 주문을 시작해 보세요." />
               ) : (
                 <>
                   <div className="space-y-4">

@@ -10,6 +10,7 @@ import { wakeupServer } from "@/api/wakeup";
 import { useKioskMode } from "@/hooks/useKioskMode";
 import { withOfflineCache } from "@/utils/menuCache";
 import { requestNotificationPermission } from "@/firebase";
+import EmptyState from "@/components/common/EmptyState";
 import { Maximize2 } from "lucide-react";
 
 // Components
@@ -459,11 +460,11 @@ const MenuPage = () => {
       {/* Menu List */}
       <div className="container mx-auto px-4 py-6">
         {filteredItems.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">🍽️</div>
-            <p className="text-slate-400 font-bold">등록된 메뉴가 없습니다</p>
-            <p className="text-sm text-slate-300 mt-1">조금만 기다려주세요!</p>
-          </div>
+          <EmptyState
+            icon="🍽️"
+            title="등록된 메뉴가 없습니다"
+            description={selectedCategory === '전체' ? '곧 맛있는 메뉴가 준비될 거예요!' : `'${selectedCategory}' 카테고리에 메뉴가 없어요.`}
+          />
         ) : (
           // TDS 리스트 그룹: 둥근 흰 컨테이너 + 행 사이 divider (flush)
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-100">
