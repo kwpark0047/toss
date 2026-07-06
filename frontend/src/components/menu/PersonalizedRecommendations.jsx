@@ -47,7 +47,7 @@ export default function PersonalizedRecommendations({ storeId, storeOpen, onAddT
       <div className="rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-fuchsia-500/5 p-4">
         <div className="flex items-center gap-2 mb-3">
           <Sparkles size={16} className="text-orange-400" />
-          <h3 className="text-sm font-black text-white">
+          <h3 className="tds-body-strong text-white">
             {phone ? '고객님을 위한 오늘의 추천' : '오늘의 추천 메뉴'}
           </h3>
           <span className="text-[10px] font-bold text-orange-300 bg-orange-500/15 px-1.5 py-0.5 rounded">AI</span>
@@ -62,10 +62,10 @@ export default function PersonalizedRecommendations({ storeId, storeOpen, onAddT
                   <img src={item.image_url} alt={item.name} className="w-12 h-12 rounded-lg object-cover shrink-0" loading="lazy" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-white truncate">{item.name}</p>
-                  <p className="text-[11px] text-orange-200/80 truncate">{rec.recommend_reason || '추천 메뉴'}</p>
+                  <p className="tds-label text-white truncate">{item.name}</p>
+                  <p className="tds-caption text-orange-200/80 truncate">{rec.recommend_reason || '추천 메뉴'}</p>
                 </div>
-                <span className="text-xs font-black text-white shrink-0">{(item.price || 0).toLocaleString('ko-KR')}원</span>
+                <span className="tds-label text-white shrink-0">{(item.price || 0).toLocaleString('ko-KR')}원</span>
                 {onAddToCart && !soldOut && storeOpen && (
                   <button
                     onClick={() => onAddToCart(item)}

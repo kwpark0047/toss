@@ -12,8 +12,8 @@ const formatPhone = (value) => {
 };
 
 const TIER_META = {
-  GENERAL: { label: '일반', color: 'text-slate-500', bg: 'bg-slate-100' },
-  SILVER:  { label: '실버', color: 'text-slate-600', bg: 'bg-slate-200' },
+  GENERAL: { label: '일반', color: 'text-grey-500', bg: 'bg-grey-100' },
+  SILVER:  { label: '실버', color: 'text-grey-600', bg: 'bg-grey-200' },
   GOLD:    { label: '골드', color: 'text-yellow-600', bg: 'bg-yellow-100' },
   VIP:     { label: 'VIP',  color: 'text-orange-600', bg: 'bg-orange-100' },
   VVIP:   { label: 'VVIP', color: 'text-purple-600', bg: 'bg-purple-100' },
@@ -121,7 +121,7 @@ function EncryptAnimation({ phone, onDone }) {
     <motion.div
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50"
+      className="rounded-2xl overflow-hidden border border-grey-100 bg-grey-50"
     >
       {/* 입력창 영역 */}
       <div className="relative px-4 py-3.5 flex items-center gap-3">
@@ -152,7 +152,7 @@ function EncryptAnimation({ phone, onDone }) {
 
         {/* 번호 표시 영역 */}
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
+          <p className="text-[10px] font-bold text-grey-400 uppercase tracking-widest mb-0.5">
             {phase === 'scramble' && '암호화 처리 중...'}
             {phase === 'mask'    && '개인정보 마스킹 중...'}
             {phase === 'seal'    && (sealDone ? 'AES-256 암호화 완료' : '보안 씰 적용 중...')}
@@ -162,10 +162,10 @@ function EncryptAnimation({ phone, onDone }) {
               phase === 'scramble'
                 ? 'text-orange-500'
                 : phase === 'mask'
-                ? 'text-slate-500'
+                ? 'text-grey-500'
                 : sealDone
                 ? 'text-green-600'
-                : 'text-slate-700'
+                : 'text-grey-700'
             }`}
           >
             {display}
@@ -202,7 +202,7 @@ function EncryptAnimation({ phone, onDone }) {
       </div>
 
       {/* 프로그레스 바 */}
-      <div className="h-1.5 bg-slate-200">
+      <div className="h-1.5 bg-grey-200">
         <motion.div
           className={`h-full rounded-full transition-colors duration-500 ${
             sealDone ? 'bg-green-500' : 'bg-gradient-to-r from-orange-400 to-orange-600'
@@ -222,10 +222,10 @@ function EncryptAnimation({ phone, onDone }) {
           <Lock className="w-3 h-3 text-orange-400" />
           <span className="text-[10px] font-black text-orange-500 tracking-widest">AES-256-GCM</span>
         </motion.div>
-        <span className="text-slate-200">|</span>
-        <span className="text-[10px] text-slate-400 font-medium">PBKDF2 키 유도</span>
-        <span className="text-slate-200">|</span>
-        <span className="text-[10px] text-slate-400 font-medium">SHA-256</span>
+        <span className="text-grey-200">|</span>
+        <span className="text-[10px] text-grey-400 font-medium">PBKDF2 키 유도</span>
+        <span className="text-grey-200">|</span>
+        <span className="text-[10px] text-grey-400 font-medium">SHA-256</span>
       </div>
     </motion.div>
   );
@@ -330,14 +330,14 @@ export default function CustomerPhoneSheet({
         transition={{ type: 'spring', damping: 28, stiffness: 220 }}
         className="relative w-full max-w-[480px] bg-white rounded-t-[32px] shadow-2xl overflow-hidden bottom-sheet"
       >
-        <div className="w-10 h-1.5 bg-slate-200 rounded-full mx-auto mt-3 mb-1" />
+        <div className="w-10 h-1.5 bg-grey-200 rounded-full mx-auto mt-3 mb-1" />
 
         {step !== 'loading' && step !== 'encrypting' && (
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"
+            className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-grey-100 hover:bg-grey-200 transition-colors"
           >
-            <X className="w-4 h-4 text-slate-500" />
+            <X className="w-4 h-4 text-grey-500" />
           </button>
         )}
 
@@ -355,8 +355,8 @@ export default function CustomerPhoneSheet({
                 <div className="w-14 h-14 mx-auto bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-200 mb-4">
                   <Star className="w-7 h-7 text-white fill-white" />
                 </div>
-                <h2 className="text-xl font-black text-slate-900">주문해 주셔서 감사해요!</h2>
-                <p className="text-sm text-slate-500 mt-1">번호를 등록하고 포인트를 받아보세요</p>
+                <h2 className="tds-title text-grey-900">주문해 주셔서 감사해요!</h2>
+                <p className="text-sm text-grey-500 mt-1">번호를 등록하고 포인트를 받아보세요</p>
               </div>
 
               {estimatedPoints > 0 && (
@@ -381,7 +381,7 @@ export default function CustomerPhoneSheet({
                     <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                       <Check className="w-3.5 h-3.5 text-green-600" strokeWidth={3} />
                     </div>
-                    <span className="text-sm text-slate-600 font-medium">{text}</span>
+                    <span className="text-sm text-grey-600 font-medium">{text}</span>
                   </div>
                 ))}
               </div>
@@ -391,8 +391,8 @@ export default function CustomerPhoneSheet({
                 <div className="relative mt-3">
                   {/* 왼쪽 플로팅 레이블: 알림 수신번호 + 자동입력됨 */}
                   <div className="absolute -top-3 left-4 flex items-center gap-1 bg-white px-1 z-10">
-                    <Bell className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                    <span className="text-[10px] font-black text-slate-500 tracking-wider whitespace-nowrap">
+                    <Bell className="w-3 h-3 text-grey-400 flex-shrink-0" />
+                    <span className="text-[10px] font-black text-grey-500 tracking-wider whitespace-nowrap">
                       알림 수신번호
                     </span>
                     <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-px rounded-full whitespace-nowrap">
@@ -408,7 +408,7 @@ export default function CustomerPhoneSheet({
                     </span>
                   </div>
 
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-grey-400" />
                   <input
                     ref={inputRef}
                     type="tel"
@@ -417,15 +417,15 @@ export default function CustomerPhoneSheet({
                     onChange={(e) => { setPhone(formatPhone(e.target.value)); setError(''); }}
                     onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                     placeholder="010-0000-0000"
-                    className="w-full pl-12 pr-4 py-4 text-lg font-bold bg-white border-2 border-slate-200 rounded-2xl focus:border-orange-400 outline-none transition-all tracking-widest"
+                    className="w-full pl-12 pr-4 py-4 text-lg font-bold bg-white border-2 border-grey-200 rounded-2xl focus:border-orange-400 outline-none transition-all tracking-widest"
                   />
                 </div>
                 {error && <p className="mt-2 text-sm text-red-500 font-medium pl-1">{error}</p>}
 
                 {/* 암호화 안내 문구 */}
                 <div className="mt-2.5 flex items-center gap-1.5 justify-center">
-                  <Shield className="w-3 h-3 text-slate-400" />
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                  <Shield className="w-3 h-3 text-grey-400" />
+                  <p className="text-[11px] text-grey-400 leading-relaxed">
                     입력하신 번호는 <span className="font-bold text-orange-500">AES-256-GCM</span>으로 즉시 암호화되어 저장됩니다
                   </p>
                 </div>
@@ -441,7 +441,7 @@ export default function CustomerPhoneSheet({
                 <ChevronRight className="w-5 h-5" />
               </button>
 
-              <button onClick={onClose} className="w-full mt-3 py-3 text-sm text-slate-400 font-medium hover:text-slate-600 transition-colors">
+              <button onClick={onClose} className="w-full mt-3 py-3 text-sm text-grey-400 font-medium hover:text-grey-600 transition-colors">
                 다음에 하기
               </button>
             </motion.div>
@@ -465,8 +465,8 @@ export default function CustomerPhoneSheet({
                 >
                   <Shield className="w-7 h-7 text-white" />
                 </motion.div>
-                <h3 className="text-lg font-black text-slate-900">개인정보 암호화 중</h3>
-                <p className="text-sm text-slate-400 mt-1">안전하게 보호하고 있어요</p>
+                <h3 className="tds-subtitle text-grey-900">개인정보 암호화 중</h3>
+                <p className="text-sm text-grey-400 mt-1">안전하게 보호하고 있어요</p>
               </div>
 
               {/* 암호화 애니메이션 박스 */}
@@ -484,12 +484,12 @@ export default function CustomerPhoneSheet({
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.3 }}
-                    className="flex items-center gap-3 px-3 py-2.5 bg-slate-50 rounded-xl"
+                    className="flex items-center gap-3 px-3 py-2.5 bg-grey-50 rounded-xl"
                   >
                     <span className="text-base">{item.icon}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-black text-slate-700">{item.label}</p>
-                      <p className="text-[10px] text-slate-400">{item.desc}</p>
+                      <p className="text-xs font-black text-grey-700">{item.label}</p>
+                      <p className="text-[10px] text-grey-400">{item.desc}</p>
                     </div>
                     <motion.div
                       initial={{ scale: 0 }}
@@ -514,7 +514,7 @@ export default function CustomerPhoneSheet({
               className="px-6 py-16 flex flex-col items-center gap-4"
             >
               <div className="w-14 h-14 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
-              <p className="text-slate-500 font-medium">포인트 등록 중...</p>
+              <p className="text-grey-500 font-medium">포인트 등록 중...</p>
             </motion.div>
           )}
 
@@ -535,10 +535,10 @@ export default function CustomerPhoneSheet({
                 <Check className="w-8 h-8 text-white" strokeWidth={3} />
               </motion.div>
 
-              <h2 className="text-center text-xl font-black text-slate-900 mb-1">
+              <h2 className="text-center tds-title text-grey-900 mb-1">
                 {result.is_new_customer ? '🎉 멤버가 되셨어요!' : '✅ 포인트 적립 완료!'}
               </h2>
-              <p className="text-center text-sm text-slate-400 mb-6">
+              <p className="text-center text-sm text-grey-400 mb-6">
                 {storeName}의 단골 고객이 되셨습니다
               </p>
 
@@ -555,19 +555,19 @@ export default function CustomerPhoneSheet({
               )}
 
               <div className="space-y-3 mb-5">
-                <div className="flex items-center justify-between py-3 px-4 bg-slate-50 rounded-xl">
-                  <span className="text-sm text-slate-500 font-medium">누적 포인트</span>
-                  <span className="font-black text-slate-900">{AnimatedTotal.toLocaleString()}P</span>
+                <div className="flex items-center justify-between py-3 px-4 bg-grey-50 rounded-xl">
+                  <span className="text-sm text-grey-500 font-medium">누적 포인트</span>
+                  <span className="font-black text-grey-900">{AnimatedTotal.toLocaleString()}P</span>
                 </div>
-                <div className="flex items-center justify-between py-3 px-4 bg-slate-50 rounded-xl">
-                  <span className="text-sm text-slate-500 font-medium">회원 등급</span>
+                <div className="flex items-center justify-between py-3 px-4 bg-grey-50 rounded-xl">
+                  <span className="text-sm text-grey-500 font-medium">회원 등급</span>
                   <span className={`text-sm font-black px-2.5 py-1 rounded-lg ${getTier(result.customer_tier).bg} ${getTier(result.customer_tier).color}`}>
                     {getTier(result.customer_tier).label}
                   </span>
                 </div>
                 {result.next_tier && (
-                  <div className="flex items-center justify-between py-3 px-4 bg-slate-50 rounded-xl">
-                    <span className="text-sm text-slate-500 font-medium">다음 등급까지</span>
+                  <div className="flex items-center justify-between py-3 px-4 bg-grey-50 rounded-xl">
+                    <span className="text-sm text-grey-500 font-medium">다음 등급까지</span>
                     <span className="text-sm font-bold text-orange-500">
                       {result.next_tier.remaining.toLocaleString()}원 남음 → {result.next_tier.name}
                     </span>
@@ -604,7 +604,7 @@ export default function CustomerPhoneSheet({
 
               <button
                 onClick={onClose}
-                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-base transition-all active:scale-95"
+                className="w-full py-4 bg-grey-900 text-white rounded-2xl font-black text-base transition-all active:scale-95"
               >
                 확인
               </button>
