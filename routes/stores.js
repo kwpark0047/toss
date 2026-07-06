@@ -19,6 +19,53 @@ router.get('/my', authMiddleware, catchAsync(async (req, res) => {
     res.success(stores);
 }));
 
+// ── 공개 매장 검색 (지역·업종·키워드·고객위치 거리순) ──────────────────────────
+// 랜딩 "매장 위치" 섹션용. 인증 불필요, 공개 필드만 반환.
+const haversineKm = (la1, lo1, la2, lo2) => {
+    const R = 6371, rad = (d) => d * Math.PI / 180;
+    const dLa = rad(la2 - la1), dLo = rad(lo2 - lo1);
+    const a = Math.sin(dLa / 2) ** 2 + Math.cos(rad(la1)) * Math.cos(rad(la2)) * Math.sin(dLo / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+router.get('/search', catchAsync(async (req, res) => {
+    const { district, business_type, q, lat, lng, limit = 30 } = req.query;
+    const where = {};
+    if (district) where.address = { contains: String(district) };
+    if (business_type && business_type !== 'all') where.business_type = String(business_type);
+    if (q) {
+        const kw = String(q);
+        where.OR = [{ name: { contains: kw } }, { address: { contains: kw } }];
+    }
+    let stores = await prisma.stores.findMany({
+        where,
+        select: { id: true, name: true, business_type: true, address: true, latitude: true, longitude: true },
+        take: Math.min(parseInt(limit) || 30, 100),
+        orderBy: { name: 'asc' },
+    });
+
+    // 고객 위치가 있으면 거리(km) 계산 + 가까운 순 정렬
+    const la = parseFloat(lat), lo = parseFloat(lng);
+    if (!isNaN(la) && !isNaN(lo)) {
+        stores = stores
+            .map(s => ({
+                ...s,
+                distance_km: (s.latitude != null && s.longitude != null)
+                    ? Math.round(haversineKm(la, lo, s.latitude, s.longitude) * 10) / 10 : null,
+            }))
+            .sort((a, b) => (a.distance_km ?? 1e9) - (b.distance_km ?? 1e9));
+    }
+
+    // 업종 필터 옵션(facets): 전체 매장의 distinct business_type
+    const typeRows = await prisma.stores.findMany({
+        where: { business_type: { not: null } },
+        select: { business_type: true },
+        distinct: ['business_type'],
+    });
+    const businessTypes = typeRows.map(r => r.business_type).filter(Boolean).sort();
+
+    res.success({ stores, facets: { businessTypes } });
+}));
+
 // 매장 상세 조회 — 고객 메뉴판 진입 시 매번 호출되는 핫 경로라 60초 캐시 적용
 router.get('/:id', catchAsync(async (req, res) => {
     const cacheKey = `store:${req.params.id}:profile`;

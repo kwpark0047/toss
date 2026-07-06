@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import StoreLocator from '../components/StoreLocator';
 import {
     QrCode, Store, Bell, CreditCard, Clock, BarChart3,
     Users, Smartphone, Check, ArrowRight, Menu, X, ChevronRight,
@@ -46,6 +47,7 @@ const LandingPage = () => {
 
     const navItems = [
         { label: '기능 소개', href: '#features' },
+        { label: '매장 위치', href: '#locations' },
         { label: '이용 방법', href: '#how-to' },
         { label: '요금제', href: '#pricing' },
         { label: '데모 보기', href: '#demo' },
@@ -762,6 +764,11 @@ const LandingPage = () => {
                     </div>
                 </div>
             </section>
+
+            {/* ══════════════════════════════════════════════
+                매장 위치 (지역·업종·고객위치 검색)
+            ══════════════════════════════════════════════ */}
+            <StoreLocator />
 
             {/* ══════════════════════════════════════════════
                 이용 방법

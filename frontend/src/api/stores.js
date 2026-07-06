@@ -4,6 +4,8 @@ export const storesAPI = {
   getAll: () => api.get('/stores'),
   getMy: () => api.get('/stores/my'),
   getById: (id) => api.get('/stores/' + id),
+  // 공개 매장 검색 (지역·업종·키워드·고객위치 거리순)
+  searchPublic: (params = {}) => api.get('/stores/search', { params }),
   create: (data) => api.post('/stores', data),
   update: (id, data) => api.put('/stores/' + id, data),
   delete: (id) => api.delete('/stores/' + id),
