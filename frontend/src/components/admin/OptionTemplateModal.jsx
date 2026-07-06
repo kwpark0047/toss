@@ -41,7 +41,7 @@ const OptionTemplateModal = ({ storeId, onClose }) => {
             setNewTemplate({ name: '', options: [] });
             setEditingTemplate(null);
             fetchTemplates();
-        } catch (err) {
+        } catch {
             alert('저장 실패');
         }
     };
@@ -51,7 +51,7 @@ const OptionTemplateModal = ({ storeId, onClose }) => {
         try {
             await optionTemplatesAPI.delete(id);
             fetchTemplates();
-        } catch (err) {
+        } catch {
             alert('삭제 실패');
         }
     };

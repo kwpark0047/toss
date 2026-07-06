@@ -19,7 +19,7 @@ const ReceiptSettings = () => {
         try {
             const res = await adminAPI.getReceiptSettings(storeId);
             setSettings(res.data || res); // 응답 형식에 따라 조정
-        } catch (error) {
+        } catch {
             toast.error('설정을 불러오는데 실패했습니다.');
         } finally {
             setLoading(false);
@@ -31,7 +31,7 @@ const ReceiptSettings = () => {
         try {
             await adminAPI.updateReceiptSettings(storeId, settings);
             toast.success('영수증 설정이 저장되었습니다.');
-        } catch (error) {
+        } catch {
             toast.error('저장에 실패했습니다.');
         } finally {
             setSaving(false);

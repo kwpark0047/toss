@@ -52,7 +52,7 @@ const MenuWizard = ({ storeId, categories, onClose, onSave }) => {
                 }));
                 setStep(2);
             }
-        } catch (err) {
+        } catch {
             setError('AI 분석에 실패했습니다. 수동으로 입력해 주세요.');
             setStep(2); // 오류가 나더라도 다음 단계로 이동해서 수동 입력 가능하게
         } finally {
@@ -311,7 +311,7 @@ const MenuWizard = ({ storeId, categories, onClose, onSave }) => {
                                     };
                                     await productsAPI.create(data);
                                     onSave();
-                                } catch (err) {
+                                } catch {
                                     setError('저장 중 오류가 발생했습니다.');
                                 } finally {
                                     setLoading(false);

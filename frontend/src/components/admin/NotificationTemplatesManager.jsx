@@ -47,7 +47,7 @@ const NotificationTemplatesManager = () => {
     try {
       const res = await notificationTemplatesAPI.getList(storeId);
       setTemplates(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
+    } catch {
       toast.error('템플릿 목록을 불러오는데 실패했습니다.');
       setTemplates([]);
     } finally {
@@ -84,7 +84,7 @@ const NotificationTemplatesManager = () => {
       await notificationTemplatesAPI.delete(id);
       toast.success('템플릿이 삭제되었습니다.');
       fetchTemplates();
-    } catch (err) {
+    } catch {
       toast.error('삭제에 실패했습니다.');
     }
   };
@@ -94,7 +94,7 @@ const NotificationTemplatesManager = () => {
       await notificationTemplatesAPI.update(template.id, { is_active: !template.is_active });
       toast.success(template.is_active ? '템플릿이 비활성화되었습니다.' : '템플릿이 활성화되었습니다.');
       fetchTemplates();
-    } catch (err) {
+    } catch {
       toast.error('상태 변경에 실패했습니다.');
     }
   };

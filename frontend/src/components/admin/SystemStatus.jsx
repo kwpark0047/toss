@@ -67,7 +67,7 @@ export default function SystemStatus() {
             setSla(sRes?.data ?? sRes);
             setCircuits((cRes?.data ?? cRes)?.circuits || []);
             setLastRefresh(new Date());
-        } catch (e) {
+        } catch {
             setError('시스템 상태를 불러오지 못했습니다. 서버 연결을 확인하세요.');
         } finally {
             setLoading(false);

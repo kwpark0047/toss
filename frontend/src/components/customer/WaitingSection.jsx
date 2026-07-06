@@ -82,7 +82,7 @@ const WaitingSection = ({ store, onClose }) => {
                 setMyWaiting(null);
                 setStep('register');
             }
-        } catch (err) {
+        } catch {
             alert(t('waiting.errors.cancel_failed'));
         }
     };

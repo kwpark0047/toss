@@ -20,7 +20,7 @@ const ReservationManager = () => {
             if (response.success) {
                 setReservations(response.data);
             }
-        } catch (error) {
+        } catch {
             toast.error('예약 목록을 불러오지 못했습니다.');
         } finally {
             setLoading(false);
@@ -58,7 +58,7 @@ const ReservationManager = () => {
                 setReservations(prev => prev.map(res => res.id === id ? { ...res, status } : res));
                 toast.success('예약 상태가 변경되었습니다.');
             }
-        } catch (error) {
+        } catch {
             toast.error('상태 변경에 실패했습니다.');
         }
     };

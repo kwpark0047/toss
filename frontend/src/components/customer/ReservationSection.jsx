@@ -66,7 +66,7 @@ const ReservationSection = ({ storeId }) => {
                 setMyReservations(storeReservations);
                 localStorage.setItem('reservation_phone', searchPhone);
             }
-        } catch (error) {
+        } catch {
             alert('예약 내역을 불러오는데 실패했습니다.');
         } finally {
             setLoading(false);

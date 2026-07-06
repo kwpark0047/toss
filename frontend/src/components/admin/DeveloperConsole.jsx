@@ -70,7 +70,7 @@ export default function DeveloperConsole() {
       setKeys(k?.data || k || []);
       setWebhooks(w?.data || w || []);
       setDeliveries(d?.data || d || []);
-    } catch (e) {
+    } catch {
       toast.error('개발자 콘솔 데이터를 불러오지 못했습니다.');
     } finally { setLoading(false); }
   }, [storeId]);
