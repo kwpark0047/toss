@@ -61,6 +61,7 @@
     "multer": "^2.2.0",
     "node-cache": "^5.1.2",
     "pdfkit": "^0.19.1",
+    "proj4": "^2.20.9",
     "qr-code-styling": "^1.9.2",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.3",

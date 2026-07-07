@@ -8,7 +8,7 @@ const prisma = require('../config/prisma');
 const cache = require('../utils/cache');
 const { haversineKm } = require('../utils/geo');
 
-// 전체 매장 목록 조회
+// 전체 매장 목록 조회 (관리자용, 활성+비활성 모두 포함)
 router.get('/', catchAsync(async (req, res) => {
     const stores = await Store.findAll();
     res.success(stores);
@@ -22,9 +22,10 @@ router.get('/my', authMiddleware, catchAsync(async (req, res) => {
 
 // ── 공개 매장 검색 (지역·업종·키워드·고객위치 거리순) ──────────────────────────
 // 랜딩 "매장 위치" 섹션용. 인증 불필요, 공개 필드만 반환. (거리계산: utils/geo)
+// 비활성 매장(is_active=false)은 리스트/그리드/지도에서 제외
 router.get('/search', catchAsync(async (req, res) => {
     const { district, business_type, q, lat, lng, limit = 30 } = req.query;
-    const where = {};
+    const where = { is_active: true };
     if (district) where.address = { contains: String(district) };
     if (business_type && business_type !== 'all') where.business_type = String(business_type);
     if (q) {
@@ -50,9 +51,9 @@ router.get('/search', catchAsync(async (req, res) => {
             .sort((a, b) => (a.distance_km ?? 1e9) - (b.distance_km ?? 1e9));
     }
 
-    // 업종 필터 옵션(facets): 전체 매장의 distinct business_type
+    // 업종 필터 옵션(facets): 활성 매장의 distinct business_type
     const typeRows = await prisma.stores.findMany({
-        where: { business_type: { not: null } },
+        where: { is_active: true, business_type: { not: null } },
         select: { business_type: true },
         distinct: ['business_type'],
     });
