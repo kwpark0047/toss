@@ -364,9 +364,12 @@ const MenuPage = () => {
 
       const orderData_ = order?.data || order || {};
       const orderNo = orderData_.order_number || orderData_.id;
-      // 예상 준비시간: 기본 10분 + 수량당 2분(최대 30분)
+      // 예상 준비시간: 메뉴별 실제 조리시간(cooking_time, 기본 5분) 기준.
+      // 가장 오래 걸리는 메뉴가 기준이 되고, 수량이 많을수록 큐 지연을 더한다.
+      const times = cart.map(i => Number(i.menuItem?.cooking_time) || 5);
+      const maxPrep = times.length ? Math.max(...times) : 5;
       const totalQty = cart.reduce((a, i) => a + i.quantity, 0);
-      const eta = Math.min(30, 10 + totalQty * 2);
+      const eta = Math.min(60, maxPrep + Math.max(0, totalQty - 1));
 
       setCart([]);
       setIsCartOpen(false);
