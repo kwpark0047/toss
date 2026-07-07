@@ -2,6 +2,23 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMotionSafe } from '../../hooks/useMotionSafe';
 
+// ── 팅커벨 녹음 음성 파일 매핑 (한국어) ──────────────────────────────────────
+// 해당 상황에 녹음 mp3가 있으면 재생, 없으면 브라우저 TTS로 폴백.
+const VOICE_FILES = {
+  biz_greeting:  '/voice/biz_01_greeting.mp3',
+  biz_sales:     '/voice/biz_02_sales_report.mp3',
+  biz_new_order: '/voice/biz_03_new_order.mp3',
+  biz_regular:   '/voice/biz_04_regular_customer.mp3',
+  biz_inventory: '/voice/biz_05_inventory.mp3',
+  biz_setup:     '/voice/biz_06_setup_guide.mp3',
+  cust_welcome:  '/voice/cust_01_welcome.mp3',
+  cust_recommend:'/voice/cust_02_recommend.mp3',
+  cust_order:    '/voice/cust_03_order_help.mp3',
+  cust_done:     '/voice/cust_04_order_done.mp3',
+  cust_point:    '/voice/cust_05_point_invite.mp3',
+  cust_weather:  '/voice/cust_06_weather.mp3',
+};
+
 // ── 다국어 대사 ──────────────────────────────────────────────────────────────
 const I18N = {
   ko: {
@@ -187,10 +204,26 @@ export default function TinkerBell({
   const sparkId    = useRef(0);
   const prevAdded  = useRef(null);
 
-  // ── 음성 합성 ────────────────────────────────────────────────────────────
-  const speak = useCallback((text) => {
-    if (!voiceEnabled || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
+  // ── 음성: 녹음 파일(mp3) 우선, 없으면 브라우저 TTS ─────────────────────────
+  const audioRef = useRef(null);
+  const speak = useCallback((text, voiceKey) => {
+    if (!voiceEnabled) return;
+    // 이전 재생 정리
+    try { window.speechSynthesis?.cancel(); } catch { /* noop */ }
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+
+    // 한국어 + 매칭되는 녹음 파일이 있으면 mp3 재생 (팅커벨 실제 음성)
+    const file = lang === 'ko' && voiceKey ? VOICE_FILES[voiceKey] : null;
+    if (file) {
+      try {
+        const a = new Audio(file);
+        audioRef.current = a;
+        a.play().catch(() => { /* 자동재생 차단 시 무음 */ });
+        return;
+      } catch { /* 실패 시 TTS로 폴백 */ }
+    }
+    // 기존 방식: 브라우저 음성 합성
+    if (!window.speechSynthesis) return;
     const u = new SpeechSynthesisUtterance(text.replace(/[\p{Emoji}]/gu, ''));
     u.lang = VOICE_LANG[lang] || 'ko-KR';
     u.pitch = 1.1; u.rate = 0.98;
@@ -198,7 +231,7 @@ export default function TinkerBell({
   }, [lang, voiceEnabled]);
 
   // ── 말풍선 타이핑 ────────────────────────────────────────────────────────
-  const say = useCallback((ctx, text, keepOpen = false) => {
+  const say = useCallback((ctx, text, keepOpen = false, voiceKey = null) => {
     clearTimeout(typingRef.current);
     setBubble({ show: true, ctx: ctx || '', typed: '', full: text });
     let i = 0;
@@ -207,7 +240,7 @@ export default function TinkerBell({
         setBubble(prev => ({ ...prev, typed: text.slice(0, i++) }));
         typingRef.current = setTimeout(type, 34);
       } else {
-        speak((ctx ? ctx + '. ' : '') + text);
+        speak((ctx ? ctx + '. ' : '') + text, voiceKey);
         if (!keepOpen)
           typingRef.current = setTimeout(() => setBubble(prev => ({ ...prev, show: false })), 4200);
       }
@@ -236,7 +269,7 @@ export default function TinkerBell({
       setTimeout(() => {
         spawnSparks(10);
         const L = I18N[lang] || I18N.ko;
-        say('', adminMode ? pick(L.admin) : pick(L.greet));
+        say('', adminMode ? pick(L.admin) : pick(L.greet), false, adminMode ? 'biz_greeting' : 'cust_welcome');
         setIsBusy(false);
       }, 900);
     }, 120);
@@ -258,7 +291,7 @@ export default function TinkerBell({
   useEffect(() => {
     if (!visible) return;
     const L = I18N[lang] || I18N.ko;
-    say('', adminMode ? pick(L.admin) : pick(L.greet));
+    say('', adminMode ? pick(L.admin) : pick(L.greet), false, adminMode ? 'biz_greeting' : 'cust_welcome');
   }, [lang]);
 
   // ── 유동 부유 ────────────────────────────────────────────────────────────
@@ -306,7 +339,7 @@ export default function TinkerBell({
       const text = (L.rec[weather] || L.rec.sun).replace('{n}', chosen.name || '');
       setIsBusy(true);
       spawnSparks(8);
-      say(ctx, text);
+      say(ctx, text, false, 'cust_weather');
       if (onRecommend) onRecommend(chosen);
       setTimeout(() => setIsBusy(false), 5500);
     }, 11000);
@@ -318,7 +351,7 @@ export default function TinkerBell({
     if (!visible || !menuItems.length || adminMode) return;
     const t = setTimeout(() => {
       const L = I18N[lang] || I18N.ko;
-      say('', pick(L.curious));
+      say('', pick(L.curious), false, 'cust_recommend');
     }, 26000);
     return () => clearTimeout(t);
   }, [visible, lang]);
