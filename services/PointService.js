@@ -87,18 +87,26 @@ class PointService {
   async earn(orderId, paymentId, storeId, orderNumber, phone, earnAmount, tx) {
     if (earnAmount <= 0 || !phone) return null;
 
-    const userPoint = await tx.user_points.upsert({
-      where: { phone },
-      update: {
-        total_points: { increment: earnAmount },
-        lifetime_earned: { increment: earnAmount }
-      },
-      create: {
-        phone,
-        total_points: earnAmount,
-        lifetime_earned: earnAmount
-      }
-    });
+    // phone은 unique 키가 아니므로 upsert 불가 → findFirst + update/create
+    // (user_points.phone은 스키마상 @@index만 존재. 나머지 메서드도 동일 패턴 사용)
+    let userPoint = await tx.user_points.findFirst({ where: { phone } });
+    if (userPoint) {
+      userPoint = await tx.user_points.update({
+        where: { id: userPoint.id },
+        data: {
+          total_points: { increment: earnAmount },
+          lifetime_earned: { increment: earnAmount }
+        }
+      });
+    } else {
+      userPoint = await tx.user_points.create({
+        data: {
+          phone,
+          total_points: earnAmount,
+          lifetime_earned: earnAmount
+        }
+      });
+    }
 
     return tx.point_transactions.create({
       data: {
