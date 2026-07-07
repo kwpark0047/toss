@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Store, Users, Coins, ShoppingBag, CheckCircle2, Search, ChevronLeft, ChevronRight,
-  Settings, Gift, MapPinned, Loader2, Building2,
+  Store, Users, Coins, ShoppingBag, Clock, Search, ChevronLeft, ChevronRight,
+  Settings, Gift, MapPinned, Loader2, Building2, Link2, Check, X,
 } from 'lucide-react';
 import { adminAPI } from '../../api/admin';
 import { bizLabel } from '../../utils/businessType';
@@ -33,11 +33,28 @@ export default function SuperAdminDashboard() {
   const [trend, setTrend] = useState([]);
   const [trendMetric, setTrendMetric] = useState('orders'); // orders | sales | newStores
   const [detailId, setDetailId] = useState(null);
+  const [linkReqs, setLinkReqs] = useState([]);
+  const [linkBusy, setLinkBusy] = useState(null);
+
+  const loadLinkReqs = useCallback(() => {
+    adminAPI.linkRequests('pending').then(r => setLinkReqs((r?.data || r)?.requests || [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     adminAPI.platformOverview().then(r => setOverview(r?.data || r)).catch(() => {});
     adminAPI.platformTrend(14).then(r => setTrend((r?.data || r)?.daily || [])).catch(() => {});
-  }, []);
+    loadLinkReqs();
+  }, [loadLinkReqs]);
+
+  const decideLink = async (id, approve) => {
+    setLinkBusy(id);
+    try {
+      if (approve) await adminAPI.approveLinkRequest(id);
+      else await adminAPI.rejectLinkRequest(id);
+      setLinkReqs(prev => prev.filter(r => r.id !== id));
+    } catch { /* 무시 */ }
+    finally { setLinkBusy(null); }
+  };
 
   const fetchStores = useCallback(async () => {
     setLoading(true);
@@ -57,7 +74,7 @@ export default function SuperAdminDashboard() {
 
   const KPIS = overview ? [
     { label: '전체 매장', value: num(overview.totalStores), icon: Store, color: 'text-orange-400', bg: 'bg-orange-500/10' },
-    { label: '활성 매장', value: num(overview.activeStores), icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { label: '활성 매장', value: num(overview.activeStores), icon: Clock, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
     { label: '총 고객', value: num(overview.totalCustomers), icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10' },
     { label: '총 주문', value: num(overview.totalOrders), icon: ShoppingBag, color: 'text-violet-400', bg: 'bg-violet-500/10' },
     { label: '발행 포인트', value: num(overview.pointsIssued), icon: Coins, color: 'text-amber-400', bg: 'bg-amber-500/10' },
@@ -84,18 +101,50 @@ export default function SuperAdminDashboard() {
       {overview ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
           {KPIS.map(k => (
-            <div key={k.label} className="bg-white/5 border border-white/10 rounded-2xl p-4">
-              <div className={`w-10 h-10 rounded-xl ${k.bg} flex items-center justify-center mb-3`}>
+            <div key={k.label} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-start gap-4">
+              <div className={`w-10 h-10 rounded-xl ${k.bg} flex items-center justify-center shrink-0`}>
                 <k.icon size={18} className={k.color} aria-hidden="true" />
               </div>
-              <p className="text-xl font-black tabular-nums leading-none">{k.value}</p>
-              <p className="text-[11px] text-slate-500 font-bold mt-1.5">{k.label}</p>
+              <div className="min-w-0">
+                <p className="text-[11px] text-slate-500 font-bold">{k.label}</p>
+                <p className="text-xl font-black tabular-nums leading-none mt-0.5">{k.value}</p>
+              </div>
             </div>
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-8">
           {[...Array(6)].map((_, i) => <div key={i} className="skeleton-dark h-28 rounded-2xl" />)}
+        </div>
+      )}
+
+      {/* 매장 연동 승인 요청 */}
+      {linkReqs.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 mb-6">
+          <h2 className="text-sm font-black flex items-center gap-2 mb-3">
+            <Link2 size={15} className="text-amber-400" aria-hidden="true" /> 매장 연동 승인 요청
+            <span className="text-[11px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">{linkReqs.length}</span>
+          </h2>
+          <div className="space-y-2">
+            {linkReqs.map(r => (
+              <div key={r.id} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-black text-sm truncate">{r.store?.name || r.requested_name}</p>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    {r.store?.address || r.requested_address || ''} · 요청: <span className="text-slate-300">{r.requester?.name || '사업자'}</span>
+                  </p>
+                </div>
+                <button type="button" disabled={linkBusy === r.id} onClick={() => decideLink(r.id, true)} aria-label="승인"
+                  className="inline-flex items-center gap-1 h-9 px-3 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-black hover:bg-emerald-500/25 disabled:opacity-50">
+                  {linkBusy === r.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} aria-hidden="true" />} 승인
+                </button>
+                <button type="button" disabled={linkBusy === r.id} onClick={() => decideLink(r.id, false)} aria-label="거절"
+                  className="inline-flex items-center gap-1 h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-slate-400 text-xs font-black hover:text-white disabled:opacity-50">
+                  <X size={14} aria-hidden="true" /> 거절
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

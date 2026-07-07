@@ -926,3 +926,19 @@ model print_jobs {
 
   @@index([store_id, status, created_at], map: "idx_print_jobs_claim")
 }
+
+// 매장 연동 승인 요청 — 사업자가 공공데이터 매장(super_admin 소유)과 상호·주소가
+// 일치할 때 소유권 연동을 요청하고, super_admin 승인 시 매칭된다. (관계 없이 컬럼만)
+model store_link_requests {
+  id                Int       @id @default(autoincrement())
+  user_id           Int       // 요청 사업자
+  store_id          Int       // 매칭된 공공 매장
+  requested_name    String
+  requested_address String?
+  status            String    @default("pending") // pending | approved | rejected
+  created_at        DateTime  @default(now())
+  decided_at        DateTime?
+
+  @@index([status])
+  @@index([user_id])
+}

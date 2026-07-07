@@ -150,10 +150,55 @@ router.get('/:id', catchAsync(async (req, res) => {
     res.success(store);
 }));
 
-// 매장 생성
+// 상호/주소 정규화 헬퍼 (공공매장 매칭용)
+const PUBLIC_OWNER_ID = 1; // 공공데이터 매장 소유자(전체관리자)
+const normNm = (s = '') => String(s).toLowerCase().replace(/\([^)]*\)/g, '').replace(/[\s·.,'"()\-]/g, '');
+// 동은 괄호 안(도로명주소의 법정동)에 있을 수 있어 원문 전체에서 탐색
+const dongOf = (a = '') => { const m = String(a).match(/([가-힣]{1,10}(?:\d가|동|리))(?![가-힣])/); return m ? m[1] : ''; };
+// 구/군만(시는 제외 — '서울특별시'가 아니라 '중랑구'를 잡도록)
+const guOf = (a = '') => { const m = String(a).match(/([가-힣]{1,10}(?:군|구))(?![가-힣])/); return m ? m[1] : ''; };
+
+// 매장 생성 — 공공데이터 매장과 상호·주소 일치 시 연동 승인 요청 생성
 router.post('/', authMiddleware, catchAsync(async (req, res) => {
-    const storeData = { ...req.body, user_id: req.user.id };
-    const store = await Store.create(storeData);
+    const { name, address } = req.body;
+
+    // 공공(super_admin 소유) 매장 매칭 검사: 상호명 정규화 일치 + 지역(동/구) 겹침
+    if (name && name.trim()) {
+        // 프랜차이즈 접두어(이디야 등) 대신 가장 긴(고유한) 토큰으로 조회
+        const tokens = name.trim().split(/\s+/).filter(Boolean);
+        const nameKey = tokens.sort((a, b) => b.length - a.length)[0].slice(0, 20);
+        const target = normNm(name);
+        const inDong = dongOf(address), inGu = guOf(address);
+        const candidates = await prisma.stores.findMany({
+            where: { user_id: PUBLIC_OWNER_ID, name: { contains: nameKey } },
+            select: { id: true, name: true, address: true },
+            take: 80,
+        });
+        const match = candidates.find(c => {
+            if (normNm(c.name) !== target) return false;
+            if (!address) return true;
+            const cd = dongOf(c.address), cg = guOf(c.address);
+            return (inDong && cd && inDong === cd) || (inGu && cg && inGu === cg);
+        });
+        if (match) {
+            // 중복 요청 방지
+            const existing = await prisma.store_link_requests.findFirst({
+                where: { user_id: req.user.id, store_id: match.id, status: 'pending' },
+            });
+            if (!existing) {
+                await prisma.store_link_requests.create({
+                    data: { user_id: req.user.id, store_id: match.id, requested_name: name, requested_address: address || null },
+                });
+            }
+            return res.success(
+                { linkRequested: true, matchedStore: { id: match.id, name: match.name, address: match.address } },
+                '기존 등록된 매장과 일치하여 관리자에게 연동 승인을 요청했습니다.', 202
+            );
+        }
+    }
+
+    // 매칭 없음 → 신규 매장 생성
+    const store = await Store.create({ ...req.body, user_id: req.user.id });
     res.success(store, '매장이 생성되었습니다', 201);
 }));
 

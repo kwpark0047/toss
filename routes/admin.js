@@ -470,6 +470,52 @@ router.get('/platform/trend', authMiddleware, requireSuper, catchAsync(async (re
     res.success({ days, daily: Object.values(buckets) });
 }));
 
+// === [매장 연동 승인 요청 (사업자 ↔ 공공매장 매칭)] ===
+// 대기중 요청 목록 (요청자·매칭 매장 정보 포함)
+router.get('/store-link-requests', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    const status = (req.query.status || 'pending').trim();
+    const reqs = await prisma.store_link_requests.findMany({
+        where: status === 'all' ? {} : { status },
+        orderBy: { created_at: 'desc' },
+        take: 100,
+    });
+    // 요청자·매장 정보 조인(관계 미설정이라 수동 조회)
+    const userIds = [...new Set(reqs.map(r => r.user_id))];
+    const storeIds = [...new Set(reqs.map(r => r.store_id))];
+    const [users, stores] = await Promise.all([
+        prisma.users.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, phone: true, email: true } }),
+        prisma.stores.findMany({ where: { id: { in: storeIds } }, select: { id: true, name: true, address: true, business_type: true, user_id: true } }),
+    ]);
+    const uMap = Object.fromEntries(users.map(u => [u.id, u]));
+    const sMap = Object.fromEntries(stores.map(s => [s.id, s]));
+    const rows = reqs.map(r => ({ ...r, requester: uMap[r.user_id] || null, store: sMap[r.store_id] || null }));
+    res.success({ requests: rows, count: rows.length });
+}));
+
+// 승인 → 매칭 매장 소유권을 요청자에게 이전
+router.post('/store-link-requests/:id/approve', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    const id = parseInt(req.params.id);
+    const reqRow = await prisma.store_link_requests.findUnique({ where: { id } });
+    if (!reqRow) return res.status(404).json({ success: false, error: '요청을 찾을 수 없습니다.' });
+    if (reqRow.status !== 'pending') return res.status(400).json({ success: false, error: '이미 처리된 요청입니다.' });
+
+    await prisma.$transaction([
+        prisma.stores.update({ where: { id: reqRow.store_id }, data: { user_id: reqRow.user_id } }),
+        prisma.store_link_requests.update({ where: { id }, data: { status: 'approved', decided_at: new Date() } }),
+    ]);
+    res.success({ id, store_id: reqRow.store_id, user_id: reqRow.user_id }, '연동을 승인하고 소유권을 이전했습니다.');
+}));
+
+// 거절
+router.post('/store-link-requests/:id/reject', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    const id = parseInt(req.params.id);
+    const reqRow = await prisma.store_link_requests.findUnique({ where: { id } });
+    if (!reqRow) return res.status(404).json({ success: false, error: '요청을 찾을 수 없습니다.' });
+    if (reqRow.status !== 'pending') return res.status(400).json({ success: false, error: '이미 처리된 요청입니다.' });
+    await prisma.store_link_requests.update({ where: { id }, data: { status: 'rejected', decided_at: new Date() } });
+    res.success({ id }, '연동 요청을 거절했습니다.');
+}));
+
 // === [서울 열린데이터 매장 보강 (일반음식점 LOCALDATA)] ===
 // 서울 오픈데이터 행을 우리 매장과 주소로 매칭해 업종·전화 보강 + 깨진 이름 교정.
 // 커서(startIndex) 기반, dryRun 지원. super_admin 전용.
