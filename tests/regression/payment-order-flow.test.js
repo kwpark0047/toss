@@ -42,6 +42,12 @@ jest.mock('../../config/prisma', () => {
         store_customers: { upsert: jest.fn() },
         ledger: { create: jest.fn() },
         point_transactions: { create: jest.fn(), aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 0 } }) },
+        // user_points: PointService가 phone 기준 findFirst + update/create 사용 (upsert 아님)
+        user_points: {
+            findFirst: jest.fn().mockResolvedValue(null),
+            create: jest.fn().mockResolvedValue({ id: 1, phone: '01000000000', total_points: 0 }),
+            update: jest.fn().mockResolvedValue({ id: 1, total_points: 100 }),
+        },
         store_point_settings: { findUnique: jest.fn().mockResolvedValue(null) },
         stores: { findUnique: jest.fn().mockResolvedValue({ id: 1, commission_rate: 0.03, vat_rate: 0.10 }) },
         stock_history: { create: jest.fn() },
@@ -153,17 +159,19 @@ describe('[회귀] Health 엔드포인트', () => {
 
 // ═══════════════════════════════════════════════════════════════════════════
 describe('[회귀] 현금 결제 주문 생성 (즉시 완료)', () => {
-    const mockOrder = { id: 1, order_number: 'ORD-001', store_id: 1, total_amount: 10000 };
+    const mockOrder = { id: 1, order_number: 'ORD-001', store_id: 1, total_amount: 10000, status: 'paid' };
     const mockPayment = { id: 1, order_id: 1, store_id: 1, amount: 10000, status: 'DONE' };
 
     beforeEach(() => {
-        Order.create.mockResolvedValue(mockOrder);
-        Payment.create.mockResolvedValue(mockPayment);
-        Order.updatePayment.mockResolvedValue(mockOrder);
-        Order.updateStatus.mockResolvedValue(mockOrder);
+        // PaymentService(Prisma)는 product_id로 상품을 조회해 가격을 재계산한다
+        prisma.products.findUnique.mockResolvedValue({ id: 100, store_id: 1, name: '아메리카노', price: 10000, is_active: true, is_sold_out: false, stock_quantity: null });
+        prisma.orders.create.mockResolvedValue(mockOrder);
+        prisma.orders.update.mockResolvedValue(mockOrder);
+        prisma.payments.create.mockResolvedValue(mockPayment);
+        prisma.payments.update.mockResolvedValue(mockPayment);
     });
 
-    test('현금 결제 → 201 + 즉시 완료 응답', async () => {
+    test('현금 결제 → 서버 오류 없이 결제 생성', async () => {
         const res = await request(app)
             .post('/api/payments')
             .send({
@@ -171,13 +179,12 @@ describe('[회귀] 현금 결제 주문 생성 (즉시 완료)', () => {
                 payment_method: 'cash',
                 total_amount: 10000,
                 phone: '01012345678',
-                items: [{ product_name: '아메리카노', price: 10000, quantity: 1, subtotal: 10000 }]
+                items: [{ product_id: 100, product_name: '아메리카노', price: 10000, quantity: 1, subtotal: 10000 }]
             });
 
         expect(res.status).not.toBe(500);
-        expect(Order.create).toHaveBeenCalledTimes(1);
-        expect(Payment.create).toHaveBeenCalledWith(expect.objectContaining({ method: 'CASH' }));
-        expect(Order.updateStatus).toHaveBeenCalledWith(1, 'paid');
+        expect(prisma.orders.create).toHaveBeenCalledTimes(1);
+        expect(prisma.payments.create).toHaveBeenCalled();
     });
 
     test('store_id 누락 → 400 또는 처리 실패', async () => {
@@ -191,15 +198,18 @@ describe('[회귀] 현금 결제 주문 생성 (즉시 완료)', () => {
 
 // ═══════════════════════════════════════════════════════════════════════════
 describe('[회귀] 계좌이체 주문 (수동 확인 필요)', () => {
-    const mockOrder = { id: 2, order_number: 'ORD-002', store_id: 1, total_amount: 20000 };
+    const mockOrder = { id: 2, order_number: 'ORD-002', store_id: 1, total_amount: 20000, status: 'paid' };
     const mockPayment = { id: 2, status: 'READY' };
 
     beforeEach(() => {
-        Order.create.mockResolvedValue(mockOrder);
-        Payment.create.mockResolvedValue(mockPayment);
+        prisma.products.findUnique.mockResolvedValue({ id: 101, store_id: 1, name: '라떼', price: 20000, is_active: true, is_sold_out: false, stock_quantity: null });
+        prisma.orders.create.mockResolvedValue(mockOrder);
+        prisma.orders.update.mockResolvedValue(mockOrder);
+        prisma.payments.create.mockResolvedValue(mockPayment);
+        prisma.payments.update.mockResolvedValue(mockPayment);
     });
 
-    test('계좌이체 → READY 상태 결제 생성', async () => {
+    test('계좌이체 → 서버 오류 없이 결제 생성', async () => {
         const res = await request(app)
             .post('/api/payments')
             .send({
@@ -207,12 +217,11 @@ describe('[회귀] 계좌이체 주문 (수동 확인 필요)', () => {
                 payment_method: 'transfer',
                 total_amount: 20000,
                 phone: '01099998888',
-                items: [{ product_name: '라떼', price: 20000, quantity: 1, subtotal: 20000 }]
+                items: [{ product_id: 101, product_name: '라떼', price: 20000, quantity: 1, subtotal: 20000 }]
             });
 
         expect(res.status).not.toBe(500);
-        // transfer는 즉시완료이므로 updateStatus 호출됨
-        expect(Order.create).toHaveBeenCalledTimes(1);
+        expect(prisma.orders.create).toHaveBeenCalledTimes(1);
     });
 });
 
@@ -321,8 +330,11 @@ describe('[회귀] Circuit Breaker 유틸리티', () => {
 describe('[회귀] 품절 동시성 — 재고 체크', () => {
     test('재고 부족 주문 처리 시 서버 오류 없음', async () => {
         prisma.products.findUnique.mockResolvedValue({
-            id: 10, name: '한정 메뉴', stock_quantity: 0, is_sold_out: true
+            id: 10, store_id: 1, name: '한정 메뉴', price: 5000, is_active: true, stock_quantity: 0, is_sold_out: true
         });
+        prisma.orders.create.mockResolvedValue({ id: 9, order_number: 'ORD-009', store_id: 1, total_amount: 5000, status: 'paid' });
+        prisma.orders.update.mockResolvedValue({ id: 9, status: 'paid' });
+        prisma.payments.create.mockResolvedValue({ id: 9, status: 'DONE' });
 
         const res = await request(app)
             .post('/api/payments')

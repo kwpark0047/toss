@@ -4,6 +4,7 @@ const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const pointService = require('./PointService');
 const ledgerService = require('./LedgerService');
+const { AppError } = require('../utils/errorHandler');
 
 /**
  * [PaymentService]
@@ -83,15 +84,15 @@ class PaymentService {
     } = paymentData;
 
     const result = await prisma.$transaction(async (tx) => {
-      if (!items || items.length === 0) throw new Error('주문 상품이 없습니다.');
+      if (!items || items.length === 0) throw new AppError('주문 상품이 없습니다.', 400);
 
       for (const item of items) {
         const product = await tx.products.findUnique({ where: { id: item.product_id } });
         if (!product || product.store_id !== parseInt(store_id)) {
-          throw new Error(`상품 정보를 찾을 수 없습니다: ${item.product_name}`);
+          throw new AppError(`상품 정보를 찾을 수 없습니다: ${item.product_name}`, 400);
         }
-        if (product.is_sold_out) throw new Error(`품절된 상품이 포함되어 있습니다: ${product.name}`);
-        if (!product.is_active) throw new Error(`판매 중단된 상품입니다: ${product.name}`);
+        if (product.is_sold_out) throw new AppError(`품절된 상품이 포함되어 있습니다: ${product.name}`, 409);
+        if (!product.is_active) throw new AppError(`판매 중단된 상품입니다: ${product.name}`, 400);
       }
 
       // 주문 생성
@@ -276,6 +277,9 @@ class PaymentService {
   // [결제 승인 처리]
   // ═════════════════════════════════════════════════════════════════
   async processApproval(paymentKey, orderIdString, amount, customerKey) {
+    if (!paymentKey || typeof paymentKey !== 'string') {
+      throw new AppError('결제 키(paymentKey)가 필요합니다.', 400);
+    }
     let tossResponse;
     if (paymentKey.startsWith('bp_') || customerKey) {
       tossResponse = await TossAPI.confirmBrandPay(paymentKey, orderIdString, amount, customerKey);
