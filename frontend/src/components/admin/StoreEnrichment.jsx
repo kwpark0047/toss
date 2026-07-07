@@ -87,6 +87,38 @@ export default function StoreEnrichment() {
     }
   }, []);
 
+  // 주소→좌표 지오코딩 루프 (좌표 없는 매장, 커서=afterId)
+  const geoCursor = useRef(0);
+  const runGeocode = useCallback(async () => {
+    stopRef.current = false;
+    setRunning(true);
+    setError('');
+    try {
+      while (!stopRef.current) {
+        const res = await adminAPI.geocodeStores({ limit: 20, afterId: geoCursor.current });
+        const d = res?.data || res;
+        geoCursor.current = d.nextCursor ?? geoCursor.current;
+        setCursor(geoCursor.current);
+        setTotals(t => ({
+          processed: t.processed + (d.processed || 0),
+          matched: t.matched + (d.geocoded || 0),
+          updated: t.updated + (d.geocoded || 0),
+        }));
+        addLog(`[지오코딩 ${d.provider}] 처리 ${d.processed} · 좌표 ${d.geocoded} · 실패 ${d.failed}`, d.geocoded ? 'ok' : 'muted');
+        (d.samples || []).forEach(s => addLog(`  📍 ${s.name} → ${s.lat}, ${s.lng}`, 'ok'));
+        if (d.done) { addLog('좌표 없는 매장 지오코딩 완료 🎉', 'ok'); break; }
+        await new Promise(r => setTimeout(r, 400));
+      }
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status === 503) setError('지오코딩 키(KAKAO_REST_API_KEY 또는 NCP)가 서버에 설정되지 않았습니다.');
+      else if (status === 403) setError('최고관리자만 사용할 수 있습니다.');
+      else setError(e?.response?.data?.error || e.message || '오류가 발생했습니다.');
+    } finally {
+      setRunning(false);
+    }
+  }, []);
+
   const stop = () => { stopRef.current = true; };
 
   if (user && user.role !== 'super_admin') {
@@ -141,6 +173,10 @@ export default function StoreEnrichment() {
             <button type="button" onClick={runSeoul}
               className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-white/5 border border-white/15 text-white font-black hover:bg-white/10 active:scale-95 transition-all">
               <Play size={18} aria-hidden="true" /> 서울 데이터 보강
+            </button>
+            <button type="button" onClick={runGeocode}
+              className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-black hover:bg-emerald-500/25 active:scale-95 transition-all">
+              <MapPinned size={18} aria-hidden="true" /> 주소→좌표 지오코딩
             </button>
           </>
         ) : (

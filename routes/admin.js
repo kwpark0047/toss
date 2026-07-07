@@ -532,4 +532,48 @@ router.post('/enrich-seoul', authMiddleware, requireSuper, catchAsync(async (req
     }, `${rows.length}행 처리 · ${matched} 매칭 · ${updated} ${dryRun ? '보강예정' : '보강'}`);
 }));
 
+// === [주소 → 좌표 지오코딩 (좌표 없는 매장)] ===
+const geocodeService = require('../services/geocodeService');
+
+router.post('/geocode-stores', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    if (!geocodeService.isConfigured()) {
+        return res.status(503).json({ success: false, error: '지오코딩 키(KAKAO_REST_API_KEY 또는 NCP_GEOCODE_KEY_ID/KEY)가 설정되지 않았습니다.' });
+    }
+    const limit = Math.min(parseInt(req.body?.limit) || 20, 50);
+    const afterId = parseInt(req.body?.afterId) || 0;
+    const dryRun = req.body?.dryRun === true;
+
+    const stores = await prisma.stores.findMany({
+        where: {
+            is_active: true, latitude: null, id: { gt: afterId },
+            address: { not: null },
+            NOT: [{ name: { contains: '?' } }, { name: { contains: '�' } }],
+        },
+        select: { id: true, name: true, address: true },
+        orderBy: { id: 'asc' },
+        take: limit,
+    });
+
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    let geocoded = 0, failed = 0;
+    const samples = [];
+    for (const s of stores) {
+        try {
+            const g = await geocodeService.geocode(s.address);
+            if (g) {
+                if (!dryRun) await prisma.stores.update({ where: { id: s.id }, data: { latitude: g.lat, longitude: g.lng } });
+                geocoded++;
+                if (samples.length < 8) samples.push({ id: s.id, name: s.name, ...g });
+            } else { failed++; }
+        } catch { failed++; }
+        await sleep(120); // API 폭주 방지
+    }
+
+    const nextCursor = stores.length ? stores[stores.length - 1].id : afterId;
+    res.success({
+        dryRun, provider: geocodeService.provider(), processed: stores.length,
+        geocoded, failed, nextCursor, done: stores.length < limit, samples,
+    }, `${stores.length}건 처리 · ${geocoded} 좌표 ${dryRun ? '확인' : '저장'}`);
+}));
+
 module.exports = router;
