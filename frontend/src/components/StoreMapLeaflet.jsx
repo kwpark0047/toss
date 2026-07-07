@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { bizLabel } from './StoreLocator';
 
 /**
  * StoreMapLeaflet — API 키 없이 동작하는 OpenStreetMap(Leaflet) 지도.
@@ -50,7 +51,7 @@ function buildPopup(s) {
   if (s.business_type) {
     const bt = document.createElement('div');
     bt.style.cssText = 'font-size:11px;color:#f97316;font-weight:700;margin-top:2px';
-    bt.textContent = s.business_type;
+    bt.textContent = bizLabel(s.business_type);
     wrap.appendChild(bt);
   }
   if (s.address) {
