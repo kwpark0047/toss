@@ -61,6 +61,63 @@ router.get('/search', catchAsync(async (req, res) => {
     res.success({ stores, facets: { businessTypes } });
 }));
 
+// ── 지역 하이라이트 배너 (추천메뉴 + 이벤트/프로모션) ────────────────────────
+// 랜딩 "매장 위치" 상단 롤링 배너용. 공개. 이벤트=커뮤니티 포스트, 추천메뉴=인기 상품.
+router.get('/highlights', catchAsync(async (req, res) => {
+    const { district } = req.query;
+    const now = new Date();
+    const storeWhere = district ? { address: { contains: String(district) } } : {};
+
+    // 1) 이벤트/프로모션/신메뉴/소식 (미만료)
+    const posts = await prisma.community_posts.findMany({
+        where: {
+            type: { in: ['EVENT', 'PROMOTION', 'PRODUCT', 'NEWS'] },
+            OR: [{ expires_at: null }, { expires_at: { gte: now } }],
+            ...(district ? { stores: { address: { contains: String(district) } } } : {}),
+        },
+        select: {
+            id: true, type: true, title: true, content: true, image_url: true,
+            stores: { select: { id: true, name: true } },
+        },
+        orderBy: { created_at: 'desc' },
+        take: 6,
+    });
+
+    // 2) 추천(인기) 메뉴
+    const products = await prisma.products.findMany({
+        where: { is_active: true, is_sold_out: false, ...(district ? { stores: storeWhere } : {}) },
+        select: {
+            id: true, name: true, price: true, image_url: true, is_popular: true, store_id: true,
+            stores: { select: { id: true, name: true } },
+        },
+        orderBy: [{ is_popular: 'desc' }, { id: 'desc' }],
+        take: 6,
+    });
+
+    const banners = [
+        ...posts.map(p => ({
+            kind: 'event',
+            type: p.type,
+            title: p.title,
+            subtitle: p.content?.slice(0, 60) || '',
+            store_id: p.stores?.id,
+            store_name: p.stores?.name || '',
+            image_url: p.image_url || null,
+        })),
+        ...products.map(p => ({
+            kind: 'menu',
+            type: p.is_popular ? 'POPULAR' : 'MENU',
+            title: p.name,
+            subtitle: `${Number(p.price).toLocaleString('ko-KR')}원`,
+            store_id: p.stores?.id ?? p.store_id,
+            store_name: p.stores?.name || '',
+            image_url: p.image_url || null,
+        })),
+    ];
+
+    res.success({ banners });
+}));
+
 // 매장 상세 조회 — 고객 메뉴판 진입 시 매번 호출되는 핫 경로라 60초 캐시 적용
 router.get('/:id', catchAsync(async (req, res) => {
     const cacheKey = `store:${req.params.id}:profile`;

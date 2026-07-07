@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils, Map as MapIcon, List, LayoutGrid } from 'lucide-react';
 import { storesAPI } from '../api/stores';
 import StoreMapLeaflet from './StoreMapLeaflet';
+import HighlightBanner from './HighlightBanner';
 
 /**
  * StoreLocator — 랜딩 "매장 위치" 섹션.
@@ -19,7 +20,7 @@ export default function StoreLocator() {
   const [loading, setLoading] = useState(true);
   const [locating, setLocating] = useState(false);
   const [geoMsg, setGeoMsg] = useState('');
-  const [view, setView] = useState('map'); // map | list | grid (지도 기본)
+  const [view, setView] = useState('grid'); // grid | list | map (그리드 기본)
 
   const search = useCallback(async (over = {}) => {
     setLoading(true);
@@ -67,6 +68,9 @@ export default function StoreLocator() {
           <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">내 주변 위마켓 매장 찾기</h2>
           <p className="text-lg text-gray-500 text-pretty">현재 위치 기준으로 가까운 매장을, 지역·업종으로 골라보세요.</p>
         </div>
+
+        {/* 지역 하이라이트 롤링 배너 (추천메뉴 · 이벤트) */}
+        <HighlightBanner district={district} />
 
         {/* 검색 바 */}
         <div className="bg-gray-50 border border-gray-100 rounded-3xl p-4 sm:p-5 mb-8 shadow-sm">
@@ -117,9 +121,9 @@ export default function StoreLocator() {
           </p>
           <div className="inline-flex bg-gray-100 rounded-xl p-1">
             {[
-              { key: 'map', label: '지도', icon: MapIcon },
-              { key: 'list', label: '리스트', icon: List },
               { key: 'grid', label: '그리드', icon: LayoutGrid },
+              { key: 'list', label: '리스트', icon: List },
+              { key: 'map', label: '지도', icon: MapIcon },
             ].map(({ key, label, icon: Icon }) => (
               <button key={key} type="button" onClick={() => setView(key)}
                 className={`flex items-center gap-1.5 px-3 sm:px-4 h-9 rounded-lg text-sm font-black transition-colors ${view === key ? 'bg-white text-orange-500 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
