@@ -6,6 +6,7 @@ import WaitingSection from './customer/WaitingSection';
 import { storesAPI, waitingAPI, reviewsAPI } from '../api';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './common/LanguageSwitcher';
+import { bizLabel } from '../utils/businessType';
 import { Store, Coffee, Utensils, Cake, Pizza, ShoppingBag, MapPin, Star, BellRing, Search, X, ChevronDown, Grid3X3, List, Map as MapIcon, RefreshCw, Heart, Navigation, MessageCircle, Sparkles, SlidersHorizontal } from 'lucide-react';
 
 const regions = [
@@ -148,11 +149,6 @@ const StoreSearch = () => {
     return found ? found.icon : Store;
   };
 
-  const getTypeName = (type) => {
-    const found = businessTypes.find(t => t.id === type);
-    return found ? found.name : '기타';
-  };
-
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedRegion('all');
@@ -194,7 +190,7 @@ const StoreSearch = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="font-black text-2xl text-white group-hover:text-orange-400 transition-colors truncate">{store.name}</h3>
-                    <span className="px-3 py-1 bg-white/5 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest">{getTypeName(store.business_type)}</span>
+                    <span className="px-3 py-1 bg-white/5 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest">{bizLabel(store.business_type)}</span>
                   </div>
                   <p className="text-slate-400 font-medium flex items-center gap-2 mb-4 leading-relaxed">
                     <MapPin className="w-4 h-4 text-orange-500" />
@@ -256,7 +252,7 @@ const StoreSearch = () => {
           <div className="absolute inset-0 p-6 flex flex-col justify-between">
             <div className="flex justify-between items-start">
               <span className="px-4 py-1.5 bg-slate-950/80 backdrop-blur-xl border border-white/10 text-[10px] font-black text-orange-500 rounded-xl uppercase tracking-widest">
-                {getTypeName(store.business_type)}
+                {bizLabel(store.business_type)}
               </span>
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -511,7 +507,7 @@ const StoreSearch = () => {
                       </div>
                       <p className="text-[11px] text-slate-500 font-medium truncate mb-4">{store.address}</p>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">{getTypeName(store.business_type)}</span>
+                        <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">{bizLabel(store.business_type)}</span>
                         <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 group-hover:text-white transition-colors">
                           상세보기 <ChevronDown size={14} className="-rotate-90" />
                         </div>

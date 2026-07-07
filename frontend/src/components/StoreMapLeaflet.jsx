@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { bizLabel } from './StoreLocator';
+import { bizLabel } from '../utils/businessType';
 
 /**
  * StoreMapLeaflet — API 키 없이 동작하는 OpenStreetMap(Leaflet) 지도.

@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { MapPin, Navigation, ZoomIn, ZoomOut } from 'lucide-react';
+import { bizLabel } from '../utils/businessType';
 
 const KakaoMap = ({ stores, onStoreSelect, selectedStore }) => {
   const mapRef = useRef(null);
@@ -69,7 +70,7 @@ const KakaoMap = ({ stores, onStoreSelect, selectedStore }) => {
           </div>
           <div style="font-size:12px; color:#64748b; margin-bottom:12px; line-height:1.4;">${store.address || '주소 정보 없음'}</div>
           <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #f1f5f9; pt:12px; margin-top:12px; padding-top:10px;">
-            <div style="font-size:11px; font-weight:700; color:#3b82f6; background:#eff6ff; padding:2px 8px; border-radius:6px;">${store.business_type === 'cafe' ? 'CAFE' : 'STORE'}</div>
+            <div style="font-size:11px; font-weight:700; color:#3b82f6; background:#eff6ff; padding:2px 8px; border-radius:6px;">${bizLabel(store.business_type)}</div>
             <div style="font-size:11px; font-weight:800; color:#f97316;">대기 ${store.waiting_count || 0}팀</div>
           </div>
         </div>
