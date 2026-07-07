@@ -69,7 +69,7 @@ export default function StoreDetailModal({ storeId, onClose, onChanged }) {
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <motion.div
         initial={{ opacity: 0, y: 40, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="relative w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto bg-slate-900 border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl text-white">
+        className="admin-dark-scope relative w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto bg-slate-900 border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl text-white">
         {/* 헤더 */}
         <div className="sticky top-0 bg-slate-900/95 backdrop-blur border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
           <div className="min-w-0">

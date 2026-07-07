@@ -35,7 +35,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
 
   return (
     <NotificationProvider storeId={storeId} userId={user?.id} role={user?.role}>
-      <div className={`min-h-screen flex overflow-hidden ${tc.root}`}>
+      <div className={`min-h-screen flex overflow-hidden ${tc.root} ${themeId === 'arctic' ? 'admin-light' : ''}`}>
         {/* 배경 그리드 */}
         <div className={`fixed inset-0 pointer-events-none ${tc.grid} bg-[size:40px_40px]`} />
 

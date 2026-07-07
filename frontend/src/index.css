@@ -418,3 +418,27 @@ button, [role="button"], a, summary, label { touch-action: manipulation; }
 
 /* 4) 모달/시트 오버스크롤 체이닝 방지 */
 .bottom-sheet, [role="dialog"], .leaflet-popup-content-wrapper { overscroll-behavior: contain; }
+
+/* ── 관리자 아틱(라이트) 테마: 콘텐츠의 다크-가정 클래스 보정 ─────────────────
+   콘텐츠 컴포넌트가 text-white·bg-white/5 등 다크 전제로 하드코딩돼 있어,
+   라이트 테마에서 흰 텍스트·투명 카드가 안 보이는 문제를 스코프 보정한다. */
+.admin-light .text-white { color: #0f172a !important; }
+.admin-light .text-slate-200, .admin-light .text-slate-300 { color: #334155 !important; }
+.admin-light .text-slate-400 { color: #475569 !important; }
+.admin-light .text-slate-500, .admin-light .text-slate-600 { color: #64748b !important; }
+.admin-light .bg-white\/5 { background-color: rgba(15, 23, 42, 0.035) !important; }
+.admin-light .bg-white\/10 { background-color: rgba(15, 23, 42, 0.06) !important; }
+.admin-light .bg-black\/30 { background-color: rgba(15, 23, 42, 0.04) !important; }
+.admin-light .border-white\/5, .admin-light .border-white\/8, .admin-light .border-white\/10 { border-color: rgba(15, 23, 42, 0.1) !important; }
+/* 컬러/그라디언트 버튼 위 흰 텍스트는 유지 */
+.admin-light .bg-gradient-to-r.text-white,
+.admin-light [class*="from-orange"].text-white,
+.admin-light .bg-orange-500.text-white { color: #fff !important; }
+/* 의도적 다크 영역(모달 등)은 다크 유지 (더 높은 특이도로 재지정) */
+.admin-light .admin-dark-scope .text-white { color: #fff !important; }
+.admin-light .admin-dark-scope .text-slate-200, .admin-light .admin-dark-scope .text-slate-300 { color: #cbd5e1 !important; }
+.admin-light .admin-dark-scope .text-slate-400 { color: #94a3b8 !important; }
+.admin-light .admin-dark-scope .text-slate-500, .admin-light .admin-dark-scope .text-slate-600 { color: #64748b !important; }
+.admin-light .admin-dark-scope .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05) !important; }
+.admin-light .admin-dark-scope .bg-white\/10 { background-color: rgba(255, 255, 255, 0.1) !important; }
+.admin-light .admin-dark-scope .border-white\/5, .admin-light .admin-dark-scope .border-white\/8, .admin-light .admin-dark-scope .border-white\/10 { border-color: rgba(255, 255, 255, 0.1) !important; }
