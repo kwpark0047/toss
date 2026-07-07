@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Sparkles, Tag, Megaphone, Utensils, Flame } from 'lucide-react';
 import { storesAPI } from '../api/stores';
+import { hasCorruptName } from '../utils/storeName';
 
 /** 배너 종류별 스타일/라벨 */
 const META = {
@@ -34,7 +35,12 @@ export default function HighlightBanner({ district = '' }) {
     let alive = true;
     setLoading(true);
     storesAPI.highlights({ district: district || undefined })
-      .then(res => { if (alive) { setItems((res?.data || res)?.banners || []); setIdx(0); } })
+      .then(res => {
+        if (!alive) return;
+        // 안전망: 매장명·타이틀이 손상(인코딩 깨짐)된 배너는 제외
+        const list = ((res?.data || res)?.banners || []).filter(b => !hasCorruptName(b.store_name) && !hasCorruptName(b.title));
+        setItems(list); setIdx(0);
+      })
       .catch(() => { if (alive) setItems([]); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };

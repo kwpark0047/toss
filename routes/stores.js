@@ -20,12 +20,16 @@ router.get('/my', authMiddleware, catchAsync(async (req, res) => {
     res.success(stores);
 }));
 
+// 손상된 이름(인코딩 깨짐: 물음표 '?' 또는 치환문자 U+FFFD 포함) 매장 제외 조건.
+// 데이터 임포트 시 한글이 '?'+라틴으로 깨진 레코드를 공개 노출에서 숨긴다.
+const EXCLUDE_CORRUPT_NAME = { NOT: [{ name: { contains: '?' } }, { name: { contains: '�' } }] };
+
 // ── 공개 매장 검색 (지역·업종·키워드·고객위치 거리순) ──────────────────────────
 // 랜딩 "매장 위치" 섹션용. 인증 불필요, 공개 필드만 반환. (거리계산: utils/geo)
-// 비활성 매장(is_active=false)은 리스트/그리드/지도에서 제외
+// 비활성 매장(is_active=false)·이름 손상 매장은 리스트/그리드/지도에서 제외
 router.get('/search', catchAsync(async (req, res) => {
     const { district, business_type, q, lat, lng, limit = 30 } = req.query;
-    const where = { is_active: true };
+    const where = { is_active: true, ...EXCLUDE_CORRUPT_NAME };
     if (district) where.address = { contains: String(district) };
     if (business_type && business_type !== 'all') where.business_type = String(business_type);
     if (q) {
@@ -67,14 +71,18 @@ router.get('/search', catchAsync(async (req, res) => {
 router.get('/highlights', catchAsync(async (req, res) => {
     const { district } = req.query;
     const now = new Date();
-    const storeWhere = district ? { address: { contains: String(district) } } : {};
+    // 손상 이름 매장 제외 + (선택)지역 필터를 관계형 조건으로 구성
+    const storeRel = {
+        NOT: [{ name: { contains: '?' } }, { name: { contains: '�' } }],
+        ...(district ? { address: { contains: String(district) } } : {}),
+    };
 
     // 1) 이벤트/프로모션/신메뉴/소식 (미만료)
     const posts = await prisma.community_posts.findMany({
         where: {
             type: { in: ['EVENT', 'PROMOTION', 'PRODUCT', 'NEWS'] },
             OR: [{ expires_at: null }, { expires_at: { gte: now } }],
-            ...(district ? { stores: { address: { contains: String(district) } } } : {}),
+            stores: storeRel,
         },
         select: {
             id: true, type: true, title: true, content: true, image_url: true,
@@ -86,7 +94,7 @@ router.get('/highlights', catchAsync(async (req, res) => {
 
     // 2) 추천(인기) 메뉴
     const products = await prisma.products.findMany({
-        where: { is_active: true, is_sold_out: false, ...(district ? { stores: storeWhere } : {}) },
+        where: { is_active: true, is_sold_out: false, stores: storeRel },
         select: {
             id: true, name: true, price: true, image_url: true, is_popular: true, store_id: true,
             stores: { select: { id: true, name: true } },

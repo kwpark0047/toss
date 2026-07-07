@@ -6,6 +6,7 @@ import { storesAPI } from '../api/stores';
 import StoreMapLeaflet from './StoreMapLeaflet';
 import HighlightBanner from './HighlightBanner';
 import { bizLabel } from '../utils/businessType';
+import { isDisplayableStoreName } from '../utils/storeName';
 
 /**
  * StoreLocator — 랜딩 "매장 위치" 섹션.
@@ -36,7 +37,8 @@ export default function StoreLocator() {
       };
       const res = await storesAPI.searchPublic(params);
       const data = res?.data || res;
-      setStores(data.stores || []);
+      // 안전망: 이름 손상(인코딩 깨짐) 매장은 표시에서 제외
+      setStores((data.stores || []).filter(s => isDisplayableStoreName(s.name)));
       if (data.facets?.businessTypes?.length) setTypes(data.facets.businessTypes);
     } catch {
       setStores([]);
