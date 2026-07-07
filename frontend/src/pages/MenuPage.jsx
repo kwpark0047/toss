@@ -360,24 +360,27 @@ const MenuPage = () => {
 
       const order = await ordersAPI.create(orderData);
 
-      toast.success("주문이 완료되었습니다! 🎉", {
-        description: "주문 현황에서 진행 상태를 확인하세요.",
-      });
+      toast.success("주문이 완료되었습니다! 🎉");
 
-      const orderId = order?.data?.id || order?.id;
-      setCurrentOrderId(orderId);
-      setCurrentOrderAmount(totalPrice);
+      const orderData_ = order?.data || order || {};
+      const orderNo = orderData_.order_number || orderData_.id;
+      // 예상 준비시간: 기본 10분 + 수량당 2분(최대 30분)
+      const totalQty = cart.reduce((a, i) => a + i.quantity, 0);
+      const eta = Math.min(30, 10 + totalQty * 2);
+
       setCart([]);
       setIsCartOpen(false);
 
-      // 포인트 등록 시트 → 닫힌 후 주문 현황 자동 열기 (handlePhoneSheetClose에서 처리)
-      setTimeout(() => setIsPhoneSheetOpen(true), 400);
+      // 주문 완료 → 매장 위치 페이지로 이동(주문번호·예상시간 전달)
+      const params = new URLSearchParams({ order: String(orderNo || ''), eta: String(eta) });
+      if (profile?.store_name) params.set('store', profile.store_name);
+      navigate(`/?${params.toString()}#locations`);
     } catch {
       toast.error("주문에 실패했습니다. 다시 시도해주세요.");
     } finally {
       setIsOrdering(false);
     }
-  }, [storeId, cart, storeOpen, tableNumber, totalPrice]);
+  }, [storeId, cart, storeOpen, tableNumber, totalPrice, navigate, profile]);
 
   // Stable callbacks for JSX props (prevents child re-renders from inline closures)
   const handleOpenOrderHistory = useCallback(() => setIsOrderStatusOpen(true), []);

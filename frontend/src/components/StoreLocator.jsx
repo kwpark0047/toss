@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils, Map as MapIcon, List, LayoutGrid } from 'lucide-react';
+import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils, Map as MapIcon, List, LayoutGrid, CheckCircle2, Clock } from 'lucide-react';
 import { storesAPI } from '../api/stores';
 import StoreMapLeaflet from './StoreMapLeaflet';
 import HighlightBanner from './HighlightBanner';
@@ -13,6 +13,10 @@ import { isDisplayableStoreName } from '../utils/storeName';
  * 고객 위치(지오로케이션) 기준 거리순 + 지역(구/동)·업종·키워드 검색.
  */
 export default function StoreLocator() {
+  const [searchParams] = useSearchParams();
+  const orderNo = searchParams.get('order');   // 주문 완료 후 진입 시 주문번호
+  const orderEta = searchParams.get('eta');    // 예상 준비시간(분)
+  const orderStore = searchParams.get('store');
   const [district, setDistrict] = useState('');
   const [businessType, setBusinessType] = useState('all');
   const [keyword, setKeyword] = useState('');
@@ -72,8 +76,35 @@ export default function StoreLocator() {
           <p className="text-lg text-gray-500 text-pretty">현재 위치 기준으로 가까운 매장을, 지역·업종으로 골라보세요.</p>
         </div>
 
-        {/* 지역 하이라이트 롤링 배너 (추천메뉴 · 이벤트) */}
-        <HighlightBanner district={district} />
+        {/* 주문 완료 후 진입: 주문 확인 배너(주문번호·예정시간) — 추천 배너 대체 */}
+        {orderNo ? (
+          <div className="mb-8 rounded-3xl bg-gradient-to-r from-orange-500 to-rose-600 shadow-lg overflow-hidden">
+            <div className="flex items-center justify-between gap-4 p-5 sm:p-6 text-white">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shrink-0">
+                  <CheckCircle2 size={26} aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg sm:text-xl font-black leading-tight">주문이 접수되었어요! 🎉</p>
+                  <p className="text-sm text-white/85 truncate">{orderStore ? `${orderStore} · ` : ''}맛있게 준비해 드릴게요</p>
+                </div>
+              </div>
+              {/* 오른쪽: 주문번호 + 예정시간 */}
+              <div className="text-right shrink-0">
+                <p className="text-[11px] font-bold text-white/80 leading-none mb-1">주문번호</p>
+                <p className="text-lg sm:text-2xl font-black leading-none tabular-nums">#{orderNo}</p>
+                {orderEta && (
+                  <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold bg-white/20 rounded-full px-2.5 py-1">
+                    <Clock size={12} aria-hidden="true" /> 예상 {orderEta}분
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* 지역 하이라이트 롤링 배너 (추천메뉴 · 이벤트) */
+          <HighlightBanner district={district} />
+        )}
 
         {/* 검색 바 */}
         <div className="bg-gray-50 border border-gray-100 rounded-3xl p-4 sm:p-5 mb-8 shadow-sm">
