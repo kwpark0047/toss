@@ -10,11 +10,12 @@ import {
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 
+// 관리자 다크 테마 톤에 맞춘 게시판 타입 메타
 const BOARD_TYPES = [
-    { key: 'notice', label: '공지사항', eng: 'NOTICE',    icon: Megaphone,    text: 'text-rose-600',   bg: 'bg-rose-50',   dot: 'bg-rose-500' },
-    { key: 'free',   label: '자유게시판', eng: 'COMMUNITY', icon: MessageSquare, text: 'text-indigo-600', bg: 'bg-indigo-50', dot: 'bg-indigo-500' },
-    { key: 'qna',    label: '질문/답변', eng: 'Q&A',       icon: HelpCircle,   text: 'text-emerald-600', bg: 'bg-emerald-50', dot: 'bg-emerald-500' },
-    { key: 'faq',    label: '도움말/FAQ', eng: 'FAQ',      icon: HelpCircle,   text: 'text-slate-600',  bg: 'bg-slate-50',  dot: 'bg-slate-500' },
+    { key: 'notice', label: '공지사항', eng: 'NOTICE',    icon: Megaphone,     text: 'text-rose-400',    bg: 'bg-rose-500/15',    dot: 'bg-rose-500' },
+    { key: 'free',   label: '자유게시판', eng: 'COMMUNITY', icon: MessageSquare, text: 'text-indigo-400',  bg: 'bg-indigo-500/15',  dot: 'bg-indigo-500' },
+    { key: 'qna',    label: '질문/답변', eng: 'Q&A',       icon: HelpCircle,    text: 'text-emerald-400', bg: 'bg-emerald-500/15', dot: 'bg-emerald-500' },
+    { key: 'faq',    label: '도움말/FAQ', eng: 'FAQ',      icon: HelpCircle,    text: 'text-slate-300',   bg: 'bg-white/10',       dot: 'bg-slate-400' },
 ];
 
 const TYPE_MAP = Object.fromEntries(BOARD_TYPES.map(t => [t.key, t]));
@@ -54,11 +55,7 @@ const BoardList = () => {
             setLoading(true);
             try {
                 const res = await boardAPI.getPosts(boardType, {
-                    page,
-                    search: search.trim(),
-                    searchType,
-                    tag: activeTag,
-                    limit: 12,
+                    page, search: search.trim(), searchType, tag: activeTag, limit: 12,
                 });
                 const data = res.data?.data || res.data;
                 const allPosts = data.posts || [];
@@ -90,105 +87,95 @@ const BoardList = () => {
     };
 
     const currentType = TYPE_MAP[boardType] || BOARD_TYPES[0];
-    const TypeIcon = currentType.icon;
+    const CurrentIcon = currentType.icon;
 
     return (
-        <div className="max-w-7xl mx-auto pb-32 font-sans text-slate-900 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto pb-32 px-1 sm:px-2 text-white">
 
             {/* ── 헤더 ── */}
-            <header className="border-b-[6px] border-slate-900 pb-10 pt-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
-                <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                        <span className="h-0.5 w-10 bg-slate-200" />
-                        <span className="text-[11px] font-black tracking-[0.4em] text-slate-400 uppercase">
-                            Volume 2026 · Community Archive · {currentType.eng}
-                        </span>
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-5 pt-2 pb-6 border-b border-white/10">
+                <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-2xl ${currentType.bg} flex items-center justify-center`}>
+                        <CurrentIcon size={22} className={currentType.text} />
                     </div>
-                    <h1 className="text-7xl md:text-9xl font-serif font-black italic tracking-tighter leading-none select-none">
-                        {currentType.eng}
-                    </h1>
-                    <div className="flex items-center gap-6 text-[10px] font-black tracking-widest text-slate-400 uppercase">
-                        <span className="flex items-center gap-1.5"><BarChart2 size={12} /> {total} 게시글</span>
-                    </div>
-                </div>
-                <div className="flex flex-col items-start md:items-end gap-4">
-                    <button
-                        onClick={() => {
-                            if (!user) { toast.info('로그인이 필요한 서비스입니다.'); navigate('/login'); return; }
-                            navigate(`/board/write?type=${boardType}`);
-                        }}
-                        className="group relative flex items-center gap-3 px-10 py-5 bg-slate-900 text-white rounded-full font-bold text-sm overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-xl shadow-slate-900/10"
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <Plus size={18} className="relative z-10" />
-                        <span className="relative z-10">WRITE ARTICLE</span>
-                    </button>
-                    <div className="text-[10px] font-black text-slate-300 tabular-nums tracking-[0.3em] uppercase">
-                        {new Intl.DateTimeFormat('ko-KR', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' }).format(new Date())}
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2 text-balance">
+                            {currentType.label}
+                        </h1>
+                        <p className="text-xs text-slate-500 font-bold mt-0.5 flex items-center gap-1.5">
+                            <BarChart2 size={12} aria-hidden="true" /> 총 <span className="tabular-nums text-slate-300">{total}</span>개 게시글 · 커뮤니티
+                        </p>
                     </div>
                 </div>
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (!user) { toast.info('로그인이 필요한 서비스입니다.'); navigate('/login'); return; }
+                        navigate(`/board/write?type=${boardType}`);
+                    }}
+                    className="inline-flex items-center justify-center gap-2 px-6 h-12 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-orange-500/20 hover:brightness-105 active:scale-95 transition-all"
+                >
+                    <Plus size={18} aria-hidden="true" /> 글쓰기
+                </button>
             </header>
 
             {/* ── 인기글 (Trending) ── */}
             {trending.length > 0 && (
-                <section className="py-10 border-b border-slate-100">
-                    <div className="flex items-center gap-3 mb-6">
-                        <TrendingUp size={14} className="text-rose-500" />
-                        <span className="text-[11px] font-black tracking-[0.4em] text-rose-500 uppercase">Hot Articles</span>
+                <section className="py-6 border-b border-white/10">
+                    <div className="flex items-center gap-2 mb-4">
+                        <TrendingUp size={15} className="text-orange-400" aria-hidden="true" />
+                        <span className="text-sm font-black text-white">인기 게시글</span>
                     </div>
-                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
                         {trending.map((post, i) => (
                             <Link key={post.id} to={`/board/posts/${post.id}`}
-                                className="shrink-0 flex items-center gap-3 px-5 py-3 bg-slate-50 hover:bg-slate-900 hover:text-white rounded-2xl border border-slate-100 hover:border-slate-900 transition-all group">
-                                <span className="text-[10px] font-black tabular-nums text-slate-300 group-hover:text-slate-500">
-                                    {String(i + 1).padStart(2, '0')}
+                                className="shrink-0 flex items-center gap-2.5 px-4 py-2.5 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 hover:border-white/20 transition-all group">
+                                <span className="text-[11px] font-black tabular-nums text-orange-400">{String(i + 1).padStart(2, '0')}</span>
+                                <span className="text-xs font-bold text-slate-200 max-w-[180px] truncate">{post.title}</span>
+                                <span className="flex items-center gap-2 text-[10px] font-bold text-slate-500 ml-1">
+                                    <span className="flex items-center gap-0.5"><Heart size={10} aria-hidden="true" /> {post.like_count || 0}</span>
+                                    <span className="flex items-center gap-0.5"><Eye size={10} aria-hidden="true" /> {post.view_count || 0}</span>
                                 </span>
-                                <span className="text-[11px] font-black text-slate-800 group-hover:text-white max-w-[180px] truncate">
-                                    {post.title}
-                                </span>
-                                <div className="flex items-center gap-2 text-[9px] font-black text-slate-400 group-hover:text-slate-300 ml-1">
-                                    <Heart size={10} /> {post.like_count || 0}
-                                    <Eye size={10} className="ml-1" /> {post.view_count || 0}
-                                </div>
                             </Link>
                         ))}
                     </div>
                 </section>
             )}
 
-            {/* ── 탭 내비게이션 + 검색 ── */}
-            <nav className="flex flex-wrap items-center gap-4 py-8 border-b border-slate-100">
+            {/* ── 탭 + 검색 ── */}
+            <nav className="flex flex-wrap items-center gap-3 py-6">
                 <div className="flex flex-wrap gap-2">
                     {BOARD_TYPES.map((type) => {
                         const Icon = type.icon;
+                        const active = boardType === type.key;
                         return (
-                            <button key={type.key} onClick={() => handleTypeChange(type.key)}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black tracking-[0.2em] transition-all uppercase border-2 ${boardType === type.key
-                                    ? 'bg-slate-900 border-slate-900 text-white shadow-lg'
-                                    : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300 hover:text-slate-700'
+                            <button key={type.key} type="button" onClick={() => handleTypeChange(type.key)}
+                                aria-pressed={active}
+                                className={`flex items-center gap-1.5 px-4 h-11 rounded-xl text-sm font-black transition-all ${active
+                                    ? 'bg-gradient-to-r from-orange-500 to-rose-600 text-white shadow-lg shadow-orange-500/20'
+                                    : 'bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
                                 }`}>
-                                <Icon size={12} />
-                                {type.label}
+                                <Icon size={14} aria-hidden="true" /> {type.label}
                             </button>
                         );
                     })}
                 </div>
 
-                <div className="ml-auto flex items-center gap-3 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100 group transition-all focus-within:bg-white focus-within:border-slate-900 focus-within:shadow-xl w-full md:w-auto">
-                    <select value={searchType} onChange={e => setSearchType(e.target.value)}
-                        className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-slate-500 focus:ring-0 cursor-pointer">
-                        <option value="title">Title</option>
-                        <option value="content">Content</option>
-                        <option value="author">Author</option>
+                <div className="ml-auto flex items-center gap-2 bg-white/5 border border-white/10 px-4 h-11 rounded-2xl focus-within:border-orange-500/50 transition-all w-full md:w-auto">
+                    <select value={searchType} onChange={e => setSearchType(e.target.value)} aria-label="검색 기준"
+                        className="bg-transparent border-none text-xs font-black text-slate-400 outline-none cursor-pointer">
+                        <option value="title" className="bg-slate-900">제목</option>
+                        <option value="content" className="bg-slate-900">내용</option>
+                        <option value="author" className="bg-slate-900">작성자</option>
                     </select>
-                    <div className="w-px h-4 bg-slate-200" />
-                    <Search size={14} className="text-slate-400 group-focus-within:text-slate-900 transition-colors shrink-0" />
-                    <input type="text" placeholder="Search keywords..."
-                        className="bg-transparent border-none focus:ring-0 text-[10px] font-black tracking-widest placeholder:text-slate-300 w-full md:w-56 uppercase outline-none"
+                    <div className="w-px h-4 bg-white/10" />
+                    <Search size={15} className="text-slate-500 shrink-0" aria-hidden="true" />
+                    <input type="text" placeholder="검색어…" aria-label="게시글 검색" spellCheck={false}
+                        className="bg-transparent border-none text-sm font-bold text-white placeholder:text-slate-600 w-full md:w-52 outline-none"
                         value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
                     {search && (
-                        <button onClick={() => setSearch('')} className="text-slate-300 hover:text-slate-900 transition-colors">
-                            <X size={14} />
+                        <button type="button" onClick={() => setSearch('')} aria-label="검색어 지우기" className="text-slate-500 hover:text-white transition-colors">
+                            <X size={14} aria-hidden="true" />
                         </button>
                     )}
                 </div>
@@ -196,101 +183,59 @@ const BoardList = () => {
 
             {/* 태그 필터 */}
             {activeTag && (
-                <div className="py-4 flex items-center gap-3">
-                    <Tag size={12} className="text-indigo-500" />
-                    <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase">태그 필터:</span>
-                    <button onClick={() => setActiveTag('')}
-                        className="flex items-center gap-2 px-4 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-full text-[10px] font-black tracking-widest hover:bg-indigo-100 transition-all">
-                        #{activeTag} <X size={10} />
+                <div className="pb-4 flex items-center gap-2">
+                    <Tag size={12} className="text-orange-400" aria-hidden="true" />
+                    <span className="text-xs font-bold text-slate-400">태그 필터</span>
+                    <button type="button" onClick={() => setActiveTag('')}
+                        className="flex items-center gap-1.5 px-3 py-1 bg-orange-500/15 border border-orange-500/30 text-orange-300 rounded-full text-xs font-black hover:bg-orange-500/25 transition-all">
+                        #{activeTag} <X size={10} aria-hidden="true" />
                     </button>
                 </div>
             )}
 
-            {/* ── 로딩 스켈레톤 ── */}
+            {/* ── 로딩 ── */}
             {loading ? (
-                <div className="space-y-24 animate-pulse mt-16">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                        {[1, 2].map(i => (
-                            <div key={i} className="h-[320px] bg-slate-50 rounded-[3rem] border border-slate-100 p-12 space-y-8">
-                                <div className="w-20 h-6 bg-slate-200 rounded-lg" />
-                                <div className="space-y-4">
-                                    <div className="w-full h-12 bg-slate-200 rounded-2xl" />
-                                    <div className="w-3/4 h-12 bg-slate-200 rounded-2xl" />
-                                </div>
-                                <div className="pt-8 border-t border-slate-100 flex gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-slate-200" />
-                                    <div className="space-y-2 py-1">
-                                        <div className="w-24 h-4 bg-slate-200 rounded" />
-                                        <div className="w-16 h-3 bg-slate-100 rounded" />
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {[1, 2, 3, 4, 5, 6].map(i => (
-                            <div key={i} className="space-y-6">
-                                <div className="aspect-video bg-slate-50 rounded-[2.5rem] border border-slate-100" />
-                                <div className="space-y-3 px-2">
-                                    <div className="w-full h-6 bg-slate-100 rounded-xl" />
-                                    <div className="flex justify-between">
-                                        <div className="w-20 h-4 bg-slate-100 rounded" />
-                                        <div className="w-12 h-4 bg-slate-50 rounded" />
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+                    {[0, 1, 2, 3, 4, 5].map(i => <div key={i} className="skeleton-dark h-40 rounded-2xl" />)}
                 </div>
             ) : (
-                <div className="space-y-24 mt-16">
-                    {/* ── 고정글 Featured ── */}
+                <div className="space-y-10 mt-2">
+                    {/* ── 고정글 ── */}
                     {pinnedPosts.length > 0 && (
-                        <section className="space-y-10">
-                            <div className="flex items-center gap-4">
-                                <span className="h-1 w-12 bg-rose-600 rounded-full" />
-                                <h2 className="text-[12px] font-black tracking-[0.4em] text-rose-600 uppercase italic">Featured Story</h2>
+                        <section className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <Pin size={14} className="text-rose-400" aria-hidden="true" />
+                                <h2 className="text-sm font-black text-white">고정 게시글</h2>
                             </div>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                {pinnedPosts.slice(0, 2).map((post, idx) => (
-                                    <motion.div key={post.id} initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ y: -6 }}>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {pinnedPosts.slice(0, 2).map((post) => (
+                                    <motion.div key={post.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -3 }}>
                                         <Link to={`/board/posts/${post.id}`}
-                                            className={`group relative flex flex-col gap-8 overflow-hidden rounded-[2.5rem] p-10 border-2 transition-all hover:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.12)] ${idx === 0
-                                                ? 'bg-slate-900 border-slate-900 text-white'
-                                                : 'bg-white border-slate-100 text-slate-900 hover:border-slate-900'
-                                            }`}>
-                                            <div className={`absolute top-10 right-10 w-12 h-12 rounded-full flex items-center justify-center shadow-xl transform group-hover:rotate-12 transition-transform ${idx === 0 ? 'bg-rose-600 text-white' : 'bg-slate-900 text-white'}`}>
-                                                <Pin size={18} />
+                                            className="group relative flex flex-col gap-4 rounded-2xl p-6 bg-gradient-to-br from-orange-500/10 to-rose-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all">
+                                            <div className="absolute top-5 right-5 w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center group-hover:rotate-12 transition-transform">
+                                                <Pin size={15} aria-hidden="true" />
                                             </div>
-                                            <div className="space-y-6">
-                                                <div className={`inline-block px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase ${idx === 0 ? 'bg-rose-600 text-white' : 'bg-indigo-600 text-white'}`}>
-                                                    HEADLINE STORY
+                                            <span className="inline-block w-fit px-2.5 py-1 rounded-lg text-[10px] font-black bg-rose-500/20 text-rose-300">고정</span>
+                                            <h3 className="text-xl font-black text-white leading-tight line-clamp-2 text-balance pr-10">{post.title}</h3>
+                                            {post.tags && (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {post.tags.split(',').filter(Boolean).map(tag => (
+                                                        <span key={tag} className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-slate-300">#{tag}</span>
+                                                    ))}
                                                 </div>
-                                                <h3 className="text-4xl md:text-5xl font-serif font-black leading-[1.05] group-hover:italic transition-all line-clamp-3 tracking-tighter">
-                                                    {post.title}
-                                                </h3>
-                                                {post.tags && (
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {post.tags.split(',').filter(Boolean).map(tag => (
-                                                            <span key={tag} className={`px-3 py-1 rounded-full text-[9px] font-black tracking-widest ${idx === 0 ? 'bg-white/10 text-white/70' : 'bg-slate-100 text-slate-500'}`}>
-                                                                #{tag}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                                <div className={`flex items-center gap-6 pt-6 border-t ${idx === 0 ? 'border-slate-800' : 'border-slate-100'}`}>
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-900'}`}>
-                                                        {post.author_name?.charAt(0)}
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <p className={`text-[11px] font-black tracking-widest uppercase ${idx === 0 ? 'text-white' : 'text-slate-900'}`}>{post.author_name}</p>
-                                                        <p className={`text-[10px] font-bold mt-0.5 uppercase ${idx === 0 ? 'text-slate-500' : 'text-slate-300'}`}>{fmtDate(post.created_at)}</p>
-                                                    </div>
-                                                    <div className={`flex items-center gap-4 text-[10px] font-black ${idx === 0 ? 'text-slate-500' : 'text-slate-400'}`}>
-                                                        <span className="flex items-center gap-1"><Heart size={10} /> {post.like_count || 0}</span>
-                                                        <span className="flex items-center gap-1"><Eye size={10} /> {post.view_count || 0}</span>
-                                                        <span className="flex items-center gap-1"><MessageSquare size={10} /> {post.comment_count || 0}</span>
-                                                    </div>
+                                            )}
+                                            <div className="flex items-center gap-3 pt-3 border-t border-white/10">
+                                                <div className="w-8 h-8 rounded-lg bg-white/10 text-slate-300 flex items-center justify-center font-black text-xs">
+                                                    {post.author_name?.charAt(0)}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-black text-white truncate">{post.author_name}</p>
+                                                    <p className="text-[11px] text-slate-500">{fmtDate(post.created_at)}</p>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-[11px] font-bold text-slate-500">
+                                                    <span className="flex items-center gap-1"><Heart size={11} aria-hidden="true" /> {post.like_count || 0}</span>
+                                                    <span className="flex items-center gap-1"><Eye size={11} aria-hidden="true" /> {post.view_count || 0}</span>
+                                                    <span className="flex items-center gap-1"><MessageSquare size={11} aria-hidden="true" /> {post.comment_count || 0}</span>
                                                 </div>
                                             </div>
                                         </Link>
@@ -300,71 +245,53 @@ const BoardList = () => {
                         </section>
                     )}
 
-                    {/* ── 일반 게시글 그리드 ── */}
-                    <section className="space-y-10">
-                        <div className="flex items-center justify-between border-b-[3px] border-slate-900 pb-5">
-                            <div className="flex items-center gap-4">
-                                <span className="h-1 w-10 bg-slate-900" />
-                                <h2 className="text-[12px] font-black tracking-[0.4em] uppercase">Archive · Latest</h2>
-                            </div>
-                            <div className="text-[10px] font-black text-slate-400 tabular-nums uppercase tracking-widest">
-                                {posts.length} / {total} Items
-                            </div>
+                    {/* ── 일반 게시글 ── */}
+                    <section className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-sm font-black text-white">최신 게시글</h2>
+                            <span className="text-[11px] font-bold text-slate-500 tabular-nums">{posts.length} / {total}건</span>
                         </div>
 
                         {posts.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {posts.map((post, idx) => (
                                     <motion.div key={post.id}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: idx * 0.04 }}>
+                                        initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx * 0.04, 0.3) }}>
                                         <Link to={`/board/posts/${post.id}`}
-                                            className="group flex flex-col h-full bg-white border border-slate-100 rounded-[2rem] overflow-hidden hover:border-slate-900 hover:shadow-xl transition-all">
-                                            {/* 카드 상단 */}
-                                            <div className="flex items-center justify-between p-6 border-b border-slate-50">
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`w-2 h-2 rounded-full ${TYPE_MAP[post.board_type]?.dot || 'bg-slate-400'}`} />
-                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{TYPE_MAP[post.board_type]?.eng || post.board_type}</span>
-                                                </div>
-                                                <span className="text-[9px] font-black text-slate-300 tabular-nums flex items-center gap-1">
-                                                    <Clock size={9} /> {fmtDate(post.created_at)}
+                                            className="group flex flex-col h-full bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 hover:bg-white/[0.07] transition-all">
+                                            <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
+                                                <span className="flex items-center gap-1.5">
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${TYPE_MAP[post.board_type]?.dot || 'bg-slate-500'}`} />
+                                                    <span className="text-[10px] font-black text-slate-500">{TYPE_MAP[post.board_type]?.label || post.board_type}</span>
+                                                </span>
+                                                <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
+                                                    <Clock size={10} aria-hidden="true" /> {fmtDate(post.created_at)}
                                                 </span>
                                             </div>
-
-                                            {/* 본문 */}
-                                            <div className="flex-1 p-6 space-y-4">
-                                                <h3 className="text-xl font-serif font-black leading-tight group-hover:text-indigo-600 transition-colors line-clamp-2">
-                                                    {post.title}
-                                                </h3>
+                                            <div className="flex-1 px-5 py-4 space-y-3">
+                                                <h3 className="text-base font-black text-white leading-snug group-hover:text-orange-300 transition-colors line-clamp-2">{post.title}</h3>
                                                 {post.tags && (
                                                     <div className="flex flex-wrap gap-1.5">
                                                         {post.tags.split(',').filter(Boolean).slice(0, 3).map(tag => (
-                                                            <button key={tag}
-                                                                onClick={e => { e.preventDefault(); handleTagClick(tag); }}
-                                                                className={`px-2.5 py-0.5 rounded-full text-[9px] font-black tracking-widest transition-all ${activeTag === tag ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-indigo-100 hover:text-indigo-700'}`}>
+                                                            <button key={tag} type="button" onClick={e => { e.preventDefault(); handleTagClick(tag); }}
+                                                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all ${activeTag === tag ? 'bg-orange-500 text-white' : 'bg-white/10 text-slate-400 hover:bg-white/20 hover:text-white'}`}>
                                                                 #{tag}
                                                             </button>
                                                         ))}
                                                     </div>
                                                 )}
                                             </div>
-
-                                            {/* 푸터 */}
-                                            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-50">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center text-[9px] font-black">
+                                            <div className="flex items-center justify-between px-5 py-3 border-t border-white/5">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    <div className="w-6 h-6 rounded-lg bg-white/10 text-slate-300 flex items-center justify-center text-[10px] font-black shrink-0">
                                                         {post.author_name?.charAt(0)}
                                                     </div>
-                                                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest truncate max-w-[80px]">{post.author_name}</span>
+                                                    <span className="text-[11px] font-bold text-slate-400 truncate max-w-[90px]">{post.author_name}</span>
                                                 </div>
-                                                <div className="flex items-center gap-3 text-[9px] font-black text-slate-400">
-                                                    <span className="flex items-center gap-1">
-                                                        <Heart size={10} className={post.is_liked ? 'text-rose-500 fill-rose-500' : ''} />
-                                                        {post.like_count || 0}
-                                                    </span>
-                                                    <span className="flex items-center gap-1"><MessageSquare size={10} /> {post.comment_count || 0}</span>
-                                                    <span className="flex items-center gap-1"><Eye size={10} /> {post.view_count || 0}</span>
+                                                <div className="flex items-center gap-2.5 text-[10px] font-bold text-slate-500">
+                                                    <span className="flex items-center gap-1"><Heart size={11} aria-hidden="true" className={post.is_liked ? 'text-rose-400 fill-rose-400' : ''} /> {post.like_count || 0}</span>
+                                                    <span className="flex items-center gap-1"><MessageSquare size={11} aria-hidden="true" /> {post.comment_count || 0}</span>
+                                                    <span className="flex items-center gap-1"><Eye size={11} aria-hidden="true" /> {post.view_count || 0}</span>
                                                 </div>
                                             </div>
                                         </Link>
@@ -372,21 +299,14 @@ const BoardList = () => {
                                 ))}
                             </div>
                         ) : (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                                className="py-48 text-center space-y-8">
-                                <div className="text-[12rem] font-serif italic font-black text-slate-50 leading-none select-none">EMPTY</div>
-                                <div className="space-y-3">
-                                    <p className="text-[12px] font-black tracking-[0.6em] text-slate-400 uppercase">
-                                        {activeTag ? `#${activeTag} 태그의 게시글이 없습니다` : 'Archive contains no articles'}
-                                    </p>
-                                    {activeTag && (
-                                        <button onClick={() => setActiveTag('')}
-                                            className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest underline hover:text-slate-900 transition-all">
-                                            태그 필터 제거
-                                        </button>
-                                    )}
-                                </div>
-                            </motion.div>
+                            <div className="py-24 text-center">
+                                <div className="text-5xl mb-3 select-none" aria-hidden="true">📭</div>
+                                <p className="text-slate-400 font-bold">{activeTag ? `#${activeTag} 태그의 게시글이 없어요` : '아직 게시글이 없어요'}</p>
+                                {activeTag && (
+                                    <button type="button" onClick={() => setActiveTag('')}
+                                        className="mt-2 text-sm font-black text-orange-400 hover:text-orange-300 transition-colors">태그 필터 제거</button>
+                                )}
+                            </div>
                         )}
                     </section>
                 </div>
@@ -396,33 +316,31 @@ const BoardList = () => {
             <AnimatePresence>
                 {totalPages > 1 && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                        className="flex flex-col sm:flex-row items-center justify-between border-t-[3px] border-slate-900 pt-12 mt-20 gap-6">
-                        <div className="flex items-center gap-4 text-[11px] font-black tracking-[0.3em] uppercase">
-                            <span className="text-slate-900">Page {page} / {totalPages}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button disabled={page === 1} onClick={() => setPage(p => p - 1)}
-                                className="w-12 h-12 rounded-full border-2 border-slate-100 flex items-center justify-center text-slate-300 hover:border-slate-900 hover:text-slate-900 disabled:opacity-20 transition-all group active:scale-95">
-                                <ChevronRight size={18} className="rotate-180 group-hover:-translate-x-1 transition-transform" />
+                        className="flex items-center justify-between border-t border-white/10 pt-8 mt-12 gap-4">
+                        <span className="text-xs font-black text-slate-400 tabular-nums">Page {page} / {totalPages}</span>
+                        <div className="flex items-center gap-1.5">
+                            <button type="button" disabled={page === 1} onClick={() => setPage(p => p - 1)} aria-label="이전 페이지"
+                                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-30 transition-all">
+                                <ChevronRight size={16} className="rotate-180" aria-hidden="true" />
                             </button>
                             <div className="flex gap-1.5">
                                 {[...Array(totalPages)].map((_, i) => {
                                     const p = i + 1;
                                     if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
                                         return (
-                                            <button key={p} onClick={() => setPage(p)}
-                                                className={`w-12 h-12 rounded-full text-[11px] font-black transition-all ${page === p ? 'bg-slate-900 text-white shadow-xl' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
+                                            <button key={p} type="button" onClick={() => setPage(p)} aria-current={page === p}
+                                                className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${page === p ? 'bg-gradient-to-r from-orange-500 to-rose-600 text-white shadow-lg shadow-orange-500/20' : 'bg-white/5 border border-white/10 text-slate-400 hover:text-white'}`}>
                                                 {p < 10 ? `0${p}` : p}
                                             </button>
                                         );
                                     }
-                                    if (p === 2 || p === totalPages - 1) return <span key={p} className="w-8 flex items-center justify-center text-slate-200 font-bold">…</span>;
+                                    if (p === 2 || p === totalPages - 1) return <span key={p} className="w-6 flex items-center justify-center text-slate-600">…</span>;
                                     return null;
                                 })}
                             </div>
-                            <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)}
-                                className="w-12 h-12 rounded-full border-2 border-slate-100 flex items-center justify-center text-slate-300 hover:border-slate-900 hover:text-slate-900 disabled:opacity-20 transition-all group active:scale-95">
-                                <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                            <button type="button" disabled={page === totalPages} onClick={() => setPage(p => p + 1)} aria-label="다음 페이지"
+                                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-30 transition-all">
+                                <ChevronRight size={16} aria-hidden="true" />
                             </button>
                         </div>
                     </motion.div>

@@ -338,11 +338,13 @@ const AppRoutes = memo(() => (
     <Route path="/kitchen/:storeId" element={
       <ProtectedRoute><AdminSuspense><KitchenDisplayPage /></AdminSuspense></ProtectedRoute>
     } />
-    <Route path="/board/posts/:id" element={<AdminSuspense><BoardDetail /></AdminSuspense>} />
-    <Route path="/board/write" element={<AdminSuspense><BoardWrite /></AdminSuspense>} />
-    <Route path="/board/edit/:id" element={<AdminSuspense><BoardWrite /></AdminSuspense>} />
-    <Route path="/board/:type" element={<AdminSuspense><BoardList /></AdminSuspense>} />
-    <Route path="/board" element={<AdminSuspense><BoardList /></AdminSuspense>} />
+    {/* 게시판은 AdminLayout(다크 셸) 안에서 렌더 — 다른 관리자 페이지와 UI 일관.
+        AdminLayout이 공개 게시판(목록·상세) 접근을 허용하고, 글쓰기/수정은 로그인 요구 */}
+    <Route path="/board/posts/:id" element={<AdminSuspense><AdminLayout><BoardDetail /></AdminLayout></AdminSuspense>} />
+    <Route path="/board/write" element={<AdminSuspense><AdminLayout><BoardWrite /></AdminLayout></AdminSuspense>} />
+    <Route path="/board/edit/:id" element={<AdminSuspense><AdminLayout><BoardWrite /></AdminLayout></AdminSuspense>} />
+    <Route path="/board/:type" element={<AdminSuspense><AdminLayout><BoardList /></AdminLayout></AdminSuspense>} />
+    <Route path="/board" element={<AdminSuspense><AdminLayout><BoardList /></AdminLayout></AdminSuspense>} />
 
     {/* 404 */}
     <Route path="*" element={<AdminSuspense><NotFound /></AdminSuspense>} />

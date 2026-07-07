@@ -150,17 +150,17 @@ const BoardWrite = () => {
     const availableTypes = BOARD_TYPES.filter(t => !t.restricted || isAdmin);
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-40">
 
                 {/* ── 헤더 ── */}
-                <div className="flex items-center justify-between py-8 border-b border-slate-100">
+                <div className="flex items-center justify-between py-8 border-b border-white/10">
                     <button onClick={() => navigate(-1)}
-                        className="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-slate-900 uppercase tracking-[0.3em] transition-colors group">
+                        className="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-white uppercase tracking-[0.3em] transition-colors group">
                         <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
                         Back
                     </button>
-                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
                         <FileText size={12} />
                         {editId ? 'Edit Article' : 'New Article'}
                     </div>
@@ -201,8 +201,8 @@ const BoardWrite = () => {
                                 {availableTypes.map(type => (
                                     <button key={type.key} type="button" onClick={() => setBoardType(type.key)}
                                         className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${boardType === type.key
-                                            ? 'bg-slate-900 border-slate-900 text-white'
-                                            : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
+                                            ? 'bg-white/10 border-white/20 text-white'
+                                            : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
                                         }`}>
                                         {type.label}
                                     </button>
@@ -212,7 +212,7 @@ const BoardWrite = () => {
                     )}
 
                     {/* ── 제목 ── */}
-                    <div className="space-y-4 border-b-[6px] border-slate-900 pb-8">
+                    <div className="space-y-4 border-b-[6px] border-white/20 pb-8">
                         <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
                             <FileText size={12} /> Headline
                         </div>
@@ -220,14 +220,14 @@ const BoardWrite = () => {
                             rows={3}
                             maxLength={200}
                             placeholder="Write your headline..."
-                            className="w-full text-5xl md:text-7xl font-serif font-black italic tracking-tighter leading-[1.05] placeholder:text-slate-100 border-none outline-none resize-none bg-transparent text-slate-900 transition-all"
+                            className="w-full text-5xl md:text-7xl font-serif font-black italic tracking-tighter leading-[1.05] placeholder:text-slate-100 border-none outline-none resize-none bg-transparent text-white transition-all"
                             value={title}
                             onChange={e => setTitle(e.target.value)}
                             required
                         />
                         <div className="flex justify-between items-center">
                             <span className="text-[10px] font-bold text-slate-200 uppercase tracking-widest">Headline</span>
-                            <span className={`text-[10px] font-black tabular-nums ${title.length > 180 ? 'text-rose-500' : 'text-slate-300'}`}>
+                            <span className={`text-[10px] font-black tabular-nums ${title.length > 180 ? 'text-rose-500' : 'text-slate-500'}`}>
                                 {title.length} / 200
                             </span>
                         </div>
@@ -241,32 +241,32 @@ const BoardWrite = () => {
                         <textarea
                             rows={20}
                             placeholder="Write your article here..."
-                            className="w-full text-[15px] font-serif leading-[2] text-slate-700 placeholder:text-slate-200 border-none outline-none resize-none bg-transparent transition-all"
+                            className="w-full text-[15px] font-serif leading-[2] text-slate-500 placeholder:text-slate-200 border-none outline-none resize-none bg-transparent transition-all"
                             value={content}
                             onChange={e => setContent(e.target.value)}
                             required
                         />
-                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                        <div className="flex justify-between items-center pt-2 border-t border-white/10">
                             <span className="text-[10px] font-bold text-slate-200 uppercase tracking-widest">Article Body</span>
-                            <span className="text-[10px] font-black tabular-nums text-slate-300">
+                            <span className="text-[10px] font-black tabular-nums text-slate-500">
                                 {wordCount.toLocaleString()} characters
                             </span>
                         </div>
                     </div>
 
                     {/* ── 태그 입력 ── */}
-                    <div className="space-y-4 p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                    <div className="space-y-4 p-6 bg-white/5 rounded-3xl border border-white/10">
                         <div className="flex items-center gap-3 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
                             <Tag size={12} /> Tags
-                            <span className="text-slate-300 font-bold normal-case tracking-normal ml-1">최대 5개</span>
+                            <span className="text-slate-500 font-bold normal-case tracking-normal ml-1">최대 5개</span>
                         </div>
                         <div className="flex flex-wrap gap-2 min-h-[36px] items-center">
                             {tags.map(tag => (
                                 <motion.span key={tag} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[10px] font-black text-slate-600 tracking-widest shadow-sm">
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-black text-slate-600 tracking-widest shadow-sm">
                                     #{tag}
                                     <button type="button" onClick={() => removeTag(tag)}
-                                        className="text-slate-300 hover:text-rose-500 transition-colors">
+                                        className="text-slate-500 hover:text-rose-500 transition-colors">
                                         <X size={10} />
                                     </button>
                                 </motion.span>
@@ -281,11 +281,11 @@ const BoardWrite = () => {
                                         onKeyDown={handleTagKeyDown}
                                         onBlur={() => { if (tagInput.trim()) addTag(tagInput); }}
                                         placeholder={tags.length === 0 ? "#태그 입력 후 Enter" : "#추가..."}
-                                        className="bg-transparent border-none outline-none text-[10px] font-black text-slate-600 placeholder:text-slate-300 tracking-widest w-40"
+                                        className="bg-transparent border-none outline-none text-[10px] font-black text-slate-600 placeholder:text-slate-500 tracking-widest w-40"
                                     />
                                     {tagInput && (
                                         <button type="button" onClick={() => addTag(tagInput)}
-                                            className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition-all">
+                                            className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center hover:bg-orange-400 transition-all">
                                             <Plus size={10} />
                                         </button>
                                     )}
@@ -300,7 +300,7 @@ const BoardWrite = () => {
                             <button type="button" onClick={() => setIsPinned(p => !p)}
                                 className={`flex items-center gap-2.5 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${isPinned
                                     ? 'bg-rose-600 border-rose-600 text-white'
-                                    : 'bg-white border-rose-200 text-rose-400 hover:border-rose-400'
+                                    : 'bg-white/5 border-rose-200 text-rose-400 hover:border-rose-400'
                                 }`}>
                                 <Pin size={12} />
                                 {isPinned ? 'Pinned (Headline)' : 'Pin as Headline'}
@@ -310,22 +310,22 @@ const BoardWrite = () => {
                     )}
 
                     {/* ── 제출 버튼 ── */}
-                    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-slate-100 px-6 py-5">
+                    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-white/10 px-6 py-5">
                         <div className="max-w-4xl mx-auto flex items-center justify-between">
-                            <div className="flex items-center gap-3 text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                            <div className="flex items-center gap-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">
                                 <Save size={12} className="text-green-400" />
                                 자동 임시저장 중
                             </div>
                             <div className="flex items-center gap-3">
                                 <button type="button" onClick={() => navigate(-1)}
-                                    className="px-8 py-4 rounded-2xl border-2 border-slate-100 text-slate-400 text-[11px] font-black uppercase tracking-widest hover:border-slate-300 transition-all">
+                                    className="px-8 py-4 rounded-2xl border-2 border-white/10 text-slate-400 text-[11px] font-black uppercase tracking-widest hover:border-white/30 transition-all">
                                     Cancel
                                 </button>
                                 <motion.button
                                     type="submit"
                                     disabled={submitting || !title.trim() || !content.trim()}
                                     whileTap={{ scale: 0.96 }}
-                                    className="flex items-center gap-3 px-10 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-xl shadow-slate-900/10">
+                                    className="flex items-center gap-3 px-10 py-4 bg-white/10 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-orange-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-xl shadow-slate-900/10">
                                     {submitting ? (
                                         <span className="flex items-center gap-2">
                                             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
