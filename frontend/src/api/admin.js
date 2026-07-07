@@ -8,6 +8,8 @@ export const adminAPI = {
   issueTaxInvoice: (storeId, id) => api.post(`/admin/stores/${storeId}/settlements/${id}/tax-invoice`),
   getReceiptSettings: (storeId) => api.get(`/admin/stores/${storeId}/receipt-settings`),
   updateReceiptSettings: (storeId, data) => api.put(`/admin/stores/${storeId}/receipt-settings`, data),
+  // 매장 정보 보강 (네이버 지역검색 API) — super_admin 전용, 커서 기반 배치
+  enrichStores: ({ limit = 10, afterId = 0 } = {}) => api.post('/admin/enrich-stores', { limit, afterId }),
 };
 
 export const planRequestsAPI = {

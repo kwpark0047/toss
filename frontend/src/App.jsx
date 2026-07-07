@@ -37,6 +37,7 @@ const CustomerManager    = lazy(() => import("@/components/admin/CustomerManager
 const ReservationManager = lazy(() => import("@/components/admin/ReservationManager"));
 const StoreForm          = lazy(() => import("@/components/admin/StoreForm"));
 const BulkSMSManager     = lazy(() => import("@/components/admin/BulkSMSManager"));
+const StoreEnrichment    = lazy(() => import("@/components/admin/StoreEnrichment"));
 const InventoryManager      = lazy(() => import("@/components/admin/InventoryManager"));
 const TableManager          = lazy(() => import("@/components/admin/TableManager"));
 const ProfilePage           = lazy(() => import("@/pages/ProfilePage"));
@@ -272,6 +273,11 @@ const AppRoutes = memo(() => (
     <Route path="/admin/bulk-sms" element={
       <AdminPage>
         <AdminSuspense><BulkSMSManager /></AdminSuspense>
+      </AdminPage>
+    } />
+    <Route path="/admin/enrich-stores" element={
+      <AdminPage>
+        <AdminSuspense><StoreEnrichment /></AdminSuspense>
       </AdminPage>
     } />
 

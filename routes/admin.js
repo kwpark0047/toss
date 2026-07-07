@@ -217,4 +217,61 @@ router.post('/bulk-sms/send', authMiddleware, catchAsync(async (req, res) => {
     }, `${uniquePhones.length}명에게 SMS 발송을 시작했습니다.`);
 }));
 
+// === [매장 정보 보강 — 네이버 지역검색 API (최고관리자 전용)] ===
+// 상호+주소로 좌표·전화·업종을 공식 API로 보강. 커서 기반 소량 배치로
+// 일일 요청 한도(2.5만)를 준수하며 "조금씩" 진행한다. 빈 필드만 채운다.
+const naverLocal = require('../services/naverLocalService');
+
+router.post('/enrich-stores', authMiddleware, catchAsync(async (req, res) => {
+    if (req.user.role !== 'super_admin') return res.status(403).json({ error: '최고관리자만 접근 가능합니다.' });
+    if (!naverLocal.isConfigured()) {
+        return res.status(503).json({ success: false, error: '네이버 API 키(NAVER_CLIENT_SECRET)가 설정되지 않았습니다.' });
+    }
+
+    const limit = Math.min(parseInt(req.body?.limit) || 10, 30); // 1회 최대 30건
+    const afterId = parseInt(req.body?.afterId) || 0;            // 커서(이 id 초과부터)
+    const delayMs = 250;                                          // 호출 간 지연
+
+    const candidates = await prisma.stores.findMany({
+        where: {
+            is_active: true,
+            id: { gt: afterId },
+            NOT: [{ name: { contains: '?' } }, { name: { contains: '�' } }],
+            OR: [{ latitude: null }, { phone: null }, { business_type: null }],
+        },
+        select: { id: true, name: true, address: true, latitude: true, longitude: true, phone: true, business_type: true },
+        orderBy: { id: 'asc' },
+        take: limit,
+    });
+
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    let matched = 0, updated = 0;
+    const results = [];
+    for (const s of candidates) {
+        try {
+            const r = await naverLocal.enrichStore(s);
+            if (r) {
+                matched++;
+                await Store.update(s.id, r.patch);
+                updated++;
+                results.push({ id: s.id, name: s.name, patch: r.patch });
+            } else {
+                results.push({ id: s.id, name: s.name, matched: false });
+            }
+        } catch (e) {
+            results.push({ id: s.id, name: s.name, error: (e.message || '').slice(0, 80) });
+        }
+        await sleep(delayMs);
+    }
+
+    const nextCursor = candidates.length ? candidates[candidates.length - 1].id : afterId;
+    res.success({
+        processed: candidates.length,
+        matched,
+        updated,
+        nextCursor,
+        done: candidates.length < limit,
+    }, `${candidates.length}건 처리 · ${updated}건 보강`);
+}));
+
 module.exports = router;
