@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatPrice, formatTime } from '../../utils/format';
 import EmptyState from '../common/EmptyState';
 import Skeleton from '../common/Skeleton';
+import SuperAdminDashboard from './SuperAdminDashboard';
 import Button from '../common/Button';
 import { Store, ShoppingBag, DollarSign, Clock, Plus, ChevronRight, BarChart3, Users, TrendingUp, Activity, Zap, ArrowUpRight, ArrowDownRight, Sparkles, Settings, RefreshCw, Bell, QrCode, LayoutGrid, Home, ReceiptText, BadgeCheck, ChefHat, AlertCircle, CalendarDays, Download, FileSpreadsheet, FileText, Loader2, MessageSquareText, Code2, Handshake } from 'lucide-react';
 
@@ -209,6 +210,9 @@ const MasterDashboard = () => {
     }, [selectedStore, stores, navigate]);
 
     const pendingCount = recentOrders.filter(o => o.status === 'pending').length;
+
+    /* ── 슈퍼관리자: 플랫폼 대시보드로 분기 (단일 매장 오너 뷰 대신) ── */
+    if (user?.role === 'super_admin') return <SuperAdminDashboard />;
 
     /* ── 로딩 (TDS 다크 Skeleton) ── */
     if (loading) return (

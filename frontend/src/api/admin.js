@@ -10,6 +10,9 @@ export const adminAPI = {
   updateReceiptSettings: (storeId, data) => api.put(`/admin/stores/${storeId}/receipt-settings`, data),
   // 매장 정보 보강 (네이버 지역검색 API) — super_admin 전용, 커서 기반 배치
   enrichStores: ({ limit = 10, afterId = 0 } = {}) => api.post('/admin/enrich-stores', { limit, afterId }),
+  // 슈퍼관리자 플랫폼 대시보드
+  platformOverview: () => api.get('/admin/platform/overview'),
+  platformStores: ({ page = 1, limit = 20, search = '' } = {}) => api.get('/admin/platform/stores', { params: { page, limit, search } }),
 };
 
 export const planRequestsAPI = {

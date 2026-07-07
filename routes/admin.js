@@ -274,4 +274,73 @@ router.post('/enrich-stores', authMiddleware, catchAsync(async (req, res) => {
     }, `${candidates.length}건 처리 · ${updated}건 보강`);
 }));
 
+// === [슈퍼관리자 플랫폼 대시보드] ===
+const requireSuper = (req, res, next) =>
+    req.user?.role === 'super_admin' ? next() : res.status(403).json({ error: '최고관리자만 접근 가능합니다.' });
+
+// 플랫폼 전체 지표
+router.get('/platform/overview', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    const [totalStores, activeStores, totalCustomers, totalOrders, pointsAgg] = await Promise.all([
+        prisma.stores.count(),
+        prisma.stores.count({ where: { is_active: true } }),
+        prisma.store_customers.count(),
+        prisma.orders.count(),
+        prisma.user_points.aggregate({ _sum: { lifetime_earned: true, lifetime_used: true, total_points: true } }),
+    ]);
+    res.success({
+        totalStores,
+        activeStores,
+        inactiveStores: totalStores - activeStores,
+        totalCustomers,
+        totalOrders,
+        pointsIssued: pointsAgg._sum.lifetime_earned || 0,
+        pointsUsed: pointsAgg._sum.lifetime_used || 0,
+        pointsBalance: pointsAgg._sum.total_points || 0,
+    });
+}));
+
+// 매장 목록(검색·페이지네이션) + 매장별 지표(주문·매출·고객·포인트)
+router.get('/platform/stores', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const search = (req.query.search || '').trim();
+
+    const where = {
+        NOT: [{ name: { contains: '?' } }, { name: { contains: '�' } }],
+        ...(search ? { OR: [{ name: { contains: search } }, { address: { contains: search } }] } : {}),
+    };
+
+    const [total, stores] = await Promise.all([
+        prisma.stores.count({ where }),
+        prisma.stores.findMany({
+            where,
+            select: { id: true, name: true, address: true, business_type: true, is_active: true, created_at: true },
+            orderBy: { id: 'desc' },
+            skip: (page - 1) * limit,
+            take: limit,
+        }),
+    ]);
+
+    const ids = stores.map(s => s.id);
+    // 페이지 내 매장에 한해 지표 집계(가벼움)
+    const [orderStats, custStats, pointStats] = await Promise.all([
+        ids.length ? prisma.orders.groupBy({ by: ['store_id'], where: { store_id: { in: ids } }, _count: { _all: true }, _sum: { total_amount: true } }) : [],
+        ids.length ? prisma.store_customers.groupBy({ by: ['store_id'], where: { store_id: { in: ids } }, _count: { _all: true } }) : [],
+        ids.length ? prisma.point_transactions.groupBy({ by: ['store_id'], where: { store_id: { in: ids } }, _sum: { amount: true } }) : [],
+    ]);
+    const orderMap = Object.fromEntries(orderStats.map(o => [o.store_id, { orders: o._count._all, sales: o._sum.total_amount || 0 }]));
+    const custMap = Object.fromEntries(custStats.map(c => [c.store_id, c._count._all]));
+    const pointMap = Object.fromEntries(pointStats.map(p => [p.store_id, p._sum.amount || 0]));
+
+    const rows = stores.map(s => ({
+        ...s,
+        orders: orderMap[s.id]?.orders || 0,
+        sales: orderMap[s.id]?.sales || 0,
+        customers: custMap[s.id] || 0,
+        points: pointMap[s.id] || 0,
+    }));
+
+    res.success({ stores: rows, page, limit, total, totalPages: Math.ceil(total / limit) });
+}));
+
 module.exports = router;
