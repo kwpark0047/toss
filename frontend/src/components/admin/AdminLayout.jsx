@@ -156,7 +156,9 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
                 </div>
                 <div className="hidden sm:block">
                   <p className={`text-[10px] font-black uppercase tracking-widest leading-none mb-1 ${tc.statusLabel}`}>상태</p>
-                  <p className={`text-xs font-black leading-none ${tc.textStrong}`}>관리자 활성</p>
+                  <p className={`text-xs font-black leading-none ${tc.textStrong}`}>
+                    {(user?.role === 'super_admin' ? '슈퍼관리자' : user?.role === 'manager' ? '매니저' : user?.role === 'staff' ? '직원' : '관리자')} 활성
+                  </p>
                 </div>
               </div>
             </div>
