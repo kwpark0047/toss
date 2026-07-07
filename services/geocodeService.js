@@ -17,11 +17,11 @@ function provider() {
 }
 function isConfigured() { return provider() !== null; }
 
-// 지오코딩 정확도를 위해 주소 정제: 쉼표 이후(호/층)·괄호(법정동) 제거
+// 지오코딩 정확도를 위해 주소 정제: 괄호(법정동/층) 먼저 제거 → 쉼표 이후(호/층) 제거
 function cleanAddress(addr = '') {
   return String(addr)
-    .split(',')[0]              // "…30, 1층,2층 (둔촌동)" → "…30"
-    .replace(/\([^)]*\)/g, '')  // 괄호 제거
+    .replace(/\([^)]*\)/g, ' ')  // "(교남동,지상1층)" 등 괄호 먼저 제거(내부 쉼표 보호)
+    .split(',')[0]               // "…30, 1층,2층" → "…30"
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -56,10 +56,13 @@ async function ncpGeocode(query) {
   return null;
 }
 
-/** 주소 문자열 → {lat, lng} | null */
+// 도로명 주소 여부(로/길 + 번호). 카카오는 도로명만 신뢰성 있게 지오코딩됨.
+const isRoadAddress = (q = '') => /(로|길)\s*\d/.test(q);
+
+/** 주소 문자열 → {lat, lng} | null. 도로명 주소만 처리(지번은 오매칭 방지 위해 skip) */
 async function geocode(address) {
   const q = cleanAddress(address);
-  if (!q) return null;
+  if (!q || !isRoadAddress(q)) return null; // 지번/불명확 주소는 건너뜀
   const p = provider();
   let g = null;
   if (p === 'kakao') g = await kakaoGeocode(q);
