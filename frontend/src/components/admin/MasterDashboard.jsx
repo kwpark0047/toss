@@ -83,12 +83,16 @@ const getTodayStr = () => {
 /* ─── 상태 배지 ─── */
 const StatusBadge = ({ status }) => {
     const cfg = {
+        paid:      { label: '신규',  cls: 'bg-teal-500/15 text-teal-400 border-teal-500/30' },
         pending:   { label: '접수',  cls: 'bg-orange-500/15 text-orange-400 border-orange-500/30' },
+        confirmed: { label: '확인',  cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
         preparing: { label: '조리중', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+        ready:     { label: '준비완료', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
         completed: { label: '완료',  cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
         cancelled: { label: '취소',  cls: 'bg-rose-500/15 text-rose-400 border-rose-500/30' },
     };
-    const c = cfg[status] ?? cfg.cancelled;
+    // 알 수 없는 상태를 '취소'로 오표시하지 않도록 중립 fallback
+    const c = cfg[status] ?? { label: status || '-', cls: 'bg-white/10 text-slate-400 border-white/20' };
     return (
         <span className={`px-2 py-0.5 text-[10px] font-black rounded-md border ${c.cls}`}>{c.label}</span>
     );

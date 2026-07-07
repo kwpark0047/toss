@@ -79,7 +79,9 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
     return () => clearInterval(t);
   }, [isOpen, orderId, fetchOrder]);
 
-  const status = order?.status || 'pending';
+  // 결제완료('paid')는 고객에게 '주문 접수' 단계로 표시 (STEPS/메시지에 pending으로 매핑)
+  const rawStatus = order?.status || 'pending';
+  const status = rawStatus === 'paid' ? 'pending' : rawStatus;
   const isCancelled = status === 'cancelled';
   const visibleSteps = isCancelled ? STEPS.slice(0, 2) : STEPS;
   const curIdx = visibleSteps.findIndex(s => s.key === status);

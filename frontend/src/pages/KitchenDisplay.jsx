@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 const STATUS_CFG = {
+  paid:      { label: "신규 주문", color: "text-teal-400",   border: "border-teal-400",   bg: "bg-teal-400/10",   next: "preparing", nextLabel: "조리 시작", icon: CheckCircle2 },
   pending:   { label: "접수 대기", color: "text-amber-400",  border: "border-amber-400",  bg: "bg-amber-400/10",  next: "confirmed", nextLabel: "주문 확인", icon: Clock },
   confirmed: { label: "주문 확인", color: "text-blue-400",   border: "border-blue-400",   bg: "bg-blue-400/10",   next: "preparing", nextLabel: "조리 시작", icon: CheckCircle2 },
   preparing: { label: "조리 중",   color: "text-purple-400", border: "border-purple-400", bg: "bg-purple-400/10", next: "ready",     nextLabel: "조리 완료", icon: ChefHat },
@@ -35,7 +36,7 @@ const KitchenDisplay = () => {
     try {
       const res = await ordersAPI.getByStore(storeId);
       const all = res?.data || res || [];
-      setOrders(all.filter(o => ["pending", "confirmed", "preparing"].includes(o.status)));
+      setOrders(all.filter(o => ["paid", "pending", "confirmed", "preparing"].includes(o.status)));
     } catch { /* 기존 목록 유지 */ }
     finally { setLoading(false); }
   }, [storeId]);
@@ -46,7 +47,7 @@ const KitchenDisplay = () => {
       setOrders(prev =>
         prev
           .map(o => o.id === orderId ? { ...o, status: newStatus } : o)
-          .filter(o => ["pending", "confirmed", "preparing"].includes(o.status))
+          .filter(o => ["paid", "pending", "confirmed", "preparing"].includes(o.status))
       );
     } catch { fetchOrders(); }
   };
@@ -77,7 +78,7 @@ const KitchenDisplay = () => {
 
     const offUpd = onOrderUpdated((payload) => {
       if (String(payload.store_id) !== String(storeId)) return;
-      if (["pending", "confirmed", "preparing"].includes(payload.status)) {
+      if (["paid", "pending", "confirmed", "preparing"].includes(payload.status)) {
         setOrders(prev => prev.map(o => o.id === payload.order_id ? { ...o, status: payload.status } : o));
       } else {
         setOrders(prev => prev.filter(o => o.id !== payload.order_id));
@@ -155,7 +156,7 @@ const KitchenDisplay = () => {
         </div>
       </header>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {Object.entries(STATUS_CFG).map(([key, cfg]) => {
           const cnt = orders.filter(o => o.status === key).length;
           return (
