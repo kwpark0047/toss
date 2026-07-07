@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { wakeupServer } from '../api';
-import { Store, Phone, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
+import { Store, Phone, Lock, AlertCircle, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const isEmail = (value) => value.includes('@');
 
 const formatPhone = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -32,17 +30,10 @@ const Login = () => {
       .catch(() => setServerStatus('idle'));
   }, []);
 
+  // 핸드폰 번호 전용 — 입력을 항상 전화번호 형식으로 포맷
   const handleIdentifierChange = (e) => {
-    const raw = e.target.value;
-    // @ 포함이면 이메일 모드 — 그대로, 아니면 전화번호 포맷
-    if (raw.includes('@') || raw === '') {
-      setIdentifier(raw);
-    } else {
-      setIdentifier(formatPhone(raw));
-    }
+    setIdentifier(formatPhone(e.target.value));
   };
-
-  const isEmailMode = isEmail(identifier);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -102,35 +93,28 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700 ml-1">
-                핸드폰 번호 또는 이메일
+              <label htmlFor="login-phone" className="block text-sm font-bold text-slate-700 ml-1">
+                핸드폰 번호
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <AnimatePresence mode="wait">
-                    {isEmailMode ? (
-                      <motion.span key="mail" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-                        <Mail className="h-5 w-5 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
-                      </motion.span>
-                    ) : (
-                      <motion.span key="phone" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-                        <Phone className="h-5 w-5 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
+                  <Phone className="h-5 w-5 text-slate-400 group-focus-within:text-orange-500 transition-colors" aria-hidden="true" />
                 </div>
                 <input
-                  type="text"
+                  id="login-phone"
+                  type="tel"
                   value={identifier}
                   onChange={handleIdentifierChange}
                   required
-                  inputMode={isEmailMode ? 'email' : 'tel'}
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  maxLength={13}
                   className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all outline-none font-medium text-slate-900"
-                  placeholder="010-1234-5678 또는 name@email.com"
+                  placeholder="010-1234-5678"
                 />
               </div>
               <p className="text-xs text-slate-400 ml-1">
-                {isEmailMode ? '이메일 주소로 로그인합니다' : '핸드폰 번호로 로그인합니다'}
+                가입한 핸드폰 번호로 로그인합니다
               </p>
             </div>
 
