@@ -12,6 +12,7 @@ import OrderDetailModal from './OrderDetailModal';
 import EmptyState from '../common/EmptyState';
 
 const statusConfig = {
+  paid:      { label: '신규',    color: 'text-teal-500',    bg: 'bg-teal-50',    border: 'border-teal-200',   icon: CheckCircle,  next: 'preparing' },
   pending:   { label: '대기',    color: 'text-amber-500',   bg: 'bg-amber-50',   border: 'border-amber-200',  icon: Clock,        next: 'confirmed' },
   confirmed: { label: '확인',    color: 'text-blue-500',    bg: 'bg-blue-50',    border: 'border-blue-200',   icon: CheckCircle,  next: 'preparing' },
   preparing: { label: '조리 중', color: 'text-purple-500',  bg: 'bg-purple-50',  border: 'border-purple-200', icon: ChefHat,      next: 'ready' },
@@ -23,6 +24,7 @@ const statusConfig = {
 // 상태 필터 탭 순서
 const STATUS_TABS = [
   { key: 'all', label: '전체' },
+  { key: 'paid',      label: '신규' },
   { key: 'pending',   label: '대기' },
   { key: 'confirmed', label: '확인' },
   { key: 'preparing', label: '조리 중' },
@@ -80,7 +82,7 @@ const OrderManager = () => {
       const newOrders = res.data;
 
       if (!isFirstLoadRef.current && soundEnabledRef.current) {
-        const fresh = newOrders.filter(o => o.status === 'pending' && !prevOrderIdsRef.current.has(o.id));
+        const fresh = newOrders.filter(o => (o.status === 'pending' || o.status === 'paid') && !prevOrderIdsRef.current.has(o.id));
         if (fresh.length > 0) {
           notificationSound.playNewOrder();
           setNewOrderAlert(true);
@@ -148,7 +150,7 @@ const OrderManager = () => {
     return counts;
   }, [orders]);
 
-  const pendingCount = (statusCounts.pending || 0) + (statusCounts.confirmed || 0);
+  const pendingCount = (statusCounts.paid || 0) + (statusCounts.pending || 0) + (statusCounts.confirmed || 0);
 
   const toggleSound = useCallback(() => {
     notificationSound.init();
