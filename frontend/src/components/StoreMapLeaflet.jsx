@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { bizLabel } from '../utils/businessType';
+import { bizLabel, bizIcon } from '../utils/businessType';
 
 /**
  * StoreMapLeaflet — API 키 없이 동작하는 OpenStreetMap(Leaflet) 지도.
@@ -116,17 +116,23 @@ export default function StoreMapLeaflet({ stores = [], coords = null, onSelect }
 
     const pts = [];
 
-    // 매장 마커 (오렌지 핀)
-    const orangeIcon = L.divIcon({
-      className: '',
-      html: `<div style="width:30px;height:30px;background:linear-gradient(135deg,#f97316,#e11d48);border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 4px 10px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;"><div style="width:10px;height:10px;background:#fff;border-radius:50%;transform:rotate(45deg)"></div></div>`,
-      iconSize: [30, 30],
-      iconAnchor: [15, 30],
-    });
+    // 업종별 아이콘 핀 생성 (색상 테두리 + 이모지)
+    const makeIcon = (biz) => {
+      const { e, c } = bizIcon(biz);
+      return L.divIcon({
+        className: '',
+        html: `<div style="position:relative;width:34px;height:42px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.3))">`
+          + `<div style="width:34px;height:34px;background:#fff;border:2.5px solid ${c};border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;">`
+          + `<span style="transform:rotate(45deg);font-size:16px;line-height:1;">${e}</span></div></div>`,
+        iconSize: [34, 42],
+        iconAnchor: [17, 40],
+        popupAnchor: [0, -38],
+      });
+    };
 
     stores.forEach((s) => {
       if (s.latitude == null || s.longitude == null) return;
-      const m = L.marker([s.latitude, s.longitude], { icon: orangeIcon, title: s.name }).addTo(layer);
+      const m = L.marker([s.latitude, s.longitude], { icon: makeIcon(s.business_type), title: s.name }).addTo(layer);
       // 팝업은 DOM API로 구성해 매장 데이터를 안전하게 이스케이프(XSS 방지)
       m.bindPopup(buildPopup(s));
       m.on('click', () => onSelect?.(s));
@@ -148,9 +154,26 @@ export default function StoreMapLeaflet({ stores = [], coords = null, onSelect }
     else if (pts.length > 1) map.fitBounds(pts, { padding: [50, 50], maxZoom: 15 });
   }, [stores, coords, status, onSelect]);
 
+  // 현재 표시 매장의 업종 범례(상위 6종)
+  const legend = (() => {
+    const counts = {};
+    stores.forEach(s => { if (s.latitude != null && s.business_type) counts[s.business_type] = (counts[s.business_type] || 0) + 1; });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6)
+      .map(([code]) => ({ code, ...bizIcon(code), label: bizLabel(code) }));
+  })();
+
   return (
     <div className="relative">
       <div ref={elRef} className="w-full h-[420px] rounded-3xl overflow-hidden border border-gray-100 shadow-sm bg-gray-100 z-0" />
+      {status === 'ready' && legend.length > 0 && (
+        <div className="absolute bottom-3 left-3 z-[400] bg-white/90 backdrop-blur rounded-xl shadow-md border border-gray-100 px-3 py-2 flex flex-wrap gap-x-3 gap-y-1 max-w-[calc(100%-24px)]">
+          {legend.map(l => (
+            <span key={l.code} className="flex items-center gap-1 text-[11px] font-bold text-gray-600">
+              <span aria-hidden="true">{l.e}</span> {l.label}
+            </span>
+          ))}
+        </div>
+      )}
       {status === 'loading' && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-50/80 rounded-3xl">
           <p className="text-sm text-gray-500 font-bold">지도를 불러오는 중…</p>

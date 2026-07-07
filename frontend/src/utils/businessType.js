@@ -20,3 +20,44 @@ const BIZ_TYPE_LABEL = {
 export function bizLabel(code) {
   return BIZ_TYPE_LABEL[code] || code;
 }
+
+// 업종 → 지도 아이콘(이모지) + 대표색. 유사 업종은 같은 아이콘으로 그룹화.
+const BIZ_ICON = {
+  korean:      { e: '🍚', c: '#f97316' },
+  bbq:         { e: '🥩', c: '#b91c1c' },
+  naengmyeon:  { e: '🍜', c: '#f97316' },
+  soup_health: { e: '🍲', c: '#f97316' },
+  cafe:        { e: '☕', c: '#a16207' },
+  tea_house:   { e: '☕', c: '#a16207' },
+  traditional_tea: { e: '🍵', c: '#a16207' },
+  live_cafe:   { e: '☕', c: '#a16207' },
+  tteok_cafe:  { e: '🍡', c: '#a16207' },
+  kids_cafe:   { e: '🧸', c: '#a16207' },
+  pub_chicken: { e: '🍗', c: '#d97706' },
+  chicken:     { e: '🍗', c: '#d97706' },
+  western:     { e: '🍝', c: '#e11d48' },
+  family_restaurant: { e: '🍽️', c: '#e11d48' },
+  bunsik:      { e: '🌭', c: '#ef4444' },
+  gimbap:      { e: '🍙', c: '#ef4444' },
+  japanese:    { e: '🍣', c: '#0ea5e9' },
+  sashimi:     { e: '🐟', c: '#0ea5e9' },
+  blowfish:    { e: '🐡', c: '#0ea5e9' },
+  chinese:     { e: '🥟', c: '#eab308' },
+  convenience: { e: '🏪', c: '#22c55e' },
+  fast_food:   { e: '🍔', c: '#f59e0b' },
+  pub_alcohol: { e: '🍺', c: '#7c3aed' },
+  mood_pub:    { e: '🍸', c: '#7c3aed' },
+  karaoke_pub: { e: '🎤', c: '#7c3aed' },
+  ice_cream:   { e: '🍦', c: '#ec4899' },
+  snack_shop:  { e: '🍪', c: '#d97706' },
+  buffet:      { e: '🍽️', c: '#e11d48' },
+  foreign:     { e: '🌍', c: '#14b8a6' },
+  department_store: { e: '🏬', c: '#64748b' },
+  food_truck:  { e: '🚚', c: '#f97316' },
+};
+const DEFAULT_ICON = { e: '🍴', c: '#64748b' };
+
+/** 업종코드 → { e: 이모지, c: 색상 } */
+export function bizIcon(code) {
+  return BIZ_ICON[code] || DEFAULT_ICON;
+}
