@@ -81,7 +81,7 @@ const StoreSearch = () => {
   const fetchStores = async () => {
     setLoading(true);
     try {
-      const res = await storesAPI.getAll();
+      const res = await storesAPI.getAll({ limit: 200 });
       setStores(res.data);
       setFilteredStores(res.data);
       res.data.forEach(s => {

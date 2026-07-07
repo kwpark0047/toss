@@ -134,7 +134,8 @@ const MasterDashboard = () => {
                     }).catch(() => {});
                 return;
             }
-            const res = user?.role === 'super_admin' ? await storesAPI.getAll() : await storesAPI.getMy();
+            // super_admin은 전체(15만+)를 덤프하지 않고 최근 50개만 로드(관리 대상 선택용)
+            const res = user?.role === 'super_admin' ? await storesAPI.getAll({ limit: 50 }) : await storesAPI.getMy();
             list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
             setStores(list);
             if (list.length > 0) setSelectedStore(list[0]);
@@ -226,22 +227,31 @@ const MasterDashboard = () => {
         </div>
     );
 
-    /* ── 매장 없음 ── */
-    if (stores.length === 0) return (
-        <div className="flex flex-col items-center justify-center min-h-[70vh]">
-            <EmptyState
-                tone="dark"
-                icon="🏪"
-                title="등록된 매장이 없습니다"
-                description="팅커벨 도우미와 함께 첫 매장을 설정해보세요!"
-                action={
-                    <Button variant="gradient" size="lg" onClick={() => navigate('/admin/setup')} className="px-8">
-                        <Plus size={20} /> 첫 매장 만들기
-                    </Button>
-                }
-            />
-        </div>
-    );
+    /* ── 매장 없음 ── (super_admin은 매장 소유가 아닌 관리 주체이므로 온보딩 대신 관리 안내) */
+    if (stores.length === 0) {
+        const isSuper = user?.role === 'super_admin';
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[70vh]">
+                <EmptyState
+                    tone="dark"
+                    icon={isSuper ? '🛰️' : '🏪'}
+                    title={isSuper ? '관리할 매장을 찾지 못했습니다' : '등록된 매장이 없습니다'}
+                    description={isSuper ? '지역 커뮤니티/매장 검색에서 매장을 찾거나, 매장 정보 보강 도구를 사용하세요.' : '팅커벨 도우미와 함께 첫 매장을 설정해보세요!'}
+                    action={
+                        isSuper ? (
+                            <Button variant="gradient" size="lg" onClick={() => navigate('/admin/enrich-stores')} className="px-8">
+                                <Store size={20} /> 매장 정보 보강
+                            </Button>
+                        ) : (
+                            <Button variant="gradient" size="lg" onClick={() => navigate('/admin/setup')} className="px-8">
+                                <Plus size={20} /> 첫 매장 만들기
+                            </Button>
+                        )
+                    }
+                />
+            </div>
+        );
+    }
 
     /* ── 빠른 실행 메뉴 ── */
     const quickActions = [

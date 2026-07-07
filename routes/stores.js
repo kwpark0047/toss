@@ -8,8 +8,19 @@ const prisma = require('../config/prisma');
 const cache = require('../utils/cache');
 const { haversineKm } = require('../utils/geo');
 
-// 전체 매장 목록 조회 (관리자용, 활성+비활성 모두 포함)
+// 전체 매장 목록 조회. ?limit 지정 시 최소 필드·소량만 반환(대용량 덤프 방지).
+// (활성 매장 15만+ 전체 반환은 100MB+ 페이로드라 반드시 limit 사용 권장)
 router.get('/', catchAsync(async (req, res) => {
+    const limit = parseInt(req.query.limit) || 0;
+    if (limit > 0) {
+        const stores = await prisma.stores.findMany({
+            where: { is_active: true, NOT: [{ name: { contains: '?' } }, { name: { contains: '�' } }] },
+            select: { id: true, name: true, address: true, business_type: true, latitude: true, longitude: true },
+            take: Math.min(limit, 200),
+            orderBy: { id: 'desc' },
+        });
+        return res.success(stores);
+    }
     const stores = await Store.findAll();
     res.success(stores);
 }));
