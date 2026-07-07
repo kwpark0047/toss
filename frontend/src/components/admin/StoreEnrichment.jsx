@@ -78,10 +78,9 @@ export default function StoreEnrichment() {
       </header>
 
       {/* 안내 */}
-      <div className="mt-6 bg-white/5 border border-white/10 rounded-2xl p-5 text-sm text-slate-300 leading-relaxed">
-        상호명·주소를 기준으로 <b className="text-white">좌표·전화번호·업종</b>을 공식 API로 조회해 <b className="text-white">빈 항목만</b> 채웁니다.
-        커서 기반으로 조금씩 진행하며 언제든 중지할 수 있어요.
-        <span className="block mt-2 text-slate-500">※ 메뉴·사진·리뷰는 저작권상 자동 수집하지 않으며, 업주 셀프등록으로 채워집니다.</span>
+      <div className="mt-6 bg-white/5 border border-white/10 rounded-2xl p-3.5 text-[11px] text-slate-400 leading-snug">
+        상호명·주소 기준 <b className="text-slate-200 font-bold">좌표·전화번호·업종</b>을 공식 API로 조회해 <b className="text-slate-200 font-bold">빈 항목만</b> 채웁니다. 커서 기반으로 조금씩 진행하며 언제든 중지할 수 있어요.
+        <span className="block mt-1 text-[10px] text-slate-500">※ 메뉴·사진·리뷰는 저작권상 자동 수집하지 않으며, 업주 셀프등록으로 채워집니다.</span>
       </div>
 
       {/* 진행 통계 */}
