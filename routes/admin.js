@@ -470,4 +470,66 @@ router.get('/platform/trend', authMiddleware, requireSuper, catchAsync(async (re
     res.success({ days, daily: Object.values(buckets) });
 }));
 
+// === [서울 열린데이터 매장 보강 (일반음식점 LOCALDATA)] ===
+// 서울 오픈데이터 행을 우리 매장과 주소로 매칭해 업종·전화 보강 + 깨진 이름 교정.
+// 커서(startIndex) 기반, dryRun 지원. super_admin 전용.
+const seoulData = require('../services/seoulDataService');
+const { tmToWgs84 } = require('../utils/tmToWgs84');
+
+router.post('/enrich-seoul', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    if (!seoulData.isConfigured()) {
+        return res.status(503).json({ success: false, error: '서울 API 키(SEOUL_OPENAPI_KEYS)가 설정되지 않았습니다.' });
+    }
+    const size = Math.min(parseInt(req.body?.size) || 100, 300);
+    const start = Math.max(1, parseInt(req.body?.start) || 1);
+    const dryRun = req.body?.dryRun === true;
+
+    const { total, rows } = await seoulData.fetchPage(start, start + size - 1);
+
+    let matched = 0, updated = 0, nameFixed = 0, skipped = 0;
+    const skipReasons = { closed: 0, noDong: 0, noCandidate: 0, noNameMatch: 0 };
+    const samples = [];
+    for (const raw of rows) {
+        const r = seoulData.mapRow(raw);
+        if (r.state === '폐업') { skipped++; skipReasons.closed++; continue; }
+        if (!r.name) { skipped++; skipReasons.noDong++; continue; }
+        const dong = seoulData.dongOf(r.jibunAddr) || seoulData.dongOf(r.address);
+        if (!dong) { skipped++; skipReasons.noDong++; continue; }
+
+        // 동 범위 후보 조회 → 상호명 정규화 일치로 확정 (오매칭 방지)
+        const tNorm = seoulData.normName(r.name);
+        const candidates = await prisma.stores.findMany({
+            where: { address: { contains: dong } },
+            select: { id: true, name: true, address: true, phone: true, business_type: true, is_active: true, latitude: true },
+            take: 60,
+        });
+        if (!candidates.length) { skipped++; skipReasons.noCandidate++; continue; }
+
+        const store = candidates.find(c => !seoulData.hasCorruptName(c.name) && tNorm && seoulData.normName(c.name) === tNorm);
+        if (!store) { skipped++; skipReasons.noNameMatch++; continue; }
+
+        matched++;
+        const patch = {};
+        if (seoulData.hasCorruptName(store.name) && r.name && !seoulData.hasCorruptName(r.name)) { patch.name = r.name; nameFixed++; }
+        if (!store.business_type && r.businessType) patch.business_type = r.businessType;
+        if (!store.phone && r.phone) patch.phone = r.phone;
+        // 좌표 보강: 매장에 위경도 없고 서울데이터 TM 좌표가 있으면 변환해 채움
+        if (store.latitude == null && r.x && r.y) {
+            const g = tmToWgs84(r.x, r.y);
+            if (g && g.lat > 37.3 && g.lat < 37.75 && g.lng > 126.7 && g.lng < 127.3) {
+                patch.latitude = Math.round(g.lat * 1e6) / 1e6;
+                patch.longitude = Math.round(g.lng * 1e6) / 1e6;
+            }
+        }
+
+        if (Object.keys(patch).length && !dryRun) { await prisma.stores.update({ where: { id: store.id }, data: patch }); }
+        if (Object.keys(patch).length) { updated++; if (samples.length < 8) samples.push({ id: store.id, was: store.name, patch }); }
+    }
+
+    res.success({
+        dryRun, processed: rows.length, matched, updated, nameFixed, skipped, skipReasons,
+        nextStart: start + size, total, done: rows.length < size, samples,
+    }, `${rows.length}행 처리 · ${matched} 매칭 · ${updated} ${dryRun ? '보강예정' : '보강'}`);
+}));
+
 module.exports = router;

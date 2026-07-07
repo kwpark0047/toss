@@ -55,6 +55,38 @@ export default function StoreEnrichment() {
     }
   }, [cursor]);
 
+  // 서울 열린데이터(LOCALDATA) 보강 루프 — 커서=start 인덱스
+  const seoulCursor = useRef(1);
+  const runSeoul = useCallback(async () => {
+    stopRef.current = false;
+    setRunning(true);
+    setError('');
+    try {
+      while (!stopRef.current) {
+        const res = await adminAPI.enrichSeoul({ start: seoulCursor.current, size: 300 });
+        const d = res?.data || res;
+        seoulCursor.current = d.nextStart ?? seoulCursor.current;
+        setCursor(seoulCursor.current);
+        setTotals(t => ({
+          processed: t.processed + (d.processed || 0),
+          matched: t.matched + (d.matched || 0),
+          updated: t.updated + (d.updated || 0),
+        }));
+        addLog(`[서울 ${d.nextStart - d.processed}~] 처리 ${d.processed} · 매칭 ${d.matched} · 보강 ${d.updated}${d.nameFixed ? ` · 이름교정 ${d.nameFixed}` : ''}`, d.updated ? 'ok' : 'muted');
+        (d.samples || []).forEach(s => addLog(`  ✓ ${s.was} → ${Object.keys(s.patch).join(', ')}`, 'ok'));
+        if (d.done) { addLog('서울 데이터 전체 스캔 완료 🎉', 'ok'); break; }
+        await new Promise(r => setTimeout(r, 500));
+      }
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status === 503) setError('서울 API 키(SEOUL_OPENAPI_KEYS)가 서버에 설정되지 않았습니다.');
+      else if (status === 403) setError('최고관리자만 사용할 수 있습니다.');
+      else setError(e?.response?.data?.error || e.message || '오류가 발생했습니다.');
+    } finally {
+      setRunning(false);
+    }
+  }, []);
+
   const stop = () => { stopRef.current = true; };
 
   if (user && user.role !== 'super_admin') {
@@ -99,12 +131,18 @@ export default function StoreEnrichment() {
       <p className="text-[11px] text-slate-500 mt-2 text-center">현재 커서(마지막 매장 ID): <span className="tabular-nums text-slate-300">{cursor}</span></p>
 
       {/* 컨트롤 */}
-      <div className="flex gap-2 mt-5">
+      <div className="flex flex-col sm:flex-row gap-2 mt-5">
         {!running ? (
-          <button type="button" onClick={runLoop}
-            className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-600 text-white font-black shadow-lg shadow-orange-500/20 hover:brightness-105 active:scale-95 transition-all">
-            <Play size={18} aria-hidden="true" /> 보강 시작
-          </button>
+          <>
+            <button type="button" onClick={runLoop}
+              className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-600 text-white font-black shadow-lg shadow-orange-500/20 hover:brightness-105 active:scale-95 transition-all">
+              <Play size={18} aria-hidden="true" /> 네이버 보강 시작
+            </button>
+            <button type="button" onClick={runSeoul}
+              className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-white/5 border border-white/15 text-white font-black hover:bg-white/10 active:scale-95 transition-all">
+              <Play size={18} aria-hidden="true" /> 서울 데이터 보강
+            </button>
+          </>
         ) : (
           <button type="button" onClick={stop}
             className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-white/10 text-white font-black hover:bg-white/15 transition-all">

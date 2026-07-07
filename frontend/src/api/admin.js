@@ -10,6 +10,8 @@ export const adminAPI = {
   updateReceiptSettings: (storeId, data) => api.put(`/admin/stores/${storeId}/receipt-settings`, data),
   // 매장 정보 보강 (네이버 지역검색 API) — super_admin 전용, 커서 기반 배치
   enrichStores: ({ limit = 10, afterId = 0 } = {}) => api.post('/admin/enrich-stores', { limit, afterId }),
+  // 서울 열린데이터(일반음식점 LOCALDATA) 보강 — 커서(start) 기반 배치
+  enrichSeoul: ({ start = 1, size = 300, dryRun = false } = {}) => api.post('/admin/enrich-seoul', { start, size, dryRun }),
   // 슈퍼관리자 플랫폼 대시보드
   platformOverview: () => api.get('/admin/platform/overview'),
   platformStores: (params = {}) => api.get('/admin/platform/stores', { params }),
