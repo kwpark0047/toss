@@ -252,13 +252,12 @@ const LandingPage = () => {
                             <Sparkles size={14} className="animate-pulse" /> 모두의 메뉴판 플랫폼
                         </motion.div>
                         <motion.h1
-                            className="text-4xl md:text-6xl font-black leading-[1.18] mb-6 text-gray-900"
+                            className="text-4xl md:text-6xl font-black leading-[1.15] mb-6 text-gray-900 text-balance [word-break:keep-all]"
                             initial="hidden" animate="show"
-                            variants={{ show: { transition: { staggerChildren: 0.13, delayChildren: 0.15 } } }}
+                            variants={{ show: { transition: { staggerChildren: 0.14, delayChildren: 0.15 } } }}
                         >
                             {[
-                                <>모두의 메뉴판 플랫폼</>,
-                                <>1인 자영업자에</>,
+                                <><span className="text-gray-900">1인 자영업자</span>에게</>,
                                 <><span className="ai-gradient-text">AI 지원 단골리스트</span>를</>,
                                 <>만들어 드립니다.</>,
                             ].map((line, i) => (
