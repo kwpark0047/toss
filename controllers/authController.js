@@ -173,13 +173,16 @@ const login = async (req, res, next) => {
 
     if (!password) return next(new AppError('비밀번호를 입력해주세요.', 400));
 
-    const loginId = identifier || email;
+    const loginId = (identifier || email || '').trim();
     if (!loginId) return next(new AppError('핸드폰 번호 또는 이메일을 입력해주세요.', 400));
 
     let user = null;
 
     if (loginId.includes('@')) {
-      user = await prisma.users.findUnique({ where: { email: loginId } });
+      // 이메일은 대소문자 무시 + 공백 제거로 조회 (관례상 대소문자 구분 없음)
+      user = await prisma.users.findFirst({
+        where: { email: { equals: loginId, mode: 'insensitive' } },
+      });
     } else {
       const normalizedPhone = normalizePhone(loginId);
       const encryptedPhone  = encryptPhoneForSearch(normalizedPhone);
@@ -248,13 +251,18 @@ const updateProfile = async (req, res, next) => {
     }
 
     if (email !== undefined) {
-      if (email) {
+      // 이메일 정규화(trim + 소문자) — 로그인 조회·중복검사 일관성 확보
+      const normalizedEmail = email ? String(email).trim().toLowerCase() : null;
+      if (normalizedEmail) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+          return next(new AppError('이메일 형식이 올바르지 않습니다.', 400));
+        }
         const dup = await prisma.users.findFirst({
-          where: { email, NOT: { id: userId } },
+          where: { email: { equals: normalizedEmail, mode: 'insensitive' }, NOT: { id: userId } },
         });
         if (dup) return next(new AppError('이미 사용 중인 이메일입니다.', 409));
       }
-      updateData.email = email || null;
+      updateData.email = normalizedEmail;
       if (nextStep < 3) nextStep = 3;
     }
 
