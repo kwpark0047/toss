@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { adminAPI } from '../../api/admin';
 import { bizLabel } from '../../utils/businessType';
+import MiniBarChart from './MiniBarChart';
+import StoreDetailModal from './StoreDetailModal';
 
 const won = (n) => `₩${Number(n || 0).toLocaleString('ko-KR')}`;
 const num = (n) => Number(n || 0).toLocaleString('ko-KR');
@@ -24,23 +26,30 @@ export default function SuperAdminDashboard() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
+  const [region, setRegion] = useState('');
+  const [bizType, setBizType] = useState('');
+  const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
+  const [trend, setTrend] = useState([]);
+  const [trendMetric, setTrendMetric] = useState('orders'); // orders | sales | newStores
+  const [detailId, setDetailId] = useState(null);
 
   useEffect(() => {
     adminAPI.platformOverview().then(r => setOverview(r?.data || r)).catch(() => {});
+    adminAPI.platformTrend(14).then(r => setTrend((r?.data || r)?.daily || [])).catch(() => {});
   }, []);
 
   const fetchStores = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await adminAPI.platformStores({ page, search: query, limit: 20 });
+      const r = await adminAPI.platformStores({ page, search: query, region, business_type: bizType, status, limit: 20 });
       const d = r?.data || r;
       setRows(d.stores || []);
       setTotalPages(d.totalPages || 1);
       setTotal(d.total || 0);
     } catch { setRows([]); }
     finally { setLoading(false); }
-  }, [page, query]);
+  }, [page, query, region, bizType, status]);
 
   useEffect(() => { fetchStores(); }, [fetchStores]);
 
@@ -90,16 +99,50 @@ export default function SuperAdminDashboard() {
         </div>
       )}
 
-      {/* 매장 검색 */}
-      <form onSubmit={submitSearch} className="flex items-center gap-2 mb-4">
+      {/* 플랫폼 추이 차트 */}
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-black">최근 14일 플랫폼 추이</h2>
+          <div className="inline-flex bg-white/5 rounded-lg p-0.5">
+            {[['orders', '주문'], ['sales', '매출'], ['newStores', '신규매장']].map(([k, l]) => (
+              <button key={k} type="button" onClick={() => setTrendMetric(k)}
+                className={`px-3 h-7 rounded-md text-[11px] font-black transition-colors ${trendMetric === k ? 'bg-orange-500 text-white' : 'text-slate-400'}`}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <MiniBarChart
+          data={trend.map(d => ({ label: d.date.slice(5), value: d[trendMetric] }))}
+          color="#fb923c" height={130}
+          valueFormat={trendMetric === 'sales' ? won : num}
+        />
+      </div>
+
+      {/* 매장 검색 + 필터 */}
+      <form onSubmit={submitSearch} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-3">
         <div className="relative flex-1">
           <Search size={16} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input value={search} onChange={e => setSearch(e.target.value)} spellCheck={false}
             placeholder="상호·주소로 매장 검색…" aria-label="매장 검색"
             className="w-full h-11 pl-10 pr-3 rounded-2xl bg-white/5 border border-white/10 text-sm font-medium text-white placeholder:text-slate-600 outline-none focus:border-orange-500/50 focus-visible:ring-2 focus-visible:ring-orange-400/40" />
         </div>
-        <button type="submit" className="h-11 px-5 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-600 text-white font-black text-sm shadow-lg shadow-orange-500/20">검색</button>
+        <button type="submit" className="h-11 px-5 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-600 text-white font-black text-sm shadow-lg shadow-orange-500/20 shrink-0">검색</button>
       </form>
+      <div className="flex flex-wrap gap-2 mb-3">
+        <input value={region} onChange={e => { setPage(1); setRegion(e.target.value); }} placeholder="지역(예: 강남구)" aria-label="지역 필터"
+          className="h-9 px-3 rounded-xl bg-white/5 border border-white/10 text-xs font-medium outline-none focus:border-orange-500/50 w-36" />
+        <input value={bizType} onChange={e => { setPage(1); setBizType(e.target.value); }} placeholder="업종(예: 치킨)" aria-label="업종 필터"
+          className="h-9 px-3 rounded-xl bg-white/5 border border-white/10 text-xs font-medium outline-none focus:border-orange-500/50 w-36" />
+        <select value={status} onChange={e => { setPage(1); setStatus(e.target.value); }} aria-label="상태 필터"
+          className="h-9 px-3 rounded-xl bg-white/5 border border-white/10 text-xs font-medium outline-none focus:border-orange-500/50">
+          <option value="" className="bg-slate-900">전체 상태</option>
+          <option value="active" className="bg-slate-900">활성</option>
+          <option value="inactive" className="bg-slate-900">비활성</option>
+        </select>
+        {(region || bizType || status) && (
+          <button type="button" onClick={() => { setPage(1); setRegion(''); setBizType(''); setStatus(''); }}
+            className="h-9 px-3 rounded-xl bg-white/5 border border-white/10 text-xs font-black text-slate-400 hover:text-white">필터 초기화</button>
+        )}
+      </div>
       <p className="text-xs text-slate-500 font-bold mb-3">총 <span className="tabular-nums text-slate-300">{num(total)}</span>개 매장{query && ` · "${query}" 검색`}</p>
 
       {/* 매장 테이블 */}
@@ -133,12 +176,12 @@ export default function SuperAdminDashboard() {
             <div className="hidden md:block col-span-2 text-right text-sm font-bold tabular-nums text-orange-300">{won(s.sales)}</div>
             <div className="hidden md:block col-span-1 text-right text-sm font-bold tabular-nums">{num(s.customers)}</div>
             <div className="col-span-2 flex items-center justify-end gap-1.5">
-              <button type="button" onClick={() => navigate(`/admin/stores/${s.id}/orders`)} aria-label={`${s.name} 관리`}
-                className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg bg-white/5 border border-white/10 text-[11px] font-black text-slate-300 hover:bg-white/10 transition-colors">
-                <Settings size={13} aria-hidden="true" /> 관리
+              <button type="button" onClick={() => setDetailId(s.id)} aria-label={`${s.name} 상세`}
+                className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg bg-orange-500/15 border border-orange-500/30 text-[11px] font-black text-orange-300 hover:bg-orange-500/25 transition-colors">
+                <Settings size={13} aria-hidden="true" /> 상세
               </button>
               <button type="button" onClick={() => navigate(`/admin/stores/${s.id}/customers`)} aria-label={`${s.name} 고객·포인트`}
-                className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg bg-orange-500/15 border border-orange-500/30 text-[11px] font-black text-orange-300 hover:bg-orange-500/25 transition-colors">
+                className="hidden sm:inline-flex items-center gap-1 h-8 px-2.5 rounded-lg bg-white/5 border border-white/10 text-[11px] font-black text-slate-300 hover:bg-white/10 transition-colors">
                 <Gift size={13} aria-hidden="true" /> 포인트
               </button>
             </div>
@@ -159,6 +202,11 @@ export default function SuperAdminDashboard() {
             <ChevronRight size={16} aria-hidden="true" />
           </button>
         </div>
+      )}
+
+      {/* 매장 상세 드릴인 */}
+      {detailId && (
+        <StoreDetailModal storeId={detailId} onClose={() => setDetailId(null)} onChanged={fetchStores} />
       )}
     </div>
   );

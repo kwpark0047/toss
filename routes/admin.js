@@ -304,10 +304,16 @@ router.get('/platform/stores', authMiddleware, requireSuper, catchAsync(async (r
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(parseInt(req.query.limit) || 20, 50);
     const search = (req.query.search || '').trim();
+    const region = (req.query.region || '').trim();          // 지역(주소 부분일치)
+    const businessType = (req.query.business_type || '').trim();
+    const status = (req.query.status || '').trim();          // active | inactive | ''
 
     const where = {
         NOT: [{ name: { contains: '?' } }, { name: { contains: '�' } }],
         ...(search ? { OR: [{ name: { contains: search } }, { address: { contains: search } }] } : {}),
+        ...(region ? { address: { contains: region } } : {}),
+        ...(businessType ? { business_type: { contains: businessType } } : {}),
+        ...(status === 'active' ? { is_active: true } : status === 'inactive' ? { is_active: false } : {}),
     };
 
     const [total, stores] = await Promise.all([
@@ -341,6 +347,127 @@ router.get('/platform/stores', authMiddleware, requireSuper, catchAsync(async (r
     }));
 
     res.success({ stores: rows, page, limit, total, totalPages: Math.ceil(total / limit) });
+}));
+
+// 매장 상세 드릴인 (최근 주문 + 일별 매출/주문 추이)
+router.get('/platform/stores/:id/detail', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    const id = parseInt(req.params.id);
+    const days = Math.min(parseInt(req.query.days) || 14, 60);
+    const since = new Date(Date.now() - (days - 1) * 86400000);
+    since.setHours(0, 0, 0, 0);
+
+    const store = await prisma.stores.findUnique({
+        where: { id },
+        select: { id: true, name: true, address: true, business_type: true, phone: true, is_active: true, created_at: true },
+    });
+    if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다.' });
+
+    const [orders, custCount, pointAgg] = await Promise.all([
+        prisma.orders.findMany({
+            where: { store_id: id },
+            select: { id: true, order_number: true, status: true, total_amount: true, created_at: true, customer_phone: true },
+            orderBy: { created_at: 'desc' },
+            take: 200,
+        }),
+        prisma.store_customers.count({ where: { store_id: id } }),
+        prisma.point_transactions.aggregate({ where: { store_id: id }, _sum: { amount: true } }),
+    ]);
+
+    // 일별 매출/주문 버킷 (최근 days일)
+    const buckets = {};
+    for (let i = 0; i < days; i++) {
+        const d = new Date(since.getTime() + i * 86400000);
+        buckets[d.toISOString().slice(0, 10)] = { date: d.toISOString().slice(0, 10), sales: 0, orders: 0 };
+    }
+    let totalSales = 0;
+    for (const o of orders) {
+        totalSales += o.total_amount || 0;
+        const key = new Date(o.created_at).toISOString().slice(0, 10);
+        if (buckets[key]) { buckets[key].sales += o.total_amount || 0; buckets[key].orders += 1; }
+    }
+
+    res.success({
+        store,
+        summary: {
+            totalOrders: orders.length,
+            totalSales,
+            customers: custCount,
+            points: pointAgg._sum.amount || 0,
+        },
+        daily: Object.values(buckets),
+        recentOrders: orders.slice(0, 8),
+    });
+}));
+
+// 매장 활성/비활성 토글
+router.patch('/platform/stores/:id/active', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { is_active } = req.body;
+    const updated = await prisma.stores.update({ where: { id }, data: { is_active: !!is_active } });
+    return res.success({ id: updated.id, is_active: updated.is_active }, is_active ? '매장을 활성화했습니다.' : '매장을 비활성화했습니다.');
+}));
+
+// 슈퍼관리자 포인트 수동 지급/차감 (매장 컨텍스트)
+router.post('/platform/stores/:id/points', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    const storeId = parseInt(req.params.id);
+    const { phone, amount, reason } = req.body;
+    const amt = parseInt(amount);
+    if (!phone || !amt || isNaN(amt) || amt === 0) {
+        return res.status(400).json({ success: false, error: '전화번호와 0이 아닌 포인트 금액이 필요합니다.' });
+    }
+    const digits = String(phone).replace(/\D/g, '');
+    if (digits.length < 10) return res.status(400).json({ success: false, error: '전화번호 형식이 올바르지 않습니다.' });
+
+    const result = await prisma.$transaction(async (tx) => {
+        let up = await tx.user_points.findFirst({ where: { phone: digits } });
+        if (!up) {
+            if (amt < 0) throw new AppError('차감할 포인트 계정이 없습니다.', 400);
+            up = await tx.user_points.create({ data: { phone: digits, total_points: 0, lifetime_earned: 0, lifetime_used: 0 } });
+        }
+        const newTotal = (up.total_points || 0) + amt;
+        if (newTotal < 0) throw new AppError('보유 포인트보다 많이 차감할 수 없습니다.', 400);
+        const data = amt > 0
+            ? { total_points: { increment: amt }, lifetime_earned: { increment: amt } }
+            : { total_points: { increment: amt }, lifetime_used: { increment: -amt } };
+        await tx.user_points.update({ where: { id: up.id }, data });
+        await tx.point_transactions.create({
+            data: {
+                user_point_id: up.id, store_id: storeId, amount: amt,
+                type: amt > 0 ? 'ADMIN_GRANT' : 'ADMIN_DEDUCT',
+                balance_after: newTotal,
+                description: reason || (amt > 0 ? '관리자 지급' : '관리자 차감'),
+            },
+        });
+        return { balance: newTotal };
+    });
+    return res.success(result, `${amt > 0 ? '지급' : '차감'} 완료 (잔액 ${result.balance}P)`);
+}));
+
+// 플랫폼 추이 (일별 주문·매출·신규 매장) — 최근 N일
+router.get('/platform/trend', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    const days = Math.min(parseInt(req.query.days) || 14, 60);
+    const since = new Date(Date.now() - (days - 1) * 86400000);
+    since.setHours(0, 0, 0, 0);
+
+    const [orders, newStores] = await Promise.all([
+        prisma.orders.findMany({ where: { created_at: { gte: since } }, select: { total_amount: true, created_at: true } }),
+        prisma.stores.findMany({ where: { created_at: { gte: since } }, select: { created_at: true } }),
+    ]);
+
+    const buckets = {};
+    for (let i = 0; i < days; i++) {
+        const key = new Date(since.getTime() + i * 86400000).toISOString().slice(0, 10);
+        buckets[key] = { date: key, orders: 0, sales: 0, newStores: 0 };
+    }
+    for (const o of orders) {
+        const k = new Date(o.created_at).toISOString().slice(0, 10);
+        if (buckets[k]) { buckets[k].orders += 1; buckets[k].sales += o.total_amount || 0; }
+    }
+    for (const s of newStores) {
+        const k = new Date(s.created_at).toISOString().slice(0, 10);
+        if (buckets[k]) buckets[k].newStores += 1;
+    }
+    res.success({ days, daily: Object.values(buckets) });
 }));
 
 module.exports = router;

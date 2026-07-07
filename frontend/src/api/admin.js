@@ -12,7 +12,11 @@ export const adminAPI = {
   enrichStores: ({ limit = 10, afterId = 0 } = {}) => api.post('/admin/enrich-stores', { limit, afterId }),
   // 슈퍼관리자 플랫폼 대시보드
   platformOverview: () => api.get('/admin/platform/overview'),
-  platformStores: ({ page = 1, limit = 20, search = '' } = {}) => api.get('/admin/platform/stores', { params: { page, limit, search } }),
+  platformStores: (params = {}) => api.get('/admin/platform/stores', { params }),
+  platformTrend: (days = 14) => api.get('/admin/platform/trend', { params: { days } }),
+  storeDetail: (id, days = 14) => api.get(`/admin/platform/stores/${id}/detail`, { params: { days } }),
+  toggleStoreActive: (id, is_active) => api.patch(`/admin/platform/stores/${id}/active`, { is_active }),
+  grantPoints: (id, data) => api.post(`/admin/platform/stores/${id}/points`, data),
 };
 
 export const planRequestsAPI = {
