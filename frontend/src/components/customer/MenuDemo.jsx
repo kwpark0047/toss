@@ -806,9 +806,9 @@ const MenuDemo = () => {
                           <div className="flex items-center gap-2 bg-white border-2 border-emerald-200 rounded-xl px-4 py-3">
                             <Wifi size={13} className="text-emerald-500 flex-shrink-0" />
                             <input value={phone} onChange={e => setPhone(e.target.value)}
-                              className="flex-1 text-sm font-black text-slate-800 outline-none bg-transparent"
+                              className="flex-1 min-w-0 text-sm font-black text-slate-800 outline-none bg-transparent"
                               placeholder="010-0000-0000" />
-                            <span className="text-[9px] font-black text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full whitespace-nowrap">자동입력</span>
+                            <span className="shrink-0 text-[9px] font-black text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full whitespace-nowrap">자동입력</span>
                           </div>
                         </div>
 
