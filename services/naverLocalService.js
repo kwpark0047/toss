@@ -11,7 +11,8 @@ const logger = require('../utils/logger');
  *   NAVER_CLIENT_SECRET
  * 요청 한도: 지역검색 25,000 회/일 — 배치는 소량·지연으로 준수한다.
  */
-const CLIENT_ID = process.env.NAVER_CLIENT_ID || 'q99d_ku_rEavoFazPQX8';
+// 자격증명은 환경변수로만 주입(하드코딩 금지). 둘 다 설정돼야 isConfigured()가 true.
+const CLIENT_ID = process.env.NAVER_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET || '';
 const ENDPOINT = 'https://openapi.naver.com/v1/search/local.json';
 
