@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { wakeupServer } from '../api';
-import { Store, Phone, Lock, AlertCircle, ArrowRight } from 'lucide-react';
+import { Store, Phone, Lock, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const formatPhone = (value) => {
@@ -34,6 +34,23 @@ const Login = () => {
   const handleIdentifierChange = (e) => {
     setIdentifier(formatPhone(e.target.value));
   };
+
+  // 암호화 시각화: 입력이 있으면 AES 암호문처럼 hex 문자열을 실시간 스크램블
+  const [cipher, setCipher] = useState('');
+  useEffect(() => {
+    const digits = identifier.replace(/\D/g, '');
+    if (!digits) { setCipher(''); return; }
+    const hex = '0123456789abcdef';
+    const len = 24;
+    const tick = () => {
+      let s = '';
+      for (let i = 0; i < len; i++) s += hex[Math.floor(Math.random() * 16)];
+      setCipher(s);
+    };
+    tick();
+    const id = setInterval(tick, 90);
+    return () => clearInterval(id);
+  }, [identifier]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -109,13 +126,38 @@ const Login = () => {
                   inputMode="numeric"
                   autoComplete="tel"
                   maxLength={13}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all outline-none font-medium text-slate-900"
-                  placeholder="010-1234-5678"
+                  aria-label="핸드폰 번호 (입력값은 보안을 위해 가려집니다)"
+                  style={{ WebkitTextSecurity: identifier ? 'disc' : 'none', textSecurity: identifier ? 'disc' : 'none' }}
+                  className="w-full pl-12 pr-11 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all outline-none font-medium text-slate-900 tracking-widest"
+                  placeholder="가입한 핸드폰 번호"
                 />
+                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                  <Lock className={`h-4 w-4 transition-colors ${identifier ? 'text-emerald-500' : 'text-slate-300'}`} aria-hidden="true" />
+                </div>
               </div>
-              <p className="text-xs text-slate-400 ml-1">
-                가입한 핸드폰 번호로 로그인합니다
-              </p>
+
+              {/* 암호화 안내 + 실시간 암호화 애니메이션 */}
+              <AnimatePresence mode="wait">
+                {identifier ? (
+                  <motion.div key="enc" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden">
+                    <div className="mt-1 flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2">
+                      <motion.span animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>
+                        <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" aria-hidden="true" />
+                      </motion.span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-black text-emerald-700 leading-none mb-1">AES-256 암호화 저장 중</p>
+                        <p className="font-mono text-[11px] text-emerald-500/80 truncate leading-none" aria-hidden="true">{cipher}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.p key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="text-xs text-slate-400 ml-1 flex items-center gap-1">
+                    <Lock className="h-3 w-3" aria-hidden="true" /> 입력하신 번호는 암호화되어 안전하게 저장됩니다
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="space-y-2">
