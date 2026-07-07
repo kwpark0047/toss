@@ -26,8 +26,11 @@ const KitchenDisplay = () => {
   const [newAlert, setNewAlert] = useState(null);
   const alertTimerRef = useRef(null);
 
+  // 주방 디스플레이 접근 허용 역할 — 주문 처리 권한 보유자
+  // (실제 RBAC 역할: owner·manager·staff·kitchen·super_admin. owner 누락 버그 수정)
   useEffect(() => {
-    if (user && !["super_admin", "store_admin", "manager", "kitchen"].includes(user.role)) {
+    const ALLOWED = ["super_admin", "owner", "manager", "staff", "kitchen"];
+    if (user && !ALLOWED.includes(user.role)) {
       navigate("/");
     }
   }, [user, navigate]);
