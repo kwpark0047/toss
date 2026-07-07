@@ -134,12 +134,12 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
         {/* Main Area */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
           <header className={`h-14 lg:h-24 flex items-center justify-between px-4 lg:px-10 sticky top-0 z-20 ${tc.header}`}>
-            <div className="flex items-center gap-2.5 lg:hidden">
+            <Link to="/admin" aria-label="관리자 메인으로 이동" className="flex items-center gap-2.5 lg:hidden">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                <Store size={15} className="text-white" />
+                <Store size={15} className="text-white" aria-hidden="true" />
               </div>
               <span className={`font-black text-sm tracking-tight ${tc.logoText}`}>위마켓 관리자</span>
-            </div>
+            </Link>
 
             <div className={`hidden lg:flex items-center gap-3 px-4 py-2 rounded-full ${tc.operational}`}>
               <div className={`w-2 h-2 rounded-full animate-pulse ${tc.operationalDot}`} />

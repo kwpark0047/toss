@@ -58,15 +58,15 @@ export default function BusinessDemo() {
       {/* 사이드바 (데모, 데스크톱) */}
       <aside className="hidden lg:flex w-72 flex-col bg-slate-900/60 border-r border-white/5 pt-14">
         <div className="p-8">
-          <div className="flex items-center gap-3">
+          <Link to="/" aria-label="메인 페이지로 이동" className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-xl shadow-orange-500/20">
-              <Store className="w-6 h-6 text-white" />
+              <Store className="w-6 h-6 text-white" aria-hidden="true" />
             </div>
             <div>
               <span className="text-lg font-black tracking-tight block leading-none uppercase">WeMarket</span>
               <span className="text-[11px] text-slate-500 font-bold">관리자 센터</span>
             </div>
-          </div>
+          </Link>
         </div>
         <nav className="px-5 space-y-1">
           {NAV.map(({ label, icon: Icon, active }) => (
