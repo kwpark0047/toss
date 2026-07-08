@@ -500,6 +500,7 @@ model stores {
   api_keys                api_keys[]
   webhook_endpoints       webhook_endpoints[]
   print_jobs              print_jobs[]
+  store_favorites         store_favorites[]
 
   @@index([user_id], map: "idx_stores_user_id")
 }
@@ -941,4 +942,16 @@ model store_link_requests {
 
   @@index([status])
   @@index([user_id])
+}
+
+// 고객 찜한 매장 — 전화번호 기반 (비회원도 찜 가능)
+model store_favorites {
+  id              Int      @id @default(autoincrement())
+  customer_phone  String
+  store_id        Int
+  created_at      DateTime @default(now())
+  stores          stores   @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@unique([customer_phone, store_id])
+  @@index([customer_phone])
 }

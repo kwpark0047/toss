@@ -288,4 +288,70 @@ router.delete('/:id', authMiddleware, bridgeStoreId, checkStorePermission('store
     res.success(null, '매장이 삭제되었습니다');
 }));
 
+// ── 인기 매장 랭킹 (주문량 기준 상위 8개) ────────────────────────────
+router.get('/popular', catchAsync(async (req, res) => {
+    const stores = await prisma.stores.findMany({
+        where: { is_active: true, ...EXCLUDE_CORRUPT_NAME },
+        select: {
+            id: true, name: true, address: true, business_type: true,
+            latitude: true, longitude: true,
+            _count: { select: { orders: { where: { status: 'completed' } } } },
+        },
+        orderBy: { orders: { _count: 'desc' } },
+        take: 8,
+    });
+    const ranked = stores.map((s, i) => ({
+        rank: i + 1,
+        id: s.id,
+        name: s.name,
+        address: s.address,
+        business_type: s.business_type,
+        latitude: s.latitude,
+        longitude: s.longitude,
+        order_count: s._count.orders,
+    }));
+    res.success(ranked);
+}));
+
+// ── 찜한 매장 ───────────────────────────────────────────────────────────────────
+
+router.post('/favorites', catchAsync(async (req, res) => {
+    const { customer_phone, store_id } = req.body;
+    if (!customer_phone || !store_id) {
+        return res.status(400).json({ success: false, error: '전화번호와 매장ID가 필요합니다.' });
+    }
+    const existing = await prisma.store_favorites.findUnique({
+        where: { customer_phone_store_id: { customer_phone, store_id: parseInt(store_id) } }
+    });
+    if (existing) return res.success(existing, '이미 찜한 매장입니다.');
+    const fav = await prisma.store_favorites.create({
+        data: { customer_phone, store_id: parseInt(store_id) }
+    });
+    res.success(fav, '찜한 매장에 추가했습니다.');
+}));
+
+router.delete('/favorites', catchAsync(async (req, res) => {
+    const { customer_phone, store_id } = req.body;
+    if (!customer_phone || !store_id) {
+        return res.status(400).json({ success: false, error: '전화번호와 매장ID가 필요합니다.' });
+    }
+    await prisma.store_favorites.deleteMany({
+        where: { customer_phone, store_id: parseInt(store_id) }
+    });
+    res.success(null, '찜을 해제했습니다.');
+}));
+
+router.get('/favorites/:phone', catchAsync(async (req, res) => {
+    const list = await prisma.store_favorites.findMany({
+        where: { customer_phone: req.params.phone },
+        include: {
+            stores: {
+                select: { id: true, name: true, address: true, business_type: true, latitude: true, longitude: true, is_active: true }
+            }
+        },
+        orderBy: { created_at: 'desc' }
+    });
+    res.success(list.map(f => ({ ...f.stores, favorited_at: f.created_at })));
+}));
+
 module.exports = router;
