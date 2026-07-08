@@ -27,7 +27,7 @@ const OrderHistory = () => {
     const [activeStore, setActiveStore] = useState(null);
 
     // 로컬 스토리지에서 사용자 정보 가져오기 (식별용)
-    const userPhone = localStorage.getItem('user_phone');
+    const userPhone = localStorage.getItem('wm_customer_phone') || localStorage.getItem('user_phone');
     const tossUserKey = localStorage.getItem('toss_user_key');
 
     // 리뷰 모달 관련 상태
@@ -308,7 +308,17 @@ const OrderHistory = () => {
                                                     <span className="text-base font-black text-slate-950 tracking-tighter">{formatPrice(order.total_amount, true)}</span>
                                                 </div>
                                                 {order.status === 'completed' && (
-                                                    <div className="mt-3 flex justify-end">
+                                                    <div className="mt-3 flex justify-end gap-2">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                navigate(`/menu/${order.store_id}`);
+                                                            }}
+                                                            className="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95 flex items-center gap-1"
+                                                        >
+                                                            <RefreshCw size={10} />
+                                                            다시 주문하기
+                                                        </button>
                                                         <button
                                                             disabled={reviewedOrderIds.has(order.id)}
                                                             onClick={(e) => {
