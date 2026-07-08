@@ -10,6 +10,7 @@ import { wakeupServer } from "@/api/wakeup";
 import { useKioskMode } from "@/hooks/useKioskMode";
 import { withOfflineCache } from "@/utils/menuCache";
 import { requestNotificationPermission } from "@/firebase";
+import { addRecentStore } from "@/utils/recentStores";
 import EmptyState from "@/components/common/EmptyState";
 import { Maximize2 } from "lucide-react";
 
@@ -197,6 +198,11 @@ const MenuPage = () => {
     enabled: isNumericStoreId,
     ...coldStartRetry,
   });
+
+  // 최근 본 매장 추적
+  useEffect(() => {
+    if (profile?.store_name) addRecentStore(profile);
+  }, [profile]);
 
   // Fetch categories
   const { data: categories = [] } = useQuery({

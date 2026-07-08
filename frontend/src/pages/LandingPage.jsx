@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import StoreLocator from '../components/StoreLocator';
+import { storesAPI } from '../api/stores';
+import { getRecentStores } from '../utils/recentStores';
 import {
     QrCode, Store, Bell, CreditCard, Clock, BarChart3,
     Users, Smartphone, Check, ArrowRight, Menu, X, ChevronRight,
@@ -20,6 +22,15 @@ const LandingPage = () => {
     const [uuidStr, setUuidStr] = useState('');
     const [cycleKey, setCycleKey] = useState(0); // 사이클 재시작 트리거
     const DEMO_UUID = 'a3f9-bc2e-7d81-4f0a';
+    const [popularStores, setPopularStores] = useState([]);
+    const [popularLoading, setPopularLoading] = useState(true);
+    const [recentStores] = useState(() => getRecentStores());
+
+    useEffect(() => {
+        storesAPI.getPopular().then(res => {
+            setPopularStores(Array.isArray(res) ? res : (res?.data || []));
+        }).catch(() => {}).finally(() => setPopularLoading(false));
+    }, []);
 
     // 히어로 폰 목업 자동 순환 — cycleKey가 바뀔 때만 재실행
     useEffect(() => {
@@ -763,6 +774,98 @@ const LandingPage = () => {
                     </div>
                 </div>
             </section>
+
+            {/* ══════════════════════════════════════════════
+                인기 매장 랭킹 (주문량 TOP 8)
+            ══════════════════════════════════════════════ */}
+            <section id="popular" className="py-24 px-6 bg-white">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-12">
+                        <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm font-bold mb-4">
+                            <TrendingUp size={14} /> 인기 매장
+                        </span>
+                        <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">지금 가장 뜨거운 매장</h2>
+                        <p className="text-gray-500">주문이 가장 많은 인기 매장을 확인하고 빠르게 주문하세요.</p>
+                    </div>
+
+                    {popularLoading ? (
+                        <div className="flex gap-4 overflow-x-auto pb-4">
+                            {[1,2,3,4].map(i => (
+                                <div key={i} className="skeleton shrink-0 w-56 h-64 rounded-2xl" />
+                            ))}
+                        </div>
+                    ) : popularStores.length === 0 ? null : (
+                        <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
+                            {popularStores.map((store, i) => {
+                                const rankColors = ['bg-amber-500', 'bg-gray-400', 'bg-amber-700', 'bg-gray-300', 'bg-gray-300', 'bg-gray-300', 'bg-gray-300', 'bg-gray-300'];
+                                return (
+                                    <motion.div key={store.id}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: i * 0.06 }}
+                                        className="snap-start shrink-0">
+                                        <Link to={`/menu/${store.id}`}
+                                            className="block w-56 bg-white border border-gray-100 rounded-2xl p-5 hover:border-orange-200 hover:shadow-lg transition-all group h-full">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className={`w-9 h-9 rounded-xl ${rankColors[i] || 'bg-gray-300'} flex items-center justify-center text-white font-black text-sm shadow-sm`}>
+                                                    {store.rank}
+                                                </div>
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shrink-0 shadow-sm">
+                                                    <Store size={18} className="text-white" />
+                                                </div>
+                                            </div>
+                                            <h3 className="font-black text-gray-900 truncate">{store.name}</h3>
+                                            {store.address && (
+                                                <p className="text-xs text-gray-500 mt-1.5 line-clamp-2">{store.address}</p>
+                                            )}
+                                            <div className="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
+                                                <span className="text-[11px] text-gray-400 font-bold">
+                                                    {store.business_type || '일반'}
+                                                </span>
+                                                <span className="text-[11px] font-bold text-orange-500 flex items-center gap-1">
+                                                    <ShoppingCart size={10} />
+                                                    {store.order_count?.toLocaleString()}회
+                                                </span>
+                                            </div>
+                                        </Link>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            {recentStores.length > 0 && (
+            <section className="py-12 px-6 bg-gradient-to-b from-white to-slate-50/50">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex items-center justify-between mb-6 px-1">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
+                                <Clock size={15} className="text-slate-500" />
+                            </div>
+                            <h2 className="font-black text-gray-900 text-lg">최근 본 매장</h2>
+                        </div>
+                        <Link to="/stores" className="text-xs font-bold text-orange-500 hover:text-orange-600 transition-colors">
+                            전체보기 <ChevronRight size={14} className="inline" />
+                        </Link>
+                    </div>
+                    <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
+                        {recentStores.map(store => (
+                            <Link key={store.id} to={`/menu/${store.id}`}
+                                className="snap-start shrink-0 w-40 bg-white border border-gray-100 rounded-xl p-4 hover:border-orange-200 hover:shadow-md transition-all">
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center mb-2.5 shadow-sm">
+                                    <Store size={16} className="text-white" />
+                                </div>
+                                <h3 className="font-bold text-gray-900 text-sm truncate">{store.name}</h3>
+                                <p className="text-[10px] text-gray-400 mt-1 truncate">{store.business_type || store.address || ''}</p>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            </section>
+            )}
 
             {/* ══════════════════════════════════════════════
                 매장 위치 (지역·업종·고객위치 검색)
