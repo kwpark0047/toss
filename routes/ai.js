@@ -17,6 +17,7 @@ router.post("/describe-menu", validateBody(["name"]), catchAsync(async (req, res
 router.post("/recommend", validateId(["store_id"]), catchAsync(async (req, res) => {
     const { store_id, preferences, weather, mood, phone, toss_user_key } = req.body;
     const time = new Date().toLocaleTimeString("ko-KR");
+    const hour = new Date().getHours();
 
     let pastOrders = [];
     if (phone || toss_user_key) {
@@ -44,17 +45,54 @@ router.post("/recommend", validateId(["store_id"]), catchAsync(async (req, res) 
         return res.json({ recommendations: [] });
     }
 
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    const trendingData = await prisma.order_items.groupBy({
+        by: ['product_id'],
+        where: {
+            product_id: { not: null },
+            created_at: { gte: sixHoursAgo },
+            orders: {
+                store_id: parseInt(store_id),
+            }
+        },
+        _count: { product_id: true },
+        orderBy: { _count: { product_id: 'desc' } },
+        take: 5,
+    });
+
+    const trendingProductIds = trendingData.map(t => t.product_id).filter(Boolean);
+    const trendingNames = trendingProductIds.length > 0
+        ? await prisma.products.findMany({
+            where: { id: { in: trendingProductIds } },
+            select: { name: true },
+        }).then(rows => rows.map(r => r.name))
+        : [];
+
+    const timePeriod =
+        hour >= 5 && hour < 10 ? '아침 (조식)' :
+        hour >= 10 && hour < 15 ? '점심 (중식)' :
+        hour >= 15 && hour < 17 ? '오후 간식' :
+        hour >= 17 && hour < 22 ? '저녁 (석식)' : '야식';
+
+    const timeContext = {
+        period: timePeriod,
+        is_meal_time: [5, 10, 15, 17].some(h => Math.abs(hour - h) <= 2),
+    };
+
     const recommendations = await aiService.recommendMenus(
-        { preferences, time, weather, mood, pastOrders },
+        { preferences, time, weather, mood, pastOrders, trendingItems: trendingNames, timePeriod, timeContext },
         menuList
     );
 
     const enrichedRecommendations = recommendations.map(rec => {
         const menu = menuList.find(m => m.id === rec.id);
         if (!menu) return null;
+        const isTrending = trendingProductIds.includes(menu.id);
         return {
             ...menu,
-            recommend_reason: rec.reason
+            recommend_reason: rec.reason,
+            is_trending: isTrending,
+            time_period: timePeriod,
         };
     }).filter(Boolean);
 
@@ -216,6 +254,39 @@ router.post("/recommend-pairing", validateId(["store_id"]), catchAsync(async (re
     }));
 
     res.json({ recommendations: enrichedRecommendations.sort((a, b) => b.pairing_score - a.pairing_score) });
+}));
+
+// [POST] AI 메뉴 이미지 생성/검색 — 유료 구독자(plan !== 'free') 전용
+router.post("/generate-menu-image", validateBody(["store_id", "name"]), catchAsync(async (req, res) => {
+    const { store_id, name, category, description } = req.body;
+    const storeId = parseInt(store_id);
+
+    // 요금제 체크: free가 아닌 구독자만 사용 가능
+    const store = await prisma.stores.findUnique({
+        where: { id: storeId },
+        select: { plan: true },
+    });
+
+    if (!store) {
+        return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다.' });
+    }
+
+    if (store.plan === 'free') {
+        return res.status(403).json({
+            success: false,
+            error: 'AI 메뉴 이미지 생성은 유료 구독자 전용 기능입니다. 설정 > 요금제에서 업그레이드해 주세요.',
+        });
+    }
+
+    const result = await aiService.generateMenuImage({ name, category, description });
+
+    res.json({
+        success: true,
+        data: {
+            imageUrl: result.imageUrl,
+            keyword: result.keyword,
+        },
+    });
 }));
 
 module.exports = router;

@@ -90,6 +90,7 @@ export const aiAPI = {
   recommendPersonalized: (data) => api.post('/ai/recommend', data),
   recommendDessert: (data) => api.post('/ai/recommend-dessert', data),
   proposeMenuFull: (data) => api.post('/ai/propose-menu-full', data),
+  generateMenuImage: (data) => api.post('/ai/generate-menu-image', data),
 };
 
 export const getSocket = () => {

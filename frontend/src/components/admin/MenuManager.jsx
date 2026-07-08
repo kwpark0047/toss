@@ -1022,6 +1022,8 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiImageLoading, setAiImageLoading] = useState(false);
+  const [storePlan, setStorePlan] = useState('free');
   const [uploading, setUploading] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [optionEditorKey, setOptionEditorKey] = useState(0);
@@ -1036,6 +1038,14 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
       } catch { /* 옵션 템플릿 없음 */ }
     };
     loadTemplates();
+
+    (async () => {
+      try {
+        const res = await storesAPI.getById(storeId);
+        const storeData = res?.data || res;
+        if (storeData?.plan) setStorePlan(storeData.plan);
+      } catch { /* 무시 */ }
+    })();
   }, [storeId]);
 
   const handleFileUpload = async (e, field) => {
@@ -1108,6 +1118,35 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
       if (res?.description) setForm(prev => ({ ...prev, description: res.description }));
     } catch (e) { handleApiError(e, 'AI 설명 생성 중 오류가 발생했습니다'); }
     finally { setAiLoading(false); }
+  };
+
+  const handleGenerateMenuImage = async () => {
+    if (!form.name) { toast.warn('메뉴 이름을 입력해야 AI 이미지를 생성할 수 있습니다.'); return; }
+    setAiImageLoading(true);
+    try {
+      const catName = categories.find(c => c.id === parseInt(form.category_id))?.name || '';
+      const res = await aiAPI.generateMenuImage({
+        store_id: parseInt(storeId),
+        name: form.name,
+        category: catName,
+        description: form.description,
+      });
+      const url = res?.data?.imageUrl || res?.imageUrl;
+      if (url) {
+        setForm(prev => ({ ...prev, image_url: url }));
+        setImageInfo(null);
+        toast.success('AI 이미지가 생성되었습니다.');
+      } else {
+        toast.warn('이미지를 찾을 수 없습니다. 다시 시도해 주세요.');
+      }
+    } catch (e) {
+      if (e?.response?.status === 403) {
+        toast.warn('AI 메뉴 이미지 생성은 유료 구독자 전용입니다. 설정 > 요금제에서 업그레이드해 주세요.');
+      } else {
+        handleApiError(e, 'AI 이미지 생성 중 오류가 발생했습니다');
+      }
+    }
+    finally { setAiImageLoading(false); }
   };
 
   const applyTemplate = (tpl) => {
@@ -1341,6 +1380,15 @@ const ProductModal = ({ storeId, categories, product, onClose, onSave }) => {
                     {uploading ? '업로드 중...' : '파일 선택'}
                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'image_url')} />
                   </label>
+                  {storePlan !== 'free' && (
+                    <button
+                      type="button" onClick={handleGenerateMenuImage} disabled={aiImageLoading}
+                      className="shrink-0 flex items-center justify-center gap-2 px-5 h-14 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white rounded-2xl hover:brightness-110 active:scale-95 transition-all font-black text-xs disabled:opacity-50"
+                    >
+                      <Sparkles size={16} className={aiImageLoading ? 'animate-spin' : ''} />
+                      {aiImageLoading ? 'AI 생성 중...' : 'AI 이미지'}
+                    </button>
+                  )}
                 </div>
 
                 {/* 이미지 파일 정보 */}

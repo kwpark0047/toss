@@ -1,18 +1,68 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { aiAPI } from '@/api';
-import { Sparkles, Plus } from 'lucide-react';
+import { Sparkles, Plus, Sun, Moon, CloudSun, CloudRain, TrendingUp } from 'lucide-react';
+
+const TIME_ICONS = {
+  morning: Sun,
+  lunch: Sun,
+  snack: CloudSun,
+  dinner: CloudSun,
+  night: Moon,
+};
+
+const TIME_LABELS = {
+  morning: '아침',
+  lunch: '점심',
+  snack: '오후 간식',
+  dinner: '저녁',
+  night: '야식',
+};
+
+const WEATHER_ICONS = {
+  sunny: Sun,
+  cloudy: CloudSun,
+  rainy: CloudRain,
+  snowy: CloudRain,
+};
+
+const WEATHER_EMOJIS = {
+  sunny: '☀️',
+  cloudy: '⛅',
+  rainy: '🌧️',
+  snowy: '🌨️',
+};
+
+function getTimePeriod() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 10) return 'morning';
+  if (h >= 10 && h < 15) return 'lunch';
+  if (h >= 15 && h < 17) return 'snack';
+  if (h >= 17 && h < 22) return 'dinner';
+  return 'night';
+}
+
+function getSeasonEmoji() {
+  const m = new Date().getMonth();
+  if (m >= 3 && m <= 5) return '🌸'; // 봄
+  if (m >= 6 && m <= 8) return '🌻'; // 여름
+  if (m >= 9 && m <= 11) return '🍂'; // 가을
+  return '❄️'; // 겨울
+}
 
 /**
- * PersonalizedRecommendations (F9) — AI 개인화 메뉴 추천.
+ * PersonalizedRecommendations (F9) — AI 개인화 메뉴 추천 (고도화).
  *
- * 고객 주문 이력(localStorage의 전화번호 기반)을 참고해 Gemini가 오늘의 추천
- * 메뉴를 제안한다. 전화번호가 없으면 상황(시간/기본) 기반 일반 추천을 보여준다.
- * 실패/빈 결과 시 아무것도 렌더하지 않아 메뉴 흐름을 방해하지 않는다.
+ * 시간대·날씨(간이 추정)·실시간 트렌드를 AI 프롬프트에 주입해 더 정확한
+ * 추천을 제공한다. 실패/빈 결과 시 아무것도 렌더하지 않는다.
  */
 export default function PersonalizedRecommendations({ storeId, storeOpen, onAddToCart, menuItems = [] }) {
   const [recs, setRecs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [phone, setPhone] = useState(null);
+
+  const timePeriod = useMemo(() => getTimePeriod(), []);
+  const TimeIcon = TIME_ICONS[timePeriod];
+  const seasonEmoji = useMemo(() => getSeasonEmoji(), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,6 +74,8 @@ export default function PersonalizedRecommendations({ storeId, storeOpen, onAddT
         const res = await aiAPI.recommend({
           store_id: Number(storeId),
           phone: savedPhone || undefined,
+          preferences: savedPhone ? undefined : '일반',
+          weather: '', // 서버에서 기본값 "맑음" 처리
         });
         const data = res?.data || res;
         if (!cancelled) setRecs((data?.recommendations || []).slice(0, 3));
@@ -36,22 +88,44 @@ export default function PersonalizedRecommendations({ storeId, storeOpen, onAddT
     return () => { cancelled = true; };
   }, [storeId]);
 
-  // 로딩 중이거나 추천이 없으면 렌더하지 않음 (메뉴 흐름 방해 최소화)
   if (loading || recs.length === 0) return null;
 
-  // 추천 항목을 실제 메뉴 데이터와 매칭(이미지/품절 등 최신 정보 반영)
   const resolve = (rec) => menuItems.find((m) => m.id === rec.id) || rec;
+  const hasTrending = recs.some(r => r.is_trending);
 
   return (
     <div className="container mx-auto px-4 pt-4">
       <div className="rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-fuchsia-500/5 p-4">
+        {/* 헤더: 시간대 + 계절 */}
         <div className="flex items-center gap-2 mb-3">
           <Sparkles size={16} className="text-orange-400" />
-          <h3 className="tds-body-strong text-white">
+          <h3 className="font-bold text-white text-sm">
             {phone ? '고객님을 위한 오늘의 추천' : '오늘의 추천 메뉴'}
           </h3>
           <span className="text-[10px] font-bold text-orange-300 bg-orange-500/15 px-1.5 py-0.5 rounded">AI</span>
         </div>
+
+        {/* 시간대/계절 뱃지 */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white/70 bg-white/10 px-2 py-1 rounded-full">
+            <TimeIcon size={11} aria-hidden="true" />
+            {TIME_LABELS[timePeriod]}
+          </span>
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white/70 bg-white/10 px-2 py-1 rounded-full">
+            {seasonEmoji}
+            {['🌸', '🌻', '🍂', '❄️'].indexOf(seasonEmoji) === 0 ? '봄' :
+             ['🌸', '🌻', '🍂', '❄️'].indexOf(seasonEmoji) === 1 ? '여름' :
+             ['🌸', '🌻', '🍂', '❄️'].indexOf(seasonEmoji) === 2 ? '가을' : '겨울'}
+          </span>
+          {hasTrending && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-300 bg-rose-500/15 px-2 py-1 rounded-full">
+              <TrendingUp size={11} aria-hidden="true" />
+              인기
+            </span>
+          )}
+        </div>
+
+        {/* 추천 목록 */}
         <div className="space-y-2">
           {recs.map((rec) => {
             const item = resolve(rec);
@@ -62,15 +136,20 @@ export default function PersonalizedRecommendations({ storeId, storeOpen, onAddT
                   <img src={item.image_url} alt={item.name} className="w-12 h-12 rounded-lg object-cover shrink-0" loading="lazy" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="tds-label text-white truncate">{item.name}</p>
-                  <p className="tds-caption text-orange-200/80 truncate">{rec.recommend_reason || '추천 메뉴'}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-bold text-white text-sm truncate">{item.name}</p>
+                    {rec.is_trending && (
+                      <span className="shrink-0 text-[9px] font-black text-rose-400 bg-rose-500/20 px-1 py-0.5 rounded">HOT</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-orange-200/80 truncate leading-tight mt-0.5">{rec.recommend_reason || '추천 메뉴'}</p>
                 </div>
-                <span className="tds-label text-white shrink-0">{(item.price || 0).toLocaleString('ko-KR')}원</span>
+                <span className="font-bold text-white text-sm shrink-0">{(item.price || 0).toLocaleString('ko-KR')}원</span>
                 {onAddToCart && !soldOut && storeOpen && (
                   <button
                     onClick={() => onAddToCart(item)}
                     aria-label={`${item.name} 담기`}
-                    className="shrink-0 w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center"
+                    className="shrink-0 w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600 active:scale-90 transition-all"
                   >
                     <Plus size={15} />
                   </button>

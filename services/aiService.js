@@ -122,9 +122,8 @@ class AIService {
      * @returns {Promise<Array>} 추천 메뉴 목록 및 추천 사유
      */
     async recommendMenus(context, menuList) {
-        const { preferences, time, weather = "맑음", mood = "보통", pastOrders = [] } = context;
-        // 메뉴 ID들의 해시값 대신 간단한 키 조합 사용
-        const cacheKey = `rec_${preferences}_${weather}_${mood}_${pastOrders.length}_${menuList.length}`;
+        const { preferences, time, weather = "맑음", mood = "보통", pastOrders = [], trendingItems = [], timePeriod = '' } = context;
+        const cacheKey = `rec_${preferences}_${weather}_${mood}_${pastOrders.length}_${trendingItems.length}_${menuList.length}`;
 
         if (this.cache.has(cacheKey)) {
             logger.debug(`[AI] 캐시된 추천 결과를 반환합니다.`);
@@ -136,11 +135,19 @@ class AIService {
       당신은 매장의 전문 매니저입니다. 고객의 상황과 선호도에 따라 가장 잘 어울리는 메뉴 3가지를 추천해 주세요.
       
       [고객 상황]
-      - 선호도: ${preferences}
+      - 선호도: ${preferences || '없음'}
       - 현재 시간: ${time}
+      - 시간대: ${timePeriod || '일반'}
       - 현재 날씨: ${weather}
       - 현재 기분 태그: ${mood}
       - 과거 주문했던 메뉴들: ${pastOrders.join(", ") || "내역 없음"}
+      - 요즘 인기 메뉴: ${trendingItems.join(", ") || "없음"}
+      
+      [추천 규칙]
+      1. 시간대와 날씨에 어울리는 메뉴를 우선 추천하세요.
+      2. 고객이 과거에 주문한 메뉴는 새로운 메뉴를 추천하세요.
+      3. 요즘 인기 메뉴가 있다면 가중치를 두고 고려하세요.
+      4. 선호도가 명시된 경우 이를 최우선으로 반영하세요.
       
       [메뉴 목록]
       ${JSON.stringify(menus)}
@@ -148,7 +155,7 @@ class AIService {
       [결과 형식]
       반드시 다음 JSON 형식으로만 응답하세요:
       [
-        { "id": 메뉴ID, "reason": "추천 사유(한 문장)" },
+        { "id": 메뉴ID, "reason": "추천 사유(한 문장, 예: 날씨가 더운 날 시원하게 즐기기 좋은 메뉴입니다.)" },
         ...
       ]
     `;
@@ -593,6 +600,51 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
      * @param {object} review - { rating, content, customer_name }
      * @param {string} storeName - 매장명
      */
+    /**
+     * AI 메뉴 이미지 생성/검색 (유료 구독자 전용).
+     * Gemini가 메뉴명+설명으로 최적의 검색 키워드를 생성하고,
+     * Unsplash에서 고품질 이미지를 찾아 URL 반환.
+     * @param {Object} menuInfo - { name, category, description }
+     * @returns {Promise<{imageUrl: string, keyword: string}>}
+     */
+    async generateMenuImage(menuInfo) {
+        const { name, category, description } = menuInfo;
+        const cacheKey = `img_${name}_${category}`;
+        if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
+
+        const prompt = `
+      You are a food photography expert. Generate 3~5 English keywords
+      for finding a high-quality professional food photo on Unsplash
+      for the following menu item.
+
+      Menu name: ${name}
+      Category: ${category || 'General'}
+      Description: ${description || ''}
+
+      Rules:
+      1. Return ONLY a JSON object: { "keyword": "word1 word2 word3 word4 word5" }
+      2. Keywords must be English, 3~5 words.
+      3. Include cooking method (grilled/fried/steamed/roasted), main ingredient, and visual style (close-up/plated/overhead).
+      4. Be specific — avoid generic terms like "food", "delicious".
+      5. Example for 김치찌개: { "keyword": "kimchi jjigae korean stew bubbling clay pot" }
+    `;
+
+        try {
+            const rawText = await this.generateWithFallback(prompt);
+            const text = rawText.replace(/```json|```/g, '').trim();
+            const parsed = JSON.parse(text);
+            const keyword = parsed.keyword || `${name} food plated`;
+            const imageUrl = await this._fetchMenuImageUrl(keyword);
+            const result = { imageUrl, keyword };
+            this.setCache(cacheKey, result);
+            return result;
+        } catch (error) {
+            logger.error({ error: error.message }, '[AI] generateMenuImage failed');
+            const fallbackUrl = await this._fetchMenuImageUrl(`${name} food`);
+            return { imageUrl: fallbackUrl, keyword: `${name} food` };
+        }
+    }
+
     async generateReviewReply(review, storeName) {
         const tone = review.rating >= 4
             ? '감사 인사를 진심으로 전하고, 다음 방문을 기대하게 만드는'

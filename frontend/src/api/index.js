@@ -17,6 +17,7 @@ export { staffAPI } from './staff';
 export { adminAPI, planRequestsAPI, staffRequestsAPI, bulkSmsAPI, exportAPI } from './admin';
 export { boardAPI, communityAPI, chatAPI } from './board';
 export { reviewsAPI } from './reviews';
+export { naverPlaceAPI } from './naverPlace';
 export { notificationsAPI } from './notifications';
 export { inventoryAPI } from './inventory';
 export { pointsAPI, analyticsAPI, uploadsAPI, waitingAPI, reservationsAPI, tablesAPI, cartAPI, legalAPI, aiAPI, getSocket } from './misc';
