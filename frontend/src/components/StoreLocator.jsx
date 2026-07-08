@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils, Map as MapIcon, List, LayoutGrid, CheckCircle2, Clock, Heart, ChefHat, BellRing, XCircle } from 'lucide-react';
+import NaverShareButton from './common/NaverShareButton';
 import { storesAPI } from '../api/stores';
 import { ordersAPI } from '../api/orders';
 import StoreMapLeaflet from './StoreMapLeaflet';
@@ -301,6 +302,11 @@ export default function StoreLocator() {
                     </div>
                     {s.address && <p className="text-sm text-gray-500 mt-0.5 truncate flex items-center gap-1"><MapPin size={12} className="text-gray-400 shrink-0" />{s.address}</p>}
                   </div>
+                  <NaverShareButton
+                    url={`${window.location.origin}/menu/${s.id}`}
+                    title={`${s.name} - 위마켓에서 찾은 맛집이에요!`}
+                    size="sm"
+                  />
                   {customerPhone && (
                     <button type="button" onClick={(e) => toggleFavorite(s.id, e)}
                       className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${favorites.has(s.id) ? 'text-rose-500 bg-rose-50' : 'text-gray-300 hover:text-rose-400'}`}
@@ -329,6 +335,11 @@ export default function StoreLocator() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-black text-gray-900 truncate">{s.name}</h3>
+                        <NaverShareButton
+                          url={`${window.location.origin}/menu/${s.id}`}
+                          title={`${s.name} - 위마켓에서 찾은 맛집이에요!`}
+                          size="sm"
+                        />
                         {customerPhone && (
                           <button type="button" onClick={(e) => toggleFavorite(s.id, e)}
                             className={`shrink-0 transition-colors ${favorites.has(s.id) ? 'text-rose-500' : 'text-gray-300 hover:text-rose-400'}`}

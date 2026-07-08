@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Phone, Clock, Megaphone } from 'lucide-react';
+import NaverShareButton from '../common/NaverShareButton';
 
 const StoreInfoBanner = ({ 
   description, 
@@ -8,7 +9,8 @@ const StoreInfoBanner = ({
   announcement, 
   announcementActive, 
   isOpen, 
-  todayHours 
+  todayHours,
+  storeName
 }) => {
   return (
     <div className="bg-white border-b border-grey-100">
@@ -62,11 +64,20 @@ const StoreInfoBanner = ({
             }`}>
               {isOpen ? '영업 중' : '영업 종료'}
             </span>
-            {phone && (
-              <a href={`tel:${phone}`} className="p-2 bg-grey-50 rounded-full text-grey-400 hover:text-primary transition-colors">
-                <Phone className="w-4 h-4" />
-              </a>
-            )}
+            <div className="flex items-center gap-1.5">
+              {storeName && (
+                <NaverShareButton
+                  url={window.location.href}
+                  title={`${storeName} - 위마켓에서 맛집을 찾았어요!`}
+                  size="sm"
+                />
+              )}
+              {phone && (
+                <a href={`tel:${phone}`} className="p-2 bg-grey-50 rounded-full text-grey-400 hover:text-primary transition-colors">
+                  <Phone className="w-4 h-4" />
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </div>

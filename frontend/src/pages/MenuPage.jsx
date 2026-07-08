@@ -448,6 +448,7 @@ const MenuPage = () => {
 
       {/* Store Info */}
       <StoreInfoBanner
+        storeName={profile?.store_name}
         description={profile?.description}
         phone={profile?.phone}
         address={profile?.address}
