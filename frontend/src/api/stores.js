@@ -8,9 +8,13 @@ export const storesAPI = {
   searchPublic: (params = {}) => api.get('/stores/search', { params }),
   // 지역 하이라이트 배너 (추천메뉴 + 이벤트/프로모션)
   highlights: (params = {}) => api.get('/stores/highlights', { params }),
+  getPopular: () => api.get('/stores/popular'),
   create: (data) => api.post('/stores', data),
   update: (id, data) => api.put('/stores/' + id, data),
   delete: (id) => api.delete('/stores/' + id),
+  addFavorite: (customerPhone, storeId) => api.post('/stores/favorites', { customer_phone: customerPhone, store_id: storeId }),
+  removeFavorite: (customerPhone, storeId) => api.delete('/stores/favorites', { data: { customer_phone: customerPhone, store_id: storeId } }),
+  getFavorites: (customerPhone) => api.get('/stores/favorites/' + customerPhone),
 };
 
 export const storeAccountAPI = {
