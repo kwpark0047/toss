@@ -64,6 +64,7 @@ const StoreSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [viewMode, setViewMode] = useState('grid');
   const [selectedStore, setSelectedStore] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -74,9 +75,33 @@ const StoreSearch = () => {
   const [waitingCounts, setWaitingCounts] = useState({});
   const [storeRatings, setStoreRatings] = useState({});
 
+  const [favorites, setFavorites] = useState(new Set());
+  const customerPhone = (() => { try { return localStorage.getItem('wm_customer_phone'); } catch { return null; } })();
+
   useEffect(() => {
     fetchStores();
   }, []);
+
+  useEffect(() => {
+    if (!customerPhone) return;
+    storesAPI.getFavorites(customerPhone).then(res => {
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      setFavorites(new Set(list.map(s => s.id)));
+    }).catch(() => {});
+  }, [customerPhone]);
+
+  const toggleFavorite = useCallback(async (storeId, e) => {
+    e?.stopPropagation();
+    if (!customerPhone) return;
+    const wasFav = favorites.has(storeId);
+    setFavorites(prev => { const n = new Set(prev); wasFav ? n.delete(storeId) : n.add(storeId); return n; });
+    try {
+      if (wasFav) await storesAPI.removeFavorite(customerPhone, storeId);
+      else await storesAPI.addFavorite(customerPhone, storeId);
+    } catch {
+      setFavorites(prev => { const n = new Set(prev); wasFav ? n.add(storeId) : n.delete(storeId); return n; });
+    }
+  }, [customerPhone, favorites]);
 
   const fetchStores = async () => {
     setLoading(true);
@@ -137,8 +162,11 @@ const StoreSearch = () => {
     if (selectedType !== 'all') {
       result = result.filter(store => store.business_type === selectedType);
     }
+    if (showFavoritesOnly && customerPhone) {
+      result = result.filter(store => favorites.has(store.id));
+    }
     setFilteredStores(result);
-  }, [searchTerm, selectedRegion, selectedType, stores]);
+  }, [searchTerm, selectedRegion, selectedType, showFavoritesOnly, favorites, stores, customerPhone]);
 
   useEffect(() => {
     filterStores();
@@ -153,9 +181,10 @@ const StoreSearch = () => {
     setSearchTerm('');
     setSelectedRegion('all');
     setSelectedType('all');
+    setShowFavoritesOnly(false);
   };
 
-  const hasActiveFilters = searchTerm || selectedRegion !== 'all' || selectedType !== 'all';
+  const hasActiveFilters = searchTerm || selectedRegion !== 'all' || selectedType !== 'all' || showFavoritesOnly;
 
   const navigate = (path) => window.location.href = path;
 
@@ -257,9 +286,10 @@ const StoreSearch = () => {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="w-10 h-10 bg-slate-950/80 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center text-rose-500 shadow-2xl"
+                onClick={(e) => toggleFavorite(store.id, e)}
+                className={`w-10 h-10 backdrop-blur-xl border rounded-2xl flex items-center justify-center shadow-2xl transition-colors ${favorites.has(store.id) ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-slate-950/80 border-white/10 text-rose-500'}`}
               >
-                <Heart size={20} />
+                <Heart size={20} className={favorites.has(store.id) ? 'fill-rose-400' : ''} />
               </motion.button>
             </div>
             
@@ -391,6 +421,19 @@ const StoreSearch = () => {
                 </select>
                 <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
               </div>
+
+              {customerPhone && (
+                <button
+                  onClick={() => setShowFavoritesOnly(p => !p)}
+                  className={`h-12 px-5 text-xs font-black rounded-2xl transition-all flex items-center gap-2 border ${
+                    showFavoritesOnly
+                      ? 'bg-rose-500/15 border-rose-500/40 text-rose-300'
+                      : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Heart size={14} className={showFavoritesOnly ? 'fill-rose-400' : ''} /> 찜한 매장
+                </button>
+              )}
 
               {hasActiveFilters && (
                 <button

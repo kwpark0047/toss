@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils, Map as MapIcon, List, LayoutGrid, CheckCircle2, Clock } from 'lucide-react';
+import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils, Map as MapIcon, List, LayoutGrid, CheckCircle2, Clock, Heart } from 'lucide-react';
 import { storesAPI } from '../api/stores';
 import StoreMapLeaflet from './StoreMapLeaflet';
 import HighlightBanner from './HighlightBanner';
@@ -27,6 +27,30 @@ export default function StoreLocator() {
   const [locating, setLocating] = useState(false);
   const [geoMsg, setGeoMsg] = useState('');
   const [view, setView] = useState('grid'); // grid | list | map (그리드 기본)
+  const [favorites, setFavorites] = useState(new Set());
+  const customerPhone = (() => { try { return localStorage.getItem('wm_customer_phone'); } catch { return null; } })();
+
+  useEffect(() => {
+    if (!customerPhone) return;
+    storesAPI.getFavorites(customerPhone).then(res => {
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      setFavorites(new Set(list.map(s => s.id)));
+    }).catch(() => {});
+  }, [customerPhone]);
+
+  const toggleFavorite = useCallback(async (storeId, e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    if (!customerPhone) return;
+    const wasFav = favorites.has(storeId);
+    setFavorites(prev => { const n = new Set(prev); wasFav ? n.delete(storeId) : n.add(storeId); return n; });
+    try {
+      if (wasFav) await storesAPI.removeFavorite(customerPhone, storeId);
+      else await storesAPI.addFavorite(customerPhone, storeId);
+    } catch {
+      setFavorites(prev => { const n = new Set(prev); wasFav ? n.add(storeId) : n.delete(storeId); return n; });
+    }
+  }, [customerPhone, favorites]);
 
   const search = useCallback(async (over = {}) => {
     setLoading(true);
@@ -209,6 +233,13 @@ export default function StoreLocator() {
                     </div>
                     {s.address && <p className="text-sm text-gray-500 mt-0.5 truncate flex items-center gap-1"><MapPin size={12} className="text-gray-400 shrink-0" />{s.address}</p>}
                   </div>
+                  {customerPhone && (
+                    <button type="button" onClick={(e) => toggleFavorite(s.id, e)}
+                      className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${favorites.has(s.id) ? 'text-rose-500 bg-rose-50' : 'text-gray-300 hover:text-rose-400'}`}
+                      aria-label={favorites.has(s.id) ? '찜 해제' : '찜하기'}>
+                      <Heart size={16} className={favorites.has(s.id) ? 'fill-rose-400' : ''} />
+                    </button>
+                  )}
                   <ChevronRight size={18} className="text-gray-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all shrink-0" />
                 </Link>
               </motion.div>
@@ -228,7 +259,16 @@ export default function StoreLocator() {
                       <Store size={22} className="text-white" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-black text-gray-900 truncate">{s.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-black text-gray-900 truncate">{s.name}</h3>
+                        {customerPhone && (
+                          <button type="button" onClick={(e) => toggleFavorite(s.id, e)}
+                            className={`shrink-0 transition-colors ${favorites.has(s.id) ? 'text-rose-500' : 'text-gray-300 hover:text-rose-400'}`}
+                            aria-label={favorites.has(s.id) ? '찜 해제' : '찜하기'}>
+                            <Heart size={14} className={favorites.has(s.id) ? 'fill-rose-400' : ''} />
+                          </button>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         {s.business_type && (
                           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{bizLabel(s.business_type)}</span>
