@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils, Map as MapIcon, List, LayoutGrid, CheckCircle2, Clock, Heart } from 'lucide-react';
+import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils, Map as MapIcon, List, LayoutGrid, CheckCircle2, Clock, Heart, ChefHat, BellRing, XCircle } from 'lucide-react';
 import { storesAPI } from '../api/stores';
+import { ordersAPI } from '../api/orders';
 import StoreMapLeaflet from './StoreMapLeaflet';
 import HighlightBanner from './HighlightBanner';
+import { onOrderUpdated, joinOrderRoom, joinCustomerOrders } from '../utils/socket';
 import { bizLabel } from '../utils/businessType';
 import { isDisplayableStoreName } from '../utils/storeName';
 
@@ -14,12 +16,13 @@ import { isDisplayableStoreName } from '../utils/storeName';
  */
 export default function StoreLocator() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const orderNo = searchParams.get('order');   // 주문 완료 후 진입 시 주문번호
   const orderEta = searchParams.get('eta');    // 예상 준비시간(분)
   const orderStore = searchParams.get('store');
   const [district, setDistrict] = useState('');
   const [businessType, setBusinessType] = useState('all');
-  const [keyword, setKeyword] = useState('');
+  const [keyword, setKeyword] = useState(orderStore || '');
   const [coords, setCoords] = useState(null); // { lat, lng }
   const [stores, setStores] = useState([]);
   const [types, setTypes] = useState([]);
@@ -37,6 +40,49 @@ export default function StoreLocator() {
       setFavorites(new Set(list.map(s => s.id)));
     }).catch(() => {});
   }, [customerPhone]);
+
+  const [orderStatus, setOrderStatus] = useState(null);
+  const [orderStatusLoaded, setOrderStatusLoaded] = useState(false);
+  const orderIdParam = orderNo ? Number(orderNo) : null;
+  const statusMounted = useRef(true);
+
+  useEffect(() => {
+    if (!orderIdParam) return;
+
+    ordersAPI.getById(orderIdParam)
+      .then(res => {
+        if (!statusMounted.current) return;
+        const o = res?.data || res;
+        if (o?.status) setOrderStatus(o.status);
+      })
+      .catch(() => { /* orderNo may be display number not internal id — socket update covers it */ })
+      .finally(() => { if (statusMounted.current) setOrderStatusLoaded(true); });
+
+    joinOrderRoom(orderIdParam);
+    const off = onOrderUpdated((payload) => {
+      if (Number(payload.order_id) !== orderIdParam) return;
+      if (statusMounted.current) setOrderStatus(payload.status);
+    });
+
+    if (customerPhone) joinCustomerOrders(customerPhone);
+
+    return () => { off(); statusMounted.current = false; };
+  }, [orderIdParam, customerPhone]);
+
+  useEffect(() => {
+    if (orderStatus !== 'cancelled') return;
+    const t = setTimeout(() => { if (statusMounted.current) setOrderStatus(null); }, 8000);
+    return () => clearTimeout(t);
+  }, [orderStatus]);
+
+  useEffect(() => {
+    if (location.hash === '#locations') {
+      const timer = setTimeout(() => {
+        document.getElementById('locations')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [location.hash]);
 
   const toggleFavorite = useCallback(async (storeId, e) => {
     e?.preventDefault();
@@ -100,33 +146,55 @@ export default function StoreLocator() {
           <p className="text-lg text-gray-500 text-pretty">현재 위치 기준으로 가까운 매장을, 지역·업종으로 골라보세요.</p>
         </div>
 
-        {/* 주문 완료 후 진입: 주문 확인 배너(주문번호·예정시간) — 추천 배너 대체 */}
-        {orderNo ? (
-          <div className="mb-8 rounded-3xl bg-gradient-to-r from-orange-500 to-rose-600 shadow-lg overflow-hidden">
-            <div className="flex items-center justify-between gap-4 p-5 sm:p-6 text-white">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shrink-0">
-                  <CheckCircle2 size={26} aria-hidden="true" />
+        {orderNo ? (() => {
+          const dispStatus = orderStatus === 'paid' ? 'pending' : (orderStatus || 'pending');
+          const configs = {
+            pending:   { gradient: 'from-orange-500 to-rose-600',    icon: CheckCircle2, title: '주문이 접수되었어요! 🎉',          subtitle: '맛있게 준비해 드릴게요' },
+            confirmed: { gradient: 'from-blue-500 to-indigo-600',   icon: CheckCircle2, title: '매장에서 주문을 확인했어요! ✅',    subtitle: '곧 조리를 시작합니다' },
+            preparing: { gradient: 'from-purple-500 to-indigo-600', icon: ChefHat,      title: '맛있게 조리하고 있어요! 🍳',        subtitle: '조금만 기다려주세요' },
+            ready:     { gradient: 'from-emerald-500 to-teal-600',  icon: BellRing,     title: '조리 완료! 음식이 준비됐어요 🔔',   subtitle: '매장에서 수령해주세요' },
+            completed: { gradient: 'from-slate-500 to-slate-700',   icon: CheckCircle2, title: '수령 완료! 맛있게 드세요 😊',       subtitle: '이용해주셔서 감사합니다' },
+            cancelled: { gradient: 'from-rose-500 to-pink-600',     icon: XCircle,      title: '주문이 취소되었어요',               subtitle: '도움이 필요하면 매장에 문의해주세요' },
+          };
+          const cfg = configs[dispStatus] || configs.pending;
+          const Icon = cfg.icon;
+          return (
+            <motion.div
+              key={dispStatus}
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+              className={`mb-8 rounded-3xl bg-gradient-to-r ${cfg.gradient} shadow-lg overflow-hidden`}
+            >
+              <div className="flex items-center justify-between gap-4 p-5 sm:p-6 text-white">
+                <div className="flex items-center gap-3 min-w-0">
+                  <motion.div
+                    key={dispStatus}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                    className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shrink-0"
+                  >
+                    <Icon size={26} aria-hidden="true" />
+                  </motion.div>
+                  <div className="min-w-0">
+                    <p className="text-lg sm:text-xl font-black leading-tight">{cfg.title}</p>
+                    <p className="text-sm text-white/85 truncate">{orderStore ? `${orderStore} · ` : ''}{cfg.subtitle}</p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-lg sm:text-xl font-black leading-tight">주문이 접수되었어요! 🎉</p>
-                  <p className="text-sm text-white/85 truncate">{orderStore ? `${orderStore} · ` : ''}맛있게 준비해 드릴게요</p>
+                <div className="text-right shrink-0">
+                  <p className="text-[11px] font-bold text-white/80 leading-none mb-1">주문번호</p>
+                  <p className="text-lg sm:text-2xl font-black leading-none tabular-nums">#{orderNo}</p>
+                  {orderEta && (
+                    <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold bg-white/20 rounded-full px-2.5 py-1">
+                      <Clock size={12} aria-hidden="true" /> 예상 {orderEta}분
+                    </p>
+                  )}
                 </div>
               </div>
-              {/* 오른쪽: 주문번호 + 예정시간 */}
-              <div className="text-right shrink-0">
-                <p className="text-[11px] font-bold text-white/80 leading-none mb-1">주문번호</p>
-                <p className="text-lg sm:text-2xl font-black leading-none tabular-nums">#{orderNo}</p>
-                {orderEta && (
-                  <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold bg-white/20 rounded-full px-2.5 py-1">
-                    <Clock size={12} aria-hidden="true" /> 예상 {orderEta}분
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* 지역 하이라이트 롤링 배너 (추천메뉴 · 이벤트) */
+            </motion.div>
+          );
+        })() : (
           <HighlightBanner district={district} />
         )}
 
