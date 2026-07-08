@@ -161,6 +161,7 @@ const MenuPage = () => {
   const [isOrderStatusOpen, setIsOrderStatusOpen] = useState(false);
   const [reviewOrder, setReviewOrder] = useState(null); // 리뷰 작성 대상 주문
   const [isOrdering, setIsOrdering] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('card');
   const [optionModalItem, setOptionModalItem] = useState(null);
   const [optionModalGroups, setOptionModalGroups] = useState([]);
   const [isPhoneSheetOpen, setIsPhoneSheetOpen] = useState(false);
@@ -353,7 +354,7 @@ const MenuPage = () => {
           options: item.selectedOptions
         })),
         total_amount: totalPrice,
-        payment_method: 'card',
+        payment_method: paymentMethod,
         // 알림 받을 번호 (입력 시 주문에 연결, 유효할 때만 전송)
         ...(hasPhone ? { customer_phone: notifyDigits } : {}),
         // 전화번호 거부 시 FCM 토큰으로 푸시 알림 수신
@@ -389,7 +390,7 @@ const MenuPage = () => {
     } finally {
       setIsOrdering(false);
     }
-  }, [storeId, cart, storeOpen, tableNumber, totalPrice, navigate, profile]);
+  }, [storeId, cart, storeOpen, tableNumber, totalPrice, navigate, profile, paymentMethod]);
 
   // Stable callbacks for JSX props (prevents child re-renders from inline closures)
   const handleOpenOrderHistory = useCallback(() => setIsOrderStatusOpen(true), []);
@@ -523,6 +524,11 @@ const MenuPage = () => {
         totalPrice={totalPrice}
         notifyPhone={notifyPhone}
         onNotifyPhoneChange={setNotifyPhone}
+        paymentMethod={paymentMethod}
+        onPaymentMethodChange={setPaymentMethod}
+        menuItems={menuItems}
+        storeId={storeId}
+        onAddToCartClick={handleAddToCartClick}
       />
 
       {/* Order Status Modal */}
