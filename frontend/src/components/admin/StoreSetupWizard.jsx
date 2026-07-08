@@ -671,6 +671,17 @@ export default function StoreSetupWizard() {
       };
       const res = await storesAPI.create(apiData);
       const store = res?.data || res;
+
+      // 공공데이터 기존 매장과 상호·주소 일치 → 연동 승인 요청됨(신규 생성 아님)
+      if (store?.linkRequested) {
+        sayWithDelay(
+          `"${store.matchedStore?.name || storeForm.name}"은(는) 이미 등록된 매장이에요! 🔗 관리자 승인 후 바로 관리하실 수 있어요. 연동 요청을 보냈습니다 ✅`,
+          100, true
+        );
+        setTimeout(() => navigate('/admin', { replace: true }), 4000);
+        return; // 카테고리/테이블 생성 스킵
+      }
+
       setCreatedStore(store);
 
       // 기본 카테고리 생성

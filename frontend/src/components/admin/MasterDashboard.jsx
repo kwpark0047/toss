@@ -295,6 +295,12 @@ const MasterDashboard = () => {
                     </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* 매장 추가 */}
+                    <button type="button" onClick={() => navigate('/admin/setup')}
+                        aria-label="매장 추가"
+                        className="flex items-center gap-1 h-9 px-3 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-xl text-xs font-black shadow-lg shadow-orange-500/20 hover:brightness-105 active:scale-95 transition-all">
+                        <Plus size={15} aria-hidden="true" /> <span className="hidden sm:inline">매장 추가</span>
+                    </button>
                     {/* 대기 주문 알림 */}
                     <button type="button" onClick={() => handleNav('orders')}
                         aria-label={pendingCount > 0 ? `대기 주문 ${pendingCount}건 보기` : '주문서로 이동'}

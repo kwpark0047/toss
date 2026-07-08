@@ -21,6 +21,10 @@ export const adminAPI = {
   storeDetail: (id, days = 14) => api.get(`/admin/platform/stores/${id}/detail`, { params: { days } }),
   toggleStoreActive: (id, is_active) => api.patch(`/admin/platform/stores/${id}/active`, { is_active }),
   grantPoints: (id, data) => api.post(`/admin/platform/stores/${id}/points`, data),
+  // 매장 연동 승인 요청 (사업자 ↔ 공공매장)
+  linkRequests: (status = 'pending') => api.get('/admin/store-link-requests', { params: { status } }),
+  approveLinkRequest: (id) => api.post(`/admin/store-link-requests/${id}/approve`),
+  rejectLinkRequest: (id) => api.post(`/admin/store-link-requests/${id}/reject`),
 };
 
 export const planRequestsAPI = {
