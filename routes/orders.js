@@ -79,6 +79,10 @@ router.post('/', validate(schema.create), catchAsync(async (req, res) => {
 
     const final_amount = Math.max(0, req.body.total_amount - discount_amount);
     const orderData = { ...req.body };
+    // payment_method → method (Order.create가 method 필드 사용)
+    if (orderData.payment_method && !orderData.method) {
+        orderData.method = orderData.payment_method;
+    }
     if (orderData.phone && !orderData.customer_phone) {
         orderData.customer_phone = orderData.phone;
     }

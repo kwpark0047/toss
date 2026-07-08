@@ -159,7 +159,7 @@ const schemas = {
             table_id: Joi.alternatives().try(Joi.number().integer(), Joi.string()).allow(null).optional(),
             table_number: Joi.string().allow('', null).optional(),
             total_amount: Joi.number().min(0).required(),
-            payment_method: Joi.string().valid('card', 'cash', 'point', 'mixed', 'toss').required(),
+            payment_method: Joi.string().valid('cash', 'card', 'transfer', 'toss', 'naver', 'kakao').required(),
             items: Joi.array().items(
                 Joi.object({
                     product_id: Joi.number().integer().required(),
