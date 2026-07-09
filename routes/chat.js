@@ -1,61 +1,76 @@
 const express = require('express');
 const router = express.Router();
-const prisma = require('../config/prisma');
+const Chat = require('../models/Chat');
 const catchAsync = require('../utils/catchAsync');
+const { authMiddleware, adminOnly } = require('../middleware/auth');
 
-// [GET] 특정 매장의 활성 채팅방 조회 또는 생성 (고객용)
+// [POST] 특정 매장의 활성 채팅방 조회 또는 생성 (고객용)
 router.post('/rooms/access', catchAsync(async (req, res) => {
     const { store_id, customer_phone, customer_id } = req.body;
-    let room = await prisma.chat_rooms.findFirst({
-        where: {
-            store_id: parseInt(store_id),
-            customer_phone: customer_phone || null,
-            customer_id: customer_id || null,
-            is_active: true
-        }
+    const room = await Chat.accessRoom({
+        store_id,
+        customer_phone,
+        customer_id,
+        type: 'STORE_CUSTOMER'
     });
-
-    if (!room) {
-        room = await prisma.chat_rooms.create({
-            data: {
-                store_id: parseInt(store_id),
-                customer_phone: customer_phone || null,
-                customer_id: customer_id || null,
-            }
-        });
-    }
-
     res.json({ success: true, data: room });
 }));
 
-// [GET] 채팅방 메시지 내역 조회
-router.get('/rooms/:roomId/messages', catchAsync(async (req, res) => {
-    const { roomId } = req.params;
-    const messages = await prisma.chat_messages.findMany({
-        where: { room_id: parseInt(roomId) },
-        orderBy: { created_at: 'asc' }
+// [POST] 슈퍼관리자-사업자 채팅방 조회 또는 생성
+router.post('/rooms/admin/access', authMiddleware, catchAsync(async (req, res) => {
+    const { user_id } = req.body; // 대상 사업자 user_id
+    const currentUserId = req.user.id;
+    const currentUserRole = req.user.role;
+
+    // 슈퍼관리자이거나, 본인의 지원 채팅방을 찾는 경우만 허용
+    const targetUserId = currentUserRole === 'super_admin' ? (user_id ? parseInt(user_id) : currentUserId) : currentUserId;
+
+    const room = await Chat.accessRoom({
+        user_id: targetUserId,
+        type: 'ADMIN_SUPPORT'
     });
+    res.json({ success: true, data: room });
+}));
+
+// [GET] 슈퍼관리자용 모든 지원 채팅방 목록 조회
+router.get('/rooms/admin', authMiddleware, adminOnly, catchAsync(async (req, res) => {
+    const rooms = await Chat.getAdminRooms();
+    res.json({ success: true, data: rooms });
+}));
+
+// [GET] 채팅방 메시지 내역 조회
+router.get('/rooms/:roomId/messages', authMiddleware, catchAsync(async (req, res) => {
+    const { roomId } = req.params;
+    const messages = await Chat.getMessages(roomId);
     res.json({ success: true, data: messages });
 }));
 
-// [POST] 메시지 전송 (DB 저장 전용, 실시간은 소켓에서 처리)
-router.post('/messages', catchAsync(async (req, res) => {
-    const { room_id, sender_id, sender_type, content } = req.body;
-    const message = await prisma.chat_messages.create({
-        data: {
-            room_id: parseInt(room_id),
-            sender_id: sender_id ? parseInt(sender_id) : null,
-            sender_type,
-            content
-        }
-    });
+// [PATCH] 채팅방 메시지 읽음 처리
+router.patch('/rooms/:roomId/read', authMiddleware, catchAsync(async (req, res) => {
+    const { roomId } = req.params;
+    const { sender_type_not } = req.body; 
 
-    await prisma.chat_rooms.update({
-        where: { id: parseInt(room_id) },
-        data: { updated_at: new Date() }
+    await Chat.markAsRead(roomId, sender_type_not);
+    res.json({ success: true });
+}));
+
+// [POST] 메시지 전송
+router.post('/messages', authMiddleware, catchAsync(async (req, res) => {
+    const { room_id, content, sender_type, message_type } = req.body;
+    const sender_id = req.user.id;
+
+    const message = await Chat.sendMessage({
+        room_id,
+        sender_id,
+        sender_type,
+        content,
+        message_type
     });
 
     res.json({ success: true, data: message });
 }));
+
+module.exports = router;
+
 
 module.exports = router;

@@ -14,6 +14,7 @@ import { useAuth } from '../../contexts/AuthContext';
 const BOARD_TYPES = [
     { key: 'notice', label: '공지사항', eng: 'NOTICE',    icon: Megaphone,     text: 'text-rose-400',    bg: 'bg-rose-500/15',    dot: 'bg-rose-500' },
     { key: 'free',   label: '자유게시판', eng: 'COMMUNITY', icon: MessageSquare, text: 'text-indigo-400',  bg: 'bg-indigo-500/15',  dot: 'bg-indigo-500' },
+    { key: 'news',   label: '뉴스/소식', eng: 'NEWS',      icon: BarChart2,     text: 'text-sky-400',    bg: 'bg-sky-500/15',      dot: 'bg-sky-500' },
     { key: 'qna',    label: '질문/답변', eng: 'Q&A',       icon: HelpCircle,    text: 'text-emerald-400', bg: 'bg-emerald-500/15', dot: 'bg-emerald-500' },
     { key: 'faq',    label: '도움말/FAQ', eng: 'FAQ',      icon: HelpCircle,    text: 'text-slate-300',   bg: 'bg-white/10',       dot: 'bg-slate-400' },
 ];

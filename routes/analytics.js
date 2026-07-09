@@ -145,6 +145,20 @@ router.get('/store/:storeId/kds', authMiddleware, checkStorePermission('stats:re
 }));
 
 /**
+ * @route   GET /api/analytics/store/:storeId/forecast
+ * @desc    매출 예측 데이터 (7일/14일)
+ */
+router.get('/store/:storeId/forecast', authMiddleware, checkStorePermission('stats:read'), catchAsync(async (req, res) => {
+    const storeId = parseInt(req.params.storeId);
+    if (isNaN(storeId)) return res.status(400).json({ error: '유효하지 않은 매장 ID입니다.' });
+
+    const days = Math.min(parseInt(req.query.days) || 7, 30);
+    const result = await Order.getForecast(storeId, days);
+
+    res.success(result);
+}));
+
+/**
  * @route   GET /api/analytics/multi-store
  * @desc    다점포 통합 매출 분석 조회
  */

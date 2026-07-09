@@ -26,6 +26,9 @@ import OrderStatusModal from "@/components/menu/OrderStatusModal";
 import CustomerPhoneSheet from "@/components/menu/CustomerPhoneSheet";
 import PersonalizedRecommendations from "@/components/menu/PersonalizedRecommendations";
 import ReviewModal from "@/components/customer/ReviewModal";
+import FloatingCallButton from "@/components/customer/FloatingCallButton";
+import ManagerCallSheet from "@/components/customer/ManagerCallSheet";
+import ChatDrawer from "@/components/customer/ChatDrawer";
 import StoreReviews from "@/components/customer/StoreReviews";
 import LegalFooter from "@/components/customer/LegalFooter";
 
@@ -165,6 +168,8 @@ const MenuPage = () => {
   const [optionModalItem, setOptionModalItem] = useState(null);
   const [optionModalGroups, setOptionModalGroups] = useState([]);
   const [isPhoneSheetOpen, setIsPhoneSheetOpen] = useState(false);
+  const [showCallSheet, setShowCallSheet] = useState(false);
+  const [showChatDrawer, setShowChatDrawer] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState(null);
   const [currentOrderAmount, setCurrentOrderAmount] = useState(0);
 
@@ -576,6 +581,39 @@ const MenuPage = () => {
 
       {/* 전자상거래법 §13 필수 사업자 정보 표시 */}
       <LegalFooter storeId={storeId} />
+
+      {/* 직원 호출 플로팅 버튼 */}
+      <FloatingCallButton 
+        onClick={() => setShowCallSheet(true)} 
+        primaryColor={profile?.theme?.primaryColor || '#f97316'}
+      />
+
+      {/* 매니저 호출 시트 및 채팅 드로어 */}
+      <ManagerCallSheet
+        isOpen={showCallSheet}
+        onClose={() => setShowCallSheet(false)}
+        store={profile}
+        table={{ name: `${tableNumber}번 테이블` }}
+        onOpenChat={() => setShowChatDrawer(true)}
+        onVoiceCall={(type) => {
+          const socket = ordersAPI.getSocket();
+          if (socket) {
+            socket.emit('manager-call', {
+              storeId: parseInt(storeId),
+              tableName: `${tableNumber}번 테이블`,
+              type
+            });
+          }
+        }}
+      />
+
+      <ChatDrawer
+        isOpen={showChatDrawer}
+        onClose={() => setShowChatDrawer(false)}
+        store={{ id: parseInt(storeId), ...profile }}
+        table={{ name: `${tableNumber}번 테이블` }}
+        customerInfo={{ phone: notifyPhone }}
+      />
     </div>
     </div>
   );

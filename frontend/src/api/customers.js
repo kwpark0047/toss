@@ -8,4 +8,6 @@ export const customersAPI = {
   update: (id, data) => api.put('/customers/' + id, data),
   delete: (id) => api.delete('/customers/' + id),
   phoneJoin: (data) => api.post('/customers/phone-join', data),
+  registerFcmToken: (phone, storeId, fcmToken) =>
+    api.post('/customers/fcm-token', { phone, store_id: storeId, fcm_token: fcmToken }),
 };

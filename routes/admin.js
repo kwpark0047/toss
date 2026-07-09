@@ -482,14 +482,51 @@ router.get('/store-link-requests', authMiddleware, requireSuper, catchAsync(asyn
     // 요청자·매장 정보 조인(관계 미설정이라 수동 조회)
     const userIds = [...new Set(reqs.map(r => r.user_id))];
     const storeIds = [...new Set(reqs.map(r => r.store_id))];
-    const [users, stores] = await Promise.all([
+    const reviewerIds = [...new Set(reqs.map(r => r.reviewed_by).filter(Boolean))];
+    const [users, stores, reviewers] = await Promise.all([
         prisma.users.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, phone: true, email: true } }),
         prisma.stores.findMany({ where: { id: { in: storeIds } }, select: { id: true, name: true, address: true, business_type: true, user_id: true } }),
+        reviewerIds.length ? prisma.users.findMany({ where: { id: { in: reviewerIds } }, select: { id: true, name: true } }) : [],
     ]);
     const uMap = Object.fromEntries(users.map(u => [u.id, u]));
     const sMap = Object.fromEntries(stores.map(s => [s.id, s]));
-    const rows = reqs.map(r => ({ ...r, requester: uMap[r.user_id] || null, store: sMap[r.store_id] || null }));
+    const rvMap = Object.fromEntries(reviewers.map(rv => [rv.id, rv]));
+    const rows = reqs.map(r => ({ ...r, requester: uMap[r.user_id] || null, store: sMap[r.store_id] || null, reviewer: rvMap[r.reviewed_by] || null }));
     res.success({ requests: rows, count: rows.length });
+}));
+
+// 단건 상세 + 이력
+router.get('/store-link-requests/:id', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    const id = parseInt(req.params.id);
+    const reqRow = await prisma.store_link_requests.findUnique({ where: { id } });
+    if (!reqRow) return res.status(404).json({ success: false, error: '요청을 찾을 수 없습니다.' });
+
+    const [requester, store, reviewer] = await Promise.all([
+        prisma.users.findUnique({ where: { id: reqRow.user_id }, select: { id: true, name: true, phone: true, email: true } }),
+        prisma.stores.findUnique({ where: { id: reqRow.store_id }, select: { id: true, name: true, address: true, phone: true, business_type: true, business_number: true } }),
+        reqRow.reviewed_by ? prisma.users.findUnique({ where: { id: reqRow.reviewed_by }, select: { id: true, name: true } }) : null,
+    ]);
+
+    res.success({
+        ...reqRow,
+        requester: requester || null,
+        store: store || null,
+        reviewer: reviewer || null,
+    });
+}));
+
+// 검토 시작 (pending → reviewing)
+router.put('/store-link-requests/:id/review', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    const id = parseInt(req.params.id);
+    const reqRow = await prisma.store_link_requests.findUnique({ where: { id } });
+    if (!reqRow) return res.status(404).json({ success: false, error: '요청을 찾을 수 없습니다.' });
+    if (reqRow.status !== 'pending') return res.status(400).json({ success: false, error: '이미 처리된 요청입니다.' });
+
+    await prisma.store_link_requests.update({
+        where: { id },
+        data: { status: 'reviewing', reviewed_by: req.user.id },
+    });
+    res.success({ id, status: 'reviewing' }, '검토를 시작했습니다.');
 }));
 
 // 승인 → 매칭 매장 소유권을 요청자에게 이전
@@ -497,23 +534,96 @@ router.post('/store-link-requests/:id/approve', authMiddleware, requireSuper, ca
     const id = parseInt(req.params.id);
     const reqRow = await prisma.store_link_requests.findUnique({ where: { id } });
     if (!reqRow) return res.status(404).json({ success: false, error: '요청을 찾을 수 없습니다.' });
-    if (reqRow.status !== 'pending') return res.status(400).json({ success: false, error: '이미 처리된 요청입니다.' });
+    if (!['pending', 'reviewing'].includes(reqRow.status)) return res.status(400).json({ success: false, error: '이미 처리된 요청입니다.' });
 
     await prisma.$transaction([
         prisma.stores.update({ where: { id: reqRow.store_id }, data: { user_id: reqRow.user_id } }),
-        prisma.store_link_requests.update({ where: { id }, data: { status: 'approved', decided_at: new Date() } }),
+        prisma.store_link_requests.update({
+            where: { id },
+            data: { status: 'approved', decided_at: new Date(), reviewed_by: reqRow.reviewed_by || req.user.id },
+        }),
     ]);
-    res.success({ id, store_id: reqRow.store_id, user_id: reqRow.user_id }, '연동을 승인하고 소유권을 이전했습니다.');
+
+    // 자동 정보 보강: 좌표가 없고 주소가 있으면 지오코딩
+    let enriched = {};
+    try {
+        const store = await prisma.stores.findUnique({ where: { id: reqRow.store_id }, select: { id: true, name: true, address: true, latitude: true, longitude: true, phone: true, business_type: true } });
+        if (store && (store.latitude == null) && store.address) {
+            const geocodeService = require('../services/geocodeService');
+            if (geocodeService.isConfigured()) {
+                const g = await geocodeService.geocode(store.address);
+                if (g) {
+                    await prisma.stores.update({ where: { id: store.id }, data: { latitude: g.lat, longitude: g.lng } });
+                    enriched.geocoded = true;
+                }
+            }
+        }
+    } catch (err) {
+        logger.warn({ error: err.message }, '[store-link] 승인 후 정보 보강 실패');
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+        io.to(`user - ${reqRow.user_id}`).emit('store-link-request-approved', {
+            id: reqRow.id,
+            storeId: reqRow.store_id,
+            status: 'approved',
+        });
+    }
+
+    res.success({ id, store_id: reqRow.store_id, user_id: reqRow.user_id, enriched }, '연동을 승인하고 소유권을 이전했습니다.');
 }));
 
-// 거절
+// 거절 (admin_note 저장)
 router.post('/store-link-requests/:id/reject', authMiddleware, requireSuper, catchAsync(async (req, res) => {
     const id = parseInt(req.params.id);
     const reqRow = await prisma.store_link_requests.findUnique({ where: { id } });
     if (!reqRow) return res.status(404).json({ success: false, error: '요청을 찾을 수 없습니다.' });
-    if (reqRow.status !== 'pending') return res.status(400).json({ success: false, error: '이미 처리된 요청입니다.' });
-    await prisma.store_link_requests.update({ where: { id }, data: { status: 'rejected', decided_at: new Date() } });
-    res.success({ id }, '연동 요청을 거절했습니다.');
+    if (!['pending', 'reviewing'].includes(reqRow.status)) return res.status(400).json({ success: false, error: '이미 처리된 요청입니다.' });
+    await prisma.store_link_requests.update({
+        where: { id },
+        data: { status: 'rejected', decided_at: new Date(), admin_note: req.body.admin_note || null, reviewed_by: reqRow.reviewed_by || req.user.id },
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+        io.to(`user - ${reqRow.user_id}`).emit('store-link-request-rejected', {
+            id: reqRow.id,
+            storeId: reqRow.store_id,
+            status: 'rejected',
+            adminNote: req.body.admin_note || null,
+        });
+    }
+
+    res.success({ id, admin_note: req.body.admin_note || null }, '연동 요청을 거절했습니다.');
+}));
+
+// 대시보드 통계 (상태별 집계 · 일별 추이)
+router.get('/store-link-requests/stats', authMiddleware, requireSuper, catchAsync(async (req, res) => {
+    const [statusCounts, total, recent] = await Promise.all([
+        prisma.store_link_requests.groupBy({ by: ['status'], _count: true }),
+        prisma.store_link_requests.count(),
+        prisma.store_link_requests.findMany({ orderBy: { created_at: 'desc' }, take: 5 }),
+    ]);
+
+    // 30일 일별 추이
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dailyRows = await prisma.store_link_requests.findMany({
+        where: { created_at: { gte: thirtyDaysAgo } },
+        select: { created_at: true, status: true },
+    });
+    const dailyMap = {};
+    for (const r of dailyRows) {
+        const day = r.created_at.toISOString().slice(0, 10);
+        if (!dailyMap[day]) dailyMap[day] = { date: day, total: 0, pending: 0, reviewing: 0, approved: 0, rejected: 0 };
+        dailyMap[day].total++;
+        if (dailyMap[day][r.status] !== undefined) dailyMap[day][r.status]++;
+    }
+    const daily = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
+
+    const byStatus = Object.fromEntries(statusCounts.map(s => [s.status, s._count]));
+
+    res.success({ total, byStatus, daily, recent });
 }));
 
 // === [서울 열린데이터 매장 보강 (일반음식점 LOCALDATA)] ===

@@ -150,48 +150,139 @@ router.get('/:id', catchAsync(async (req, res) => {
     res.success(store);
 }));
 
-// 상호/주소 정규화 헬퍼 (공공매장 매칭용)
+// ── 공공매장 매칭 헬퍼 ───────────────────────────────────────────────────
 const PUBLIC_OWNER_ID = 1; // 공공데이터 매장 소유자(전체관리자)
 const normNm = (s = '') => String(s).toLowerCase().replace(/\([^)]*\)/g, '').replace(/[\s·.,'"()\-]/g, '');
-// 동은 괄호 안(도로명주소의 법정동)에 있을 수 있어 원문 전체에서 탐색
 const dongOf = (a = '') => { const m = String(a).match(/([가-힣]{1,10}(?:\d가|동|리))(?![가-힣])/); return m ? m[1] : ''; };
-// 구/군만(시는 제외 — '서울특별시'가 아니라 '중랑구'를 잡도록)
 const guOf = (a = '') => { const m = String(a).match(/([가-힣]{1,10}(?:군|구))(?![가-힣])/); return m ? m[1] : ''; };
+// 전화번호 숫자만 추출
+const digitsOnly = (s = '') => String(s).replace(/\D/g, '');
+// 두 문자열의 자카드 유사도 (bigram 기준)
+const jaccardSim = (a, b) => {
+    if (!a || !b) return 0;
+    const s1 = new Set(), s2 = new Set();
+    for (let i = 0; i < a.length - 1; i++) s1.add(a.substring(i, i + 2));
+    for (let i = 0; i < b.length - 1; i++) s2.add(b.substring(i, i + 2));
+    if (!s1.size || !s2.size) return a === b ? 1 : 0;
+    let inter = 0;
+    for (const x of s1) if (s2.has(x)) inter++;
+    return inter / (s1.size + s2.size - inter);
+};
 
-// 매장 생성 — 공공데이터 매장과 상호·주소 일치 시 연동 승인 요청 생성
+// 매장 생성 — 공공데이터 매장과 상호·주소·전화번호·사업자번호 일치 시 연동 승인 요청 생성
 router.post('/', authMiddleware, catchAsync(async (req, res) => {
-    const { name, address } = req.body;
+    const { name, address, phone, business_number } = req.body;
 
-    // 공공(super_admin 소유) 매장 매칭 검사: 상호명 정규화 일치 + 지역(동/구) 겹침
     if (name && name.trim()) {
-        // 프랜차이즈 접두어(이디야 등) 대신 가장 긴(고유한) 토큰으로 조회
+        // 1) 사업자등록번호 정확 매칭 (가장 강력한 신호)
+        if (business_number) {
+            const bnMatch = await prisma.stores.findFirst({
+                where: { user_id: PUBLIC_OWNER_ID, business_number: business_number.trim() },
+                select: { id: true, name: true, address: true, phone: true, business_number: true },
+            });
+            if (bnMatch) {
+                const existing = await prisma.store_link_requests.findFirst({
+                    where: { user_id: req.user.id, store_id: bnMatch.id, status: 'pending' },
+                });
+                if (!existing) {
+                    const created = await prisma.store_link_requests.create({
+                        data: { user_id: req.user.id, store_id: bnMatch.id, requested_name: name, requested_address: address || null },
+                    });
+                    const io = req.app.get('io');
+                    if (io) io.to('admin').emit('store-link-request-created', {
+                        id: created.id, userId: req.user.id, userName: req.user.name,
+                        storeId: bnMatch.id, storeName: bnMatch.name, storeAddress: bnMatch.address,
+                        requestedName: name, matchMethod: 'business_number',
+                        createdAt: created.created_at,
+                    });
+                }
+                return res.success(
+                    { linkRequested: true, matchedStore: { id: bnMatch.id, name: bnMatch.name, address: bnMatch.address }, matchMethod: 'business_number' },
+                    '사업자등록번호와 일치하는 매장이 확인되어 연동 승인을 요청했습니다.', 202
+                );
+            }
+        }
+
+        // 2) 전화번호 매칭 (차순위)
+        if (phone) {
+            const phoneDigits = digitsOnly(phone);
+            if (phoneDigits.length >= 9) {
+                const allCandidates = await prisma.stores.findMany({
+                    where: { user_id: PUBLIC_OWNER_ID, phone: { not: null } },
+                    select: { id: true, name: true, address: true, phone: true },
+                    take: 500,
+                });
+                const phoneMatch = allCandidates.find(c => digitsOnly(c.phone || '') === phoneDigits);
+                if (phoneMatch) {
+                    const existing = await prisma.store_link_requests.findFirst({
+                        where: { user_id: req.user.id, store_id: phoneMatch.id, status: 'pending' },
+                    });
+                    if (!existing) {
+                        const created = await prisma.store_link_requests.create({
+                            data: { user_id: req.user.id, store_id: phoneMatch.id, requested_name: name, requested_address: address || null },
+                        });
+                        const io = req.app.get('io');
+                        if (io) io.to('admin').emit('store-link-request-created', {
+                            id: created.id, userId: req.user.id, userName: req.user.name,
+                            storeId: phoneMatch.id, storeName: phoneMatch.name, storeAddress: phoneMatch.address,
+                            requestedName: name, matchMethod: 'phone',
+                            createdAt: created.created_at,
+                        });
+                    }
+                    return res.success(
+                        { linkRequested: true, matchedStore: { id: phoneMatch.id, name: phoneMatch.name, address: phoneMatch.address }, matchMethod: 'phone' },
+                        '전화번호와 일치하는 매장이 확인되어 연동 승인을 요청했습니다.', 202
+                    );
+                }
+            }
+        }
+
+        // 3) 상호명+주소 점수 기반 매칭 (기존 로직 고도화)
         const tokens = name.trim().split(/\s+/).filter(Boolean);
         const nameKey = tokens.sort((a, b) => b.length - a.length)[0].slice(0, 20);
         const target = normNm(name);
         const inDong = dongOf(address), inGu = guOf(address);
         const candidates = await prisma.stores.findMany({
             where: { user_id: PUBLIC_OWNER_ID, name: { contains: nameKey } },
-            select: { id: true, name: true, address: true },
+            select: { id: true, name: true, address: true, phone: true },
             take: 80,
         });
-        const match = candidates.find(c => {
-            if (normNm(c.name) !== target) return false;
-            if (!address) return true;
+
+        // 점수 계산: 상호명 정규화 일치(50) + 동일 동(30) or 동일 구(15) + 상호명 bigram 유사도 보너스(최대 20)
+        const scored = candidates.map(c => {
+            let score = 0;
+            if (normNm(c.name) === target) score += 50;
+            const sim = jaccardSim(normNm(c.name), target);
+            score += Math.round(sim * 20);
             const cd = dongOf(c.address), cg = guOf(c.address);
-            return (inDong && cd && inDong === cd) || (inGu && cg && inGu === cg);
-        });
+            if (address && inDong && cd && inDong === cd) score += 30;
+            else if (address && inGu && cg && inGu === cg) score += 15;
+            if (phone) {
+                const reqPhone = digitsOnly(phone);
+                if (reqPhone.length >= 9 && digitsOnly(c.phone || '') === reqPhone) score += 40;
+            }
+            return { ...c, score };
+        }).filter(c => c.score >= 60).sort((a, b) => b.score - a.score);
+
+        const match = scored[0];
         if (match) {
-            // 중복 요청 방지
             const existing = await prisma.store_link_requests.findFirst({
                 where: { user_id: req.user.id, store_id: match.id, status: 'pending' },
             });
             if (!existing) {
-                await prisma.store_link_requests.create({
+                const created = await prisma.store_link_requests.create({
                     data: { user_id: req.user.id, store_id: match.id, requested_name: name, requested_address: address || null },
+                });
+                const io = req.app.get('io');
+                if (io) io.to('admin').emit('store-link-request-created', {
+                    id: created.id, userId: req.user.id, userName: req.user.name,
+                    storeId: match.id, storeName: match.name, storeAddress: match.address,
+                    requestedName: name, matchMethod: 'name_address', matchScore: match.score,
+                    createdAt: created.created_at,
                 });
             }
             return res.success(
-                { linkRequested: true, matchedStore: { id: match.id, name: match.name, address: match.address } },
+                { linkRequested: true, matchedStore: { id: match.id, name: match.name, address: match.address }, matchMethod: 'name_address', matchScore: match.score },
                 '기존 등록된 매장과 일치하여 관리자에게 연동 승인을 요청했습니다.', 202
             );
         }

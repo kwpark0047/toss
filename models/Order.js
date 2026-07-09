@@ -558,6 +558,119 @@ const Order = {
       console.error('[Prisma Error] getMultiStoreStats failed:', error);
       return { summary: { total_sales: 0, total_orders: 0, store_count: 0 }, stores: [] };
     }
+  },
+
+  // [매출 예측]
+  getForecast: async (storeId, days = 7) => {
+    try {
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      const historicalStart = new Date(today);
+      historicalStart.setDate(historicalStart.getDate() - 60);
+
+      const orders = await prisma.orders.findMany({
+        where: {
+          store_id: storeId,
+          created_at: { gte: historicalStart, lte: today },
+          status: { not: 'cancelled' }
+        },
+        select: { total_amount: true, created_at: true },
+        orderBy: { created_at: 'asc' }
+      });
+
+      const dailyMap = {};
+      for (const order of orders) {
+        const dateKey = order.created_at.toISOString().slice(0, 10);
+        dailyMap[dateKey] = (dailyMap[dateKey] || 0) + Number(order.total_amount);
+      }
+
+      const dailyData = [];
+      const cursor = new Date(historicalStart);
+      while (cursor <= today) {
+        const dateKey = cursor.toISOString().slice(0, 10);
+        dailyData.push({
+          date: dateKey,
+          sales: dailyMap[dateKey] || 0,
+          dayOfWeek: cursor.getDay()
+        });
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      if (dailyData.length === 0) {
+        return { forecast: [], confidence: 0, metadata: null };
+      }
+
+      const movingAverages = dailyData.map((d, i) => {
+        if (i < 6) return null;
+        const slice = dailyData.slice(i - 6, i + 1);
+        return slice.reduce((sum, s) => sum + s.sales, 0) / 7;
+      });
+
+      const dowGroups = [[], [], [], [], [], [], []];
+      dailyData.forEach(d => {
+        if (d.sales > 0) dowGroups[d.dayOfWeek].push(d.sales);
+      });
+      const allSales = dailyData.map(d => d.sales);
+      const overallAvg = allSales.reduce((a, b) => a + b, 0) / allSales.length || 1;
+      const dowFactors = dowGroups.map(group => {
+        if (group.length === 0) return 1;
+        const avg = group.reduce((a, b) => a + b, 0) / group.length;
+        return avg / overallAvg;
+      });
+
+      const residuals = [];
+      const recentStart = Math.max(7, dailyData.length - 14);
+      for (let i = recentStart; i < dailyData.length; i++) {
+        const ma = movingAverages[i];
+        if (ma !== null && ma > 0) {
+          residuals.push(Math.abs(dailyData[i].sales - ma) / ma);
+        }
+      }
+      const avgResidual = residuals.length > 0
+        ? residuals.reduce((a, b) => a + b, 0) / residuals.length
+        : 0.3;
+      const volatility = Math.min(Math.max(avgResidual, 0.1), 0.8);
+
+      const validMA = movingAverages.filter(m => m !== null);
+      const baseMA = validMA.length > 0 ? validMA[validMA.length - 1] : 0;
+      const recentTrend = validMA.length > 14
+        ? (validMA[validMA.length - 1] - validMA[validMA.length - 15]) / 14
+        : 0;
+
+      const DOW_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+      const forecast = [];
+      for (let i = 1; i <= days; i++) {
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + i);
+        const dow = futureDate.getDay();
+        const trendAdjusted = baseMA + recentTrend * i;
+        const predicted = Math.max(0, Math.round(trendAdjusted * dowFactors[dow]));
+        const interval = Math.round(predicted * volatility);
+        forecast.push({
+          date: futureDate.toISOString().slice(0, 10),
+          dayOfWeek: DOW_LABELS[dow],
+          predicted,
+          lower_bound: Math.max(0, predicted - interval),
+          upper_bound: predicted + interval
+        });
+      }
+
+      return {
+        forecast,
+        confidence: Math.max(0, Math.min(1, 1 - volatility)),
+        metadata: {
+          training_days: dailyData.filter(d => d.sales > 0).length,
+          total_period_days: dailyData.length,
+          avg_daily_sales: Math.round(overallAvg),
+          dow_factors: Object.fromEntries(
+            dowFactors.map((f, i) => [DOW_LABELS[i], Math.round(f * 100) / 100])
+          )
+        }
+      };
+    } catch (error) {
+      console.error('[Prisma Error] getForecast failed:', error);
+      return { forecast: [], confidence: 0, metadata: null };
+    }
   }
 };
 

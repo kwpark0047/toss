@@ -53,9 +53,12 @@ class PointService {
    */
   async findOrCreateUser(identifier, tx) {
     const { toss_user_key, phone, user_id } = identifier;
+    const { normalizePhone } = require('../utils/phoneEncryption');
+    const normalizedPhone = phone ? normalizePhone(phone) : null;
+
     const where = {};
     if (toss_user_key) where.toss_user_key = toss_user_key;
-    else if (phone) where.phone = phone;
+    else if (normalizedPhone) where.phone = normalizedPhone;
     else if (user_id) where.user_id = user_id;
 
     const db = tx || prisma;
@@ -65,12 +68,51 @@ class PointService {
         data: {
           user_id: user_id || null,
           toss_user_key: toss_user_key || null,
-          phone: phone || null,
+          phone: normalizedPhone || null,
           total_points: 0
         }
       });
     }
     return user;
+  }
+
+  async unifyPoints(userId, phone, tx) {
+    const { normalizePhone } = require('../utils/phoneEncryption');
+    const normalized = normalizePhone(phone);
+    if (!normalized) return;
+
+    const db = tx || prisma;
+    
+    const guestPoints = await db.user_points.findMany({
+      where: { phone: normalized, user_id: null }
+    });
+
+    if (guestPoints.length === 0) return;
+
+    guestPoints.sort((a, b) => b.total_points - a.total_points);
+    const mainRecord = guestPoints[0];
+
+    await db.user_points.update({
+      where: { id: mainRecord.id },
+      data: { user_id: userId }
+    });
+
+    for (let i = 1; i < guestPoints.length; i++) {
+      const record = guestPoints[i];
+      await db.user_points.update({
+        where: { id: mainRecord.id },
+        data: {
+          total_points: { increment: record.total_points },
+          lifetime_earned: { increment: record.lifetime_earned },
+          lifetime_used: { increment: record.lifetime_used }
+        }
+      });
+      await db.point_transactions.updateMany({
+        where: { user_point_id: record.id },
+        data: { user_point_id: mainRecord.id }
+      });
+      await db.user_points.delete({ where: { id: record.id } });
+    }
   }
 
   /**

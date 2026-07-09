@@ -2,7 +2,7 @@ const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
 const { getStoreRole } = require('../middleware/storeAuth');
 
-const ALLOWED_TYPES = ['NEW_ORDER', 'ORDER_STATUS', 'LOW_STOCK', 'NEW_REVIEW', 'NEW_RESERVATION', 'MANAGER_CALL', 'SETTLEMENT', 'SYSTEM'];
+const ALLOWED_TYPES = ['NEW_ORDER', 'ORDER_STATUS', 'LOW_STOCK', 'NEW_REVIEW', 'NEW_RESERVATION', 'MANAGER_CALL', 'SETTLEMENT', 'SYSTEM', 'STORE_LINK_CREATED', 'STORE_LINK_APPROVED', 'STORE_LINK_REJECTED'];
 const ALLOWED_CHANNELS = ['push', 'socket', 'alimtalk', 'all'];
 
 // 매장 관리 권한(owner/manager)만 템플릿을 쓰기/조회할 수 있도록 확인.

@@ -8,18 +8,18 @@ import {
   Store, LogOut, LayoutDashboard, UtensilsCrossed,
   Settings, Users, Receipt, Wallet, Palette,
   Menu as MenuIcon, MessageSquare, LogIn, Smartphone, CalendarCheck, Sparkles, Package, Bell,
-  UserCircle, ChevronRight, ShoppingBag, Building2, Activity, Scale,
+  UserCircle, ChevronRight, ShoppingBag, Building2, Activity, Scale, Headset
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import { TC } from './adminThemes';
 import ThemeSwitcher from './ThemeSwitcher';
-
-
+import AdminChatManager from './AdminChatManager';
 
 function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen, setSidebarOpen, location, filteredNavItems }) {
   const { themeId } = useAdminTheme();
   const tc = TC[themeId];
   const [isMoreOpen, setMoreOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const mobileBottomNav = storeId ? [
     { label: '홈', icon: LayoutDashboard, path: '/admin' },
@@ -36,8 +36,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
   return (
     <NotificationProvider storeId={storeId} userId={user?.id} role={user?.role}>
       <div className={`min-h-screen flex overflow-hidden ${tc.root} ${themeId === 'arctic' ? 'admin-light' : ''}`}>
-        {/* 배경 그리드 */}
-        <div className={`fixed inset-0 pointer-events-none ${tc.grid} bg-[size:40px_40px]`} />
+        <AdminChatManager isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
 
         {/* Sidebar (Desktop) */}
         <aside className={`hidden lg:flex w-80 flex-col z-30 relative ${tc.sidebar}`}>
@@ -147,6 +146,14 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
             </div>
 
             <div className="flex items-center gap-2 lg:gap-3">
+              <button
+                onClick={() => setIsChatOpen(true)}
+                className={`p-2 lg:p-3 rounded-2xl transition-all relative group ${tc.statusBox} hover:scale-105 active:scale-95`}
+                aria-label="1:1 채팅 문의"
+              >
+                <Headset size={20} className={tc.navIconHover} />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full animate-ping" />
+              </button>
               <ThemeSwitcher />
               <NotificationBell />
               <div className={`hidden md:block h-8 w-px mx-1 ${tc.separator}`} />

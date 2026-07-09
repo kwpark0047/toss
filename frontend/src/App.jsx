@@ -15,9 +15,11 @@ const AuthPage = lazy(() => import("./pages/AuthPage"));
 const Register = lazy(() => import("./components/Register"));
 const StoreSearchPage = lazy(() => import("./pages/StoreSearchPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const KioskPage = lazy(() => import("./pages/KioskPage"));
 import PWAInstallBanner from "@/components/common/PWAInstallBanner";
 import PWAUpdateNotification from "@/components/common/PWAUpdateNotification";
 import OfflineBanner from "@/components/common/OfflineBanner";
+import { ErrorBoundary, ErrorFallback } from "@/components/common/ErrorBoundary";
 
 // Admin 컴포넌트 지연 로딩
 const AdminLayout    = lazy(() => import("@/components/admin/AdminLayout"));
@@ -55,6 +57,7 @@ const NotificationTemplatesManager = lazy(() => import("@/components/admin/Notif
 const DeveloperConsole = lazy(() => import("@/components/admin/DeveloperConsole"));
 const QrCustomizer = lazy(() => import("@/components/admin/QrCustomizer"));
 const PartnershipManager = lazy(() => import("@/components/admin/PartnershipManager"));
+const StaffScheduler = lazy(() => import("@/components/admin/StaffScheduler"));
 
 const queryClient = new QueryClient();
 
@@ -65,9 +68,11 @@ const SPINNER_FALLBACK = (
 );
 
 const AdminSuspense = ({ children }) => (
-  <Suspense fallback={SPINNER_FALLBACK}>
-    {children}
-  </Suspense>
+  <ErrorBoundary onError={logError}>
+    <Suspense fallback={SPINNER_FALLBACK}>
+      {children}
+    </Suspense>
+  </ErrorBoundary>
 );
 
 // Protected Route Component
@@ -127,6 +132,7 @@ const AppRoutes = memo(() => (
     <Route path="/menu/demo" element={<AdminSuspense><MenuDemo /></AdminSuspense>} />
     <Route path="/demo/business" element={<AdminSuspense><BusinessDemo /></AdminSuspense>} />
     <Route path="/menu/:storeId" element={<AdminSuspense><MenuPage /></AdminSuspense>} />
+    <Route path="/kiosk/:storeId" element={<AdminSuspense><KioskPage /></AdminSuspense>} />
     <Route path="/qr/:qrCode" element={<AdminSuspense><QrResolvePage /></AdminSuspense>} />
 
     {/* Admin 메인 대시보드 */}
@@ -337,6 +343,13 @@ const AppRoutes = memo(() => (
       </AdminPage>
     } />
 
+    {/* 근무표 */}
+    <Route path="/admin/stores/:storeId/schedules" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><StaffScheduler /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
     {/* 공개 법적 문서 (이용약관·개인정보처리방침·환불정책) — 인증 불필요 */}
     <Route path="/legal/:storeId/:type" element={<Suspense fallback={null}><LegalPage /></Suspense>} />
 
@@ -357,6 +370,12 @@ const AppRoutes = memo(() => (
   </Routes>
 ));
 
+const logError = (error, errorInfo) => {
+  if (import.meta.env.DEV) {
+    console.error('[ErrorBoundary]', error.message, errorInfo?.componentStack);
+  }
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -365,11 +384,18 @@ const App = () => (
       <OfflineBanner />
       <PWAUpdateNotification />
       <PWAInstallBanner />
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
+      <ErrorBoundary
+        fallback={<ErrorFallback error={new Error('앱을 불러올 수 없습니다.')} fullPage />}
+        onError={logError}
+      >
+        <BrowserRouter>
+          <AuthProvider>
+            <ErrorBoundary onError={logError}>
+              <AppRoutes />
+            </ErrorBoundary>
+          </AuthProvider>
+        </BrowserRouter>
+      </ErrorBoundary>
     </TooltipProvider>
   </QueryClientProvider>
 );

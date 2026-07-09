@@ -1,10 +1,12 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const prisma = require('../config/prisma');
+const userRepository = require('../app/lib/repositories/user.repository');
+const prisma = require('../config/prisma'); // 다른 모델 접근을 위해 필요
 const logger = require('../utils/logger');
 const { AppError } = require('../utils/errorHandler');
 const { sendSms } = require('../utils/smsService');
 const { normalizePhone, encryptPhone, decryptPhone, encryptPhoneForSearch, phoneSearchCandidates } = require('../utils/phoneEncryption');
+const { setTokenCookies, clearTokenCookies } = require('../utils/tokenCookies');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET;
@@ -118,9 +120,7 @@ const register = async (req, res, next) => {
     const normalized = normalizePhone(phone);
     const encryptedPhone = encryptPhone(normalized);
 
-    const exists = await prisma.users.findFirst({
-      where: { OR: [{ phone: encryptedPhone }, { phone: normalized }] }
-    });
+    const exists = await userRepository.findByPhone([encryptedPhone, normalized]);
     if (exists) return next(new AppError('이미 가입된 핸드폰 번호입니다.', 409));
 
     // OTP 인증 확인 (BYPASS_OTP=true 환경변수로 건너뛰기 가능)
@@ -147,16 +147,20 @@ const register = async (req, res, next) => {
     }
 
     const hashedPassword = bcrypt.hashSync(password, 10);
-    const user = await prisma.users.create({
-      data: {
+    const user = await userRepository.create({
         phone: encryptedPhone,
         password: hashedPassword,
         role: 'user',
         profile_step: 1,
-      },
+    });
+
+    const pointService = require('../services/PointService');
+    await pointService.unifyPoints(user.id, normalized).catch(err => {
+      logger.warn(`[Auth] 포인트 통합 실패 (user ${user.id}): ${err.message}`);
     });
 
     const { token, refreshToken } = signTokens(user);
+    setTokenCookies(res, token, refreshToken);
     res.success({ token, refreshToken, user: safeUser(user) }, '회원가입이 완료되었습니다.', 201);
   } catch (error) {
     next(error);
@@ -180,17 +184,15 @@ const login = async (req, res, next) => {
 
     if (loginId.includes('@')) {
       // 이메일은 대소문자 무시 + 공백 제거로 조회 (관례상 대소문자 구분 없음)
-      user = await prisma.users.findFirst({
-        where: { email: { equals: loginId, mode: 'insensitive' } },
-      });
+      user = await userRepository.findByEmail(loginId);
     } else {
       const normalizedPhone = normalizePhone(loginId);
       const encryptedPhone  = encryptPhoneForSearch(normalizedPhone);
       // 현행/레거시 암호문 + 평문 후보를 한 번에 검색
-      user = await prisma.users.findFirst({ where: { phone: { in: phoneSearchCandidates(normalizedPhone) } } });
+      user = await userRepository.findByPhone(phoneSearchCandidates(normalizedPhone));
       // 레거시/평문 레코드는 현행 방식으로 재암호화 (점진적 마이그레이션)
       if (user && user.phone !== encryptedPhone) {
-        await prisma.users.update({ where: { id: user.id }, data: { phone: encryptedPhone } }).catch(() => {});
+        await userRepository.update(user.id, { phone: encryptedPhone }).catch(() => {});
       }
     }
 
@@ -199,6 +201,7 @@ const login = async (req, res, next) => {
     }
 
     const { token, refreshToken } = signTokens(user);
+    setTokenCookies(res, token, refreshToken);
     res.success({ token, refreshToken, user: safeUser(user) }, '로그인 성공');
   } catch (error) {
     next(error);
@@ -210,22 +213,12 @@ const login = async (req, res, next) => {
  */
 const getMe = async (req, res, next) => {
   try {
-    const user = await prisma.users.findUnique({
-      where: { id: req.user.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        address: true,
-        profile_step: true,
-        role: true,
-        created_at: true,
-      },
-    });
+    const user = await userRepository.findUnique(req.user.id);
 
     if (!user) return next(new AppError('사용자를 찾을 수 없습니다.', 404));
-    res.success({ ...user, phone: decryptPhone(user.phone) });
+    
+    const safe = safeUser(user);
+    res.success({ ...safe, phone: decryptPhone(safe.phone) });
   } catch (error) {
     next(error);
   }
@@ -239,7 +232,7 @@ const updateProfile = async (req, res, next) => {
     const { name, email, address } = req.body;
     const userId = req.user.id;
 
-    const current = await prisma.users.findUnique({ where: { id: userId } });
+    const current = await userRepository.findUnique(userId);
     if (!current) return next(new AppError('사용자를 찾을 수 없습니다.', 404));
 
     const updateData = {};
@@ -251,16 +244,13 @@ const updateProfile = async (req, res, next) => {
     }
 
     if (email !== undefined) {
-      // 이메일 정규화(trim + 소문자) — 로그인 조회·중복검사 일관성 확보
       const normalizedEmail = email ? String(email).trim().toLowerCase() : null;
       if (normalizedEmail) {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
           return next(new AppError('이메일 형식이 올바르지 않습니다.', 400));
         }
-        const dup = await prisma.users.findFirst({
-          where: { email: { equals: normalizedEmail, mode: 'insensitive' }, NOT: { id: userId } },
-        });
-        if (dup) return next(new AppError('이미 사용 중인 이메일입니다.', 409));
+        const dup = await userRepository.findByEmail(normalizedEmail);
+        if (dup && dup.id !== userId) return next(new AppError('이미 사용 중인 이메일입니다.', 409));
       }
       updateData.email = normalizedEmail;
       if (nextStep < 3) nextStep = 3;
@@ -273,16 +263,10 @@ const updateProfile = async (req, res, next) => {
 
     updateData.profile_step = nextStep;
 
-    const updated = await prisma.users.update({
-      where: { id: userId },
-      data: updateData,
-      select: {
-        id: true, name: true, email: true, phone: true,
-        address: true, profile_step: true, role: true,
-      },
-    });
-
-    res.success(updated, '프로필이 업데이트되었습니다.');
+    const updated = await userRepository.update(userId, updateData);
+    
+    const { password, ...safe } = updated;
+    res.success(safe, '프로필이 업데이트되었습니다.');
   } catch (error) {
     next(error);
   }
@@ -304,7 +288,7 @@ const changePassword = async (req, res, next) => {
       return next(new AppError('새 비밀번호는 최소 6자 이상이어야 합니다.', 400));
     }
 
-    const user = await prisma.users.findUnique({ where: { id: userId } });
+    const user = await userRepository.findUnique(userId);
     if (!user) return next(new AppError('사용자를 찾을 수 없습니다.', 404));
 
     if (!bcrypt.compareSync(current_password, user.password)) {
@@ -312,10 +296,7 @@ const changePassword = async (req, res, next) => {
     }
 
     const hashed = bcrypt.hashSync(new_password, 10);
-    await prisma.users.update({
-      where: { id: userId },
-      data: { password: hashed },
-    });
+    await userRepository.update(userId, { password: hashed });
 
     res.success(null, '비밀번호가 변경되었습니다.');
   } catch (error) {
@@ -334,10 +315,11 @@ const refreshToken = async (req, res, next) => {
     const decoded = jwt.verify(clientToken, JWT_REFRESH_SECRET);
     if (decoded.type !== 'refresh') return next(new AppError('유효하지 않은 토큰 타입입니다.', 401));
 
-    const user = await prisma.users.findUnique({ where: { id: decoded.id } });
+    const user = await userRepository.findUnique(decoded.id);
     if (!user) return next(new AppError('사용자를 찾을 수 없습니다.', 404));
 
     const { token, refreshToken: newRefreshToken } = signTokens(user);
+    setTokenCookies(res, token, newRefreshToken);
     res.success({ token, refreshToken: newRefreshToken }, '토큰이 갱신되었습니다.');
   } catch {
     return next(new AppError('유효하지 않거나 만료된 리프레시 토큰입니다.', 401));

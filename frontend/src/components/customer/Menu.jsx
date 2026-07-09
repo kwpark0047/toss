@@ -14,6 +14,7 @@ import ChatDrawer from "./ChatDrawer";
 import ReviewModal from "./ReviewModal";
 import ReservationSection from "./ReservationSection";
 import MenuStoryModal from "./MenuStoryModal";
+import FloatingCallButton from "./FloatingCallButton";
 import { formatPrice } from "../../utils/format";
 
 const defaultTheme = {
@@ -1016,6 +1017,12 @@ const Menu = () => {
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* 직원 호출 플로팅 버튼 (고가시성 맥박 애니메이션 적용) */}
+      <FloatingCallButton 
+        onClick={() => setShowCallSheet(true)} 
+        primaryColor={theme.primaryColor}
+      />
 
       {/* 장바구니 바텀 시트 (Floating) */}
       <AnimatePresence>

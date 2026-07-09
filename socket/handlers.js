@@ -40,14 +40,27 @@ function registerSocketHandlers(io) {
       socket.join(`chat - ${roomId}`);
     });
 
-    socket.on('send-chat-message', (data) => {
-      const { roomId, message } = data;
+    socket.on('send-chat-message', async (data) => {
+      const { roomId, message, roomType, targetId } = data;
+      
       io.to(`chat - ${roomId}`).emit('new-chat-message', message);
 
       if (message.sender_type === 'customer') {
-        io.to(`store - ${data.storeId}`).emit('manager-notification', {
+        io.to(`store - ${targetId}`).emit('manager-notification', {
           type: 'CHAT_RECEPTION',
           message: '새로운 고객 메시지가 도착했습니다.',
+          roomId,
+        });
+      } else if (message.sender_type === 'owner' && roomType === 'ADMIN_SUPPORT') {
+        io.to('admin').emit('manager-notification', {
+          type: 'ADMIN_SUPPORT_REQUEST',
+          message: `[지원요청] ${message.sender_name || '사업자'}님의 메시지`,
+          roomId,
+        });
+      } else if (message.sender_type === 'super_admin' && roomType === 'ADMIN_SUPPORT') {
+        io.to(`user - ${targetId}`).emit('manager-notification', {
+          type: 'ADMIN_SUPPORT_REPLY',
+          message: '운영팀의 답변이 도착했습니다.',
           roomId,
         });
       }

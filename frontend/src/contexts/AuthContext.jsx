@@ -2,11 +2,13 @@ import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { authAPI } from '../api/auth';
 import { storesAPI } from '../api/stores';
 import { API_URL } from '../api/client';
+import api from '../api/client';
 
 const AuthContext = createContext(null);
 
+const USE_COOKIE = import.meta.env.VITE_HTTPONLY_COOKIE === 'true';
+
 // JWT 페이로드를 네트워크 없이 즉시 디코드 (서명 검증 없음 — 만료 확인용)
-// atob()은 Latin-1 문자열을 반환하므로 한글 등 멀티바이트는 TextDecoder로 복원해야 한다
 const decodeToken = (token) => {
   try {
     const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -15,8 +17,21 @@ const decodeToken = (token) => {
   } catch { return null; }
 };
 
-// refreshToken으로 새 accessToken 발급 (Prisma 직접 조회 없이 빠름)
+// refreshToken으로 새 accessToken 발급
 const refreshAccessToken = async () => {
+  // 쿠키 모드: refreshToken이 HttpOnly Cookie로 자동 전송
+  if (USE_COOKIE) {
+    const res = await fetch(`${API_URL}/auth/refresh-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    if (!res.ok) return null;
+    const d = (await res.json())?.data;
+    return d?.token || null;
+  }
+
+  // 헤더 모드: localStorage에서 refreshToken 읽어 전송
   const refreshToken = localStorage.getItem('refreshToken');
   if (!refreshToken) return null;
   const res = await fetch(`${API_URL}/auth/refresh-token`, {
@@ -33,28 +48,6 @@ const refreshAccessToken = async () => {
   return d.token;
 };
 
-/** JWT 페이로드에서 user 객체 생성 */
-const userFromPayload = (payload) => ({
-  id: payload.id,
-  name: payload.name,
-  role: payload.role,
-});
-
-/** localStorage 인증 정보 삭제 */
-const clearAuthStorage = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('refreshToken');
-};
-
-/** 토큰 기반 user 세팅 (decodeToken → setUser) */
-const applyUserFromToken = (token, setUser, merger) => {
-  const payload = decodeToken(token);
-  if (!payload) { setUser(null); return false; }
-  const user = userFromPayload(payload);
-  setUser(merger ? (prev) => ({ ...prev, ...user }) : user);
-  return true;
-};
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +56,22 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const loadUser = async () => {
+      if (USE_COOKIE) {
+        // 쿠키 모드: 토큰을 JS에서 읽을 수 없으므로 /auth/me 호출로 인증 확인
+        try {
+          const res = await api.get('/auth/me');
+          const data = res?.data || res;
+          if (data?.id) {
+            setUser({ id: data.id, name: data.name, role: data.role });
+          }
+        } catch {
+          setUser(null);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
       const token = localStorage.getItem('token');
       if (!token) { setLoading(false); return; }
 
@@ -70,28 +79,29 @@ export const AuthProvider = ({ children }) => {
       const validFor = payload?.exp ? payload.exp * 1000 - Date.now() : 0;
 
       if (payload && validFor > 0) {
-        setUser(userFromPayload(payload));
+        setUser({ id: payload.id, name: payload.name, role: payload.role });
         setLoading(false);
-        // 만료 임박 시 백그라운드 갱신 (UI 차단 없음, 실패해도 로그아웃 안 함)
         if (validFor <= 300_000) {
           refreshAccessToken()
-            .then(newToken => { if (newToken) applyUserFromToken(newToken, setUser, true); })
+            .then(newToken => { if (newToken) setUser(prev => ({ ...prev, ...{ id: payload.id, name: payload.name, role: payload.role } })); })
             .catch(() => {});
         }
         return;
       }
 
-      // 토큰 만료 → refreshToken으로 갱신 시도
       try {
         const newToken = await refreshAccessToken();
         if (newToken) {
-          applyUserFromToken(newToken, setUser);
+          const p = decodeToken(newToken);
+          if (p) setUser({ id: p.id, name: p.name, role: p.role });
         } else {
-          clearAuthStorage();
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
           setUser(null);
         }
       } catch {
-        clearAuthStorage();
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         setUser(null);
       } finally {
         setLoading(false);
@@ -110,7 +120,6 @@ export const AuthProvider = ({ children }) => {
     return res.data || res;
   };
 
-  // identifier = 핸드폰 번호 또는 이메일
   const login = async (identifier, password) => {
     const res = await authAPI.login(identifier, password);
     const data = res.data || res;
@@ -118,11 +127,12 @@ export const AuthProvider = ({ children }) => {
 
     if (!token || !userData) throw new Error('서버 응답이 올바르지 않습니다.');
 
-    localStorage.setItem('token', token);
-    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    if (!USE_COOKIE) {
+      localStorage.setItem('token', token);
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    }
     setUser(userData);
 
-    // 로그인 즉시 stores 프리패치 → 대시보드 진입 시 API 대기 없이 즉시 렌더
     storesAPI.getMy()
       .then(res => {
         const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
@@ -133,18 +143,18 @@ export const AuthProvider = ({ children }) => {
     return { token, user: userData };
   };
 
-  // data: { phone, password } — OTP 인증 완료 후 호출
   const register = async (data) => {
     const res = await authAPI.register(data);
     const { token, refreshToken, user: userData } = res.data || res;
 
-    if (token) localStorage.setItem('token', token);
-    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    if (!USE_COOKIE) {
+      if (token) localStorage.setItem('token', token);
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    }
     if (userData) setUser(userData);
     return { token, user: userData };
   };
 
-  // 프로필 업데이트 (name, email, address 중 일부)
   const updateProfile = async (data) => {
     const res = await authAPI.updateProfile(data);
     const updated = res.data || res;
@@ -158,8 +168,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
+    if (!USE_COOKIE) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+    }
     setUser(null);
   };
 

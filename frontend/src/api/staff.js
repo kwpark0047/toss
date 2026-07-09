@@ -14,4 +14,9 @@ export const staffAPI = {
   selfRegister: (storeId) => api.post('/staff/self-register', { storeId }),
   lookupByPhone: (phone, storeId) => api.get('/staff/lookup-user', { params: { phone, storeId } }),
   addExisting: (data) => api.post('/staff/add-existing', data),
+  // 근무표
+  getSchedules: (storeId, week) => api.get(`/staff/${storeId}/schedules`, { params: { week } }),
+  createSchedule: (storeId, data) => api.post(`/staff/${storeId}/schedules`, data),
+  updateSchedule: (storeId, id, data) => api.put(`/staff/${storeId}/schedules/${id}`, data),
+  deleteSchedule: (storeId, id) => api.delete(`/staff/${storeId}/schedules/${id}`),
 };

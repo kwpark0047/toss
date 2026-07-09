@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, Star, Gift, X, ChevronRight, Check, Bell, Zap, Shield, Lock, ShieldCheck } from 'lucide-react';
 import { customersAPI, pointsAPI } from '@/api';
 import { getSocket } from '@/api';
+import { requestNotificationPermission } from '@/firebase';
 
 const formatPhone = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -302,6 +303,11 @@ export default function CustomerPhoneSheet({
       if (socket && res.socket_channel) {
         socket.emit('join-customer-orders', { phone: digits });
       }
+      requestNotificationPermission().then(token => {
+        if (token && storeId) {
+          customersAPI.registerFcmToken(digits, storeId, token).catch(() => {});
+        }
+      });
     } catch (err) {
       setError(err.response?.data?.message || '처리 중 오류가 발생했습니다.');
       setStep('idle');

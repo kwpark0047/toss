@@ -257,7 +257,16 @@ router.put('/:id/status', authMiddleware, catchAsync(async (req, res) => {
         }
     }
 
-    const customerToken = updatedOrder.customer_fcm_token;
+    // store_customers에서 최신 FCM 토큰 조회
+    let customerToken = updatedOrder.customer_fcm_token;
+    if (updatedOrder.customer_phone) {
+        try {
+            const storeCustomer = await prisma.store_customers.findFirst({
+                where: { store_id: updatedOrder.store_id, customer_phone: updatedOrder.customer_phone }
+            });
+            if (storeCustomer?.fcm_token) customerToken = storeCustomer.fcm_token;
+        } catch (_) { /* 토큰 조회 실패 시 기존값 사용 */ }
+    }
     notificationService.notifyOrderStatus(updatedOrder, status, customerToken);
     notificationService.notifyOrderStatusDB(updatedOrder, status)
         .catch(err => logger.warn(`[알림 실패] 주문 상태 알림 (order ${updatedOrder.id}, ${status}): ${err.message}`));

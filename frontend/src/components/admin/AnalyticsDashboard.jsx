@@ -7,7 +7,7 @@ import { formatPrice } from '../../utils/format';
 import AdvancedInsights from './AdvancedInsights';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell, PieChart as RePieChart, Pie, Legend
+  BarChart, Bar, Cell, PieChart as RePieChart, Pie, Legend, Line, ComposedChart, ReferenceLine
 } from 'recharts';
 
 /**
@@ -35,7 +35,9 @@ const AnalyticsDashboard = () => {
   const [products, setProducts] = useState(null);
   const [staffStats, setStaffStats] = useState(null);
   const [productSort, setProductSort] = useState('quantity');
-  const [exporting, setExporting] = useState(null); // 현재 다운로드 중인 항목 key
+  const [exporting, setExporting] = useState(null);
+  const [forecastData, setForecastData] = useState(null);
+  const [forecastDays, setForecastDays] = useState(7);
 
   const getDateRange = () => {
     const end = new Date().toISOString().slice(0, 10);
@@ -100,9 +102,22 @@ const AnalyticsDashboard = () => {
       setComparison(compRes.data);
       setProducts(prodRes.data);
       setStaffStats(staffRes.data);
+
+      try {
+        const forecastRes = await analyticsAPI.getForecast(storeId, 7);
+        setForecastData(forecastRes.data);
+      } catch (e) { /* 예측 데이터는 선택적 */ }
     } catch (error) {
       if (error.name === 'CanceledError' || error.name === 'AbortError') return;
     }
+  };
+
+  const handleForecastDaysChange = async (days) => {
+    setForecastDays(days);
+    try {
+      const res = await analyticsAPI.getForecast(storeId, days);
+      setForecastData(res.data);
+    } catch (e) { /* ignore */ }
   };
 
   const { maxSales, salesGrowthPositive, ordersGrowthPositive } = useMemo(() => {
@@ -531,6 +546,125 @@ const AnalyticsDashboard = () => {
       {/* ── 고급 인사이트 (F3): 히트맵·재구매율·카테고리 ── */}
       <motion.div variants={itemVariants} className="bg-white/5 backdrop-blur-xl rounded-[40px] border border-white/5 p-6 sm:p-10 shadow-2xl">
         <AdvancedInsights storeId={storeId} dateRange={dateRange} />
+      </motion.div>
+
+      {/* ── 매출 예측 ── */}
+      <motion.div variants={itemVariants} className="bg-white/5 backdrop-blur-xl rounded-[40px] border border-white/5 p-10 shadow-2xl">
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-3">
+            <TrendingUp className="text-emerald-400" size={22} />
+            <h2 className="text-xl font-black text-white tracking-tight">매출 예측</h2>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+              {forecastData?.confidence > 0
+                ? `신뢰도 ${Math.round(forecastData.confidence * 100)}%`
+                : '데이터 부족'}
+            </span>
+          </div>
+          <div className="flex bg-white/5 border border-white/10 rounded-xl p-1">
+            {[7, 14, 30].map(d => (
+              <button
+                key={d}
+                onClick={() => handleForecastDaysChange(d)}
+                className={`px-4 py-2 text-xs font-black rounded-lg transition-all ${forecastDays === d ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                {d}일
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {forecastData?.forecast?.length > 0 ? (
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={forecastData.forecast}>
+                <defs>
+                  <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorUpper" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.08} />
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                <XAxis
+                  dataKey="date"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#475569', fontSize: 9, fontWeight: 800 }}
+                  tickFormatter={(val) => val.slice(5)}
+                  dy={15}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#475569', fontSize: 10, fontWeight: 800 }}
+                  tickFormatter={(val) => formatCompactPrice(val)}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0F172A',
+                    borderRadius: '24px',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    padding: '20px',
+                    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)'
+                  }}
+                  itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: '900' }}
+                  labelStyle={{ color: '#64748B', marginBottom: '8px', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
+                  formatter={(value, name) => {
+                    const labels = { predicted: '예측 매출', upper_bound: '상한', lower_bound: '하한' };
+                    return [formatPrice(value, true), labels[name] || name];
+                  }}
+                />
+                <Area type="monotone" dataKey="upper_bound" stroke="none" fill="url(#colorUpper)" />
+                <Area type="monotone" dataKey="lower_bound" stroke="none" fill="url(#colorUpper)" />
+                <Line
+                  type="monotone"
+                  dataKey="predicted"
+                  stroke="#10B981"
+                  strokeWidth={3}
+                  strokeDasharray="6 4"
+                  dot={{ fill: '#10B981', stroke: '#0F172A', strokeWidth: 2, r: 4 }}
+                  activeDot={{ fill: '#10B981', stroke: '#0F172A', strokeWidth: 3, r: 6 }}
+                  animationDuration={1500}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="py-16 text-center">
+            <Zap className="mx-auto mb-4 text-slate-700" size={48} />
+            <h4 className="text-slate-500 font-black mb-1">예측 데이터가 충분하지 않습니다</h4>
+            <p className="text-slate-700 text-xs font-bold uppercase tracking-widest">60일 이상의 매출 데이터가 필요합니다</p>
+          </div>
+        )}
+
+        {forecastData?.metadata && (
+          <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-center">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">학습 기간</p>
+              <p className="text-lg font-black text-white">{forecastData.metadata.training_days}<span className="text-xs text-slate-500 ml-1">일</span></p>
+            </div>
+            <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-center">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">일평균 매출</p>
+              <p className="text-lg font-black text-white">{formatCompactPrice(forecastData.metadata.avg_daily_sales)}</p>
+            </div>
+            <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-center">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">신뢰 수준</p>
+              <p className="text-lg font-black text-emerald-400">{Math.round(forecastData.confidence * 100)}%</p>
+            </div>
+            <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-center">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">최고 예측 요일</p>
+              <p className="text-lg font-black text-white">
+                {(() => {
+                  const best = [...forecastData.forecast].sort((a, b) => b.predicted - a.predicted)[0];
+                  return best ? best.dayOfWeek : '-';
+                })()}
+              </p>
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* ── 내보내기 패널 ── */}

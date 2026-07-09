@@ -388,4 +388,29 @@ router.post('/update-location', catchAsync(async (req, res) => {
     res.json({ success: true, message: '업데이트 완료 (근처 혜택 없음)' });
 }));
 
+// FCM 토큰 등록/갱신 — 고객 전화번호 + 매장 기준
+router.post('/fcm-token', catchAsync(async (req, res) => {
+    const { phone, store_id, fcm_token } = req.body;
+    if (!phone || !store_id || !fcm_token) {
+        return res.status(400).json({ success: false, message: 'phone, store_id, fcm_token은 필수입니다.' });
+    }
+
+    const storeId = parseInt(store_id);
+
+    // store_customers upsert
+    await prisma.store_customers.upsert({
+        where: {
+            uk_store_customer: { store_id: storeId, customer_phone: phone }
+        },
+        update: { fcm_token, updated_at: new Date() },
+        create: {
+            store_id: storeId,
+            customer_phone: phone,
+            fcm_token,
+        }
+    });
+
+    res.json({ success: true, message: '알림 토큰이 등록되었습니다.' });
+}));
+
 module.exports = router;

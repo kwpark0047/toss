@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const logger = require('../utils/logger');
+const { isCookieMode } = require('../utils/tokenCookies');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const IS_DEV = process.env.NODE_ENV !== 'production';
@@ -10,6 +11,11 @@ if (!JWT_SECRET && !IS_DEV) {
 }
 
 const extractToken = (req) => {
+  // 1. HttpOnly cookie (우선)
+  if (isCookieMode() && req.cookies?.token) {
+    return req.cookies.token;
+  }
+  // 2. Authorization 헤더 (fallback)
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   return authHeader.substring(7);
@@ -46,6 +52,14 @@ const optionalAuth = (req, res, next) => {
   }
 };
 
+const adminOnly = (req, res, next) => {
+  if (req.user?.role !== 'super_admin') {
+    return res.status(403).json({ error: '관리자 권한이 필요합니다.' });
+  }
+  next();
+};
+
 module.exports = authMiddleware;
 module.exports.authMiddleware = authMiddleware;
 module.exports.optionalAuth = optionalAuth;
+module.exports.adminOnly = adminOnly;

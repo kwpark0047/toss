@@ -212,8 +212,8 @@ async function drawCard(canvas, designId, storeName, tableName, capacity) {
   ctx.textBaseline = 'alphabetic';
 
   /* ── 상단 모노그램 뱃지 ── */
-  const TOP_PAD = Math.round(H * 0.068);
-  const MONO_R = Math.round(W * 0.048);
+  const TOP_PAD = Math.round(H * 0.05);
+  const MONO_R = Math.round(W * 0.045);
   const MONO_CX = W / 2, MONO_CY = TOP_PAD + MONO_R;
 
   /* 뱃지 원 배경 */
@@ -230,42 +230,42 @@ async function drawCard(canvas, designId, storeName, tableName, capacity) {
   ctx.restore();
 
   /* WeMarket 워드마크 */
-  const WM_Y = MONO_CY + MONO_R + Math.round(H * 0.03);
-  ctx.font = `800 ${Math.round(H * 0.024)}px Arial, sans-serif`;
+  const WM_Y = MONO_CY + MONO_R + Math.round(H * 0.025);
+  ctx.font = `800 ${Math.round(H * 0.022)}px Arial, sans-serif`;
   ctx.fillStyle = d.accent;
   ctx.fillText('WeMarket', W / 2, WM_Y);
 
   /* 좌우 점 장식 */
   const dotR = Math.round(H * 0.0036);
   [-1, 1].forEach(dir => {
-    const dx = W / 2 + dir * Math.round(W * 0.22);
-    ctx.beginPath(); ctx.arc(dx, WM_Y - Math.round(H * 0.016), dotR, 0, Math.PI * 2);
+    const dx = W / 2 + dir * Math.round(W * 0.20);
+    ctx.beginPath(); ctx.arc(dx, WM_Y - Math.round(H * 0.015), dotR, 0, Math.PI * 2);
     ctx.fillStyle = d.accent + 'aa'; ctx.fill();
   });
 
   /* 매장명 */
-  const STORE_Y = WM_Y + Math.round(H * 0.042);
-  ctx.font = `600 ${Math.round(H * 0.033)}px Arial, sans-serif`;
+  const STORE_Y = WM_Y + Math.round(H * 0.038);
+  ctx.font = `600 ${Math.round(H * 0.030)}px Arial, sans-serif`;
   ctx.fillStyle = d.storeColor;
   ctx.fillText(storeName || '', W / 2, STORE_Y);
 
   /* ── 그라디언트 구분선 + 다이아몬드 ── */
-  const DIV_Y = STORE_Y + Math.round(H * 0.032);
+  const DIV_Y = STORE_Y + Math.round(H * 0.028);
   drawDivider(ctx, W, DIV_Y, d);
 
   /* ── QR 컨테이너 ── */
-  const QR_PAD = Math.round(W * 0.04);
-  const QR_SIZE = Math.round(W * 0.64);
+  const QR_PAD = Math.round(W * 0.035);
+  const QR_SIZE = Math.round(W * 0.60);
   const QR_CW = QR_SIZE + QR_PAD * 2;
   const QR_CX = Math.round((W - QR_CW) / 2);
-  const QR_CY = DIV_Y + Math.round(H * 0.032);
-  const QR_R = Math.round(W * 0.052);
+  const QR_CY = DIV_Y + Math.round(H * 0.025);
+  const QR_R = Math.round(W * 0.05);
 
   /* 외부 글로우 */
   ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.42)';
-  ctx.shadowBlur = Math.round(W * 0.10);
-  ctx.shadowOffsetY = Math.round(H * 0.016);
+  ctx.shadowColor = 'rgba(0,0,0,0.35)';
+  ctx.shadowBlur = Math.round(W * 0.08);
+  ctx.shadowOffsetY = Math.round(H * 0.012);
   ctx.fillStyle = '#ffffff';
   rrect(ctx, QR_CX, QR_CY, QR_CW, QR_CW, QR_R);
   ctx.fill();
@@ -273,7 +273,7 @@ async function drawCard(canvas, designId, storeName, tableName, capacity) {
 
   /* 얇은 악센트 테두리 */
   ctx.strokeStyle = d.qrBorderColor;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1.5;
   rrect(ctx, QR_CX, QR_CY, QR_CW, QR_CW, QR_R);
   ctx.stroke();
 
@@ -284,32 +284,32 @@ async function drawCard(canvas, designId, storeName, tableName, capacity) {
   if (qrImg) ctx.drawImage(qrImg, QR_CX + QR_PAD, QR_CY + QR_PAD, QR_SIZE, QR_SIZE);
 
   /* 코너 브라켓 장식 */
-  drawBrackets(ctx, QR_CX - 8, QR_CY - 8, QR_CW + 16, QR_CW + 16,
-    Math.round(W * 0.065), 3, Math.round(W * 0.02), d.qrBorderColor);
+  drawBrackets(ctx, QR_CX - 6, QR_CY - 6, QR_CW + 12, QR_CW + 12,
+    Math.round(W * 0.06), 2.5, Math.round(W * 0.02), d.qrBorderColor);
 
   /* ── 테이블 섹션 ── */
-  const TBL_BASE = QR_CY + QR_CW + Math.round(H * 0.038);
+  const TBL_BASE = QR_CY + QR_CW + Math.round(H * 0.035);
 
   /* "TABLE" 소문자 레이블 */
-  ctx.font = `700 ${Math.round(H * 0.021)}px Arial, sans-serif`;
+  ctx.font = `700 ${Math.round(H * 0.020)}px Arial, sans-serif`;
   ctx.fillStyle = d.capColor;
   ctx.fillText('T  A  B  L  E', W / 2, TBL_BASE);
 
   /* 오렌지 강조선 */
-  const ACCENT_LINE_Y = TBL_BASE + Math.round(H * 0.014);
+  const ACCENT_LINE_Y = TBL_BASE + Math.round(H * 0.012);
   ctx.save();
   ctx.strokeStyle = d.accent;
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 2;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(W / 2 - Math.round(W * 0.09), ACCENT_LINE_Y);
-  ctx.lineTo(W / 2 + Math.round(W * 0.09), ACCENT_LINE_Y);
+  ctx.moveTo(W / 2 - Math.round(W * 0.08), ACCENT_LINE_Y);
+  ctx.lineTo(W / 2 + Math.round(W * 0.08), ACCENT_LINE_Y);
   ctx.stroke();
   ctx.restore();
 
   /* 테이블명 - 그라디언트 텍스트 */
-  const TBL_NAME_Y = ACCENT_LINE_Y + Math.round(H * 0.088);
-  const tFS = Math.round(H * 0.092);
+  const TBL_NAME_Y = ACCENT_LINE_Y + Math.round(H * 0.075);
+  const tFS = Math.round(H * 0.08);
   ctx.font = `900 ${tFS}px Arial Black, Arial, sans-serif`;
 
   const tGrd = ctx.createLinearGradient(W / 2, TBL_NAME_Y - tFS, W / 2, TBL_NAME_Y);
@@ -321,11 +321,11 @@ async function drawCard(canvas, designId, storeName, tableName, capacity) {
   /* 인원 뱃지 - 알약형 */
   if (capacity) {
     const capText = `  ${capacity}인석  `;
-    ctx.font = `700 ${Math.round(H * 0.026)}px Arial, sans-serif`;
-    const capW = ctx.measureText(capText).width + Math.round(W * 0.04);
-    const capH = Math.round(H * 0.042);
+    ctx.font = `700 ${Math.round(H * 0.024)}px Arial, sans-serif`;
+    const capW = ctx.measureText(capText).width + Math.round(W * 0.035);
+    const capH = Math.round(H * 0.038);
     const capX = W / 2 - capW / 2;
-    const capY = TBL_NAME_Y + Math.round(H * 0.022);
+    const capY = TBL_NAME_Y + Math.round(H * 0.018);
 
     ctx.fillStyle = d.accentDim;
     rrect(ctx, capX, capY, capW, capH, capH / 2);
@@ -342,11 +342,11 @@ async function drawCard(canvas, designId, storeName, tableName, capacity) {
   }
 
   /* ── 스캔 안내 박스 ── */
-  const INST_MX = Math.round(W * 0.065);
+  const INST_MX = Math.round(W * 0.06);
   const INST_W = W - INST_MX * 2;
-  const INST_H = Math.round(H * 0.118);
-  const INST_Y = H - INST_H - Math.round(H * 0.068);
-  const INST_R = Math.round(W * 0.042);
+  const INST_H = Math.round(H * 0.11);
+  const INST_Y = H - INST_H - Math.round(H * 0.06);
+  const INST_R = Math.round(W * 0.04);
 
   ctx.fillStyle = d.instBg;
   rrect(ctx, INST_MX, INST_Y, INST_W, INST_H, INST_R);
@@ -650,6 +650,7 @@ const TableManager = () => {
 /* ─────────────────────────── QR 카드 모달 ─────────────────────────── */
 const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
   const [design, setDesign]         = useState('dark');
+  const [printMode, setPrintMode]   = useState('a6'); // 'a6' or 'a4_4'
   const [downloading, setDownloading] = useState(false);
   const [printing, setPrinting]     = useState(false);
   const [copied, setCopied]         = useState(false);
@@ -690,28 +691,61 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
       await drawCard(canvas, design, store?.name || '', tableName, table.capacity);
       const imgSrc = canvas.toDataURL('image/png');
 
-      const win = window.open('', '_blank', 'width=500,height=700');
+      const win = window.open('', '_blank', 'width=800,height=900');
       const doc = win.document;
 
       /* 스타일 */
       const style = doc.createElement('style');
-      style.textContent = [
-        '@page{size:105mm 148mm;margin:0}',
-        'body{margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f1f5f9}',
-        'img{width:105mm;height:148mm;display:block}',
-        '@media print{body{background:none}}',
-      ].join('');
+      if (printMode === 'a4_4') {
+        style.textContent = [
+          '@page{size:A4;margin:0}',
+          'body{margin:0;padding:0;width:210mm;height:297mm;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;align-content:center;justify-items:center;background:#f8fafc}',
+          '.card-container{width:105mm;height:148.5mm;display:flex;align-items:center;justify-content:center;position:relative}',
+          'img{width:95mm;height:137.2mm;display:block;box-shadow:0 0 0 0.2mm #e2e8f0}',
+          '.cut-line-v{position:absolute;top:0;bottom:0;left:105mm;width:0.1mm;border-left:0.1mm dashed #cbd5e1}',
+          '.cut-line-h{position:absolute;left:0;right:0;top:148.5mm;height:0.1mm;border-top:0.1mm dashed #cbd5e1}',
+          '@media print{body{background:none} img{box-shadow:none}}',
+        ].join('');
+      } else {
+        style.textContent = [
+          '@page{size:105mm 148mm;margin:0}',
+          'body{margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f8fafc}',
+          'img{width:105mm;height:148mm;display:block}',
+          '@media print{body{background:none}}',
+        ].join('');
+      }
       doc.head.appendChild(style);
       doc.title = `${tableName} QR 카드`;
 
-      /* 이미지 (data: URI만 — 외부 URL 아님) */
-      const img = doc.createElement('img');
-      img.src = imgSrc;
-      doc.body.appendChild(img);
+      if (printMode === 'a4_4') {
+        for (let i = 0; i < 4; i++) {
+          const container = doc.createElement('div');
+          container.className = 'card-container';
+          const img = doc.createElement('img');
+          img.src = imgSrc;
+          container.appendChild(img);
+          doc.body.appendChild(container);
+        }
+        const cv = doc.createElement('div'); cv.className = 'cut-line-v'; doc.body.appendChild(cv);
+        const ch = doc.createElement('div'); ch.className = 'cut-line-h'; doc.body.appendChild(ch);
+      } else {
+        const img = doc.createElement('img');
+        img.src = imgSrc;
+        doc.body.appendChild(img);
+      }
 
-      /* 로드 후 자동 인쇄 */
-      img.onload = () => setTimeout(() => { win.print(); win.close(); }, 300);
-    } catch {
+      const imgs = doc.querySelectorAll('img');
+      let loaded = 0;
+      imgs.forEach(img => {
+        img.onload = () => {
+          loaded++;
+          if (loaded === imgs.length) {
+            setTimeout(() => { win.print(); win.close(); }, 500);
+          }
+        };
+      });
+    } catch (err) {
+      console.error(err);
       toast.error('인쇄 준비에 실패했습니다.');
     } finally {
       setPrinting(false);
@@ -881,12 +915,35 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
             </div>
 
             {/* 액션 버튼 */}
-            <div className="space-y-3">
+            <div className="space-y-4">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">출력 방식</span>
+                  <span className="text-[10px] font-bold text-orange-500 bg-orange-500/10 px-2 py-0.5 rounded-full">
+                    {printMode === 'a6' ? '단일 A6' : 'A4 (4분할)'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setPrintMode('a6')}
+                    className={`py-2.5 rounded-xl text-[11px] font-black transition-all ${
+                      printMode === 'a6' ? 'bg-white/10 text-white border border-white/20' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'
+                    }`}>
+                    A6 (단일)
+                  </button>
+                  <button onClick={() => setPrintMode('a4_4')}
+                    className={`py-2.5 rounded-xl text-[11px] font-black transition-all ${
+                      printMode === 'a4_4' ? 'bg-white/10 text-white border border-white/20' : 'bg-transparent text-slate-500 border border-transparent hover:text-slate-300'
+                    }`}>
+                    A4 (4개)
+                  </button>
+                </div>
+              </div>
+
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                 onClick={handlePrint} disabled={printing}
                 className="w-full py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 shadow-xl shadow-orange-500/25 transition-all disabled:opacity-60">
                 {printing ? <Loader2 size={18} className="animate-spin" /> : <Printer size={18} />}
-                {printing ? '인쇄 준비 중...' : '인쇄하기 (A6)'}
+                {printing ? '인쇄 준비 중...' : printMode === 'a6' ? '인쇄하기 (A6)' : 'A4 인쇄 (4분할)'}
               </motion.button>
 
               <div className="grid grid-cols-3 gap-2.5">

@@ -6,6 +6,14 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 require('dotenv').config();
 
+// 환경변수 검증
+const { checkEnv } = require('./utils/envValidator');
+const envCheck = checkEnv();
+if (!envCheck.ok) {
+  console.error('서버 시작 불가 — 위 환경변수를 .env 파일에 설정하세요.');
+  process.exit(1);
+}
+
 // 커스텀 미들웨어 및 유틸리티
 const responseFormatter = require('./middleware/responseFormatter');
 const { errorHandler } = require('./utils/errorHandler');
@@ -111,6 +119,10 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+
+// HttpOnly Cookie 기반 인증 (USE_HTTPONLY_COOKIE=true 시 활성화)
+app.use(require('cookie-parser')());
+
 app.use(responseFormatter);
 app.use(i18nMiddleware);
 app.use(performanceMonitor);
@@ -354,6 +366,11 @@ io.on('connection', (socket) => {
     socket.on('join-kitchen', ({ storeId, userId }) => {
         socket.join(`kitchen - ${storeId}`);
         if (userId) socket.join(`user - ${userId}`);
+    });
+    socket.on('join-admin', (userId) => {
+        if (userId) socket.join(`user - ${userId}`);
+        socket.join('admin');
+        logger.debug(`[Socket] 관리자 입장: ${socket.id}`);
     });
     socket.on('disconnect', () => logger.debug(`[Socket] 연결 해제됨: ${socket.id}`));
 });

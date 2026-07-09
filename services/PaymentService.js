@@ -206,16 +206,27 @@ class PaymentService {
     const txResult = await prisma.$transaction(async (tx) => {
       const order = await tx.orders.findUnique({
         where: { id: parseInt(order_id) },
-        include: { order_items: true }
+        include: { 
+          order_items: true,
+          payments: { where: { status: 'DONE' } }
+        }
       });
       if (!order) throw new Error('주문을 찾을 수 없습니다.');
+
+      const currentPaid = order.payments.reduce((s, p) => s + p.amount, 0);
+      const remaining = order.total_amount - currentPaid;
+      const requestedAmount = parseInt(amount);
+
+      if (requestedAmount > remaining) {
+        throw new AppError(`결제 요청 금액(${requestedAmount.toLocaleString()}원)이 남은 금액(${remaining.toLocaleString()}원)을 초과합니다.`, 400);
+      }
 
       const payment = await tx.payments.create({
         data: {
           order_id: order.id,
           store_id: order.store_id,
           order_name: `분할결제 #${order.order_number}`,
-          amount: parseInt(amount),
+          amount: requestedAmount,
           method: (payment_method || 'CARD').toUpperCase(),
           status: 'DONE',
           payer_phone: payer_phone || null,
@@ -228,15 +239,11 @@ class PaymentService {
 
       await ledgerService.recordIncome({
         storeId: order.store_id, orderId: order.id, paymentId: payment.id,
-        amount: parseInt(amount), method: (payment_method || 'CARD').toUpperCase(),
+        amount: requestedAmount, method: (payment_method || 'CARD').toUpperCase(),
         description: `분할결제: #${order.order_number} (${payer_phone || '익명'})`
       }, tx);
 
-      const donePayments = await tx.payments.findMany({
-        where: { order_id: order.id, status: 'DONE' },
-        select: { amount: true }
-      });
-      const totalPaid = donePayments.reduce((s, p) => s + p.amount, 0);
+      const totalPaid = currentPaid + requestedAmount;
       const isFullyPaid = totalPaid >= order.total_amount;
 
       await tx.orders.update({
@@ -250,7 +257,7 @@ class PaymentService {
       });
 
       if (payer_phone) {
-        await this._upsertCustomer(order.store_id, payer_phone, payer_phone, null, parseInt(amount), tx);
+        await this._upsertCustomer(order.store_id, payer_phone, payer_phone, null, requestedAmount, tx);
       }
 
       return { payment, order, totalPaid, isFullyPaid };

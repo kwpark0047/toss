@@ -196,7 +196,7 @@ router.get('/trending', optionalAuth, catchAsync(async (req, res) => {
 // [GET] /:type - 게시글 목록
 router.get('/:type', optionalAuth, catchAsync(async (req, res) => {
     const { type } = req.params;
-    const validTypes = ['notice', 'free', 'faq', 'qna'];
+    const validTypes = ['notice', 'free', 'faq', 'qna', 'news'];
     if (!validTypes.includes(type)) {
         return res.status(400).json({ success: false, error: '유효하지 않은 게시판 타입입니다.' });
     }
@@ -254,10 +254,10 @@ router.get('/:type', optionalAuth, catchAsync(async (req, res) => {
 // [POST] /:type - 게시글 작성
 router.post('/:type', authMiddleware, catchAsync(async (req, res) => {
     const { type } = req.params;
-    if (!['notice', 'free', 'faq', 'qna'].includes(type)) {
+    if (!['notice', 'free', 'faq', 'qna', 'news'].includes(type)) {
         return res.status(400).json({ success: false, error: '유효하지 않은 타입입니다.' });
     }
-    if (['notice', 'faq'].includes(type) && !isAdmin(req.user)) {
+    if (['notice', 'faq', 'news'].includes(type) && !isAdmin(req.user)) {
         return res.status(403).json({ success: false, error: '해당 게시판은 관리자만 작성 가능합니다.' });
     }
 

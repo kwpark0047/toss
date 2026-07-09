@@ -23,6 +23,8 @@ export const analyticsAPI = {
   getInsights: (storeId, startDate, endDate) =>
     api.get(`/analytics/store/${storeId}/insights?start_date=${startDate}&end_date=${endDate}`),
   getMultiStore: (params) => api.get('/analytics/multi-store', { params }),
+  getForecast: (storeId, days = 7) =>
+    api.get(`/analytics/store/${storeId}/forecast?days=${days}`),
 };
 
 export const uploadsAPI = {

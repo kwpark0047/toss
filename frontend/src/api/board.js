@@ -29,6 +29,9 @@ export const communityAPI = {
 
 export const chatAPI = {
   accessRoom: (data) => api.post('/chat/rooms/access', data),
+  accessAdminRoom: (data) => api.post('/chat/rooms/admin/access', data),
+  getAdminRooms: () => api.get('/chat/rooms/admin'),
   getMessages: (roomId) => api.get(`/chat/rooms/${roomId}/messages`),
   sendMessage: (data) => api.post('/chat/messages', data),
+  markAsRead: (roomId, data) => api.patch(`/chat/rooms/${roomId}/read`, data),
 };

@@ -3,6 +3,7 @@ const { httpServer, io } = require('./app');
 const logger   = require('./utils/logger');
 const alerting = require('./utils/alerting');
 const prisma   = require('./config/prisma');
+const cron     = require('node-cron');
 
 const PORT = process.env.PORT || 3000;
 
@@ -16,7 +17,56 @@ httpServer.listen(PORT, () => {
 
     // Open Commerce Hub 웹훅 재시도 스케줄러
     require('./services/webhookDispatcher').startRetryScheduler();
+
+    // 네이버 뉴스 자동 수집 스케줄러 (매일 07:00 KST)
+    // Heroku/Render는 UTC 기준이므로 KST 07:00 = UTC 22:00 (전날)
+    const { collectAndPost } = require('./services/newsCollectorService');
+    cron.schedule('0 7 * * *', async () => {
+        logger.info('[뉴스수집] 스케줄러 시작 — 매일 07:00 KST 뉴스 수집');
+        try {
+            const count = await collectAndPost();
+            logger.info(`[뉴스수집] 스케줄러 완료 — ${count}건 등록`);
+        } catch (err) {
+            logger.error({ error: err.message }, '[뉴스수집] 스케줄러 오류');
+        }
+    }, { timezone: 'Asia/Seoul' });
+    logger.info('[뉴스수집] 스케줄러 등록 완료 (매일 07:00 KST)');
+
+    const archiveLogs = require('./scripts/archiveLogs');
+    cron.schedule('0 4 1 * *', async () => {
+        logger.info('[아카이빙] 월간 데이터 정리 시작');
+        await archiveLogs();
+    }, { timezone: 'Asia/Seoul' });
+    logger.info('[아카이빙] 스케줄러 등록 완료 (매월 1일 04:00 KST)');
+
+    // 매장 연동 요청 알림 기본 템플릿 등록
+    initStoreLinkTemplates();
 });
+
+// ── 매장 연동 요청 알림 기본 템플릿 ──────────────────────────────────────────
+const STORE_LINK_TEMPLATES = [
+  { type: 'STORE_LINK_CREATED', title: '매장 연동 요청 도착', message: '{{userName}}님이 "{{storeName}}" 매장 연동을 요청했습니다.', variables: ['userName', 'storeName'] },
+  { type: 'STORE_LINK_APPROVED', title: '매장 연동 승인 완료', message: '"{{storeName}}" 매장 연동이 승인되었습니다. 이제 내 매장에서 관리할 수 있습니다.', variables: ['storeName'] },
+  { type: 'STORE_LINK_REJECTED', title: '매장 연동 거절', message: '"{{storeName}}" 매장 연동 요청이 거절되었습니다. 사유: {{adminNote}}', variables: ['storeName', 'adminNote'] },
+];
+
+async function initStoreLinkTemplates() {
+  for (const tpl of STORE_LINK_TEMPLATES) {
+    try {
+      const existing = await prisma.notification_templates.findFirst({
+        where: { type: tpl.type, store_id: null },
+      });
+      if (!existing) {
+        await prisma.notification_templates.create({
+          data: { type: tpl.type, title: tpl.title, message: tpl.message, variables: JSON.stringify(tpl.variables), channel: 'all', is_active: true },
+        });
+        logger.info(`[알림템플릿] ${tpl.type} 기본 템플릿 등록 완료`);
+      }
+    } catch (e) {
+      logger.warn({ error: e.message }, `[알림템플릿] ${tpl.type} 등록 실패`);
+    }
+  }
+}
 
 // ── Graceful Shutdown ────────────────────────────────────────────────────────
 // Render는 배포/재시작 전 SIGTERM을 보낸다.

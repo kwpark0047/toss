@@ -131,4 +131,109 @@ describe('notificationService', () => {
       expect(() => notificationService.sendSocket('store - 3', 'ev', {})).not.toThrow();
     });
   });
+
+  describe('sendPush', () => {
+    beforeEach(() => {
+      delete notificationService.messaging;
+    });
+
+    test('messaging 미초기화 시 false 반환', async () => {
+      const result = await notificationService.sendPush('tok', { title: 't', body: 'b' });
+      expect(result).toBe(false);
+    });
+
+    test('token 없이 호출 시 false 반환', async () => {
+      notificationService.messaging = { send: jest.fn() };
+      const result = await notificationService.sendPush(null, { title: 't', body: 'b' });
+      expect(result).toBe(false);
+      expect(notificationService.messaging.send).not.toHaveBeenCalled();
+    });
+
+    test('token과 messaging이 모두 있으면 messaging.send를 호출하고 true 반환', async () => {
+      notificationService.messaging = { send: jest.fn().mockResolvedValue('ok') };
+      const result = await notificationService.sendPush('fcm-token-xyz', {
+        title: 'test title', body: 'test body', data: { orderId: 42 },
+      });
+      expect(result).toBe(true);
+      expect(notificationService.messaging.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          notification: { title: 'test title', body: 'test body' },
+          token: 'fcm-token-xyz',
+        })
+      );
+    });
+
+    test('messaging.send 실패 시 false 반환 (예외 swallow)', async () => {
+      notificationService.messaging = { send: jest.fn().mockRejectedValue(new Error('invalid token')) };
+      const result = await notificationService.sendPush('bad-token', { title: 't', body: 'b' });
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('notifyOrderStatus (통합 알림)', () => {
+    beforeEach(() => {
+      notificationService.sendSocket = jest.fn();
+      notificationService.sendPush = jest.fn();
+    });
+
+    test('customerToken이 있으면 소켓 + 푸시 모두 발송', async () => {
+      const order = { id: 9, store_id: 3, order_number: 'A001' };
+      await notificationService.notifyOrderStatus(order, 'ready', 'customer-token');
+
+      expect(notificationService.sendSocket).toHaveBeenCalledWith(
+        'order - 9', 'notification', expect.objectContaining({ target: 'customer' })
+      );
+      expect(notificationService.sendSocket).toHaveBeenCalledWith(
+        'store - 3', 'notification', expect.objectContaining({ target: 'manager' })
+      );
+      expect(notificationService.sendPush).toHaveBeenCalledWith(
+        'customer-token', expect.objectContaining({ title: expect.stringContaining('주문') })
+      );
+    });
+
+    test.each(['confirmed', 'ready', 'cancelled'])('중요 상태(%s)에서 customerToken이 있으면 푸시 발송', async (status) => {
+      await notificationService.notifyOrderStatus({ id: 1, store_id: 1 }, status, 'tok');
+      expect(notificationService.sendPush).toHaveBeenCalled();
+    });
+
+    test.each(['pending', 'preparing', 'completed'])('비중요 상태(%s)에서는 customerToken이 있어도 푸시 미발송', async (status) => {
+      await notificationService.notifyOrderStatus({ id: 1, store_id: 1 }, status, 'tok');
+      expect(notificationService.sendPush).not.toHaveBeenCalled();
+    });
+
+    test('customerToken 없으면 푸시 미발송 (소켓만)', async () => {
+      await notificationService.notifyOrderStatus({ id: 1, store_id: 1 }, 'ready');
+      expect(notificationService.sendPush).not.toHaveBeenCalled();
+      expect(notificationService.sendSocket).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('notifyNewOrder', () => {
+    beforeEach(() => {
+      notificationService.sendSocket = jest.fn();
+      notificationService.sendPush = jest.fn();
+    });
+
+    test('매장/주방 소켓 발송 + 관리자 푸시 발송', async () => {
+      const order = { id: 7, store_id: 3, table_name: '5번' };
+      const tokens = ['mgr-tok-1', 'mgr-tok-2'];
+      await notificationService.notifyNewOrder(order, tokens);
+
+      expect(notificationService.sendSocket).toHaveBeenCalledWith(
+        'store - 3', 'notification', expect.objectContaining({ target: 'store' })
+      );
+      expect(notificationService.sendSocket).toHaveBeenCalledWith(
+        'kitchen - 3', 'notification', expect.objectContaining({ target: 'kitchen' })
+      );
+      expect(notificationService.sendPush).toHaveBeenCalledTimes(2);
+      expect(notificationService.sendPush).toHaveBeenCalledWith('mgr-tok-1', expect.any(Object));
+      expect(notificationService.sendPush).toHaveBeenCalledWith('mgr-tok-2', expect.any(Object));
+    });
+
+    test('tokens가 빈 배열이면 푸시 미발송 (소켓만)', async () => {
+      await notificationService.notifyNewOrder({ id: 1, store_id: 1 }, []);
+      expect(notificationService.sendPush).not.toHaveBeenCalled();
+      expect(notificationService.sendSocket).toHaveBeenCalledTimes(2);
+    });
+  });
 });

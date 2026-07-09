@@ -333,4 +333,156 @@ router.post('/add-existing', authMiddleware, catchAsync(async (req, res) => {
     }, '팀원이 추가되었습니다.', 201);
 }));
 
+// ──────────────────────────────
+// 근무표 (Schedule) CRUD
+// ──────────────────────────────
+
+// 주간 스케줄 조회 (date 기준 해당 주 월~일)
+router.get('/:storeId/schedules', authMiddleware, catchAsync(async (req, res, next) => {
+    const storeId = parseInt(req.params.storeId);
+    if (isNaN(storeId)) return next(new AppError('유효하지 않은 매장 ID입니다.', 400));
+
+    // week 파라미터: "2026-07-13" → 해당 주 월요일 자정 기준
+    const weekParam = req.query.week;
+    const weekStart = weekParam ? new Date(weekParam) : new Date();
+    const dayOfWeek = weekStart.getDay(); // 0=Sun
+    const monday = new Date(weekStart);
+    monday.setDate(monday.getDate() - ((dayOfWeek + 6) % 7)); // 이번주 월요일
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(sunday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    const schedules = await prisma.staff_schedules.findMany({
+        where: {
+            store_id: storeId,
+            date: { gte: monday, lte: sunday }
+        },
+        include: {
+            staff: {
+                include: {
+                    users: { select: { id: true, name: true, email: true, phone: true } }
+                }
+            }
+        },
+        orderBy: [{ date: 'asc' }, { start_time: 'asc' }]
+    });
+
+    res.success({ schedules, week_start: monday, week_end: sunday });
+}));
+
+// 시프트 등록 (단일 / 일괄)
+router.post('/:storeId/schedules', authMiddleware, catchAsync(async (req, res, next) => {
+    const storeId = parseInt(req.params.storeId);
+    if (isNaN(storeId)) return next(new AppError('유효하지 않은 매장 ID입니다.', 400));
+
+    const { staff_id, date, start_time, end_time, role, note } = req.body;
+
+    // 단일 객체 또는 배열 처리
+    const entries = Array.isArray(req.body) ? req.body : [req.body];
+
+    if (entries.length === 0) {
+        return next(new AppError('등록할 일정이 없습니다.', 400));
+    }
+
+    const created = [];
+    for (const entry of entries) {
+        if (!entry.staff_id || !entry.date || !entry.start_time || !entry.end_time) {
+            return next(new AppError('staff_id, date, start_time, end_time은 필수입니다.', 400));
+        }
+
+        // 기존 시프트와 시간 중복 검사
+        const entryDate = new Date(entry.date);
+        entryDate.setHours(0, 0, 0, 0);
+        const nextDay = new Date(entryDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+
+        const overlap = await prisma.staff_schedules.findFirst({
+            where: {
+                staff_id: parseInt(entry.staff_id),
+                date: { gte: entryDate, lt: nextDay },
+                // 시간대 겹침: (기존_start < 새_end AND 기존_end > 새_start)
+                start_time: { lt: entry.end_time },
+                end_time: { gt: entry.start_time }
+            }
+        });
+
+        if (overlap) {
+            // 중복 시 skip (batch의 경우)
+            if (Array.isArray(req.body)) continue;
+            return next(new AppError('해당 시간에 이미 등록된 시프트가 있습니다.', 409));
+        }
+
+        const schedule = await prisma.staff_schedules.create({
+            data: {
+                staff_id: parseInt(entry.staff_id),
+                store_id: storeId,
+                date: entryDate,
+                start_time: entry.start_time,
+                end_time: entry.end_time,
+                role: entry.role || null,
+                note: entry.note || null
+            },
+            include: {
+                staff: {
+                    include: {
+                        users: { select: { id: true, name: true } }
+                    }
+                }
+            }
+        });
+        created.push(schedule);
+    }
+
+    res.success({ schedules: created }, created.length + '개의 시프트가 등록되었습니다.', 201);
+}));
+
+// 시프트 수정
+router.put('/:storeId/schedules/:id', authMiddleware, catchAsync(async (req, res, next) => {
+    const storeId = parseInt(req.params.storeId);
+    const scheduleId = parseInt(req.params.id);
+    if (isNaN(storeId) || isNaN(scheduleId)) return next(new AppError('유효하지 않은 ID입니다.', 400));
+
+    const { start_time, end_time, role, note } = req.body;
+
+    const existing = await prisma.staff_schedules.findFirst({
+        where: { id: scheduleId, store_id: storeId }
+    });
+    if (!existing) return next(new AppError('시프트를 찾을 수 없습니다.', 404));
+
+    const updated = await prisma.staff_schedules.update({
+        where: { id: scheduleId },
+        data: {
+            ...(start_time && { start_time }),
+            ...(end_time && { end_time }),
+            ...(role !== undefined && { role }),
+            ...(note !== undefined && { note })
+        },
+        include: {
+            staff: {
+                include: {
+                    users: { select: { id: true, name: true } }
+                }
+            }
+        }
+    });
+
+    res.success({ schedule: updated }, '시프트가 수정되었습니다.');
+}));
+
+// 시프트 삭제
+router.delete('/:storeId/schedules/:id', authMiddleware, catchAsync(async (req, res, next) => {
+    const storeId = parseInt(req.params.storeId);
+    const scheduleId = parseInt(req.params.id);
+    if (isNaN(storeId) || isNaN(scheduleId)) return next(new AppError('유효하지 않은 ID입니다.', 400));
+
+    const existing = await prisma.staff_schedules.findFirst({
+        where: { id: scheduleId, store_id: storeId }
+    });
+    if (!existing) return next(new AppError('시프트를 찾을 수 없습니다.', 404));
+
+    await prisma.staff_schedules.delete({ where: { id: scheduleId } });
+    res.success(null, '시프트가 삭제되었습니다.');
+}));
+
 module.exports = router;

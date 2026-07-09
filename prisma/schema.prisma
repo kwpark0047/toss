@@ -328,6 +328,7 @@ model staff {
   stores           stores             @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   orders           orders[]
   staff_attendance staff_attendance[]
+  staff_schedules  staff_schedules[]
 
   @@unique([store_id, user_id], map: "uk_staff_store_user")
 }
@@ -501,6 +502,7 @@ model stores {
   webhook_endpoints       webhook_endpoints[]
   print_jobs              print_jobs[]
   store_favorites         store_favorites[]
+  staff_schedules         staff_schedules[]
 
   @@index([user_id], map: "idx_stores_user_id")
 }
@@ -579,6 +581,7 @@ model users {
   stores                                                           stores[]
   user_points                                                      user_points[]
   community_post_likes                                             community_post_likes[]
+  chat_rooms                                                       chat_rooms[]
 
   @@index([email], map: "idx_users_email")
 }
@@ -649,27 +652,34 @@ model phone_otps {
 
 model chat_rooms {
   id             Int             @id @default(autoincrement())
-  store_id       Int
+  store_id       Int?
   customer_id    Int?
   customer_phone String?
+  type           String          @default("STORE_CUSTOMER") // STORE_CUSTOMER | ADMIN_SUPPORT
+  user_id        Int?            // 점주 또는 가입 고객의 user_id
+  last_message   String?
   is_active      Boolean?        @default(true)
   created_at     DateTime?       @default(now())
   updated_at     DateTime?       @default(now())
   messages       chat_messages[]
-  stores         stores          @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  stores         stores?         @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          users?          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([store_id], map: "idx_chat_rooms_store")
+  @@index([user_id], map: "idx_chat_rooms_user")
+  @@index([type])
 }
 
 model chat_messages {
-  id          Int        @id @default(autoincrement())
-  room_id     Int
-  sender_id   Int?
-  sender_type String
-  content     String
-  is_read     Boolean?   @default(false)
-  created_at  DateTime?  @default(now())
-  rooms       chat_rooms @relation(fields: [room_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id           Int        @id @default(autoincrement())
+  room_id      Int
+  sender_id    Int?
+  sender_type  String
+  content      String     @db.Text
+  message_type String     @default("text") // text | image | system
+  is_read      Boolean?   @default(false)
+  created_at   DateTime?  @default(now())
+  rooms        chat_rooms @relation(fields: [room_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([room_id], map: "idx_chat_messages_room")
 }
@@ -743,6 +753,7 @@ model store_customers {
   customer_name  String?
   customer_phone String
   toss_user_key  String?
+  fcm_token      String?   // Firebase Cloud Messaging 토큰 (고객 푸시 알림)
   visit_count    Int       @default(1)
   total_spent    Int       @default(0)
   tier           String    @default("GENERAL")
@@ -936,12 +947,15 @@ model store_link_requests {
   store_id          Int       // 매칭된 공공 매장
   requested_name    String
   requested_address String?
-  status            String    @default("pending") // pending | approved | rejected
+  status            String    @default("pending") // pending | reviewing | approved | rejected
+  admin_note        String?   // 관리자 거부 사유; approve/reject 사용 시에만 작성
+  reviewed_by       Int?      // 처리한 관리자 user_id
   created_at        DateTime  @default(now())
   decided_at        DateTime?
 
   @@index([status])
   @@index([user_id])
+  @@index([reviewed_by])
 }
 
 // 고객 찜한 매장 — 전화번호 기반 (비회원도 찜 가능)
@@ -954,4 +968,23 @@ model store_favorites {
 
   @@unique([customer_phone, store_id])
   @@index([customer_phone])
+}
+
+// 직원 근무표 — 시프트 관리
+model staff_schedules {
+  id         Int      @id @default(autoincrement())
+  staff_id   Int
+  store_id   Int
+  date       DateTime // 날짜 (시간 제외, @date로 사용)
+  start_time String   // "09:00"
+  end_time   String   // "18:00"
+  role       String?  // staff | kitchen | manager (override)
+  note       String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  staff      staff    @relation(fields: [staff_id], references: [id], onDelete: Cascade)
+  stores     stores   @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id, date])
+  @@index([staff_id, date])
 }
