@@ -58,6 +58,9 @@ const DeveloperConsole = lazy(() => import("@/components/admin/DeveloperConsole"
 const QrCustomizer = lazy(() => import("@/components/admin/QrCustomizer"));
 const PartnershipManager = lazy(() => import("@/components/admin/PartnershipManager"));
 const StaffScheduler = lazy(() => import("@/components/admin/StaffScheduler"));
+const FoodTruckLanding = lazy(() => import("./pages/FoodTruckLanding"));
+const FoodTruckOwnerDashboard = lazy(() => import("@/components/admin/FoodTruckOwnerDashboard"));
+const FoodTruckDesignShowcase = lazy(() => import("./pages/FoodTruckDesignShowcase"));
 
 const queryClient = new QueryClient();
 
@@ -347,6 +350,19 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/schedules" element={
       <AdminPage>
         <ValidStoreRoute><AdminSuspense><StaffScheduler /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
+    {/* 푸드트럭 고객용 실시간 위치 정보 랜딩 */}
+    <Route path="/foodtruck/landing" element={<AdminSuspense><FoodTruckLanding /></AdminSuspense>} />
+
+    {/* 푸드트럭 5가지 디자인 쇼케이스 */}
+    <Route path="/foodtruck/showcase" element={<AdminSuspense><FoodTruckDesignShowcase /></AdminSuspense>} />
+
+    {/* 푸드트럭 점주용 위치 및 상태 어드민 */}
+    <Route path="/admin/stores/:storeId/foodtruck" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><FoodTruckOwnerDashboard /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 

@@ -514,6 +514,7 @@ model stores {
   print_jobs              print_jobs[]
   store_favorites         store_favorites[]
   staff_schedules         staff_schedules[]
+  food_trucks             food_trucks?
 
   @@index([user_id], map: "idx_stores_user_id")
 }
@@ -998,4 +999,20 @@ model staff_schedules {
 
   @@index([store_id, date])
   @@index([staff_id, date])
+}
+
+model food_trucks {
+  id                    Int       @id @default(autoincrement())
+  store_id              Int       @unique
+  is_active_session     Boolean   @default(false)
+  latitude              Float?
+  longitude             Float?
+  last_gps_updated_at   DateTime?
+  geocoded_address      String?
+  is_sold_out_emergency Boolean   @default(false)
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  stores                stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id, is_active_session], map: "idx_food_trucks_store_active")
 }

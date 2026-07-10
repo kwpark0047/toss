@@ -273,7 +273,8 @@ const routes = {
     inventory: require('./routes/inventory'),
     community: require('./routes/community'),
     legal: require('./routes/legal'),
-    naverPlace: require('./routes/naverPlace')
+    naverPlace: require('./routes/naverPlace'),
+    foodTrucks: require('./routes/foodTrucks')
 };
 
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
@@ -330,6 +331,7 @@ app.use(`${API_PREFIX}/inventory`, routes.inventory);
 app.use(`${API_PREFIX}/community`, routes.community);
 app.use(`${API_PREFIX}/legal`, routes.legal);
 app.use(`${API_PREFIX}/naver-place`, routes.naverPlace);
+app.use(`${API_PREFIX}/foodtruck`, routes.foodTrucks);
 
 // 정적 파일 서빙
 app.use(express.static(path.join(__dirname, 'public')));

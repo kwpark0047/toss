@@ -1,4 +1,9 @@
 const logger = require('../utils/logger');
+const prisma = require('../config/prisma');
+const { phoneSearchCandidates } = require('../utils/phoneEncryption');
+const AlimtalkService = require('../services/AlimtalkService');
+
+const activeFoodTruckClients = new Map();
 
 /**
  * [Socket.io 핸들러]
@@ -31,8 +36,80 @@ function registerSocketHandlers(io) {
       if (userId) socket.join(`user - ${userId}`);
     });
 
+    socket.on('register-foodtruck-client', ({ phone, storeId }) => {
+      const normalized = String(phone || '').replace(/[^0-9]/g, '');
+      activeFoodTruckClients.set(socket.id, { phone: normalized, storeId });
+      logger.debug(`[Socket] FoodTruck client registered: ${socket.id} -> ${normalized}`);
+    });
+
+    socket.on('trigger-ingredient-sold-out', async ({ storeId, ingredientName }) => {
+      try {
+        const products = await prisma.products.findMany({
+          where: { store_id: parseInt(storeId), is_active: true }
+        });
+        const matchingProducts = products.filter(p => {
+          if (!p.ingredients) return false;
+          const list = p.ingredients.split(',').map(i => i.trim().toLowerCase());
+          return list.includes(ingredientName.toLowerCase());
+        });
+        if (matchingProducts.length > 0) {
+          const productIds = matchingProducts.map(p => p.id);
+          await prisma.products.updateMany({
+            where: { id: { in: productIds } },
+            data: { is_sold_out: true }
+          });
+          io.to(`store - ${storeId}`).emit('products-updated', { storeId });
+          io.to(`store - ${storeId}`).emit('ingredient-sold-out', { storeId, ingredientName, productIds });
+          logger.info(`[Socket Ingredient Sold Out] Updated ${productIds.length} products for: ${ingredientName}`);
+        }
+      } catch (err) {
+        logger.error(`[Socket Ingredient Sold Out] Error: ${err.message}`);
+      }
+    });
+
     socket.on('disconnect', () => {
       logger.debug(`[Socket] 연결 해제됨: ${socket.id}`);
+      const client = activeFoodTruckClients.get(socket.id);
+      if (client) {
+        const { phone, storeId } = client;
+        activeFoodTruckClients.delete(socket.id);
+        setTimeout(async () => {
+          let reconnected = false;
+          for (const item of activeFoodTruckClients.values()) {
+            if (item.phone === phone && item.storeId === storeId) {
+              reconnected = true;
+              break;
+            }
+          }
+          if (!reconnected) {
+            try {
+              const store = await prisma.stores.findUnique({
+                where: { id: parseInt(storeId) },
+                select: { name: true }
+              });
+              const candidates = phoneSearchCandidates(phone);
+              const order = await prisma.orders.findFirst({
+                where: {
+                  store_id: parseInt(storeId),
+                  customer_phone: { in: candidates },
+                  status: { in: ['PENDING', 'CONFIRMED', 'PREPARING', 'READY'] }
+                },
+                orderBy: { created_at: 'desc' }
+              });
+              if (order) {
+                await AlimtalkService.sendHeartbeatDisconnectAlert(
+                  phone,
+                  store ? store.name : 'WeMarket 푸드트럭',
+                  order.queue_number,
+                  order.order_number || order.id
+                );
+              }
+            } catch (err) {
+              logger.error(`[Socket Heartbeat Fallback] Failed: ${err.message}`);
+            }
+          }
+        }, 5000);
+      }
     });
 
     // ── 채팅 ──────────────────────────────────────────────

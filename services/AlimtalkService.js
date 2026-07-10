@@ -120,6 +120,24 @@ class AlimtalkService {
 
         return await this.sendAlimtalk(phone, templateId, text, { storeName, orderNumber, reason });
     }
+
+    /**
+     * 4. 푸드트럭 실시간 연결 끊김 방지 알림톡 (하트비트 예비 수단)
+     */
+    async sendHeartbeatDisconnectAlert(phone, storeName, queueNumber, orderNumber) {
+        const templateId = 'heartbeat_disconnect';
+        const text = `[${storeName}] 실시간 대기 안내 📡
+
+고객님! 일시적인 통신 상태 변화로 주문판 웹소켓 연결이 종료되었습니다.
+
+하지만 걱정 마세요! 고객님의 주문 및 대기 줄은 정상 유지 중입니다.
+
+■ 대기번호: ${queueNumber || 'N/A'}번 (주문번호: ${orderNumber})
+
+조리가 완료되거나 호출 시 카카오톡으로 즉시 다시 알림을 발송해 드리겠습니다. 안심하고 이동해 주세요!`;
+
+        return await this.sendAlimtalk(phone, templateId, text, { storeName, queueNumber, orderNumber });
+    }
 }
 
 module.exports = new AlimtalkService();
