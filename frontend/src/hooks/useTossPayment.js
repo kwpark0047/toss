@@ -6,6 +6,29 @@ const isTossApp = () => {
   return typeof window !== 'undefined' && window.TossApp !== undefined;
 };
 
+// 토스페이먼츠 클라이언트 키 (기본 테스트 키 제공)
+const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_ck_D54YPdW9w8NE198759v8Vj7ByY6f';
+
+// 토스페이먼츠 웹 SDK 동적 로드 헬퍼
+const loadTossPayments = () => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      resolve(null);
+      return;
+    }
+    if (window.TossPayments) {
+      resolve(window.TossPayments);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://js.tosspayments.com/v1/payment';
+    script.async = true;
+    script.onload = () => resolve(window.TossPayments);
+    script.onerror = () => reject(new Error('Toss Payments SDK를 로드하는 데 실패했습니다.'));
+    document.head.appendChild(script);
+  });
+};
+
 export function useTossPayment() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -90,16 +113,29 @@ export function useTossPayment() {
           throw tossError;
         }
       } else {
-        // [테스트 모드] 토스 앱이 아니거나 토큰이 없는 경우 시뮬레이션
-        console.warn('토스 앱 환경이 아님: 테스트 결제로 진행합니다.');
-        const { data: testResult } = await paymentsAPI.confirm(payment.payment_id, {
-          toss_payment_key: `T_TEST_${Date.now()}`,
-          toss_user_key: tossUserKey,
-          phone
+        // [웹 브라우저 환경] 표준 토스페이먼츠 SDK 호출
+        console.info('[TossPayments] 웹 브라우저 환경: Toss Payments Web SDK를 로딩합니다.');
+        const TossPayments = await loadTossPayments();
+        if (!TossPayments) {
+          throw new Error('Toss Payments SDK를 활성화할 수 없습니다.');
+        }
+
+        const tossPayments = TossPayments(TOSS_CLIENT_KEY);
+
+        // 성공 및 실패 시 리다이렉트 쿼리 파라미터 조립
+        const redirectMetadata = `?payment_id=${payment.payment_id}&phone=${encodeURIComponent(phone)}&tossUserKey=${tossUserKey || ''}`;
+
+        await tossPayments.requestPayment('카드', {
+          amount: totalAmount,
+          orderId: payment.order_number,
+          orderName: `WeMarket 주문 - ${payment.order_number}`,
+          successUrl: window.location.origin + '/payment/success' + redirectMetadata,
+          failUrl: window.location.origin + '/payment/fail' + redirectMetadata,
+          customerMobilePhone: phone,
         });
 
-        setPaymentResult({ success: true, payment: testResult.payment });
-        return { success: true, ...testResult };
+        // 리다이렉트 결제가 진행되므로 펜딩 상태 반환
+        return { success: true, pendingRedirect: true };
       }
     } catch (err) {
       const errorMessage = err.response?.data?.error || err.message || '결제에 실패했습니다';

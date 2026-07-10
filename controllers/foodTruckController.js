@@ -137,6 +137,15 @@ const foodTruckController = {
 
         const result = await FoodTruckService.processOfflineSync(storeId, offlineTransactions);
         res.success(result, `성공적으로 ${result.synchronizedCount}건의 오프라인 결제 데이터를 안전하게 동기화하였습니다.`);
+    }),
+
+    /**
+     * [GET] 푸드트럭 인공지능 분석 및 영업 통계 리포트 조회
+     */
+    getAnalytics: catchAsync(async (req, res) => {
+        const { storeId } = req.params;
+        const analytics = await FoodTruckService.getPeakTimeAndLocationAnalytics(storeId);
+        res.success(analytics, '푸드트럭의 지능형 피크타임 및 거점별 매출 분석 보고서가 성공적으로 로드되었습니다.');
     })
 };
 

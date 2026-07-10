@@ -68,6 +68,7 @@ jest.mock('../../config/prisma', () => {
             findFirst: jest.fn(),
             findUnique: jest.fn(),
             create: jest.fn(),
+            findMany: jest.fn(),
         },
         payments: {
             create: jest.fn(),
@@ -403,6 +404,28 @@ describe('FoodTruck Integration Tests', () => {
             expect(response.body.success).toBe(true);
             expect(response.body.data.synchronizedCount).toBe(0); // Ignored/Skipped
             expect(prisma.orders.create).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('GET /stores/:storeId/analytics (Step 2)', () => {
+        it('should compile peak hour, daily sales, location shares, and return Gemini consulting insights', async () => {
+            // Mock orders for stats compilation
+            prisma.orders.findMany.mockResolvedValue([
+                { id: 1, total_amount: 10000, created_at: new Date('2026-07-10T18:30:00.000Z') },
+                { id: 2, total_amount: 20000, created_at: new Date('2026-07-10T19:45:00.000Z') }
+            ]);
+
+            const response = await request(app).get(`${baseUrl}/stores/10/analytics`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.success).toBe(true);
+            expect(response.body.data.hourlySales).toHaveLength(24);
+            expect(response.body.data.dailySales).toHaveLength(7);
+            expect(response.body.data.locationSales).toHaveLength(4);
+            expect(response.body.data.totalSales).toBe(30000);
+            expect(response.body.data.aiInsights).toHaveProperty('summary');
+            expect(response.body.data.aiInsights).toHaveProperty('peakAdvice');
+            expect(response.body.data.aiInsights).toHaveProperty('inventoryStrategy');
         });
     });
 });

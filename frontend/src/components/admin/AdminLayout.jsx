@@ -8,7 +8,7 @@ import {
   Store, LogOut, LayoutDashboard, UtensilsCrossed,
   Settings, Users, Receipt, Wallet, Palette,
   Menu as MenuIcon, MessageSquare, LogIn, Smartphone, CalendarCheck, Sparkles, Package, Bell,
-  UserCircle, ChevronRight, ShoppingBag, Building2, Activity, Scale, Headset, Truck
+  UserCircle, ChevronRight, ShoppingBag, Building2, Activity, Scale, Headset, Truck, ChefHat
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import { TC } from './adminThemes';
@@ -388,6 +388,7 @@ const AdminLayout = ({ children }) => {
   const navItems = [
     { label: '대시보드',      icon: LayoutDashboard, path: '/admin',                                           id: 'dashboard', roles: [] },
     { label: '주문서 현황',   icon: UtensilsCrossed,  path: `/admin/stores/${storeId}/orders`,                  show: !!storeId, roles: [] },
+    { label: '주방 모니터 (KDS)', icon: ChefHat,          path: `/kitchen/${storeId}`,                              show: !!storeId, roles: [] },
     { label: '상품 관리',     icon: ShoppingBag,       path: `/admin/stores/${storeId}/menu`,                    show: !!storeId, roles: [] },
     { label: '메뉴판 빌더',   icon: Palette,           path: `/admin/stores/${storeId}/visual-builder`,          show: !!storeId, roles: [] },
     { label: '스마트 예약',   icon: CalendarCheck,     path: `/admin/stores/${storeId}/reservations`,            show: !!storeId, roles: [] },
@@ -400,6 +401,7 @@ const AdminLayout = ({ children }) => {
     { label: '팀원 관리',     icon: Users,             path: `/admin/stores/${storeId}/staff`,                   show: !!storeId, roles: [] },
     { label: '매장 환경설정', icon: Settings,          path: `/admin/stores/${storeId}/settings`,               show: !!storeId, roles: [] },
     { label: '푸드트럭 관리', icon: Truck,             path: `/admin/stores/${storeId}/foodtruck`,              show: !!storeId, roles: [] },
+    { label: '푸드트럭 분석', icon: Activity,          path: `/admin/stores/${storeId}/foodtruck/analytics`,    show: !!storeId, roles: [] },
     { label: '트럭 디자인 쇼케이스', icon: Palette,    path: '/foodtruck/showcase',                                              roles: [] },
     { label: '알림 템플릿',   icon: Bell,              path: `/admin/stores/${storeId}/notification-templates`,  show: !!storeId, roles: [] },
     { label: '시스템 현황',   icon: Activity,     path: '/admin/system-status', roles: [] },

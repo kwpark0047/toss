@@ -32,4 +32,7 @@ router.post('/stores/:storeId/flash-sale', authMiddleware, checkStorePermission(
 // 오프라인IndexedDB 동기화 일괄 트랜잭션 수신 (Scenario E)
 router.post('/stores/:storeId/offline-sync', authMiddleware, checkStorePermission('settings:update'), foodTruckController.processOfflineSync);
 
+// 지능형 피크타임 및 거점별 판매 통계 감정/동향 분석 보고서 조회 (Step 2)
+router.get('/stores/:storeId/analytics', authMiddleware, checkStorePermission('settings:read'), foodTruckController.getAnalytics);
+
 module.exports = router;

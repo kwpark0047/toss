@@ -1,13 +1,13 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   Play, CheckCircle2, RefreshCw, Printer, Volume2, VolumeX, 
   Wifi, WifiOff, Clock, User, ChevronRight, Hash, XCircle
 } from 'lucide-react';
-import socket, { connectKitchen, getSocket } from '../utils/socket';
-import notificationSound, { vibrateShort, vibrateOrderReady } from '../utils/notificationSound';
+import socket, { connectKitchen, getSocket } from '../../utils/socket';
+import notificationSound, { vibrateShort, vibrateOrderReady } from '../../utils/notificationSound';
 
-export default function KitchenDisplay() {
+export default function AdvancedKdsDashboard() {
   const { storeId } = useParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);

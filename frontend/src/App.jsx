@@ -8,6 +8,8 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 // 공개 페이지 지연 로딩: 각 라우트가 자기 청크만 로드해 초기 번들(index) 축소
 const Index = lazy(() => import("./pages/Index"));
 const MenuPage = lazy(() => import("./pages/MenuPage"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const PaymentFail = lazy(() => import("./pages/PaymentFail"));
 const QrResolvePage = lazy(() => import("./pages/QrResolvePage"));
 const MenuDemo = lazy(() => import("./components/customer/MenuDemo"));
 const BusinessDemo = lazy(() => import("./components/admin/BusinessDemo"));
@@ -61,6 +63,7 @@ const StaffScheduler = lazy(() => import("@/components/admin/StaffScheduler"));
 const FoodTruckLanding = lazy(() => import("./pages/FoodTruckLanding"));
 const FoodTruckOwnerDashboard = lazy(() => import("@/components/admin/FoodTruckOwnerDashboard"));
 const FoodTruckDesignShowcase = lazy(() => import("./pages/FoodTruckDesignShowcase"));
+const FoodTruckAnalyticsDashboard = lazy(() => import("@/components/admin/FoodTruckAnalyticsDashboard"));
 
 const queryClient = new QueryClient();
 
@@ -135,6 +138,8 @@ const AppRoutes = memo(() => (
     <Route path="/menu/demo" element={<AdminSuspense><MenuDemo /></AdminSuspense>} />
     <Route path="/demo/business" element={<AdminSuspense><BusinessDemo /></AdminSuspense>} />
     <Route path="/menu/:storeId" element={<AdminSuspense><MenuPage /></AdminSuspense>} />
+    <Route path="/payment/success" element={<AdminSuspense><PaymentSuccess /></AdminSuspense>} />
+    <Route path="/payment/fail" element={<AdminSuspense><PaymentFail /></AdminSuspense>} />
     <Route path="/kiosk/:storeId" element={<AdminSuspense><KioskPage /></AdminSuspense>} />
     <Route path="/qr/:qrCode" element={<AdminSuspense><QrResolvePage /></AdminSuspense>} />
 
@@ -363,6 +368,13 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/foodtruck" element={
       <AdminPage>
         <ValidStoreRoute><AdminSuspense><FoodTruckOwnerDashboard /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
+    {/* 푸드트럭 점주용 지능형 매출 분석 보고서 */}
+    <Route path="/admin/stores/:storeId/foodtruck/analytics" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><FoodTruckAnalyticsDashboard /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 
