@@ -347,8 +347,8 @@ const MasterDashboard = () => {
                 </div>
             </div>
 
-            {/* ── 통계 카드 (2×2 그리드) ── */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* ── 통계 카드 (모바일 2열 / 초소형 1열) ── */}
+            <div className="grid grid-cols-2 xs:grid-cols-2 gap-2.5 sm:gap-3">
                 {[
                     {
                         title: '총 매출', icon: DollarSign, color: 'text-orange-400', bg: 'bg-orange-500/10',
@@ -372,45 +372,43 @@ const MasterDashboard = () => {
                         trend: undefined, accent: pendingCount > 0 ? 'border-orange-500/40' : 'border-violet-500/20',
                     },
                 ].map(({ title, icon: Icon, color, bg, value, trend, accent }) => (
-                    <div key={title} className={`bg-white/5 border ${accent} rounded-2xl p-3 flex items-center gap-3 relative overflow-hidden`}>
-                        {/* 아이콘 (왼쪽) */}
-                        <div className={`p-2.5 rounded-xl ${bg} shrink-0`}>
-                            <Icon size={18} className={color} />
+                    <div key={title} className={`bg-white/5 border ${accent} rounded-2xl p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 relative overflow-hidden`}>
+                        <div className={`p-2 sm:p-2.5 rounded-xl ${bg} shrink-0`}>
+                            <Icon size={16} className={color} />
                         </div>
-                        {/* 라벨 + 값 (아이콘 옆) */}
                         <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-1">
-                                <p className="text-[11px] text-slate-500 font-bold truncate">{title}</p>
+                                <p className="text-[9px] sm:text-[11px] text-slate-500 font-bold truncate">{title}</p>
                                 {trend !== undefined && (
-                                    <div className={`shrink-0 flex items-center text-[9px] font-black px-1.5 py-0.5 rounded-md gap-0.5 ${trend >= 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
-                                        {trend >= 0 ? <ArrowUpRight size={10}/> : <ArrowDownRight size={10}/>}
+                                    <div className={`shrink-0 flex items-center text-[8px] sm:text-[9px] font-black px-1 py-0.5 rounded-md gap-0.5 ${trend >= 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                                        {trend >= 0 ? <ArrowUpRight size={8}/> : <ArrowDownRight size={8}/>}
                                         {Math.abs(trend)}%
                                     </div>
                                 )}
                             </div>
-                            <p className="text-lg font-black text-white leading-tight tabular-nums truncate">{value}</p>
+                            <p className="text-base sm:text-lg font-black text-white leading-tight tabular-nums truncate">{value}</p>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* ── 빠른 실행 (3열 그리드) ── */}
+            {/* ── 빠른 실행 (모바일 4열 / 초소형 3열) ── */}
             <div>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-3 px-1">
                     <h2 className="text-sm font-black text-white flex items-center gap-2">
                         <Zap size={15} className="text-orange-400" /> 빠른 실행
                     </h2>
                 </div>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-2.5">
+                <div className="grid grid-cols-3 xs:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-2.5">
                     {quickActions.map(({ label, path, icon: Icon, color, badge }) => (
                         <button key={path} onClick={() => handleNav(path)}
-                            className="relative flex flex-col items-center gap-2 p-3 md:p-4 bg-white/5 border border-white/10 rounded-2xl hover:border-white/20 hover:bg-white/10 transition-all active:scale-95">
-                            <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg`}>
-                                <Icon size={18} className="text-white" />
+                            className="relative flex flex-col items-center gap-1.5 p-2.5 sm:p-3 bg-white/5 border border-white/10 rounded-2xl hover:border-white/20 hover:bg-white/10 transition-all active:scale-95">
+                            <div className={`w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg`}>
+                                <Icon size={16} className="text-white" />
                             </div>
-                            <span className="text-[11px] font-black text-slate-300 text-center leading-tight">{label}</span>
+                            <span className="text-[9px] sm:text-[11px] font-black text-slate-400 text-center leading-tight">{label}</span>
                             {badge > 0 && (
-                                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 bg-orange-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1.5 shadow-lg">
+                                <span className="absolute -top-1 -right-1 min-w-[18px] h-4.5 bg-orange-500 text-white text-[8px] sm:text-[10px] font-black rounded-full flex items-center justify-center px-1 shadow-lg border border-slate-900">
                                     {badge}
                                 </span>
                             )}
@@ -421,7 +419,7 @@ const MasterDashboard = () => {
 
             {/* ── 실시간 주문 / 다점포 ── */}
             <div>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-3 px-1">
                     <h2 className="text-sm font-black text-white flex items-center gap-2">
                         {isMultiView ? (
                             <><TrendingUp size={15} className="text-indigo-400" /> 매장별 실적</>
@@ -497,10 +495,9 @@ const MasterDashboard = () => {
                         <div className="divide-y divide-white/5">
                             {recentOrders.map(order => (
                                 <Link key={order.id} to={`/admin/stores/${selectedStore?.id}/orders`}
-                                    className="px-4 py-3.5 flex items-center gap-3 hover:bg-white/5 transition-all active:bg-white/10 block">
-                                    {/* 주문번호 */}
+                                    className="px-4 py-4 flex items-center gap-3 hover:bg-white/5 transition-all active:bg-white/10 block">
                                     <div className="relative flex-shrink-0">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-[11px] ${order.status === 'pending' ? 'bg-orange-500 text-white' : 'bg-white/10 text-slate-400'}`}>
+                                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-[11px] ${order.status === 'pending' ? 'bg-orange-500 text-white' : 'bg-white/10 text-slate-400'}`}>
                                             #{order.order_number?.slice(-3) ?? '---'}
                                         </div>
                                         {order.status === 'pending' && (
@@ -510,19 +507,17 @@ const MasterDashboard = () => {
                                             </span>
                                         )}
                                     </div>
-                                    {/* 주문 정보 */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1.5">
-                                            <span className="font-black text-white text-sm truncate">{order.table_name || '포장'}</span>
+                                            <span className="font-black text-white text-base truncate">{order.table_name || '포장'}</span>
                                             <span className="text-[9px] bg-white/10 text-slate-400 px-1 py-0.5 rounded font-bold flex-shrink-0">{order.customer_name || '비회원'}</span>
                                         </div>
                                         <div className="flex items-center gap-1.5 mt-0.5">
-                                            <Clock size={9} className="text-slate-600 flex-shrink-0" />
-                                            <span className="text-[10px] text-slate-500">{formatTime(order.created_at)}</span>
-                                            <span className="text-[10px] font-black text-orange-400">{formatPrice(order.total_amount)}</span>
+                                            <Clock size={10} className="text-slate-600 flex-shrink-0" />
+                                            <span className="text-[11px] text-slate-500">{formatTime(order.created_at)}</span>
+                                            <span className="text-[11px] font-black text-orange-400">{formatPrice(order.total_amount)}</span>
                                         </div>
                                     </div>
-                                    {/* 상태 */}
                                     <div className="flex-shrink-0">
                                         <StatusBadge status={order.status} />
                                     </div>
@@ -532,8 +527,7 @@ const MasterDashboard = () => {
                     )}
                 </div>
 
-                {/* 마지막 새로고침 */}
-                <p className="text-[9px] text-slate-700 text-right mt-1.5 px-1">
+                <p className="text-[9px] text-slate-700 text-right mt-1.5 px-1 pb-4">
                     최근 갱신: {lastRefresh.getHours().toString().padStart(2,'0')}:{lastRefresh.getMinutes().toString().padStart(2,'0')}:{lastRefresh.getSeconds().toString().padStart(2,'0')} · 60초 자동 갱신
                 </p>
             </div>
@@ -543,7 +537,7 @@ const MasterDashboard = () => {
                 <ExportPanel storeId={selectedStore.id} />
             )}
 
-            {/* ── 추가 도구 (데스크톱용 / 모바일에선 하단 네비로 대체) ── */}
+            {/* ── 추가 도구 (데스크톱용) ── */}
             <div className="hidden md:block">
                 <div className="flex items-center gap-2 mb-3">
                     <Settings size={15} className="text-slate-500" />
@@ -597,47 +591,6 @@ const MasterDashboard = () => {
                         지금 시작
                     </button>
                 </div>
-            </div>
-
-            {/* ══════════════════════════════════════════
-                모바일 전용 하단 네비게이션 (md 이상 숨김)
-            ══════════════════════════════════════════ */}
-            <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-                {/* 대기 주문 알림 바 */}
-                {pendingCount > 0 && (
-                    <button onClick={() => handleNav('orders')}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-orange-500 text-white text-xs font-black">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-                        </span>
-                        대기 주문 {pendingCount}건 — 탭하여 확인
-                        <ChevronRight size={14} />
-                    </button>
-                )}
-                {/* 하단 탭 바 */}
-                <nav className="flex items-center bg-slate-950/95 backdrop-blur-md border-t border-white/10 px-2 pb-safe">
-                    {[
-                        { label: '홈',   icon: Home,        action: () => navigate('/admin') },
-                        { label: '주문', icon: ReceiptText,  action: () => handleNav('orders'),  badge: pendingCount },
-                        { label: '메뉴', icon: ChefHat,      action: () => handleNav('menu') },
-                        { label: '통계', icon: BarChart3,    action: () => handleNav('stats') },
-                        { label: '설정', icon: Settings,     action: () => navigate('/admin/profile') },
-                    ].map(({ label, icon: Icon, action, badge }) => (
-                        <button key={label} onClick={action}
-                            className="flex-1 flex flex-col items-center py-3 gap-1 active:bg-white/5 rounded-xl transition-all">
-                            <div className="relative">
-                                <Icon size={20} className={label === '홈' ? 'text-orange-400' : 'text-slate-500'} />
-                                {badge > 0 && (
-                                    <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 bg-orange-500 text-white text-[8px] font-black rounded-full flex items-center justify-center px-0.5">
-                                        {badge}
-                                    </span>
-                                )}
-                            </div>
-                            <span className={`text-[9px] font-black ${label === '홈' ? 'text-orange-400' : 'text-slate-600'}`}>{label}</span>
-                        </button>
-                    ))}
-                </nav>
             </div>
         </div>
     );

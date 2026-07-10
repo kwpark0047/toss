@@ -5,7 +5,7 @@ const { authMiddleware } = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 
 /**
- * [CRM API 라우트]
+ * [CRM API 라우터]
  * 고객 분석 및 AI 스마트 마케팅 관련 엔드포인트를 관리합니다.
  */
 

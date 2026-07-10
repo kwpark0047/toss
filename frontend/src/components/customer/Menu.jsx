@@ -2,13 +2,17 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { storesAPI, categoriesAPI, productsAPI, tablesAPI, ordersAPI, cartAPI, paymentsAPI } from "../../api";
-import { ShoppingCart, Plus, Minus, X, Send, CreditCard, Banknote, Building2, Clock, CheckCircle, ChevronLeft, MapPin, Phone, Timer, Star, Wand2, Search, Sparkles, BellRing, Users } from "lucide-react";
+import {
+  ShoppingCart, Plus, Minus, X, CreditCard, Banknote, Building2,
+  Clock, CheckCircle, ChevronLeft, ChevronRight, MapPin, Phone, Timer,
+  Star, Wand2, Search, Sparkles, BellRing, Users, Calendar
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../common/LanguageSwitcher";
 import { aiAPI } from "../../api";
 import PaymentSheet from "./payment/PaymentSheet";
-import TogetherPaymentSheet from "./payment/TogetherPaymentSheet"; // [추가] 분할 결제 시트
+import TogetherPaymentSheet from "./payment/TogetherPaymentSheet"; // 분할 결제 시트
 import ManagerCallSheet from "./ManagerCallSheet";
 import ChatDrawer from "./ChatDrawer";
 import ReviewModal from "./ReviewModal";
@@ -16,6 +20,10 @@ import ReservationSection from "./ReservationSection";
 import MenuStoryModal from "./MenuStoryModal";
 import FloatingCallButton from "./FloatingCallButton";
 import { formatPrice } from "../../utils/format";
+
+// 모듈화된 하위 컴포넌트들 임포트
+import MenuSkeleton from "./MenuSkeleton";
+import MenuProductList from "./MenuProductList";
 
 const defaultTheme = {
   primaryColor: "#f97316",
@@ -33,69 +41,12 @@ const paymentMethods = [
   { id: "transfer", label: "계좌이체", icon: Building2, desc: "실시간 이체" }
 ];
 
-// 모듈 레벨 스켈레톤: 부모 렌더마다 재생성 방지 (react-best-practices: rerender-no-inline-components)
-const MenuSkeleton = ({ pageBg }) => (
-  <div className="min-h-screen p-5 space-y-8 animate-pulse" style={{ background: pageBg }}>
-    {/* Header Skeleton */}
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-gray-200" />
-        <div className="space-y-2">
-          <div className="w-32 h-6 bg-gray-200 rounded-lg" />
-          <div className="w-20 h-4 bg-gray-200 rounded-lg" />
-        </div>
-      </div>
-      <div className="flex gap-2">
-        {[1, 2, 3].map(i => <div key={i} className="w-10 h-10 rounded-xl bg-gray-200" />)}
-      </div>
-    </div>
-    {/* Category Chips Skeleton */}
-    <div className="flex gap-3 overflow-hidden">
-      {[1, 2, 3, 4].map(i => <div key={i} className="min-w-[80px] h-10 bg-gray-200 rounded-2xl" />)}
-    </div>
-    {/* Product List Skeleton */}
-    <div className="space-y-5">
-      {[1, 2, 3, 4, 5].map(i => (
-        <div key={i} className="bg-white/60 p-5 rounded-[2rem] flex gap-5 border border-white/40">
-          <div className="w-28 h-28 bg-gray-200 rounded-2xl shrink-0" />
-          <div className="flex-1 space-y-3 py-2">
-            <div className="w-1/2 h-6 bg-gray-200 rounded-lg" />
-            <div className="w-full h-12 bg-gray-200/50 rounded-lg" />
-            <div className="w-1/4 h-6 bg-gray-200 rounded-lg" />
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-// 메뉴 상품 이미지: 로드 실패 시 깨진 아이콘 대신 이미지 없을 때와 동일한 placeholder로 대체
-const MenuItemImage = ({ src, alt, isMagazine }) => {
-  const [failed, setFailed] = useState(false);
-  const phCls = isMagazine ? 'w-full h-full' : 'w-28 h-28 rounded-[1.5rem]';
-  if (!src || failed) {
-    return (
-      <div className={`${phCls} bg-slate-50 flex items-center justify-center text-slate-300 shrink-0 border border-slate-100`}>
-        <Star size={32} />
-      </div>
-    );
-  }
-  return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className={`${isMagazine ? 'w-full h-full' : 'w-28 h-28 rounded-[1.5rem] ring-4 ring-white'} object-cover shadow-lg group-hover:scale-105 transition-transform duration-700`}
-    />
-  );
-};
-
 const Menu = () => {
   const { t, i18n } = useTranslation();
   const { qrCode } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
   // URL 파라미터: storeId, tableId 지원 (store도 호환성 유지)
   const storeIdParam = searchParams.get("storeId") || searchParams.get("store");
   const tableIdParam = searchParams.get("tableId");
@@ -113,16 +64,12 @@ const Menu = () => {
   const [orderStep, setOrderStep] = useState("cart");
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
   const [showCallSheet, setShowCallSheet] = useState(false);
-  const [showTogetherSheet, setShowTogetherSheet] = useState(false); // [추가] 분할 결제 시트 상태
+  const [showTogetherSheet, setShowTogetherSheet] = useState(false); // 분할 결제 시트 상태
   const [showChatDrawer, setShowChatDrawer] = useState(false);
-  const [showReviewModal, setShowReviewModal] = useState(false); // [NEW] 리뷰 모달 상태
-  const [showReservation, setShowReservation] = useState(false); // [NEW] 예약 섹션 상태
-  const [showStoryModal, setShowStoryModal] = useState(false); // [NEW] 스토리 모달 상태
-  const [selectedStoryProduct, setSelectedStoryProduct] = useState(null); // [NEW] 스토리 대상 상품
-
-  // 공유 장바구니 관련 상태
-  const [sharedCart, setSharedCart] = useState([]);
-  const [activeUsers, setActiveUsers] = useState(1); // 기본 1명 (나)
+  const [showReviewModal, setShowReviewModal] = useState(false); // 리뷰 모달 상태
+  const [showReservation, setShowReservation] = useState(false); // 예약 섹션 상태
+  const [showStoryModal, setShowStoryModal] = useState(false); // 스토리 모달 상태
+  const [selectedStoryProduct, setSelectedStoryProduct] = useState(null); // 스토리 대상 상품
 
   // AI 추천 관련 상태
   const [aiPreferences, setAiPreferences] = useState("");
@@ -143,9 +90,8 @@ const Menu = () => {
 
   // 다국어 번역 관련 상태
   const [translatedDescriptions, setTranslatedDescriptions] = useState({}); // { productId: translatedText }
-  const [translatingIds, setTranslatingIds] = useState(new Set());
 
-  // Toss 앱 사용자 정보 (URL 파라미터 또는 토스 SDK에서 획득)
+  // Toss 앱 사용자 정보
   const tossUserKey = searchParams.get("toss_user_key") || "";
   const userPhone = searchParams.get("phone") || orderForm.customer_phone;
   const userIdentifier = useMemo(() => ({
@@ -153,7 +99,7 @@ const Menu = () => {
     phone: userPhone
   }), [tossUserKey, userPhone]);
 
-  // [최적화] 테마 설정을 useMemo로 관리하여 불필요한 계산 방지
+  // 테마 설정을 useMemo로 관리하여 불필요한 계산 방지
   const theme = useMemo(() => {
     if (!store?.theme) return defaultTheme;
     try {
@@ -165,7 +111,7 @@ const Menu = () => {
     }
   }, [store?.theme]);
 
-  // [최적화] 페이지 배경 및 그라디언트 스타일 계산 메모이제이션
+  // 페이지 배경 및 그라디언트 스타일 계산 메모이제이션
   const styles = useMemo(() => {
     const gradientBg = `linear-gradient(135deg, ${theme.primaryColor}, ${theme.secondaryColor})`;
     const pageBg = `linear-gradient(180deg, ${theme.backgroundColor} 0%, white 100%)`;
@@ -198,19 +144,17 @@ const Menu = () => {
       fetchTableData();
     } else if (storeIdParam) {
       fetchStoreData(storeIdParam);
-      // tableIdParam이 있으면 테이블 정보 설정
       if (tableIdParam) {
         setTable({ id: tableIdParam, name: `테이블 ${tableIdParam}`, store_id: storeIdParam });
       }
     }
   }, [qrCode, storeIdParam, tableIdParam, fetchTableData, fetchStoreData]);
 
-  // [실시간 주문 상태 및 공유 장바구니 수신 - Socket.IO]
+  // 실시간 주문 상태 및 공유 장바구니 수신
   useEffect(() => {
     const socket = ordersAPI.getSocket();
     if (!socket) return;
 
-    // 1. 주문 상태 추적
     if (orderSuccess?.id) {
       socket.emit('join-order-room', { orderId: orderSuccess.id });
       socket.on('order-status', (data) => {
@@ -223,17 +167,15 @@ const Menu = () => {
       });
     }
 
-    // 2. 공유 장바구니 동기화
     if (table?.id) {
       socket.emit('join-table-cart', { tableId: table.id });
 
-      // 초기 장바구니 로드
       const loadCart = async () => {
         try {
           const res = await cartAPI.getCart(table.id);
           if (res.success && res.data.length > 0) {
             setCart(res.data.map(item => ({
-              id: item.product_id, // product 객체와 호환되도록 id 사용
+              id: item.product_id,
               product_id: item.product_id,
               product_name: item.products.name,
               price: item.products.price,
@@ -245,7 +187,6 @@ const Menu = () => {
       };
       loadCart();
 
-      // 실시간 업데이트 이벤트 수신
       socket.on('cart-item-updated', (data) => {
         setCart(prev => {
           if (data.action === 'add' || data.action === 'update') {
@@ -269,12 +210,9 @@ const Menu = () => {
       });
     }
 
-    // 3. 실시간 상품 정보 업데이트 (품절 등) [NEW]
     socket.on('product-updated', (data) => {
-      // 메뉴 리스트 업데이트
       setProducts(prev => prev.map(p => p.id === data.productId ? { ...p, ...data, is_sold_out: data.is_sold_out } : p));
 
-      // 장바구니에 담긴 메뉴가 품절된 경우 알림 및 제거
       setCart(prev => {
         const itemInCart = prev.find(i => (i.product_id || i.id) === data.productId);
         if (itemInCart && data.is_sold_out) {
@@ -333,7 +271,6 @@ const Menu = () => {
   const getTotalAmount = () => cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const getTotalItems = () => cart.reduce((s, i) => s + i.quantity, 0);
 
-  // 주문 처리 로직 (에러 핸들링 강화)
   const handleOrder = async () => {
     if (cart.length === 0) return;
 
@@ -347,7 +284,7 @@ const Menu = () => {
         notes: orderForm.notes || null,
         payment_method: orderForm.payment_method,
         items: cart,
-        total_amount: getTotalAmount() // 백엔드 검증을 위해 합계 전달
+        total_amount: getTotalAmount()
       };
 
       const res = await ordersAPI.create(orderData);
@@ -361,12 +298,10 @@ const Menu = () => {
       setShowCart(false);
       setOrderStep("cart");
 
-      // 알림 권한 요청 (FCM 연동 준비)
       if (Notification.permission === 'default') {
         Notification.requestPermission();
       }
     } catch (err) {
-      // 백그라운드에서 구현한 구체적인 에러 메시지(재고 부족 등)를 사용자에게 표시
       const errorMsg = err.response?.data?.error || "주문 처리 중 오류가 발생했습니다.";
       alert(errorMsg);
     } finally {
@@ -374,7 +309,6 @@ const Menu = () => {
     }
   };
 
-  // 통합 결제 완료 핸들러
   const handlePaymentComplete = (result) => {
     if (result.success) {
       setOrderSuccess({
@@ -394,18 +328,15 @@ const Menu = () => {
     }
   };
 
-  // 결제 시트 열기
   const openPaymentSheet = () => {
     setShowCart(false);
     setShowPaymentSheet(true);
   };
 
-  // [분할 결제] 함께 결제하기 핸들러
   const handlePaymentSplit = async (splitData) => {
     if (!store?.id || cart.length === 0) return;
     setLoading(true);
     try {
-      // 1. 주문 생성 (분할 결제 플래그 포함)
       const orderData = {
         store_id: store.id,
         table_id: table?.id || null,
@@ -421,14 +352,12 @@ const Menu = () => {
       const orderRes = await ordersAPI.create(orderData);
       const order = orderRes.data;
 
-      // 2. 분할 결제 요청 (split/request)
       await paymentsAPI.splitRequest({
         order_id: order.id,
         split_type: splitData.split_type,
         num_people: splitData.people_count || 2
       });
 
-      // 3. 내 몫 결제 (split/pay)
       const payRes = await paymentsAPI.splitPay({
         order_id: order.id,
         amount: splitData.amount,
@@ -459,7 +388,6 @@ const Menu = () => {
     }
   };
 
-  // AI 추천 요청 핸들러 (개인화 강화)
   const handleGetRecommendations = async (e) => {
     if (e) e.preventDefault();
     setAiLoading(true);
@@ -470,7 +398,7 @@ const Menu = () => {
         mood: mood,
         phone: userPhone,
         toss_user_key: tossUserKey,
-        weather: "맑음" // 향후 실제 날씨 API 연동 가능
+        weather: "맑음"
       });
       setAiRecommendations(response.data?.recommendations || response.recommendations || []);
       setShowAiInput(false);
@@ -482,7 +410,6 @@ const Menu = () => {
     }
   };
 
-  // [후식 추천 로직] 장바구니에 아이템이 담기면 AI에게 후식을 물어봅니다.
   useEffect(() => {
     if (cart.length > 0 && store?.id) {
       const fetchDessertRecommend = async () => {
@@ -498,7 +425,6 @@ const Menu = () => {
         }
       };
 
-      // 너무 자주 호출되지 않도록 디바운스 처리 (간단하게 1초 후 실행)
       const timer = setTimeout(fetchDessertRecommend, 1000);
       return () => clearTimeout(timer);
     } else {
@@ -506,37 +432,10 @@ const Menu = () => {
     }
   }, [cart.length, store?.id]);
 
-  // 실시간 AI 번역 실행 (개별)
-  const handleTranslate = async (productId, text) => {
-    const lang = i18n.language.split("-")[0];
-    if (lang === "ko") return;
-
-    setTranslatingIds((prev) => new Set([...prev, productId]));
-    try {
-      const res = await aiAPI.translate(text, lang);
-      if (res.success) {
-        setTranslatedDescriptions((prev) => ({
-          ...prev,
-          [productId]: res.translated
-        }));
-      }
-    } catch (err) {
-      console.error("AI 번역 실패:", err);
-    } finally {
-      setTranslatingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(productId);
-        return next;
-      });
-    }
-  };
-
-  // [메뉴 전체 자동 번역 연동]
-  // 언어가 변경될 때마다(한국어 제외) 해당 언어로 메뉴판 전체를 AI 번역 요청합니다.
   useEffect(() => {
     const lang = i18n.language.split("-")[0];
     if (lang === "ko" || !store?.id) {
-      setTranslatedDescriptions({}); // 한국어 복귀 시 번역 초기화
+      setTranslatedDescriptions({});
       return;
     }
 
@@ -562,7 +461,6 @@ const Menu = () => {
     autoTranslateMenu();
   }, [i18n.language, store?.id]);
 
-  // [최적화] 카테고리별 제품 필터링 결과를 useMemo로 관리
   const filteredProducts = useMemo(() => {
     return selectedCategory ? products.filter((p) => p.category_id === selectedCategory) : products;
   }, [selectedCategory, products]);
@@ -634,12 +532,48 @@ const Menu = () => {
             )}
           </div>
 
-          <div className="rounded-2xl p-5 mb-6" style={{ backgroundColor: theme.backgroundColor }}><div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200"><span className="text-gray-500">{t('order.number')}</span><span className="font-bold text-lg" style={{ color: theme.primaryColor }}>#{orderSuccess.order_number}</span></div><div className="flex justify-between items-center mb-3"><span className="text-gray-500">{t('order.payment_method')}</span><span className="font-medium flex items-center gap-2">{pInfo && <pInfo.icon size={18} style={{ color: theme.secondaryColor }} />}{t(`order.methods.${orderSuccess.payment_method}`)}</span></div><div className="flex justify-between items-center mb-3"><span className="text-gray-500">{table ? t('order.table') : t('order.type')}</span><span className="font-medium">{table?.name || t('order.takeout')}</span></div><div className="flex justify-between items-center mb-3"><span className="text-gray-500">{t('order.status_title')}</span><span className="font-medium px-2 py-1 rounded-lg text-sm" style={{ backgroundColor: orderSuccess.status === 'completed' ? '#10b98120' : orderSuccess.status === 'preparing' ? '#8b5cf620' : theme.primaryColor + '20', color: orderSuccess.status === 'completed' ? '#10b981' : orderSuccess.status === 'preparing' ? '#8b5cf6' : theme.primaryColor }}>{t(`status.${orderSuccess.status}`)}</span></div><div className="flex justify-between items-center pt-3 border-t border-gray-200"><span className="font-medium">{t('menu.total')}</span><span className="text-2xl font-bold" style={{ color: theme.primaryColor }}>{formatPrice(orderSuccess.total_amount)}</span></div></div>
-          {/* 진행 상황 알림 */}
-          <div className="flex items-center gap-3 p-4 rounded-xl mb-6" style={{ backgroundColor: theme.primaryColor + "10" }}><Clock size={20} style={{ color: theme.primaryColor }} /><div><p className="font-medium" style={{ color: theme.textColor }}>{t(`status_msg.${orderSuccess.status}`)}</p><p className="text-sm text-gray-500">{orderSuccess.status === 'ready' ? t('status_msg.ready_sub') : t('status_msg.wait_sub')}</p></div></div>
-          {/* 매장 정보 */}
-          <div className="text-center text-sm text-gray-500 mb-8"><p className="font-medium" style={{ color: theme.textColor }}>{store?.name}</p>{store?.address && <p className="flex items-center justify-center gap-1 mt-1"><MapPin size={14} /> {store.address}</p>}{store?.phone && <p className="flex items-center justify-center gap-1 mt-1"><Phone size={14} /> {store.phone}</p>}</div>
-          {/* 액션 버튼 */}
+          <div className="rounded-2xl p-5 mb-6" style={{ backgroundColor: theme.backgroundColor }}>
+            <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+              <span className="text-gray-500">{t('order.number')}</span>
+              <span className="font-bold text-lg" style={{ color: theme.primaryColor }}>#{orderSuccess.order_number}</span>
+            </div>
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-gray-500">{t('order.payment_method')}</span>
+              <span className="font-medium flex items-center gap-2">
+                {pInfo && <pInfo.icon size={18} style={{ color: theme.secondaryColor }} />}
+                {t(`order.methods.${orderSuccess.payment_method}`)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-gray-500">{table ? t('order.table') : t('order.type')}</span>
+              <span className="font-medium">{table?.name || t('order.takeout')}</span>
+            </div>
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-gray-500">{t('order.status_title')}</span>
+              <span className="font-medium px-2 py-1 rounded-lg text-sm" style={{ backgroundColor: orderSuccess.status === 'completed' ? '#10b98120' : orderSuccess.status === 'preparing' ? '#8b5cf620' : theme.primaryColor + '20', color: orderSuccess.status === 'completed' ? '#10b981' : orderSuccess.status === 'preparing' ? '#8b5cf6' : theme.primaryColor }}>
+                {t(`status.${orderSuccess.status}`)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+              <span className="font-medium">{t('menu.total')}</span>
+              <span className="text-2xl font-bold" style={{ color: theme.primaryColor }}>{formatPrice(orderSuccess.total_amount)}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 p-4 rounded-xl mb-6" style={{ backgroundColor: theme.primaryColor + "10" }}>
+            <Clock size={20} style={{ color: theme.primaryColor }} />
+            <div>
+              <p className="font-medium" style={{ color: theme.textColor }}>{t(`status_msg.${orderSuccess.status}`)}</p>
+              <p className="text-sm text-gray-500">{orderSuccess.status === 'ready' ? t('status_msg.ready_sub') : t('status_msg.wait_sub')}</p>
+            </div>
+          </div>
+
+          <div className="text-center text-sm text-gray-500 mb-8">
+            <p className="font-medium" style={{ color: theme.textColor }}>{store?.name}</p>
+            {store?.address && <p className="flex items-center justify-center gap-1 mt-1"><MapPin size={14} /> {store.address}</p>}
+            {store?.phone && <p className="flex items-center justify-center gap-1 mt-1"><Phone size={14} /> {store.phone}</p>}
+          </div>
+
           <div className="space-y-3">
             <button
               onClick={() => setShowReviewModal(true)}
@@ -652,12 +586,13 @@ const Menu = () => {
             <button onClick={() => navigate('/history')} className="w-full py-4 bg-slate-100 text-slate-700 rounded-2xl font-medium border border-slate-200">{t('common.history')}</button>
           </div>
         </div>
-      </motion.div>);
+      </motion.div>
+    );
   }
 
   return (
     <div className="min-h-screen pb-28 selection:bg-orange-100" style={{ background: pageBg, ...themeStyles }}>
-      {/* 프리미엄 플로팅 헤더 (Glassmorphism) */}
+      {/* 프리미엄 플로팅 헤더 */}
       <motion.header
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -725,7 +660,7 @@ const Menu = () => {
           </div>
         </div>
 
-        {/* AI 추천 입력 섹션 (애니메이션 강화) */}
+        {/* AI 추천 입력 섹션 */}
         <AnimatePresence>
           {showAiInput && (
             <motion.div
@@ -746,7 +681,6 @@ const Menu = () => {
                     placeholder={t('common.search_placeholder') || "선호하는 맛이나 메뉴를 입력하세요..."}
                     className="w-full h-14 pl-5 pr-14 rounded-2xl text-sm outline-none bg-white/10 text-white placeholder:text-white/50 border border-white/20 focus:bg-white focus:text-slate-900 focus:placeholder:text-slate-400 transition-all shadow-inner"
                   />
-                  {/* 기분 태그 선택 UI */}
                   <div className="flex gap-2 mt-4 overflow-x-auto pb-2 scrollbar-hide">
                     {moodTags.map((tag) => (
                       <button
@@ -777,7 +711,7 @@ const Menu = () => {
           )}
         </AnimatePresence>
 
-        {/* AI 추천 결과 캐러셀 (애니메이션 강화) */}
+        {/* AI 추천 결과 캐러셀 */}
         <AnimatePresence>
           {aiRecommendations.length > 0 && (
             <motion.div
@@ -820,7 +754,7 @@ const Menu = () => {
           )}
         </AnimatePresence>
 
-        {/* 카테고리 칩 (Premium Reordering) */}
+        {/* 카테고리 칩 */}
         <div className="flex overflow-x-auto px-5 pb-5 gap-3 scrollbar-hide">
           <motion.button
             layout
@@ -852,7 +786,7 @@ const Menu = () => {
         </div>
       </motion.header>
 
-      {/* [빌더 연동] 메인 배너 이미지 영역 */}
+      {/* 메인 배너 이미지 영역 */}
       <AnimatePresence>
         {theme.bannerImageUrl && (
           <motion.div
@@ -874,157 +808,24 @@ const Menu = () => {
         )}
       </AnimatePresence>
 
-      {/* 메뉴 리스트 (레이아웃 모드 분기 처리) */}
-      <motion.div
-        layout
-        className={`p-5 grid gap-6 ${theme.layoutMode === 'grid' ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-1'
-          }`}
-      >
-        <AnimatePresence mode="popLayout">
-          {filteredProducts.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="text-center py-20 bg-white/40 rounded-[3rem] border-2 border-dashed border-slate-200"
-              style={{ color: theme.textColor + "80" }}
-            >
-              <ShoppingCart size={48} className="mx-auto mb-4 opacity-20" />
-              {t('menu.no_items')}
-            </motion.div>
-          ) : (
-            filteredProducts.map((p, idx) => {
-              // 레이아웃 모드에 따른 카드 렌더링 분기
-              if (theme.layoutMode === 'grid') {
-                return (
-                  <motion.div
-                    layout
-                    key={p.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="bg-white/80 backdrop-blur-md rounded-[2rem] overflow-hidden border border-white/60 shadow-lg shadow-slate-200/50 group flex flex-col h-full"
-                  >
-                    <div className="aspect-square relative overflow-hidden bg-slate-100">
-                      {p.image_url ? (
-                        <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                      ) : <div className="w-full h-full flex items-center justify-center text-slate-300"><Star size={32} /></div>}
-                      {p.is_best && <span className="absolute top-3 left-3 bg-orange-500 text-white text-[9px] font-black px-2 py-1 rounded-lg">BEST</span>}
-                    </div>
-                    <div className="p-4 flex-1 flex flex-col justify-between">
-                      <div>
-                        <h3 className="font-black text-sm line-clamp-1 mb-1" style={{ color: theme.textColor }}>{translatedDescriptions[p.id + '_name'] || p.name}</h3>
-                        <p className="text-[10px] opacity-50 line-clamp-2 leading-relaxed" style={{ color: theme.textColor }}>{translatedDescriptions[p.id] || p.description}</p>
-                      </div>
-                      <div className="mt-3 flex items-center justify-between gap-2">
-                        <span className="font-black text-sm" style={{ color: theme.primaryColor }}>{formatPrice(p.price)}</span>
-                        {p.is_sold_out ? (
-                          <span className="text-[9px] font-black text-rose-500">SOLD OUT</span>
-                        ) : (
-                          <button onClick={() => addToCart(p)} className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-md shadow-orange-500/20" style={{ background: gradientBg }}>
-                            <Plus size={16} strokeWidth={3} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              }
+      {/* 메뉴 리스트 - 외부 모듈 컴포넌트로 위임 */}
+      <MenuProductList
+        filteredProducts={filteredProducts}
+        theme={theme}
+        translatedDescriptions={translatedDescriptions}
+        addToCart={addToCart}
+        setSelectedStoryProduct={setSelectedStoryProduct}
+        setShowStoryModal={setShowStoryModal}
+        gradientBg={gradientBg}
+      />
 
-              const isMagazine = theme.layoutMode === 'magazine';
-
-              return (
-                <motion.div
-                  layout
-                  key={p.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className={`${isMagazine ? 'grid grid-cols-5 h-48 sm:h-56' : 'flex gap-5'
-                    } bg-white/80 backdrop-blur-md p-5 rounded-[2.5rem] border border-white/60 shadow-xl shadow-slate-200/50 group relative overflow-hidden`}
-                >
-                  <div
-                    className="absolute top-0 left-0 bottom-0 w-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ backgroundColor: theme.primaryColor }}
-                  />
-
-                  {/* 이미지 영역 */}
-                  <div className={`${isMagazine ? 'col-span-2 -m-5 mr-5 rounded-none' : 'relative shrink-0'}`}>
-                    <MenuItemImage src={p.image_url} alt={p.name} isMagazine={isMagazine} />
-                    {p.is_best && !isMagazine && (
-                      <span className="absolute -top-2 -left-2 bg-orange-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg uppercase tracking-tighter">BEST</span>
-                    )}
-                  </div>
-
-                  {/* 내용 영역 */}
-                  <div className={`${isMagazine ? 'col-span-3' : 'flex-1'} min-w-0 flex flex-col justify-center`}>
-                    <div className="flex items-center gap-2">
-                      {p.is_best && isMagazine && <span className="text-[10px] font-black text-orange-500 uppercase">Featured Menu</span>}
-                      <h3 className={`${isMagazine ? 'text-2xl' : 'text-xl'} font-black tracking-tight group-hover:text-orange-600 transition-colors`} style={{ color: theme.textColor }}>
-                        {translatedDescriptions[p.id + '_name'] || p.name}
-                      </h3>
-                      {p.is_new && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-1.5 mb-3">
-                      {p.description && (
-                        <p className={`${isMagazine ? 'text-sm' : 'text-sm'} line-clamp-2 leading-relaxed opacity-60 font-medium flex-1 text-slate-600`}>
-                          {translatedDescriptions[p.id] || p.description}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex items-end justify-between mt-auto">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-tight">
-                          <Timer size={12} className="text-slate-300" />
-                          <span>Ready in {p.cooking_time || 5} min</span>
-                        </div>
-                        <p className={`${isMagazine ? 'text-3xl' : 'text-2xl'} font-black`} style={{ color: theme.primaryColor }}>{formatPrice(p.price)}</p>
-                      </div>
-
-                      {p.is_sold_out ? (
-                        <div className="px-5 py-2.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-sm border border-slate-200 uppercase italic tracking-widest">
-                          Sold Out
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          {isMagazine && (
-                            <motion.button
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => { setSelectedStoryProduct(p); setShowStoryModal(true); }}
-                              className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black hover:bg-slate-800 transition-all flex items-center gap-1.5"
-                            >
-                              <Sparkles size={12} className="text-blue-400" /> AI Story
-                            </motion.button>
-                          )}
-                          <motion.button
-                            whileHover={{ scale: 1.1, rotate: 90 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => addToCart(p)}
-                            className="w-12 h-12 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 transition-shadow group-hover:shadow-orange-500/50"
-                            style={{ background: gradientBg }}
-                          >
-                            <Plus size={24} strokeWidth={3} />
-                          </motion.button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* 직원 호출 플로팅 버튼 (고가시성 맥박 애니메이션 적용) */}
+      {/* 직원 호출 플로팅 버튼 */}
       <FloatingCallButton 
         onClick={() => setShowCallSheet(true)} 
         primaryColor={theme.primaryColor}
       />
 
-      {/* 장바구니 바텀 시트 (Floating) */}
+      {/* 장바구니 바텀 시트 */}
       <AnimatePresence>
         {cart.length > 0 && !showCart && (
           <motion.div
@@ -1063,6 +864,7 @@ const Menu = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
       {showCart && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end">
           <div className="bg-white w-full rounded-t-[2.5rem] max-h-[90vh] overflow-y-auto shadow-2xl" style={themeStyles}>
@@ -1106,7 +908,6 @@ const Menu = () => {
                   ))}
                 </div>
 
-                {/* AI 후식 추천 섹션 [NEW] */}
                 <AnimatePresence>
                   {dessertRecommendations.length > 0 && (
                     <motion.div
@@ -1150,12 +951,12 @@ const Menu = () => {
                 </div>
               </>
             )}
+
             {orderStep === "payment" && (
               <>
                 <div className="p-6">
                   <h3 className="text-xl font-black mb-6" style={{ color: theme.textColor }}>결제 방식을 선택해주세요</h3>
 
-                  {/* [고도화] 함께 결제하기 추천 배너 */}
                   <motion.button
                     whileTap={{ scale: 0.98 }}
                     onClick={() => { setShowTogetherSheet(true); setShowCart(false); }}
@@ -1208,8 +1009,75 @@ const Menu = () => {
                 </div>
               </>
             )}
-            {orderStep === "confirm" && (<><div className="p-4 space-y-4"><h3 className="font-bold" style={{ color: theme.textColor }}>{t('order.order_info')} ({t('order.optional')})</h3><input type="text" name="name" autoComplete="name" aria-label={t('order.name')} placeholder={t('order.name')} value={orderForm.customer_name} onChange={(e) => setOrderForm({ ...orderForm, customer_name: e.target.value })} className="w-full px-4 py-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-orange-400" style={{ backgroundColor: theme.backgroundColor }} /><input type="tel" name="tel" autoComplete="tel" inputMode="numeric" aria-label={t('order.phone')} placeholder={t('order.phone')} value={orderForm.customer_phone} onChange={(e) => setOrderForm({ ...orderForm, customer_phone: e.target.value })} className="w-full px-4 py-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-orange-400" style={{ backgroundColor: theme.backgroundColor }} /><textarea aria-label={t('order.notes')} placeholder={t('order.notes')} value={orderForm.notes} onChange={(e) => setOrderForm({ ...orderForm, notes: e.target.value })} rows={2} className="w-full px-4 py-3 rounded-xl outline-none resize-none focus-visible:ring-2 focus-visible:ring-orange-400" style={{ backgroundColor: theme.backgroundColor }} /><div className="rounded-xl p-4" style={{ backgroundColor: theme.backgroundColor }}><h4 className="font-medium mb-3" style={{ color: theme.textColor }}>{t('order.summary')}</h4>{cart.map(i => (<div key={i.product_id} className="flex justify-between text-sm py-1"><span style={{ color: theme.textColor + "90" }}>{i.product_name} x {i.quantity}</span><span style={{ color: theme.textColor }}>{formatPrice(i.price * i.quantity)}</span></div>))}<div className="flex justify-between font-bold pt-3 mt-3 border-t" style={{ borderColor: theme.primaryColor + "20" }}><span style={{ color: theme.textColor }}>{t('order.total_amount')}</span><span style={{ color: theme.primaryColor }}>{formatPrice(getTotalAmount())}</span></div><div className="flex items-center gap-2 mt-3 text-sm" style={{ color: theme.textColor + "70" }}>{(() => { const m = paymentMethods.find(x => x.id === orderForm.payment_method); return m ? <><m.icon size={16} />{t(`order.methods.${m.id}`)}</> : null; })()}</div></div></div><div className="p-4 border-t space-y-3"><button onClick={openPaymentSheet} className="w-full py-4 text-white rounded-2xl flex items-center justify-center gap-2 font-medium shadow-lg" style={{ background: gradientBg }}><Star size={20} />{formatPrice(getTotalAmount())} {t('order.integrated_payment')}</button><button onClick={handleOrder} className="w-full py-3 rounded-2xl flex items-center justify-center gap-2 font-medium border-2" style={{ borderColor: theme.primaryColor, color: theme.primaryColor }}><Send size={18} />{t('order.standard_payment')}</button></div></>)}
-          </div></div>)}
+
+            {orderStep === "confirm" && (
+              <>
+                <div className="p-6 space-y-4">
+                  <h3 className="text-xl font-black mb-4" style={{ color: theme.textColor }}>
+                    {t('order.order_info')} ({t('order.optional')})
+                  </h3>
+                  <input
+                    type="text"
+                    name="name"
+                    autoComplete="name"
+                    aria-label={t('order.name')}
+                    placeholder={t('order.name')}
+                    value={orderForm.customer_name}
+                    onChange={(e) => setOrderForm({ ...orderForm, customer_name: e.target.value })}
+                    className="w-full px-5 py-4 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-orange-400 text-sm font-medium border"
+                    style={{ backgroundColor: theme.backgroundColor }}
+                  />
+                  <input
+                    type="tel"
+                    name="tel"
+                    autoComplete="tel"
+                    inputMode="numeric"
+                    aria-label={t('order.phone')}
+                    placeholder={t('order.phone')}
+                    value={orderForm.customer_phone}
+                    onChange={(e) => setOrderForm({ ...orderForm, customer_phone: e.target.value })}
+                    className="w-full px-5 py-4 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-orange-400 text-sm font-medium border"
+                    style={{ backgroundColor: theme.backgroundColor }}
+                  />
+                  <textarea
+                    aria-label={t('order.notes')}
+                    placeholder={t('order.notes')}
+                    value={orderForm.notes}
+                    onChange={(e) => setOrderForm({ ...orderForm, notes: e.target.value })}
+                    rows={2}
+                    className="w-full px-5 py-4 rounded-2xl outline-none resize-none focus-visible:ring-2 focus-visible:ring-orange-400 text-sm font-medium border"
+                    style={{ backgroundColor: theme.backgroundColor }}
+                  />
+
+                  <div className="rounded-2xl p-5" style={{ backgroundColor: theme.backgroundColor }}>
+                    <h4 className="font-bold mb-3 text-slate-800">{t('order.summary')}</h4>
+                    {cart.map(i => (
+                      <div key={i.product_id} className="flex justify-between text-sm py-1">
+                        <span style={{ color: theme.textColor + "90" }}>{i.product_name} x {i.quantity}</span>
+                        <span className="font-bold text-slate-800">{formatPrice(i.price * i.quantity)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between font-bold pt-3 mt-3 border-t" style={{ borderColor: theme.primaryColor + "20" }}>
+                      <span style={{ color: theme.textColor }}>{t('order.total_amount')}</span>
+                      <span style={{ color: theme.primaryColor }}>{formatPrice(getTotalAmount())}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-8 border-t bg-white/80 backdrop-blur-md sticky bottom-0">
+                  <button
+                    onClick={orderForm.payment_method === "card" ? openPaymentSheet : handleOrder}
+                    className="w-full py-5 text-white rounded-[2rem] font-black text-lg shadow-xl shadow-orange-500/30 active:scale-[0.98] transition-all"
+                    style={{ background: gradientBg }}
+                  >
+                    {orderForm.payment_method === "card" ? t('order.pay_now') : t('order.place_order')}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 통합 결제 시트 */}
       <PaymentSheet
@@ -1222,7 +1090,7 @@ const Menu = () => {
         userIdentifier={userIdentifier}
       />
 
-      {/* [추가] 함께 결제하기(분할 결제) 시트 */}
+      {/* 함께 결제하기(분할 결제) 시트 */}
       <TogetherPaymentSheet
         isOpen={showTogetherSheet}
         onClose={() => setShowTogetherSheet(false)}
@@ -1230,7 +1098,7 @@ const Menu = () => {
         totalAmount={getTotalAmount()}
         theme={theme}
         formatPrice={formatPrice}
-        socket={ordersAPI.getSocket()} // 실시간 동기화용 소켓
+        socket={ordersAPI.getSocket()}
         tableId={table?.id}
         onConfirm={(splitData) => {
           handlePaymentSplit(splitData);
@@ -1264,7 +1132,7 @@ const Menu = () => {
         customerInfo={{ phone: userPhone }}
       />
 
-      {/* [NEW] 리뷰 작성 모달 연동 */}
+      {/* 리뷰 작성 모달 연동 */}
       <ReviewModal
         isOpen={showReviewModal}
         onClose={() => setShowReviewModal(false)}
@@ -1274,12 +1142,10 @@ const Menu = () => {
           store_name: store?.name,
           items: orderSuccess?.items || cart
         }}
-        onSuccess={() => {
-          // 리뷰 작성 후 추가 동작이 필요하다면 여기에 작성
-          // console.log("리뷰가 성공적으로 등록되었습니다.");
-        }}
+        onSuccess={() => {}}
       />
-      {/* [NEW] 예약 섹션 오버레이 */}
+
+      {/* 예약 섹션 오버레이 */}
       <AnimatePresence>
         {showReservation && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[70] flex items-center justify-center p-5">
@@ -1301,7 +1167,7 @@ const Menu = () => {
         )}
       </AnimatePresence>
 
-      {/* [NEW] AI 스토리텔링 모달 */}
+      {/* AI 스토리텔링 모달 */}
       <MenuStoryModal
         isOpen={showStoryModal}
         onClose={() => setShowStoryModal(false)}

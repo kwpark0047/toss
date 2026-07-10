@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { BellRing } from 'lucide-react';
+import { vibrateClick } from '../../utils/notificationSound';
 
 /**
  * FloatingCallButton — 고객 화면에서 항상 잘 보이도록 떠 있는 호출 버튼.
@@ -30,7 +31,10 @@ const FloatingCallButton = ({ onClick, primaryColor = "#f97316" }) => {
       />
 
       <button
-        onClick={onClick}
+        onClick={() => {
+          vibrateClick();
+          onClick();
+        }}
         className="relative flex flex-col items-center justify-center w-20 h-20 rounded-full text-white shadow-[0_20px_50px_rgba(249,115,22,0.4)] border-4 border-white overflow-hidden group transition-all"
         style={{ 
           background: `linear-gradient(135deg, ${primaryColor}, #e11d48)`,

@@ -7,10 +7,10 @@ const GRID_SIZE = 20;
 const TABLE_SIZE = 72; // px — 터치 타겟 크기
 
 const STATUS = {
-  available: { label: '이용 가능', color: 'bg-emerald-500', border: 'border-emerald-600', dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'hover:bg-emerald-50' },
-  occupied:  { label: '이용 중',   color: 'bg-blue-500',    border: 'border-blue-600',    dot: 'bg-blue-500',    text: 'text-blue-700',    bg: 'hover:bg-blue-50' },
-  dirty:     { label: '정리 필요', color: 'bg-amber-400',   border: 'border-amber-500',   dot: 'bg-amber-400',   text: 'text-amber-700',   bg: 'hover:bg-amber-50' },
-  reserved:  { label: '예약됨',    color: 'bg-purple-500',  border: 'border-purple-600',  dot: 'bg-purple-500',  text: 'text-purple-700',  bg: 'hover:bg-purple-50' },
+  available: { label: '이용 가능', color: 'bg-white text-orange-500 border-orange-200 hover:border-orange-500 hover:shadow-lg hover:shadow-orange-500/10', border: 'border-2', dot: 'bg-orange-500', text: 'text-orange-600', bg: 'hover:bg-orange-50' },
+  occupied:  { label: '이용 중',   color: 'bg-slate-900 text-white border-slate-950 hover:bg-slate-800',    border: 'border-2',    dot: 'bg-slate-900',    text: 'text-slate-900',    bg: 'hover:bg-slate-100' },
+  reserved:  { label: '예약됨',    color: 'bg-orange-500 text-white border-orange-600 hover:bg-orange-400',  border: 'border-2',  dot: 'bg-orange-500',  text: 'text-orange-600',   bg: 'hover:bg-orange-50' },
+  dirty:     { label: '정리 필요', color: 'bg-amber-400 text-slate-900 border-amber-500 hover:bg-amber-300',   border: 'border-2',   dot: 'bg-amber-400',   text: 'text-amber-700',   bg: 'hover:bg-amber-50' },
 };
 
 export default function VisualTableMap({ storeId, tables, onUpdate }) {
@@ -163,15 +163,27 @@ export default function VisualTableMap({ storeId, tables, onUpdate }) {
         className={`relative w-full rounded-2xl overflow-hidden touch-none ${isEditing ? 'cursor-move' : 'cursor-default'}`}
         style={{
           height: mapHeight,
-          background: 'rgba(255,255,255,0.04)',
-          border: '1.5px dashed rgba(255,255,255,0.08)',
-          backgroundImage: 'radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)',
+          background: 'rgba(255,255,255,0.02)',
+          border: '1.5px dashed rgba(255,255,255,0.06)',
+          backgroundImage: 'radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px)',
           backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
         }}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onClick={() => !isEditing && setSelected(null)}
       >
+        {/* 첨부 이미지 데코레이션: 스터디카페 구역 레이블 */}
+        <div className="absolute inset-0 pointer-events-none select-none z-0">
+          <div className="absolute top-5 left-1/2 -translate-x-1/2 text-[11px] font-black text-slate-500/20 tracking-[0.3em] uppercase">프리미엄 석 (V)</div>
+          <div className="absolute top-[140px] left-1/2 -translate-x-1/2 text-[11px] font-black text-slate-500/20 tracking-[0.3em] uppercase">독립식 (S)</div>
+          <div className="absolute top-[240px] left-[25%] text-[10px] font-black text-slate-500/20 tracking-[0.2em]">푸드 존</div>
+          <div className="absolute top-[370px] left-[25%] text-[10px] font-black text-slate-500/20 tracking-[0.2em]">푸드 존</div>
+          <div className="absolute top-[200px] right-[15%] text-[10px] font-black text-slate-500/20 tracking-[0.2em] [writing-mode:vertical-rl] rotate-180">노트북 존</div>
+          <div className="absolute top-[200px] left-[20px] text-[10px] font-black text-slate-500/20 tracking-[0.2em] [writing-mode:vertical-rl]">대기석</div>
+          <div className="absolute top-[320px] left-1/2 -translate-x-1/2 text-[8px] font-bold text-slate-500/15 tracking-[0.1em]">C&C 복합기 & 워트 디스펜서</div>
+          <div className="absolute top-[345px] left-1/2 -translate-x-1/2 text-[8px] font-bold text-slate-500/15 tracking-[0.1em]">커피머신 & 키오스크</div>
+        </div>
+
         {/* 편집 모드 오버레이 안내 */}
         {isEditing && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-4 py-1.5 bg-orange-500/90 backdrop-blur-sm text-white text-[10px] font-black rounded-full shadow-lg tracking-widest uppercase pointer-events-none">
@@ -194,10 +206,10 @@ export default function VisualTableMap({ storeId, tables, onUpdate }) {
                 e.stopPropagation();
                 if (!isEditing) setSelected(isSelected ? null : table.id);
               }}
-              className={`absolute flex flex-col items-center justify-center rounded-2xl border-2 transition-all select-none
-                ${st.color} ${st.border} text-white
+              className={`absolute flex flex-col items-center justify-center rounded-2xl transition-all select-none z-10
+                ${st.color} ${st.border}
                 ${isEditing ? 'active:scale-95 opacity-90' : 'hover:brightness-110 active:brightness-90'}
-                ${isSelected ? 'ring-2 ring-white ring-offset-2 ring-offset-transparent scale-105' : ''}
+                ${isSelected ? 'ring-2 ring-orange-500 ring-offset-2 ring-offset-transparent scale-105 shadow-xl shadow-orange-500/15' : ''}
               `}
               style={{
                 left: table.x,
@@ -210,9 +222,9 @@ export default function VisualTableMap({ storeId, tables, onUpdate }) {
                 touchAction: isEditing ? 'none' : 'auto',
               }}
             >
-              <span className="text-[9px] font-bold opacity-80 leading-none">{table.capacity}인석</span>
-              <span className="text-sm font-black leading-tight mt-0.5 max-w-[60px] text-center truncate px-1">
-                {table.table_number}
+              <span className="text-[9px] font-black tracking-tight leading-none opacity-60">{table.capacity}인석</span>
+              <span className="text-sm font-black leading-none mt-1 max-w-[62px] text-center truncate px-1">
+                {table.table_number || table.name}
               </span>
 
               {/* 사용 중 펄스 인디케이터 */}

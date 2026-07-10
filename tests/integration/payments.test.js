@@ -8,7 +8,7 @@ jest.mock('../../config/database', () => ({
   })),
 }), { virtual: true });
 
-jest.mock('../../models/Payment', () => ({
+jest.mock('../../repositories/Payment', () => ({
   create: jest.fn((data) => ({ id: 'new-payment-id', ...data })),
   findById: jest.fn((id) => ({ id, payment_status: 'pending' })),
   findByOrderId: jest.fn(),
@@ -18,7 +18,7 @@ jest.mock('../../models/Payment', () => ({
   findByStore: jest.fn(),
 }));
 
-jest.mock('../../models/Point', () => ({
+jest.mock('../../repositories/Point', () => ({
   getBalance: jest.fn(() => ({ total_points: 5000 })),
   use: jest.fn(),
   calculateEarnPoints: jest.fn(() => 100),

@@ -96,6 +96,23 @@ const Table = {
             data: { is_active: false }
         });
         return true;
+    },
+
+    updateLayout: async (storeId, layoutArray) => {
+        const queries = layoutArray.map(item => {
+            return prisma.tables.update({
+                where: { id: parseInt(item.id) },
+                data: {
+                    x: parseInt(item.x),
+                    y: parseInt(item.y),
+                    updated_at: new Date()
+                }
+            });
+        });
+        await prisma.$transaction(queries);
+        return await prisma.tables.findMany({
+            where: { store_id: parseInt(storeId), is_active: true }
+        });
     }
 };
 

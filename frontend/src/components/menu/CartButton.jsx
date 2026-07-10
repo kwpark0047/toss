@@ -2,6 +2,7 @@ import { formatWon } from '../../utils/format';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart } from 'lucide-react';
 import Button from '../common/Button';
+import { vibrateClick } from '../../utils/notificationSound';
 
 const CartButton = ({ totalItems, totalPrice, onClick }) => {
 
@@ -14,7 +15,17 @@ const CartButton = ({ totalItems, totalPrice, onClick }) => {
           exit={{ y: 100, opacity: 0 }}
           className="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-40 px-4"
         >
-          <Button variant="primary" size="md" fullWidth layout="between" onClick={onClick} className="shadow-primary/30">
+          <Button 
+            variant="primary" 
+            size="md" 
+            fullWidth 
+            layout="between" 
+            onClick={() => {
+              vibrateClick();
+              onClick();
+            }} 
+            className="shadow-primary/30 h-14"
+          >
             <div className="flex items-center gap-2">
               <div className="relative">
                 <ShoppingCart className="w-5 h-5" />

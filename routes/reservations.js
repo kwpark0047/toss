@@ -5,9 +5,10 @@ const authMiddleware = require('../middleware/auth');
 const logger = require('../utils/logger');
 const { sendReservationNotification } = require('../utils/notifications');
 const catchAsync = require('../utils/catchAsync');
+const { AppError } = require('../utils/errorHandler');
 const { encryptPhone, decryptPhoneFields, phoneSearchCandidates } = require('../utils/phoneEncryption');
 
-// [POST] 예약 신청 (고객용)
+// [POST] 예약 요청 (고객)
 router.post('/register', catchAsync(async (req, res) => {
     const { store_id, customer_name, customer_phone, party_size, reservation_time, notes } = req.body;
     const entry = await prisma.reservations.create({
@@ -28,7 +29,7 @@ router.post('/register', catchAsync(async (req, res) => {
     res.json({ success: true, data: decryptPhoneFields(entry) });
 }));
 
-// [GET] 특정 매장의 예약 리스트 조회 (관리자용)
+// [GET] 특정 매장의 예약 리스트 조회 (관리자)
 router.get('/store/:storeId', authMiddleware, catchAsync(async (req, res) => {
     const { storeId } = req.params;
     const { status, date } = req.query;

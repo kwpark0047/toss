@@ -1,7 +1,7 @@
 const prisma = require('../config/prisma');
 const bcrypt = require('bcryptjs');
-const Order = require('../models/Order');
-const Payment = require('../models/Payment');
+const Order = require('../repositories/Order');
+const Payment = require('../repositories/Payment');
 
 async function seed() {
     try {

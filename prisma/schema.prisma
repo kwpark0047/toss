@@ -16,6 +16,8 @@ model categories {
   created_at DateTime?  @default(now())
   stores     stores     @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   products   products[]
+
+  @@index([store_id, sort_order], map: "idx_categories_store_sort")
 }
 
 model comments {
@@ -75,6 +77,9 @@ model order_items {
   created_at   DateTime? @default(now())
   products     products? @relation(fields: [product_id], references: [id], onUpdate: NoAction)
   orders       orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([order_id], map: "idx_order_items_order_id")
+  @@index([product_id], map: "idx_order_items_product_id")
 }
 
 model orders {
@@ -117,6 +122,9 @@ model orders {
 
   @@index([created_at], map: "idx_orders_created_at")
   @@index([store_id], map: "idx_orders_store_id")
+  @@index([store_id, status, created_at], map: "idx_orders_store_status_date")
+  @@index([customer_phone], map: "idx_orders_customer_phone")
+  @@index([table_id], map: "idx_orders_table_id")
 }
 
 model payments {
@@ -164,6 +172,7 @@ model payments {
   @@index([store_id], map: "idx_payments_store_id")
   @@index([order_id], map: "idx_payments_order_id")
   @@index([status], map: "idx_payments_status")
+  @@index([store_id, status, created_at], map: "idx_payments_store_status_date")
 }
 
 model plan_requests {
@@ -274,6 +283,8 @@ model products {
   categories             categories?         @relation(fields: [category_id], references: [id], onUpdate: NoAction)
   shared_cart_items      shared_cart_items[]
   stock_history          stock_history[]
+
+  @@index([store_id, category_id, is_active], map: "idx_products_store_category_active")
 }
 
 model stock_history {

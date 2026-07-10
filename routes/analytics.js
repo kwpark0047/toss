@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Order = require('../models/Order');
-const Store = require('../models/Store');
+const Order = require('../repositories/Order');
+const Store = require('../repositories/Store');
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
@@ -77,7 +77,7 @@ router.get('/store/:storeId/products', authMiddleware, checkStorePermission('sta
 
 /**
  * @route   GET /api/analytics/store/:storeId/comparison
- * @desc    기간 대비 성장률 분석 (실데이터 연동)
+ * @desc    기간 대비 성장률 분석 (이전데이터 자동)
  */
 router.get('/store/:storeId/comparison', authMiddleware, checkStorePermission('stats:read'), catchAsync(async (req, res) => {
     const storeId = parseInt(req.params.storeId);
@@ -92,7 +92,7 @@ router.get('/store/:storeId/comparison', authMiddleware, checkStorePermission('s
 
 /**
  * @route   GET /api/analytics/store/:storeId/insights
- * @desc    고급 인사이트 (F3): 요일×시간 히트맵, 재구매율, 카테고리별 매출
+ * @desc    고급 인사이트: 요일×시간 히트맵, 재구매율, 카테고리별 매출
  */
 router.get('/store/:storeId/insights', authMiddleware, checkStorePermission('stats:read'), catchAsync(async (req, res) => {
     const storeId = parseInt(req.params.storeId);
@@ -146,7 +146,7 @@ router.get('/store/:storeId/kds', authMiddleware, checkStorePermission('stats:re
 
 /**
  * @route   GET /api/analytics/store/:storeId/forecast
- * @desc    매출 예측 데이터 (7일/14일)
+ * @desc    매출 예측 데이터 (7일, 14일)
  */
 router.get('/store/:storeId/forecast', authMiddleware, checkStorePermission('stats:read'), catchAsync(async (req, res) => {
     const storeId = parseInt(req.params.storeId);

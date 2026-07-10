@@ -4,6 +4,8 @@ import { reviewsAPI } from '../../api';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
 import NaverReviewTab from './NaverReviewTab';
+import LazyImage from '../common/LazyImage';
+import { vibrateClick } from '../../utils/notificationSound';
 
 // 브라우저별 익명 좋아요 식별자 (로그인 없는 고객용, localStorage에 고정)
 const getLikerId = () => {
@@ -15,24 +17,18 @@ const getLikerId = () => {
   return id;
 };
 
-// 리뷰 첨부 사진: 로드 실패 시 깨진 아이콘 대신 폴백
+// 리뷰 첨부 사진: LazyImage 활용
 const ReviewPhoto = ({ src }) => {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) {
-    return (
-      <div className="w-full aspect-video rounded-xl bg-slate-100 flex items-center justify-center text-slate-300">
-        <ImageOff size={28} aria-hidden="true" />
-      </div>
-    );
-  }
+  if (!src) return null;
   return (
-    <img
-      src={src}
-      alt="리뷰 첨부 사진"
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className="w-full aspect-video object-cover rounded-xl"
-    />
+    <div className="mt-2">
+      <LazyImage 
+        src={src} 
+        alt="리뷰 첨부 사진" 
+        ratio="aspect-video" 
+        className="rounded-xl"
+      />
+    </div>
   );
 };
 
@@ -107,12 +103,12 @@ const StoreReviews = ({ storeId }) => {
     <section className="px-4 py-6">
       {/* 헤더 + 탭 */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+        <h2 className="text-lg font-black cust-text-main flex items-center gap-2">
           <MessageSquareText size={18} className="text-orange-500" aria-hidden="true" />
           고객 리뷰
         </h2>
         {avg && activeTab === 'local' && (
-          <div className="flex items-center gap-1 text-sm font-bold text-slate-700">
+          <div className="flex items-center gap-1 text-sm font-bold cust-text-main">
             <Star size={15} className="text-orange-400" fill="currentColor" aria-hidden="true" />
             {avg} <span className="text-slate-400 font-medium">({reviews.length})</span>
           </div>
@@ -120,7 +116,7 @@ const StoreReviews = ({ storeId }) => {
       </div>
 
       {/* 탭 네비게이션 */}
-      <div className="flex gap-1 mb-4 bg-slate-50 rounded-xl p-1">
+      <div className="flex gap-1 mb-4 bg-slate-50 dark:bg-white/5 rounded-xl p-1">
         {TABS.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.key;
@@ -128,11 +124,11 @@ const StoreReviews = ({ storeId }) => {
             <button
               key={tab.key}
               type="button"
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => { vibrateClick(); setActiveTab(tab.key); }}
               className={`flex-1 h-9 flex items-center justify-center gap-1.5 rounded-lg text-sm font-bold transition-all ${
                 isActive
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-600'
+                  ? 'bg-white dark:bg-slate-800 cust-text-main shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
               }`}
             >
               <Icon size={14} aria-hidden="true" />
@@ -149,40 +145,36 @@ const StoreReviews = ({ storeId }) => {
             {[1, 2].map(i => <Skeleton key={i} className="h-24 rounded-2xl" />)}
           </div>
         ) : reviews.length === 0 ? (
-          <EmptyState
-            icon={<MessageSquareText size={40} className="text-slate-300" aria-hidden="true" />}
-            title="아직 등록된 리뷰가 없어요"
-            description="첫 리뷰의 주인공이 되어보세요!"
-          />
+          <EmptyState icon="📋" title="아직 등록된 리뷰가 없어요" description="첫 리뷰의 주인공이 되어보세요!" />
         ) : (
           <div className="space-y-4">
             {reviews.map(r => (
-              <article key={r.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+              <article key={r.id} className="cust-bg-card border cust-border rounded-2xl p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-slate-800 text-sm">{r.customer_name || '익명 고객'}</span>
+                  <span className="font-bold cust-text-main text-sm">{r.customer_name || '익명 고객'}</span>
                   <span className="text-[11px] text-slate-400">{fmtDate(r.created_at)}</span>
                 </div>
                 <div className="flex items-center gap-0.5 mb-2" aria-label={`별점 ${r.rating}점`}>
                   {[1, 2, 3, 4, 5].map(n => (
-                    <Star key={n} size={13} className={n <= r.rating ? 'text-orange-400' : 'text-slate-200'} fill="currentColor" aria-hidden="true" />
+                    <Star key={n} size={13} className={n <= r.rating ? 'text-orange-400' : 'text-slate-200 dark:text-slate-700'} fill="currentColor" aria-hidden="true" />
                   ))}
                   {r.is_best && (
-                    <span className="ml-2 text-[10px] font-black text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded">BEST</span>
+                    <span className="ml-2 text-[10px] font-black text-orange-500 bg-orange-50 dark:bg-orange-500/10 px-1.5 py-0.5 rounded">BEST</span>
                   )}
                 </div>
-                {r.content && <p className="text-sm text-slate-600 leading-relaxed mb-2 break-words">{r.content}</p>}
+                {r.content && <p className="text-sm cust-text-sub leading-relaxed mb-2 break-words">{r.content}</p>}
                 {r.image_url && <ReviewPhoto src={r.image_url} />}
                 {r.reply && (
-                  <div className="mt-3 p-3 bg-orange-50/60 border-l-2 border-orange-300 rounded-r-xl">
+                  <div className="mt-3 p-3 bg-orange-50/60 dark:bg-orange-500/5 border-l-2 border-orange-300 rounded-r-xl">
                     <p className="text-[11px] font-black text-orange-600 mb-1 flex items-center gap-1">
                       <MessageSquareText size={11} aria-hidden="true" /> 사장님 답글
                     </p>
-                    <p className="text-sm text-slate-600 leading-relaxed break-words">{r.reply}</p>
+                    <p className="text-sm cust-text-sub leading-relaxed break-words">{r.reply}</p>
                   </div>
                 )}
-                <div className="flex items-center mt-3 pt-3 border-t border-slate-50">
+                <div className="flex items-center mt-3 pt-3 border-t cust-border">
                   <button
-                    onClick={() => handleLike(r.id)}
+                    onClick={() => { vibrateClick(); handleLike(r.id); }}
                     aria-label={r.liked ? '좋아요 취소' : '좋아요'}
                     aria-pressed={r.liked}
                     className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${r.liked ? 'text-rose-500' : 'text-slate-400 hover:text-rose-400'}`}

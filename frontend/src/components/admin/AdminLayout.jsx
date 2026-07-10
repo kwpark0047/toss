@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { NotificationProvider } from '../../contexts/NotificationContext';
+import { NotificationProvider, useNotifications } from '../../contexts/NotificationContext';
 import { AdminThemeProvider, useAdminTheme } from '../../contexts/AdminThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,22 +14,42 @@ import NotificationBell from './NotificationBell';
 import { TC } from './adminThemes';
 import ThemeSwitcher from './ThemeSwitcher';
 import AdminChatManager from './AdminChatManager';
+import { ordersAPI } from '../../api';
 
-function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen, setSidebarOpen, location, filteredNavItems }) {
+function AdminLayoutInner({ children, storeId, user, handleLogout, location, filteredNavItems }) {
   const { themeId } = useAdminTheme();
   const tc = TC[themeId];
   const [isMoreOpen, setMoreOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+
+  // 대기 주문 수 가져오기 (모바일 하단 탭 배지용)
+  const fetchPendingCount = useCallback(async () => {
+    if (!storeId) return;
+    try {
+      const res = await ordersAPI.getStats(storeId);
+      const stats = res?.data ?? res;
+      // paid(신규), pending(대기), confirmed(확인) 합계를 대기 중으로 간주
+      const count = (stats?.by_status?.paid || 0) + (stats?.by_status?.pending || 0) + (stats?.by_status?.confirmed || 0);
+      setPendingOrdersCount(count);
+    } catch { /* 무시 */ }
+  }, [storeId]);
+
+  useEffect(() => {
+    fetchPendingCount();
+    const iv = setInterval(fetchPendingCount, 30000); // 30초마다 갱신
+    return () => clearInterval(iv);
+  }, [fetchPendingCount]);
 
   const mobileBottomNav = storeId ? [
     { label: '홈', icon: LayoutDashboard, path: '/admin' },
-    { label: '주문서', icon: UtensilsCrossed, path: `/admin/stores/${storeId}/orders` },
+    { label: '주문', icon: UtensilsCrossed, path: `/admin/stores/${storeId}/orders`, badge: pendingOrdersCount },
     { label: '상품', icon: ShoppingBag, path: `/admin/stores/${storeId}/menu` },
     { label: 'AI', icon: Sparkles, path: '/admin/tinkerbell' },
   ] : [
     { label: '홈', icon: LayoutDashboard, path: '/admin' },
     { label: 'AI', icon: Sparkles, path: '/admin/tinkerbell' },
-    { label: '지역커뮤니티', icon: Building2, path: '/admin/community' },
+    { label: '커뮤니티', icon: Building2, path: '/admin/community' },
     { label: '게시판', icon: MessageSquare, path: '/board' },
   ];
 
@@ -72,8 +92,8 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
                     />
                   )}
                   <div className="relative z-10 flex items-center gap-4">
-                    <item.icon size={20} className={isActive ? tc.textStrong : `${tc.navIconHover} transition-colors`} />
-                    <span className="tracking-tight">{item.label}</span>
+                    <item.icon size={14} className={isActive ? tc.textStrong : `${tc.navIconHover} transition-colors`} />
+                    <span className="tracking-tight" style={{ fontSize: '21px' }}>{item.label}</span>
                   </div>
                 </Link>
               );
@@ -192,12 +212,19 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
                     to={item.path}
                     className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${isActive ? '' : tc.navText}`}
                   >
-                    <div className={`w-9 h-9 rounded-[14px] flex items-center justify-center transition-all ${
-                      isActive ? `bg-gradient-to-br ${tc.navActiveBg} shadow-md ${tc.navActiveShadow}` : ''
-                    }`}>
-                      <item.icon size={18} className={isActive ? 'text-white' : ''} />
+                    <div className="relative">
+                      <div className={`w-9 h-9 rounded-[14px] flex items-center justify-center transition-all ${
+                        isActive ? `bg-gradient-to-br ${tc.navActiveBg} shadow-md ${tc.navActiveShadow}` : ''
+                      }`}>
+                        <item.icon size={12} className={isActive ? 'text-white' : ''} />
+                      </div>
+                      {item.badge > 0 && (
+                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-orange-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-lg ring-2 ring-slate-950">
+                          {item.badge}
+                        </span>
+                      )}
                     </div>
-                    <span className={`text-[9px] font-bold leading-none ${isActive ? tc.textStrong : ''}`}>{item.label}</span>
+                    <span className={`font-bold leading-none ${isActive ? tc.textStrong : ''}`} style={{ fontSize: '13.5px' }}>{item.label}</span>
                   </Link>
                 );
               })}
@@ -206,9 +233,9 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
                 className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${tc.navText}`}
               >
                 <div className="w-9 h-9 rounded-[14px] flex items-center justify-center">
-                  <MenuIcon size={18} />
+                  <MenuIcon size={12} />
                 </div>
-                <span className="text-[9px] font-bold leading-none">더보기</span>
+                <span className="font-bold leading-none" style={{ fontSize: '13.5px' }}>더보기</span>
               </button>
             </div>
           </nav>
@@ -288,8 +315,8 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, isSidebarOpen
                           isActive ? `shadow-lg ${tc.drawerNavActive}` : tc.drawerNavIdle
                         }`}
                       >
-                        <item.icon size={20} />
-                        <span className="flex-1">{item.label}</span>
+                        <item.icon size={14} />
+                        <span className="flex-1" style={{ fontSize: '24px' }}>{item.label}</span>
                         {isActive && <ChevronRight size={16} />}
                       </Link>
                     );

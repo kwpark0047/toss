@@ -12,7 +12,7 @@ const catchAsync = require('../utils/catchAsync');
 const { apiKeyAuth, requireScope } = require('../middleware/apiKeyAuth');
 const { decryptPhone } = require('../utils/phoneEncryption');
 const { kstDayRange } = require('../utils/kstTime');
-const Order = require('../models/Order');
+const Order = require('../repositories/Order');
 const { emitEvent } = require('../services/webhookDispatcher');
 
 router.use(apiKeyAuth); // 모든 v1 라우트 API 키 필수

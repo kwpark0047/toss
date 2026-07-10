@@ -11,7 +11,7 @@ const prisma = require('../config/prisma');
 const Post = {
     // 게시글 생성
     create: async (data) => {
-        const { board_type = 'free', title, content, author_id, author_name, is_pinned = false } = data;
+        const { board_type = 'free', title, content, author_id, author_name, is_pinned = false, tags = '' } = data;
         return await prisma.posts.create({
             data: {
                 board_type,
@@ -20,16 +20,20 @@ const Post = {
                 author_id,
                 author_name,
                 is_pinned,
+                tags,
+                like_count: 0,
+                view_count: 0,
+                comment_count: 0,
                 created_at: new Date(),
                 updated_at: new Date()
             }
         });
     },
 
-    // 게시글 목록 조회 (페이지네이션 + 검색 + 정렬)
-    findAll: async (boardType, options = {}) => {
-        const { page = 1, limit = 10, search = '', searchType = 'title' } = options;
-        const skip = (page - 1) * limit;
+    // 게시글 목록 조회 (페이지네이션 + 검색 + 정렬 + 태그 필터 + 좋아요 연동)
+    findAll: async (boardType, options = {}, userId = null) => {
+        const { page = 1, limit = 10, search = '', searchType = 'title', tag = '' } = options;
+        const skip = (parseInt(page) - 1) * parseInt(limit);
 
         const where = { board_type: boardType };
 
@@ -41,13 +45,18 @@ const Post = {
                 where.content = { contains: search };
             } else if (searchType === 'author') {
                 where.author_name = { contains: search };
-            } else if (searchType === 'all') {
+            } else {
                 where.OR = [
                     { title: { contains: search } },
                     { content: { contains: search } },
                     { author_name: { contains: search } }
                 ];
             }
+        }
+
+        // 태그 조건 추가
+        if (tag) {
+            where.tags = { contains: tag };
         }
 
         // 전체 개수 및 목록 동시 조회
@@ -59,24 +68,49 @@ const Post = {
                     { is_pinned: 'desc' },
                     { created_at: 'desc' }
                 ],
-                take: limit,
+                take: parseInt(limit),
                 skip: skip
             })
         ]);
 
+        let likedPostIds = new Set();
+        if (userId && posts.length > 0) {
+            const likes = await prisma.post_likes.findMany({
+                where: { user_id: userId, post_id: { in: posts.map(p => p.id) } },
+                select: { post_id: true }
+            });
+            likedPostIds = new Set(likes.map(l => l.post_id));
+        }
+
+        const enrichedPosts = posts.map(p => ({
+            ...p,
+            is_liked: likedPostIds.has(p.id)
+        }));
+
         return {
-            posts,
+            posts: enrichedPosts,
             total,
-            page: Number(page),
-            totalPages: Math.ceil(total / limit)
+            page: parseInt(page),
+            totalPages: Math.ceil(total / parseInt(limit))
         };
     },
 
-    // 게시글 상세 조회
-    findById: async (id) => {
-        return await prisma.posts.findUnique({
+    // 게시글 상세 조회 (좋아요 여부 포함)
+    findById: async (id, userId = null) => {
+        const post = await prisma.posts.findUnique({
             where: { id }
         });
+        if (!post) return null;
+
+        let is_liked = false;
+        if (userId) {
+            const like = await prisma.post_likes.findUnique({
+                where: { post_id_user_id: { post_id: id, user_id: userId } }
+            });
+            is_liked = !!like;
+        }
+
+        return { ...post, is_liked };
     },
 
     // 게시글 수정
@@ -127,6 +161,64 @@ const Post = {
         await prisma.posts.update({
             where: { id: postId },
             data: { comment_count: count }
+        });
+    },
+
+    // 좋아요 토글
+    toggleLike: async (postId, userId) => {
+        const existing = await prisma.post_likes.findUnique({
+            where: { post_id_user_id: { post_id: postId, user_id: userId } }
+        });
+
+        let liked;
+        if (existing) {
+            await prisma.post_likes.delete({
+                where: { post_id_user_id: { post_id: postId, user_id: userId } }
+            });
+            await prisma.posts.update({
+                where: { id: postId },
+                data: { like_count: { decrement: 1 } }
+            });
+            liked = false;
+        } else {
+            await prisma.post_likes.create({
+                data: { post_id: postId, user_id: userId }
+            });
+            await prisma.posts.update({
+                where: { id: postId },
+                data: { like_count: { increment: 1 } }
+            });
+            liked = true;
+        }
+
+        const post = await prisma.posts.findUnique({
+            where: { id: postId },
+            select: { like_count: true }
+        });
+
+        return { liked, like_count: post.like_count };
+    },
+
+    // 인기 게시글 목록 조회
+    findTrending: async (limit = 5) => {
+        return await prisma.posts.findMany({
+            orderBy: [
+                { like_count: 'desc' },
+                { view_count: 'desc' }
+            ],
+            take: parseInt(limit),
+            select: {
+                id: true,
+                board_type: true,
+                title: true,
+                author_name: true,
+                view_count: true,
+                like_count: true,
+                comment_count: true,
+                created_at: true,
+                is_pinned: true,
+                tags: true,
+            }
         });
     }
 };

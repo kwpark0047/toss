@@ -5,6 +5,7 @@ import { X, Clock, CheckCircle2, ChefHat, BellRing, Package, Loader2 } from 'luc
 import { ordersAPI } from '@/api';
 import { joinOrderRoom, onOrderUpdated } from '@/utils/socket';
 import EmptyState from '../common/EmptyState';
+import { vibrateClick, vibrateSuccess } from '../../utils/notificationSound';
 
 const STEPS = [
   { key: 'pending',   label: '주문 접수',  icon: Clock,         color: 'text-amber-500',   bg: 'bg-amber-50',   ring: 'ring-amber-400' },
@@ -100,16 +101,16 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
           <motion.div
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] z-[70] bg-white rounded-t-[32px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl bottom-sheet"
+            className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] z-[70] cust-bg-card rounded-t-[32px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl bottom-sheet"
           >
-            <div className="w-12 h-1.5 bg-grey-200 rounded-full mx-auto my-3" />
+            <div className="w-12 h-1.5 bg-grey-200 dark:bg-white/10 rounded-full mx-auto my-3" />
 
             {/* 헤더 */}
-            <div className="px-6 pb-4 flex items-center justify-between border-b border-grey-100">
+            <div className="px-6 pb-4 flex items-center justify-between border-b cust-border">
               <div>
-                <h2 className="tds-title text-grey-900">주문 현황</h2>
+                <h2 className="tds-title cust-text-main">주문 현황</h2>
                 {order && (
-                  <p className="tds-caption text-grey-400 mt-0.5">
+                  <p className="tds-caption cust-text-sub mt-0.5">
                     주문 #{order.order_number || order.id}
                     {lastUpdated && (
                       <span className="ml-1 text-emerald-500">
@@ -119,7 +120,7 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                   </p>
                 )}
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-grey-100 rounded-full">
+              <button onClick={() => { vibrateClick(); onClose(); }} className="p-2 hover:bg-grey-100 dark:hover:bg-white/10 rounded-full transition-colors">
                 <X className="w-6 h-6 text-grey-400" />
               </button>
             </div>
@@ -128,7 +129,7 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
               {loading && !order ? (
                 <div className="flex flex-col items-center justify-center py-20">
                   <Loader2 className="w-10 h-10 text-orange-400 animate-spin mb-4" />
-                  <p className="tds-body text-grey-500">주문 정보를 불러오는 중...</p>
+                  <p className="tds-body cust-text-sub">주문 정보를 불러오는 중...</p>
                 </div>
               ) : !order ? (
                 <EmptyState icon="📋" title="최근 주문 내역이 없습니다" description="주문하시면 여기에서 진행 상태를 확인할 수 있어요." />
@@ -138,7 +139,7 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                   {/* ── 진행 단계 ── */}
                   <div className="relative pt-2">
                     {/* 배경 연결선 */}
-                    <div className="absolute top-8 left-6 right-6 h-0.5 bg-grey-100" />
+                    <div className="absolute top-8 left-6 right-6 h-0.5 bg-grey-100 dark:bg-white/5" />
                     {/* 진행 연결선 */}
                     {!isCancelled && (
                       <div
@@ -162,80 +163,62 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                               animate={isCur ? { scale: [1, 1.12, 1] } : {}}
                               transition={{ duration: 1.8, repeat: Infinity }}
                               className={[
-                                'w-12 h-12 rounded-full flex items-center justify-center border-2 bg-white z-10 transition-all',
+                                'w-12 h-12 rounded-full flex items-center justify-center border-2 bg-white dark:bg-slate-800 z-10 transition-all',
                                 isCur ? `ring-4 ${step.ring}/30 border-current ${step.color} ${step.bg}` :
                                 isPast ? 'border-orange-400 bg-orange-400 text-white' :
-                                'border-grey-200 text-grey-300'
+                                'border-grey-200 dark:border-white/10 text-grey-300 dark:text-slate-700'
                               ].join(' ')}
                             >
                               {isPast ? <CheckCircle2 className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
                             </motion.div>
-                            <span className={`text-[10px] font-black text-center leading-tight ${isCur ? step.color : isPast ? 'text-orange-400' : 'text-grey-300'}`}>
+                            <span className={`text-[10px] font-black text-center leading-tight ${isCur ? step.color : isPast ? 'text-orange-400' : 'text-grey-300 dark:text-slate-700'}`}>
                               {step.label}
                             </span>
                           </div>
                         );
                       })}
-
-                      {/* 취소 표시 */}
-                      {isCancelled && (
-                        <div className="flex flex-col items-center gap-2" style={{ width: `${100 / (visibleSteps.length + 1)}%` }}>
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 bg-white ${CANCELLED.bg} ${CANCELLED.color} border-rose-300 z-10`}>
-                            <X className="w-5 h-5" />
-                          </div>
-                          <span className={`text-[10px] font-black text-center ${CANCELLED.color}`}>취소됨</span>
-                        </div>
-                      )}
                     </div>
                   </div>
 
                   {/* ── 현재 상태 배지 ── */}
-                  <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl ${curStep.bg}`}>
+                  <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl ${curStep.bg} dark:bg-white/5`}>
                     <CurIcon className={`w-6 h-6 ${curStep.color} flex-shrink-0`} />
                     <div>
                       <p className={`font-black text-sm ${curStep.color}`}>{curStep.label}</p>
-                      <p className="text-xs text-grey-400 mt-0.5">{STATUS_MSG[status] || ''}</p>
+                      <p className="text-xs cust-text-sub mt-0.5">{STATUS_MSG[status] || ''}</p>
                     </div>
                   </div>
 
                   {/* ── 주문 상품 ── */}
                   <div>
-                    <h3 className="text-xs font-black text-grey-400 uppercase tracking-widest mb-3">주문 내역</h3>
-                    <div className="bg-grey-50 rounded-2xl p-5 space-y-3">
+                    <h3 className="text-xs font-black text-grey-400 dark:text-grey-600 uppercase tracking-widest mb-3">주문 내역</h3>
+                    <div className="bg-grey-50 dark:bg-white/5 rounded-2xl p-5 space-y-3">
                       {(order.items || order.order_items || []).map((item, idx) => (
                         <div key={idx} className="flex justify-between text-sm">
-                          <span className="text-grey-700 font-bold">
+                          <span className="cust-text-main font-bold">
                             {item.product_name || item.name}
-                            <span className="text-grey-400 font-normal"> × {item.quantity}</span>
+                            <span className="text-grey-400 dark:text-grey-600 font-normal"> × {item.quantity}</span>
                           </span>
-                          <span className="text-grey-500">
+                          <span className="cust-text-sub">
                             {formatWon((item.price || item.unit_price || 0) * item.quantity)}
                           </span>
                         </div>
                       ))}
-                      <div className="pt-3 border-t border-grey-200 flex justify-between">
-                        <span className="text-sm font-black text-grey-700">합계</span>
-                        <span className="text-base font-black text-grey-900">{formatWon(order.total_amount)}</span>
+                      <div className="pt-3 border-t cust-border flex justify-between">
+                        <span className="text-sm font-black cust-text-sub">합계</span>
+                        <span className="text-base font-black cust-text-main">{formatWon(order.total_amount)}</span>
                       </div>
                     </div>
                   </div>
-
-                  {/* 테이블 정보 */}
-                  {(order.table_name || order.table_id) && (
-                    <p className="text-sm text-grey-400">
-                      <span className="font-bold text-grey-600">테이블: </span>
-                      {order.table_name || `#${order.table_id}`}
-                    </p>
-                  )}
                 </div>
               )}
             </div>
 
-            <div className="p-6 bg-white border-t border-grey-100 space-y-3">
+            <div className="p-6 cust-bg-card border-t cust-border space-y-3">
               {/* 준비완료/수령완료 주문은 리뷰 작성 유도 */}
               {onWriteReview && (status === 'ready' || status === 'completed') && (
                 <button
-                  onClick={() => onWriteReview(order)}
+                  onClick={() => { vibrateSuccess(); onWriteReview(order); }}
                   className="w-full h-14 bg-orange-500 text-white rounded-2xl font-black active:scale-95 transition-transform flex items-center justify-center gap-2"
                 >
                   <BellRing className="w-5 h-5" aria-hidden="true" />
@@ -243,8 +226,8 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                 </button>
               )}
               <button
-                onClick={onClose}
-                className="w-full h-14 bg-grey-900 text-white rounded-2xl font-black active:scale-95 transition-transform"
+                onClick={() => { vibrateClick(); onClose(); }}
+                className="w-full h-14 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl font-black active:scale-95 transition-transform"
               >
                 확인
               </button>

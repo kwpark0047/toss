@@ -13,8 +13,7 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // 업로드 파일 절대 URL 생성.
-// Render는 프록시 뒤에 있어 req.protocol이 http로 나온다 → https 프론트(Vercel)에서
-// mixed content로 차단되므로, 프록시가 전달하는 X-Forwarded-Proto를 우선 사용한다.
+// Render 등 프록시 환경에서 req.protocol이 http인 경우에도 https(Vercel 기준)를 우선 적용하여 mixed content 차단 방지.
 const buildUploadUrl = (req, filename) => {
     const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
     return `${proto}://${req.get('host')}/uploads/${filename}`;
@@ -61,9 +60,8 @@ router.post('/image', authMiddleware, upload.single('image'), (req, res) => {
 });
 
 /**
- * 리뷰 이미지 업로드 (고객용, 무인증)
- * 고객은 로그인하지 않으므로 인증 없이 허용하되, rate limit + 5MB + 이미지 타입
- * 제한(multer 설정)으로 남용을 방어한다. 클라이언트에서 1차 압축 후 업로드된다.
+ * 리뷰 이미지 업로드 (고객용 무인증)
+ * 고객은 로그인하지 않으므로 인증 없이 허용하되, rate limit + 5MB + 이미지 한정 제한으로 방어.
  */
 router.post('/review-image', generalLimiter, upload.single('image'), (req, res) => {
     if (!req.file) {
@@ -100,13 +98,11 @@ router.delete('/image/:filename', authMiddleware, (req, res) => {
         return res.status(400).json({ success: false, error: '잘못된 파일 이름입니다.' });
     }
 
-    // 2차 방어(defense-in-depth): 정규화된 절대경로가 uploadDir 내부인지 재확인
-    // basename으로 경로 성분을 제거한 뒤 resolve 결과를 화이트리스트 검증
-    // 사유: basename() + 상위참조 차단 + 아래 startsWith(uploadDir) 화이트리스트 재검증으로 traversal 불가
+    // 2차 방어(defense-in-depth): 정규화된 실제 경로가 uploadDir 내부인지 확인
     const safeName = path.basename(filename);
     const baseResolved = path.resolve(uploadDir);
-    const filePath = path.resolve(uploadDir, safeName); // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal
-    if (filePath !== path.join(baseResolved, safeName) || !filePath.startsWith(baseResolved + path.sep)) { // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal
+    const filePath = path.resolve(uploadDir, safeName);
+    if (filePath !== path.join(baseResolved, safeName) || !filePath.startsWith(baseResolved + path.sep)) {
         return res.status(400).json({ success: false, error: '잘못된 파일 경로입니다.' });
     }
 

@@ -131,8 +131,6 @@ const AdminChatManager = ({ isOpen, onClose }) => {
         });
         setInput('');
       }
-    }
-
     } catch (error) {
       console.error('Failed to send message:', error);
     }

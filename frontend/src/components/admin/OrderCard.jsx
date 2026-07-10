@@ -98,7 +98,7 @@ const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, formatTi
       )}
 
       {/* 하단: 금액 + 액션 버튼 */}
-      <div className="px-4 pb-3 pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
+      <div className="px-4 pb-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
         <span className="text-xl font-black text-gray-900">
           {formatPrice(order.total_amount, true)}
         </span>
@@ -106,16 +106,16 @@ const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, formatTi
         <div className="flex items-center gap-2">
           <button
             onClick={() => onShowDetail(order)}
-            className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors shrink-0"
+            className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors shrink-0 active:scale-95"
             title="상세보기"
           >
-            <Eye size={16} className="text-gray-600" />
+            <Eye size={18} className="text-gray-600" />
           </button>
 
           {isPending && (
             <button
               onClick={() => onStatusChange(order.id, 'cancelled')}
-              className="h-9 px-3 rounded-xl bg-rose-50 text-rose-600 text-sm font-bold hover:bg-rose-100 transition-colors border border-rose-100"
+              className="h-11 px-4 rounded-xl bg-rose-50 text-rose-600 text-sm font-bold hover:bg-rose-100 transition-colors border border-rose-100 active:scale-95"
             >
               취소
             </button>
@@ -124,10 +124,10 @@ const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, formatTi
           {config.next && (
             <button
               onClick={() => onStatusChange(order.id, config.next)}
-              className={`h-9 px-4 rounded-xl text-sm font-bold flex items-center gap-1 shadow-sm ${style.btn}`}
+              className={`h-11 px-5 rounded-xl text-sm font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-transform ${style.btn}`}
             >
               {statusConfig[config.next].label}
-              <ChevronRight size={14} />
+              <ChevronRight size={16} strokeWidth={3} />
             </button>
           )}
         </div>

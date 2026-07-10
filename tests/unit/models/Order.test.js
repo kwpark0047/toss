@@ -16,7 +16,7 @@ jest.mock('../../../config/prisma', () => ({
 }));
 
 const prisma = require('../../../config/prisma');
-const Order = require('../../../models/Order');
+const Order = require('../../../repositories/Order');
 
 const makeOrder = (over = {}) => ({
     id: 1,

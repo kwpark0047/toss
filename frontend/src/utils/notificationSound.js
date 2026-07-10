@@ -139,6 +139,23 @@ export function vibrateShort() {
   vibrateNotification([100]);
 }
 
+// 클릭 피드백 (매우 짧고 가벼운 진동)
+export function vibrateClick() {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(12);
+  }
+}
+
+// 성공 피드백
+export function vibrateSuccess() {
+  vibrateNotification([10, 50, 10]);
+}
+
+// 에러/경고 피드백
+export function vibrateError() {
+  vibrateNotification([50, 50, 50]);
+}
+
 // 긴 진동 (주문 준비 완료용)
 export function vibrateOrderReady() {
   vibrateNotification([200, 100, 200, 100, 300]);

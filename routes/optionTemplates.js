@@ -3,8 +3,10 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const prisma = require('../config/prisma');
 const catchAsync = require('../utils/catchAsync');
+const { AppError } = require('../utils/errorHandler');
+const logger = require('../utils/logger');
 
-// 옵션 템플릿 목록 조회
+// ?�션 ?�플�?목록 조회
 router.get('/store/:storeId', authMiddleware, catchAsync(async (req, res) => {
     const storeId = parseInt(req.params.storeId);
     const templates = await prisma.option_templates.findMany({
@@ -14,7 +16,7 @@ router.get('/store/:storeId', authMiddleware, catchAsync(async (req, res) => {
     res.json(templates);
 }));
 
-// 옵션 템플릿 생성
+// ?�션 ?�플�??�성
 router.post('/', authMiddleware, catchAsync(async (req, res) => {
     const { store_id, name, options } = req.body;
     const template = await prisma.option_templates.create({
@@ -27,7 +29,7 @@ router.post('/', authMiddleware, catchAsync(async (req, res) => {
     res.status(201).json(template);
 }));
 
-// 옵션 템플릿 수정
+// ?�션 ?�플�??�정
 router.put('/:id', authMiddleware, catchAsync(async (req, res) => {
     const { name, options } = req.body;
     const template = await prisma.option_templates.update({
@@ -40,12 +42,13 @@ router.put('/:id', authMiddleware, catchAsync(async (req, res) => {
     res.json(template);
 }));
 
-// 옵션 템플릿 삭제
+// ?�션 ?�플�???��
 router.delete('/:id', authMiddleware, catchAsync(async (req, res) => {
     await prisma.option_templates.delete({
         where: { id: parseInt(req.params.id) }
     });
-    res.json({ message: '템플릿이 삭제되었습니다.' });
+    res.json({ message: '?�플릿이 ??��?�었?�니??' });
 }));
 
 module.exports = router;
+

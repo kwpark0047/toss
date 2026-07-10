@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../config/prisma');
-const Point = require('../models/Point');
-const StoreTier = require('../models/StoreTier');
+const Point = require('../repositories/Point');
+const StoreTier = require('../repositories/StoreTier');
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const { validateBody, validateId } = require('../middleware/validator');

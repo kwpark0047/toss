@@ -58,27 +58,27 @@ jest.mock('../../config/prisma', () => {
 });
 
 // ── 외부 의존성 mock ─────────────────────────────────────────────────────────
-jest.mock('../../models/Order', () => ({
+jest.mock('../../repositories/Order', () => ({
     create: jest.fn(),
     findById: jest.fn(),
     updatePayment: jest.fn(),
     updateStatus: jest.fn(),
 }));
-jest.mock('../../models/Payment', () => ({
+jest.mock('../../repositories/Payment', () => ({
     create: jest.fn(),
     findByOrderId: jest.fn(),
     findByPaymentKey: jest.fn(),
     findById: jest.fn(),
 }));
-jest.mock('../../models/Point', () => ({
+jest.mock('../../repositories/Point', () => ({
     use: jest.fn(),
     earn: jest.fn(),
     calculateEarnPoints: jest.fn().mockResolvedValue(100),
     getBalance: jest.fn().mockResolvedValue({ total_points: 5000 }),
 }));
-jest.mock('../../models/Ledger', () => ({ add: jest.fn() }));
-jest.mock('../../models/StoreCustomer', () => ({ upsertCustomer: jest.fn() }));
-jest.mock('../../models/Monitoring', () => ({ Metrics: { record: jest.fn() } }));
+jest.mock('../../repositories/Ledger', () => ({ add: jest.fn() }));
+jest.mock('../../repositories/StoreCustomer', () => ({ upsertCustomer: jest.fn() }));
+jest.mock('../../repositories/Monitoring', () => ({ Metrics: { record: jest.fn() } }));
 jest.mock('../../utils/toss', () => ({
     confirmPayment: jest.fn(),
     cancelPayment: jest.fn(),
@@ -108,6 +108,7 @@ jest.mock('../../middleware/auth', () => {
         return res.status(401).json({ error: '인증 필요' });
     };
     fn.authMiddleware = fn;
+    fn.adminOnly = (req, res, next) => next();
     fn.optionalAuth = (req, res, next) => {
         const header = req.headers.authorization || '';
         if (header.startsWith('Bearer testtoken')) {
@@ -128,8 +129,8 @@ beforeAll(() => {
     process.env.NODE_ENV = 'test';
     ({ app } = require('../../app'));
     prisma  = require('../../config/prisma');
-    Order   = require('../../models/Order');
-    Payment = require('../../models/Payment');
+    Order   = require('../../repositories/Order');
+    Payment = require('../../repositories/Payment');
 });
 
 afterEach(() => jest.clearAllMocks());
@@ -231,6 +232,9 @@ describe('[회귀] 취소 멱등성 (이미 취소된 결제)', () => {
         Payment.findByOrderId.mockResolvedValue([
             { id: 1, status: 'CANCELED', payment_key: 'pk_test_xxx', order_id: 3 }
         ]);
+        prisma.payments.findFirst
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce({ id: 1, status: 'CANCELED', payment_key: 'pk_test_xxx', order_id: 3 });
 
         const TossAPI = require('../../utils/toss');
         const res = await request(app)
@@ -249,6 +253,7 @@ describe('[회귀] 부분 환불 유효성 검사', () => {
 
     beforeEach(() => {
         Payment.findByOrderId.mockResolvedValue([mockPayment]);
+        prisma.payments.findMany.mockResolvedValue([mockPayment]);
     });
 
     test('정상 부분 환불 (5000원) → 성공', async () => {

@@ -6,7 +6,7 @@ const logger = require('../utils/logger');
 const { AppError } = require('../utils/errorHandler');
 const { sendSms } = require('../utils/smsService');
 const { normalizePhone, encryptPhone, decryptPhone, encryptPhoneForSearch, phoneSearchCandidates } = require('../utils/phoneEncryption');
-const { setTokenCookies, clearTokenCookies } = require('../utils/tokenCookies');
+const { setTokenCookies } = require('../utils/tokenCookies');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET;
@@ -265,7 +265,7 @@ const updateProfile = async (req, res, next) => {
 
     const updated = await userRepository.update(userId, updateData);
     
-    const { password, ...safe } = updated;
+    const { ...safe } = updated;
     res.success(safe, '프로필이 업데이트되었습니다.');
   } catch (error) {
     next(error);

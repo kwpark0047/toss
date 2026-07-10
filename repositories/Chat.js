@@ -9,7 +9,7 @@ const Chat = {
     accessRoom: async (options) => {
         const { store_id, customer_phone, customer_id, user_id, type = 'STORE_CUSTOMER' } = options;
 
-        let where = { type, is_active: true };
+        const where = { type, is_active: true };
         if (type === 'STORE_CUSTOMER') {
             where.store_id = parseInt(store_id);
             if (customer_phone) where.customer_phone = customer_phone;

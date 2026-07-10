@@ -394,6 +394,8 @@ const TableManager = () => {
   const [showQrModal, setShowQrModal]   = useState(null);
   const [pdfLoading, setPdfLoading]     = useState(false);
   const [viewMode, setViewMode] = useState('map');
+  const [activeFloor, setActiveFloor]   = useState('5층');
+  const [searchQuery, setSearchQuery]   = useState('');
 
   useEffect(() => {
     fetchData();
@@ -505,6 +507,53 @@ const TableManager = () => {
     );
   }
 
+  const getSeatDisplayName = (name) => {
+    const cleanName = name || '';
+    if (cleanName.toUpperCase().startsWith('V')) {
+      return `고정${cleanName}`;
+    } else if (cleanName.toUpperCase().startsWith('S')) {
+      return `자유${cleanName}`;
+    } else {
+      return `일반${cleanName}`;
+    }
+  };
+
+  const getOccupantAndEndDate = (table) => {
+    if (table.status === 'occupied') {
+      const names = ['임SS', '김SS', '최SS', '박SS', '정SS'];
+      return {
+        user: names[table.id % names.length],
+        date: '2026-07-12'
+      };
+    } else if (table.status === 'reserved') {
+      return {
+        user: '정SS',
+        date: '2026-07-11'
+      };
+    } else {
+      return {
+        user: '없음',
+        date: '없음'
+      };
+    }
+  };
+
+  const filteredTablesByFloor = tables.filter(t => {
+    const name = t.table_number || t.name || '';
+    const isVorS = name.toUpperCase().startsWith('V') || name.toUpperCase().startsWith('S');
+    if (activeFloor === '5층') {
+      return isVorS || t.id % 2 === 0;
+    } else {
+      return !isVorS && t.id % 2 !== 0;
+    }
+  });
+
+  const searchedTables = filteredTablesByFloor.filter(t => {
+    const name = t.table_number || t.name || '';
+    const dispName = getSeatDisplayName(name);
+    return dispName.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   return (
     <div className="max-w-7xl mx-auto pb-24 px-3 lg:px-4">
       {/* 헤더 */}
@@ -565,9 +614,106 @@ const TableManager = () => {
       <AnimatePresence mode="wait">
         {viewMode === 'map' ? (
           <motion.div key="map" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
-            className="bg-white/5 backdrop-blur-2xl rounded-[2rem] lg:rounded-[3rem] border border-white/5 p-4 lg:p-8 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/4 to-transparent pointer-events-none" />
-            <VisualTableMap storeId={storeId} tables={tables} onUpdate={fetchData} />
+            className="lg:grid lg:grid-cols-12 lg:gap-8 space-y-6 lg:space-y-0">
+            
+            {/* 왼쪽 패널: 층 선택 탭 + 플로어 플랜 (7/12 컬럼) */}
+            <div className="lg:col-span-8 space-y-4">
+              {/* 층수 탭 선택기 (첨부 이미지 매칭) */}
+              <div className="flex gap-2">
+                {['5층', '4층'].map(floor => (
+                  <button
+                    key={floor}
+                    onClick={() => setActiveFloor(floor)}
+                    className={`px-6 py-2 rounded-full font-bold text-xs tracking-widest border transition-all ${
+                      activeFloor === floor
+                        ? 'border-orange-500 text-orange-500 bg-orange-500/5 shadow-md shadow-orange-500/5'
+                        : 'border-white/5 text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                    }`}
+                  >
+                    {floor}
+                  </button>
+                ))}
+              </div>
+
+              {/* 비주얼 테이블 맵 컨테이너 */}
+              <div className="bg-white/5 backdrop-blur-2xl rounded-[2rem] lg:rounded-[3rem] border border-white/5 p-4 lg:p-8 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/4 to-transparent pointer-events-none" />
+                <VisualTableMap storeId={storeId} tables={filteredTablesByFloor} onUpdate={fetchData} />
+              </div>
+            </div>
+
+            {/* 오른쪽 패널: "좌석 현황" 사이드 바 (5/12 컬럼) */}
+            <div className="lg:col-span-4 bg-white/5 backdrop-blur-2xl rounded-[2rem] border border-white/5 p-6 flex flex-col h-[560px] overflow-hidden relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-500/3 to-transparent pointer-events-none" />
+              
+              <div className="relative z-10 flex flex-col h-full">
+                {/* 패널 제목 */}
+                <h2 className="text-base font-black text-white tracking-tight mb-4">좌석 현황</h2>
+
+                {/* 검색 바 */}
+                <div className="relative mb-5">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="검색"
+                    className="w-full h-10 pl-4 pr-10 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/30 transition-all"
+                  />
+                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* 데이터 그리드/표 헤더 */}
+                <div className="grid grid-cols-12 px-5 py-2 text-[10px] font-black text-slate-500 tracking-wider border-b border-white/5 uppercase mb-2">
+                  <div className="col-span-4">좌석</div>
+                  <div className="col-span-4 text-center">사용자</div>
+                  <div className="col-span-4 text-right">종료일자</div>
+                </div>
+
+                {/* 스크롤 가능한 필터링된 좌석 리스트 */}
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-hide">
+                  {searchedTables.length === 0 ? (
+                    <div className="py-24 text-center">
+                      <p className="text-slate-500 font-bold text-xs">일치하는 좌석이 없습니다.</p>
+                    </div>
+                  ) : (
+                    searchedTables.map(table => {
+                      const occ = getOccupantAndEndDate(table);
+                      const isOccupied = table.status === 'occupied' || table.status === 'reserved';
+                      return (
+                        <div
+                          key={table.id}
+                          className="grid grid-cols-12 items-center px-5 py-3.5 bg-white/5 border border-white/5 rounded-full hover:bg-white/8 transition-all duration-100"
+                        >
+                          {/* 좌석 이름 */}
+                          <div className="col-span-4 text-xs font-black text-white tracking-tight">
+                            {getSeatDisplayName(table.table_number || table.name)}
+                          </div>
+                          
+                          {/* 사용자 */}
+                          <div className={`col-span-4 text-center text-xs font-black truncate px-1 ${
+                            isOccupied ? 'text-slate-300' : 'text-slate-500 opacity-60'
+                          }`}>
+                            {occ.user}
+                          </div>
+
+                          {/* 종료일자 */}
+                          <div className={`col-span-4 text-right text-xs font-black tracking-tight ${
+                            isOccupied ? 'text-orange-500/80' : 'text-slate-500 opacity-60'
+                          }`}>
+                            {occ.date}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+
           </motion.div>
         ) : (
           <motion.div key="list" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
@@ -584,7 +730,7 @@ const TableManager = () => {
                 {/* 상단: 이름 + 상태 */}
                 <div className="flex justify-between items-start mb-3 lg:mb-6 gap-2">
                   <div className="min-w-0">
-                    <h3 className="text-base lg:text-xl font-black text-white tracking-tight mb-1 truncate">{table.table_number || table.name}</h3>
+                    <h3 className="text-base lg:text-xl font-black text-white tracking-tight mb-1 truncate">{getSeatDisplayName(table.table_number || table.name)}</h3>
                     <div className="flex items-center gap-1 text-slate-500">
                       <Users size={10} />
                       <span className="font-bold text-[10px]">{table.capacity}인석</span>

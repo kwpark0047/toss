@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Coupon = require('../models/Coupon');
+const Coupon = require('../repositories/Coupon');
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const prisma = require('../config/prisma');
@@ -31,7 +31,7 @@ router.get('/stores/:storeId/campaigns', authMiddleware, checkStorePermission('s
     const campaigns = await prisma.campaign_settings.findMany({
         where: { store_id: sid }
     });
-    // campaign_settings 스키마에 coupons 관계 미정의 → coupon_id로 개별 조회
+    // campaign_settings 스키마에 coupons 관계 미정의 시 coupon_id로 개별 조회
     const couponIds = [...new Set(campaigns.map(c => c.coupon_id).filter(Boolean))];
     const coupons = couponIds.length
         ? await prisma.coupons.findMany({ where: { id: { in: couponIds } } })
@@ -41,7 +41,7 @@ router.get('/stores/:storeId/campaigns', authMiddleware, checkStorePermission('s
     res.success(result);
 }));
 
-// 캠페인 저장/수정
+// 캠페인 추가/수정
 router.post('/stores/:storeId/campaigns', authMiddleware, checkStorePermission('settings:write'), catchAsync(async (req, res) => {
     const { id, trigger_type, target_tier, coupon_id, is_active } = req.body;
     const data = {
@@ -67,7 +67,7 @@ router.post('/stores/:storeId/campaigns', authMiddleware, checkStorePermission('
 
 // === [고객: 쿠폰 조회] ===
 
-// 내 사용 가능한 쿠폰 조회
+// 내가 사용 가능한 쿠폰 조회
 router.get('/my-coupons', authMiddleware, catchAsync(async (req, res) => {
     const userPoints = await prisma.user_points.findFirst({
         where: { user_id: req.user.id }

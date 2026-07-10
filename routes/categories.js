@@ -3,13 +3,14 @@ const router = express.Router();
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const catchAsync = require('../utils/catchAsync');
+const { AppError } = require('../utils/errorHandler');
 const authMiddleware = require('../middleware/auth');
 
 // 1. 매장별 카테고리 조회 (상세 경로 우선)
 router.get('/store/:storeId', catchAsync(async (req, res) => {
     const storeId = parseInt(req.params.storeId);
     if (isNaN(storeId)) {
-        return res.status(400).json({ error: '유효하지 않은 매장 ID입니다' });
+        return res.status(400).json({ error: '유효하지 않은 매장 ID입니다.' });
     }
     const categories = await prisma.categories.findMany({
         where: { store_id: storeId },
@@ -22,7 +23,7 @@ router.get('/store/:storeId', catchAsync(async (req, res) => {
 router.put('/sort', authMiddleware, catchAsync(async (req, res) => {
     const { orders } = req.body;
     if (!Array.isArray(orders)) {
-        return res.status(400).json({ error: 'orders 배열이 필요합니다' });
+        return res.status(400).json({ error: 'orders 배열이 필요합니다.' });
     }
     await Promise.all(
         orders.map(({ id, sort_order }) =>
@@ -33,14 +34,14 @@ router.put('/sort', authMiddleware, catchAsync(async (req, res) => {
         )
     );
     logger.info(`카테고리 정렬 업데이트: ${orders.length}개`);
-    res.json({ message: '정렬 순서가 업데이트되었습니다' });
+    res.json({ message: '정렬 순서가 업데이트되었습니다.' });
 }));
 
 // 3. 카테고리 생성
 router.post('/', authMiddleware, catchAsync(async (req, res) => {
     const { store_id, name, sort_order } = req.body;
     if (!store_id || !name?.trim()) {
-        return res.status(400).json({ error: '매장 ID와 카테고리 이름이 필요합니다' });
+        return res.status(400).json({ error: '매장 ID와 카테고리 이름이 필요합니다.' });
     }
 
     const maxOrder = await prisma.categories.aggregate({
@@ -62,7 +63,7 @@ router.post('/', authMiddleware, catchAsync(async (req, res) => {
 // 4. 카테고리 수정
 router.put('/:id', authMiddleware, catchAsync(async (req, res) => {
     const id = parseInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ error: '유효하지 않은 ID입니다' });
+    if (isNaN(id)) return res.status(400).json({ error: '유효하지 않은 ID입니다.' });
 
     const { name, sort_order } = req.body;
     const updateData = {};
@@ -80,11 +81,11 @@ router.put('/:id', authMiddleware, catchAsync(async (req, res) => {
 // 5. 카테고리 삭제
 router.delete('/:id', authMiddleware, catchAsync(async (req, res) => {
     const id = parseInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ error: '유효하지 않은 ID입니다' });
+    if (isNaN(id)) return res.status(400).json({ error: '유효하지 않은 ID입니다.' });
 
     await prisma.categories.delete({ where: { id } });
     logger.info(`카테고리 삭제: id=${id}`);
-    res.json({ message: '카테고리가 삭제되었습니다' });
+    res.json({ message: '카테고리가 삭제되었습니다.' });
 }));
 
 // 6. 전체 카테고리 목록 조회
@@ -98,7 +99,7 @@ router.get('/', catchAsync(async (req, res) => {
 // 7. 카테고리 단일 조회
 router.get('/:id', catchAsync(async (req, res) => {
     const id = parseInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ error: '유효하지 않은 ID입니다' });
+    if (isNaN(id)) return res.status(400).json({ error: '유효하지 않은 ID입니다.' });
 
     const category = await prisma.categories.findUnique({ where: { id } });
     if (!category) return res.status(404).json({ error: '카테고리를 찾을 수 없습니다' });

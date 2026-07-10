@@ -1,9 +1,9 @@
 const db = require('./config/database');
-const Settlement = require('./models/Settlement');
-const Ledger = require('./models/Ledger');
-const Point = require('./models/Point');
-const Payment = require('./models/Payment');
-const Order = require('./models/Order');
+const Settlement = require('./repositories/Settlement');
+const Ledger = require('./repositories/Ledger');
+const Point = require('./repositories/Point');
+const Payment = require('./repositories/Payment');
+const Order = require('./repositories/Order');
 
 async function runTests() {
     console.log('--- [위마켓 기능 통합 테스트 시작] ---');

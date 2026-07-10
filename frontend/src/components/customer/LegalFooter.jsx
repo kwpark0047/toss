@@ -25,23 +25,23 @@ export default function LegalFooter({ storeId }) {
 
     return (
         <footer className="mt-6 px-4 pb-8">
-            <div className="max-w-lg mx-auto border border-gray-200 rounded-2xl overflow-hidden">
+            <div className="max-w-lg mx-auto border cust-border rounded-2xl overflow-hidden">
                 {/* 토글 헤더 */}
                 <button
                     type="button"
                     onClick={() => setExpanded(v => !v)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 text-left hover:bg-gray-100 transition-colors"
+                    className="w-full flex items-center justify-between px-4 py-3 bg-grey-50 dark:bg-white/5 text-left hover:brightness-95 transition-all"
                 >
-                    <span className="text-xs text-gray-500 font-bold">
+                    <span className="text-xs text-grey-500 dark:text-grey-400 font-bold">
                         사업자 정보 확인 (전자상거래법 제13조)
                     </span>
                     {expanded
-                        ? <ChevronUp size={14} className="text-gray-400" />
-                        : <ChevronDown size={14} className="text-gray-400" />}
+                        ? <ChevronUp size={14} className="text-grey-400" />
+                        : <ChevronDown size={14} className="text-grey-400" />}
                 </button>
 
                 {expanded && (
-                    <div className="px-4 py-4 text-xs text-gray-500 space-y-1.5 bg-white">
+                    <div className="px-4 py-4 text-xs cust-text-sub space-y-1.5 cust-bg-card">
                         <Row label="상호명"       value={data.business_name} />
                         <Row label="대표자"       value={data.ceo_name} />
                         <Row label="사업장 소재지" value={data.business_address} />
@@ -51,14 +51,14 @@ export default function LegalFooter({ storeId }) {
                         <Row label="통신판매업"    value={data.mail_order_number}
                             warn={isMissing(data.mail_order_number)} />
 
-                        <div className="pt-2 border-t border-gray-100">
-                            <p className="text-gray-400 font-bold mb-1">결제 대행 (PG사)</p>
+                        <div className="pt-2 border-t cust-border">
+                            <p className="text-grey-400 font-bold mb-1">결제 대행 (PG사)</p>
                             <Row label="회사명"     value={data.pg_info?.name} />
                             <Row label="사업자번호" value={data.pg_info?.business_number} />
                             <Row label="고객센터"   value={data.pg_info?.customer_center} />
                         </div>
 
-                        <div className="pt-2 border-t border-gray-100 flex items-center gap-4">
+                        <div className="pt-2 border-t cust-border flex items-center gap-4">
                             <LegalLink storeId={storeId} type="terms"   label="이용약관" />
                             <LegalLink storeId={storeId} type="privacy" label="개인정보처리방침" />
                             <LegalLink storeId={storeId} type="refund"  label="환불정책" />
@@ -79,8 +79,8 @@ export default function LegalFooter({ storeId }) {
 function Row({ label, value, warn }) {
     return (
         <div className="flex items-start justify-between gap-2">
-            <span className="text-gray-400 whitespace-nowrap flex-shrink-0">{label}</span>
-            <span className={`text-right ${warn ? 'text-amber-500' : 'text-gray-700'}`}>
+            <span className="text-grey-400 whitespace-nowrap flex-shrink-0">{label}</span>
+            <span className={`text-right ${warn ? 'text-amber-500' : 'cust-text-main'}`}>
                 {value || '—'}
             </span>
         </div>

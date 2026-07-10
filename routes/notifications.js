@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const { AppError } = require('../utils/errorHandler');
+const logger = require('../utils/logger');
 const authMiddleware = require('../middleware/auth');
 const {
     getNotifications,
@@ -12,28 +14,29 @@ const {
     registerToken
 } = require('../controllers/notificationsController');
 
-// FCM 토큰 등록
+// FCM ?�큰 ?�록
 router.post('/register-token', authMiddleware, registerToken);
 
-// 알림 목록 조회 (?store_id=&type=&unread=true&page=&limit=)
+// ?�림 목록 조회 (?store_id=&type=&unread=true&page=&limit=)
 router.get('/', authMiddleware, getNotifications);
 
-// 읽지 않은 알림 수 + 타입별 요약
+// ?��? ?��? ?�림 ??+ ?�?�별 ?�약
 router.get('/unread-count', authMiddleware, getUnreadCount);
 
-// 전체 읽음 처리 (?store_id=)
+// ?�체 ?�음 처리 (?store_id=)
 router.patch('/read-all', authMiddleware, markAllAsRead);
 
-// 전체 삭제 (?store_id=&mode=read|all)
+// ?�체 ??�� (?store_id=&mode=read|all)
 router.delete('/clear', authMiddleware, clearNotifications);
 
-// 시스템 알림 수동 생성 (super_admin용)
+// ?�스???�림 ?�동 ?�성 (super_admin??
 router.post('/system', authMiddleware, createSystemNotification);
 
-// 단일 읽음 처리
+// ?�일 ?�음 처리
 router.patch('/:id/read', authMiddleware, markAsRead);
 
-// 단일 삭제
+// ?�일 ??��
 router.delete('/:id', authMiddleware, deleteNotification);
 
 module.exports = router;
+

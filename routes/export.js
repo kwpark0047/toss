@@ -16,7 +16,7 @@ const {
  * query: start_date, end_date (YYYY-MM-DD, 기본 최근 30일)
  */
 
-// ── Excel ─────────────────────────────────────────────────────────────────────
+// Excel 내보내기
 // 매출 통계 (일별/시간대별/요일별/결제수단별 4개 시트)
 router.get('/store/:storeId/excel/sales',
     authMiddleware,
@@ -45,7 +45,7 @@ router.get('/store/:storeId/excel/menu',
     exportMenuExcel
 );
 
-// ── PDF ───────────────────────────────────────────────────────────────────────
+// PDF 내보내기
 // 종합 보고서
 router.get('/store/:storeId/pdf/report',
     authMiddleware,

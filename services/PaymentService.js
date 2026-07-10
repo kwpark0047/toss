@@ -503,6 +503,263 @@ class PaymentService {
 
     return { success: true, message: '결제 취소 및 환불 처리가 완료되었습니다.' };
   }
+
+  // ═════════════════════════════════════════════════════════════════
+  // [결제 준비]
+  // ═════════════════════════════════════════════════════════════════
+  async preparePayment({ order_id, store_id, order_name, amount, method, checkout_url }) {
+    let targetStoreId = store_id;
+    let targetAmount = amount;
+
+    if ((!targetStoreId || !targetAmount) && order_id) {
+      const order = await prisma.orders.findUnique({ where: { id: parseInt(order_id) } });
+      if (order) {
+        if (!targetStoreId) targetStoreId = order.store_id;
+        if (!targetAmount) targetAmount = order.total_amount;
+      }
+    }
+
+    if (!targetStoreId) throw new AppError('매장 ID가 필요합니다.', 400);
+    if (!targetAmount) throw new AppError('금액이 필요합니다.', 400);
+
+    const payment = await prisma.payments.create({
+      data: {
+        order_id: order_id ? parseInt(order_id) : null,
+        store_id: parseInt(targetStoreId),
+        order_name: order_name || `주문 #${order_id}`,
+        amount: parseInt(targetAmount),
+        method: method || 'CARD',
+        status: 'READY',
+        checkout_url: checkout_url || null,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+
+    return { paymentId: payment.id };
+  }
+
+  // ═════════════════════════════════════════════════════════════════
+  // [부분 환불 처리]
+  // ═════════════════════════════════════════════════════════════════
+  async processPartialCancel(orderId, cancelAmount, cancelReason) {
+    const amount = Number(cancelAmount);
+    if (!amount || amount <= 0) throw new AppError('환불 금액이 올바르지 않습니다.', 400);
+
+    const payments = await prisma.payments.findMany({
+      where: { order_id: parseInt(orderId) }
+    });
+    const payment = payments.find(p => p.status === 'DONE');
+    if (!payment) throw new AppError('취소 가능한 결제 내역이 없습니다.', 404);
+
+    if (amount > payment.amount) {
+      throw new AppError(`환불 금액(${amount.toLocaleString()}원)이 결제 금액(${payment.amount.toLocaleString()}원)을 초과합니다.`, 400);
+    }
+
+    const tossResponse = await TossAPI.cancelPayment(payment.payment_key, cancelReason || '부분 환불', amount);
+    logger.info(`[PaymentService] 부분 환불 완료: orderId=${orderId}, amount=${amount}`);
+
+    await prisma.ledger.create({
+      data: {
+        store_id: payment.store_id,
+        order_id: payment.order_id,
+        payment_id: payment.id,
+        type: 'REFUND',
+        category: 'PARTIAL_CANCEL',
+        amount: -amount,
+        method: payment.method,
+        description: `부분 환불: ${cancelReason || '부분 환불'} (${amount.toLocaleString()}원)`,
+        created_at: new Date()
+      }
+    });
+
+    return { refundedAmount: amount, tossResponse };
+  }
+
+  // ═════════════════════════════════════════════════════════════════
+  // [Toss 웹훅 처리]
+  // ═════════════════════════════════════════════════════════════════
+  async handleTossWebhook(event) {
+    const eventType = event?.eventType;
+    const data = event?.data;
+
+    if (eventType !== 'PAYMENT_STATUS_CHANGED' || data?.status !== 'DONE') return;
+
+    const { paymentKey, orderId: tossOrderId } = data;
+    const order = await prisma.orders.findFirst({ where: { order_number: tossOrderId } });
+
+    if (!order) {
+      logger.warn(`[Webhook/Toss] 망취소 감지: paymentKey=${paymentKey}, orderId=${tossOrderId}`);
+      try {
+        await TossAPI.cancelPayment(paymentKey, '토스측 오류: 주문 미생성으로 인한 자동 취소');
+        logger.info(`[Webhook/Toss] 망취소 완료: ${paymentKey}`);
+      } catch (e) {
+        logger.error(`[Webhook/Toss] 망취소 API 실패: ${e.message}`);
+      }
+    } else {
+      const existing = await prisma.payments.findFirst({ where: { order_id: order.id, payment_key: paymentKey } });
+      if (!existing) {
+        await prisma.payments.updateMany({
+          where: { order_id: order.id, status: 'READY' },
+          data: { payment_key: paymentKey, status: 'DONE', approved_at: new Date() }
+        });
+        logger.info(`[Webhook/Toss] 결제 정보 동기화: order=${order.id}`);
+      }
+    }
+  }
+
+  // ═════════════════════════════════════════════════════════════════
+  // [매장카드 결제 확인]
+  // ═════════════════════════════════════════════════════════════════
+  async confirmStoreCard(orderId, terminalReceiptNo) {
+    const order = await prisma.orders.findUnique({ where: { id: parseInt(orderId) } });
+    if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
+    if (order.payment_status === 'paid') return { alreadyPaid: true };
+
+    await prisma.$transaction([
+      prisma.payments.updateMany({
+        where: { order_id: parseInt(orderId), method: { in: ['STORE_CARD', 'store_card'] } },
+        data: { status: 'DONE', approved_at: new Date(), transfer_reference: terminalReceiptNo || null }
+      }),
+      prisma.orders.update({
+        where: { id: parseInt(orderId) },
+        data: { payment_status: 'paid', updated_at: new Date() }
+      }),
+      prisma.ledger.create({
+        data: {
+          store_id: order.store_id, order_id: parseInt(orderId),
+          type: 'INCOME', category: 'SALE', amount: order.total_amount, method: 'STORE_CARD',
+          description: `매장카드 확인: #${order.order_number}${terminalReceiptNo ? ` (영수증${terminalReceiptNo})` : ''}`,
+          created_at: new Date()
+        }
+      })
+    ]);
+
+    if (this.io) {
+      this.io.to(`store - ${order.store_id}`).emit('payment-confirmed', { order_id: parseInt(orderId), method: 'store_card' });
+    }
+
+    return { store_id: order.store_id, order_id: parseInt(orderId) };
+  }
+
+  // ═════════════════════════════════════════════════════════════════
+  // [계좌이체 확인]
+  // ═════════════════════════════════════════════════════════════════
+  async confirmTransfer(orderId, transferReference, depositorName) {
+    const order = await prisma.orders.findUnique({ where: { id: parseInt(orderId) } });
+    if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
+    if (order.payment_status === 'paid') return { alreadyPaid: true };
+
+    await prisma.$transaction([
+      prisma.payments.updateMany({
+        where: { order_id: parseInt(orderId), method: { in: ['TRANSFER', 'transfer'] } },
+        data: {
+          status: 'DONE', transfer_confirmed: true, transfer_confirmed_at: new Date(),
+          transfer_reference: transferReference || null, approved_at: new Date()
+        }
+      }),
+      prisma.orders.update({
+        where: { id: parseInt(orderId) },
+        data: { payment_status: 'paid', updated_at: new Date() }
+      }),
+      prisma.ledger.create({
+        data: {
+          store_id: order.store_id, order_id: parseInt(orderId),
+          type: 'INCOME', category: 'SALE', amount: order.total_amount, method: 'TRANSFER',
+          description: `계좌이체 확인: #${order.order_number}${depositorName ? ` (입금자: ${depositorName})` : ''}`,
+          created_at: new Date()
+        }
+      })
+    ]);
+
+    if (this.io) {
+      this.io.to(`store - ${order.store_id}`).emit('payment-confirmed', { order_id: parseInt(orderId), method: 'transfer' });
+    }
+
+    return { store_id: order.store_id, order_id: parseInt(orderId) };
+  }
+
+  // ═════════════════════════════════════════════════════════════════
+  // [분할 결제 설정]
+  // ═════════════════════════════════════════════════════════════════
+  async setupSplitPayment(orderId, splitType, numPeople) {
+    const order = await prisma.orders.findUnique({
+      where: { id: parseInt(orderId) },
+      include: { order_items: true }
+    });
+    if (!order) throw new AppError('주문이 존재하지 않습니다.', 404);
+
+    const splitData = { order_id: order.id, total_amount: order.total_amount, split_type: splitType, items: [] };
+
+    if (splitType === 'EQUAL') {
+      const amountPerPerson = Math.floor(order.total_amount / numPeople);
+      const lastPersonExtra = order.total_amount % numPeople;
+      for (let i = 0; i < numPeople; i++) {
+        splitData.items.push({
+          index: i + 1,
+          amount: i === numPeople - 1 ? amountPerPerson + lastPersonExtra : amountPerPerson,
+          status: 'PENDING'
+        });
+      }
+    } else if (splitType === 'ITEM') {
+      splitData.items = order.order_items.map(item => ({
+        id: item.id, name: item.product_name, amount: item.subtotal, status: 'PENDING'
+      }));
+    }
+
+    await prisma.orders.update({
+      where: { id: order.id },
+      data: { is_split_payment: true, split_type: splitType, split_status: 'PENDING' }
+    });
+
+    return splitData;
+  }
+
+  // ═════════════════════════════════════════════════════════════════
+  // [분할 결제 상태 조회]
+  // ═════════════════════════════════════════════════════════════════
+  async getSplitStatus(orderId) {
+    const order = await prisma.orders.findUnique({
+      where: { id: parseInt(orderId) },
+      include: {
+        payments: {
+          where: { status: 'DONE' },
+          select: { amount: true, payer_phone: true, method: true, approved_at: true }
+        }
+      }
+    });
+    if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
+
+    const totalPaid = order.payments.reduce((sum, p) => sum + p.amount, 0);
+    const remaining = Math.max(0, order.total_amount - totalPaid);
+
+    return {
+      order_id: order.id, order_number: order.order_number,
+      total_amount: order.total_amount, total_paid: totalPaid,
+      remaining_amount: remaining, is_completed: remaining === 0,
+      payments: order.payments
+    };
+  }
+
+  // ═════════════════════════════════════════════════════════════════
+  // [증빙 업로드 처리]
+  // ═════════════════════════════════════════════════════════════════
+  async processProofUpload(paymentId, proofUrl) {
+    await prisma.payments.update({
+      where: { id: parseInt(paymentId) },
+      data: { proof_image_url: proofUrl, updated_at: new Date() }
+    });
+
+    const payment = await prisma.payments.findUnique({ where: { id: parseInt(paymentId) } });
+    if (payment && this.io) {
+      this.io.to(`store - ${payment.store_id}`).emit('payment-proof-uploaded', {
+        payment_id: paymentId, order_id: payment.order_id,
+        proof_url: proofUrl, timestamp: new Date().toISOString()
+      });
+    }
+
+    return { proof_url: proofUrl };
+  }
 }
 
 module.exports = PaymentService;

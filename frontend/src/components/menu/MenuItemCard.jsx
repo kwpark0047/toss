@@ -1,6 +1,8 @@
 import { formatWon } from '../../utils/format';
 import { motion } from 'framer-motion';
 import { Plus, Flame, Sparkles } from 'lucide-react';
+import { vibrateClick } from '../../utils/notificationSound';
+import LazyImage from '../common/LazyImage';
 
 // TDS ListRow 상하 패딩 프리셋 (S/M/L/XL)
 const PADDING = { S: 'py-2', M: 'py-3', L: 'py-4', XL: 'py-5' };
@@ -18,20 +20,32 @@ const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disable
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-label={`${item.name} 담기`}
-      onClick={() => !disabled && onAddToCart(item)}
-      onKeyDown={(e) => { if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onAddToCart(item); } }}
+      onClick={() => {
+        if (!disabled) {
+          vibrateClick();
+          onAddToCart(item);
+        }
+      }}
+      onKeyDown={(e) => {
+        if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          vibrateClick();
+          onAddToCart(item);
+        }
+      }}
       className={`flex items-center gap-3 px-4 ${py} transition-colors ${
-        disabled ? 'opacity-60 grayscale cursor-not-allowed' : 'hover:bg-slate-50 active:bg-slate-100 cursor-pointer'
+        disabled ? 'opacity-60 grayscale cursor-not-allowed' : 'hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-white/5 dark:active:bg-white/10 cursor-pointer'
       }`}
     >
-      {/* Leading — 썸네일 */}
-      <div className="relative w-16 h-16 rounded-xl bg-slate-50 overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-100">
-        {item.image_url ? (
-          <img src={item.image_url} alt={item.name} loading="lazy" className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-3xl">{item.emoji || '🍽️'}</span>
-        )}
-        <div className="absolute top-0.5 left-0.5 flex flex-col gap-0.5">
+      {/* Leading — 썸네일 (LazyImage 적용) */}
+      <div className="relative w-16 h-16 flex-shrink-0">
+        <LazyImage 
+          src={item.image_url} 
+          alt={item.name} 
+          placeholderEmoji={item.emoji || '🍽️'}
+          className="rounded-xl"
+        />
+        <div className="absolute top-0.5 left-0.5 flex flex-col gap-0.5 z-20">
           {isPopular && (
             <div className="bg-orange-500 text-white p-0.5 rounded-lg shadow"><Flame size={10} fill="currentColor" /></div>
           )}
@@ -44,15 +58,15 @@ const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disable
       {/* Content — 타이틀 + 설명 */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <h3 className="tds-body-strong text-grey-900 truncate">{item.name}</h3>
+          <h3 className="tds-body-strong cust-text-main truncate">{item.name}</h3>
           {hasOptions && (
-            <span className="text-[9px] bg-grey-100 text-grey-500 px-1.5 py-0.5 rounded font-bold whitespace-nowrap flex-shrink-0">옵션</span>
+            <span className="text-[9px] bg-grey-100 dark:bg-white/10 text-grey-500 dark:text-grey-400 px-1.5 py-0.5 rounded font-bold whitespace-nowrap flex-shrink-0">옵션</span>
           )}
         </div>
         {item.description && (
-          <p className="tds-caption text-grey-500 line-clamp-1 mt-0.5">{item.description}</p>
+          <p className="tds-caption cust-text-sub line-clamp-1 mt-0.5">{item.description}</p>
         )}
-        <span className="block tds-body-strong text-grey-900 mt-1">{formatWon(item.price)}</span>
+        <span className="block tds-body-strong cust-text-main mt-1">{formatWon(item.price)}</span>
       </div>
 
       {/* Trailing — 담기 */}

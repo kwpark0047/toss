@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const PlanRequest = require('../models/PlanRequest');
-const Store = require('../models/Store');
+const PlanRequest = require('../repositories/PlanRequest');
+const Store = require('../repositories/Store');
 const authMiddleware = require('../middleware/auth');
 const { AppError } = require('../utils/errorHandler');
 const catchAsync = require('../utils/catchAsync');

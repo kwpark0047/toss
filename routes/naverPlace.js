@@ -16,7 +16,7 @@ router.get('/store/:storeId', catchAsync(async (req, res) => {
   if (!naverPlaceService.isConfigured()) {
     return res.status(503).json({
       success: false,
-      error: 'NAVER_CLIENT_SECRET 미설정 — 네이버 API 키를 환경변수에 설정하세요.',
+      error: 'NAVER_CLIENT_SECRET 미설정. 네이버 API 연동 환경변수에 설정하세요.',
     });
   }
 
@@ -43,7 +43,7 @@ router.get('/store/:storeId', catchAsync(async (req, res) => {
   let reviewUrl = '';
   if (placeInfo.naverPlaceUrl) {
     // naverPlaceUrl 예시: https://place.map.naver.com/place/12345678
-    // 리뷰 탭 경로: https://pcmap.place.naver.com/place/12345678/review
+    // 리뷰 주 경로: https://pcmap.place.naver.com/place/12345678/review
     const placeIdMatch = placeInfo.naverPlaceUrl.match(/place\/(\d+)/);
     if (placeIdMatch) {
       const placeId = placeIdMatch[1];

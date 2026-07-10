@@ -23,7 +23,7 @@ router.get('/store/:storeId/alerts', authMiddleware, checkPermission('menu:read'
 // 상품별 재고 수동 조정 (입출고)
 router.put('/products/:productId/stock', authMiddleware, checkPermission('menu:write'), adjustStock);
 
-// 재고 절대값 설정 + 임계치 설정
+// 재고 절대수치 설정 + 임계값 설정
 router.put('/products/:productId/stock/set', authMiddleware, checkPermission('menu:write'), setStock);
 
 // 상품별 재고 이력

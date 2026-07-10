@@ -162,6 +162,68 @@ const Product = {
         cache.flushByStore(product.store_id);
 
         return true;
+    },
+
+    // [추천용 활성화 및 품절되지 않은 상품 조회]
+    findActiveAndInStock: async (storeId) => {
+        return await prisma.products.findMany({
+            where: {
+                store_id: parseInt(storeId),
+                is_active: true,
+                is_sold_out: false
+            },
+            select: {
+                id: true,
+                name: true,
+                price: true,
+                categories: { select: { name: true } }
+            }
+        });
+    },
+
+    // [다중 ID 상품 조회]
+    findByIds: async (ids, selectFields = null, includeFields = null) => {
+        const query = {
+            where: {
+                id: { in: ids.map(id => parseInt(id)) }
+            }
+        };
+        if (selectFields) query.select = selectFields;
+        if (includeFields) query.include = includeFields;
+        return await prisma.products.findMany(query);
+    },
+
+    // [매장의 활성화 및 품절되지 않은 디저트/음료 목록 조회]
+    findDessertsForStore: async (storeId) => {
+        return await prisma.products.findMany({
+            where: {
+                store_id: parseInt(storeId),
+                is_active: true,
+                is_sold_out: false,
+                categories: {
+                    name: {
+                        in: ["디저트", "Dessert", "간식", "사이드", "음료", "Coffee", "커피"]
+                    }
+                }
+            },
+            select: {
+                id: true,
+                name: true,
+                price: true
+            }
+        });
+    },
+
+    // [번역용 활성화 상품 목록 조회]
+    findActiveByStoreId: async (storeId, selectFields = null) => {
+        const query = {
+            where: {
+                store_id: parseInt(storeId),
+                is_active: true
+            }
+        };
+        if (selectFields) query.select = selectFields;
+        return await prisma.products.findMany(query);
     }
 };
 

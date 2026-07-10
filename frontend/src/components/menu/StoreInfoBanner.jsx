@@ -13,7 +13,7 @@ const StoreInfoBanner = ({
   storeName
 }) => {
   return (
-    <div className="bg-white border-b border-grey-100">
+    <div className="cust-bg-card border-b cust-border">
       {/* 공지사항 */}
       <AnimatePresence>
         {announcementActive && announcement && (
@@ -32,24 +32,24 @@ const StoreInfoBanner = ({
       </AnimatePresence>
 
       <div className="container mx-auto px-4 py-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 space-y-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 space-y-2 min-w-0">
             {description && (
-              <p className="tds-body text-grey-600 line-clamp-2">
+              <p className="tds-body cust-text-sub line-clamp-2 break-words">
                 {description}
               </p>
             )}
 
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5 tds-label text-grey-500">
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5 tds-label cust-text-sub">
               {address && (
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span>{address}</span>
+                <div className="flex items-center gap-1 min-w-0 max-w-full">
+                  <MapPin className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate">{address}</span>
                 </div>
               )}
               {todayHours && !todayHours.closed && (
-                <div className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Clock className="w-3 h-3 flex-shrink-0" />
                   <span>{todayHours.open} - {todayHours.close}</span>
                 </div>
               )}
@@ -59,8 +59,8 @@ const StoreInfoBanner = ({
           <div className="flex flex-col items-end gap-2">
             <span className={`px-2.5 py-1 rounded-full tds-small font-bold ${
               isOpen
-                ? 'bg-emerald-100 text-emerald-600'
-                : 'bg-grey-100 text-grey-500'
+                ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                : 'bg-grey-100 dark:bg-white/10 text-grey-500 dark:text-grey-400'
             }`}>
               {isOpen ? '영업 중' : '영업 종료'}
             </span>
@@ -73,7 +73,7 @@ const StoreInfoBanner = ({
                 />
               )}
               {phone && (
-                <a href={`tel:${phone}`} className="p-2 bg-grey-50 rounded-full text-grey-400 hover:text-primary transition-colors">
+                <a href={`tel:${phone}`} className="p-2 bg-grey-50 dark:bg-white/5 rounded-full text-grey-400 dark:text-grey-500 hover:text-primary transition-colors">
                   <Phone className="w-4 h-4" />
                 </a>
               )}
@@ -84,5 +84,6 @@ const StoreInfoBanner = ({
     </div>
   );
 };
+
 
 export default StoreInfoBanner;

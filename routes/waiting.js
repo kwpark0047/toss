@@ -13,7 +13,7 @@ router.get('/store/:storeId/status', catchAsync(async (req, res) => {
     res.json({ success: true, waiting_teams: count });
 }));
 
-// [GET] 특정 매장의 대기 리스트 조회 (관리자용)
+// [GET] 특정 매장의 대기 리스트 조회 (관리자)
 router.get('/store/:storeId', catchAsync(async (req, res) => {
     const { storeId } = req.params;
     const list = await prisma.waiting_list.findMany({
@@ -23,7 +23,7 @@ router.get('/store/:storeId', catchAsync(async (req, res) => {
     res.json({ success: true, data: list.map(e => decryptPhoneFields(e)) });
 }));
 
-// [POST] 대기 등록 (고객용)
+// [POST] 대기 등록 (고객)
 router.post('/register', catchAsync(async (req, res) => {
     const { store_id, customer_name, customer_phone, party_size } = req.body;
     const encPhone = encryptPhone(customer_phone);

@@ -1,6 +1,6 @@
 const prisma = require('../config/prisma');
-const Order = require('../models/Order');
-const Payment = require('../models/Payment');
+const Order = require('../repositories/Order');
+const Payment = require('../repositories/Payment');
 
 const STORE_NAMES = [
     '강남 1호점 (본점)', '홍대 2호점', '성수 팝업스토어', '부산 해운대점',

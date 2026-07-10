@@ -1,0 +1,218 @@
+const aiService = require("../services/aiService");
+const Product = require("../repositories/Product");
+const Order = require("../repositories/Order");
+const Store = require("../repositories/Store");
+const catchAsync = require("../utils/catchAsync");
+
+const aiController = {
+    // [설명 생성]
+    describeMenu: catchAsync(async (req, res) => {
+        const { name, category, price, description } = req.body;
+        const aiDescription = await aiService.generateMenuDescription({
+            name, category, price, description
+        });
+        res.json({ description: aiDescription });
+    }),
+
+    // [메뉴 추천]
+    recommendMenus: catchAsync(async (req, res) => {
+        const { store_id, preferences, weather, mood, phone, toss_user_key } = req.body;
+        const hour = new Date().getHours();
+        const time = new Date().toLocaleTimeString("ko-KR");
+
+        let pastOrders = [];
+        if (phone || toss_user_key) {
+            const history = await Order.findByCustomer(phone, toss_user_key);
+            pastOrders = history
+                .flatMap(order => order.items.map(item => item.product_name))
+                .slice(0, 10);
+        }
+
+        const menuList = await Product.findActiveAndInStock(store_id);
+
+        if (menuList.length === 0) {
+            return res.json({ recommendations: [] });
+        }
+
+        const trendingProductIds = await Order.findTrendingProducts(store_id);
+        const trendingNames = trendingProductIds.length > 0
+            ? await Product.findByIds(trendingProductIds, { name: true }).then(rows => rows.map(r => r.name))
+            : [];
+
+        const timePeriod =
+            hour >= 5 && hour < 10 ? '아침 (조식)' :
+            hour >= 10 && hour < 15 ? '점심 (중식)' :
+            hour >= 15 && hour < 17 ? '오후 간식' :
+            hour >= 17 && hour < 22 ? '저녁 (석식)' : '야식';
+
+        const timeContext = {
+            period: timePeriod,
+            is_meal_time: [5, 10, 15, 17].some(h => Math.abs(hour - h) <= 2),
+        };
+
+        const recommendations = await aiService.recommendMenus(
+            { preferences, time, weather, mood, pastOrders, trendingItems: trendingNames, timePeriod, timeContext },
+            menuList
+        );
+
+        const enrichedRecommendations = recommendations.map(rec => {
+            const menu = menuList.find(m => m.id === rec.id);
+            if (!menu) return null;
+            const isTrending = trendingProductIds.includes(menu.id);
+            return {
+                ...menu,
+                recommend_reason: rec.reason,
+                is_trending: isTrending,
+                time_period: timePeriod,
+            };
+        }).filter(Boolean);
+
+        res.json({ recommendations: enrichedRecommendations });
+    }),
+
+    // [디저트 추천]
+    recommendDessert: catchAsync(async (req, res) => {
+        const { store_id, currentItems } = req.body;
+
+        if (!currentItems || !Array.isArray(currentItems) || currentItems.length === 0) {
+            return res.json({ recommendations: [] });
+        }
+
+        const dessertList = await Product.findDessertsForStore(store_id);
+
+        if (dessertList.length === 0) {
+            return res.json({ recommendations: [] });
+        }
+
+        const recommendations = await aiService.recommendDesserts(currentItems, dessertList);
+
+        const enrichedRecommendations = recommendations.map(rec => {
+            const menu = dessertList.find(d => d.id === rec.id);
+            if (!menu) return null;
+            return {
+                ...menu,
+                recommend_reason: rec.reason
+            };
+        }).filter(Boolean);
+
+        res.json({ recommendations: enrichedRecommendations });
+    }),
+
+    // [대량 메뉴 번역]
+    translateMenu: catchAsync(async (req, res) => {
+        const { store_id, targetLang } = req.body;
+
+        const menuList = await Product.findActiveByStoreId(store_id, {
+            id: true,
+            name: true,
+            description: true
+        });
+
+        if (menuList.length === 0) {
+            return res.json({ success: true, translations: [] });
+        }
+
+        const translations = await aiService.batchTranslateMenus(menuList, targetLang);
+
+        res.json({
+            success: true,
+            targetLang,
+            translations
+        });
+    }),
+
+    // [텍스트 단일 번역]
+    translate: catchAsync(async (req, res) => {
+        const { text, targetLang } = req.body;
+        const translated = await aiService.translateText(text, targetLang);
+        res.json({ success: true, translated });
+    }),
+
+    // [스토리텔링 생성]
+    storytelling: catchAsync(async (req, res) => {
+        const { name, category, description, targetLang } = req.body;
+        const story = await aiService.generateMenuStory({
+            name,
+            category,
+            description,
+            targetLang: targetLang || 'ko'
+        });
+        res.json({ success: true, story });
+    }),
+
+    // [일괄 등록 메뉴 분석]
+    analyzeMenuList: catchAsync(async (req, res) => {
+        const { menuNames, menuData, categories } = req.body;
+        if (!menuNames || !Array.isArray(menuNames)) {
+            return res.status(400).json({ success: false, error: "menuNames 배열이 필요합니다." });
+        }
+        const suggestions = await aiService.analyzeMenuList(menuNames, categories || [], menuData || []);
+        res.json({ success: true, suggestions });
+    }),
+
+    // [메뉴 정보 제안]
+    proposeMenuFull: catchAsync(async (req, res) => {
+        const { name, categoryName } = req.body;
+        const proposal = await aiService.proposeMenuFull({ name, categoryName });
+        res.json({ success: true, proposal });
+    }),
+
+    // [인기 메뉴 조합 추천]
+    recommendPairing: catchAsync(async (req, res) => {
+        const { store_id: _store_id, product_ids } = req.body;
+
+        if (!product_ids || !Array.isArray(product_ids) || product_ids.length === 0) {
+            return res.json({ recommendations: [] });
+        }
+
+        const pairingData = await Order.findPairingData(product_ids);
+
+        const recommendedProducts = await Product.findByIds(
+            pairingData.map(p => p.product_id).filter(id => id !== null),
+            null,
+            { categories: { select: { name: true } } }
+        );
+
+        const enrichedRecommendations = await Promise.all(recommendedProducts.map(async (product) => {
+            const count = pairingData.find(p => p.product_id === product.id)?._count.product_id || 0;
+            return {
+                ...product,
+                pairing_score: count,
+                recommend_reason: `${product.name}은(는) 현재 선택하신 메뉴와 함께 가장 많이 선택되는 인기 조합입니다.`
+            };
+        }));
+
+        res.json({ recommendations: enrichedRecommendations.sort((a, b) => b.pairing_score - a.pairing_score) });
+    }),
+
+    // [AI 메뉴 이미지 생성]
+    generateMenuImage: catchAsync(async (req, res) => {
+        const { store_id, name, category, description } = req.body;
+        const storeId = parseInt(store_id);
+
+        const store = await Store.findById(storeId);
+
+        if (!store) {
+            return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다.' });
+        }
+
+        if (store.plan === 'free') {
+            return res.status(403).json({
+                success: false,
+                error: 'AI 메뉴 이미지 생성은 유료 구독자 전용 기능입니다. 설정 > 요금제에서 업그레이드해 주세요.',
+            });
+        }
+
+        const result = await aiService.generateMenuImage({ name, category, description });
+
+        res.json({
+            success: true,
+            data: {
+                imageUrl: result.imageUrl,
+                keyword: result.keyword,
+            },
+        });
+    })
+};
+
+module.exports = aiController;

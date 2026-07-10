@@ -1,5 +1,5 @@
 const prisma = require('../config/prisma');
-const Coupon = require('../models/Coupon');
+const Coupon = require('../repositories/Coupon');
 const logger = require('../utils/logger');
 const { sendSms } = require('../utils/smsService');
 

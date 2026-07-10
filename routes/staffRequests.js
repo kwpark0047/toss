@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const StaffAccountRequest = require('../models/StaffAccountRequest');
-const Store = require('../models/Store');
+const StaffAccountRequest = require('../repositories/StaffAccountRequest');
+const Store = require('../repositories/Store');
 const authMiddleware = require('../middleware/auth');
 const { AppError } = require('../utils/errorHandler');
 const catchAsync = require('../utils/catchAsync');

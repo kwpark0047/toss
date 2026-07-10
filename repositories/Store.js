@@ -206,6 +206,43 @@ const Store = {
             );
         }
         return prisma.stores.update({ where: { id: parseInt(id) }, data: updateData });
+    },
+
+    // [매장 법적 정보 업데이트]
+    updateLegalInfo: async (id, data) => {
+        const {
+            business_name, business_number, ceo_name, tax_invoice_email,
+            business_address, customer_service_phone, customer_service_email,
+            mail_order_number, pg_company, pg_business_number,
+            terms_of_service, privacy_policy, refund_policy
+        } = data;
+
+        const updateData = {};
+        if (business_name !== undefined) updateData.business_name = business_name;
+        if (business_number !== undefined) updateData.business_number = business_number;
+        if (ceo_name !== undefined) updateData.ceo_name = ceo_name;
+        if (tax_invoice_email !== undefined) updateData.tax_invoice_email = tax_invoice_email;
+        if (business_address !== undefined) updateData.business_address = business_address;
+        if (customer_service_phone !== undefined) updateData.customer_service_phone = customer_service_phone;
+        if (customer_service_email !== undefined) updateData.customer_service_email = customer_service_email;
+        if (mail_order_number !== undefined) updateData.mail_order_number = mail_order_number;
+        if (pg_company !== undefined) updateData.pg_company = pg_company;
+        if (pg_business_number !== undefined) updateData.pg_business_number = pg_business_number;
+        if (terms_of_service !== undefined) updateData.terms_of_service = terms_of_service;
+        if (privacy_policy !== undefined) updateData.privacy_policy = privacy_policy;
+        if (refund_policy !== undefined) updateData.refund_policy = refund_policy;
+
+        const updatedStore = await prisma.stores.update({
+            where: { id: parseInt(id) },
+            data: updateData,
+            select: { id: true, business_name: true, business_number: true, mail_order_number: true }
+        });
+
+        // 캐시 무효화
+        cache.del(`store:${id}`);
+        cache.del('stores:all');
+
+        return updatedStore;
     }
 };
 

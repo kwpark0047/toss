@@ -129,6 +129,18 @@ const MenuPage = () => {
   /* storeId가 숫자가 아닌 경우 → QrResolvePage로 위임 (즉시) */
   const isNumericStoreId = !!storeId && /^\d+$/.test(storeId);
 
+  // 시스템 다크모드 감지
+  const [isDark, setIsDark] = useState(() => 
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const listener = (e) => setIsDark(e.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, []);
+
   useEffect(() => {
     if (storeId && !isNumericStoreId) {
       navigate(`/qr/${storeId}`, { replace: true });
@@ -423,8 +435,8 @@ const MenuPage = () => {
 
   return (
     // TDS 미니앱 프레임: 모바일 폭(480px) 중앙 정렬, 데스크톱에선 좌우 여백 배경
-    <div className="min-h-screen w-full flex justify-center bg-slate-200">
-    <div className="relative w-full max-w-[480px] min-h-screen pb-24 font-sans tracking-tight bg-[var(--color-bg,#f8fafc)] shadow-2xl shadow-black/10" style={themeStyle}>
+    <div className={`min-h-screen w-full flex justify-center bg-slate-200 overflow-x-hidden ${isDark ? 'dark' : ''}`}>
+    <div className="relative w-full max-w-full sm:max-w-[480px] min-h-screen pb-24 font-sans tracking-tight cust-bg-base shadow-2xl shadow-black/10" style={themeStyle}>
       {/* 키오스크 모드: 전체화면 진입 안내 (미진입 상태에서만) */}
       {isKiosk && !isFullscreen && (
         <button
@@ -486,7 +498,7 @@ const MenuPage = () => {
           />
         ) : (
           // TDS 리스트 그룹: 둥근 흰 컨테이너 + 행 사이 divider (flush)
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-100">
+          <div className="cust-bg-card rounded-2xl border cust-border shadow-sm overflow-hidden cust-divide">
             {filteredItems.map(item => {
               const options = getOptionsForMenuItem(menuItems, item.id);
               const isPopular = orderStats.includes(item.id);

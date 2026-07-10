@@ -12,10 +12,10 @@ export default function EmptyState({ icon = '🍽️', title, description, actio
   const isDark = tone === 'dark';
   return (
     <div className={`flex flex-col items-center justify-center text-center py-16 px-6 ${className}`}>
-      <div className="text-5xl mb-4 select-none" aria-hidden="true">{icon}</div>
-      <h4 className={`tds-subtitle ${isDark ? 'text-white' : 'text-grey-800'}`}>{title}</h4>
+      <div className="text-5xl mb-4 select-none opacity-80" aria-hidden="true">{icon}</div>
+      <h4 className={`tds-subtitle ${isDark ? 'text-white' : 'cust-text-main'}`}>{title}</h4>
       {description && (
-        <p className={`tds-body mt-1.5 max-w-[240px] ${isDark ? 'text-slate-400' : 'text-grey-500'}`}>{description}</p>
+        <p className={`tds-body mt-1.5 max-w-[240px] ${isDark ? 'text-slate-400' : 'cust-text-sub'}`}>{description}</p>
       )}
       {action && <div className="mt-5">{action}</div>}
     </div>

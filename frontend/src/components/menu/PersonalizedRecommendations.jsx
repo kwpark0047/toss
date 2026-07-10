@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { aiAPI } from '@/api';
 import { Sparkles, Plus, Sun, Moon, CloudSun, CloudRain, TrendingUp } from 'lucide-react';
+import LazyImage from '../common/LazyImage';
+import { vibrateClick } from '../../utils/notificationSound';
 
 const TIME_ICONS = {
   morning: Sun,
@@ -95,11 +97,11 @@ export default function PersonalizedRecommendations({ storeId, storeOpen, onAddT
 
   return (
     <div className="container mx-auto px-4 pt-4">
-      <div className="rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-fuchsia-500/5 p-4">
+      <div className="rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-fuchsia-500/5 dark:from-orange-500/20 dark:to-fuchsia-500/10 p-4 shadow-sm">
         {/* 헤더: 시간대 + 계절 */}
         <div className="flex items-center gap-2 mb-3">
           <Sparkles size={16} className="text-orange-400" />
-          <h3 className="font-bold text-white text-sm">
+          <h3 className="font-bold text-grey-900 dark:text-white text-sm">
             {phone ? '고객님을 위한 오늘의 추천' : '오늘의 추천 메뉴'}
           </h3>
           <span className="text-[10px] font-bold text-orange-300 bg-orange-500/15 px-1.5 py-0.5 rounded">AI</span>
@@ -132,9 +134,13 @@ export default function PersonalizedRecommendations({ storeId, storeOpen, onAddT
             const soldOut = item.is_sold_out;
             return (
               <div key={rec.id} className="flex items-center gap-3 rounded-xl bg-black/20 p-2.5">
-                {item.image_url && (
-                  <img src={item.image_url} alt={item.name} className="w-12 h-12 rounded-lg object-cover shrink-0" loading="lazy" />
-                )}
+                <div className="w-12 h-12 shrink-0">
+                  <LazyImage 
+                    src={item.image_url} 
+                    alt={item.name} 
+                    className="rounded-lg"
+                  />
+                </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <p className="font-bold text-white text-sm truncate">{item.name}</p>
@@ -147,7 +153,10 @@ export default function PersonalizedRecommendations({ storeId, storeOpen, onAddT
                 <span className="font-bold text-white text-sm shrink-0">{(item.price || 0).toLocaleString('ko-KR')}원</span>
                 {onAddToCart && !soldOut && storeOpen && (
                   <button
-                    onClick={() => onAddToCart(item)}
+                    onClick={() => {
+                      vibrateClick();
+                      onAddToCart(item);
+                    }}
                     aria-label={`${item.name} 담기`}
                     className="shrink-0 w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600 active:scale-90 transition-all"
                   >

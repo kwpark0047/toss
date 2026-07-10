@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react';
+import { vibrateClick } from '../../utils/notificationSound';
 
 /**
  * Button — TDS Button 계층 공용 컴포넌트.
@@ -35,11 +36,20 @@ export default function Button({
   ...rest
 }) {
   const justify = layout === 'between' ? 'justify-between' : 'justify-center';
+
+  const handleClick = (e) => {
+    if (!disabled && !loading) {
+      vibrateClick();
+      rest.onClick?.(e);
+    }
+  };
+
   return (
     <button
       disabled={disabled || loading}
       className={`inline-flex items-center ${justify} gap-2 font-black tracking-tight transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:active:scale-100 disabled:cursor-not-allowed ${VARIANTS[variant] || VARIANTS.primary} ${SIZES[size] || SIZES.md} ${fullWidth ? 'w-full' : ''} ${className}`}
       {...rest}
+      onClick={handleClick}
     >
       {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : children}
     </button>

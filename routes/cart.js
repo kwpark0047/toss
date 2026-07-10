@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const prisma = require('../config/prisma'); // 공통 Prisma 인스턴스 사용
-const catchAsync = require('../utils/catchAsync'); // 공통 에러 핸들러 사용
+const prisma = require('../config/prisma');
+const catchAsync = require('../utils/catchAsync');
 
 // [GET] 특정 테이블의 공유 장바구니 조회
 router.get('/:tableId', catchAsync(async (req, res) => {

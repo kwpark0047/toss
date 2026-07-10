@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Chat = require('../models/Chat');
+const Chat = require('../repositories/Chat');
 const catchAsync = require('../utils/catchAsync');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
 
@@ -22,7 +22,7 @@ router.post('/rooms/admin/access', authMiddleware, catchAsync(async (req, res) =
     const currentUserId = req.user.id;
     const currentUserRole = req.user.role;
 
-    // 슈퍼관리자이거나, 본인의 지원 채팅방을 찾는 경우만 허용
+    // 슈퍼관리자이거나 본인의 지원 채팅방을 찾는 경우만 허용
     const targetUserId = currentUserRole === 'super_admin' ? (user_id ? parseInt(user_id) : currentUserId) : currentUserId;
 
     const room = await Chat.accessRoom({
@@ -32,7 +32,7 @@ router.post('/rooms/admin/access', authMiddleware, catchAsync(async (req, res) =
     res.json({ success: true, data: room });
 }));
 
-// [GET] 슈퍼관리자용 모든 지원 채팅방 목록 조회
+// [GET] 슈퍼관리자의 모든 지원 채팅방 목록 조회
 router.get('/rooms/admin', authMiddleware, adminOnly, catchAsync(async (req, res) => {
     const rooms = await Chat.getAdminRooms();
     res.json({ success: true, data: rooms });
@@ -69,8 +69,5 @@ router.post('/messages', authMiddleware, catchAsync(async (req, res) => {
 
     res.json({ success: true, data: message });
 }));
-
-module.exports = router;
-
 
 module.exports = router;

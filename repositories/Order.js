@@ -671,6 +671,63 @@ const Order = {
       console.error('[Prisma Error] getForecast failed:', error);
       return { forecast: [], confidence: 0, metadata: null };
     }
+  },
+
+  // [트렌딩 상품 ID 조회]
+  findTrendingProducts: async (storeId, durationHours = 6, limit = 5) => {
+    try {
+      const thresholdTime = new Date(Date.now() - durationHours * 60 * 60 * 1000);
+      const trendingData = await prisma.order_items.groupBy({
+        by: ['product_id'],
+        where: {
+          product_id: { not: null },
+          created_at: { gte: thresholdTime },
+          orders: {
+            store_id: parseInt(storeId),
+          }
+        },
+        _count: { product_id: true },
+        orderBy: { _count: { product_id: 'desc' } },
+        take: limit,
+      });
+      return trendingData.map(t => t.product_id).filter(Boolean);
+    } catch (error) {
+      console.error('[Prisma Error] findTrendingProducts failed:', error);
+      return [];
+    }
+  },
+
+  // [상품 조합 페어링 데이터 조회]
+  findPairingData: async (productIds, limit = 10) => {
+    try {
+      const parsedProductIds = productIds.map(id => parseInt(id));
+      
+      // 1. 해당 상품들이 포함된 주문 ID 조회
+      const orderItemsWithProducts = await prisma.order_items.findMany({
+        where: { product_id: { in: parsedProductIds } },
+        select: { order_id: true }
+      });
+      const orderIds = orderItemsWithProducts.map(i => i.order_id);
+
+      if (orderIds.length === 0) return [];
+
+      // 2. 그 주문들 안에서 원본 상품을 제외하고 같이 구매된 상품 집계
+      const pairingData = await prisma.order_items.groupBy({
+        by: ['product_id'],
+        where: {
+          order_id: { in: orderIds },
+          product_id: { notIn: parsedProductIds }
+        },
+        _count: { product_id: true },
+        orderBy: { _count: { product_id: 'desc' } },
+        take: limit
+      });
+
+      return pairingData;
+    } catch (error) {
+      console.error('[Prisma Error] findPairingData failed:', error);
+      return [];
+    }
   }
 };
 

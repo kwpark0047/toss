@@ -266,34 +266,37 @@ const OrderManager = () => {
       </div>
 
       {/* ── 검색 + 날짜 필터 ───────────────────────────────────────── */}
-      <div className="flex gap-2 mb-3">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            type="text"
-            placeholder="주문번호 · 고객 · 테이블"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2.5 bg-white/8 border border-white/10 rounded-xl text-white text-sm font-medium placeholder:text-slate-600 outline-none focus:border-orange-500/50 transition-colors"
-          />
+      <div className="flex flex-col sm:flex-row gap-2.5 mb-4">
+        <div className="flex gap-2 flex-1">
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text"
+              placeholder="주문번호 · 고객 · 테이블"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-3 h-12 bg-white/8 border border-white/10 rounded-xl text-white text-sm font-medium placeholder:text-slate-600 outline-none focus:border-orange-500/50 transition-colors"
+            />
+          </div>
+          {(searchTerm || selectedStatus !== 'all') && (
+            <button
+              onClick={() => { setSearchTerm(''); setSelectedStatus('all'); }}
+              className="w-12 h-12 bg-white/8 border border-white/10 rounded-xl flex items-center justify-center text-slate-500 hover:text-white transition-colors"
+              aria-label="필터 초기화"
+            >
+              <Filter size={18} />
+            </button>
+          )}
         </div>
         <div className="relative">
-          <Calendar size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+          <Calendar size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
           <input
             type="date"
             value={selectedDate}
             onChange={e => setSelectedDate(e.target.value)}
-            className="pl-9 pr-2 py-2.5 bg-white/8 border border-white/10 rounded-xl text-white text-sm font-medium outline-none focus:border-orange-500/50 transition-colors appearance-none"
+            className="w-full sm:w-auto pl-10 pr-3 h-12 bg-white/8 border border-white/10 rounded-xl text-white text-sm font-medium outline-none focus:border-orange-500/50 transition-colors appearance-none"
           />
         </div>
-        {(searchTerm || selectedStatus !== 'all') && (
-          <button
-            onClick={() => { setSearchTerm(''); setSelectedStatus('all'); }}
-            className="w-10 h-10 bg-white/8 border border-white/10 rounded-xl flex items-center justify-center text-slate-500 hover:text-white transition-colors"
-          >
-            <Filter size={15} />
-          </button>
-        )}
       </div>
 
       {/* ── 상태 탭 (수평 스크롤) ──────────────────────────────────── */}
