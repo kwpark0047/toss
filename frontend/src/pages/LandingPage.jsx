@@ -889,11 +889,20 @@ const LandingPage = () => {
                     <div className="grid lg:grid-cols-12 gap-12 items-start">
                         {/* 왼쪽 7칸: 기존 매장 검색 레이아웃 */}
                         <div className="lg:col-span-7 space-y-6">
-                            <div className="flex items-center gap-2 px-1">
-                                <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
-                                    <MapPin size={15} className="text-slate-500" />
+                            <div className="flex flex-wrap items-center gap-3 px-1">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
+                                        <MapPin size={15} className="text-slate-500" />
+                                    </div>
+                                    <h2 className="font-black text-gray-900 text-lg">전체 매장 위치</h2>
                                 </div>
-                                <h2 className="font-black text-gray-900 text-lg">전체 매장 위치</h2>
+                                <span className="text-gray-300">|</span>
+                                <Link 
+                                    to="/foodtruck/landing"
+                                    className="inline-flex items-center gap-1.5 px-3 border border-orange-500/30 hover:border-orange-500 text-orange-600 rounded-full text-xs font-bold py-1 bg-orange-50 hover:bg-orange-100 transition-all cursor-pointer"
+                                >
+                                    <Truck size={12} className="animate-pulse" /> 실시간 푸드트럭 위치 조회 <ChevronRight size={10} />
+                                </Link>
                             </div>
                             <StoreLocator />
                         </div>
