@@ -64,6 +64,10 @@ const FoodTruckLanding = lazy(() => import("./pages/FoodTruckLanding"));
 const FoodTruckOwnerDashboard = lazy(() => import("@/components/admin/FoodTruckOwnerDashboard"));
 const FoodTruckDesignShowcase = lazy(() => import("./pages/FoodTruckDesignShowcase"));
 const FoodTruckAnalyticsDashboard = lazy(() => import("@/components/admin/FoodTruckAnalyticsDashboard"));
+const FeaturesPage = lazy(() => import("./pages/marketing/FeaturesPage"));
+const PricingPage = lazy(() => import("./pages/marketing/PricingPage"));
+const GuidesPage = lazy(() => import("./pages/marketing/GuidesPage"));
+const ContactPage = lazy(() => import("./pages/marketing/ContactPage"));
 
 const queryClient = new QueryClient();
 
@@ -142,6 +146,10 @@ const AppRoutes = memo(() => (
     <Route path="/payment/fail" element={<AdminSuspense><PaymentFail /></AdminSuspense>} />
     <Route path="/kiosk/:storeId" element={<AdminSuspense><KioskPage /></AdminSuspense>} />
     <Route path="/qr/:qrCode" element={<AdminSuspense><QrResolvePage /></AdminSuspense>} />
+    <Route path="/features" element={<AdminSuspense><FeaturesPage /></AdminSuspense>} />
+    <Route path="/pricing" element={<AdminSuspense><PricingPage /></AdminSuspense>} />
+    <Route path="/guides" element={<AdminSuspense><GuidesPage /></AdminSuspense>} />
+    <Route path="/contact" element={<AdminSuspense><ContactPage /></AdminSuspense>} />
 
     {/* Admin 메인 대시보드 */}
     <Route path="/admin" element={

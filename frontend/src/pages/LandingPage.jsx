@@ -57,11 +57,11 @@ const LandingPage = () => {
     }, [cycleKey]);
 
     const navItems = [
-        { label: '기능 소개', href: '#features' },
-        { label: '매장 위치', href: '#locations' },
+        { label: '기능 소개', to: '/features' },
+        { label: '요금제', to: '/pricing' },
         { label: '푸드트럭', to: '/foodtruck/landing' },
-        { label: '이용 방법', href: '#how-to' },
-        { label: '요금제', href: '#pricing' },
+        { label: '이용 가이드', to: '/guides' },
+        { label: '문의하기', to: '/contact' },
         { label: '데모 보기', href: '#demo' },
     ];
 
