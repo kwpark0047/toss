@@ -11,7 +11,7 @@ import {
     Zap, Link2, Gift, ShieldCheck, Play, Sparkles,
     TrendingUp, Star, Quote, ShoppingCart,
     Heart, Crown, Award, BadgeCheck, CalendarDays, UserPlus,
-    Building2, Share2, Megaphone, MapPin, Repeat2, Target,
+    Building2, Share2, Megaphone, MapPin, Repeat2, Target, Truck,
 } from 'lucide-react';
 
 const LandingPage = () => {
@@ -59,6 +59,7 @@ const LandingPage = () => {
     const navItems = [
         { label: '기능 소개', href: '#features' },
         { label: '매장 위치', href: '#locations' },
+        { label: '푸드트럭', to: '/foodtruck/landing' },
         { label: '이용 방법', href: '#how-to' },
         { label: '요금제', href: '#pricing' },
         { label: '데모 보기', href: '#demo' },
@@ -194,10 +195,17 @@ const LandingPage = () => {
 
                     <nav className="hidden md:flex items-center gap-8">
                         {navItems.map(item => (
-                            <a key={item.label} href={item.href}
-                                className="text-sm font-medium text-gray-600 hover:text-orange-500 transition-colors">
-                                {item.label}
-                            </a>
+                            item.to ? (
+                                <Link key={item.label} to={item.to}
+                                    className="text-sm font-medium text-gray-600 hover:text-orange-500 transition-colors">
+                                    {item.label}
+                                </Link>
+                            ) : (
+                                <a key={item.label} href={item.href}
+                                    className="text-sm font-medium text-gray-600 hover:text-orange-500 transition-colors">
+                                    {item.label}
+                                </a>
+                            )
                         ))}
                     </nav>
 
@@ -228,9 +236,15 @@ const LandingPage = () => {
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                             className="md:hidden bg-white border-t border-gray-100 px-6 py-6 space-y-4 overflow-hidden">
                             {navItems.map(item => (
-                                <a key={item.label} href={item.href}
-                                    className="block text-base font-medium text-gray-700 hover:text-orange-500"
-                                    onClick={() => setMobileMenuOpen(false)}>{item.label}</a>
+                                item.to ? (
+                                    <Link key={item.label} to={item.to}
+                                        className="block text-base font-medium text-gray-700 hover:text-orange-500"
+                                        onClick={() => setMobileMenuOpen(false)}>{item.label}</Link>
+                                ) : (
+                                    <a key={item.label} href={item.href}
+                                        className="block text-base font-medium text-gray-700 hover:text-orange-500"
+                                        onClick={() => setMobileMenuOpen(false)}>{item.label}</a>
+                                )
                             ))}
                             <div className="pt-4 border-t border-gray-100 space-y-3">
                                 <Link to="/auth" className="block text-center py-3 text-gray-700 font-bold border border-gray-200 rounded-full">로그인</Link>
@@ -868,9 +882,66 @@ const LandingPage = () => {
             )}
 
             {/* ══════════════════════════════════════════════
-                매장 위치 (지역·업종·고객위치 검색)
+                매장 위치 & 푸드트럭 실시간 위치 (지역·업종·고객위치 검색)
             ══════════════════════════════════════════════ */}
-            <StoreLocator />
+            <div id="locations" className="py-24 px-6 bg-gradient-to-b from-white to-slate-50/50">
+                <div className="max-w-7xl mx-auto">
+                    <div className="grid lg:grid-cols-12 gap-12 items-start">
+                        {/* 왼쪽 7칸: 기존 매장 검색 레이아웃 */}
+                        <div className="lg:col-span-7 space-y-6">
+                            <div className="flex items-center gap-2 px-1">
+                                <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
+                                    <MapPin size={15} className="text-slate-500" />
+                                </div>
+                                <h2 className="font-black text-gray-900 text-lg">전체 매장 위치</h2>
+                            </div>
+                            <StoreLocator />
+                        </div>
+
+                        {/* 오른쪽 5칸: 고도화된 실시간 푸드트럭 실측 지도 바로가기 카드 */}
+                        <div className="lg:col-span-5 bg-gradient-to-br from-orange-500 to-rose-600 rounded-3xl p-8 text-white shadow-xl shadow-orange-100 relative overflow-hidden group">
+                            {/* 데코 레이아웃 */}
+                            <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-xl group-hover:scale-110 transition-transform duration-500" />
+                            <div className="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-black/10 blur-xl" />
+                            
+                            <div className="relative z-10 flex flex-col h-full justify-between">
+                                <div>
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 rounded-full text-xs font-black mb-6 uppercase tracking-wider">
+                                        <Sparkles size={11} className="animate-pulse" /> Live Tracker
+                                    </span>
+                                    
+                                    <h3 className="text-2xl md:text-3xl font-black mb-4 leading-tight">
+                                        실시간 이동식<br />
+                                        <span className="text-amber-200">푸드트럭 실측 위치</span>
+                                    </h3>
+                                    
+                                    <p className="text-white/80 text-sm leading-relaxed mb-6">
+                                        현재 길거리 야시장이나 축제 현장에서 영업 중인 푸드트럭들의 정확한 한글 행정구역 주소와 실시간 레이아웃, 재료 품절 현황을 원클릭으로 추적하세요.
+                                    </p>
+                                    
+                                    <div className="space-y-3 mb-8">
+                                        {[
+                                            'HTML5 Geolocation 실시간 위치 싱크',
+                                            '홍대·강남·대학로 실측 주소 자동 변환',
+                                            '갑작스러운 품절/마감 상태 즉시 감지'
+                                        ].map((t, idx) => (
+                                            <div key={idx} className="flex items-center gap-2.5 text-xs text-orange-50">
+                                                <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[9px] font-black">✓</div>
+                                                {t}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                
+                                <Link to="/foodtruck/landing"
+                                    className="w-full py-4 bg-white text-orange-600 rounded-2xl font-black text-center text-sm shadow-md hover:bg-orange-50 transition-colors flex items-center justify-center gap-2">
+                                    <Truck size={16} /> 실시간 푸드트럭 추적기 바로가기 <ArrowRight size={14} />
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* ══════════════════════════════════════════════
                 이용 방법
