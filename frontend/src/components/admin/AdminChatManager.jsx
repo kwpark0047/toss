@@ -7,8 +7,27 @@ import {
 } from 'lucide-react';
 import { chatAPI, getSocket } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+
+const formatTimeHHMM = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
+const formatTimeAmPm = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  let hours = date.getHours();
+  const ampm = hours >= 12 ? '오후' : '오전';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${ampm} ${hours}:${minutes}`;
+};
 
 /**
  * AdminChatManager — 슈퍼관리자 & 사업자 간 1:1 채팅 관리자.
@@ -231,7 +250,7 @@ const AdminChatManager = ({ isOpen, onClose }) => {
                               <div className="flex items-center justify-between mb-1">
                                 <span className="font-bold text-sm truncate">{room.users?.name}</span>
                                 <span className="text-[10px] text-slate-500">
-                                  {room.updated_at ? format(new Date(room.updated_at), 'HH:mm', { locale: ko }) : ''}
+                                  {room.updated_at ? formatTimeHHMM(room.updated_at) : ''}
                                 </span>
                               </div>
                               <p className="text-xs text-slate-400 truncate leading-relaxed">
@@ -288,7 +307,7 @@ const AdminChatManager = ({ isOpen, onClose }) => {
                                   <span className="text-[10px] text-orange-400/60 font-bold uppercase tracking-tighter">Read</span>
                                 )}
                                 <span className="text-[9px] text-slate-600">
-                                  {format(new Date(msg.created_at), 'aa h:mm', { locale: ko })}
+                                  {formatTimeAmPm(msg.created_at)}
                                 </span>
                               </div>
                             </div>
