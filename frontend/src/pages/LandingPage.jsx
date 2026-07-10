@@ -59,6 +59,7 @@ const LandingPage = () => {
     const navItems = [
         { label: '기능 소개', to: '/features' },
         { label: '요금제', to: '/pricing' },
+        { label: '매장 위치', href: '#locations' },
         { label: '푸드트럭', to: '/foodtruck/landing' },
         { label: '이용 가이드', to: '/guides' },
         { label: '문의하기', to: '/contact' },
