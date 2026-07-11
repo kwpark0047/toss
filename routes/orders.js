@@ -9,6 +9,9 @@ const { order: schema } = require('../utils/validationSchemas');
 // 주문 생성 (공개)
 router.post('/', validate(schema.create), orderController.createOrder);
 
+// 고객용 실시간 웹 푸시 온보딩 토큰 전역 등록 (역방향 KDS 취소 알림용)
+router.post('/:orderId/customer-token', orderController.registerCustomerToken);
+
 // 고객 본인의 주문 내역 조회 (전화번호 또는 토스 키 기반)
 router.get('/customer/history', orderController.getCustomerHistory);
 

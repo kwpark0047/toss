@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { CheckCircle2, Loader2, Sparkles, ShoppingBag, ArrowRight, Share2, PlusSquare } from 'lucide-react';
+import { CheckCircle2, Loader2, Sparkles, ShoppingBag, ArrowRight, Bell, Smartphone, Share, Info } from 'lucide-react';
 import { paymentsAPI } from '../api';
+import { requestNotificationPermission } from '../firebase';
 import { toast } from 'react-toastify';
 
 export default function PaymentSuccess() {
@@ -13,9 +14,14 @@ export default function PaymentSuccess() {
   const [errorMsg, setErrorMsg] = useState('');
   const [paymentData, setPaymentResult] = useState(null);
 
-  // PWA 설치용 상태 관리
+  // PWA 앱 설치 프로모션용 상태
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isiOS, setIsiOS] = useState(false);
+  const [isSafari, setIsSafari] = useState(false);
+
+  // 실시간 웹 푸시 온보딩용 상태
+  const [showPushPrompt, setShowPushPrompt] = useState(false);
+  const [pushOnboarded, setPushOnboarded] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
 
   // 파라미터 파싱
   const paymentKey = searchParams.get('paymentKey');
@@ -25,19 +31,26 @@ export default function PaymentSuccess() {
   const phone = searchParams.get('phone');
   const tossUserKey = searchParams.get('tossUserKey');
 
-  // PWA beforeinstallprompt 감지 및 기기 체크
   useEffect(() => {
+    // 1. PWA 설치 브라우저 이벤트 감지 리스너 등록
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
     };
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // iOS 기기 여부 검증
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isApple = /iphone|ipad|ipod/.test(userAgent);
-    setIsiOS(isApple);
+    // 2. 아이폰 Safari 환경 여부 판별 (Safari 전용 수동 홈화면 추가 팝업 가이드용)
+    const ua = window.navigator.userAgent;
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const isSafariUA = /^((?!chrome|android).)*safari/i.test(ua);
+    if (isIOS && isSafariUA) {
+      setIsSafari(true);
+    }
+
+    // 3. 브라우저 실시간 알림 권한 상태 판별 (온보딩 프롬프트 노출용)
+    if ('Notification' in window && Notification.permission === 'default') {
+      setShowPushPrompt(true);
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -80,20 +93,52 @@ export default function PaymentSuccess() {
     capturePayment();
   }, [paymentKey, orderId, paymentId, phone, tossUserKey]);
 
-  // 원클릭 PWA 설치 실행 핸들러
-  const handleInstallPwa = async () => {
+  // PWA 원클릭 브라우저 전용 설치 트리거
+  const handlePwaInstall = async () => {
     if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      toast.success('위마켓 앱이 홈 화면에 추가되고 있습니다! 🎉');
-      setDeferredPrompt(null);
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        toast.success('위마켓 전용 모바일 앱이 성공적으로 추가되고 있습니다!');
+        setDeferredPrompt(null);
+      }
+    } catch (err) {
+      console.error('[PWA Install] Trigger failed:', err);
+    }
+  };
+
+  // 실시간 웹 푸시 온보딩 토큰 갱신 등록
+  const handleEnablePush = async () => {
+    setPushLoading(true);
+    try {
+      const token = await requestNotificationPermission();
+      if (token) {
+        const res = await fetch(`/api/orders/${paymentData?.order?.id || paymentId}/customer-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+        if (res.ok) {
+          setPushOnboarded(true);
+          toast.success('실시간 주문 알림 푸시가 성공적으로 수신 활성화되었습니다! 🔔');
+        } else {
+          throw new Error('토큰 연동에 실패했습니다.');
+        }
+      } else {
+        toast.warn('알림 권한이 거부되었습니다. 주소창 왼쪽 설정을 눌러 알림을 다시 허용해 주세요.');
+      }
+    } catch (err) {
+      console.error('[Push Onboarding] Error:', err);
+      toast.error('푸시 알림 온보딩 중 오류가 발생했습니다.');
+    } finally {
+      setPushLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 select-none">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden flex flex-col gap-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-[32px] p-6 sm:p-8 shadow-2xl relative overflow-hidden">
         {/* 장식용 글로우 배경 */}
         <div className="absolute -top-12 -left-12 w-24 h-24 bg-orange-500/10 rounded-full blur-xl pointer-events-none" />
         <div className="absolute -bottom-12 -right-12 w-24 h-24 bg-orange-500/10 rounded-full blur-xl pointer-events-none" />
@@ -114,7 +159,7 @@ export default function PaymentSuccess() {
         )}
 
         {status === 'success' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-6">
             <div className="flex flex-col items-center justify-center text-center space-y-3">
               <div className="relative">
                 <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center animate-bounce">
@@ -142,56 +187,89 @@ export default function PaymentSuccess() {
                 </span>
               </div>
               {paymentData?.pointsEarned > 0 && (
-                <div className="flex justify-between text-xs bg-orange-500/5 border border-orange-500/10 p-2 rounded-lg">
+                <div className="flex justify-between text-xs bg-orange-500/5 border border-orange-500/10 p-2.5 rounded-xl">
                   <span className="text-orange-300 font-medium">적립된 포인트</span>
                   <span className="text-orange-400 font-bold font-mono">+{paymentData.pointsEarned.toLocaleString()} P</span>
                 </div>
               )}
             </div>
 
-            {/* PWA 상용 앱 설치 제안 카드 (미설치 고객 온보딩 최적화 배너) */}
-            <div className="bg-slate-950/60 border border-slate-800 p-5 rounded-2xl space-y-4 shadow-xl">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-lg">
-                  <Sparkles className="size-4 animate-pulse" />
+            {/* 실시간 픽업/취소 알림 웹 푸시 온보딩 프로모션 카드 */}
+            {showPushPrompt && !pushOnboarded && (
+              <div className="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+                    <Bell className="size-4" />
+                  </div>
+                  <div className="min-w-0 text-left">
+                    <h4 className="text-xs font-black text-indigo-300">실시간 주문 & 취소 알림 받기</h4>
+                    <p className="text-[10px] text-slate-400 leading-normal mt-1 font-semibold">
+                      주방에서 음식을 완성해 호출하거나 비상 취소 상황 발생 시 브라우저 푸시 알림을 즉시 수신합니다.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-black text-white">WeMarket 고객 전용 앱 추가</h4>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Zero-Friction PWA Install</p>
+
+                <button
+                  onClick={handleEnablePush}
+                  disabled={pushLoading}
+                  className="w-full h-11 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white rounded-xl text-xs font-black transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-500/10"
+                >
+                  {pushLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>알림 활성화 중...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Bell className="w-4 h-4" />
+                      <span>실시간 알림(웹 푸시) 켜기</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* 고객 맞춤형 홈 화면 PWA 전용 설치 카드 */}
+            <div className="p-5 rounded-2xl bg-white/[0.01] border border-white/5 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center shrink-0 shadow-md">
+                  <Smartphone className="size-5" />
+                </div>
+                <div className="text-left space-y-1">
+                  <h4 className="text-xs font-black text-white">WeMarket 고객용 전용 웹앱 설치</h4>
+                  <p className="text-[10px] text-slate-400 leading-relaxed font-semibold">
+                    바탕화면에 전용 웹앱을 추가하면 주문 내역 및 포인트 적립 장부를 1초 자동 로그인으로 실시간 편하게 모니터링할 수 있습니다.
+                  </p>
                 </div>
               </div>
 
-              <p className="text-[11px] text-slate-400 leading-relaxed font-sans font-semibold">
-                홈 화면에 앱을 추가하면 알림톡 없이도 <strong>실시간 조리/호출 푸시 알림</strong>을 받을 수 있고, 번거로운 인증 없이 <strong>내 대기순서 및 포인트 적립 내역</strong>을 1초 만에 바로 조회할 수 있습니다!
-              </p>
-
               {deferredPrompt ? (
-                /* 크롬 / 안드로이드 표준 PWA 프로그래매틱 설치 단추 (48px 터치 타겟) */
+                /* 원클릭 PWA 설치 버튼 지원 브라우저 (크롬, 안드로이드 등) */
                 <button
-                  onClick={handleInstallPwa}
-                  className="w-full h-12 bg-orange-500 hover:bg-orange-600 active:scale-95 text-slate-950 font-black rounded-xl text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/10 animate-bounce"
+                  onClick={handlePwaInstall}
+                  className="w-full h-11 bg-orange-500 hover:bg-orange-600 active:scale-95 text-slate-950 font-black rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-orange-500/10 animate-pulse"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  위마켓 앱 홈 화면에 1초 추가
+                  <Smartphone className="size-4" />
+                  <span>위마켓 원클릭 앱 설치 (추천)</span>
                 </button>
-              ) : isiOS ? (
-                /* iOS Safari 수동 설치 가이드 발룬 */
-                <div className="p-4 bg-white/5 border border-white/5 rounded-xl space-y-2 text-[10px] text-slate-300 font-medium leading-relaxed">
-                  <p className="text-orange-400 font-bold flex items-center gap-1.5">
-                    <PlusSquare size={13} />
-                    아이폰(Safari) 원클릭 홈 화면 추가 가이드
-                  </p>
-                  <ol className="list-decimal pl-4 space-y-1.5 text-slate-400 font-semibold">
-                    <li>Safari 브라우저 하단의 <strong className="text-white">공유 (Share)</strong> 버튼 클릭</li>
-                    <li>목록을 아래로 스크롤하여 <strong className="text-white">'홈 화면에 추가'</strong> 버튼 클릭</li>
-                    <li>우측 상단의 <strong className="text-white">'추가'</strong>를 누르면 설치가 완료됩니다!</li>
+              ) : isSafari ? (
+                /* 아이폰 Safari용 브라우저 수동 홈화면 추가 벌룬 가이드 */
+                <div className="bg-slate-950 border border-white/5 p-4 rounded-xl text-left space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs text-orange-400 font-bold">
+                    <Info size={13} />
+                    <span>아이폰 iOS 설치 가이드</span>
+                  </div>
+                  <ol className="text-[10px] text-slate-400 space-y-1.5 list-decimal pl-4 leading-normal font-semibold">
+                    <li>하단 내비게이션 바의 <Share className="size-3 inline mx-0.5 text-blue-400" /> <strong>공유</strong> 버튼을 탭합니다.</li>
+                    <li>목록 아래로 내려서 <strong>'홈 화면에 추가'</strong> 버튼을 클릭합니다.</li>
+                    <li>우측 상단 <strong>'추가'</strong>를 선택하여 위앱을 바탕화면에 안착시킵니다.</li>
                   </ol>
                 </div>
               ) : (
-                /* 일반 기기용 설치 안내 플레이스홀더 */
-                <div className="p-3 bg-white/5 border border-white/5 rounded-xl text-[10px] text-slate-500 text-center font-bold leading-normal">
-                  이미 앱이 설치되었거나 앱 구동 중입니다.<br />
-                  홈 화면의 아이콘을 이용하면 실시간 픽업 조회가 가능합니다.
+                /* 미지원 브라우저 혜택 요약 캡션 */
+                <div className="flex items-center gap-2 px-1 text-[10px] text-slate-500 font-semibold text-left">
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-700 shrink-0" />
+                  <span>이미 설치되었거나 브라우저 홈 화면에 추가를 제공하지 않는 환경입니다.</span>
                 </div>
               )}
             </div>

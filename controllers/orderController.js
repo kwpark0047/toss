@@ -2,6 +2,7 @@ const Order = require('../repositories/Order');
 const OrderService = require('../services/OrderService');
 const catchAsync = require('../utils/catchAsync');
 const logger = require('../utils/logger');
+const prisma = require('../config/prisma');
 
 const orderController = {
     // 주문 생성
@@ -72,6 +73,41 @@ const orderController = {
         }
         const stats = await Order.getDetailedStats(req.params.storeId, start_date, end_date);
         res.success(stats);
+    }),
+
+    /**
+     * [POST] 고객 모바일 토글 FCM 푸시 토큰 전역 등록 (역방향 알림 온보딩)
+     */
+    registerCustomerToken: catchAsync(async (req, res) => {
+        const orderId = parseInt(req.params.orderId);
+        const { token } = req.body;
+
+        if (isNaN(orderId)) {
+            return res.status(400).json({ error: 'invalid_request', message: '올바르지 않은 주문 ID 형식입니다.' });
+        }
+        if (!token) {
+            return res.status(400).json({ error: 'invalid_request', message: 'FCM 토큰이 제공되지 않았습니다.' });
+        }
+
+        // 1. 주문 모델 내 customer_fcm_token 갱신 (역방향 알림 및 픽업 호출 타겟 동기화)
+        const order = await prisma.orders.update({
+            where: { id: orderId },
+            data: { customer_fcm_token: token }
+        });
+
+        // 2. 해당 주문에 연결된 고객 전화번호가 존재한다면, 단골고객 테이블(store_customers)의 fcm_token도 자동 갱신 (CRM 알림 동기화)
+        if (order.customer_phone) {
+            await prisma.store_customers.updateMany({
+                where: { 
+                    store_id: order.store_id, 
+                    customer_phone: order.customer_phone 
+                },
+                data: { fcm_token: token }
+            });
+            logger.info(`[FCM Token] Synced customer PWA push token: Store ${order.store_id}`);
+        }
+
+        res.json({ success: true, message: '고객용 실시간 웹 푸시 온보딩 토큰이 성공적으로 등록되었습니다.' });
     })
 };
 
