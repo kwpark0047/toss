@@ -300,10 +300,10 @@ export default function FoodTruckOwnerDashboard() {
             </p>
           </div>
 
-          {/* 자동 업데이트 활성 스위치 */}
+          {/* 자동 업데이트 활성 스위치 (최소 44px 모바일 터치 타겟 규격 준수 고도화) */}
           <button
             onClick={toggleAutoSync}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 border ${
+            className={`flex items-center justify-center gap-2 px-6 h-12 rounded-xl text-xs font-bold transition-all active:scale-95 border ${
               autoSync 
                 ? 'bg-orange-500/15 text-orange-500 border-orange-500/30' 
                 : 'bg-slate-950/40 text-slate-400 border-slate-800'
@@ -358,28 +358,28 @@ export default function FoodTruckOwnerDashboard() {
           <p className="text-[11px] text-slate-400 font-semibold leading-relaxed">
             GPS 전파 차단 지하층, 빌딩 숲 상권의 위성 반사 오류로 좌표 왜곡 발생 시 가동할 수 있는 핫스팟 원클릭 주소 고정 패널입니다.
           </p>
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex flex-wrap gap-2.5 pt-1">
             <button
               onClick={() => handleSpotSelect(37.5562, 126.9224, '홍대 걷고싶은거리')}
-              className="px-3.5 py-2 rounded-xl bg-slate-950/30 border border-slate-800 text-xs font-bold hover:border-orange-500/40 text-slate-300 hover:text-white transition-all active:scale-95"
+              className="px-5 h-11 rounded-xl bg-slate-950/30 border border-slate-800 text-xs font-bold hover:border-orange-500/40 text-slate-300 hover:text-white transition-all active:scale-95 flex items-center justify-center"
             >
               🚩 홍대입구
             </button>
             <button
               onClick={() => handleSpotSelect(37.4979, 127.0276, '강남역 11번 출구 스퀘어')}
-              className="px-3.5 py-2 rounded-xl bg-slate-950/30 border border-slate-800 text-xs font-bold hover:border-orange-500/40 text-slate-300 hover:text-white transition-all active:scale-95"
+              className="px-5 h-11 rounded-xl bg-slate-950/30 border border-slate-800 text-xs font-bold hover:border-orange-500/40 text-slate-300 hover:text-white transition-all active:scale-95 flex items-center justify-center"
             >
               🚩 강남역 사거리
             </button>
             <button
               onClick={() => handleSpotSelect(37.5822, 127.0018, '대학로 마로니에 예술공원')}
-              className="px-3.5 py-2 rounded-xl bg-slate-950/30 border border-slate-800 text-xs font-bold hover:border-orange-500/40 text-slate-300 hover:text-white transition-all active:scale-95"
+              className="px-5 h-11 rounded-xl bg-slate-950/30 border border-slate-800 text-xs font-bold hover:border-orange-500/40 text-slate-300 hover:text-white transition-all active:scale-95 flex items-center justify-center"
             >
               🚩 대학로
             </button>
             <button
               onClick={() => handleSpotSelect(35.1585, 129.0620, '부산 서면 쥬디스태화 스퀘어')}
-              className="px-3.5 py-2 rounded-xl bg-slate-950/30 border border-slate-800 text-xs font-bold hover:border-orange-500/40 text-slate-300 hover:text-white transition-all active:scale-95"
+              className="px-5 h-11 rounded-xl bg-slate-950/30 border border-slate-800 text-xs font-bold hover:border-orange-500/40 text-slate-300 hover:text-white transition-all active:scale-95 flex items-center justify-center"
             >
               🚩 부산 서면
             </button>

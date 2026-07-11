@@ -2,7 +2,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { 
   Play, CheckCircle2, RefreshCw, Printer, Volume2, VolumeX, 
-  Wifi, WifiOff, Clock, User, ChevronRight, Hash, XCircle
+  Wifi, WifiOff, Clock, User, ChevronRight, Hash, XCircle, Keyboard
 } from 'lucide-react';
 import socket, { connectKitchen, getSocket } from '../utils/socket';
 import notificationSound, { vibrateShort, vibrateOrderReady } from '../utils/notificationSound';
@@ -204,12 +204,75 @@ export default function KitchenDisplay() {
   const preparingOrders = filteredOrders.filter(o => o.status === 'preparing');
   const readyOrders = filteredOrders.filter(o => o.status === 'ready');
 
+  // 키보드 단축키 핸들러 (KDS 주방 무선 조작 가동을 위한 고도화)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // 입력 필드 포커싱 상태면 단축키 바인딩 차단
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      // 1. KDS 필터 전환 (1: 전체, 2: 매장, 3: 포장)
+      if (key === '1') {
+        setFilteredType('ALL');
+        vibrateShort();
+      } else if (key === '2') {
+        setFilteredType('DINE_IN');
+        vibrateShort();
+      } else if (key === '3') {
+        setFilteredType('TAKEOUT');
+        vibrateShort();
+      }
+
+      // 2. 사운드 볼륨 음소거 토글 (q)
+      if (key === 'q') {
+        setSoundEnabled(prev => !prev);
+        vibrateShort();
+      }
+
+      // 3. 접수 대기(PENDING) 가장 오래된 주문 즉시 접수 (p)
+      if (key === 'p') {
+        if (pendingOrders.length > 0) {
+          const oldestOrder = pendingOrders[0];
+          handleUpdateStatus(oldestOrder.id, 'preparing');
+        }
+      }
+
+      // 4. 조리 중(PREPARING) 가장 오래된 주문 조리 완료 (r)
+      if (key === 'r') {
+        if (preparingOrders.length > 0) {
+          const oldestOrder = preparingOrders[0];
+          handleUpdateStatus(oldestOrder.id, 'ready');
+        }
+      }
+
+      // 5. 수령 대기(READY) 가장 오래된 주문 수령 인도 완료 (c)
+      if (key === 'c') {
+        if (readyOrders.length > 0) {
+          const oldestOrder = readyOrders[0];
+          handleUpdateStatus(oldestOrder.id, 'completed');
+        }
+      }
+
+      // 6. 새로고침 및 데이터 싱크 (Space)
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        fetchKdsOrders(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pendingOrders, preparingOrders, readyOrders, soundEnabled]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 flex flex-col h-screen select-none">
       {/* KDS 최상단 상단바 헤더 */}
       <header className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="bg-orange-500 text-white p-2 rounded-lg">
+          <div className="bg-orange-500 text-white p-3 rounded-xl shadow-lg shadow-orange-500/10">
             <Printer className="size-5" />
           </div>
           <div>
@@ -223,10 +286,10 @@ export default function KitchenDisplay() {
           </div>
         </div>
 
-        {/* 상단 컨트롤 패널 */}
-        <div className="flex items-center gap-2">
+        {/* 상단 컨트롤 패널 (터치 피드백 강화 및 48px 터치 영역 충족) */}
+        <div className="flex items-center gap-2.5">
           {/* 소켓 연결 표시등 */}
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono border ${
+          <div className={`flex items-center gap-1.5 px-4 h-12 rounded-xl text-xs font-mono border ${
             socketStatus === 'CONNECTED' 
               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
               : 'bg-rose-500/10 text-rose-400 border-rose-500/20 animate-pulse'
@@ -244,24 +307,24 @@ export default function KitchenDisplay() {
             )}
           </div>
 
-          {/* 사운드 활성 토글 */}
+          {/* 사운드 활성 토글 (48px 터치 영역 충족) */}
           <button 
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`p-2 rounded-lg border text-sm font-medium flex items-center gap-1.5 transition-all ${
+            className={`px-4 h-12 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all active:scale-95 ${
               soundEnabled 
                 ? 'bg-orange-500/10 border-orange-500/30 text-orange-400' 
                 : 'bg-slate-900 border-slate-800 text-slate-400'
             }`}
           >
             {soundEnabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
-            <span className="font-mono text-xs uppercase">{soundEnabled ? 'ON' : 'MUTED'}</span>
+            <span className="font-mono text-xs uppercase font-bold">{soundEnabled ? 'ON' : 'MUTED'}</span>
           </button>
 
-          {/* 수동 리프레시 버튼 */}
+          {/* 수동 리프레시 버튼 (48px 터치 영역 충족) */}
           <button 
             onClick={() => fetchKdsOrders(true)}
             disabled={loading}
-            className="p-2 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-850 text-slate-300 disabled:opacity-50 transition-all"
+            className="w-12 h-12 rounded-xl border border-slate-850 bg-slate-900 hover:bg-slate-850 text-slate-300 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center"
           >
             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -270,8 +333,8 @@ export default function KitchenDisplay() {
 
       {/* 필터 툴바 */}
       <div className="flex flex-wrap items-center justify-between gap-3 my-3">
-        {/* 포장/매장 필터 칩 */}
-        <div className="flex bg-slate-900 p-0.5 rounded-lg border border-slate-800">
+        {/* 포장/매장 필터 칩 (48px 터치 영역 충족 및 모션 효과 적용) */}
+        <div className="flex bg-slate-900 p-1 rounded-2xl border border-slate-800">
           {[
             { id: 'ALL', label: '전체 주문' },
             { id: 'DINE_IN', label: '매장 식사' },
@@ -280,9 +343,9 @@ export default function KitchenDisplay() {
             <button
               key={opt.id}
               onClick={() => setFilteredType(opt.id)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              className={`px-5 h-10 rounded-xl text-xs font-bold transition-all active:scale-95 ${
                 filterType === opt.id 
-                  ? 'bg-orange-500 text-white shadow-sm' 
+                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/10' 
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -298,12 +361,12 @@ export default function KitchenDisplay() {
             placeholder="주문 번호, 테이블, 고객명 검색..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-orange-500 placeholder-slate-500 transition-all"
+            className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-orange-500 placeholder-slate-500 transition-all"
           />
           {searchQuery && (
             <button 
               onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1.5 text-slate-500 hover:text-slate-300"
+              className="absolute right-3 top-3 text-slate-500 hover:text-slate-300"
             >
               <XCircle className="size-4" />
             </button>
@@ -327,19 +390,19 @@ export default function KitchenDisplay() {
         <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 overflow-hidden min-h-0">
           {/* 컬럼 1: 접수 대기 (PENDING) */}
           <div className="bg-slate-900/30 rounded-xl border border-slate-900 flex flex-col min-h-0">
-            <div className="p-3 bg-slate-900/50 border-b border-slate-850 flex items-center justify-between">
+            <div className="p-3.5 bg-slate-900/50 border-b border-slate-850 flex items-center justify-between">
               <h2 className="text-xs font-bold text-amber-400 tracking-wider flex items-center gap-2">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
                 접수 대기 (PENDING)
               </h2>
-              <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400">
+              <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400">
                 {pendingOrders.length}
               </span>
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-h-0">
               {pendingOrders.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-content justify-center text-center text-slate-600 py-10">
+                <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-10">
                   <Clock className="size-8 stroke-[1.5] mb-2 opacity-50" />
                   <p className="text-xs">대기 중인 신규 주문이 없습니다.</p>
                 </div>
@@ -347,26 +410,26 @@ export default function KitchenDisplay() {
                 pendingOrders.map(order => (
                   <div 
                     key={order.id} 
-                    className="bg-slate-900 border border-amber-500/20 hover:border-amber-500/40 rounded-lg overflow-hidden transition-all shadow-sm"
+                    className="bg-slate-900 border border-amber-500/20 hover:border-amber-500/40 rounded-xl overflow-hidden transition-all shadow-sm"
                   >
-                    <div className="p-3 border-b border-slate-850/60 bg-amber-500/[0.02] flex items-center justify-between">
+                    <div className="p-3.5 border-b border-slate-850/60 bg-amber-500/[0.02] flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-sm text-slate-100">
                           #{order.order_number.slice(-4)}
                         </span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${
+                        <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${
                           order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'
                         }`}>
                           {order.is_takeout ? '포장' : `${order.table_name || '매장'}번`}
                         </span>
                       </div>
-                      <div className={`px-2 py-0.5 text-xs font-mono font-bold rounded-md border ${getTimerSeverityClass(order.created_at)}`}>
+                      <div className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border ${getTimerSeverityClass(order.created_at)}`}>
                         {formatElapsedTime(order.created_at)}
                       </div>
                     </div>
 
                     {/* 주문 내역 */}
-                    <div className="p-3 flex flex-col gap-2">
+                    <div className="p-3.5 flex flex-col gap-2">
                       <ul className="divide-y divide-slate-850/50">
                         {order.items.map(item => (
                           <li key={item.id} className="py-1.5 flex flex-col text-xs">
@@ -384,16 +447,16 @@ export default function KitchenDisplay() {
                       </ul>
 
                       {order.notes && (
-                        <div className="text-[10px] bg-slate-950 p-2 rounded text-slate-400 border border-slate-900 leading-relaxed">
+                        <div className="text-[10px] bg-slate-950 p-2.5 rounded-lg text-slate-400 border border-slate-900 leading-relaxed">
                           <strong className="text-amber-500">요청사항:</strong> {order.notes}
                         </div>
                       )}
 
-                      {/* 액션 버튼 */}
+                      {/* 액션 버튼 (48px 터치 영역 충족 및 스케일 모션 적용) */}
                       <button
                         onClick={() => handleUpdateStatus(order.id, 'preparing')}
                         disabled={updatingId === order.id}
-                        className="w-full mt-2 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 rounded font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                        className="w-full mt-2 h-12 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-amber-500/10"
                       >
                         <Play className="size-3.5 fill-current" />
                         주문 접수 & 조리 시작
@@ -407,19 +470,19 @@ export default function KitchenDisplay() {
 
           {/* 컬럼 2: 조리 중 (PREPARING) */}
           <div className="bg-slate-900/30 rounded-xl border border-slate-900 flex flex-col min-h-0">
-            <div className="p-3 bg-slate-900/50 border-b border-slate-850 flex items-center justify-between">
+            <div className="p-3.5 bg-slate-900/50 border-b border-slate-850 flex items-center justify-between">
               <h2 className="text-xs font-bold text-sky-400 tracking-wider flex items-center gap-2">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
                 조리 중 (PREPARING)
               </h2>
-              <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-400">
+              <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-400">
                 {preparingOrders.length}
               </span>
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-h-0">
               {preparingOrders.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-content justify-center text-center text-slate-600 py-10">
+                <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-10">
                   <Printer className="size-8 stroke-[1.5] mb-2 opacity-50" />
                   <p className="text-xs">조리 중인 주문이 없습니다.</p>
                 </div>
@@ -427,26 +490,26 @@ export default function KitchenDisplay() {
                 preparingOrders.map(order => (
                   <div 
                     key={order.id} 
-                    className="bg-slate-900 border border-sky-500/20 hover:border-sky-500/40 rounded-lg overflow-hidden transition-all shadow-sm"
+                    className="bg-slate-900 border border-sky-500/20 hover:border-sky-500/40 rounded-xl overflow-hidden transition-all shadow-sm"
                   >
-                    <div className="p-3 border-b border-slate-850/60 bg-sky-500/[0.02] flex items-center justify-between">
+                    <div className="p-3.5 border-b border-slate-850/60 bg-sky-500/[0.02] flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-sm text-slate-100">
                           #{order.order_number.slice(-4)}
                         </span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${
+                        <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${
                           order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'
                         }`}>
                           {order.is_takeout ? '포장' : `${order.table_name || '매장'}번`}
                         </span>
                       </div>
-                      <div className={`px-2 py-0.5 text-xs font-mono font-bold rounded-md border ${getTimerSeverityClass(order.created_at)}`}>
+                      <div className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border ${getTimerSeverityClass(order.created_at)}`}>
                         {formatElapsedTime(order.created_at)}
                       </div>
                     </div>
 
                     {/* 인터랙티브 체크아이템 주문 상품 목록 */}
-                    <div className="p-3 flex flex-col gap-2">
+                    <div className="p-3.5 flex flex-col gap-2">
                       <ul className="divide-y divide-slate-850/50">
                         {order.items.map(item => {
                           const isChecked = checkedItems[`${order.id}-${item.id}`];
@@ -480,26 +543,26 @@ export default function KitchenDisplay() {
                       </ul>
 
                       {order.notes && (
-                        <div className="text-[10px] bg-slate-950 p-2 rounded text-slate-400 border border-slate-900 leading-relaxed">
+                        <div className="text-[10px] bg-slate-950 p-2.5 rounded-lg text-slate-400 border border-slate-900 leading-relaxed">
                           <strong className="text-sky-500">요청사항:</strong> {order.notes}
                         </div>
                       )}
 
-                      {/* 슬립 인쇄 대기열 강제 재등록 단추 */}
-                      <div className="flex gap-1.5 mt-2">
+                      {/* 슬립 인쇄 대기열 강제 재등록 단추 (48px 터치 영역 충족) */}
+                      <div className="flex gap-2 mt-2">
                         <button
                           onClick={() => handleReprintSlip(order.id)}
                           disabled={updatingId === order.id}
                           title="주방 인쇄 작업 강제 추가"
-                          className="px-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-750 disabled:opacity-50 text-slate-400 hover:text-slate-200 rounded font-medium text-xs flex items-center justify-center transition-all"
+                          className="w-12 h-12 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-750 disabled:opacity-50 text-slate-400 hover:text-slate-200 rounded-xl font-medium text-xs flex items-center justify-center transition-all active:scale-95"
                         >
-                          <Printer className="size-3.5" />
+                          <Printer className="size-4" />
                         </button>
                         
                         <button
                           onClick={() => handleUpdateStatus(order.id, 'ready')}
                           disabled={updatingId === order.id}
-                          className="flex-1 py-2 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-slate-950 rounded font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                          className="flex-1 h-12 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-slate-950 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-sky-500/10"
                         >
                           <CheckCircle2 className="size-3.5" />
                           조리 완료 (CALL)
@@ -514,19 +577,19 @@ export default function KitchenDisplay() {
 
           {/* 컬럼 3: 수령 대기 (READY) */}
           <div className="bg-slate-900/30 rounded-xl border border-slate-900 flex flex-col min-h-0">
-            <div className="p-3 bg-slate-900/50 border-b border-slate-850 flex items-center justify-between">
+            <div className="p-3.5 bg-slate-900/50 border-b border-slate-850 flex items-center justify-between">
               <h2 className="text-xs font-bold text-emerald-400 tracking-wider flex items-center gap-2">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
                 수령 대기 (READY)
               </h2>
-              <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400">
+              <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400">
                 {readyOrders.length}
               </span>
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-h-0">
               {readyOrders.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-content justify-center text-center text-slate-600 py-10">
+                <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-10">
                   <CheckCircle2 className="size-8 stroke-[1.5] mb-2 opacity-50" />
                   <p className="text-xs">호출 대기 중인 완료 메뉴가 없습니다.</p>
                 </div>
@@ -534,27 +597,27 @@ export default function KitchenDisplay() {
                 readyOrders.map(order => (
                   <div 
                     key={order.id} 
-                    className="bg-slate-900 border border-emerald-500/20 hover:border-emerald-500/40 rounded-lg overflow-hidden transition-all shadow-sm"
+                    className="bg-slate-900 border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl overflow-hidden transition-all shadow-sm"
                   >
-                    <div className="p-3 border-b border-slate-850/60 bg-emerald-500/[0.02] flex items-center justify-between">
+                    <div className="p-3.5 border-b border-slate-850/60 bg-emerald-500/[0.02] flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-sm text-slate-100">
                           #{order.order_number.slice(-4)}
                         </span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${
+                        <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${
                           order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'
                         }`}>
                           {order.is_takeout ? '포장' : `${order.table_name || '매장'}번`}
                         </span>
                       </div>
-                      <div className="text-[10px] px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded font-mono font-bold">
+                      <div className="text-[10px] px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg font-mono font-bold">
                         CALLING...
                       </div>
                     </div>
 
                     {/* 수령 정보 카드 */}
-                    <div className="p-3 flex flex-col gap-2">
-                      <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850/60 flex flex-col gap-1.5">
+                    <div className="p-3.5 flex flex-col gap-2">
+                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-850/60 flex flex-col gap-1.5">
                         <div className="flex items-center gap-1.5 text-xs text-slate-400">
                           <User className="size-3.5" />
                           <span>고객 연락처:</span>
@@ -581,11 +644,11 @@ export default function KitchenDisplay() {
                         ))}
                       </ul>
 
-                      {/* 액션 버튼 */}
+                      {/* 액션 버튼 (48px 터치 영역 충족) */}
                       <button
                         onClick={() => handleUpdateStatus(order.id, 'completed')}
                         disabled={updatingId === order.id}
-                        className="w-full mt-2 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 rounded font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                        className="w-full mt-2 h-12 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-emerald-500/10"
                       >
                         <CheckCircle2 className="size-3.5" />
                         음식 수령 완료
@@ -599,8 +662,44 @@ export default function KitchenDisplay() {
         </div>
       )}
 
+      {/* 키보드 단축키 안내판 (inline help 가이드 적용) */}
+      <div className="my-2.5 p-3.5 bg-slate-900 border border-slate-850 rounded-2xl flex items-center gap-3 text-slate-400 flex-shrink-0">
+        <Keyboard className="size-4 text-orange-500 flex-shrink-0" />
+        <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-[10px] font-mono font-semibold">
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">Space</kbd>
+            <span>새로고침</span>
+          </span>
+          <span className="text-slate-800">|</span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">1/2/3</kbd>
+            <span>전체/매장/포장 필터</span>
+          </span>
+          <span className="text-slate-800">|</span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">Q</kbd>
+            <span>알림음 음소거 토글</span>
+          </span>
+          <span className="text-slate-800">|</span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">P</kbd>
+            <span>가장 오래된 주문 접수</span>
+          </span>
+          <span className="text-slate-800">|</span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">R</kbd>
+            <span>가장 오래된 조리 완료</span>
+          </span>
+          <span className="text-slate-800">|</span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">C</kbd>
+            <span>가장 오래된 수령 완료</span>
+          </span>
+        </div>
+      </div>
+
       {/* 쇼케이스 및 타 대시보드로 돌아가기 링크바 */}
-      <footer className="mt-3 pt-3 border-t border-slate-900 flex items-center justify-between text-xs text-slate-500">
+      <footer className="mt-2 pt-3 border-t border-slate-900 flex items-center justify-between text-xs text-slate-500">
         <div className="flex items-center gap-2">
           <span>&copy; WeMarket Store Display.</span>
           <span className="text-slate-700">|</span>
