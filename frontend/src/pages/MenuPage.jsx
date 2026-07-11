@@ -461,6 +461,7 @@ const MenuPage = () => {
         storeName={profile?.store_name || "위마켓"}
         tableNumber={tableNumber}
         onOrderHistoryClick={handleOpenOrderHistory}
+        onCallStaffClick={() => setShowCallSheet(true)}
       />
 
       {/* Store Info */}
@@ -593,12 +594,6 @@ const MenuPage = () => {
 
       {/* 전자상거래법 §13 필수 사업자 정보 표시 */}
       <LegalFooter storeId={storeId} />
-
-      {/* 직원 호출 플로팅 버튼 */}
-      <FloatingCallButton 
-        onClick={() => setShowCallSheet(true)} 
-        primaryColor={profile?.theme?.primaryColor || '#f97316'}
-      />
 
       {/* 매니저 호출 시트 및 채팅 드로어 */}
       <ManagerCallSheet

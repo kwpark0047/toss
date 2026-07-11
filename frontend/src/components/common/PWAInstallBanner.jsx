@@ -1,14 +1,23 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Download, X, Smartphone } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWA';
 
 export default function PWAInstallBanner() {
   const { canInstall, install } = usePWAInstall();
+  const location = useLocation();
   const [dismissed, setDismissed] = useState(
     () => sessionStorage.getItem('pwa-banner-dismissed') === '1'
   );
 
-  if (!canInstall || dismissed) return null;
+  // 테이블 QR 스캔 주문 고객 및 푸드트럭 탐색 지도 손님에게 불필요한 설치 유도를 방지하여 이탈율 최소화 (0-Friction)
+  const isCustomerPage = 
+    location.pathname.startsWith('/menu/') || 
+    location.pathname.startsWith('/foodtruck/') || 
+    location.pathname.startsWith('/kiosk/') ||
+    location.pathname.startsWith('/legal/');
+
+  if (!canInstall || dismissed || isCustomerPage) return null;
 
   const handleInstall = async () => {
     const accepted = await install();

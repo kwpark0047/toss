@@ -7,7 +7,7 @@ import { vibrateClick } from '../../utils/notificationSound';
  * MenuHeader — TDS Top/Navigation 패턴 (3분할: leading · center title · trailing)
  * 좌우 액션 영역을 동일 폭(44px)으로 두어 중앙 타이틀이 정확히 가운데 정렬된다.
  */
-const MenuHeader = ({ storeName, tableNumber, onOrderHistoryClick }) => {
+const MenuHeader = ({ storeName, tableNumber, onOrderHistoryClick, onCallStaffClick }) => {
   const navigate = useNavigate();
 
   return (
@@ -24,8 +24,19 @@ const MenuHeader = ({ storeName, tableNumber, onOrderHistoryClick }) => {
         </motion.button>
 
         {/* Center — 타이틀 + 서브타이틀 (중앙 정렬, 넘치면 말줄임) */}
-        <div className="min-w-0 text-center px-1">
-          <h1 className="tds-subtitle cust-text-main truncate">{storeName}</h1>
+        <div className="min-w-0 text-center px-1 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center gap-2 max-w-full">
+            <h1 className="tds-subtitle cust-text-main truncate">{storeName}</h1>
+            {onCallStaffClick && (
+              <motion.button
+                whileTap={{ scale: 0.93 }}
+                onClick={() => { vibrateClick(); onCallStaffClick(); }}
+                className="px-2.5 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-full text-[10px] font-black tracking-wider transition-all active:scale-95 shrink-0 flex items-center gap-1 shadow-md shadow-orange-500/10 h-6"
+              >
+                <span>직원호출</span>
+              </motion.button>
+            )}
+          </div>
           {tableNumber && (
             <p className="tds-caption text-primary truncate">{tableNumber}번 테이블</p>
           )}
