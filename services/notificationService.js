@@ -75,8 +75,14 @@ class NotificationService {
    * 상황에 따라 소켓과 푸시를 동시에 처리합니다.
    */
   async notifyOrderStatus(order, newStatus, customerToken = null) {
-    const title = '주문 상태 업데이트 🔔';
-    const body = `주문 #${order.order_number || order.id}번이 "${this._getStatusLabel(newStatus)}" 상태로 변경되었습니다.`;
+    let title = '주문 상태 업데이트 🔔';
+    let body = `주문 #${order.order_number || order.id}번이 "${this._getStatusLabel(newStatus)}" 상태로 변경되었습니다.`;
+
+    // 조리 취소/반려 상황 시 20대 타겟의 직관적이고 친절한 한국어 문구 커스텀화
+    if (newStatus === 'cancelled' || newStatus === 'cancelled_by_kds') {
+      title = '주문 취소/반려 안내 ❌';
+      body = `정말 죄송합니다. 매장 사정으로 주문 #${order.order_number || order.id}번이 취소되었습니다. 결제 수단으로 즉시 환불 처리됩니다.`;
+    }
 
     const payload = {
       type: 'ORDER_STATUS',
@@ -89,9 +95,10 @@ class NotificationService {
     // 1. 소켓 발송
     this.sendSocket(`order - ${order.id}`, 'notification', { ...payload, target: 'customer' });
 
-    // 2. 푸시 발송 (중요 상태일 때만)
-    if (customerToken && ['confirmed', 'ready', 'cancelled'].includes(newStatus)) {
-      await this.sendPush(customerToken, { title, body, data: payload });
+    // 2. 푸시 발송 (기존의 토큰 파라미터가 비어 있으면 데이터베이스 내 고객 fcm_token으로 백그라운드 자동 폴백 연동)
+    const token = customerToken || order.customer_fcm_token;
+    if (token && ['confirmed', 'ready', 'cancelled'].includes(newStatus)) {
+      await this.sendPush(token, { title, body, data: payload });
     }
 
     // 3. 주방/매장 실시간 알림

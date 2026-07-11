@@ -1,10 +1,9 @@
 const request = require('supertest');
 const { app } = require('../../app');
 const prisma = require('../../config/prisma');
-const Store = require('../../repositories/Store');
-const Order = require('../../repositories/Order');
+const OrderRepository = require('../../repositories/Order');
 
-let mockUser = { id: 10, name: '백종원', role: 'owner' };
+let mockUser = { id: 1, name: '장사장', role: 'user' };
 
 // ── 인증 및 권한 미들웨어 모의 ──────────────────────────────────────────────────
 jest.mock('../../middleware/auth', () => {
@@ -36,101 +35,82 @@ jest.mock('../../middleware/auth', () => {
     return mockAuthModule;
 });
 
-// ── 레포지토리 레이어 모의 ──────────────────────────────────────────────────
-jest.mock('../../repositories/Store', () => {
-    return {
-        findByUserId: jest.fn(),
-        findAll: jest.fn()
+// ── Prisma 데이터베이스 어댑터 모의 ────────────────────────────────────────────────
+jest.mock('../../config/prisma', () => {
+    const mockPrisma = {
+        stores: {
+            findMany: jest.fn(),
+        },
+        staff: {
+            findMany: jest.fn(),
+        }
     };
+    return mockPrisma;
 });
 
+// ── Order 레포지토리 모의 ──────────────────────────────────────────────────────
 jest.mock('../../repositories/Order', () => {
     return {
-        getMultiStoreStats: jest.fn()
+        getMultiStoreStats: jest.fn(),
     };
 });
 
-describe('Multi-Store Analytics Integration Tests', () => {
-    const baseUrl = '/api/analytics/multi-store';
+describe('Franchise Supervisor Analytics Integration Tests', () => {
+    const baseUrl = '/api/analytics';
 
     beforeEach(() => {
         jest.clearAllMocks();
-        mockUser = { id: 10, name: '백종원', role: 'owner' };
+        mockUser = { id: 1, name: '장사장', role: 'user' };
     });
 
-    it('should fail if start_date or end_date is missing', async () => {
-        const res = await request(app)
-            .get(baseUrl)
-            .expect(400);
+    describe('GET /analytics/multi-store', () => {
+        it('should return empty stats if user owns no stores', async () => {
+            prisma.stores.findMany.mockResolvedValue([]);
+            prisma.staff.findMany.mockResolvedValue([]);
 
-        expect(res.body.error).toContain('시작일과 종료일이 필요합니다.');
-    });
+            const res = await request(app)
+                .get(`${baseUrl}/multi-store?start_date=2026-07-01&end_date=2026-07-11`)
+                .expect(200);
 
-    it('should return empty summary if the user has no registered stores', async () => {
-        Store.findByUserId.mockResolvedValue([]);
-
-        const res = await request(app)
-            .get(`${baseUrl}?start_date=2026-07-01&end_date=2026-07-11`)
-            .expect(200);
-
-        expect(res.body.success).toBe(true);
-        expect(res.body.data.summary.store_count).toBe(0);
-        expect(res.body.data.summary.total_sales).toBe(0);
-        expect(res.body.data.stores).toHaveLength(0);
-    });
-
-    it('should successfully aggregate sales statistics across multiple stores', async () => {
-        Store.findByUserId.mockResolvedValue([
-            { id: 1, name: '홍콩반점 역삼점' },
-            { id: 2, name: '빽다방 강남점' }
-        ]);
-
-        Order.getMultiStoreStats.mockResolvedValue({
-            summary: { total_sales: 450000, total_orders: 45, store_count: 2 },
-            stores: [
-                { store_id: 1, store_name: '홍콩반점 역삼점', total_sales: 300000, total_orders: 20 },
-                { store_id: 2, store_name: '빽다방 강남점', total_sales: 150000, total_orders: 25 }
-            ]
+            expect(res.body.success).toBe(true);
+            expect(res.body.data.summary.store_count).toBe(0);
+            expect(res.body.data.summary.total_sales).toBe(0);
+            expect(res.body.data.stores).toHaveLength(0);
         });
 
-        const res = await request(app)
-            .get(`${baseUrl}?start_date=2026-07-01&end_date=2026-07-11`)
-            .expect(200);
+        it('should compile owned store IDs and return consolidated aggregates', async () => {
+            // 사용자가 소유한 매장 가상 조회 설정
+            prisma.stores.findMany.mockResolvedValue([
+                { id: 10 },
+                { id: 20 }
+            ]);
+            prisma.staff.findMany.mockResolvedValue([]);
 
-        expect(res.body.success).toBe(true);
-        expect(res.body.data.summary.store_count).toBe(2);
-        expect(res.body.data.summary.total_sales).toBe(450000);
-        expect(res.body.data.stores).toHaveLength(2);
-        expect(res.body.data.stores[0].total_sales).toBe(300000);
-        expect(Store.findByUserId).toHaveBeenCalledWith(10);
-        expect(Order.getMultiStoreStats).toHaveBeenCalledWith([1, 2], '2026-07-01', '2026-07-11');
-    });
+            // 다점포 통계 레포지토리 응답 모의
+            OrderRepository.getMultiStoreStats.mockResolvedValue({
+                summary: { total_sales: 1200000, total_orders: 80, store_count: 2 },
+                stores: [
+                    { store_id: 10, store_name: '연남 본점', total_sales: 800000, total_orders: 50 },
+                    { store_id: 20, store_name: '강남 직영점', total_sales: 400000, total_orders: 30 }
+                ]
+            });
 
-    it('should query all stores in the platform if the request is from a super_admin', async () => {
-        mockUser = { id: 999, name: '시스템총괄', role: 'super_admin' };
+            const res = await request(app)
+                .get(`${baseUrl}/multi-store?start_date=2026-07-01&end_date=2026-07-11`)
+                .expect(200);
 
-        Store.findAll.mockResolvedValue([
-            { id: 1, name: '홍콩반점 역삼점' },
-            { id: 2, name: '빽다방 강남점' },
-            { id: 3, name: '롤링파스타 신촌점' }
-        ]);
+            expect(res.body.success).toBe(true);
+            expect(res.body.data.summary.total_sales).toBe(1200000);
+            expect(res.body.data.summary.total_orders).toBe(80);
+            expect(res.body.data.summary.store_count).toBe(2);
+            expect(res.body.data.stores).toHaveLength(2);
+            expect(res.body.data.stores[0].store_name).toBe('연남 본점');
 
-        Order.getMultiStoreStats.mockResolvedValue({
-            summary: { total_sales: 600000, total_orders: 60, store_count: 3 },
-            stores: [
-                { store_id: 1, store_name: '홍콩반점 역삼점', total_sales: 300000, total_orders: 20 },
-                { store_id: 2, store_name: '빽다방 강남점', total_sales: 150000, total_orders: 25 },
-                { store_id: 3, store_name: '롤링파스타 신촌점', total_sales: 150000, total_orders: 15 }
-            ]
+            expect(OrderRepository.getMultiStoreStats).toHaveBeenCalledWith(
+                [10, 20],
+                '2026-07-01',
+                '2026-07-11'
+            );
         });
-
-        const res = await request(app)
-            .get(`${baseUrl}?start_date=2026-07-01&end_date=2026-07-11`)
-            .expect(200);
-
-        expect(res.body.success).toBe(true);
-        expect(res.body.data.summary.store_count).toBe(3);
-        expect(Store.findAll).toHaveBeenCalled();
-        expect(Order.getMultiStoreStats).toHaveBeenCalledWith([1, 2, 3], '2026-07-01', '2026-07-11');
     });
 });

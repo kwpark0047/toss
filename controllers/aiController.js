@@ -14,6 +14,15 @@ const aiController = {
         res.json({ description: aiDescription });
     }),
 
+    // [인스타그램 홍보글 카피라이팅 생성]
+    generateInstagramCopy: catchAsync(async (req, res) => {
+        const { name, category, price, image_url, description } = req.body;
+        const copy = await aiService.generateInstagramCopy({
+            name, category, price, image_url, description
+        });
+        res.json({ success: true, copy });
+    }),
+
     // [메뉴 추천]
     recommendMenus: catchAsync(async (req, res) => {
         const { store_id, preferences, weather, mood, phone, toss_user_key } = req.body;

@@ -4,6 +4,7 @@ const aiController = require("../controllers/aiController");
 const { validateBody, validateId } = require("../middleware/validator");
 
 router.post("/describe-menu", validateBody(["name"]), aiController.describeMenu);
+router.post("/instagram", validateBody(["name"]), aiController.generateInstagramCopy);
 router.post("/recommend", validateId(["store_id"]), aiController.recommendMenus);
 router.post("/recommend-dessert", validateId(["store_id"]), aiController.recommendDessert);
 router.post("/translate-menu", validateBody(["store_id", "targetLang"]), aiController.translateMenu);

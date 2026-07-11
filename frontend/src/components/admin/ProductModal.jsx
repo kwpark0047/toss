@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { productsAPI, storesAPI, aiAPI, uploadsAPI, optionTemplatesAPI } from '../../api';
-import { FileText, Image, Tag, Package, X, Sparkles, AlertTriangle, Upload, Info, Check, Star, Flame, Clock, Leaf } from 'lucide-react';
+import { FileText, Image, Tag, Package, X, Sparkles, AlertTriangle, Upload, Info, Check, Star, Flame, Clock, Leaf, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { handleApiError } from '../../utils/apiError';
@@ -41,6 +41,12 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
   const [optionEditorKey, setOptionEditorKey] = useState(0);
   const [imageInfo, setImageInfo] = useState(null);
   const [showSamplePicker, setShowSamplePicker] = useState(false);
+
+  // 인스타그램 카피라이터용 추가 상태 관리
+  const [instaCopy, setInstaCopy] = useState('');
+  const [showInstaModal, setShowInstaModal] = useState(false);
+  const [instaLoading, setInstaLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const loadTemplates = async () => {
@@ -122,16 +128,36 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
     setAiLoading(true);
     try {
       const catName = categories.find(c => c.id === parseInt(form.category_id))?.name || '';
-      const res = await aiAPI.describeMenu({ 
-        name: form.name, 
-        category: catName, 
-        price: form.price,
-        image_url: form.image_url,
-        description: form.description 
-      });
+      const res = await aiAPI.describeMenu({ name: form.name, category: catName, description: form.description, price: form.price, image_url: form.image_url });
       if (res?.description) setForm(prev => ({ ...prev, description: res.description }));
     } catch (e) { handleApiError(e, 'AI 설명 생성 중 오류가 발생했습니다'); }
     finally { setAiLoading(false); }
+  };
+
+  // 인스타그램 홍보 카피 생성 API 트리거
+  const handleGenerateInstagramCopy = async () => {
+    if (!form.name) { toast.warn('메뉴 이름을 입력해야 인스타그램 카피를 생성할 수 있습니다.'); return; }
+    setInstaLoading(true);
+    setInstaCopy('');
+    setShowInstaModal(true);
+    setCopied(false);
+    try {
+      const catName = categories.find(c => c.id === parseInt(form.category_id))?.name || '';
+      const res = await aiAPI.generateInstagramCopy({
+        name: form.name,
+        category: catName,
+        price: form.price,
+        image_url: form.image_url,
+        description: form.description
+      });
+      const text = res?.data?.instagramCopy || res?.instagramCopy || res || '';
+      setInstaCopy(text);
+    } catch (e) {
+      handleApiError(e, '인스타그램 홍보 카피 생성 중 오류가 발생했습니다');
+      setShowInstaModal(false);
+    } finally {
+      setInstaLoading(false);
+    }
   };
 
   const handleGenerateMenuImage = async () => {
@@ -380,14 +406,24 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
               <div className="space-y-3">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">메뉴 요약 설명</label>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    type="button" onClick={handleGenerateAI} disabled={aiLoading}
-                    className="flex items-center gap-2 text-[10px] font-black text-orange-400 bg-orange-500/10 border border-orange-500/20 px-4 py-2 rounded-xl transition-all disabled:opacity-50"
-                  >
-                    <Sparkles size={14} className={aiLoading ? 'animate-spin' : ''} />
-                    {aiLoading ? 'AI 생성 중...' : 'AI 설명 자동생성'}
-                  </motion.button>
+                  <div className="flex items-center gap-2">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                      type="button" onClick={handleGenerateAI} disabled={aiLoading}
+                      className="flex items-center gap-2 text-[10px] font-black text-orange-400 bg-orange-500/10 border border-orange-500/20 px-4 py-2 rounded-xl transition-all disabled:opacity-50 h-10"
+                    >
+                      <Sparkles size={14} className={aiLoading ? 'animate-spin' : ''} />
+                      {aiLoading ? 'AI 생성 중...' : 'AI 설명'}
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                      type="button" onClick={handleGenerateInstagramCopy} disabled={instaLoading}
+                      className="flex items-center gap-2 text-[10px] font-black text-rose-400 bg-rose-500/10 border border-rose-500/20 px-4 py-2 rounded-xl transition-all disabled:opacity-50 h-10 shadow-lg shadow-rose-500/5"
+                    >
+                      <Image size={14} className={instaLoading ? 'animate-spin' : ''} />
+                      <span>Instagram 카피</span>
+                    </motion.button>
+                  </div>
                 </div>
                 <textarea
                   value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -578,6 +614,71 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
           </button>
         </div>
       </motion.div>
+
+      {/* 인스타그램 카피라이터 결과 모달 다이얼로그 카드 */}
+      <AnimatePresence>
+        {showInstaModal && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center z-[110] p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-900 border border-white/10 rounded-[32px] p-6 sm:p-8 max-w-lg w-full flex flex-col gap-4 shadow-2xl relative"
+            >
+              <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="text-rose-400 animate-pulse" size={20} />
+                  <h4 className="text-white font-black text-lg">AI 인스타그램 카피라이터</h4>
+                </div>
+                <button 
+                  onClick={() => setShowInstaModal(false)}
+                  className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto max-h-[50vh] p-4 bg-slate-950 border border-white/5 rounded-2xl">
+                {instaLoading ? (
+                  <div className="flex flex-col items-center justify-center py-10 gap-3 text-rose-400">
+                    <RefreshCw className="animate-spin" size={24} />
+                    <p className="text-xs font-bold animate-pulse text-center leading-relaxed">
+                      20대 여성의 취향을 저격할<br />
+                      사랑스러운 홍보 피드를 카피라이팅하는 중... ✨
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-200 whitespace-pre-wrap leading-relaxed font-sans select-text">{instaCopy || '카피라이팅이 성공적으로 구성되지 못했습니다.'}</p>
+                )}
+              </div>
+
+              {!instaLoading && instaCopy && (
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(instaCopy);
+                      setCopied(true);
+                      toast.success('클립보드에 인스타그램 카피가 복사되었습니다!');
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className={`flex-1 py-3.5 rounded-xl text-xs font-black transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
+                      copied ? 'bg-emerald-500 text-slate-950' : 'bg-rose-500 hover:bg-rose-600 text-white'
+                    }`}
+                  >
+                    {copied ? '✓ 복사 완료!' : '클립보드 원클릭 복사'}
+                  </button>
+                  <button
+                    onClick={() => handleGenerateInstagramCopy()}
+                    className="px-5 py-3.5 rounded-xl border border-white/10 text-xs font-bold text-slate-400 hover:text-slate-200 transition-all active:scale-95"
+                  >
+                    재생성
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {showSamplePicker && (
         <SampleImagePicker

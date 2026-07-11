@@ -93,6 +93,7 @@ export const aiAPI = {
   recommendDessert: (data) => api.post('/ai/recommend-dessert', data),
   proposeMenuFull: (data) => api.post('/ai/propose-menu-full', data),
   generateMenuImage: (data) => api.post('/ai/generate-menu-image', data),
+  generateInstagramCopy: (data) => api.post('/ai/instagram', data),
 };
 
 export const getSocket = () => {

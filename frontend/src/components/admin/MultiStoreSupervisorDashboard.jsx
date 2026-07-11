@@ -2,9 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Building2, TrendingUp, ShoppingCart, DollarSign, Calendar, 
-  ArrowUpRight, AlertCircle, RefreshCw, Layers, ChevronRight, Store
+  ArrowUpRight, AlertCircle, RefreshCw, Layers, ChevronRight, Store, CheckCircle
 } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
+import { toast } from 'react-toastify';
+import { vibrateShort } from '../../utils/notificationSound';
 
 export default function MultiStoreSupervisorDashboard() {
   const [data, setData] = useState({ summary: { total_sales: 0, total_orders: 0, store_count: 0 }, stores: [] });
@@ -18,6 +20,9 @@ export default function MultiStoreSupervisorDashboard() {
     return new Date().toISOString().split('T')[0];
   });
 
+  // 정산 대사 대조 체크 상태 관리용 맵
+  const [reconciledMap, setReconciledMap] = useState({});
+
   // 통합 다점포 매출 분석 조회
   const fetchMultiStoreStats = async () => {
     try {
@@ -29,7 +34,7 @@ export default function MultiStoreSupervisorDashboard() {
     } catch (err) {
       console.error('[Supervisor] Fetch Error:', err);
     } finally {
-      setLoading(false);
+      if (typeof setLoading === 'function') setLoading(false);
     }
   };
 
@@ -51,6 +56,21 @@ export default function MultiStoreSupervisorDashboard() {
     if (stores.length === 0) return null;
     return [...stores].sort((a, b) => b.total_sales - a.total_sales)[0];
   }, [stores]);
+
+  // 원클릭 대사 대조 토글 핸들러
+  const toggleReconcile = (storeId, storeName) => {
+    setReconciledMap(prev => {
+      const next = { ...prev, [storeId]: !prev[storeId] };
+      const isChecking = next[storeId];
+      if (isChecking) {
+        toast.success(`[${storeName}] 지점의 자금 대사 대조 검증이 원클릭 완료 처리되었습니다. 💵`);
+      }
+      return next;
+    });
+    try {
+      vibrateShort();
+    } catch (_) {}
+  };
 
   return (
     <div className="space-y-8 text-slate-100 max-w-7xl mx-auto p-1 select-none">
@@ -210,7 +230,67 @@ export default function MultiStoreSupervisorDashboard() {
         )}
       </div>
 
-      {/* 4. 지점별 통합 모니터링 카드 덱 그리드 */}
+      {/* 4. 다점포 통합 자금 정산 대사 매니저 (Reconciliation - 패널 신설) */}
+      <div className="p-6 rounded-3xl bg-slate-900 border border-slate-850 space-y-4 shadow-2xl">
+        <div className="space-y-0.5">
+          <h3 className="text-sm font-black text-white flex items-center gap-1.5">
+            <Layers className="text-orange-500" size={16} />
+            프랜차이즈 정산 대사 매니저 (SaaS Fee Calculator)
+          </h3>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Settlement & Commission Reconciliation</p>
+        </div>
+
+        <div className="overflow-x-auto border border-slate-850/60 rounded-2xl bg-slate-950/40">
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr className="border-b border-slate-850/60 text-[10px] font-black text-slate-500 uppercase tracking-wider bg-slate-900/30">
+                <th className="p-4">지점명</th>
+                <th className="p-4 text-right">총 매출</th>
+                <th className="p-4 text-right">플랫폼 수수료 (3%)</th>
+                <th className="p-4 text-right">수수료 부가세 (10%)</th>
+                <th className="p-4 text-right">PG 카드수수료 (2%)</th>
+                <th className="p-4 text-right">점주 예상 정산액</th>
+                <th className="p-4 text-center">대사 대조</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-850/40 text-xs font-medium">
+              {stores.map((st) => {
+                const total = st.total_sales;
+                const commission = Math.round(total * 0.03);
+                const vat = Math.round(commission * 0.1);
+                const cardFee = Math.round(total * 0.02);
+                const netPayout = total - commission - vat - cardFee;
+                const isReconciled = reconciledMap[st.store_id];
+
+                return (
+                  <tr key={st.store_id} className={`hover:bg-white/[0.01] transition-colors ${isReconciled ? 'opacity-50' : ''}`}>
+                    <td className="p-4 font-bold text-slate-200">{st.store_name}</td>
+                    <td className="p-4 text-right font-mono font-bold text-slate-300 tabular-nums">{formatPrice(total, true)}</td>
+                    <td className="p-4 text-right font-mono text-slate-400 tabular-nums">{formatPrice(commission, true)}</td>
+                    <td className="p-4 text-right font-mono text-slate-500 tabular-nums">{formatPrice(vat, true)}</td>
+                    <td className="p-4 text-right font-mono text-slate-500 tabular-nums">{formatPrice(cardFee, true)}</td>
+                    <td className="p-4 text-right font-mono font-bold text-emerald-400 tabular-nums">{formatPrice(netPayout, true)}</td>
+                    <td className="p-4 text-center">
+                      <button
+                        onClick={() => toggleReconcile(st.store_id, st.store_name)}
+                        className={`w-24 h-10 rounded-xl text-[10px] font-black tracking-wider transition-all active:scale-95 border ${
+                          isReconciled 
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                            : 'bg-slate-900 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {isReconciled ? '✓ 대사완료' : '대조 체크'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 5. 지점별 통합 모니터링 카드 덱 그리드 */}
       <div className="space-y-4">
         <h3 className="text-sm font-black text-white flex items-center gap-1.5">
           <Store className="text-orange-500" size={16} />
