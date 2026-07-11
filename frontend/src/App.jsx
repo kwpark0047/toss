@@ -69,6 +69,7 @@ const PricingPage = lazy(() => import("./pages/marketing/PricingPage"));
 const GuidesPage = lazy(() => import("./pages/marketing/GuidesPage"));
 const ContactPage = lazy(() => import("./pages/marketing/ContactPage"));
 const MultiStoreSupervisorDashboard = lazy(() => import("@/components/admin/MultiStoreSupervisorDashboard"));
+const AlimtalkDeliveryConsole = lazy(() => import("@/components/admin/AlimtalkDeliveryConsole"));
 
 const queryClient = new QueryClient();
 
@@ -391,6 +392,13 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/foodtruck/analytics" element={
       <AdminPage>
         <ValidStoreRoute><AdminSuspense><FoodTruckAnalyticsDashboard /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
+    {/* 알림톡 실시간 전송 콘솔 */}
+    <Route path="/admin/stores/:storeId/alimtalk" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><AlimtalkDeliveryConsole /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 

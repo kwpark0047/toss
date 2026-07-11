@@ -11,18 +11,30 @@ const SMS_ENV = process.env.SMS_ENV || 'none';
 const COOLSMS_API_URL = 'https://api.coolsms.co.kr';
 class AlimtalkService {
     pfId;
+    historyLogs = [];
     constructor() {
         this.pfId = process.env.KAKAO_PF_ID || 'KA01PF24050012'; // 가상의 카카오 알림톡 pfId
     }
     /**
-     * 카카오 알림톡 공통 발송 모듈
-     * pfId 및 등록된 승인 템플릿(templateId)을 사용하여 알림톡을 전송합니다.
+     * 카카오 알림톡 공통 발송 및 이력 누적 로깅 모듈 (지수 비용 계산 탑재)
      */
-    async sendAlimtalk(phone, templateId, text, variables = {}) {
+    async sendAlimtalk(phone, templateId, text, variables = {}, storeId = 1) {
+        const logId = `talk_${crypto_1.default.randomUUID().replace(/-/g, '').substring(0, 12)}`;
         if (IS_DEV || SMS_ENV === 'none') {
             logger_1.default.info(`[ALIMTALK SIMULATION] → ${phone} | Template: ${templateId}`);
             logger_1.default.info(`[ALIMTALK CONTENT] \n${text}`);
-            return { simulated: true, templateId, phone };
+            // 이력 누적
+            this.historyLogs.push({
+                id: logId,
+                storeId,
+                phone,
+                templateId,
+                text,
+                status: 'SUCCESS',
+                cost: 15, // 가상 알림톡 수수료 15원
+                createdAt: new Date()
+            });
+            return { sent: true, simulated: true };
         }
         try {
             if (SMS_ENV === 'coolsms') {
@@ -55,22 +67,77 @@ class AlimtalkService {
                     }
                 });
                 logger_1.default.info(`[ALIMTALK] 발송 성공 → ${phone} | Template: ${templateId}`);
+                this.historyLogs.push({
+                    id: logId,
+                    storeId,
+                    phone,
+                    templateId,
+                    text,
+                    status: 'SUCCESS',
+                    cost: 15,
+                    createdAt: new Date()
+                });
                 return { sent: true, messageId: res.data.messageId };
             }
-            // 알림톡 미지원/미설정 시 SMS 수단으로 하이브리드 폴백 처리
+            // Fallback to SMS if Alimtalk environment is not fully configured
             logger_1.default.warn(`[ALIMTALK] 알림톡 발송 환경변수가 활성화되지 않아 SMS로 대체 전송합니다.`);
             await (0, smsService_1.sendSms)(phone, text);
-            return { fallback: true };
+            this.historyLogs.push({
+                id: logId,
+                storeId,
+                phone,
+                templateId,
+                text,
+                status: 'FALLBACK',
+                cost: 20, // SMS 대체 발송 비용 20원
+                createdAt: new Date()
+            });
+            return { sent: true, fallback: true };
         }
         catch (error) {
-            logger_1.default.error('[ALIMTALK] 발송 실패:', error.response?.data || error.message);
+            const errorMsg = error.response?.data?.message || error.message;
+            logger_1.default.error('[ALIMTALK] 발송 실패:', errorMsg);
+            this.historyLogs.push({
+                id: logId,
+                storeId,
+                phone,
+                templateId,
+                text,
+                status: 'FAILED',
+                cost: 0,
+                errorMessage: errorMsg,
+                createdAt: new Date()
+            });
             return { sent: false, error: error.message };
         }
     }
     /**
+     * 특정 매장의 알림톡 발송 내역 조회 및 통계 집계 산출
+     */
+    getHistoryLogs(storeId) {
+        const numericStoreId = typeof storeId === 'string' ? parseInt(storeId, 10) : storeId;
+        const logs = this.historyLogs.filter(l => l.storeId === numericStoreId);
+        if (logs.length === 0) {
+            return {
+                total_sent: 0,
+                success_rate: 100,
+                total_cost: 0,
+                logs: []
+            };
+        }
+        const successCount = logs.filter(l => l.status === 'SUCCESS' || l.status === 'FALLBACK').length;
+        const totalCost = logs.reduce((sum, l) => sum + l.cost, 0);
+        return {
+            total_sent: logs.length,
+            success_rate: Math.round((successCount / logs.length) * 1000) / 10,
+            total_cost: totalCost,
+            logs: [...logs].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()) // 최신순 정렬
+        };
+    }
+    /**
      * 1. 주문 접수 알림톡
      */
-    async sendOrderConfirmed(phone, storeName, orderNumber, queueNumber, totalAmount) {
+    async sendOrderConfirmed(phone, storeName, orderNumber, queueNumber, totalAmount, storeId = 1) {
         const templateId = 'order_confirmed';
         const text = `[${storeName}] 주문이 접수되었습니다! 🎉
 \n■ 주문번호: ${orderNumber}
@@ -78,43 +145,43 @@ class AlimtalkService {
 ■ 결제금액: ${Number(totalAmount).toLocaleString('ko-KR')}원
 \n매장 내 모니터나 직원의 안내에 따라 대기해 주세요.
 이용해 주셔서 감사합니다.`;
-        return await this.sendAlimtalk(phone, templateId, text, { storeName, orderNumber, queueNumber, totalAmount });
+        return await this.sendAlimtalk(phone, templateId, text, { storeName, orderNumber, queueNumber, totalAmount }, storeId);
     }
     /**
      * 2. 조리 완료 (픽업 요청) 알림톡
      */
-    async sendFoodReady(phone, storeName, orderNumber, tableName) {
+    async sendFoodReady(phone, storeName, orderNumber, tableName, storeId = 1) {
         const templateId = 'food_ready';
         const text = `[${storeName}] 주문하신 음식이 조리 완료되었습니다! 🔔
 \n■ 주문번호: ${orderNumber}
 ■ 수령위치: 매장 픽업대
 \n음식이 식기 전에 픽업대에서 수령해 주세요.
 맛있게 드시고 좋은 시간 되세요!`;
-        return await this.sendAlimtalk(phone, templateId, text, { storeName, orderNumber, tableName });
+        return await this.sendAlimtalk(phone, templateId, text, { storeName, orderNumber, tableName }, storeId);
     }
     /**
      * 3. 주문 취소 알림톡
      */
-    async sendOrderCancelled(phone, storeName, orderNumber, reason = '매장 사정 또는 재고 소진') {
+    async sendOrderCancelled(phone, storeName, orderNumber, reason = '매장 사정 또는 재고 소진', storeId = 1) {
         const templateId = 'order_cancelled';
         const text = `[${storeName}] 주문 취소 안내 ❌
 \n■ 주문번호: ${orderNumber}
 ■ 취소사유: ${reason}
 \n결제하신 금액은 영업일 기준 2~3일 이내에 카드사 또는 결제 수단을 통해 전액 환불 처리됩니다.
 이용에 불편을 드려 정말 죄송합니다.`;
-        return await this.sendAlimtalk(phone, templateId, text, { storeName, orderNumber, reason });
+        return await this.sendAlimtalk(phone, templateId, text, { storeName, orderNumber, reason }, storeId);
     }
     /**
      * 4. 푸드트럭 실시간 연결 끊김 방지 알림톡 (하트비트 예비 수단)
      */
-    async sendHeartbeatDisconnectAlert(phone, storeName, queueNumber, orderNumber) {
+    async sendHeartbeatDisconnectAlert(phone, storeName, queueNumber, orderNumber, storeId = 1) {
         const templateId = 'heartbeat_disconnect';
         const text = `[${storeName}] 실시간 대기 안내 📡
 \n고객님! 일시적인 통신 상태 변화로 주문판 웹소켓 연결이 종료되었습니다.
 \n하지만 걱정 마세요! 고객님의 주문 및 대기 줄은 정상 유지 중입니다.
 \n■ 대기번호: ${queueNumber || 'N/A'}번 (주문번호: ${orderNumber})
 \n조리가 완료되거나 호출 시 카카오톡으로 즉시 다시 알림을 발송해 드리겠습니다. 안심하고 이동해 주세요!`;
-        return await this.sendAlimtalk(phone, templateId, text, { storeName, queueNumber, orderNumber });
+        return await this.sendAlimtalk(phone, templateId, text, { storeName, queueNumber, orderNumber }, storeId);
     }
 }
 const alimtalkServiceInstance = new AlimtalkService();

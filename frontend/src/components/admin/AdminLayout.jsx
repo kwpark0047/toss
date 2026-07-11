@@ -408,6 +408,7 @@ const AdminLayout = ({ children }) => {
     { label: '통합 브랜드 관리', icon: Building2,         path: '/admin/supervisor',                                         roles: [] },
     { label: '주문서 현황',   icon: UtensilsCrossed,  path: `/admin/stores/${storeId}/orders`,                  show: !!storeId, roles: [] },
     { label: '주방 모니터 (KDS)', icon: ChefHat,          path: `/kitchen/${storeId}`,                              show: !!storeId, roles: [] },
+    { label: '알림톡 모니터', icon: MessageSquare,      path: `/admin/stores/${storeId}/alimtalk`,                show: !!storeId, roles: [] },
     { label: '상품 관리',     icon: ShoppingBag,       path: `/admin/stores/${storeId}/menu`,                    show: !!storeId, roles: [] },
     { label: '메뉴판 빌더',   icon: Palette,           path: `/admin/stores/${storeId}/visual-builder`,          show: !!storeId, roles: [] },
     { label: '스마트 예약',   icon: CalendarCheck,     path: `/admin/stores/${storeId}/reservations`,            show: !!storeId, roles: [] },
