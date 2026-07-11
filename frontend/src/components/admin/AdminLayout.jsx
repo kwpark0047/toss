@@ -385,6 +385,24 @@ const AdminLayout = ({ children }) => {
   // 'new', 'undefined', 영문 경로 등 비숫자 값은 storeId로 인정하지 않음
   const storeId = rawStoreId && /^\d+$/.test(rawStoreId) ? rawStoreId : undefined;
 
+  const [storeInfo, setStoreInfo] = useState(null);
+
+  useEffect(() => {
+    if (storeId) {
+      fetch(`/api/stores/${storeId}`)
+        .then(res => res.json())
+        .then(json => {
+          const data = json.data || json;
+          setStoreInfo(data);
+        })
+        .catch(err => console.error('Failed to fetch store info inside sidebar:', err));
+    } else {
+      setStoreInfo(null);
+    }
+  }, [storeId]);
+
+  const isFoodTruck = storeInfo?.business_type === 'FOOD_TRUCK' || storeInfo?.business_type === 'food_truck' || storeInfo?.business_type === '푸드트럭';
+
   const navItems = [
     { label: '대시보드',      icon: LayoutDashboard, path: '/admin',                                           id: 'dashboard', roles: [] },
     { label: '주문서 현황',   icon: UtensilsCrossed,  path: `/admin/stores/${storeId}/orders`,                  show: !!storeId, roles: [] },
@@ -400,9 +418,9 @@ const AdminLayout = ({ children }) => {
     { label: '단골 관리',     icon: Users,             path: `/admin/stores/${storeId}/customers`,               show: !!storeId, roles: [] },
     { label: '팀원 관리',     icon: Users,             path: `/admin/stores/${storeId}/staff`,                   show: !!storeId, roles: [] },
     { label: '매장 환경설정', icon: Settings,          path: `/admin/stores/${storeId}/settings`,               show: !!storeId, roles: [] },
-    { label: '푸드트럭 관리', icon: Truck,             path: `/admin/stores/${storeId}/foodtruck`,              show: !!storeId, roles: [] },
-    { label: '푸드트럭 분석', icon: Activity,          path: `/admin/stores/${storeId}/foodtruck/analytics`,    show: !!storeId, roles: [] },
-    { label: '트럭 디자인 쇼케이스', icon: Palette,    path: '/foodtruck/showcase',                                              roles: [] },
+    { label: '푸드트럭 관리', icon: Truck,             path: `/admin/stores/${storeId}/foodtruck`,              show: !!storeId && isFoodTruck, roles: [] },
+    { label: '푸드트럭 분석', icon: Activity,          path: `/admin/stores/${storeId}/foodtruck/analytics`,    show: !!storeId && isFoodTruck, roles: [] },
+    { label: '트럭 디자인 쇼케이스', icon: Palette,    path: '/foodtruck/showcase',                             show: isFoodTruck, roles: [] },
     { label: '알림 템플릿',   icon: Bell,              path: `/admin/stores/${storeId}/notification-templates`,  show: !!storeId, roles: [] },
     { label: '시스템 현황',   icon: Activity,     path: '/admin/system-status', roles: [] },
     { label: 'AI 팅커벨',     icon: Sparkles,     path: '/admin/tinkerbell',   roles: [] },

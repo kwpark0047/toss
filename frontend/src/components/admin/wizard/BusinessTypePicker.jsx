@@ -3,10 +3,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ChevronDown, ChevronUp, PenLine } from 'lucide-react';
 
 // ── 1인 사업자 인기 업종
-export const POPULAR_VALUES = ['cafe', 'korean', 'chicken', 'bakery', 'food_truck', 'hair', 'fitness', 'academy'];
+export const POPULAR_VALUES = ['food_truck', 'cafe', 'korean', 'chicken', 'bakery', 'hair', 'fitness', 'academy'];
 
 // ── 전체 업종 그룹
 export const BTYPE_GROUPS = [
+  {
+    group: '🚚 특수 외식',
+    types: [
+      { value: 'food_truck', label: '푸드트럭',      icon: '🚚' },
+      { value: 'bakery',     label: '베이커리/빵집', icon: '🥐' },
+      { value: 'fastfood',   label: '패스트푸드',    icon: '🍔' },
+      { value: 'bar',        label: '술집/바',       icon: '🍺' },
+      { value: 'pub',        label: '호프/포차',     icon: '🍻' },
+      { value: 'buffet',     label: '뷔페/셀프식당', icon: '🍱' },
+      { value: 'nightclub',  label: '클럽/라운지',  icon: '🎵' },
+    ],
+  },
   {
     group: '☕ 음료 · 카페',
     types: [
@@ -30,18 +42,6 @@ export const BTYPE_GROUPS = [
       { value: 'bbq',       label: '고기/바베큐',    icon: '🥩' },
       { value: 'seafood',   label: '해산물/회',      icon: '🐟' },
       { value: 'soup',      label: '국밥/찌개',      icon: '🥘' },
-    ],
-  },
-  {
-    group: '🚚 특수 외식',
-    types: [
-      { value: 'food_truck', label: '푸드트럭',      icon: '🚚' },
-      { value: 'bakery',     label: '베이커리/빵집', icon: '🥐' },
-      { value: 'fastfood',   label: '패스트푸드',    icon: '🍔' },
-      { value: 'bar',        label: '술집/바',       icon: '🍺' },
-      { value: 'pub',        label: '호프/포차',     icon: '🍻' },
-      { value: 'buffet',     label: '뷔페/셀프식당', icon: '🍱' },
-      { value: 'nightclub',  label: '클럽/라운지',  icon: '🎵' },
     ],
   },
   {
