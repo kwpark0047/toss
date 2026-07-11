@@ -13,6 +13,7 @@ export default defineConfig({
       manifest: false,                 // public/manifest.json 사용
 
       workbox: {
+        importScripts: ['/sw-sync.js'],
         // 빌드 결과물 자동 프리캐시
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         globIgnores: ['firebase-messaging-sw.js'],
