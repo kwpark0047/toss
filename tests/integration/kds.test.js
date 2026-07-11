@@ -49,7 +49,7 @@ jest.mock('../../middleware/storeAuth', () => {
 // ── 전화번호 복호화 모듈 모의 ──────────────────────────────────────────────────
 jest.mock('../../utils/phoneEncryption', () => {
     return {
-        decrypt: jest.fn(() => '01012345678'),
+        decryptPhone: jest.fn(() => '01012345678'),
         phoneSearchCandidates: jest.fn(() => ['01012345678'])
     };
 });

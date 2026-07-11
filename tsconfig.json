@@ -3,15 +3,19 @@
     "target": "ES2022",
     "module": "commonjs",
     "strict": true,
-    "allowJs": true,
+    "allowJs": false,
+    "noImplicitAny": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
-    "rootDir": "./"
+    "noEmit": false,
+    "types": [
+      "node"
+    ]
   },
   "include": [
-    "utils/**/*.ts"
+    "utils/**/*.ts",
+    "services/**/*.ts"
   ],
   "exclude": [
     "node_modules",

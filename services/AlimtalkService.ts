@@ -172,4 +172,5 @@ class AlimtalkService {
     }
 }
 
-export default new AlimtalkService();
+const alimtalkServiceInstance = new AlimtalkService();
+export = alimtalkServiceInstance;
