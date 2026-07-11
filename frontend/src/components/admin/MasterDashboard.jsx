@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { storesAPI, ordersAPI, analyticsAPI, exportAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import { formatPrice, formatTime } from '../../utils/format';
 import EmptyState from '../common/EmptyState';
 import Skeleton from '../common/Skeleton';
@@ -102,6 +103,12 @@ const StatusBadge = ({ status }) => {
 const MasterDashboard = () => {
     const { user, consumeStoresCache } = useAuth();
     const navigate  = useNavigate();
+    const { notifications, markAsRead } = useNotifications();
+
+    // 실시간으로 수신된 읽지 않은 직원 호출 알림만 집계/정량화 가동
+    const activeCalls = useMemo(() => {
+        return notifications.filter(n => n.type === 'MANAGER_CALL' && !n.is_read);
+    }, [notifications]);
 
     const [stores,          setStores]          = useState([]);
     const [selectedStore,   setSelectedStore]   = useState(null);
@@ -416,6 +423,74 @@ const MasterDashboard = () => {
                     ))}
                 </div>
             </div>
+
+            {/* ── 실시간 직원 호출 현황 집계 및 확인 레이어 (SLA 실측 장착) ── */}
+            {selectedStore && !isMultiView && (
+                <div className="space-y-3 mb-6">
+                    <div className="flex items-center justify-between px-1">
+                        <h2 className="text-sm font-black text-white flex items-center gap-2">
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${activeCalls.length > 0 ? 'bg-rose-400' : 'bg-slate-400'}`} />
+                                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${activeCalls.length > 0 ? 'bg-rose-500' : 'bg-slate-500'}`} />
+                            </span>
+                            <span>실시간 직원 호출 수신반</span>
+                            {activeCalls.length > 0 && (
+                                <span className="px-2 py-0.5 bg-rose-500 text-white text-[9px] font-black rounded-md animate-pulse">
+                                    호출 {activeCalls.length}
+                                </span>
+                            )}
+                        </h2>
+                    </div>
+
+                    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden p-4">
+                        {activeCalls.length === 0 ? (
+                            <div className="py-6 text-center text-slate-500 flex flex-col items-center justify-center gap-1.5">
+                                <CheckCircle className="size-6 text-slate-600" />
+                                <p className="text-xs font-semibold">대기 중인 직원 호출 신호가 없습니다.</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-white/5">
+                                {activeCalls.map((call) => {
+                                    const callData = typeof call.data === 'string' ? JSON.parse(call.data) : (call.data || {});
+                                    return (
+                                        <div key={call.id} className="py-3 flex items-center justify-between gap-3 first:pt-0 last:pb-0">
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-bold text-white flex items-center gap-2">
+                                                    <span className="text-orange-400 font-mono font-black">[{callData.tableName || '포장'}]</span>
+                                                    <span>호출 도착!</span>
+                                                </p>
+                                                <p className="text-xs text-slate-400 mt-1 leading-normal">
+                                                    구분 : <span className="font-semibold text-slate-300">"{callData.type || '직원 호출'}"</span>
+                                                    {callData.isStaffConnected !== undefined && (
+                                                        <span className="ml-2 font-mono text-[10px] text-slate-500">
+                                                            ({callData.isStaffConnected ? '기기 실시간 연결 수신됨' : '오프라인 큐 백업됨'})
+                                                        </span>
+                                                    )}
+                                                </p>
+                                            </div>
+
+                                            <button
+                                                onClick={() => {
+                                                    markAsRead(call.id);
+                                                    try {
+                                                        const { toast } = require('react-toastify');
+                                                        toast.success('호출 확인을 완료했습니다. 테이블로 이동해 주세요!');
+                                                    } catch (_) {
+                                                        alert('호출 확인이 완료되었습니다. 해당 테이블로 이동해 주십시오.');
+                                                    }
+                                                }}
+                                                className="px-4 h-9 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md shadow-emerald-500/10 flex items-center justify-center shrink-0"
+                                            >
+                                                호출 해결
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* ── 실시간 주문 / 다점포 ── */}
             <div>

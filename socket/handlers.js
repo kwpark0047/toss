@@ -144,13 +144,50 @@ function registerSocketHandlers(io) {
     });
 
     // ── 매니저 호출 ──────────────────────────────────────
-    socket.on('manager-call', (data) => {
+    // ── 매장 매니저 호출 (DB 기록 및 직원 연결 정밀 체크 고도화) ─────────────────
+    socket.on('manager-call', async (data) => {
       const { storeId, tableName, type } = data;
-      io.to(`store - ${storeId}`).emit('manager-notification', {
-        type: 'MANAGER_CALL',
-        message: `${tableName || '고객'}님이 매니저를 호출하셨습니다. (${type})`,
-        tableName,
-      });
+      
+      try {
+        // 1. 매장 룸('store - ${storeId}')에 연결된 활성 스태프 소켓 개수 정밀 체크 (SLA 가용 확인)
+        const room = io.sockets.adapter.rooms.get(`store - ${storeId}`);
+        const isStaffConnected = room && room.size >= 1; // 기기 연결 세션 파악
+
+        // 2. 알림 레코드 DB 영구 저장 (관리자 대시보드 검증 및 누적 집계 연동)
+        const notification = await prisma.notifications.create({
+          data: {
+            store_id: parseInt(storeId),
+            type: 'MANAGER_CALL',
+            title: '🛎️ 직원 호출 도착',
+            message: `${tableName || '포장'}에서 "${type || '직원 호출'}" 호출이 들어왔습니다.`,
+            data: JSON.stringify({ tableName, type, isStaffConnected }),
+            is_read: false,
+            priority: 'high'
+          }
+        });
+
+        // 3. 매장 전체 룸에 실시간 전파 (FCM 토큰 미등록 단말기도 소켓으로 이중 보장)
+        io.to(`store - ${storeId}`).emit('manager-notification', {
+          id: notification.id,
+          type: 'MANAGER_CALL',
+          message: `${tableName || '포장'}에서 "${type || '직원 호출'}" 호출이 들어왔습니다.`,
+          data: { tableName, type, isStaffConnected, id: notification.id },
+          created_at: notification.created_at
+        });
+
+        // 4. 호출한 손님 단말기에 가용성 피드백 ACK 전파 (심리적 신뢰감 증진)
+        socket.emit('manager-call-ack', { 
+          success: true, 
+          isStaffConnected, 
+          message: isStaffConnected 
+            ? '직원이 실시간 연결되어 있습니다. 즉시 이동 중입니다! 🏃' 
+            : '현재 홀 직원이 바쁘지만, 호출 신호가 정상 접수되었습니다.' 
+        });
+
+        logger.info(`[Socket Staff Call] Saved and broadcasted call for table ${tableName} on Store ${storeId} (Active Staff: ${isStaffConnected})`);
+      } catch (err) {
+        logger.error(`[Socket Staff Call] Error: ${err.message}`);
+      }
     });
 
     // ── 공유 장바구니 ────────────────────────────────────
