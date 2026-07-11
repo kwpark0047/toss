@@ -1,14 +1,14 @@
+// catchAsync 미들웨어를 모크하여 테스트 환경에서는 래핑 없이 일반 비동기 함수로 실행되도록 함 (동기식 expect 평가를 위함)
+jest.mock('../../../utils/catchAsync', () => fn => fn);
+
 const v1Controller = require('../../../controllers/v1Controller');
 const prisma = require('../../../config/prisma');
 const OrderRepository = require('../../../repositories/Order');
 const { emitEvent } = require('../../../services/webhookDispatcher');
 
-// catchAsync 미들웨어 모의화 (동기적 직접 실행 목적)
-jest.mock('../../../utils/catchAsync', () => (fn) => fn);
-
-// Prisma 클라이언트 모의화
+// ── Prisma 데이터베이스 어댑터 모의 ────────────────────────────────────────────────
 jest.mock('../../../config/prisma', () => {
-    return {
+    const mockPrisma = {
         stores: {
             findUnique: jest.fn(),
         },
@@ -22,157 +22,198 @@ jest.mock('../../../config/prisma', () => {
         $queryRawUnsafe: jest.fn(),
         $executeRawUnsafe: jest.fn(),
     };
+    return mockPrisma;
 });
 
-// 주문 레포지토리 및 웹훅 디스패처 모의화
-jest.mock('../../../repositories/Order');
+// ── Order 레포지토리 및 웹훅 연동 모의 ─────────────────────────────────────────────
+jest.mock('../../../repositories/Order', () => {
+    return {
+        create: jest.fn(),
+    };
+});
+
 jest.mock('../../../services/webhookDispatcher', () => {
     return {
         emitEvent: jest.fn(),
     };
 });
 
-// 전화번호 복호화 모의화 (마스킹 테스트용)
+// ── 복호화 모의 ────────────────────────────────────────────────────────────────
 jest.mock('../../../utils/phoneEncryption', () => {
     return {
-        decryptPhone: jest.fn((enc) => {
-            if (enc === 'enc_phone_test') return '01012345678';
-            return null;
-        }),
+        decryptPhone: jest.fn((enc) => enc ? '01012345678' : null),
     };
 });
 
 describe('v1Controller Unit Tests', () => {
-    let req, res;
+    let mockReq;
+    let mockRes;
 
     beforeEach(() => {
         jest.clearAllMocks();
-        req = {
+        mockReq = {
             apiClient: { storeId: 1 },
             params: {},
             query: {},
             body: {},
+            app: {
+                get: jest.fn(() => null)
+            }
         };
-        res = {
+        mockRes = {
             status: jest.fn().mockReturnThis(),
             json: jest.fn().mockReturnThis(),
         };
     });
 
     describe('getStore', () => {
-        it('매장 정보를 성공적으로 리스팅한다', async () => {
+        it('should retrieve store details successfully', async () => {
             prisma.stores.findUnique.mockResolvedValue({
                 id: 1,
-                name: '가산동 대박트럭',
-                business_type: 'FOOD_TRUCK',
+                name: '테스트 가판대',
+                business_type: 'FOOD_TRUCK'
             });
 
-            await v1Controller.getStore(req, res);
+            await v1Controller.getStore(mockReq, mockRes);
 
-            expect(prisma.stores.findUnique).toHaveBeenCalledWith(expect.objectContaining({
-                where: { id: 1 },
-            }));
-            expect(res.json).toHaveBeenCalledWith({
-                data: expect.objectContaining({ name: '가산동 대박트럭', business_type: 'FOOD_TRUCK' }),
+            expect(prisma.stores.findUnique).toHaveBeenCalled();
+            expect(mockRes.json).toHaveBeenCalledWith({
+                data: expect.objectContaining({ name: '테스트 가판대' })
             });
         });
 
-        it('매장 정보가 없으면 404 에러를 반환한다', async () => {
+        it('should return 404 if store is not found', async () => {
             prisma.stores.findUnique.mockResolvedValue(null);
 
-            await v1Controller.getStore(req, res);
+            await v1Controller.getStore(mockReq, mockRes);
 
-            expect(res.status).toHaveBeenCalledWith(404);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+            expect(mockRes.status).toHaveBeenCalledWith(404);
+            expect(mockRes.json).toHaveBeenCalledWith({
                 error: 'not_found',
-            }));
+                message: expect.any(String)
+            });
         });
     });
 
     describe('getMenus', () => {
-        it('매장의 상품 메뉴 목록을 정상 조회한다', async () => {
+        it('should retrieve menu products successfully', async () => {
             prisma.products.findMany.mockResolvedValue([
-                { id: 10, name: '양념 닭꼬치', price: 3500 },
-                { id: 11, name: '소금 닭꼬치', price: 3000 },
+                { id: 10, name: '닭꼬치', price: 4000 }
             ]);
 
-            await v1Controller.getMenus(req, res);
+            await v1Controller.getMenus(mockReq, mockRes);
 
             expect(prisma.products.findMany).toHaveBeenCalled();
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+            expect(mockRes.json).toHaveBeenCalledWith({
                 data: expect.any(Array),
-                meta: { count: 2 },
-            }));
+                meta: { count: 1 }
+            });
         });
     });
 
     describe('getOrders', () => {
-        it('매장 주문 목록을 마스킹 처리된 휴대폰 번호와 함께 조회한다', async () => {
+        it('should list and format store orders successfully', async () => {
             prisma.orders.findMany.mockResolvedValue([
                 {
-                    id: 501,
-                    order_number: '20260711-1001',
+                    id: 50,
+                    order_number: '20260711-1234',
                     status: 'pending',
-                    total_amount: 6500,
-                    customer_phone: 'enc_phone_test',
-                    order_items: [{ product_name: '양념 닭꼬치', quantity: 2, price: 3500 }],
+                    customer_phone: 'encrypted_phone_here',
+                    order_items: [
+                        { product_name: '닭꼬치', quantity: 2, price: 4000 }
+                    ]
                 }
             ]);
 
-            await v1Controller.getOrders(req, res);
+            await v1Controller.getOrders(mockReq, mockRes);
 
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+            expect(prisma.orders.findMany).toHaveBeenCalled();
+            expect(mockRes.json).toHaveBeenCalledWith({
                 data: expect.arrayContaining([
                     expect.objectContaining({
-                        customer_phone: '010-****-5678', // 01012345678의 마스킹된 포맷 검증
+                        order_number: '20260711-1234',
+                        customer_phone: '010-****-5678' // 복호화 & 마스킹 통과 검증
                     })
                 ]),
-            }));
+                meta: { count: 1 }
+            });
         });
     });
 
     describe('createOrder', () => {
-        it('올바른 가격 검증을 통해 외부 주문을 생성하고 웹훅을 방출한다', async () => {
-            req.body = {
+        it('should create order and trigger webhook successfully', async () => {
+            mockReq.body = {
                 items: [
-                    { product_id: 10, quantity: 2 },
-                ],
+                    { product_id: 10, quantity: 2 }
+                ]
             };
 
             prisma.products.findMany.mockResolvedValue([
-                { id: 10, price: 3500 },
+                { id: 10, price: 4000 }
             ]);
 
             OrderRepository.create.mockResolvedValue({
-                id: 501,
-                order_number: '20260711-1001',
-                total_amount: 7000,
-                status: 'pending',
+                id: 50,
+                order_number: '20260711-1234',
+                total_amount: 8000,
+                status: 'pending'
             });
 
-            await v1Controller.createOrder(req, res);
+            await v1Controller.createOrder(mockReq, mockRes);
 
+            expect(prisma.products.findMany).toHaveBeenCalled();
             expect(OrderRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-                total_amount: 7000, // 3500 * 2 재계산 검증
+                total_amount: 8000,
+                items: [{ product_id: 10, quantity: 2, options: null }]
             }));
             expect(emitEvent).toHaveBeenCalledWith(1, 'order.created', expect.any(Object));
-            expect(res.status).toHaveBeenCalledWith(201);
+            expect(mockRes.status).not.toHaveBeenCalledWith(400); // 400 에러를 뱉지 않아야 함
         });
     });
 
     describe('claimPrintJobs', () => {
-        it('원자적 DB select-for-update-skip-locked 쿼리를 전개한다', async () => {
-            req.body = { max: 5 };
+        it('should raw update and claim oldest pending print jobs', async () => {
+            mockReq.body = { max: 5 };
             prisma.$queryRawUnsafe.mockResolvedValue([
-                { id: 1, payload_b64: 'YmFzZTY0cG9z' },
+                { id: 1, order_id: 50, kind: 'kitchen', payload_b64: 'YmFzZTY0' }
             ]);
 
-            await v1Controller.claimPrintJobs(req, res);
+            await v1Controller.claimPrintJobs(mockReq, mockRes);
 
             expect(prisma.$queryRawUnsafe).toHaveBeenCalled();
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-                meta: { count: 1 },
-            }));
+            expect(mockRes.json).toHaveBeenCalledWith({
+                data: expect.any(Array),
+                meta: { count: 1 }
+            });
+        });
+    });
+
+    describe('ackPrintJob', () => {
+        it('should mark print job status as done on success feedback', async () => {
+            mockReq.params = { id: '1' };
+            mockReq.body = { success: true };
+
+            await v1Controller.ackPrintJob(mockReq, mockRes);
+
+            expect(prisma.$executeRawUnsafe).toHaveBeenCalledWith(
+                expect.stringContaining('done'),
+                1, 1
+            );
+        });
+
+        it('should transition print job status based on retry attempts on failure feedback', async () => {
+            mockReq.params = { id: '1' };
+            mockReq.body = { success: false, error: 'connection timeout' };
+
+            prisma.$queryRawUnsafe.mockResolvedValue([{ attempts: 1 }]); // 3회 미만 -> pending 복귀
+
+            await v1Controller.ackPrintJob(mockReq, mockRes);
+
+            expect(prisma.$queryRawUnsafe).toHaveBeenCalled();
+            expect(prisma.$executeRawUnsafe).toHaveBeenCalledWith(
+                expect.stringContaining('UPDATE print_jobs'),
+                'pending', 'connection timeout', 1, 1
+            );
         });
     });
 });

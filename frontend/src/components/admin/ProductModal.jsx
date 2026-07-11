@@ -238,7 +238,7 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`py-4 sm:py-6 flex items-center gap-1.5 sm:gap-3 text-[10px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest transition-all relative whitespace-nowrap px-2 sm:px-0 \${activeTab === tab.id ? 'text-orange-500' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`py-4 sm:py-6 flex items-center gap-1.5 sm:gap-3 text-[10px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest transition-all relative whitespace-nowrap px-2 sm:px-0 ${activeTab === tab.id ? 'text-orange-500' : 'text-slate-500 hover:text-slate-300'}`}
             >
               <tab.icon size={13} className="sm:w-4 sm:h-4" />
               {tab.label}
@@ -252,111 +252,11 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
         <div className="flex-1 overflow-y-auto p-5 sm:p-10 space-y-6 sm:space-y-10">
           {activeTab === 'basic' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">메뉴 이름 *</label>
-                  <input
-                    type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="메뉴 이름을 입력하세요" required
-                    className="w-full h-14 sm:h-16 px-5 sm:px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">가격 (원) *</label>
-                  <input
-                    type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    placeholder="0" required
-                    className="w-full h-14 sm:h-16 px-5 sm:px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">카테고리</label>
-                  <select
-                    value={form.category_id}
-                    onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-                    className="w-full h-14 sm:h-16 px-5 sm:px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white appearance-none"
-                  >
-                    <option value="" className="bg-slate-900">카테고리 선택</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id} className="bg-slate-900">{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">조리 시간 (분)</label>
-                  <input
-                    type="number" value={form.cooking_time} onChange={(e) => setForm({ ...form, cooking_time: e.target.value })}
-                    className="w-full h-14 sm:h-16 px-5 sm:px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex justify-between items-center px-1">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">메뉴 요약 설명</label>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    type="button" onClick={handleGenerateAI} disabled={aiLoading}
-                    className="flex items-center gap-2 text-[10px] font-black text-orange-400 bg-orange-500/10 border border-orange-500/20 px-4 py-2 rounded-xl transition-all disabled:opacity-50"
-                  >
-                    <Sparkles size={14} className={aiLoading ? 'animate-spin' : ''} />
-                    {aiLoading ? 'AI 생성 중...' : 'AI 설명 자동생성'}
-                  </motion.button>
-                </div>
-                <textarea
-                  value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="메뉴의 특징을 간략하게 입력하세요 (AI 자동생성 가능)"
-                  rows={3}
-                  className="w-full p-6 bg-white/5 border border-white/5 rounded-3xl outline-none focus:border-orange-500/50 transition-all font-bold text-white placeholder:text-slate-700"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">태그 (쉼표로 구분)</label>
-                <input
-                  type="text" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                  placeholder="예) 인기, 추천, 채식, 글루텐프리"
-                  className="w-full h-14 px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white placeholder:text-slate-700"
-                />
-                {form.tags && (
-                  <div className="flex flex-wrap gap-2 px-1">
-                    {form.tags.split(',').map((t, i) => t.trim() && (
-                      <span key={i} className="px-3 py-1 bg-orange-500/10 text-orange-400 rounded-lg text-[11px] font-black border border-orange-500/20">#{t.trim()}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
-                {[
-                  { id: 'is_popular', label: '인기 메뉴', icon: Star, color: 'text-amber-400' },
-                  { id: 'is_new', label: '신메뉴 표시', icon: Flame, color: 'text-blue-400' },
-                  { id: 'is_sold_out', label: '품절 표시', icon: AlertTriangle, color: 'text-rose-500' },
-                ].map((toggle) => (
-                  <button
-                    key={toggle.id} type="button"
-                    onClick={() => setForm({ ...form, [toggle.id]: form[toggle.id] ? 0 : 1 })}
-                    className={`flex items-center justify-between p-4 sm:p-5 rounded-2xl border transition-all \${form[toggle.id] ? \`bg-white/5 border-white/20 \${toggle.color}\` : 'bg-transparent border-white/5 text-slate-600 hover:border-white/10'}`}
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <toggle.icon size={16} />
-                      <span className="text-[11px] font-black uppercase tracking-tighter">{toggle.label}</span>
-                    </div>
-                    <div className={`w-3.5 h-3.5 rounded-full border-2 \${form[toggle.id] ? 'bg-current border-transparent' : 'border-current'}`} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'detail' && (
-            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="space-y-4">
+              
+              {/* 대표 이미지 및 업로드 수단 (데이터 등록 흐름의 최적화를 위해 최상단으로 전격 고도화 이동) */}
+              <div className="space-y-4 bg-white/[0.01] border border-white/5 p-6 rounded-3xl">
                 <div className="flex items-center justify-between px-1">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">대표 이미지</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">대표 이미지 등록 (최상단)</label>
                   <div className="flex items-center gap-2 text-[10px] text-slate-600 font-bold">
                     <Info size={11} />
                     <span>권장: 800×800 · 정방형 · 최대 2MB</span>
@@ -369,7 +269,7 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
                       type="text" value={form.image_url}
                       onChange={(e) => { setForm({ ...form, image_url: e.target.value }); setImageInfo(null); }}
                       placeholder="이미지 URL 또는 파일 업로드"
-                      className="w-full h-14 pl-16 pr-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white placeholder:text-slate-700 text-sm"
+                      className="w-full h-14 pl-16 pr-6 bg-slate-950 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white placeholder:text-slate-700 text-sm"
                     />
                   </div>
                   <div className="grid grid-cols-2 xs:grid-cols-3 gap-2">
@@ -378,7 +278,7 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
                       onClick={() => setShowSamplePicker(true)}
                       className="flex items-center justify-center gap-2 h-12 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded-xl transition-all font-black text-xs"
                     >
-                      <Package size={15} /> 샘플
+                      <Package size={15} /> 샘플 선택
                     </button>
                     <label className="flex items-center justify-center gap-2 h-12 bg-white text-slate-950 rounded-xl cursor-pointer hover:bg-orange-500 hover:text-white transition-all font-black text-xs">
                       <Upload size={15} />
@@ -401,7 +301,7 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
                   {imageInfo && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold overflow-hidden \${
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold overflow-hidden ${
                         imageInfo.isLarge
                           ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
                           : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
@@ -416,9 +316,6 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
                       {imageInfo.compressed && (
                         <span className="ml-auto shrink-0 text-emerald-400 font-black">✨ 모바일 최적화됨</span>
                       )}
-                      {imageInfo.isLarge && !imageInfo.compressed && (
-                        <span className="ml-auto shrink-0 text-rose-400 font-black">용량 초과 — 압축 권장</span>
-                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -431,13 +328,116 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
                 )}
               </div>
 
+              {/* 메뉴 이름 아래 가격 구조의 입력 폼 정렬 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">메뉴 이름 *</label>
+                  <input
+                    type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="메뉴 이름을 입력하세요" required
+                    className="w-full h-14 sm:h-16 px-5 sm:px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">가격 (원) *</label>
+                  <input
+                    type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })}
+                    placeholder="0" required
+                    className="w-full h-14 sm:h-16 px-5 sm:px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">카테고리</label>
+                  <select
+                    value={form.category_id}
+                    onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+                    className="w-full h-14 sm:h-16 px-5 sm:px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white appearance-none text-sm"
+                  >
+                    <option value="" className="bg-slate-900">카테고리 선택</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id} className="bg-slate-900">{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">조리 시간 (분)</label>
+                  <input
+                    type="number" value={form.cooking_time} onChange={(e) => setForm({ ...form, cooking_time: e.target.value })}
+                    className="w-full h-14 sm:h-16 px-5 sm:px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">메뉴 요약 설명</label>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                    type="button" onClick={handleGenerateAI} disabled={aiLoading}
+                    className="flex items-center gap-2 text-[10px] font-black text-orange-400 bg-orange-500/10 border border-orange-500/20 px-4 py-2 rounded-xl transition-all disabled:opacity-50"
+                  >
+                    <Sparkles size={14} className={aiLoading ? 'animate-spin' : ''} />
+                    {aiLoading ? 'AI 생성 중...' : 'AI 설명 자동생성'}
+                  </motion.button>
+                </div>
+                <textarea
+                  value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="메뉴의 특징을 간략하게 입력하세요 (AI 자동생성 가능)"
+                  rows={3}
+                  className="w-full p-6 bg-white/5 border border-white/5 rounded-3xl outline-none focus:border-orange-500/50 transition-all font-bold text-white placeholder:text-slate-700 text-sm"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">태그 (쉼표로 구분)</label>
+                <input
+                  type="text" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                  placeholder="예) 인기, 추천, 채식, 글루텐프리"
+                  className="w-full h-14 px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white placeholder:text-slate-700 text-sm"
+                />
+                {form.tags && (
+                  <div className="flex flex-wrap gap-2 px-1">
+                    {form.tags.split(',').map((t, i) => t.trim() && (
+                      <span key={i} className="px-3 py-1 bg-orange-500/10 text-orange-400 rounded-lg text-[11px] font-black border border-orange-500/20">#{t.trim()}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
+                {[
+                  { id: 'is_popular', label: '인기 메뉴', icon: Star, color: 'text-amber-400' },
+                  { id: 'is_new', label: '신메뉴 표시', icon: Flame, color: 'text-blue-400' },
+                  { id: 'is_sold_out', label: '품절 표시', icon: AlertTriangle, color: 'text-rose-500' },
+                ].map((toggle) => (
+                  <button
+                    key={toggle.id} type="button"
+                    onClick={() => setForm({ ...form, [toggle.id]: form[toggle.id] ? 0 : 1 })}
+                    className={`flex items-center justify-between p-4 sm:p-5 rounded-2xl border transition-all ${form[toggle.id] ? `bg-white/5 border-white/20 ${toggle.color}` : 'bg-transparent border-white/5 text-slate-600 hover:border-white/10'}`}
+                  >
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <toggle.icon size={16} />
+                      <span className="text-[11px] font-black uppercase tracking-tighter">{toggle.label}</span>
+                    </div>
+                    <div className={`w-3.5 h-3.5 rounded-full border-2 ${form[toggle.id] ? 'bg-current border-transparent' : 'border-current'}`} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'detail' && (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">상세 설명</label>
                 <textarea
                   value={form.detail_description} onChange={(e) => setForm({ ...form, detail_description: e.target.value })}
                   placeholder="메뉴의 상세한 설명, 특징, 조리법 등을 입력하세요"
                   rows={4}
-                  className="w-full p-6 bg-white/5 border border-white/5 rounded-3xl outline-none focus:border-orange-500/50 transition-all font-bold text-white placeholder:text-slate-700"
+                  className="w-full p-6 bg-white/5 border border-white/5 rounded-3xl outline-none focus:border-orange-500/50 transition-all font-bold text-white placeholder:text-slate-700 text-sm"
                 />
               </div>
 
@@ -458,7 +458,7 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
                   <input
                     type="text" value={form.allergens} onChange={(e) => setForm({ ...form, allergens: e.target.value })}
                     placeholder="예) 땅콩, 밀, 우유, 계란..."
-                    className="w-full h-14 px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white placeholder:text-slate-700"
+                    className="w-full h-14 px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-orange-500/50 transition-all font-bold text-white placeholder:text-slate-700 text-sm"
                   />
                 </div>
               </div>
@@ -534,7 +534,7 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
                       type="number" value={form.stock_quantity}
                       onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })}
                       placeholder="비워두면 무제한"
-                      className="w-full h-14 px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500/50 transition-all font-bold text-white placeholder:text-slate-700"
+                      className="w-full h-14 px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500/50 transition-all font-bold text-white placeholder:text-slate-700 text-sm"
                     />
                     <p className="text-[10px] text-slate-600 font-medium px-2">비워두면 재고 제한 없이 주문 가능</p>
                   </div>
@@ -544,7 +544,7 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
                       type="number" value={form.low_stock_threshold}
                       onChange={(e) => setForm({ ...form, low_stock_threshold: e.target.value })}
                       placeholder="5"
-                      className="w-full h-14 px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500/50 transition-all font-bold text-white"
+                      className="w-full h-14 px-6 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500/50 transition-all font-bold text-white text-sm"
                     />
                     <p className="text-[10px] text-slate-600 font-medium px-2">이 수량 이하일 때 부족 경보 알림 발송</p>
                   </div>
@@ -575,7 +575,7 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
 
       {showSamplePicker && (
         <SampleImagePicker
-          onSelect={(url) => { setForm(prev => ({ ...prev, image_url: url })); setImageInfo(null); setActiveTab('detail'); }}
+          onSelect={(url) => { setForm(prev => ({ ...prev, image_url: url })); setImageInfo(null); setActiveTab('basic'); }}
           onClose={() => setShowSamplePicker(false)}
         />
       )}
