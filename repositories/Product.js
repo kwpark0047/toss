@@ -1,5 +1,5 @@
 const prisma = require('../config/prisma');
-const cache = require('../utils/cache');
+const cache = require('../utils/dbCache');
 
 /**
  * 상품 모델 (Prisma 기반 + Caching)

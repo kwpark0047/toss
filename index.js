@@ -4,6 +4,7 @@ const logger   = require('./utils/logger');
 const alerting = require('./utils/alerting');
 const prisma   = require('./config/prisma');
 const cron     = require('node-cron');
+const { startKeepAlive } = require('./utils/keepAlive');
 
 const PORT = process.env.PORT || 3000;
 
@@ -41,6 +42,9 @@ httpServer.listen(PORT, () => {
 
     // 매장 연동 요청 알림 기본 템플릿 등록
     initStoreLinkTemplates();
+
+    // Render Free Tier 슬립 방지 자가 핑 데몬 가동 (인프라 레이턴시 원천 차단)
+    startKeepAlive();
 });
 
 // ── 매장 연동 요청 알림 기본 템플릿 ──────────────────────────────────────────
