@@ -7,9 +7,9 @@ const catchAsync = require("../utils/catchAsync");
 const aiController = {
     // [설명 생성]
     describeMenu: catchAsync(async (req, res) => {
-        const { name, category, price, description } = req.body;
+        const { name, category, price, image_url, description } = req.body;
         const aiDescription = await aiService.generateMenuDescription({
-            name, category, price, description
+            name, category, price, image_url, description
         });
         res.json({ description: aiDescription });
     }),

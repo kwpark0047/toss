@@ -122,7 +122,13 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
     setAiLoading(true);
     try {
       const catName = categories.find(c => c.id === parseInt(form.category_id))?.name || '';
-      const res = await aiAPI.describeMenu({ name: form.name, category: catName, description: form.description });
+      const res = await aiAPI.describeMenu({ 
+        name: form.name, 
+        category: catName, 
+        price: form.price,
+        image_url: form.image_url,
+        description: form.description 
+      });
       if (res?.description) setForm(prev => ({ ...prev, description: res.description }));
     } catch (e) { handleApiError(e, 'AI 설명 생성 중 오류가 발생했습니다'); }
     finally { setAiLoading(false); }
