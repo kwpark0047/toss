@@ -405,6 +405,7 @@ const AdminLayout = ({ children }) => {
 
   const navItems = [
     { label: '대시보드',      icon: LayoutDashboard, path: '/admin',                                           id: 'dashboard', roles: [] },
+    { label: '통합 브랜드 관리', icon: Building2,         path: '/admin/supervisor',                                         roles: [] },
     { label: '주문서 현황',   icon: UtensilsCrossed,  path: `/admin/stores/${storeId}/orders`,                  show: !!storeId, roles: [] },
     { label: '주방 모니터 (KDS)', icon: ChefHat,          path: `/kitchen/${storeId}`,                              show: !!storeId, roles: [] },
     { label: '상품 관리',     icon: ShoppingBag,       path: `/admin/stores/${storeId}/menu`,                    show: !!storeId, roles: [] },

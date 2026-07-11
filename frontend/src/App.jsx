@@ -68,6 +68,7 @@ const FeaturesPage = lazy(() => import("./pages/marketing/FeaturesPage"));
 const PricingPage = lazy(() => import("./pages/marketing/PricingPage"));
 const GuidesPage = lazy(() => import("./pages/marketing/GuidesPage"));
 const ContactPage = lazy(() => import("./pages/marketing/ContactPage"));
+const MultiStoreSupervisorDashboard = lazy(() => import("@/components/admin/MultiStoreSupervisorDashboard"));
 
 const queryClient = new QueryClient();
 
@@ -155,6 +156,13 @@ const AppRoutes = memo(() => (
     <Route path="/admin" element={
       <AdminPage>
         <AdminSuspense><MasterDashboard /></AdminSuspense>
+      </AdminPage>
+    } />
+
+    {/* 다점포 프랜차이즈 통합 슈퍼바이저 대시보드 */}
+    <Route path="/admin/supervisor" element={
+      <AdminPage>
+        <AdminSuspense><MultiStoreSupervisorDashboard /></AdminSuspense>
       </AdminPage>
     } />
 

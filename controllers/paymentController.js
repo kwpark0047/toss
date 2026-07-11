@@ -58,9 +58,26 @@ const paymentController = {
     }),
 
     cancelByOrderId: catchAsync(async (req, res) => {
+        const orderId = parseInt(req.params.orderId);
+        if (isNaN(orderId)) {
+            throw new AppError('올바르지 않은 주문 ID 형식입니다.', 400);
+        }
+
+        const order = await prisma.orders.findUnique({
+            where: { id: orderId },
+            select: { store_id: true }
+        });
+
+        if (!order) {
+            throw new AppError('취소할 주문을 찾을 수 없습니다.', 404);
+        }
+
+        // 멀티테넌트 로우 레벨 격리: 세션 사용자의 주문 취소 권한 검사
+        await assertStoreAccess(req.user, order.store_id, 'orders:manage');
+
         const io = req.app.get('io');
         const paymentService = new PaymentService(io);
-        const result = await paymentService.processCancellation(req.params.orderId, req.body.cancelReason, req.user);
+        const result = await paymentService.processCancellation(orderId, req.body.cancelReason);
         res.json(result);
     }),
 
@@ -83,9 +100,12 @@ const paymentController = {
         const payment = await Payment.findByPaymentKey(req.params.paymentKey);
         if (!payment) return res.status(404).json({ error: '결제 정보 없음' });
 
+        // 멀티테넌트 로우 레벨 격리: 세션 사용자의 주문 취소 권한 검사
+        await assertStoreAccess(req.user, payment.store_id, 'orders:manage');
+
         const io = req.app.get('io');
         const paymentService = new PaymentService(io);
-        const result = await paymentService.processCancellation(payment.order_id, req.body.cancelReason, req.user);
+        const result = await paymentService.processCancellation(payment.order_id, req.body.cancelReason);
         res.json(result);
     }),
 
