@@ -5,7 +5,7 @@
 [![Database](https://img.shields.io/badge/DB-Supabase-purple?style=for-the-badge)](https://supabase.com)
 [![License](https://img.shields.io/badge/License-ISC-lightgrey?style=for-the-badge)](#)
 
-> **WeMarket**은 소상공인을 위한 프리미엄 QR 메뉴판 및 통합 매장 관리 솔루션입니다.
+> **WeMarket**은 소상공인을 위한 프리미엄 QR 메뉴판 및 통합 매장 관리 플랫폼입니다.
 > 고객은 앱 설치 없이 **QR 코드 스캔만으로** 메뉴 확인, 주문, 호출, 결제를 진행할 수 있으며,
 > 관리자는 **실시간 대시보드**를 통해 매장 운영을 효율화할 수 있습니다.
 > 본 프로젝트는 고밀도 데이터 표현 및 다점포 가맹 운영에 최적화된 엔터프라이즈급 아키텍처로 고도화되었습니다.
