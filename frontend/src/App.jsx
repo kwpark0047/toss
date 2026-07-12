@@ -435,13 +435,13 @@ const App = () => (
       <Sonner />
       <OfflineBanner />
       <PWAUpdateNotification />
-      <PWAInstallBanner />
       <ErrorBoundary
         fallback={<ErrorFallback error={new Error('앱을 불러올 수 없습니다.')} fullPage />}
         onError={logError}
       >
         <BrowserRouter>
           <AuthProvider>
+            <PWAInstallBanner />
             <ErrorBoundary onError={logError}>
               <AppRoutes />
             </ErrorBoundary>

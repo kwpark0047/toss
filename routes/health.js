@@ -11,6 +11,30 @@ const prisma  = require('../config/prisma');
 const cb      = require('../utils/circuitBreaker');
 const alerting = require('../utils/alerting');
 
+// 런타임 클라이언트 화이트리스트 (PWA 서비스 워커 및 Vercel 크로스 도메인 수신용)
+const allowedOrigins = [
+    'https://frontend-gamma-ten-89.vercel.app',
+    'https://wemarket-toss.onrender.com',
+    'https://wemarket.onrender.com',
+    'https://wemarket.vercel.app',
+    'https://250105.vercel.app'
+];
+
+// DB 슬립/서버 503 가용성 장애 시에도 브라우저 전송에 필요한 CORS 헤더를 원자적으로 강제 반사 (Workbox fetch 우회 차단 해결)
+router.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    }
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+    next();
+});
+
 const START_TIME = Date.now();
 // 버전 단일 소스: package.json (npm_package_version은 `node index.js` 직접 실행 시 누락됨)
 const APP_VERSION = require('../package.json').version;
