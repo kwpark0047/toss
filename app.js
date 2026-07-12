@@ -51,7 +51,8 @@ const allowedOrigins = [
     'https://wemarket-toss.onrender.com',
     'https://wemarket.onrender.com',
     'https://wemarket.vercel.app',
-    'https://250105.vercel.app'
+    'https://250105.vercel.app',
+    'https://wemarket-6k6.pages.dev'
 ];
 // 프로덕션에서 localhost 오리진은 CORS 목록에서 전면 제외 (공격 표면 제거)
 if (!isProduction) {
