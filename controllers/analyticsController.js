@@ -174,6 +174,36 @@ const analyticsController = {
         const stats = await Order.getMultiStoreStats(storeIds, start_date, end_date);
 
         res.success(stats);
+    }),
+
+    /**
+     * [GET] 데이터베이스 원자적 실시간 SQL 쿼리 프로파일링 로그 및 SLA 수집 조회 (슈퍼어드민 전용)
+     */
+    getDbProfileLogs: catchAsync(async (req, res) => {
+        // 데이터 보안 격리(Data Isolation): 일반 사업자가 원장 SQL 쿼리문을 임의 도청하지 못하도록 슈퍼어드민 강제 통제
+        if (req.user.role !== 'super_admin') {
+            return res.status(403).json({ error: 'unauthorized', message: '이 시스템의 데이터베이스 원장 프로파일러 권한이 없습니다.' });
+        }
+
+        const prismaInstance = require('../config/prisma');
+        const logs = prismaInstance.getQueryLogs ? prismaInstance.getQueryLogs() : [];
+
+        // 링버퍼 내 쿼리들의 가용성 레이턴시 원자적 집계 연산
+        const total = logs.length;
+        const avg = total > 0 ? Math.round(logs.reduce((sum, l) => sum + l.duration, 0) / total) : 0;
+        const max = total > 0 ? Math.max(...logs.map(l => l.duration)) : 0;
+        const slowCount = logs.filter(l => l.duration >= 100).length;
+
+        res.success({
+            summary: {
+                total_queries: total,
+                avg_latency_ms: avg,
+                max_latency_ms: max,
+                slow_queries_count: slowCount,
+                slow_query_ratio: total > 0 ? Math.round((slowCount / total) * 100) : 0
+            },
+            logs
+        });
     })
 };
 

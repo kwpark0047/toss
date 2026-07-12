@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { storesAPI, ordersAPI, analyticsAPI, exportAPI } from '../../api';
+import { storesAPI, ordersAPI, analyticsAPI, exportAPI, getSocket } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { formatPrice, formatTime } from '../../utils/format';
@@ -8,7 +8,16 @@ import EmptyState from '../common/EmptyState';
 import Skeleton from '../common/Skeleton';
 import SuperAdminDashboard from './SuperAdminDashboard';
 import Button from '../common/Button';
-import { Store, ShoppingBag, DollarSign, Clock, Plus, ChevronRight, BarChart3, Users, TrendingUp, Activity, Zap, ArrowUpRight, ArrowDownRight, Sparkles, Settings, RefreshCw, Bell, QrCode, LayoutGrid, Home, ReceiptText, BadgeCheck, ChefHat, AlertCircle, CalendarDays, Download, FileSpreadsheet, FileText, Loader2, MessageSquareText, Code2, Handshake } from 'lucide-react';
+import notificationSound from '../../utils/notificationSound';
+import { onNewOrder, onOrderUpdated } from '../../utils/socket';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Store, ShoppingBag, DollarSign, Clock, Plus, ChevronRight, BarChart3, Users, 
+  TrendingUp, Activity, Zap, ArrowUpRight, ArrowDownRight, Sparkles, Settings, 
+  RefreshCw, Bell, QrCode, LayoutGrid, Home, ReceiptText, BadgeCheck, ChefHat, 
+  AlertCircle, CalendarDays, Download, FileSpreadsheet, FileText, Loader2, 
+  MessageSquareText, Code2, Handshake, X, Volume2, VolumeX, ShieldAlert
+} from 'lucide-react';
 
 /* ─── 내보내기 패널 ─── */
 const ExportPanel = ({ storeId }) => {
@@ -93,7 +102,6 @@ const StatusBadge = ({ status }) => {
         completed: { label: '완료',  cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
         cancelled: { label: '취소',  cls: 'bg-rose-500/15 text-rose-400 border-rose-500/30' },
     };
-    // 알 수 없는 상태를 '취소'로 오표시하지 않도록 중립 fallback
     const c = cfg[status] ?? { label: status || '-', cls: 'bg-white/10 text-slate-400 border-white/20' };
     return (
         <span className={`px-2 py-0.5 text-[10px] font-black rounded-md border ${c.cls}`}>{c.label}</span>
@@ -125,6 +133,9 @@ const MasterDashboard = () => {
     const [lastRefresh,     setLastRefresh]     = useState(new Date());
     const refreshTimer = useRef(null);
 
+    // AI 결제량 변동성 실시간 위기경보 상태
+    const [anomalyAlert, setAnomalyAlert] = useState(null);
+
     /* ─── 매장 로딩 ─── */
     const fetchStores = useCallback(async () => {
         try {
@@ -142,7 +153,6 @@ const MasterDashboard = () => {
                     }).catch(() => {});
                 return;
             }
-            // super_admin은 전체(15만+)를 덤프하지 않고 최근 50개만 로드(관리 대상 선택용)
             const res = user?.role === 'super_admin' ? await storesAPI.getAll({ limit: 50 }) : await storesAPI.getMy();
             list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
             setStores(list);
@@ -211,6 +221,59 @@ const MasterDashboard = () => {
         return () => clearInterval(refreshTimer.current);
     }, [isMultiView, selectedStore, fetchStoreData]);
 
+    const soundEnabledRef = useRef(soundEnabled);
+    useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
+
+    // 실시간 AI 결제 변동성 감사 경보 소켓 수신 핸들러 추가
+    useEffect(() => {
+        const socketInstance = getSocket();
+        if (socketInstance && selectedStore) {
+            const handleAnomaly = (payload) => {
+                if (parseInt(payload.storeId || payload.store_id) === parseInt(selectedStore.id)) {
+                    setAnomalyAlert(payload);
+                    if (soundEnabledRef.current) {
+                        notificationSound.playUrgent?.();
+                    }
+                }
+            };
+            socketInstance.on('system:anomaly_alert', handleAnomaly);
+            return () => socketInstance.off('system:anomaly_alert', handleAnomaly);
+        }
+    }, [selectedStore]);
+
+    useEffect(() => {
+        const cleanup = onNewOrder(() => {
+            fetchOrders();
+            if (soundEnabledRef.current) notificationSound.playNewOrder();
+            setNewOrderAlert(true);
+            setTimeout(() => setNewOrderAlert(false), 5000);
+        });
+        return cleanup;
+    }, [fetchOrders]);
+
+    useEffect(() => {
+        const cleanup = onOrderUpdated((payload) => {
+            setOrders(prev => prev.map(o => o.id === payload.order_id ? { ...o, status: payload.status } : o));
+        });
+        return cleanup;
+    }, []);
+
+    const filteredOrders = useMemo(() => {
+        if (!searchTerm) return orders;
+        const term = searchTerm.toLowerCase();
+        return orders.filter(o =>
+            o.order_number?.toLowerCase().includes(term) ||
+            o.customer_name?.toLowerCase().includes(term) ||
+            o.table_name?.toLowerCase().includes(term)
+        );
+    }, [orders, searchTerm]);
+
+    const statusCounts = useMemo(() => {
+        const counts = { all: orders.length };
+        Object.keys(statusConfig).forEach(s => { counts[s] = orders.filter(o => o.status === s).length; });
+        return counts;
+    }, [orders]);
+
     const handleNav = useCallback((path) => {
         const s = selectedStore || stores[0];
         navigate(s?.id ? `/admin/stores/${s.id}/${path}` : '/admin/stores/new');
@@ -238,7 +301,7 @@ const MasterDashboard = () => {
         </div>
     );
 
-    /* ── 매장 없음 ── (super_admin은 매장 소유가 아닌 관리 주체이므로 온보딩 대신 관리 안내) */
+    /* ── 매장 없음 ── */
     if (stores.length === 0) {
         const isSuper = user?.role === 'super_admin';
         return (
@@ -328,8 +391,86 @@ const MasterDashboard = () => {
                 </div>
             </div>
 
+            {/* 실시간 AI 매출 변동성 위기 경보 비상 배너 (SLA 지표 차단 방지) */}
+            <AnimatePresence>
+                {anomalyAlert && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="mx-1 bg-rose-500/10 border border-rose-500/30 p-5 rounded-3xl flex items-start justify-between gap-4 animate-pulse relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[radial-gradient(circle_at_100%_0%,rgba(244,63,94,0.06),transparent_70%)] pointer-events-none" />
+                        <div className="flex items-start gap-3">
+                            <ShieldAlert className="text-rose-500 shrink-0 mt-0.5" size={20} />
+                            <div className="text-left space-y-1">
+                                <h4 className="text-sm font-black text-rose-400">{anomalyAlert.title}</h4>
+                                <p className="text-xs text-slate-300 leading-relaxed font-semibold">{anomalyAlert.message}</p>
+                                <div className="flex flex-wrap items-center gap-4 pt-1.5 font-mono text-[10px] text-slate-500 font-bold">
+                                    <span>Z-Score: <strong className="text-rose-400">{anomalyAlert.zScore?.toFixed(2)}</strong></span>
+                                    <span>현재 1시간 주문: <strong className="text-rose-400">{anomalyAlert.currentHourOrders}건</strong></span>
+                                    <span>24시간 평균: <strong className="text-slate-400">{anomalyAlert.mean?.toFixed(1)}건</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setAnomalyAlert(null)}
+                            className="p-1.5 hover:bg-rose-500/10 rounded-lg text-slate-400 hover:text-rose-200 transition-colors shrink-0 relative z-10"
+                        >
+                            <X size={16} />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* 실시간 대화 기반 직원 호출 현황판 (Franchise Calls Aggregator) */}
+            <AnimatePresence>
+                {activeCalls.length > 0 && !isMultiView && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="mx-1 p-5 rounded-3xl bg-orange-500/[0.02] border border-orange-500/20 space-y-3"
+                    >
+                        <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                            <div className="flex items-center gap-2">
+                                <Bell className="text-orange-500 animate-bounce" size={16} />
+                                <h3 className="text-xs font-black text-orange-400">실시간 매장 직원 호출 현황 ({activeCalls.length}건)</h3>
+                            </div>
+                        </div>
+                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                            {activeCalls.map((call) => {
+                                const parsedData = call.data || {};
+                                return (
+                                    <div key={call.id} className="p-3 bg-slate-950/60 border border-white/5 rounded-xl flex items-center justify-between text-xs gap-3">
+                                        <div className="min-w-0 flex-1 text-left">
+                                            <p className="font-bold text-slate-200">
+                                                🛎️ {parsedData.tableName || '포장'}번 테이블 호출 : <strong className="text-orange-400">"{parsedData.type || '직원 호출'}"</strong>
+                                            </p>
+                                            <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-slate-500 font-bold">
+                                                <span>{new Date(call.created_at).toLocaleTimeString('ko-KR', { hour12: false })}</span>
+                                                <span>·</span>
+                                                <span className={parsedData.isStaffConnected ? 'text-emerald-500' : 'text-slate-600'}>
+                                                    {parsedData.isStaffConnected ? '스태프 세션 온라인 수신' : '백업 큐 기록'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => markAsRead(call.id)}
+                                            className="px-3 h-8 rounded-lg bg-orange-500 hover:bg-orange-600 text-slate-950 font-black text-[10px] tracking-wider transition-all active:scale-95 shrink-0 flex items-center gap-1 shadow-md shadow-orange-500/10"
+                                        >
+                                            <span>호출 확인</span>
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* ── 뷰 전환 + 기간 선택 ── */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-1">
                 {/* 뷰 토글 */}
                 <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 flex-shrink-0">
                     <button onClick={() => setIsMultiView(false)}
@@ -347,15 +488,15 @@ const MasterDashboard = () => {
                 <div className="flex flex-1 bg-white/5 border border-white/10 rounded-xl p-1">
                     {[['today','오늘'],['week','주간'],['month','월간']].map(([v,l]) => (
                         <button key={v} onClick={() => setTimeRange(v)}
-                            className={`flex-1 py-1.5 text-[11px] font-black rounded-lg transition-all ${timeRange === v ? 'bg-white text-slate-900 shadow' : 'text-slate-400'}`}>
+                            className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${timeRange === v ? 'bg-white/10 text-white' : 'text-slate-500'}`}>
                             {l}
                         </button>
                     ))}
                 </div>
             </div>
 
-            {/* ── 통계 카드 (모바일 2열 / 초소형 1열) ── */}
-            <div className="grid grid-cols-2 xs:grid-cols-2 gap-2.5 sm:gap-3">
+            {/* ── 통계 카드 ── */}
+            <div className="grid grid-cols-2 xs:grid-cols-2 gap-2.5 sm:gap-3 px-1">
                 {[
                     {
                         title: '총 매출', icon: DollarSign, color: 'text-orange-400', bg: 'bg-orange-500/10',
@@ -399,8 +540,8 @@ const MasterDashboard = () => {
                 ))}
             </div>
 
-            {/* ── 빠른 실행 (모바일 4열 / 초소형 3열) ── */}
-            <div>
+            {/* ── 빠른 실행 ── */}
+            <div className="px-1">
                 <div className="flex items-center justify-between mb-3 px-1">
                     <h2 className="text-sm font-black text-white flex items-center gap-2">
                         <Zap size={15} className="text-orange-400" /> 빠른 실행
@@ -424,76 +565,8 @@ const MasterDashboard = () => {
                 </div>
             </div>
 
-            {/* ── 실시간 직원 호출 현황 집계 및 확인 레이어 (SLA 실측 장착) ── */}
-            {selectedStore && !isMultiView && (
-                <div className="space-y-3 mb-6">
-                    <div className="flex items-center justify-between px-1">
-                        <h2 className="text-sm font-black text-white flex items-center gap-2">
-                            <span className="relative flex h-2.5 w-2.5">
-                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${activeCalls.length > 0 ? 'bg-rose-400' : 'bg-slate-400'}`} />
-                                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${activeCalls.length > 0 ? 'bg-rose-500' : 'bg-slate-500'}`} />
-                            </span>
-                            <span>실시간 직원 호출 수신반</span>
-                            {activeCalls.length > 0 && (
-                                <span className="px-2 py-0.5 bg-rose-500 text-white text-[9px] font-black rounded-md animate-pulse">
-                                    호출 {activeCalls.length}
-                                </span>
-                            )}
-                        </h2>
-                    </div>
-
-                    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden p-4">
-                        {activeCalls.length === 0 ? (
-                            <div className="py-6 text-center text-slate-500 flex flex-col items-center justify-center gap-1.5">
-                                <CheckCircle className="size-6 text-slate-600" />
-                                <p className="text-xs font-semibold">대기 중인 직원 호출 신호가 없습니다.</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-white/5">
-                                {activeCalls.map((call) => {
-                                    const callData = typeof call.data === 'string' ? JSON.parse(call.data) : (call.data || {});
-                                    return (
-                                        <div key={call.id} className="py-3 flex items-center justify-between gap-3 first:pt-0 last:pb-0">
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-bold text-white flex items-center gap-2">
-                                                    <span className="text-orange-400 font-mono font-black">[{callData.tableName || '포장'}]</span>
-                                                    <span>호출 도착!</span>
-                                                </p>
-                                                <p className="text-xs text-slate-400 mt-1 leading-normal">
-                                                    구분 : <span className="font-semibold text-slate-300">"{callData.type || '직원 호출'}"</span>
-                                                    {callData.isStaffConnected !== undefined && (
-                                                        <span className="ml-2 font-mono text-[10px] text-slate-500">
-                                                            ({callData.isStaffConnected ? '기기 실시간 연결 수신됨' : '오프라인 큐 백업됨'})
-                                                        </span>
-                                                    )}
-                                                </p>
-                                            </div>
-
-                                            <button
-                                                onClick={() => {
-                                                    markAsRead(call.id);
-                                                    try {
-                                                        const { toast } = require('react-toastify');
-                                                        toast.success('호출 확인을 완료했습니다. 테이블로 이동해 주세요!');
-                                                    } catch (_) {
-                                                        alert('호출 확인이 완료되었습니다. 해당 테이블로 이동해 주십시오.');
-                                                    }
-                                                }}
-                                                className="px-4 h-9 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md shadow-emerald-500/10 flex items-center justify-center shrink-0"
-                                            >
-                                                호출 해결
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
             {/* ── 실시간 주문 / 다점포 ── */}
-            <div>
+            <div className="px-1">
                 <div className="flex items-center justify-between mb-3 px-1">
                     <h2 className="text-sm font-black text-white flex items-center gap-2">
                         {isMultiView ? (
@@ -613,7 +686,7 @@ const MasterDashboard = () => {
             )}
 
             {/* ── 추가 도구 (데스크톱용) ── */}
-            <div className="hidden md:block">
+            <div className="hidden md:block px-1">
                 <div className="flex items-center gap-2 mb-3">
                     <Settings size={15} className="text-slate-500" />
                     <h2 className="text-sm font-black text-white">전체 운영 도구</h2>
@@ -647,7 +720,7 @@ const MasterDashboard = () => {
             </div>
 
             {/* ── AI 팅커벨 배너 (데스크톱) ── */}
-            <div className="hidden md:block rounded-3xl p-7 text-white relative overflow-hidden border border-white/10"
+            <div className="hidden md:block rounded-3xl p-7 text-white relative overflow-hidden border border-white/10 mx-1"
                 style={{ background: 'linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)' }}>
                 <div className="absolute -top-10 -right-10 w-44 h-44 rounded-full opacity-20 blur-2xl" style={{ background: 'radial-gradient(circle,#6366f1,transparent)' }} />
                 <div className="relative z-10 flex items-center justify-between gap-6">

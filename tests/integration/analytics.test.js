@@ -43,7 +43,11 @@ jest.mock('../../config/prisma', () => {
         },
         staff: {
             findMany: jest.fn(),
-        }
+        },
+        getQueryLogs: jest.fn(() => [
+            { id: 'q1', query: 'SELECT * FROM stores', params: '[]', duration: 15, timestamp: new Date() },
+            { id: 'q2', query: 'UPDATE print_jobs SET status = DONE', params: '[1]', duration: 120, timestamp: new Date() }
+        ])
     };
     return mockPrisma;
 });
@@ -111,6 +115,40 @@ describe('Franchise Supervisor Analytics Integration Tests', () => {
                 '2026-07-01',
                 '2026-07-11'
             );
+        });
+    });
+
+    describe('GET /analytics/db-profile', () => {
+        it('should block non-super_admin users with 403 Forbidden', async () => {
+            // 일반 사업자 권한 상태 설정
+            mockUser = { id: 1, name: '장사장', role: 'owner' };
+
+            const res = await request(app)
+                .get(`${baseUrl}/db-profile`)
+                .expect(403);
+
+            expect(res.body.error).toBe('unauthorized');
+            expect(res.body.message).toContain('원장 프로파일러 권한이 없습니다');
+        });
+
+        it('should return telemetry query logs and aggregates for super_admin', async () => {
+            // 슈퍼어드민 권한 상태 설정
+            mockUser = { id: 999, name: '최고관리자', role: 'super_admin' };
+
+            const res = await request(app)
+                .get(`${baseUrl}/db-profile`)
+                .expect(200);
+
+            expect(res.body.success).toBe(true);
+            expect(res.body.data.summary.total_queries).toBe(2);
+            expect(res.body.data.summary.avg_latency_ms).toBe(68); // (15 + 120) / 2 = 67.5 -> 68ms
+            expect(res.body.data.summary.max_latency_ms).toBe(120);
+            expect(res.body.data.summary.slow_queries_count).toBe(1); // 120ms >= 100ms
+            expect(res.body.data.summary.slow_query_ratio).toBe(50); // 1/2 = 50%
+            expect(res.body.data.logs).toHaveLength(2);
+            expect(res.body.data.logs[0].query).toBe('SELECT * FROM stores');
+            
+            expect(prisma.getQueryLogs).toHaveBeenCalled();
         });
     });
 });

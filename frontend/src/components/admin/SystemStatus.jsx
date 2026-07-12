@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Activity, Database, Zap, Shield, RefreshCw, AlertTriangle,
-    CheckCircle2, XCircle, Clock, TrendingUp, Server, Cpu
+    CheckCircle2, XCircle, Clock, TrendingUp, Server, Cpu, BarChart3
 } from 'lucide-react';
 import api from '../../api';
 
-const REFRESH_INTERVAL = 30_000; // 30초 자동 갱신
+const REFRESH_INTERVAL = 15_000; // 15초 자동 갱신 (지표 응답성 극대화)
 
 const StatusBadge = ({ status }) => {
     const map = {
@@ -45,6 +45,7 @@ export default function SystemStatus() {
     const [health, setHealth]     = useState(null);
     const [sla, setSla]           = useState(null);
     const [circuits, setCircuits] = useState([]);
+    const [dbProfile, setDbProfile] = useState(null); // Prisma DB 프로파일링 상태 추가
     const [loading, setLoading]   = useState(true);
     const [lastRefresh, setLastRefresh] = useState(null);
     const [error, setError]       = useState(null);
@@ -53,22 +54,21 @@ export default function SystemStatus() {
         setLoading(true);
         setError(null);
         try {
-            // deep은 이상 시 503 + 상세 본문을 반환하므로, HTTP 에러여도 본문을 살려서 렌더링
             const fetchBody = (path) =>
                 api.get(path).catch(e => { if (e?.response?.data) return e.response.data; throw e; });
-            const [hRes, sRes, cRes] = await Promise.all([
+            const [hRes, sRes, cRes, dRes] = await Promise.all([
                 fetchBody('/health/deep'),
                 fetchBody('/health/sla'),
                 fetchBody('/health/circuits'),
+                fetchBody('/analytics/db-profile') // 실시간 Prisma 데이터 조회 연동
             ]);
-            // axios 인터셉터가 이미 response.data를 반환하므로 응답 본문을 직접 사용
-            // (health 라우트는 responseFormatter의 {success, data} 래핑을 쓰지 않음)
             setHealth(hRes?.data ?? hRes);
             setSla(sRes?.data ?? sRes);
             setCircuits((cRes?.data ?? cRes)?.circuits || []);
+            setDbProfile(dRes?.data ?? dRes);
             setLastRefresh(new Date());
         } catch {
-            setError('시스템 상태를 불러오지 못했습니다. 서버 연결을 확인하세요.');
+            setError('시스템 상태 및 데이터베이스 프로파일 데이터를 불러오지 못했습니다.');
         } finally {
             setLoading(false);
         }
@@ -92,16 +92,16 @@ export default function SystemStatus() {
     const isP99High    = p99Ms > (slaTarget?.p99MaxMs || 2000);
 
     return (
-        <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+        <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6 select-none font-sans">
             {/* 헤더 */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-black text-white flex items-center gap-2">
-                        <Activity className="text-blue-400" /> 시스템 현황
+                        <Activity className="text-blue-400" /> 시스템 현황 & 원장 프로파일
                     </h1>
                     <p className="text-sm text-slate-400 mt-0.5">
                         {lastRefresh ? `마지막 갱신: ${lastRefresh.toLocaleTimeString()}` : '불러오는 중...'}
-                        {' '}(30초 자동 갱신)
+                        {' '}(15초 자동 갱신)
                     </p>
                 </div>
                 <button onClick={fetchAll} disabled={loading}
@@ -147,7 +147,7 @@ export default function SystemStatus() {
 
             {/* DB & 메모리 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                             <Database size={18} className="text-blue-500" />
@@ -167,7 +167,7 @@ export default function SystemStatus() {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                             <Server size={18} className="text-purple-500" />
@@ -193,7 +193,7 @@ export default function SystemStatus() {
             </div>
 
             {/* Circuit Breaker 상태 */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                 <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <Shield size={18} className="text-indigo-500" /> Circuit Breaker 상태 (외부 서비스 장애 격리)
                 </h3>
@@ -216,6 +216,100 @@ export default function SystemStatus() {
                         ))}
                     </div>
                 )}
+            </div>
+
+            {/* ── Prisma DB Query Latency Profiler ── (SaaS 쿼리 정밀 모니터링 모듈 추가) */}
+            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Database className="text-orange-500 animate-pulse" size={18} />
+                        <h3 className="font-bold text-gray-800">Prisma DB Query Latency Profiler</h3>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded border">
+                        SLA 100ms 가동률 추적 중
+                    </span>
+                </div>
+
+                {/* 쿼리 집계 요약 메트릭 그리드 */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">총 집계 로그</span>
+                        <span className="text-lg font-mono font-bold text-slate-800 tabular-nums">
+                            {dbProfile?.summary?.total_queries || 0} <span className="text-xs font-normal">건</span>
+                        </span>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">평균 쿼리 응답</span>
+                        <span className="text-lg font-mono font-bold text-indigo-500 tabular-nums">
+                            {dbProfile?.summary?.avg_latency_ms || 0} <span className="text-xs font-normal">ms</span>
+                        </span>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">피크 쿼리 지연</span>
+                        <span className="text-lg font-mono font-bold text-orange-500 tabular-nums">
+                            {dbProfile?.summary?.max_latency_ms || 0} <span className="text-xs font-normal">ms</span>
+                        </span>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">SLA 초과율 (100ms+)</span>
+                        <span className={`text-lg font-mono font-bold tabular-nums ${
+                            (dbProfile?.summary?.slow_queries_count || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'
+                        }`}>
+                            {dbProfile?.summary?.slow_queries_count || 0}건 ({dbProfile?.summary?.slow_query_ratio || 0}%)
+                        </span>
+                    </div>
+                </div>
+
+                {/* 실시간 쿼리 세부 목록 */}
+                <div className="overflow-hidden border border-slate-100 rounded-xl max-h-64 overflow-y-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr className="border-b bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                <th className="p-3">SQL RAW QUERY COMMAND</th>
+                                <th className="p-3 text-right">LATENCY</th>
+                                <th className="p-3 text-right">TIMESTAMP</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 font-medium font-mono text-[11px] text-slate-700">
+                            {(!dbProfile?.logs || dbProfile.logs.length === 0) ? (
+                                <tr>
+                                    <td colSpan={3} className="p-8 text-center text-slate-400 font-sans font-bold">
+                                        수집된 데이터베이스 실시간 트랜잭션 쿼리 로그가 없습니다.
+                                    </td>
+                                </tr>
+                            ) : (
+                                dbProfile.logs.map((log) => {
+                                    const isSlow = log.duration >= 100;
+                                    const isFast = log.duration < 10;
+                                    
+                                    // 쿼리 종류별 컬러 강조 처리 (SELECT: 청색, UPDATE/INSERT: 자색, DELETE: 적색)
+                                    let queryColor = 'text-slate-600';
+                                    if (log.query?.startsWith('SELECT')) queryColor = 'text-sky-600 font-bold';
+                                    else if (log.query?.startsWith('UPDATE') || log.query?.startsWith('INSERT')) queryColor = 'text-purple-600';
+                                    else if (log.query?.startsWith('DELETE')) queryColor = 'text-rose-600 font-bold';
+
+                                    return (
+                                        <tr key={log.id || log.timestamp} className={`hover:bg-slate-50/50 transition-colors ${
+                                            isSlow ? 'bg-rose-500/[0.02]' : ''
+                                        }`}>
+                                            <td className="p-3 max-w-lg truncate" title={log.query}>
+                                                <span className={queryColor}>&gt; {log.query}</span>
+                                            </td>
+                                            <td className={`p-3 text-right font-bold tabular-nums ${
+                                                isSlow ? 'text-rose-500' : isFast ? 'text-emerald-500' : 'text-slate-500'
+                                            }`}>
+                                                {log.duration}ms
+                                            </td>
+                                            <td className="p-3 text-right text-slate-400 tabular-nums">
+                                                {new Date(log.timestamp).toLocaleTimeString('ko-KR', { hour12: false })}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* SLA 목표 대비 현황 */}

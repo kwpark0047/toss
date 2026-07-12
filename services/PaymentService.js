@@ -403,6 +403,16 @@ class PaymentService {
         }
       }
 
+      // 실시간 매출 변동성 수치 감사 및 위기 비상경보 엔진 비동기 백그라운드 가동 (결제 처리 레이턴시 영향 원천 차단)
+      const AnomalyDetectionService = require('./AnomalyDetectionService');
+      setImmediate(async () => {
+        try {
+          await AnomalyDetectionService.checkSalesAnomaly(order.store_id, this.io);
+        } catch (err) {
+          logger.error(`[PaymentService Anomaly Audit] Failure: ${err.message}`);
+        }
+      });
+
       return { success: true, payment: tossResponse, point: result.pointResult };
     } catch (e) {
       logger.error(e);

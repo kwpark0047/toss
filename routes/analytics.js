@@ -28,4 +28,7 @@ router.get('/store/:storeId/forecast', authMiddleware, checkStorePermission('sta
 // ── 브랜드 다점포 통합 어드민 매출 통계 조회 ──────────
 router.get('/multi-store', authMiddleware, analyticsController.getMultiStoreAnalytics);
 
+// ── 실시간 데이터베이스 쿼리 레이턴시 정밀 프로파일링 ──
+router.get('/db-profile', authMiddleware, analyticsController.getDbProfileLogs);
+
 module.exports = router;

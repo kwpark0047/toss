@@ -2,7 +2,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { 
   Play, CheckCircle2, RefreshCw, Printer, Volume2, VolumeX, 
-  Wifi, WifiOff, Clock, User, ChevronRight, Hash, XCircle, Keyboard
+  Wifi, WifiOff, Clock, User, ChevronRight, Hash, XCircle, Keyboard, Megaphone
 } from 'lucide-react';
 import socket, { connectKitchen, getSocket } from '../utils/socket';
 import notificationSound, { vibrateShort, vibrateOrderReady } from '../utils/notificationSound';
@@ -12,6 +12,8 @@ export default function KitchenDisplay() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(true); // AI 음성 방송 활성화 여부
+  const [voiceLogs, setVoiceLogs] = useState([]); // 음성 방송 기록 로그
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilteredType] = useState('ALL'); // ALL, DINE_IN, TAKEOUT
   const [socketStatus, setSocketStatus] = useState('DISCONNECTED');
@@ -20,13 +22,12 @@ export default function KitchenDisplay() {
   // 개별 주문의 조리 체크 아이템 상태 관리 (KDS 작업자들이 항목 클릭 시 완료선 긋기 용도)
   const [checkedItems, setCheckedItems] = useState({}); // { [order_id + '-' + item_id]: boolean }
 
-  // AI 팅커벨 음성 인식 주방 비서 추가 상태 관리
-  const [isListening, setIsListening] = useState(false);
-  const [voiceLogs, setVoiceLogs] = useState([]);
-  const recognitionRef = useRef(null);
-
   const timerRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(Date.now());
+
+  // 주문 전입 모니터링 수집기용 Ref (신규 주문 실시간 음성 방송 호출 장치 연동)
+  const knownOrderIdsRef = useRef(new Set());
+  const isFirstLoadRef = useRef(true);
 
   // 현재 경과 시간 초 갱신 타이머
   useEffect(() => {
@@ -114,6 +115,33 @@ export default function KitchenDisplay() {
       };
     }
   }, [storeId, soundEnabled]);
+
+  // 실시간 주문 수신 및 신규 주문 인디케이터 수집 (실시간 KDS 주문 보이스 방송 연동)
+  useEffect(() => {
+    if (orders.length === 0) return;
+
+    const currentIds = new Set(orders.map(o => o.id));
+
+    // 최초 렌더 시에는 소리 내어 읽지 않고 아이디만 색인에 캐시
+    if (isFirstLoadRef.current) {
+      knownOrderIdsRef.current = currentIds;
+      isFirstLoadRef.current = false;
+      return;
+    }
+
+    // 신규 수신 주문 색인 감지
+    const freshOrders = orders.filter(o => !knownOrderIdsRef.current.has(o.id));
+    if (freshOrders.length > 0 && voiceEnabled) {
+      freshOrders.forEach(order => {
+        // 접수 대기('pending') 또는 결제 완료('paid') 상태일 때만 자동 음성 방송
+        if (order.status === 'pending' || order.status === 'paid' || order.status === 'confirmed') {
+          speakOrderVocal(order);
+        }
+      });
+    }
+
+    knownOrderIdsRef.current = currentIds;
+  }, [orders, voiceEnabled]);
 
   // 주문 상태 업데이트 핸들러
   const handleUpdateStatus = async (orderId, nextStatus) => {
@@ -272,153 +300,52 @@ export default function KitchenDisplay() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [pendingOrders, preparingOrders, readyOrders, soundEnabled]);
 
-  // AI 음성 비서 발화 유틸리티 (Text-To-Speech / TTS)
-  const speakTTS = (text) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // 진행 중인 소리 즉시 소거 후 반응속도 보장
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ko-KR';
-      utterance.rate = 1.0;
-      utterance.pitch = 1.1; // 약간 통통 튀는 쾌활한 비서 음질 구현
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-
-  // AI 팅커벨 음성 명령어 정밀 해석 엔진
-  const processVoiceCommand = (rawText) => {
-    const text = rawText.toLowerCase().replace(/\s+/g, '');
-    setVoiceLogs(prev => [`📥 인식: "${rawText}"`, ...prev.slice(0, 10)]);
-
-    // '팅커벨' 고유 호출 접두사 확인
-    if (!text.includes('팅커벨')) return;
-
-    const cmd = text.split('팅커벨')[1] || '';
-
-    // 1. 주방 정보 새로고침
-    if (cmd.includes('새로고침') || cmd.includes('조회') || cmd.includes('업데이트')) {
-      fetchKdsOrders(true);
-      speakTTS('네, 주방 대기열 목록을 새로고침했습니다.');
+  // 실시간 주방 주문 음성 안내 방송 처리기 (Web Speech API TTS 연동)
+  const speakOrderVocal = (order) => {
+    if (!('speechSynthesis' in window)) {
+      console.warn('[TTS] 이 브라우저는 Web Speech Synthesis API를 지원하지 않습니다.');
       return;
     }
 
-    // 2. 사운드 알림 토글
-    if (cmd.includes('음소거') || cmd.includes('소리켜') || cmd.includes('소리끄')) {
-      setSoundEnabled(prev => {
-        const next = !prev;
-        speakTTS(next ? '알림 소리를 켰습니다.' : '네, 알림음을 음소거했습니다.');
-        return next;
+    // 재생 대기열 초기화 후 신규 오더 즉시 점유
+    window.speechSynthesis.cancel();
+
+    const tableLabel = order.is_takeout ? '포장 주문' : `${order.table_name || '일반'}번 테이블`;
+    
+    let itemsLabel = '';
+    const itemsList = order.items || order.order_items || [];
+    if (itemsList.length > 0) {
+      itemsList.forEach((item) => {
+        itemsLabel += `${item.product_name} ${item.quantity}개, `;
       });
-      return;
+      itemsLabel = itemsLabel.slice(0, -2); // 마지막 쉼표 제거
     }
 
-    // 3. 필터 제어
-    if (cmd.includes('전체필터') || cmd.includes('전체보기') || cmd.includes('전체주문')) {
-      setFilteredType('ALL');
-      speakTTS('전체 주문 필터를 활성화했습니다.');
-      return;
-    }
-    if (cmd.includes('매장필터') || cmd.includes('매장식사') || cmd.includes('매장주문')) {
-      setFilteredType('DINE_IN');
-      speakTTS('매장식사 주문 필터로 전환했습니다.');
-      return;
-    }
-    if (cmd.includes('포장필터') || cmd.includes('포장주문') || cmd.includes('포장만')) {
-      setFilteredType('TAKEOUT');
-      speakTTS('포장용 주문 필터로 전환했습니다.');
-      return;
+    const textToSpeak = `딩동! 신규 주문 접수. ${tableLabel}에서 ${itemsLabel} 주문하셨습니다. 조리 시작해 주세요.`;
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = 'ko-KR';
+    utterance.rate = 1.0; // 자연스러운 속도
+    utterance.pitch = 1.0; // 정밀 톤
+
+    // 가용한 한국어 화자 목소리 탐색 매핑
+    const voices = window.speechSynthesis.getVoices();
+    const koVoice = voices.find(v => v.lang.includes('KO') || v.lang.includes('ko'));
+    if (koVoice) {
+      utterance.voice = koVoice;
     }
 
-    // 4. 특정 대기/조리/호출번호 핀포인트 조작
-    // 발화 예시: "팅커벨 일공일번 접수", "팅커벨 이공이번 완료", "팅커벨 오번 수령"
-    const numberMatch = cmd.match(/(\d+)번/);
-    if (numberMatch) {
-      const targetNumber = numberMatch[1];
-      const targetOrder = orders.find(o => o.order_number.endsWith(targetNumber) || String(o.id) === targetNumber);
+    // 방송 로그 기록 누적 (최근 5건)
+    setVoiceLogs(prev => [
+      {
+        id: Math.random().toString(36).substring(2, 8),
+        text: `${tableLabel} ➡️ ${itemsLabel}`,
+        time: new Date().toLocaleTimeString('ko-KR', { hour12: false })
+      },
+      ...prev
+    ].slice(0, 5));
 
-      if (!targetOrder) {
-        speakTTS(`${targetNumber}번 주문을 대기열에서 찾지 못했습니다.`);
-        return;
-      }
-
-      if (cmd.includes('접수') || cmd.includes('시작') || cmd.includes('조리시작')) {
-        if (targetOrder.status !== 'pending') {
-          speakTTS(`${targetNumber}번 주문은 이미 조리 시작되었거나 완료되었습니다.`);
-          return;
-        }
-        handleUpdateStatus(targetOrder.id, 'preparing');
-        speakTTS(`네, ${targetNumber}번 주문을 접수하고 조리를 시작합니다.`);
-        return;
-      }
-
-      if (cmd.includes('완료') || cmd.includes('조리완료')) {
-        if (targetOrder.status !== 'preparing') {
-          speakTTS(`${targetNumber}번 주문은 현재 조리 중 상태가 아닙니다.`);
-          return;
-        }
-        handleUpdateStatus(targetOrder.id, 'ready');
-        speakTTS(`네, ${targetNumber}번 주문 조리 완료 처리를 하고 픽업 호출을 보냅니다.`);
-        return;
-      }
-
-      if (cmd.includes('수령') || cmd.includes('전달') || cmd.includes('인도') || cmd.includes('가져갔어')) {
-        if (targetOrder.status !== 'ready') {
-          speakTTS(`${targetNumber}번 주문은 픽업 대기 중인 주문이 아닙니다.`);
-          return;
-        }
-        handleUpdateStatus(targetOrder.id, 'completed');
-        speakTTS(`네, ${targetNumber}번 주문 수령 인도를 완료했습니다.`);
-        return;
-      }
-    }
-
-    // 팅커벨 호출만 받았을 때 가이드 백
-    speakTTS('네, 주방 비서 팅커벨입니다. 말씀해 주세요!');
-  };
-
-  // 음성 주방비서 토글 핸들러
-  const handleToggleVoiceAssistant = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('이 브라우저는 음성 인식 비서를 공식 지원하지 않습니다. 크롬 또는 사파리 사용을 권장합니다.');
-      return;
-    }
-
-    if (!recognitionRef.current) {
-      const rec = new SpeechRecognition();
-      rec.continuous = true;
-      rec.interimResults = false;
-      rec.lang = 'ko-KR';
-
-      rec.onstart = () => {
-        setIsListening(true);
-        setVoiceLogs(prev => [`🎙️ 팅커벨 주방 비서가 가동되었습니다.`, ...prev.slice(0, 10)]);
-      };
-
-      rec.onend = () => {
-        setIsListening(false);
-      };
-
-      rec.onerror = (e) => {
-        console.error('[KDS Voice Error]', e.error);
-        setIsListening(false);
-      };
-
-      rec.onresult = (event) => {
-        const lastResultIndex = event.results.length - 1;
-        const text = event.results[lastResultIndex][0].transcript.trim();
-        processVoiceCommand(text);
-      };
-
-      recognitionRef.current = rec;
-    }
-
-    if (isListening) {
-      recognitionRef.current.stop();
-    } else {
-      notificationSound.resume(); // 브라우저 제스처 가동용
-      speakTTS('주방 음성 비서 시스템을 연결합니다. 팅커벨 일공일번 조리완료 처럼 말씀해 보셔요!');
-      recognitionRef.current.start();
-    }
+    window.speechSynthesis.speak(utterance);
   };
 
   return (
@@ -461,6 +388,19 @@ export default function KitchenDisplay() {
             )}
           </div>
 
+          {/* AI TTS 라이브 스피커 토글 (48px 터치 영역 충족) */}
+          <button 
+            onClick={() => setVoiceEnabled(!voiceEnabled)}
+            className={`px-4 h-12 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all active:scale-95 ${
+              voiceEnabled 
+                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' 
+                : 'bg-slate-900 border-slate-800 text-slate-400'
+            }`}
+          >
+            <Megaphone className={`size-4 ${voiceEnabled ? 'animate-bounce' : ''}`} />
+            <span className="font-mono text-xs uppercase font-bold">{voiceEnabled ? 'VOICE ON' : 'VOICE OFF'}</span>
+          </button>
+
           {/* 사운드 활성 토글 (48px 터치 영역 충족) */}
           <button 
             onClick={() => setSoundEnabled(!soundEnabled)}
@@ -471,7 +411,7 @@ export default function KitchenDisplay() {
             }`}
           >
             {soundEnabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
-            <span className="font-mono text-xs uppercase font-bold">{soundEnabled ? 'ON' : 'MUTED'}</span>
+            <span className="font-mono text-xs uppercase font-bold">{soundEnabled ? 'BELL ON' : 'BELL MUTED'}</span>
           </button>
 
           {/* 수동 리프레시 버튼 (48px 터치 영역 충족) */}
@@ -629,7 +569,7 @@ export default function KitchenDisplay() {
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
                 조리 중 (PREPARING)
               </h2>
-              <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-50/10 text-sky-450">
+              <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-400">
                 {preparingOrders.length}
               </span>
             </div>
@@ -729,7 +669,7 @@ export default function KitchenDisplay() {
             </div>
           </div>
 
-          {/* 컬럼 3: 수령 대기 (READY) */}
+          {/* 컬럼 3: 수령 대기 (READY) 및 보이스 브로드캐스트 모니터링 결합 */}
           <div className="bg-slate-900/30 rounded-xl border border-slate-900 flex flex-col min-h-0">
             <div className="p-3.5 bg-slate-900/50 border-b border-slate-850 flex items-center justify-between">
               <h2 className="text-xs font-bold text-emerald-400 tracking-wider flex items-center gap-2">
@@ -741,142 +681,110 @@ export default function KitchenDisplay() {
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-h-0">
-              {readyOrders.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-10">
-                  <CheckCircle2 className="size-8 stroke-[1.5] mb-2 opacity-50" />
-                  <p className="text-xs">호출 대기 중인 완료 메뉴가 없습니다.</p>
-                </div>
-              ) : (
-                readyOrders.map(order => (
-                  <div 
-                    key={order.id} 
-                    className="bg-slate-900 border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl overflow-hidden transition-all shadow-sm"
-                  >
-                    <div className="p-3.5 border-b border-slate-850/60 bg-emerald-500/[0.02] flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-sm text-slate-100">
-                          #{order.order_number.slice(-4)}
-                        </span>
-                        <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${
-                          order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'
-                        }`}>
-                          {order.is_takeout ? '포장' : `${order.table_name || '매장'}번`}
-                        </span>
-                      </div>
-                      <div className="text-[10px] px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg font-mono font-bold">
-                        CALLING...
-                      </div>
-                    </div>
-
-                    {/* 수령 정보 카드 */}
-                    <div className="p-3.5 flex flex-col gap-2">
-                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-850/60 flex flex-col gap-1.5">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                          <User className="size-3.5" />
-                          <span>고객 연락처:</span>
-                          <span className="font-mono text-slate-200">
-                            {order.customer_phone ? '010-****-' + order.customer_phone.slice(-4) : '등록 정보 없음'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                          <Hash className="size-3.5" />
-                          <span>대기순서:</span>
-                          <span className="font-mono text-slate-200">
-                            {order.queue_number ? `${order.queue_number}번` : '정보 없음'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* 상품 요약 */}
-                      <ul className="text-xs text-slate-400 px-1 py-1 divide-y divide-slate-850/40">
-                        {order.items.map(item => (
-                          <li key={item.id} className="py-1 flex items-center justify-between">
-                            <span>{item.product_name}</span>
-                            <span className="font-mono font-bold">x{item.quantity}</span>
-                          </li>
-                        ))}
-                      </ul>
-
-                      {/* 액션 버튼 (48px 터치 영역 충족) */}
-                      <button
-                        onClick={() => handleUpdateStatus(order.id, 'completed')}
-                        disabled={updatingId === order.id}
-                        className="w-full mt-2 h-12 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-emerald-500/10"
-                      >
-                        <CheckCircle2 className="size-3.5" />
-                        음식 수령 완료
-                      </button>
-                    </div>
+            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-h-0 justify-between">
+              {/* 조리 완료 대기 목록 */}
+              <div className="flex-1 overflow-y-auto flex flex-col gap-3">
+                {readyOrders.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-10">
+                    <CheckCircle2 className="size-8 stroke-[1.5] mb-2 opacity-50" />
+                    <p className="text-xs">호출 대기 중인 완료 메뉴가 없습니다.</p>
                   </div>
-                ))
+                ) : (
+                  readyOrders.map(order => (
+                    <div 
+                      key={order.id} 
+                      className="bg-slate-900 border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl overflow-hidden transition-all shadow-sm"
+                    >
+                      <div className="p-3.5 border-b border-slate-850/60 bg-emerald-500/[0.02] flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-sm text-slate-100">
+                            #{order.order_number.slice(-4)}
+                          </span>
+                          <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${
+                            order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'
+                          }`}>
+                            {order.is_takeout ? '포장' : `${order.table_name || '매장'}번`}
+                          </span>
+                        </div>
+                        <div className="text-[10px] px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg font-mono font-bold">
+                          CALLING...
+                        </div>
+                      </div>
+
+                      {/* 수령 정보 카드 */}
+                      <div className="p-3.5 flex flex-col gap-2">
+                        <div className="bg-slate-950 p-3 rounded-xl border border-slate-850/60 flex flex-col gap-1.5">
+                          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                            <User className="size-3.5" />
+                            <span>고객 연락처:</span>
+                            <span className="font-mono text-slate-200">
+                              {order.customer_phone ? '010-****-' + order.customer_phone.slice(-4) : '등록 정보 없음'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                            <Hash className="size-3.5" />
+                            <span>대기순서:</span>
+                            <span className="font-mono text-slate-200">
+                              {order.queue_number ? `${order.queue_number}번` : '정보 없음'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 상품 요약 */}
+                        <ul className="text-xs text-slate-400 px-1 py-1 divide-y divide-slate-850/40">
+                          {order.items.map(item => (
+                            <li key={item.id} className="py-1 flex items-center justify-between">
+                              <span>{item.product_name}</span>
+                              <span className="font-mono font-bold">x{item.quantity}</span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        {/* 액션 버튼 (48px 터치 영역 충족) */}
+                        <button
+                          onClick={() => handleUpdateStatus(order.id, 'completed')}
+                          disabled={updatingId === order.id}
+                          className="w-full mt-2 h-12 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-emerald-500/10"
+                        >
+                          <CheckCircle2 className="size-3.5" />
+                          음식 수령 완료
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* 실시간 AI 음성 방송 텍스트 브로드캐스트 현장 모니터 전광판 (UI 결합 추가) */}
+              {voiceEnabled && (
+                <div className="mt-4 p-4 rounded-2xl bg-white/[0.01] border border-white/5 space-y-3 shrink-0 text-left">
+                  <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+                    <Megaphone className="size-4 text-rose-400 animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-300">실시간 TTS 보이스 방송 전광판</span>
+                  </div>
+                  {voiceLogs.length === 0 ? (
+                    <p className="text-[10px] text-slate-600 font-semibold italic text-center py-2">
+                      대기 중인 보이스 방송 메시지가 없습니다.
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5 max-h-24 overflow-y-auto">
+                      {voiceLogs.map(log => (
+                        <div key={log.id} className="flex justify-between items-center text-[9px] font-mono leading-none">
+                          <span className="text-slate-300 truncate max-w-[150px] font-bold">&gt; {log.text}</span>
+                          <span className="text-slate-500 shrink-0">{log.time}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* 실시간 음성 비서 위젯 콘솔 (Hands-free 음성 비서 패널 탑재 고도화 완료) */}
-      <div className="my-2 p-4 bg-slate-900 border border-slate-850 rounded-2xl flex flex-col gap-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className={`p-2.5 rounded-xl flex items-center justify-center transition-all ${
-              isListening ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-slate-950 text-slate-500 border border-slate-850'
-            }`}>
-              <Keyboard className="size-4" />
-            </div>
-            <div>
-              <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
-                AI 팅커벨 음성 주방 비서
-                {isListening && (
-                  <span className="inline-block w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                )}
-              </h3>
-              <p className="text-[10px] text-slate-500 leading-none mt-1">지시 구어 예: "팅커벨, 일공일번 접수" / "팅커벨, 새로고침"</p>
-            </div>
-          </div>
-
-          <button
-            onClick={handleToggleVoiceAssistant}
-            className={`px-4 h-10 rounded-xl text-xs font-black transition-all active:scale-95 flex items-center gap-2 border ${
-              isListening 
-                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' 
-                : 'bg-slate-950/40 text-slate-400 border-slate-800 hover:border-slate-700'
-            }`}
-          >
-            <span>{isListening ? '🎙️ 비서 켜짐' : '🎙️ 음성 비서 켜기'}</span>
-          </button>
-        </div>
-
-        {/* 음성 파형 애니메이션 (Listening 상태일 때 렌더) */}
-        {isListening && (
-          <div className="h-10 flex items-center justify-center gap-1.5 p-2 bg-slate-950/40 rounded-xl border border-slate-850/60 overflow-hidden">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].map(bar => (
-              <div 
-                key={bar} 
-                className="w-1 bg-rose-500 rounded-full transition-all duration-300"
-                style={{ 
-                  height: `${Math.floor(Math.random() * 24) + 6}px`,
-                  animation: `pulse 0.8s infinite ease-in-out alternate`,
-                  animationDelay: `${bar * 0.05}s`
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* 음성 로그 모니터 터미널 */}
-        {voiceLogs.length > 0 && (
-          <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-850/50 font-mono text-[9px] text-slate-400 leading-relaxed max-h-24 overflow-y-auto">
-            {voiceLogs.map((log, lidx) => (
-              <div key={lidx} className="truncate">{log}</div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* 키보드 단축키 안내판 (inline help 가이드 적용) */}
-      <div className="my-1.5 p-3.5 bg-slate-900 border border-slate-850 rounded-2xl flex items-center gap-3 text-slate-400 flex-shrink-0">
+      <div className="my-2.5 p-3.5 bg-slate-900 border border-slate-850 rounded-2xl flex items-center gap-3 text-slate-400 flex-shrink-0">
         <Keyboard className="size-4 text-orange-500 flex-shrink-0" />
         <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-[10px] font-mono font-semibold">
           <span className="flex items-center gap-1">
