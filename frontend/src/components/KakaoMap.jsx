@@ -110,7 +110,7 @@ const KakaoMap = ({ stores, onStoreSelect, selectedStore }) => {
       return;
     }
 
-    const apiKey = window.__KAKAO_MAP_API_KEY__ || import.meta.env.VITE_KAKAO_MAP_API_KEY || '';
+    const apiKey = import.meta.env.VITE_KAKAO_MAP_API_KEY || '';
     if (!apiKey) {
       setError('카카오맵 API 키가 설정되지 않았습니다. .env 파일에 VITE_KAKAO_MAP_API_KEY를 추가해주세요.');
       return;

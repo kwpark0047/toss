@@ -1,145 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const prisma = require('../config/prisma');
-const catchAsync = require('../utils/catchAsync');
-const { AppError } = require('../utils/errorHandler');
-const logger = require('../utils/logger');
 const authMiddleware = require('../middleware/auth');
-const { getStoreRole } = require('../middleware/storeAuth');
-const aiService = require('../services/aiService');
+const reviewsController = require('../controllers/reviewsController');
 
-// [GET] 매장�?리뷰 목록 조회 (최신??
-router.get('/store/:storeId', catchAsync(async (req, res) => {
-    const { storeId } = req.params;
-    const list = await prisma.reviews.findMany({
-        where: { store_id: parseInt(storeId) },
-        include: {
-            _count: { select: { likes: true } }
-        },
-        orderBy: { created_at: 'desc' }
-    });
-    res.json({ success: true, data: list });
-}));
+// [GET] 매장별 리뷰 목록 조회 (최신순)
+router.get('/store/:storeId', reviewsController.getStoreReviews);
 
-// [GET] ?�셜 ?�드 (?�체 매장 최신 리뷰)
-router.get('/feed', catchAsync(async (req, res) => {
-    const list = await prisma.reviews.findMany({
-        include: {
-            stores: { select: { name: true } },
-            _count: { select: { likes: true } }
-        },
-        orderBy: { created_at: 'desc' },
-        take: 20
-    });
-    res.json({ success: true, data: list });
-}));
+// [GET] 리뷰 피드 (전체 매장 최신 리뷰)
+router.get('/feed', reviewsController.getFeed);
 
-// [POST] 리뷰 ?�록
-router.post('/', catchAsync(async (req, res) => {
-    const { store_id, order_id, customer_name, customer_phone, rating, content, image_url } = req.body;
-    if (order_id) {
-        const existing = await prisma.reviews.findUnique({
-            where: { order_id: parseInt(order_id) }
-        });
-        if (existing) {
-            return res.status(400).json({ success: false, error: '?��? 리뷰가 ?�록??주문?�니??' });
-        }
-    }
+// [POST] 리뷰 등록
+router.post('/', reviewsController.createReview);
 
-    const review = await prisma.reviews.create({
-        data: {
-            store_id: parseInt(store_id),
-            order_id: order_id ? parseInt(order_id) : null,
-            customer_name,
-            customer_phone,
-            rating: parseInt(rating),
-            content,
-            image_url
-        }
-    });
+// [POST] 리뷰 좋아요 토글
+router.post('/:id/like', reviewsController.toggleLike);
 
-    res.json({ success: true, data: review });
-}));
+// [POST] AI 리뷰 초안 생성
+router.post('/:id/ai-reply', authMiddleware, reviewsController.generateAiReply);
 
-// [POST] 리뷰 좋아??(무인�? 브라?��?�??�명 ?�별?�로 ?��?)
-router.post('/:id/like', catchAsync(async (req, res) => {
-    const reviewId = parseInt(req.params.id);
-    const { user_phone } = req.body;
-    if (!user_phone) {
-        return res.status(400).json({ success: false, error: '?�별?��? ?�요?�니??' });
-    }
+// [PUT] 리플라이 등록/수정
+router.put('/:id/reply', authMiddleware, reviewsController.setReply);
 
-    const existing = await prisma.review_likes.findFirst({
-        where: { review_id: reviewId, user_phone }
-    });
-
-    let action;
-    if (existing) {
-        await prisma.review_likes.delete({ where: { id: existing.id } });
-        action = 'unliked';
-    } else {
-        await prisma.review_likes.create({ data: { review_id: reviewId, user_phone } });
-        action = 'liked';
-    }
-
-    const like_count = await prisma.review_likes.count({ where: { review_id: reviewId } });
-    res.json({ success: true, action, liked: action === 'liked', like_count });
-}));
-
-// 리뷰 ?�속 매장???�??권한 ?�인 ??리뷰 반환 (공통 ?�퍼)
-async function loadReviewWithPermission(reviewId, user) {
-    const review = await prisma.reviews.findUnique({
-        where: { id: parseInt(reviewId) },
-        include: { stores: { select: { id: true, name: true } } },
-    });
-    if (!review) return { error: { status: 404, message: '리뷰�?찾을 ???�습?�다.' } };
-    if (user.role !== 'super_admin') {
-        const role = await getStoreRole(user.id, review.store_id);
-        if (!role) return { error: { status: 403, message: '?�당 매장???�??권한???�습?�다.' } };
-    }
-    return { review };
-}
-
-// [POST] AI ?��? 초안 ?�성 (?�?�하지 ?�고 초안�?반환)
-router.post('/:id/ai-reply', authMiddleware, catchAsync(async (req, res) => {
-    const { review, error } = await loadReviewWithPermission(req.params.id, req.user);
-    if (error) return res.status(error.status).json({ success: false, error: error.message });
-
-    const draft = await aiService.generateReviewReply(
-        { rating: review.rating, content: review.content, customer_name: review.customer_name },
-        review.stores.name,
-    );
-    res.success({ draft }, 'AI ?��? 초안???�성?�었?�니??');
-}));
-
-// [PUT] ?�장???��? ?�???�정
-router.put('/:id/reply', authMiddleware, catchAsync(async (req, res) => {
-    const { reply } = req.body;
-    if (!reply || !reply.trim()) {
-        return res.status(400).json({ success: false, error: '?��? ?�용???�력?�주?�요.' });
-    }
-
-    const { review, error } = await loadReviewWithPermission(req.params.id, req.user);
-    if (error) return res.status(error.status).json({ success: false, error: error.message });
-
-    const updated = await prisma.reviews.update({
-        where: { id: review.id },
-        data: { reply: reply.trim(), replied_at: new Date() },
-    });
-    res.success(updated, '?��????�록?�었?�니??');
-}));
-
-// [DELETE] ?��? ??��
-router.delete('/:id/reply', authMiddleware, catchAsync(async (req, res) => {
-    const { review, error } = await loadReviewWithPermission(req.params.id, req.user);
-    if (error) return res.status(error.status).json({ success: false, error: error.message });
-
-    const updated = await prisma.reviews.update({
-        where: { id: review.id },
-        data: { reply: null, replied_at: null },
-    });
-    res.success(updated, '?��?????��?�었?�니??');
-}));
+// [DELETE] 리플라이 삭제
+router.delete('/:id/reply', authMiddleware, reviewsController.deleteReply);
 
 module.exports = router;
-

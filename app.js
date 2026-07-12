@@ -87,13 +87,12 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://www.gstatic.com", "https://cdn.jsdelivr.net"],
+            scriptSrc: ["'self'", "https://www.gstatic.com", "https://cdn.jsdelivr.net"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://www.gstatic.com"],
             fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "https:", "blob:"],
             connectSrc: [
                 "'self'",
-                // localhost 연결은 개발 환경에서만 허용 (프로덕션 CSP에서 제외)
                 ...(isProduction ? [] : ["http://localhost:3000", "ws://localhost:3000"]),
                 "https://wemarket.onrender.com",
                 "wss://wemarket.onrender.com",
@@ -209,32 +208,7 @@ app.get("/api/config/firebase", (req, res) => {
     });
 });
 
-// Firebase Messaging Service Worker - config 엔드포인트에서 Fetch로 초기화
-app.get("/firebase-messaging-sw.js", (req, res) => {
-    res.setHeader('Content-Type', 'application/javascript');
-    const script = `
-        importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-        importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
-
-        self.addEventListener('install', () => self.skipWaiting());
-
-        fetch('/api/config/firebase')
-            .then(function(r) { return r.json(); })
-            .then(function(config) {
-                firebase.initializeApp({
-                    apiKey: config.apiKey || '',
-                    projectId: config.projectId || '',
-                    messagingSenderId: config.messagingSenderId || '',
-                    appId: config.appId || ''
-                });
-                var messaging = firebase.messaging();
-            })
-            .catch(function() {
-                console.warn('[SW] Firebase config fetch failed — push notifications disabled');
-            });
-    `;
-    res.send(script);
-});
+// Firebase Messaging Service Worker는 public/firebase-messaging-sw.js로 분리 (CSP 안전)
 
 // (버전 및 시스템 엔드포인트 최상단으로 이동됨)
 

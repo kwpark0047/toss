@@ -115,7 +115,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // react-router-dom v7은 react-router를 peer dependency로 사용.
+          // 둘을 같은 청크로 묶어야 createContext 중복(Blank Screen)을 방지한다.
+          'vendor-react': ['react', 'react-dom', 'react-router-dom', 'react-router'],
           'vendor-icons': ['lucide-react'],
           'vendor-utils': ['axios', 'socket.io-client'],
         },
