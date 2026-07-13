@@ -16,7 +16,7 @@ const vars = [
   // CRITICAL — 서버 실행 필수
   { key: 'DATABASE_URL', level: levels.CRITICAL, desc: 'Postgres 연결 문자열' },
   { key: 'JWT_SECRET', level: levels.CRITICAL, desc: 'JWT 서명키 (32자 이상)' },
-  { key: 'JWT_REFRESH_SECRET', level: levels.CRITICAL, desc: 'JWT 리프레시 서명키' },
+  { key: 'JWT_REFRESH_SECRET', level: levels.OPTIONAL, desc: 'JWT 리프레시 서명키 (누락 시 JWT_SECRET로 자동 대체)' },
 
   // REQUIRED — 기능별 필수
   { key: 'SMS_API_KEY', level: levels.REQUIRED, desc: 'Coolsms SMS' },
