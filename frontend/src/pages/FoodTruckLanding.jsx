@@ -272,38 +272,38 @@ export default function FoodTruckLanding() {
   }, [selectedTruck]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans">
       {/* Decorative gradient overlay */}
-      <div className="absolute top-0 left-0 right-0 h-[500px] bg-[radial-gradient(circle_at_50%_0%,rgba(249,115,22,0.12),transparent_70%)] pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-[500px] bg-[radial-gradient(circle_at_50%_0%,rgba(249,115,22,0.05),transparent_70%)] pointer-events-none" />
 
       {/* ─── Header ─── */}
-      <header className="border-b border-slate-900 bg-slate-900/50 backdrop-blur-md sticky top-0 z-40">
+      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+            <Link to="/" className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors">
               <Home size={16} />
               <span className="text-xs font-bold hidden sm:inline">홈으로</span>
             </Link>
-            <span className="text-slate-700">|</span>
+            <span className="text-slate-300">|</span>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
                 <Truck size={16} className="text-white" />
               </div>
               <span className="text-lg font-black tracking-tighter uppercase bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
-                WeMarket <span className="text-white font-bold text-sm lowercase tracking-normal">food truck</span>
+                WeMarket <span className="text-slate-900 font-bold text-sm lowercase tracking-normal">food truck</span>
               </span>
             </div>
             {/* Live indicator */}
             {lastRefresh && (
-              <span className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> LIVE
+              <span className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 text-[10px] font-black">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> LIVE
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
             <Link
               to="/admin"
-              className="text-xs font-bold text-slate-400 hover:text-white px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-950/40 transition-all"
+              className="text-xs font-bold text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 bg-white transition-all"
             >
               점주 센터
             </Link>
@@ -312,7 +312,7 @@ export default function FoodTruckLanding() {
       </header>
 
       {/* ─── Tab Navigation ─── */}
-      <div className="sticky top-16 z-30 border-b border-slate-900 bg-slate-950/90 backdrop-blur-md">
+      <div className="sticky top-16 z-30 border-b border-slate-200 bg-white/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex gap-1 overflow-x-auto scrollbar-hide py-2 -mx-1">
             {[
@@ -328,7 +328,7 @@ export default function FoodTruckLanding() {
                 className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all ${
                   activeTab === tab.id
                     ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
-                    : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'
+                    : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 border border-slate-200'
                 }`}
               >
                 <tab.icon size={13} />
@@ -341,14 +341,14 @@ export default function FoodTruckLanding() {
 
       {/* ─── Foodtruck Features Banner (_finder tab only) ─── */}
       {activeTab === 'finder' && (
-      <section className="border-b border-slate-900 bg-slate-950 py-12 px-4 relative z-10">
+      <section className="border-b border-slate-200 bg-white py-12 px-4 relative z-10">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-mono font-bold mb-4">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600 text-xs font-mono font-bold mb-4">
               <Sparkles className="size-3.5" />
               <span>FOOD TRUCK FEATURES</span>
             </div>
-            <h2 className="text-2xl font-black text-white mb-2">
+            <h2 className="text-2xl font-black text-slate-900 mb-2">
               이동식 푸드트럭을 위한<br />
               <span className="bg-gradient-to-r from-orange-400 to-rose-500 bg-clip-text text-transparent">모바일 우선 솔루션</span>
             </h2>
@@ -365,11 +365,11 @@ export default function FoodTruckLanding() {
               { icon: Zap, title: '스마트 거점', desc: 'AI 최적 영업 위치 추천' },
               { icon: Fuel, title: '동선 최적화', desc: '연료·매출 동시 계산' },
             ].map((feat, i) => (
-              <div key={i} className="bg-slate-900/40 border border-slate-900 hover:border-slate-800 rounded-2xl p-4 text-center transition-all hover:scale-[1.02]">
-                <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center">
+              <div key={i} className="bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-2xl p-4 text-center transition-all hover:scale-[1.02]">
+                <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center">
                   <feat.icon className="size-5" />
                 </div>
-                <h3 className="text-xs font-black text-white mb-1">{feat.title}</h3>
+                <h3 className="text-xs font-black text-slate-900 mb-1">{feat.title}</h3>
                 <p className="text-[10px] text-slate-500 leading-tight">{feat.desc}</p>
               </div>
             ))}
@@ -385,11 +385,11 @@ export default function FoodTruckLanding() {
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-500 text-xs font-bold mb-4">
             <Sparkles size={12} /> 실시간 푸드트럭 추적기
           </div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-3">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 mb-3">
             지금 가장 핫한 푸드트럭,<br />
             <span className="bg-gradient-to-r from-orange-400 to-rose-500 bg-clip-text text-transparent">실시간 위치</span>를 찾아보세요!
           </h1>
-          <p className="text-slate-400 text-sm font-medium leading-relaxed">
+          <p className="text-slate-500 text-sm font-medium leading-relaxed">
             GPS 연동 주소와 비상 품절 여부를 실시간으로 반영하여 어딘지 헤매지 않고 최고의 로컬 미식을 스마트하게 즐길 수 있습니다.
           </p>
         </div>
@@ -415,7 +415,7 @@ export default function FoodTruckLanding() {
             placeholder="푸드트럭 명칭, 요리, 상권(홍대, 강남역 등) 검색..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 text-sm font-bold focus:outline-none focus:border-orange-500/50 transition-all focus:ring-4 focus:ring-orange-500/5"
+            className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-sm font-bold focus:outline-none focus:border-orange-500/50 transition-all focus:ring-4 focus:ring-orange-500/5"
           />
         </div>
 
@@ -428,7 +428,7 @@ export default function FoodTruckLanding() {
               className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
                 categoryFilter === cat.id
                   ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/15'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-800'
               }`}
             >
               {cat.label}
@@ -454,27 +454,27 @@ export default function FoodTruckLanding() {
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3].map(i => (
-                <div key={i} className="bg-slate-900/40 border border-slate-900 rounded-2xl p-5 animate-pulse">
+                <div key={i} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 animate-pulse">
                   <div className="flex gap-4">
-                    <div className="w-16 h-16 rounded-xl bg-slate-800" />
+                    <div className="w-16 h-16 rounded-xl bg-slate-200" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-slate-800 rounded w-1/3" />
-                      <div className="h-3 bg-slate-800 rounded w-1/2" />
-                      <div className="h-3 bg-slate-800 rounded w-1/4" />
+                      <div className="h-4 bg-slate-200 rounded w-1/3" />
+                      <div className="h-3 bg-slate-200 rounded w-1/2" />
+                      <div className="h-3 bg-slate-200 rounded w-1/4" />
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : error ? (
-            <div className="p-8 text-center rounded-2xl border border-slate-900 bg-slate-900/20 text-slate-400">
+            <div className="p-8 text-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-500">
               <AlertCircle size={32} className="text-rose-500 mx-auto mb-3" />
               <p className="font-bold text-sm mb-2">{error}</p>
-              <p className="text-xs text-slate-500">백엔드 서버 연결 상태를 확인해 주세요.</p>
+              <p className="text-xs text-slate-400">백엔드 서버 연결 상태를 확인해 주세요.</p>
             </div>
           ) : processedTrucks.length === 0 ? (
-            <div className="p-12 text-center rounded-3xl border border-dashed border-slate-800 bg-slate-900/10 text-slate-400">
-              <Truck size={40} className="text-slate-600 mx-auto mb-3" />
+            <div className="p-12 text-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 text-slate-500">
+              <Truck size={40} className="text-slate-400 mx-auto mb-3" />
               <p className="font-bold text-sm mb-1">매칭되는 푸드트럭이 없습니다.</p>
               <p className="text-xs text-slate-500">다른 검색어나 카테고리를 시도해 보세요.</p>
             </div>
@@ -490,8 +490,8 @@ export default function FoodTruckLanding() {
                   onClick={() => setSelectedTruck(truck)}
                   className={`border transition-all rounded-3xl p-5 cursor-pointer flex flex-col sm:flex-row gap-5 relative overflow-hidden group ${
                     isSelected
-                      ? 'bg-slate-900/80 border-orange-500 ring-2 ring-orange-500/10'
-                      : 'bg-slate-900/30 border-slate-900 hover:border-slate-800 hover:bg-slate-900/40'
+                      ? 'bg-orange-50 border-orange-500 ring-2 ring-orange-500/10'
+                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
                   {/* Status badges */}
@@ -503,35 +503,35 @@ export default function FoodTruckLanding() {
                     )}
                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
                       isActive
-                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-                        : 'bg-slate-800 border border-slate-700 text-slate-400'
+                        ? 'bg-emerald-50 border border-emerald-200 text-emerald-600'
+                        : 'bg-slate-100 border border-slate-200 text-slate-500'
                     }`}>
                       {isActive ? '● 영업중' : '준비중'}
                     </span>
                   </div>
 
                   {/* Truck icon */}
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center flex-shrink-0 border border-slate-800 group-hover:scale-105 transition-all">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center flex-shrink-0 border border-slate-200 group-hover:scale-105 transition-all">
                     <Truck className={`w-8 h-8 ${isActive ? 'text-orange-500' : 'text-slate-500'}`} />
                   </div>
 
                   {/* Info */}
                   <div className="flex-1 space-y-2 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-black text-white truncate">{truck.store?.name || '푸드트럭'}</h3>
+                      <h3 className="text-base font-black text-slate-900 truncate">{truck.store?.name || '푸드트럭'}</h3>
                       {truck.store?.category && (
-                        <span className="text-[10px] font-bold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded-md">
+                        <span className="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-md">
                           {truck.store.category}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-slate-400">
-                      <MapPin size={13} className="text-slate-500 shrink-0" />
+                    <div className="flex items-center gap-1 text-xs text-slate-500">
+                      <MapPin size={13} className="text-slate-400 shrink-0" />
                       <span className="truncate font-semibold">{truck.geocoded_address || '주소 정보 없음'}</span>
                     </div>
                     <div className="flex items-center gap-4 text-xs font-bold pt-1">
                       {isActive && (
-                        <div className="flex items-center gap-1 text-emerald-400">
+                        <div className="flex items-center gap-1 text-emerald-600">
                           <Clock size={12} />
                           <span>영업중</span>
                         </div>
@@ -546,7 +546,7 @@ export default function FoodTruckLanding() {
                   </div>
 
                   {/* Order button */}
-                  <div className="flex sm:flex-col justify-end pt-3 sm:pt-0 sm:border-l sm:border-slate-800 sm:pl-5 gap-2 shrink-0">
+                  <div className="flex sm:flex-col justify-end pt-3 sm:pt-0 sm:border-l sm:border-slate-200 sm:pl-5 gap-2 shrink-0">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -560,7 +560,7 @@ export default function FoodTruckLanding() {
                       className={`w-full sm:w-28 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${
                         isActive && !isEmergency
                           ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/10'
-                          : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                          : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                       }`}
                     >
                       <ShoppingBag size={12} />
@@ -574,26 +574,26 @@ export default function FoodTruckLanding() {
         </div>
 
         {/* Right: Leaflet map */}
-        <div className="lg:col-span-5 h-[400px] lg:h-[calc(100vh-12rem)] lg:sticky lg:top-28 rounded-3xl overflow-hidden border border-slate-800 bg-slate-900/20 relative">
+        <div className="lg:col-span-5 h-[400px] lg:h-[calc(100vh-12rem)] lg:sticky lg:top-28 rounded-3xl overflow-hidden border border-slate-200 bg-slate-50 relative">
           <div ref={mapContainerRef} className="w-full h-full" />
           {/* Map loading overlay */}
           {!mapRef.current && (
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 z-10">
-              <p className="text-sm text-slate-400 font-bold">지도를 불러오는 중…</p>
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+              <p className="text-sm text-slate-500 font-bold">지도를 불러오는 중…</p>
             </div>
           )}
           {/* Selected truck detail panel */}
           {selectedTruck && (
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 z-[500] space-y-2">
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 z-[500] space-y-2">
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
-                  <h4 className="text-sm font-black text-white truncate">{selectedTruck.store?.name}</h4>
-                  <p className="text-xs text-slate-400 font-semibold truncate">{selectedTruck.geocoded_address}</p>
+                  <h4 className="text-sm font-black text-slate-900 truncate">{selectedTruck.store?.name}</h4>
+                  <p className="text-xs text-slate-500 font-semibold truncate">{selectedTruck.geocoded_address}</p>
                 </div>
                 <span className={`text-[10px] font-black px-2 py-0.5 rounded-md shrink-0 ml-2 ${
                   selectedTruck.is_active_session
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                    : 'bg-slate-800 text-slate-400 border border-slate-700'
+                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                    : 'bg-slate-100 text-slate-500 border border-slate-200'
                 }`}>
                   {selectedTruck.is_active_session ? '영업중' : '준비중'}
                 </span>
@@ -610,7 +610,7 @@ export default function FoodTruckLanding() {
                 className={`w-full py-3 rounded-2xl text-xs font-black flex items-center justify-center gap-1.5 transition-all active:scale-95 ${
                   selectedTruck.is_active_session && !selectedTruck.is_sold_out_emergency
                     ? 'bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white shadow-xl shadow-orange-500/10'
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-800'
+                    : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                 }`}
               >
                 실시간 주문하러 가기 <ArrowRight size={12} />
@@ -621,10 +621,10 @@ export default function FoodTruckLanding() {
       </section>
 
       {/* ─── How it works ─── */}
-      <section className="border-t border-slate-900 bg-slate-950 py-20 px-4">
+      <section className="border-t border-slate-200 bg-white py-20 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-2xl font-black text-white mb-2">이용 방법</h2>
+            <h2 className="text-2xl font-black text-slate-900 mb-2">이용 방법</h2>
             <p className="text-slate-500 text-sm">단 3단계로 푸드트럭을 주문하세요</p>
           </div>
           <div className="grid sm:grid-cols-3 gap-8">
@@ -633,11 +633,11 @@ export default function FoodTruckLanding() {
               { num: '②', title: '푸드트럭 선택', desc: '실시간 영업 상태와 거리를 확인하고 마음에 드는 트럭을 고릅니다.' },
               { num: '③', title: '메뉴 주문', desc: '메뉴판에서 원하는 음식을 선택하고 바로 주문합니다.' },
             ].map((step, i) => (
-              <div key={i} className="text-center p-6 rounded-2xl bg-slate-900/30 border border-slate-800 hover:border-slate-700 transition-colors">
+              <div key={i} className="text-center p-6 rounded-2xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-colors">
                 <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-orange-500/20">
                   {step.num}
                 </div>
-                <h3 className="font-bold text-white text-base mb-2">{step.title}</h3>
+                <h3 className="font-bold text-slate-900 text-base mb-2">{step.title}</h3>
                 <p className="text-slate-500 text-sm leading-relaxed">{step.desc}</p>
               </div>
             ))}
@@ -679,15 +679,15 @@ export default function FoodTruckLanding() {
       )}
 
       {/* ─── Footer ─── */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-8 px-4">
+      <footer className="border-t border-slate-200 bg-slate-50 py-8 px-4">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Truck size={14} className="text-orange-500" />
             <span className="text-xs font-bold text-slate-500">© 2026 WeMarket Food Truck</span>
           </div>
           <div className="flex items-center gap-4 text-xs text-slate-500">
-            <Link to="/" className="hover:text-white transition-colors">홈</Link>
-            <Link to="/admin" className="hover:text-white transition-colors">점주 센터</Link>
+            <Link to="/" className="hover:text-slate-900 transition-colors">홈</Link>
+            <Link to="/admin" className="hover:text-slate-900 transition-colors">점주 센터</Link>
           </div>
         </div>
       </footer>

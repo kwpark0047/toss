@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { lazy, Suspense, useState, useEffect, memo } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 // 공개 페이지 지연 로딩: 각 라우트가 자기 청크만 로드해 초기 번들(index) 축소
 const Index = lazy(() => import("./pages/Index"));
 const MenuPage = lazy(() => import("./pages/MenuPage"));
@@ -74,7 +76,7 @@ const AlimtalkDeliveryConsole = lazy(() => import("@/components/admin/AlimtalkDe
 const queryClient = new QueryClient();
 
 const SPINNER_FALLBACK = (
-  <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+  <div className="min-h-screen bg-white flex items-center justify-center">
     <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
   </div>
 );
@@ -100,7 +102,7 @@ const ProtectedRoute = memo(({ children }) => {
 
   if (loading && !timedOut) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 gap-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-4">
         <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
         <p className="text-slate-500 text-xs">로그인 정보 확인 중...</p>
       </div>
@@ -440,12 +442,17 @@ const App = () => (
         onError={logError}
       >
         <BrowserRouter>
-          <AuthProvider>
-            <PWAInstallBanner />
-            <ErrorBoundary onError={logError}>
-              <AppRoutes />
-            </ErrorBoundary>
-          </AuthProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <PWAInstallBanner />
+              <div className="fixed bottom-6 right-6 z-50">
+                <ThemeSwitcher />
+              </div>
+              <ErrorBoundary onError={logError}>
+                <AppRoutes />
+              </ErrorBoundary>
+            </AuthProvider>
+          </ThemeProvider>
         </BrowserRouter>
       </ErrorBoundary>
     </TooltipProvider>

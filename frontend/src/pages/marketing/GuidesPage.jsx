@@ -76,17 +76,17 @@ export default function GuidesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="min-h-screen bg-white text-slate-900 font-sans">
       {/* 프리미엄 내비게이션 바 */}
-      <nav className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+      <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
               <Store className="w-5 h-5 text-white" />
             </div>
             <div>
-              <span className="text-lg font-black tracking-tighter block uppercase bg-gradient-to-r from-orange-400 to-rose-500 bg-clip-text text-transparent">WeMarket</span>
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 block leading-none">Smart SaaS</span>
+              <span className="text-lg font-black tracking-tighter block bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">WeMarket</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 block leading-none">Smart SaaS</span>
             </div>
           </Link>
 
@@ -97,7 +97,7 @@ export default function GuidesPage() {
                 key={item.label} 
                 to={item.to} 
                 className={`text-sm font-bold tracking-tight transition-all ${
-                  item.active ? 'text-orange-500' : 'text-slate-400 hover:text-slate-100'
+                  item.active ? 'text-orange-500' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 {item.label}
@@ -106,7 +106,7 @@ export default function GuidesPage() {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/auth" className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
+            <Link to="/auth" className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-900 transition-all">
               로그인
             </Link>
             <Link to="/register" className="px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 transition-all active:scale-95">
@@ -115,26 +115,26 @@ export default function GuidesPage() {
           </div>
 
           {/* 모바일 햄버거 토글 */}
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-slate-400 hover:text-slate-200 p-2">
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-slate-500 hover:text-slate-900 p-2">
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
 
         {/* 모바일 서브 레이어 */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-900 bg-slate-950 px-6 py-6 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-200">
+          <div className="md:hidden border-t border-slate-200 bg-white px-6 py-6 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-200">
             {navItems.map(item => (
               <Link 
                 key={item.label} 
                 to={item.to} 
                 onClick={() => setMobileMenuOpen(false)}
-                className={`text-sm font-bold py-2 ${item.active ? 'text-orange-500' : 'text-slate-400'}`}
+                className={`text-sm font-bold py-2 ${item.active ? 'text-orange-500' : 'text-slate-500'}`}
               >
                 {item.label}
               </Link>
             ))}
-            <hr className="border-slate-900 my-2" />
-            <Link to="/auth" onClick={() => setMobileMenuOpen(false)} className="text-sm font-bold text-slate-400 py-2">
+            <hr className="border-slate-200 my-2" />
+            <Link to="/auth" onClick={() => setMobileMenuOpen(false)} className="text-sm font-bold text-slate-500 py-2">
               로그인
             </Link>
             <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="w-full py-3 bg-gradient-to-r from-orange-500 to-rose-500 text-white text-center rounded-xl text-sm font-black shadow-lg">
@@ -145,77 +145,77 @@ export default function GuidesPage() {
       </nav>
 
       {/* 이용가이드 헤더 */}
-      <section className="relative py-20 lg:py-24 overflow-hidden text-center bg-gradient-to-b from-slate-950 to-slate-900/40">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(249,115,22,0.1),transparent_60%)] pointer-events-none" />
-        <div className="max-w-4xl mx-auto px-6 relative z-10">
-          <h2 className="text-4xl lg:text-5xl font-black tracking-tight mb-6">
+      <section className="relative py-16 sm:py-20 lg:py-24 overflow-hidden text-center bg-gradient-to-b from-orange-50/50 to-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(249,115,22,0.06),transparent_60%)] pointer-events-none" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight mb-6">
             WeMarket 플랫폼<br />
-            <span className="bg-gradient-to-r from-orange-400 to-rose-500 bg-clip-text text-transparent">이용 가이드 & FAQ</span>
+            <span className="bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">이용 가이드 & FAQ</span>
           </h2>
-          <p className="text-slate-400 text-sm max-w-lg mx-auto leading-relaxed mb-8">
+          <p className="text-slate-500 text-sm max-w-lg mx-auto leading-relaxed mb-8">
             처음 매장을 생성하고 QR 오더를 개시하기까지의 온보딩 매뉴얼과 가장 자주 묻는 질문들을 쉽고 상세하게 안내해 드립니다.
           </p>
         </div>
       </section>
 
       {/* 단계별 온보딩 */}
-      <section className="py-24 max-w-7xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h3 className="text-2xl font-black tracking-tight mb-2 text-slate-100">4단계 초고속 오픈 가이드</h3>
-          <p className="text-slate-400 text-xs">처음 시작하는 점주님도 15분 만에 테이블 주문판 구성을 끝낼 수 있습니다.</p>
+      <section className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="text-center mb-12 sm:mb-16">
+          <h3 className="text-xl sm:text-2xl font-black tracking-tight mb-2 text-slate-900">4단계 초고속 오픈 가이드</h3>
+          <p className="text-slate-500 text-xs">처음 시작하는 점주님도 15분 만에 테이블 주문판 구성을 끝낼 수 있습니다.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {onboardingSteps.map((step, idx) => (
-            <div key={idx} className="bg-slate-900/30 border border-slate-900 rounded-3xl p-6 relative hover:border-slate-800 transition-all">
-              <div className="absolute -top-4 left-6 text-3xl font-mono font-black text-slate-800 tracking-wider">
+            <div key={idx} className="bg-white border border-slate-200 rounded-3xl p-6 relative hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/5 transition-all">
+              <div className="absolute -top-4 left-6 text-3xl font-mono font-black text-slate-200 tracking-wider">
                 {step.step}
               </div>
-              <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center mb-6 mt-2">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 text-orange-500 flex items-center justify-center mb-6 mt-2">
                 <step.icon className="size-5" />
               </div>
-              <h4 className="text-sm font-black text-slate-100 mb-2">{step.title}</h4>
-              <p className="text-slate-400 text-xs leading-relaxed">{step.desc}</p>
+              <h4 className="text-sm font-black text-slate-900 mb-2">{step.title}</h4>
+              <p className="text-slate-500 text-xs leading-relaxed">{step.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* 자주 묻는 질문 (FAQ) 아코디언 */}
-      <section className="pb-24 lg:pb-36 max-w-3xl mx-auto px-6">
+      <section className="pb-20 sm:pb-24 lg:pb-36 max-w-3xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
-          <h3 className="text-2xl font-black tracking-tight mb-3 text-slate-100">자주 묻는 질문 (FAQ)</h3>
+          <h3 className="text-xl sm:text-2xl font-black tracking-tight mb-3 text-slate-900">자주 묻는 질문 (FAQ)</h3>
           <div className="relative mt-6 max-w-md mx-auto">
             <input 
               type="text" 
               placeholder="궁금한 내용을 입력해 보세요..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-xl px-10 py-3 text-xs focus:outline-none focus:border-orange-500 transition-all placeholder-slate-500"
+              className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-10 py-3 text-sm focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all placeholder-slate-400"
             />
-            <Search className="size-4 text-slate-500 absolute left-3.5 top-3.5" />
+            <Search className="size-4 text-slate-400 absolute left-3.5 top-3.5" />
           </div>
         </div>
 
         <div className="space-y-4">
           {filteredFaqs.length === 0 ? (
-            <div className="text-center py-10 text-slate-600 text-xs">
+            <div className="text-center py-10 text-slate-400 text-sm">
               검색어와 부합하는 도움말을 찾지 못했습니다. 다른 단어로 검색해 보세요.
             </div>
           ) : (
             filteredFaqs.map((faq, idx) => {
               const isExpanded = expandedFaq[idx];
               return (
-                <div key={idx} className="bg-slate-900/30 border border-slate-900 rounded-2xl overflow-hidden transition-all">
+                <div key={idx} className="bg-white border border-slate-200 rounded-2xl overflow-hidden transition-all hover:border-slate-300">
                   <button 
                     onClick={() => toggleFaq(idx)}
-                    className="w-full p-6 text-left flex items-center justify-between gap-4 font-bold text-xs text-slate-100 hover:text-orange-400 transition-colors"
+                    className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 font-bold text-sm text-slate-900 hover:text-orange-600 transition-colors"
                   >
                     <span>{faq.q}</span>
-                    {isExpanded ? <ChevronUp className="size-4 text-slate-400" /> : <ChevronDown className="size-4 text-slate-400" />}
+                    {isExpanded ? <ChevronUp className="size-4 text-slate-400 flex-shrink-0" /> : <ChevronDown className="size-4 text-slate-400 flex-shrink-0" />}
                   </button>
                   {isExpanded && (
-                    <div className="px-6 pb-6 text-xs text-slate-400 leading-relaxed border-t border-slate-900/50 pt-4 bg-slate-950/[0.1]">
+                    <div className="px-5 sm:px-6 pb-5 sm:pb-6 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-4 bg-slate-50/50">
                       {faq.a}
                     </div>
                   )}
@@ -227,13 +227,13 @@ export default function GuidesPage() {
       </section>
 
       {/* 푸터 */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-12 text-slate-500">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+      <footer className="border-t border-slate-200 bg-slate-50 py-12 text-slate-400">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center border border-slate-800">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
               <Store className="w-4 h-4 text-slate-400" />
             </div>
-            <span className="text-sm font-bold text-slate-400">WeMarket SaaS</span>
+            <span className="text-sm font-bold text-slate-500">WeMarket SaaS</span>
           </div>
           <p className="text-xs font-mono">&copy; 2026 WeMarket Platform. All rights reserved.</p>
         </div>

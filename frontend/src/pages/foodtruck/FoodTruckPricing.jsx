@@ -29,7 +29,7 @@ export default function FoodTruckPricing() {
         '직원 권한 격리 (Staff 1명)',
       ],
       cta: '무료로 시작',
-      color: 'border-slate-900 bg-slate-950/40',
+      color: 'border-slate-200 bg-slate-50',
       popular: false
     },
     {
@@ -61,7 +61,7 @@ export default function FoodTruckPricing() {
         '99.9% 가동률 보증 보장 협약서(SLA) 체결',
       ],
       cta: '영업문의 및 컨설팅',
-      color: 'border-slate-900 bg-slate-950/40',
+      color: 'border-slate-200 bg-slate-50',
       popular: false
     }
   ];
@@ -74,17 +74,17 @@ export default function FoodTruckPricing() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="min-h-screen bg-white text-slate-900 font-sans">
       {/* Navigation */}
-      <nav className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+      <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <Link to="/foodtruck/landing" className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
               <Truck className="w-5 h-5 text-white" />
             </div>
             <div>
-              <span className="text-lg font-black tracking-tighter block uppercase bg-gradient-to-r from-orange-400 to-rose-500 bg-clip-text text-transparent">WeMarket</span>
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 block leading-none">Food Truck</span>
+              <span className="text-lg font-black tracking-tighter block uppercase bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">WeMarket</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 block leading-none">Food Truck</span>
             </div>
           </Link>
 
@@ -94,7 +94,7 @@ export default function FoodTruckPricing() {
                 key={item.label}
                 to={item.to}
                 className={`text-sm font-bold tracking-tight transition-all ${
-                  item.active ? 'text-orange-500' : 'text-slate-400 hover:text-slate-100'
+                  item.active ? 'text-orange-500' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 {item.label}
@@ -103,7 +103,7 @@ export default function FoodTruckPricing() {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/auth" className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
+            <Link to="/auth" className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-900 transition-all">
               로그인
             </Link>
             <Link to="/register" className="px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 transition-all active:scale-95">
@@ -111,19 +111,19 @@ export default function FoodTruckPricing() {
             </Link>
           </div>
 
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-slate-400 hover:text-slate-200 p-2">
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-slate-500 hover:text-slate-900 p-2">
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
 
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-900 bg-slate-950 px-6 py-6 flex flex-col gap-4">
+          <div className="md:hidden border-t border-slate-200 bg-white px-6 py-6 flex flex-col gap-4">
             {navItems.map(item => (
               <Link
                 key={item.label}
                 to={item.to}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`text-sm font-bold py-2 ${item.active ? 'text-orange-500' : 'text-slate-400'}`}
+                className={`text-sm font-bold py-2 ${item.active ? 'text-orange-500' : 'text-slate-500'}`}
               >
                 {item.label}
               </Link>
@@ -134,9 +134,9 @@ export default function FoodTruckPricing() {
 
       {/* Pricing Header */}
       <section className="relative py-20 lg:py-28 overflow-hidden text-center">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(249,115,22,0.12),transparent_60%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(249,115,22,0.05),transparent_60%)] pointer-events-none" />
         <div className="max-w-4xl mx-auto px-6 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-mono font-bold mb-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600 text-xs font-mono font-bold mb-6">
             <Sparkles className="size-3.5" />
             <span>FOOD TRUCK PRICING</span>
           </div>
@@ -144,22 +144,22 @@ export default function FoodTruckPricing() {
             이동형 푸드트럭에 맞춘<br />
             <span className="bg-gradient-to-r from-orange-400 to-rose-500 bg-clip-text text-transparent">합리적인 요금 정책</span>
           </h2>
-          <p className="text-slate-400 text-sm max-w-xl mx-auto leading-relaxed mb-8">
+          <p className="text-slate-500 text-sm max-w-xl mx-auto leading-relaxed mb-8">
             고정 비용 없이 월 구독 방식으로 이용하세요. GPS 동기화, 킬스위치 등 이동형 매장에 꼭 필요한 기능이 포함되어 있습니다.
           </p>
 
           {/* Annual toggle */}
           <div className="flex items-center justify-center gap-3">
-            <span className={`text-xs font-bold transition-all ${!annualBilling ? 'text-slate-100' : 'text-slate-500'}`}>월 결제</span>
+            <span className={`text-xs font-bold transition-all ${!annualBilling ? 'text-slate-900' : 'text-slate-400'}`}>월 결제</span>
             <button
               onClick={() => setAnnualBilling(!annualBilling)}
-              className="w-12 h-6 rounded-full bg-slate-900 border border-slate-800 p-1 flex items-center relative transition-all"
+              className="w-12 h-6 rounded-full bg-slate-200 border border-slate-300 p-1 flex items-center relative transition-all"
             >
               <div className={`w-4 h-4 rounded-full bg-orange-500 transition-all ${annualBilling ? 'translate-x-6' : 'translate-x-0'}`} />
             </button>
-            <span className={`text-xs font-bold flex items-center gap-1.5 transition-all ${annualBilling ? 'text-orange-400' : 'text-slate-500'}`}>
+            <span className={`text-xs font-bold flex items-center gap-1.5 transition-all ${annualBilling ? 'text-orange-600' : 'text-slate-400'}`}>
               연 결제
-              <span className="text-[10px] bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded-full font-mono font-bold">20% SAVE</span>
+              <span className="text-[10px] bg-orange-50 text-orange-600 border border-orange-200 px-2 py-0.5 rounded-full font-mono font-bold">20% SAVE</span>
             </span>
           </div>
         </div>
@@ -182,19 +182,19 @@ export default function FoodTruckPricing() {
               )}
 
               <div>
-                <h3 className="text-xl font-black text-slate-100 mb-2">{plan.name}</h3>
-                <p className="text-slate-400 text-xs leading-relaxed mb-6 h-12">{plan.desc}</p>
-                <div className="flex items-baseline gap-1.5 border-b border-slate-900 pb-6 mb-6">
-                  <span className="text-4xl font-black font-mono text-slate-100">
+                <h3 className="text-xl font-black text-slate-900 mb-2">{plan.name}</h3>
+                <p className="text-slate-500 text-xs leading-relaxed mb-6 h-12">{plan.desc}</p>
+                <div className="flex items-baseline gap-1.5 border-b border-slate-200 pb-6 mb-6">
+                  <span className="text-4xl font-black font-mono text-slate-900">
                     {plan.price === 0 ? '₩0' : `₩${getPrice(plan.price).toLocaleString('ko-KR')}`}
                   </span>
-                  <span className="text-xs text-slate-500 font-bold">/월</span>
+                  <span className="text-xs text-slate-400 font-bold">/월</span>
                 </div>
 
                 <ul className="space-y-3.5 mb-8">
                   {plan.features.map((feat, fidx) => (
-                    <li key={fidx} className="flex items-start gap-2.5 text-xs text-slate-300">
-                      <Check className="size-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                    <li key={fidx} className="flex items-start gap-2.5 text-xs text-slate-600">
+                      <Check className="size-4 text-orange-500 mt-0.5 flex-shrink-0" />
                       <span className="leading-normal">{feat}</span>
                     </li>
                   ))}
@@ -206,7 +206,7 @@ export default function FoodTruckPricing() {
                 className={`w-full py-3.5 rounded-2xl text-center text-xs font-black transition-all ${
                   plan.popular
                     ? 'bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 active:scale-95'
-                    : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border border-slate-800'
+                    : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200'
                 }`}
               >
                 {plan.cta}
@@ -217,15 +217,15 @@ export default function FoodTruckPricing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-12 text-slate-500">
+      <footer className="border-t border-slate-200 bg-slate-50 py-12 text-slate-500">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center border border-slate-800">
+            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-slate-200">
               <Truck className="w-4 h-4 text-slate-400" />
             </div>
-            <span className="text-sm font-bold text-slate-400">WeMarket Food Truck</span>
+            <span className="text-sm font-bold text-slate-500">WeMarket Food Truck</span>
           </div>
-          <p className="text-xs font-mono">&copy; 2026 WeMarket Platform. All rights reserved.</p>
+          <p className="text-xs font-mono text-slate-400">&copy; 2026 WeMarket Platform. All rights reserved.</p>
         </div>
       </footer>
     </div>
