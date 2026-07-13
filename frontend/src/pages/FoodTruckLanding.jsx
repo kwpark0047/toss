@@ -6,11 +6,11 @@ import {
   CreditCard, BookOpen, Mail
 } from 'lucide-react';
 
-/* ─── Lazy-load marketing pages ─── */
-const FeaturesPage = lazy(() => import('./marketing/FeaturesPage'));
-const PricingPage = lazy(() => import('./marketing/PricingPage'));
-const GuidesPage = lazy(() => import('./marketing/GuidesPage'));
-const ContactPage = lazy(() => import('./marketing/ContactPage'));
+/* ─── Lazy-load foodtruck-specific marketing pages ─── */
+const FeaturesPage = lazy(() => import('./foodtruck/FoodTruckFeatures'));
+const PricingPage = lazy(() => import('./foodtruck/FoodTruckPricing'));
+const GuidesPage = lazy(() => import('./foodtruck/FoodTruckGuides'));
+const ContactPage = lazy(() => import('./foodtruck/FoodTruckContact'));
 
 /* ─── Leaflet CDN helpers (copied from StoreMapLeaflet — no import dependency) ─── */
 const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
