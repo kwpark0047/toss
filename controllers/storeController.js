@@ -12,7 +12,7 @@ const storeController = {
             const prisma = require('../config/prisma');
             const { NOT } = require('@prisma/client');
             const stores = await prisma.stores.findMany({
-                where: { is_active: true, NOT: [{ name: { contains: '?' } }, { name: { contains: '' } }] },
+                where: { is_active: true, NOT: [{ name: { contains: '?' } }, { name: { contains: '\uFFFD' } }] },
                 select: { id: true, name: true, address: true, business_type: true, latitude: true, longitude: true },
                 take: Math.min(limit, 200),
                 orderBy: { id: 'desc' },

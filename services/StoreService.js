@@ -5,7 +5,7 @@ const logger = require('../utils/logger');
 
 // 공공매장 매칭 상수
 const PUBLIC_OWNER_ID = 1;
-const EXCLUDE_CORRUPT_NAME = { NOT: [{ name: { contains: '?' } }, { name: { contains: '' } }] };
+const EXCLUDE_CORRUPT_NAME = { NOT: [{ name: { contains: '?' } }, { name: { contains: '\uFFFD' } }] };
 
 // 이름 정규화
 const normNm = (s = '') => String(s).toLowerCase().replace(/\([^)]*\)/g, '').replace(/[\s·.,'"()\u002D]/g, '');
@@ -88,7 +88,7 @@ class StoreService {
     async getHighlights(district) {
         const now = new Date();
         const storeRel = {
-            NOT: [{ name: { contains: '?' } }, { name: { contains: '' } }],
+            NOT: [{ name: { contains: '?' } }, { name: { contains: '\uFFFD' } }],
             ...(district ? { address: { contains: String(district) } } : {}),
         };
 

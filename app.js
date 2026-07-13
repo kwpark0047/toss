@@ -104,6 +104,8 @@ app.use(helmet({
                 "https://fcmregistrations.googleapis.com"
             ],
             frameSrc: ["'self'", "https://js.tosspayments.com"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
         },
     },
     crossOriginEmbedderPolicy: false,

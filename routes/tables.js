@@ -57,7 +57,7 @@ router.put('/:id', authMiddleware, catchAsync(async (req, res) => {
 
 // QR 코드 ?�생??(?�이�??�속 매장 권한 검�?
 router.post('/:id/regenerate-qr', authMiddleware, catchAsync(async (req, res) => {
-    const existing = await prisma.tables.findUnique({ where: { id: parseInt(req.params.id) } });
+    const existing = await Table.findById(req.params.id);
     if (!existing) return res.status(404).json({ error: '?�이블을 찾을 ???�습?�다.' });
 
     if (req.user.role !== 'super_admin') {
@@ -66,10 +66,7 @@ router.post('/:id/regenerate-qr', authMiddleware, catchAsync(async (req, res) =>
     }
 
     const newQrCode = `qr_${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`;
-    const table = await prisma.tables.update({
-        where: { id: parseInt(req.params.id) },
-        data: { qr_code: newQrCode, updated_at: new Date() }
-    });
+    const table = await Table.regenerateQr(req.params.id, newQrCode);
     const io = req.app.get('io');
     if (io) {
         io.emit('table-updated', { store_id: table.store_id, table_id: table.id });

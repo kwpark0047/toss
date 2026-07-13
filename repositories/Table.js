@@ -98,6 +98,14 @@ const Table = {
         return true;
     },
 
+    // [QR 코드 갱신]
+    regenerateQr: async (id, newQrCode) => {
+        return await prisma.tables.update({
+            where: { id: parseInt(id) },
+            data: { qr_code: newQrCode, updated_at: new Date() }
+        });
+    },
+
     updateLayout: async (storeId, layoutArray) => {
         const queries = layoutArray.map(item => {
             return prisma.tables.update({
