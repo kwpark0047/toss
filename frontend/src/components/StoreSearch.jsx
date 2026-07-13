@@ -1,66 +1,36 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import KakaoMap from './KakaoMap';
 import { motion, AnimatePresence } from 'framer-motion';
 import WaitingSection from './customer/WaitingSection';
 import { storesAPI, waitingAPI, reviewsAPI } from '../api';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './common/LanguageSwitcher';
 import { bizLabel } from '../utils/businessType';
-import { Store, Coffee, Utensils, Cake, Pizza, ShoppingBag, MapPin, Star, BellRing, Search, X, ChevronDown, Grid3X3, List, Map as MapIcon, RefreshCw, Heart, Navigation, MessageCircle, Sparkles, SlidersHorizontal } from 'lucide-react';
+import StoreFilterBar from './StoreFilterBar';
+import StoreCard from './StoreCard';
+import StoreMapSection from './StoreMapSection';
+import StoreSearchSkeleton from './StoreSearchSkeleton';
+import { Store, Search, X, MessageCircle } from 'lucide-react';
 
-const regions = [
-  { id: 'all', name: '전체 지역' },
-  { id: 'seoul', name: '서울' },
-  { id: 'gyeonggi', name: '경기' },
-  { id: 'incheon', name: '인천' },
-  { id: 'busan', name: '부산' },
-  { id: 'daegu', name: '대구' },
-  { id: 'daejeon', name: '대전' },
-  { id: 'gwangju', name: '광주' },
-  { id: 'jeju', name: '제주' }
-];
+/** 지역 ID → 백엔드 district 문자열 매핑 */
+function regionToDistrict(regionId) {
+  const map = {
+    seoul: '서울', gyeonggi: '경기', incheon: '인천',
+    busan: '부산', daegu: '대구', daejeon: '대전',
+    gwangju: '광주', jeju: '제주',
+  };
+  return map[regionId] || undefined;
+}
 
-const businessTypes = [
-  { id: 'all', name: '전체 업종', icon: Store },
-  { id: 'cafe', name: '카페', icon: Coffee },
-  { id: 'restaurant', name: '음식점', icon: Utensils },
-  { id: 'bakery', name: '베이커리', icon: Cake },
-  { id: 'fastfood', name: '패스트푸드', icon: Pizza },
-  { id: 'bar', name: '주점', icon: ShoppingBag }
-];
-
-// 모듈 레벨 정적 스켈레톤: 부모 렌더마다 재생성 방지 (react-best-practices: rerender-no-inline-components)
-const StoreSearchSkeleton = () => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-    {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-      <div key={i} className="bg-white/5 rounded-[3rem] border border-white/5 overflow-hidden h-[420px] animate-pulse">
-        <div className="h-48 bg-white/5" />
-        <div className="p-8 space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="w-1/2 h-6 bg-white/5 rounded-lg" />
-            <div className="w-12 h-6 bg-white/5 rounded-lg" />
-          </div>
-          <div className="w-full h-4 bg-white/5 rounded-lg" />
-          <div className="w-3/4 h-4 bg-white/5 rounded-lg" />
-          <div className="pt-8 flex justify-between items-center">
-            <div className="w-20 h-4 bg-white/5 rounded-lg" />
-            <div className="w-28 h-12 bg-white/10 rounded-2xl" />
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-);
+const PAGE_SIZE = 30;
 
 /**
  * 프리미엄 다크 글래스모피즘 디자인이 적용된 매장 검색 페이지
- * 하이엔드 애니메이션과 세련된 UI를 제공합니다.
+ * 서버사이드 필터링/페이지네이션 + Leaflet 지도 + 영업시간 표시
  */
 const StoreSearch = () => {
   const { t } = useTranslation();
   const [stores, setStores] = useState([]);
-  const [filteredStores, setFilteredStores] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
@@ -68,6 +38,12 @@ const StoreSearch = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [selectedStore, setSelectedStore] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // 페이지네이션 상태
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // 웨이팅 및 리뷰 상태
   const [showWaiting, setShowWaiting] = useState(false);
@@ -78,10 +54,67 @@ const StoreSearch = () => {
   const [favorites, setFavorites] = useState(new Set());
   const customerPhone = (() => { try { return localStorage.getItem('wm_customer_phone'); } catch { return null; } })();
 
-  useEffect(() => {
-    fetchStores();
-  }, []);
+  // ── 매장 검색 (서버사이드) ──
+  const fetchStores = useCallback(async (pageNum = 1, append = false) => {
+    if (pageNum === 1) setLoading(true);
+    else setLoadingMore(true);
 
+    try {
+      const params = {
+        district: regionToDistrict(selectedRegion),
+        business_type: selectedType !== 'all' ? selectedType : undefined,
+        q: searchTerm || undefined,
+        page: pageNum,
+        limit: PAGE_SIZE,
+      };
+      const res = await storesAPI.searchPublic(params);
+      const data = res?.data || res;
+      const newStores = data.stores || [];
+      const pag = data.pagination || {};
+
+      if (append) {
+        setStores(prev => [...prev, ...newStores]);
+      } else {
+        setStores(newStores);
+      }
+
+      setHasMore(pag.hasMore || false);
+      setTotal(pag.total || 0);
+
+      // N+1 쿼리: 웨이팅 수 + 리뷰 조회 (현재 페이지만)
+      newStores.forEach(s => {
+        fetchWaitingCount(s.id);
+        fetchStoreReviews(s.id);
+      });
+    } catch (error) {
+      console.error("매장 로드 실패:", error);
+      if (!append) setStores([]);
+    } finally {
+      setTimeout(() => {
+        setLoading(false);
+        setLoadingMore(false);
+      }, 800);
+    }
+  }, [selectedRegion, selectedType, searchTerm]);
+
+  // 최초 로드
+  useEffect(() => {
+    setPage(1);
+    fetchStores(1, false);
+  }, [fetchStores]);
+
+  // 필터 변경 시 첫 페이지로 리셋
+  const handleRegionChange = (val) => setSelectedRegion(val);
+  const handleTypeChange = (val) => setSelectedType(val);
+
+  // ── 더보기 (페이지네이션) ──
+  const loadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchStores(nextPage, true);
+  };
+
+  // ── 찜 ──
   useEffect(() => {
     if (!customerPhone) return;
     storesAPI.getFavorites(customerPhone).then(res => {
@@ -103,23 +136,7 @@ const StoreSearch = () => {
     }
   }, [customerPhone, favorites]);
 
-  const fetchStores = async () => {
-    setLoading(true);
-    try {
-      const res = await storesAPI.getAll({ limit: 200 });
-      setStores(res.data);
-      setFilteredStores(res.data);
-      res.data.forEach(s => {
-        fetchWaitingCount(s.id);
-        fetchStoreReviews(s.id);
-      });
-    } catch (error) {
-      console.error("매장 로드 실패:", error);
-    } finally {
-      setTimeout(() => setLoading(false), 800);
-    }
-  };
-
+  // ── 웨이팅 수 조회 ──
   const fetchWaitingCount = async (storeId) => {
     try {
       const res = await waitingAPI.getStatus(storeId);
@@ -131,6 +148,7 @@ const StoreSearch = () => {
     }
   };
 
+  // ── 리뷰 조회 ──
   const fetchStoreReviews = async (storeId) => {
     try {
       const res = await reviewsAPI.getStoreReviews(storeId);
@@ -146,37 +164,7 @@ const StoreSearch = () => {
     }
   };
 
-  const filterStores = useCallback(() => {
-    let result = [...stores];
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(store =>
-        store.name.toLowerCase().includes(term) ||
-        (store.address || '').toLowerCase().includes(term) ||
-        (store.description || '').toLowerCase().includes(term)
-      );
-    }
-    if (selectedRegion !== 'all') {
-      result = result.filter(store => store.region === selectedRegion || (store.address && store.address.includes(selectedRegion)));
-    }
-    if (selectedType !== 'all') {
-      result = result.filter(store => store.business_type === selectedType);
-    }
-    if (showFavoritesOnly && customerPhone) {
-      result = result.filter(store => favorites.has(store.id));
-    }
-    setFilteredStores(result);
-  }, [searchTerm, selectedRegion, selectedType, showFavoritesOnly, favorites, stores, customerPhone]);
-
-  useEffect(() => {
-    filterStores();
-  }, [filterStores]);
-
-  const getTypeIcon = (type) => {
-    const found = businessTypes.find(t => t.id === type);
-    return found ? found.icon : Store;
-  };
-
+  // ── 필터 초기화 ──
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedRegion('all');
@@ -184,158 +172,16 @@ const StoreSearch = () => {
     setShowFavoritesOnly(false);
   };
 
+  // ── 찜한 매장 필터 (클라이언트사이드 — 서버에서 이미 로드된 매장 중 필터링) ──
+  const displayStores = showFavoritesOnly && customerPhone
+    ? stores.filter(s => favorites.has(s.id))
+    : stores;
+
   const hasActiveFilters = searchTerm || selectedRegion !== 'all' || selectedType !== 'all' || showFavoritesOnly;
 
-  const navigate = (path) => window.location.href = path;
-
-  const renderStoreCard = (store, viewType = 'grid') => {
-    const TypeIcon = getTypeIcon(store.business_type);
-    const rating = storeRatings[store.id]?.rating || '5.0';
-    const reviewCount = storeRatings[store.id]?.count || 0;
-    const waitingCount = waitingCounts[store.id] || 0;
-
-    if (viewType === 'list') {
-      return (
-        <motion.div
-          layout
-          key={store.id}
-          onClick={() => navigate("/menu?store=" + store.id)}
-          className="group relative bg-white/5 backdrop-blur-xl rounded-[2.5rem] border border-white/5 p-6 flex flex-col sm:flex-row gap-8 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer overflow-hidden"
-        >
-           <div className={`absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -mr-16 -mt-16 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity`} />
-          
-          <div className="w-full sm:w-40 h-40 sm:h-auto rounded-[2rem] bg-slate-900 border border-white/5 flex items-center justify-center flex-shrink-0 relative overflow-hidden group-hover:scale-105 transition-transform duration-500">
-            <TypeIcon className="w-16 h-16 text-slate-700 group-hover:text-orange-500/50 transition-colors" />
-            {waitingCount > 0 && (
-              <div className="absolute top-4 left-4 bg-orange-500 text-white text-[10px] font-black px-3 py-1.5 rounded-xl shadow-xl shadow-orange-500/20 animate-pulse">
-                대기 {waitingCount}팀
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 flex flex-col justify-between py-2">
-            <div>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-black text-2xl text-white group-hover:text-orange-400 transition-colors truncate">{store.name}</h3>
-                    <span className="px-3 py-1 bg-white/5 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest">{bizLabel(store.business_type)}</span>
-                  </div>
-                  <p className="text-slate-400 font-medium flex items-center gap-2 mb-4 leading-relaxed">
-                    <MapPin className="w-4 h-4 text-orange-500" />
-                    {store.address || '주소 정보가 없습니다'}
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                  <div className="flex items-center gap-2 bg-amber-500/10 px-4 py-2 rounded-2xl border border-amber-500/20">
-                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                    <span className="font-black text-white text-base">{rating}</span>
-                  </div>
-                  <span className="text-xs font-bold text-slate-500">리뷰 {reviewCount}건</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
-                  <Navigation className="w-5 h-5 text-orange-500" />
-                </div>
-                <span className="text-sm font-black text-slate-300">매장 상세 정보 및 주문</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setSelectedStoreForWaiting(store);
-                    setShowWaiting(true);
-                  }}
-                  className="px-6 py-3 bg-white/5 text-white text-xs font-black rounded-2xl hover:bg-white/10 border border-white/10 transition-all active:scale-95"
-                >
-                  대기 등록
-                </button>
-                <button className="px-8 py-3 bg-gradient-to-r from-orange-500 to-rose-600 text-white text-xs font-black rounded-2xl shadow-xl shadow-orange-500/20 hover:scale-105 transition-all active:scale-95">
-                  메뉴 확인
-                </button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      );
-    }
-
-    return (
-      <motion.div
-        layout
-        key={store.id}
-        onClick={() => navigate("/menu?store=" + store.id)}
-        className="group relative bg-white/5 backdrop-blur-xl rounded-[3rem] border border-white/5 hover:border-white/15 transition-all cursor-pointer flex flex-col h-full overflow-hidden"
-      >
-        <div className="h-52 bg-slate-900 flex items-center justify-center relative overflow-hidden">
-          <TypeIcon className="w-20 h-20 text-slate-800 group-hover:text-orange-500/30 group-hover:scale-110 transition-all duration-700 ease-out" />
-          
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
-          
-          <div className="absolute inset-0 p-6 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <span className="px-4 py-1.5 bg-slate-950/80 backdrop-blur-xl border border-white/10 text-[10px] font-black text-orange-500 rounded-xl uppercase tracking-widest">
-                {bizLabel(store.business_type)}
-              </span>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={(e) => toggleFavorite(store.id, e)}
-                className={`w-10 h-10 backdrop-blur-xl border rounded-2xl flex items-center justify-center shadow-2xl transition-colors ${favorites.has(store.id) ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-slate-950/80 border-white/10 text-rose-500'}`}
-              >
-                <Heart size={20} className={favorites.has(store.id) ? 'fill-rose-400' : ''} />
-              </motion.button>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              {waitingCount > 0 && (
-                <span className="px-4 py-2 bg-orange-600 text-[10px] font-black text-white rounded-xl shadow-2xl shadow-orange-500/30 flex items-center gap-2 animate-pulse">
-                  <BellRing size={12} /> 실시간 대기 {waitingCount}팀
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="p-8 flex-1 flex flex-col">
-          <div className="flex items-start justify-between gap-4 mb-3">
-            <h3 className="font-black text-xl text-white group-hover:text-orange-400 transition-colors truncate leading-tight">{store.name}</h3>
-            <div className="flex items-center gap-2 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20 flex-shrink-0">
-              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-              <span className="font-black text-white text-xs">{rating}</span>
-            </div>
-          </div>
-
-          <p className="text-sm text-slate-400 font-medium line-clamp-2 mb-8 leading-relaxed flex-1">
-            {store.description || store.address || '매장 정보가 아직 등록되지 않았습니다.'}
-          </p>
-
-          <div className="flex items-center justify-between pt-6 border-t border-white/5">
-            <div className="flex items-center gap-2 text-slate-500">
-              <MessageCircle size={16} />
-              <span className="text-xs font-black uppercase tracking-widest">리뷰 {reviewCount}건</span>
-            </div>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setSelectedStoreForWaiting(store);
-                setShowWaiting(true);
-              }}
-              className="bg-white/5 text-white px-6 py-3 rounded-2xl text-[11px] font-black border border-white/10 hover:bg-orange-600 hover:border-orange-500 transition-all hover:scale-105 active:scale-95"
-            >
-              대기 신청
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    );
+  const handleWaitClick = (store) => {
+    setSelectedStoreForWaiting(store);
+    setShowWaiting(true);
   };
 
   return (
@@ -365,10 +211,11 @@ const StoreSearch = () => {
                     placeholder="찾으시는 매장이나 메뉴를 입력하세요"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { setPage(1); fetchStores(1, false); } }}
                     className="flex-1 bg-transparent border-0 py-5 px-5 text-white placeholder:text-slate-600 placeholder:font-black focus:ring-0 outline-none text-sm font-black"
                   />
                   {searchTerm && (
-                    <button onClick={() => setSearchTerm('')} className="p-2 hover:bg-white/10 rounded-full transition-all">
+                    <button onClick={() => { setSearchTerm(''); setPage(1); }} className="p-2 hover:bg-white/10 rounded-full transition-all">
                       <X className="w-4 h-4 text-slate-400" />
                     </button>
                   )}
@@ -386,90 +233,20 @@ const StoreSearch = () => {
         </div>
       </header>
 
-      {/* 필터 섹션 */}
-      <section className="bg-slate-950/50 backdrop-blur-xl border-b border-white/5 sticky top-[101px] z-40">
-        <div className="max-w-[1600px] mx-auto px-6 sm:px-10 py-5">
-          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-2xl border border-white/5 mr-2">
-                <SlidersHorizontal size={18} className="text-orange-500" />
-                <span className="text-xs font-black text-white uppercase tracking-widest">Filters</span>
-              </div>
-              
-              <div className="relative h-12">
-                <select
-                  value={selectedRegion}
-                  onChange={(e) => setSelectedRegion(e.target.value)}
-                  className="h-full pl-6 pr-12 bg-white/5 border border-white/5 rounded-2xl text-xs font-black text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30 cursor-pointer appearance-none transition-all hover:bg-white/10"
-                >
-                  {regions.map(region => (
-                    <option key={region.id} value={region.id} className="bg-slate-900">{region.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-              </div>
-
-              <div className="relative h-12">
-                <select
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                  className="h-full pl-6 pr-12 bg-white/5 border border-white/5 rounded-2xl text-xs font-black text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30 cursor-pointer appearance-none transition-all hover:bg-white/10"
-                >
-                  {businessTypes.map(type => (
-                    <option key={type.id} value={type.id} className="bg-slate-900">{type.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-              </div>
-
-              {customerPhone && (
-                <button
-                  onClick={() => setShowFavoritesOnly(p => !p)}
-                  className={`h-12 px-5 text-xs font-black rounded-2xl transition-all flex items-center gap-2 border ${
-                    showFavoritesOnly
-                      ? 'bg-rose-500/15 border-rose-500/40 text-rose-300'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Heart size={14} className={showFavoritesOnly ? 'fill-rose-400' : ''} /> 찜한 매장
-                </button>
-              )}
-
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="h-12 px-6 text-xs font-black text-orange-500 hover:bg-orange-500/10 rounded-2xl transition-all flex items-center gap-2 border border-orange-500/20"
-                >
-                  <RefreshCw size={14} className="animate-spin-slow" /> 필터 초기화
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-5">
-              <div className="flex bg-white/5 p-2 rounded-[22px] border border-white/5 shadow-inner">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-[16px] text-[11px] font-black transition-all ${viewMode === 'grid' ? 'bg-white text-slate-950 shadow-2xl' : 'text-slate-500 hover:text-slate-300'}`}
-                >
-                  <Grid3X3 size={16} /> <span className="hidden sm:block uppercase tracking-[0.2em]">Grid</span>
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-[16px] text-[11px] font-black transition-all ${viewMode === 'list' ? 'bg-white text-slate-950 shadow-2xl' : 'text-slate-500 hover:text-slate-300'}`}
-                >
-                  <List size={16} /> <span className="hidden sm:block uppercase tracking-[0.2em]">List</span>
-                </button>
-                <button
-                  onClick={() => setViewMode('map')}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-[16px] text-[11px] font-black transition-all ${viewMode === 'map' ? 'bg-white text-slate-950 shadow-2xl' : 'text-slate-500 hover:text-slate-300'}`}
-                >
-                  <MapIcon size={16} /> <span className="hidden sm:block uppercase tracking-[0.2em]">Map</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* 필터 바 */}
+      <StoreFilterBar
+        selectedRegion={selectedRegion}
+        onRegionChange={handleRegionChange}
+        selectedType={selectedType}
+        onTypeChange={handleTypeChange}
+        showFavoritesOnly={showFavoritesOnly}
+        onFavoritesToggle={() => setShowFavoritesOnly(p => !p)}
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={clearFilters}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        customerPhone={customerPhone}
+      />
 
       {/* 메인 콘텐츠 */}
       <main className={`relative overflow-x-hidden ${viewMode === 'map' ? 'h-[calc(100vh-190px)]' : 'max-w-[1600px] mx-auto px-6 sm:px-10 py-16 min-h-screen'}`}>
@@ -483,7 +260,7 @@ const StoreSearch = () => {
             >
               <StoreSearchSkeleton />
             </motion.div>
-          ) : filteredStores.length === 0 ? (
+          ) : displayStores.length === 0 ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0, scale: 0.9 }}
@@ -507,59 +284,12 @@ const StoreSearch = () => {
               </button>
             </motion.div>
           ) : viewMode === 'map' ? (
-            <motion.div
-              key="map-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="h-full flex flex-col lg:flex-row"
-            >
-              <div className="flex-1 relative order-2 lg:order-1 bg-slate-900">
-                <KakaoMap
-                  stores={filteredStores}
-                  onStoreSelect={setSelectedStore}
-                  selectedStore={selectedStore}
-                />
-              </div>
-
-              <div className="w-full lg:w-[450px] bg-slate-950 border-l border-white/5 flex flex-col order-1 lg:order-2 overflow-hidden">
-                <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-                  <div className="flex items-center gap-3">
-                    <Sparkles className="text-orange-500" size={20} />
-                    <h3 className="text-xl font-black text-white">추천 플레이스</h3>
-                  </div>
-                  <span className="text-[10px] font-black text-slate-500 bg-white/5 px-3 py-1.5 rounded-xl uppercase tracking-widest">{filteredStores.length} Stores</span>
-                </div>
-                <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-                  {filteredStores.map((store, i) => (
-                    <motion.div
-                      key={store.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      onClick={() => setSelectedStore(store)}
-                      whileHover={{ x: -4 }}
-                      className={`p-6 rounded-[2.5rem] border transition-all cursor-pointer group ${selectedStore?.id === store.id ? 'bg-orange-500/10 border-orange-500/50 shadow-2xl shadow-orange-500/10' : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-white/10'}`}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-black text-white group-hover:text-orange-400 transition-colors truncate max-w-[220px]">{store.name}</h4>
-                        <div className="flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-xl border border-white/5">
-                          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                          <span className="text-[11px] font-black text-white">{storeRatings[store.id]?.rating || '5.0'}</span>
-                        </div>
-                      </div>
-                      <p className="text-[11px] text-slate-500 font-medium truncate mb-4">{store.address}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">{bizLabel(store.business_type)}</span>
-                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 group-hover:text-white transition-colors">
-                          상세보기 <ChevronDown size={14} className="-rotate-90" />
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
+            <StoreMapSection
+              stores={displayStores}
+              selectedStore={selectedStore}
+              onStoreSelect={setSelectedStore}
+              ratings={storeRatings}
+            />
           ) : (
             <motion.div
               layout
@@ -569,7 +299,7 @@ const StoreSearch = () => {
               exit={{ opacity: 0 }}
               className={viewMode === 'list' ? "max-w-5xl mx-auto space-y-8" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10"}
             >
-              {filteredStores.map((store, idx) => (
+              {displayStores.map((store, idx) => (
                 <motion.div
                   layout
                   key={store.id}
@@ -577,12 +307,41 @@ const StoreSearch = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05, duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
                 >
-                  {renderStoreCard(store, viewMode)}
+                  <StoreCard
+                    store={store}
+                    viewType={viewMode}
+                    rating={storeRatings[store.id]?.rating || '5.0'}
+                    reviewCount={storeRatings[store.id]?.count || 0}
+                    waitingCount={waitingCounts[store.id] || 0}
+                    isFavorite={favorites.has(store.id)}
+                    onToggleFavorite={toggleFavorite}
+                    onWaitClick={handleWaitClick}
+                  />
                 </motion.div>
               ))}
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* 더보기 버튼 */}
+        {!loading && hasMore && !showFavoritesOnly && (
+          <div className="flex justify-center mt-12 mb-8">
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="px-12 py-4 bg-white/5 border border-white/10 text-white text-sm font-black rounded-[20px] hover:bg-white/10 hover:border-white/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingMore ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  불러오는 중...
+                </span>
+              ) : (
+                `더보기 (${stores.length} / ${total})`
+              )}
+            </button>
+          </div>
+        )}
       </main>
 
       {/* 웨이팅 모달 */}
