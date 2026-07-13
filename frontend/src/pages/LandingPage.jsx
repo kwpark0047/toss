@@ -62,6 +62,7 @@ const LandingPage = () => {
         { label: '매장 위치', href: '#locations' },
         { label: '이용 가이드', to: '/guides' },
         { label: '문의하기', to: '/contact' },
+        { label: '푸드트럭', to: '/foodtruck/landing' },
         { label: '데모 보기', href: '#demo' },
     ];
 

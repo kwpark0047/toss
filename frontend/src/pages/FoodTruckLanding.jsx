@@ -1,9 +1,16 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   MapPin, Search, Navigation, Truck, ArrowRight,
-  Clock, Sparkles, AlertCircle, ShoppingBag, ShieldAlert, Home, Store
+  Clock, Sparkles, AlertCircle, ShoppingBag, ShieldAlert, Home, Store,
+  CreditCard, BookOpen, Mail
 } from 'lucide-react';
+
+/* ─── Lazy-load marketing pages ─── */
+const FeaturesPage = lazy(() => import('./marketing/FeaturesPage'));
+const PricingPage = lazy(() => import('./marketing/PricingPage'));
+const GuidesPage = lazy(() => import('./marketing/GuidesPage'));
+const ContactPage = lazy(() => import('./marketing/ContactPage'));
 
 /* ─── Leaflet CDN helpers (copied from StoreMapLeaflet — no import dependency) ─── */
 const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
@@ -89,6 +96,7 @@ export default function FoodTruckLanding() {
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [locatingUser, setLocatingUser] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
+  const [activeTab, setActiveTab] = useState('finder');
 
   // Leaflet map refs
   const mapContainerRef = useRef(null);
@@ -303,7 +311,36 @@ export default function FoodTruckLanding() {
         </div>
       </header>
 
+      {/* ─── Tab Navigation ─── */}
+      <div className="sticky top-16 z-30 border-b border-slate-900 bg-slate-950/90 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide py-2 -mx-1">
+            {[
+              { id: 'finder', label: '매장찾기', icon: Truck },
+              { id: 'features', label: '기능소개', icon: Sparkles },
+              { id: 'pricing', label: '요금제', icon: CreditCard },
+              { id: 'guides', label: '이용가이드', icon: BookOpen },
+              { id: 'contact', label: '문의하기', icon: Mail },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+                    : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'
+                }`}
+              >
+                <tab.icon size={13} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* ─── Hero ─── */}
+      {activeTab === 'finder' && (<>
       <section className="max-w-6xl mx-auto w-full px-4 pt-10 pb-6 text-center md:text-left md:flex md:items-center md:justify-between gap-8 relative z-10">
         <div className="max-w-lg mb-6 md:mb-0">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-500 text-xs font-bold mb-4">
@@ -568,6 +605,39 @@ export default function FoodTruckLanding() {
           </div>
         </div>
       </section>
+      </>)}
+
+      {activeTab === 'features' && (
+        <div className="relative z-10 flex-1">
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
+            <FeaturesPage />
+          </Suspense>
+        </div>
+      )}
+
+      {activeTab === 'pricing' && (
+        <div className="relative z-10 flex-1">
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
+            <PricingPage />
+          </Suspense>
+        </div>
+      )}
+
+      {activeTab === 'guides' && (
+        <div className="relative z-10 flex-1">
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
+            <GuidesPage />
+          </Suspense>
+        </div>
+      )}
+
+      {activeTab === 'contact' && (
+        <div className="relative z-10 flex-1">
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
+            <ContactPage />
+          </Suspense>
+        </div>
+      )}
 
       {/* ─── Footer ─── */}
       <footer className="border-t border-slate-900 bg-slate-950 py-8 px-4">
