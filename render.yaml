@@ -26,6 +26,8 @@ services:
       # ── 인증·암호화 ──
       - key: JWT_SECRET
         sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
       - key: PHONE_ENC_KEY
         sync: false
       # ── 결제 (Toss) ──
@@ -48,6 +50,10 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: UNSPLASH_ACCESS_KEY
+        sync: false
+      - key: NAVER_CLIENT_ID
+        sync: false
+      - key: NAVER_CLIENT_SECRET
         sync: false
       # ── SMS ──
       - key: SMS_API_KEY
