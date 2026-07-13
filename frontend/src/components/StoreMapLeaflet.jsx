@@ -12,29 +12,53 @@ const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 const LEAFLET_CSS_SRI = 'sha512-Zcn6bjR/8RZbLEpLIeOwNtzREBAJnUKESxces60Mpoj+2okopSAcSUIUOseddDm0cxnGQzxIR7vJgsLZbdLE3w==';
 const LEAFLET_JS_SRI = 'sha512-BwHfrr4c9kmRkLw6iXFdzcdWV/PGkVgiIyIWLLlTSXzWQzxuSg4DiQUCpauz/EWjgk5TYQqX/kvn9pG1NpYfqg==';
 
+// MarkerCluster CDN (대량 마커 클러스터링용)
+const MC_CSS = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css';
+const MC_CSS2 = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
+const MC_JS = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+
+function injectCss(href) {
+  if (!document.querySelector(`link[href="${href}"]`)) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.crossOrigin = 'anonymous';
+    document.head.appendChild(link);
+  }
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    let script = document.querySelector(`script[src="${src}"]`);
+    if (script) {
+      script.addEventListener('load', () => resolve(), { once: true });
+      script.addEventListener('error', () => reject(), { once: true });
+      return;
+    }
+    script = document.createElement('script');
+    script.src = src;
+    script.crossOrigin = 'anonymous';
+    script.async = true;
+    script.addEventListener('load', () => resolve(), { once: true });
+    script.addEventListener('error', () => reject(), { once: true });
+    document.head.appendChild(script);
+  });
+}
+
 function loadLeaflet() {
   if (window.L) return Promise.resolve(window.L);
   return new Promise((resolve, reject) => {
-    if (!document.querySelector(`link[href="${LEAFLET_CSS}"]`)) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = LEAFLET_CSS;
-      link.integrity = LEAFLET_CSS_SRI;
-      link.crossOrigin = 'anonymous';
-      document.head.appendChild(link);
-    }
-    let script = document.querySelector(`script[src="${LEAFLET_JS}"]`);
-    if (script && window.L) return resolve(window.L);
-    if (!script) {
-      script = document.createElement('script');
-      script.src = LEAFLET_JS;
-      script.integrity = LEAFLET_JS_SRI;
-      script.crossOrigin = 'anonymous';
-      script.async = true;
-      document.head.appendChild(script);
-    }
-    script.addEventListener('load', () => resolve(window.L));
-    script.addEventListener('error', reject);
+    injectCss(LEAFLET_CSS);
+    loadScript(LEAFLET_JS).then(() => resolve(window.L)).catch(reject);
+  });
+}
+
+function loadMarkerCluster() {
+  if (window.L && window.L.markerClusterGroup) return Promise.resolve();
+  return loadLeaflet().then(() => {
+    injectCss(MC_CSS);
+    injectCss(MC_CSS2);
+    return loadScript(MC_JS);
   });
 }
 
@@ -87,8 +111,8 @@ export default function StoreMapLeaflet({ stores = [], coords = null, onSelect }
   // 지도 초기화
   useEffect(() => {
     let cancelled = false;
-    loadLeaflet()
-      .then((L) => {
+    Promise.all([loadLeaflet(), loadMarkerCluster()])
+      .then(([L]) => {
         if (cancelled || !elRef.current || mapRef.current) return;
         const map = L.map(elRef.current, { scrollWheelZoom: false }).setView([37.5665, 126.978], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -96,7 +120,23 @@ export default function StoreMapLeaflet({ stores = [], coords = null, onSelect }
           maxZoom: 19,
         }).addTo(map);
         mapRef.current = map;
-        layerRef.current = L.layerGroup().addTo(map);
+        layerRef.current = L.markerClusterGroup({
+          chunkedLoading: true,
+          maxClusterRadius: 50,
+          spiderfyOnMaxZoom: true,
+          showCoverageOnHover: false,
+          iconCreateFunction(cluster) {
+            const count = cluster.getChildCount();
+            const size = count < 10 ? 36 : count < 30 ? 42 : 50;
+            return L.divIcon({
+              className: '',
+              html: `<div style="width:${size}px;height:${size}px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);font-size:${size < 44 ? 13 : 14}px;font-weight:900;color:#fff">${count}</div>`,
+              iconSize: [size, size],
+              iconAnchor: [size / 2, size / 2],
+            });
+          },
+        });
+        map.addLayer(layerRef.current);
         setStatus('ready');
       })
       .catch(() => !cancelled && setStatus('error'));
@@ -115,8 +155,8 @@ export default function StoreMapLeaflet({ stores = [], coords = null, onSelect }
     layer.clearLayers();
 
     const pts = [];
+    const markers = [];
 
-    // 업종별 아이콘 핀 생성 (색상 테두리 + 이모지)
     const makeIcon = (biz) => {
       const { e, c } = bizIcon(biz);
       return L.divIcon({
@@ -132,23 +172,24 @@ export default function StoreMapLeaflet({ stores = [], coords = null, onSelect }
 
     stores.forEach((s) => {
       if (s.latitude == null || s.longitude == null) return;
-      const m = L.marker([s.latitude, s.longitude], { icon: makeIcon(s.business_type), title: s.name }).addTo(layer);
-      // 팝업은 DOM API로 구성해 매장 데이터를 안전하게 이스케이프(XSS 방지)
+      const m = L.marker([s.latitude, s.longitude], { icon: makeIcon(s.business_type), title: s.name });
       m.bindPopup(buildPopup(s));
       m.on('click', () => onSelect?.(s));
+      markers.push(m);
       pts.push([s.latitude, s.longitude]);
     });
 
-    // 고객 위치 마커 (파란 점)
     if (coords) {
       const blueDot = L.divIcon({
         className: '',
         html: `<div style="width:16px;height:16px;background:#3b82f6;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 4px rgba(59,130,246,.3)"></div>`,
         iconSize: [16, 16], iconAnchor: [8, 8],
       });
-      L.marker([coords.lat, coords.lng], { icon: blueDot, title: '내 위치' }).addTo(layer);
+      markers.push(L.marker([coords.lat, coords.lng], { icon: blueDot, title: '내 위치' }));
       pts.push([coords.lat, coords.lng]);
     }
+
+    layer.addLayers(markers);
 
     if (pts.length === 1) map.setView(pts[0], 15);
     else if (pts.length > 1) map.fitBounds(pts, { padding: [50, 50], maxZoom: 15 });
