@@ -43,10 +43,10 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // ── Render 콜드스타트 자동 재시도 ──
+    // ── Render 콜드스타트 자동 재시도: 네트워크 에러 또는 502/503 응답 ──
     const isNetworkError = !error.response;
-    const isCorsOrNetworkError = error.code === 'ERR_NETWORK' || error.message?.includes('Network Error');
-    if ((isNetworkError || isCorsOrNetworkError) && !originalRequest._coldRetry) {
+    const isSleepingResponse = error.response?.status === 502 || error.response?.status === 503;
+    if ((isNetworkError || isSleepingResponse) && !originalRequest._coldRetry) {
       originalRequest._coldRetry = true;
       try {
         const { wakeupServer } = await import('./wakeup');

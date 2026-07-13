@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import WaitingSection from './customer/WaitingSection';
@@ -10,7 +10,7 @@ import StoreFilterBar from './StoreFilterBar';
 import StoreCard from './StoreCard';
 import StoreMapSection from './StoreMapSection';
 import StoreSearchSkeleton from './StoreSearchSkeleton';
-import { Store, Search, X, MessageCircle } from 'lucide-react';
+import { Store, Search, X, MessageCircle, AlertTriangle, RefreshCw, Server } from 'lucide-react';
 
 /** 지역 ID → 백엔드 district 문자열 매핑 */
 function regionToDistrict(regionId) {
@@ -28,6 +28,12 @@ const PAGE_SIZE = 30;
  * 프리미엄 다크 글래스모피즘 디자인이 적용된 매장 검색 페이지
  * 서버사이드 필터링/페이지네이션 + Leaflet 지도 + 영업시간 표시
  */
+function classifyError(error) {
+  if (!error.response) return 'network';
+  if (error.response.status === 503 || error.response.status === 502) return 'server_sleeping';
+  return 'api';
+}
+
 const StoreSearch = () => {
   const { t } = useTranslation();
   const [stores, setStores] = useState([]);
@@ -38,6 +44,9 @@ const StoreSearch = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [selectedStore, setSelectedStore] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [retrying, setRetrying] = useState(false);
+  const retryTimerRef = useRef(null);
 
   // 페이지네이션 상태
   const [page, setPage] = useState(1);
@@ -54,10 +63,18 @@ const StoreSearch = () => {
   const [favorites, setFavorites] = useState(new Set());
   const customerPhone = (() => { try { return localStorage.getItem('wm_customer_phone'); } catch { return null; } })();
 
+  useEffect(() => {
+    return () => { if (retryTimerRef.current) clearTimeout(retryTimerRef.current); };
+  }, []);
+
   // ── 매장 검색 (서버사이드) ──
   const fetchStores = useCallback(async (pageNum = 1, append = false) => {
-    if (pageNum === 1) setLoading(true);
-    else setLoadingMore(true);
+    if (pageNum === 1) {
+      setLoading(true);
+      setError(null);
+    } else {
+      setLoadingMore(true);
+    }
 
     try {
       const params = {
@@ -80,14 +97,16 @@ const StoreSearch = () => {
 
       setHasMore(pag.hasMore || false);
       setTotal(pag.total || 0);
+      setError(null);
 
       // N+1 쿼리: 웨이팅 수 + 리뷰 조회 (현재 페이지만)
       newStores.forEach(s => {
         fetchWaitingCount(s.id);
         fetchStoreReviews(s.id);
       });
-    } catch (error) {
-      console.error("매장 로드 실패:", error);
+    } catch (err) {
+      console.error("매장 로드 실패:", err);
+      setError(classifyError(err));
       if (!append) setStores([]);
     } finally {
       setTimeout(() => {
@@ -96,6 +115,21 @@ const StoreSearch = () => {
       }, 800);
     }
   }, [selectedRegion, selectedType, searchTerm]);
+
+  // ── 서버 웨이크업 + 자동 재시도 ──
+  const handleRetry = useCallback(async () => {
+    setRetrying(true);
+    try {
+      const { wakeupServer } = await import('../api/wakeup');
+      await wakeupServer();
+      setPage(1);
+      await fetchStores(1, false);
+    } catch {
+      retryTimerRef.current = setTimeout(() => setRetrying(false), 5000);
+    } finally {
+      setRetrying(false);
+    }
+  }, [fetchStores]);
 
   // 최초 로드
   useEffect(() => {
@@ -259,6 +293,74 @@ const StoreSearch = () => {
               exit={{ opacity: 0 }}
             >
               <StoreSearchSkeleton />
+            </motion.div>
+          ) : error && stores.length === 0 ? (
+            <motion.div
+              key="error"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="mt-32 flex flex-col items-center justify-center text-center px-6"
+            >
+              <div className={`w-40 h-40 rounded-[48px] flex items-center justify-center mb-10 relative border overflow-hidden ${
+                error === 'server_sleeping'
+                  ? 'bg-amber-500/5 border-amber-500/10'
+                  : 'bg-red-500/5 border-red-500/10'
+              }`}>
+                <div className={`absolute inset-0 blur-2xl ${
+                  error === 'server_sleeping'
+                    ? 'bg-gradient-to-br from-amber-500/10 to-orange-600/10'
+                    : 'bg-gradient-to-br from-red-500/10 to-rose-600/10'
+                }`} />
+                {error === 'server_sleeping' ? (
+                  <Server className="w-16 h-16 text-amber-600/40 relative z-10" />
+                ) : (
+                  <AlertTriangle className="w-16 h-16 text-red-600/40 relative z-10" />
+                )}
+              </div>
+
+              {error === 'server_sleeping' ? (
+                <>
+                  <h2 className="text-4xl font-black text-white mb-6 tracking-tighter">서버가 시작 중입니다</h2>
+                  <p className="text-slate-500 font-medium max-w-md mx-auto leading-relaxed mb-12">
+                    Render 서버가 절전 모드에서 깨어나는 중입니다.<br/>
+                    자동으로 재시도되거나 아래 버튼을 눌러주세요.
+                  </p>
+                </>
+              ) : error === 'network' ? (
+                <>
+                  <h2 className="text-4xl font-black text-white mb-6 tracking-tighter">서버에 연결할 수 없습니다</h2>
+                  <p className="text-slate-500 font-medium max-w-md mx-auto leading-relaxed mb-12">
+                    네트워크 연결을 확인해 주세요.<br/>
+                    서버가 일시적으로 사용 불가할 수 있습니다.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-4xl font-black text-white mb-6 tracking-tighter">데이터를 불러올 수 없습니다</h2>
+                  <p className="text-slate-500 font-medium max-w-md mx-auto leading-relaxed mb-12">
+                    서버에서 오류가 발생했습니다.<br/>
+                    잠시 후 다시 시도해 주세요.
+                  </p>
+                </>
+              )}
+
+              <div className="flex gap-4">
+                <button
+                  onClick={handleRetry}
+                  disabled={retrying}
+                  className="px-12 py-5 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-[24px] font-black text-md shadow-2xl shadow-orange-500/20 hover:scale-105 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                >
+                  <RefreshCw className={`w-5 h-5 ${retrying ? 'animate-spin' : ''}`} />
+                  {retrying ? '서버 연결 중...' : '다시 시도'}
+                </button>
+                <button
+                  onClick={clearFilters}
+                  className="px-8 py-5 bg-white/5 border border-white/10 text-white rounded-[24px] font-black text-md hover:bg-white/10 transition-all active:scale-95"
+                >
+                  검색 조건 초기화
+                </button>
+              </div>
             </motion.div>
           ) : displayStores.length === 0 ? (
             <motion.div

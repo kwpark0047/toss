@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils, Map as MapIcon, List, LayoutGrid, CheckCircle2, Clock, Heart, ChefHat, BellRing, XCircle } from 'lucide-react';
+import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils, Map as MapIcon, List, LayoutGrid, CheckCircle2, Clock, Heart, ChefHat, BellRing, XCircle, AlertTriangle, RefreshCw, Server } from 'lucide-react';
 import NaverShareButton from './common/NaverShareButton';
 import { storesAPI } from '../api/stores';
 import { ordersAPI } from '../api/orders';
@@ -28,6 +28,7 @@ export default function StoreLocator() {
   const [stores, setStores] = useState([]);
   const [types, setTypes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [locating, setLocating] = useState(false);
   const [geoMsg, setGeoMsg] = useState('');
   const [view, setView] = useState('grid'); // grid | list | map (그리드 기본)
@@ -101,6 +102,7 @@ export default function StoreLocator() {
 
   const search = useCallback(async (over = {}) => {
     setLoading(true);
+    setError(null);
     try {
       const params = {
         district: (over.district ?? district) || undefined,
@@ -112,11 +114,14 @@ export default function StoreLocator() {
       };
       const res = await storesAPI.searchPublic(params);
       const data = res?.data || res;
-      // 안전망: 이름 손상(인코딩 깨짐) 매장은 표시에서 제외
       setStores((data.stores || []).filter(s => isDisplayableStoreName(s.name)));
       if (data.facets?.businessTypes?.length) setTypes(data.facets.businessTypes);
-    } catch {
+      setError(null);
+    } catch (err) {
       setStores([]);
+      if (!err.response) setError('network');
+      else if (err.response.status === 502 || err.response.status === 503) setError('server_sleeping');
+      else setError('api');
     } finally {
       setLoading(false);
     }
@@ -267,6 +272,30 @@ export default function StoreLocator() {
             {view === 'map'
               ? <div className="skeleton h-[420px] rounded-3xl" />
               : [0, 1, 2].map(i => <div key={i} className="skeleton h-28 rounded-2xl" />)}
+          </div>
+        ) : error && stores.length === 0 ? (
+          <div className="text-center py-16">
+            <div className={`w-20 h-20 mx-auto rounded-3xl flex items-center justify-center mb-4 ${
+              error === 'server_sleeping' ? 'bg-amber-50' : 'bg-red-50'
+            }`}>
+              {error === 'server_sleeping' ? (
+                <Server className="w-10 h-10 text-amber-400" />
+              ) : (
+                <AlertTriangle className="w-10 h-10 text-red-400" />
+              )}
+            </div>
+            <p className="text-gray-700 font-bold mb-1">
+              {error === 'server_sleeping' ? '서버가 시작 중입니다' : error === 'network' ? '서버에 연결할 수 없습니다' : '데이터를 불러올 수 없습니다'}
+            </p>
+            <p className="text-sm text-gray-400 mb-4">
+              {error === 'server_sleeping' ? '잠시 후 자동으로 재시도됩니다' : '네트워크 연결을 확인해 주세요'}
+            </p>
+            <button
+              onClick={() => search()}
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-orange-500 text-white rounded-xl text-sm font-bold hover:bg-orange-600 transition-colors"
+            >
+              <RefreshCw size={14} /> 다시 시도
+            </button>
           </div>
         ) : stores.length === 0 ? (
           <div className="text-center py-16">

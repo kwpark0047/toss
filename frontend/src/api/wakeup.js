@@ -17,12 +17,13 @@ export const wakeupServer = () => {
       try {
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), 5_000);
-        await fetch(`${baseUrl}/api/health`, { method: 'GET', mode: 'cors', signal: ctrl.signal });
+        const resp = await fetch(`${baseUrl}/api/health`, { method: 'GET', mode: 'cors', signal: ctrl.signal });
         clearTimeout(tid);
-        return;
+        if (resp.ok) return;
       } catch {
-        await new Promise(r => setTimeout(r, POLL_MS));
+        // 서버 응답 없음 — 슬립 상태 유지
       }
+      await new Promise(r => setTimeout(r, POLL_MS));
     }
     throw new Error('서버 웨이크업 시간 초과 (60s)');
   })().finally(() => { _wakeupPromise = null; });
