@@ -29,11 +29,11 @@ const storeController = {
         res.success(stores);
     },
 
-    // GET /search — 공개 매장 검색
+    // GET /search — 공개 매장 검색 (페이지네이션 지원)
     async searchStores(req, res) {
-        const { district, business_type, q, lat, lng, limit } = req.query;
+        const { district, business_type, q, lat, lng, limit, page } = req.query;
         const result = await storeService.searchStores({
-            district, business_type, q, lat, lng, limit,
+            district, business_type, q, lat, lng, limit, page,
         });
         res.success(result);
     },

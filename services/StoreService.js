@@ -26,8 +26,8 @@ const jaccardSim = (a, b) => {
 };
 
 class StoreService {
-    // 매장 검색 (지역·업종·키워드·고객위치 거리순)
-    async searchStores({ district, business_type, q, lat, lng, limit = 30 }) {
+    // 매장 검색 (지역·업종·키워드·고객위치 거리순) + 페이지네이션
+    async searchStores({ district, business_type, q, lat, lng, limit = 30, page = 1 }) {
         const where = { is_active: true, ...EXCLUDE_CORRUPT_NAME };
         if (district) where.address = { contains: String(district) };
         if (business_type && business_type !== 'all') where.business_type = String(business_type);
@@ -36,10 +36,22 @@ class StoreService {
             where.OR = [{ name: { contains: kw } }, { address: { contains: kw } }];
         }
 
+        const perPage = Math.min(parseInt(limit) || 30, 100);
+        const pageNum = Math.max(parseInt(page) || 1, 1);
+        const skip = (pageNum - 1) * perPage;
+
+        // 전체 개수 조회 (페이지네이션 메타용)
+        const total = await prisma.stores.count({ where });
+
         let stores = await prisma.stores.findMany({
             where,
-            select: { id: true, name: true, business_type: true, address: true, latitude: true, longitude: true },
-            take: Math.min(parseInt(limit) || 30, 100),
+            select: {
+                id: true, name: true, business_type: true, address: true,
+                latitude: true, longitude: true,
+                open_time: true, close_time: true, business_hours: true,
+            },
+            skip,
+            take: perPage,
             orderBy: { name: 'asc' },
         });
 
@@ -64,7 +76,12 @@ class StoreService {
         });
         const businessTypes = typeRows.map(r => r.business_type).filter(Boolean).sort();
 
-        return { stores, facets: { businessTypes } };
+        const hasMore = skip + stores.length < total;
+        return {
+            stores,
+            facets: { businessTypes },
+            pagination: { total, page: pageNum, limit: perPage, hasMore },
+        };
     }
 
     // 지역 하이라이트 배너
