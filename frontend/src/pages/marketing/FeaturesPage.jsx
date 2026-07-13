@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   QrCode, Store, Bell, CreditCard, Clock, BarChart3,
-  Users, Smartphone, Heart, Building2, Menu, X, ArrowRight,
-  Shield, CheckCircle, Zap, ShieldCheck, HelpCircle, PhoneCall, Gift, Sparkles, MapPin
+  Users, Smartphone, Heart, Menu, X,
+  Shield, CheckCircle, Zap, ShieldCheck, MapPin, Gift, Sparkles, CalendarCheck
 } from 'lucide-react';
 
 export default function FeaturesPage() {
@@ -20,39 +20,63 @@ export default function FeaturesPage() {
   const coreFeatures = [
     { 
       icon: QrCode, 
-      title: 'QR 코드 자율 생성 및 즉시 결제', 
-      desc: '테이블별 고유 QR을 단 1초 만에 자동 생성. 고객은 번거로운 전용 앱 설치 과정 없이 모바일 브라우저에서 메뉴를 담고 즉시 결제까지 완료합니다.',
+      title: 'QR 코드 즉시 생성', 
+      desc: '테이블마다 고유한 QR 코드를 자동 생성. 출력해서 테이블에 부착하면 바로 사용 가능합니다.',
       badge: '대표 기능'
     },
     { 
-      icon: Building2, 
-      title: '다중 매장 통합 관리', 
-      desc: '여러 지점을 하나의 대시보드에서 통합 관리합니다. 매장별 매출, 재고, 직원 권한을 중앙에서 제어하세요.',
-      badge: '멀티스토어'
+      icon: Store, 
+      title: '매장 통합 관리', 
+      desc: '매장 정보, 영업시간, 위치까지 한 곳에서 관리. 지역별 매장 분류도 지원합니다.',
+      badge: '올인원'
     },
     { 
-      icon: BarChart3, 
-      title: 'AI 기반 피크타임 매출 통계', 
-      desc: '매출 데이터를 분/시간/요일별로 자동 분석하고, 인공지능이 다음 주 판매량 예측과 최적의 거점 및 시간 전술을 제안하는 똑똑한 점주 비서를 만나보세요.',
-      badge: 'AI 인텔리전스'
+      icon: Shield, 
+      title: '직원 권한 관리', 
+      desc: '마스터 관리자부터 테이블 담당, 주방 직원까지 역할별 권한을 세밀하게 분리합니다.',
+      badge: '보안'
+    },
+    { 
+      icon: Smartphone, 
+      title: '웹앱 기반 주문', 
+      desc: '앱 설치 없이 브라우저에서 바로 주문. 고객의 진입 장벽을 최소화합니다.',
+      badge: '고객 경험'
     },
     { 
       icon: Bell, 
-      title: '실시간 하이브리드 주문 알림', 
-      desc: '고객 주문 즉시 KDS(주방 디스플레이)와 알림톡, 푸시 알림으로 전사 전파. 고객 소켓이 연결 해제되어도 5초 내 알림톡 예비 수단이 자동으로 가동됩니다.',
-      badge: '신뢰도 100%'
+      title: '실시간 알림', 
+      desc: '주문이 들어오면 담당 직원과 주방에 즉시 알림. 주문 누락을 방지합니다.',
+      badge: '실시간'
     },
     { 
-      icon: Users, 
-      title: '역할 기반 주방/팀원 관리 (RBAC)', 
-      desc: '총 점주(Owner), 지점 관리자(Manager), 아르바이트(Staff) 및 주방 조리원(Kitchen) 계정을 완벽하게 격리. 세밀한 권한 제어로 보안을 완성합니다.',
-      badge: '엔터프라이즈급'
+      icon: CreditCard, 
+      title: '다양한 결제 수단', 
+      desc: '현금, 계좌이체는 물론 다양한 간편결제까지 지원합니다.',
+      badge: '결제'
+    },
+    { 
+      icon: CalendarCheck, 
+      title: '대기·예약 관리', 
+      desc: '대기 번호 자동 발급, 사전 예약 관리로 고객 경험을 향상시킵니다.',
+      badge: '고객 서비스'
+    },
+    { 
+      icon: BarChart3, 
+      title: '매출 분석', 
+      desc: '일별, 월별, 연도별 매출 통계와 결제 수단별 분석 리포트를 제공합니다.',
+      badge: '인사이트'
     },
     { 
       icon: Heart, 
-      title: '단골 고객 맞춤형 밀착 케어', 
-      desc: '고객 전화번호 기반 포인트 적립률 자동 계산, VIP 단골 등급 산정, 그리고 반경 내 단골에게 실시간 혜택을 전송하는 타임세일 알림 연동 기능이 탑재됩니다.',
-      badge: 'CRM 특화'
+      title: '단골고객 관리', 
+      desc: '방문 이력·포인트·VIP 등급 자동 추적. 개인화 쿠폰과 재방문 메시지로 단골을 키웁니다.',
+      badge: 'CRM'
+    },
+    { 
+      icon: MapPin, 
+      title: '지역 커뮤니티', 
+      desc: '주변 제휴 매장과 연결해 공동 이벤트, 포인트 공유, 지역 피드로 상권 전체를 활성화합니다.',
+      badge: '상권'
     }
   ];
 
@@ -134,11 +158,11 @@ export default function FeaturesPage() {
             <span>CORE CAPABILITIES</span>
           </div>
           <h2 className="text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-6">
-            매장과 이동형 트럭을 혁신하는<br />
-            <span className="bg-gradient-to-r from-orange-400 to-rose-500 bg-clip-text text-transparent">WeMarket의 독보적인 스펙</span>
+            기능 소개<br />
+            <span className="bg-gradient-to-r from-orange-400 to-rose-500 bg-clip-text text-transparent">매장 운영에 필요한 모든 것</span>
           </h2>
           <p className="text-slate-400 text-base max-w-2xl mx-auto leading-relaxed">
-            단순히 QR 주문만 받는 서비스가 아닙니다. 알림톡, 실시간 GPS 역지오코딩, 지능형 매출 예측 리포트와 고밀도 KDS까지 비즈니스를 주도하는 스마트 기능을 올인원으로 장착하세요.
+            종이 메뉴판, 복잡한 POS, 예약 수첩… 이제 위마켓 하나로 통합하세요.
           </p>
         </div>
       </section>
@@ -149,7 +173,9 @@ export default function FeaturesPage() {
           {coreFeatures.map((feat, idx) => (
             <div 
               key={idx} 
-              className="bg-slate-900/40 border border-slate-900 hover:border-slate-800 rounded-3xl p-8 transition-all hover:scale-[1.02] flex flex-col justify-between"
+              className={`bg-slate-900/40 border border-slate-900 hover:border-slate-800 rounded-3xl p-8 transition-all hover:scale-[1.02] flex flex-col justify-between ${
+                idx >= 9 ? 'md:col-span-1 lg:col-span-1' : ''
+              }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-6">

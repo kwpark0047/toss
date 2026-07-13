@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   MapPin, Search, Navigation, Truck, ArrowRight,
   Clock, Sparkles, AlertCircle, ShoppingBag, ShieldAlert, Home, Store,
-  CreditCard, BookOpen, Mail
+  CreditCard, BookOpen, Mail, Smartphone, Signal, Fuel, AlertTriangle, Zap, CalendarCheck
 } from 'lucide-react';
 
 /* ─── Lazy-load foodtruck-specific marketing pages ─── */
@@ -338,6 +338,45 @@ export default function FoodTruckLanding() {
           </div>
         </div>
       </div>
+
+      {/* ─── Foodtruck Features Banner (_finder tab only) ─── */}
+      {activeTab === 'finder' && (
+      <section className="border-b border-slate-900 bg-slate-950 py-12 px-4 relative z-10">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-mono font-bold mb-4">
+              <Sparkles className="size-3.5" />
+              <span>FOOD TRUCK FEATURES</span>
+            </div>
+            <h2 className="text-2xl font-black text-white mb-2">
+              이동식 푸드트럭을 위한<br />
+              <span className="bg-gradient-to-r from-orange-400 to-rose-500 bg-clip-text text-transparent">모바일 우선 솔루션</span>
+            </h2>
+            <p className="text-slate-500 text-sm max-w-xl mx-auto">
+              GPS 실시간 동기화, 긴급 품절 제어, 불안정 네트워크 대응까지 이동형 비즈니스에 최적화된 기능을 제공합니다.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[
+              { icon: Navigation, title: 'GPS 위치 싱크', desc: '실시간 이동 위치 추적' },
+              { icon: AlertTriangle, title: '킬스위치', desc: '원터치 전 메뉴 품절' },
+              { icon: Smartphone, title: '모바일 주문', desc: '앱 설치 없이 주문' },
+              { icon: Signal, title: '하트비트', desc: '네트워크 끊김 자동 대응' },
+              { icon: Zap, title: '스마트 거점', desc: 'AI 최적 영업 위치 추천' },
+              { icon: Fuel, title: '동선 최적화', desc: '연료·매출 동시 계산' },
+            ].map((feat, i) => (
+              <div key={i} className="bg-slate-900/40 border border-slate-900 hover:border-slate-800 rounded-2xl p-4 text-center transition-all hover:scale-[1.02]">
+                <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center">
+                  <feat.icon className="size-5" />
+                </div>
+                <h3 className="text-xs font-black text-white mb-1">{feat.title}</h3>
+                <p className="text-[10px] text-slate-500 leading-tight">{feat.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      )}
 
       {/* ─── Hero ─── */}
       {activeTab === 'finder' && (<>
