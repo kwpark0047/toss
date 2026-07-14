@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { categoriesAPI, productsAPI, storesAPI } from '../../api';
-import { ArrowLeft, Plus, Edit, Trash2, Clock, Star, Sparkles, Folders, Search, Settings, GripVertical, Tag, Download, Store } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, Clock, Star, Sparkles, Folders, Search, Settings, GripVertical, Tag, Download, Store, Image } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
 import { toast } from 'react-toastify';
