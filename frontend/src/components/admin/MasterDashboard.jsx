@@ -111,7 +111,7 @@ const StatusBadge = ({ status }) => {
 const MasterDashboard = () => {
     const { user, consumeStoresCache } = useAuth();
     const navigate  = useNavigate();
-    const { notifications, markAsRead } = useNotifications();
+    const { notifications, markAsRead, soundEnabled, setSoundEnabled } = useNotifications();
 
     // 실시간으로 수신된 읽지 않은 직원 호출 알림만 집계/정량화 가동
     const activeCalls = useMemo(() => {
