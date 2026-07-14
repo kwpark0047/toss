@@ -94,6 +94,7 @@ export const aiAPI = {
   proposeMenuFull: (data) => api.post('/ai/propose-menu-full', data),
   generateMenuImage: (data) => api.post('/ai/generate-menu-image', data),
   generateInstagramCopy: (data) => api.post('/ai/instagram', data),
+  scanMenuImage: (data) => api.post('/ai/scan-menu-image', data),
 };
 
 export const getSocket = () => {

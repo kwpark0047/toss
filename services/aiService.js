@@ -713,6 +713,67 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
         const text = await this.generateWithFallback(prompt);
         return text.replace(/^["']|["']$/g, '').trim();
     }
+
+    async scanMenuImage(base64Data, mimeType) {
+        const prompt = `
+            당신은 메뉴판 정보 추출 및 고품질 한글 설명서 전문가입니다.
+            제공된 메뉴판 사진 이미지로부터 모든 메뉴 항목들을 정밀하게 스캔하여 구조화된 JSON 데이터로 반환해 주세요.
+
+            [요구사항]
+            1. 이미지 내의 모든 음식/음료 메뉴 이름, 가격, 카테고리를 정확히 찾아내세요.
+            2. 가격이 표기되어 있지 않은 경우, 메뉴명의 대략적인 시장 적정 가격(원화)을 숫자로 가상 제안해 주세요.
+            3. 각 메뉴별로 해당 음식을 더 돋보이게 만들 수 있는 매력적이고 고급스러운 한글 설명(1~2문장)을 직접 창작해 제안해 주세요.
+            4. 각 메뉴별로 Unsplash에서 사용할 수 있는 대표 음식의 영어 검색 키워드(예: "steamed mandu dumplings plated")를 'image_keyword' 항목으로 생성해 주세요.
+            
+            [출력 지침]
+            - 반드시 아래의 완벽한 JSON 배열 형식으로만 응답하고 다른 텍스트는 절대 포함하지 마세요:
+              [
+                {
+                  "name": "메뉴 이름 (한글)",
+                  "price": 가격 (원화, 10000과 같은 정수),
+                  "category_name": "추천 카테고리 (예: 메인메뉴, 사이드메뉴, 음료 등)",
+                  "description": "고객의 군침을 자극할 고급스럽고 매력적인 1~2문장 설명",
+                  "image_keyword": "unsplash_english_keywords"
+                }
+              ]
+        `;
+
+        try {
+            const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const result = await model.generateContent([
+                prompt,
+                {
+                    inlineData: {
+                        data: base64Data,
+                        mimeType: mimeType || "image/jpeg"
+                    }
+                }
+            ]);
+            const rawText = result.response.text();
+            const text = rawText.replace(/```json\n?|```/g, '').trim();
+            const match = text.match(/\[[\s\S]*\]/);
+            const suggestions = JSON.parse(match ? match[0] : text);
+
+            const suggestionsWithImages = await Promise.all(
+                suggestions.map(async (s) => {
+                    const keyword = s.image_keyword || (s.name + ' food');
+                    const imageUrl = await this._fetchMenuImageUrl(keyword);
+                    return {
+                        name: s.name,
+                        price: s.price || 0,
+                        category_name: s.category_name || '기타',
+                        description: s.description || `${s.name}입니다.`,
+                        image_url: imageUrl
+                    };
+                })
+            );
+
+            return suggestionsWithImages;
+        } catch (error) {
+            logger.error('AI 메뉴판 이미지 스캔 실패:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = new AIService();

@@ -7,6 +7,7 @@ import { formatPrice } from '../../utils/format';
 import { toast } from 'react-toastify';
 import { handleApiError } from '../../utils/apiError';
 import BulkMenuModal from './BulkMenuModal';
+import MenuScanModal from './MenuScanModal';
 import MenuWizard from './MenuWizard';
 import OptionTemplateModal from './OptionTemplateModal';
 import Skeleton from '../common/Skeleton';
@@ -37,6 +38,7 @@ const MenuManager = () => {
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [showOptionTemplateModal, setShowOptionTemplateModal] = useState(false);
 
@@ -168,10 +170,18 @@ const MenuManager = () => {
 
         <div className="flex items-center gap-2 lg:gap-3 overflow-x-auto pb-1 scrollbar-hide">
           <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
-            onClick={() => setShowWizard(true)}
-            className="flex-shrink-0 flex items-center gap-2 px-4 lg:px-8 py-2.5 lg:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-[16px] lg:rounded-[20px] transition-all font-black text-xs lg:text-sm shadow-2xl shadow-blue-500/20 relative overflow-hidden group"
+            onClick={() => setShowScanModal(true)}
+            className="flex-shrink-0 flex items-center gap-2 px-4 lg:px-8 py-2.5 lg:py-4 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-[16px] lg:rounded-[20px] transition-all font-black text-xs lg:text-sm shadow-2xl shadow-orange-500/20 relative overflow-hidden group"
           >
             <Sparkles size={15} className="animate-pulse" />
+            <span>AI 사진 스캔 등록</span>
+          </motion.button>
+
+          <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
+            onClick={() => setShowWizard(true)}
+            className="flex-shrink-0 flex items-center gap-2 px-4 lg:px-8 py-2.5 lg:py-4 bg-white/5 text-white rounded-[16px] lg:rounded-[20px] transition-all font-black text-xs lg:text-sm shadow-xl border border-white/10"
+          >
+            <Sparkles size={15} />
             <span>AI 생성</span>
           </motion.button>
 
@@ -545,6 +555,15 @@ const MenuManager = () => {
           existingCategories={categories}
           onClose={() => setShowBulkModal(false)}
           onSave={() => { setShowBulkModal(false); fetchData(); }}
+        />
+      )}
+
+      {showScanModal && (
+        <MenuScanModal
+          storeId={storeId}
+          existingCategories={categories}
+          onClose={() => setShowScanModal(false)}
+          onSave={() => { setShowScanModal(false); fetchData(); }}
         />
       )}
 

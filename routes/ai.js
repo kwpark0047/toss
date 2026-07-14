@@ -14,5 +14,6 @@ router.post("/analyze-menu-list", aiController.analyzeMenuList);
 router.post("/propose-menu-full", validateBody(["name"]), aiController.proposeMenuFull);
 router.post("/recommend-pairing", validateId(["store_id"]), aiController.recommendPairing);
 router.post("/generate-menu-image", validateBody(["store_id", "name"]), aiController.generateMenuImage);
+router.post("/scan-menu-image", aiController.scanMenuImage);
 
 module.exports = router;

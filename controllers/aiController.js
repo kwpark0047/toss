@@ -221,6 +221,15 @@ const aiController = {
                 keyword: result.keyword,
             },
         });
+    }),
+
+    scanMenuImage: catchAsync(async (req, res) => {
+        const { image, mimeType } = req.body;
+        if (!image) {
+            return res.status(400).json({ success: false, error: "image 필드가 필요합니다. (base64)" });
+        }
+        const suggestions = await aiService.scanMenuImage(image, mimeType);
+        res.json({ success: true, suggestions });
     })
 };
 
