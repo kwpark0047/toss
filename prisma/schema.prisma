@@ -1016,3 +1016,18 @@ model food_trucks {
 
   @@index([store_id, is_active_session], map: "idx_food_trucks_store_active")
 }
+
+model news {
+  id          Int      @id @default(autoincrement())
+  title       String
+  link        String   @unique
+  source      String   // e.g., '소상공인시장진흥공단', '중소벤처기업부', etc.
+  category    String?
+  summary     String?  @db.Text
+  imageUrl    String?  
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([source])
+  @@index([publishedAt(sort: Desc)])
+}

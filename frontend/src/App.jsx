@@ -69,6 +69,7 @@ const FoodTruckAnalyticsDashboard = lazy(() => import("@/components/admin/FoodTr
 const FeaturesPage = lazy(() => import("./pages/marketing/FeaturesPage"));
 const PricingPage = lazy(() => import("./pages/marketing/PricingPage"));
 const GuidesPage = lazy(() => import("./pages/marketing/GuidesPage"));
+const NewsPage = lazy(() => import("./pages/marketing/NewsPage"));
 const ContactPage = lazy(() => import("./pages/marketing/ContactPage"));
 const MultiStoreSupervisorDashboard = lazy(() => import("@/components/admin/MultiStoreSupervisorDashboard"));
 const AlimtalkDeliveryConsole = lazy(() => import("@/components/admin/AlimtalkDeliveryConsole"));
@@ -153,6 +154,7 @@ const AppRoutes = memo(() => (
     <Route path="/features" element={<AdminSuspense><FeaturesPage /></AdminSuspense>} />
     <Route path="/pricing" element={<AdminSuspense><PricingPage /></AdminSuspense>} />
     <Route path="/guides" element={<AdminSuspense><GuidesPage /></AdminSuspense>} />
+    <Route path="/news" element={<AdminSuspense><NewsPage /></AdminSuspense>} />
     <Route path="/contact" element={<AdminSuspense><ContactPage /></AdminSuspense>} />
 
     {/* Admin 메인 대시보드 */}

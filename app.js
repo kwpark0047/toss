@@ -264,7 +264,8 @@ const routes = {
     foodTrucks: require('./routes/foodTrucks'),
     kds: require('./routes/kds'),
     alimtalk: require('./routes/alimtalk'),
-    weather: require('./routes/weather')
+    weather: require('./routes/weather'),
+    news: require('./routes/news')
 };
 
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
@@ -413,6 +414,11 @@ app.use((req, res, next) => {
 
 // 에러 핸들러 (반드시 모든 라우트 등록 후 마지막에 위치)
 app.use(errorHandler);
+
+const { startNewsCron } = require('./services/newsCrawlerService');
+if (process.env.NODE_ENV !== 'test') {
+  startNewsCron();
+}
 
 module.exports = { app, io, httpServer };
 
