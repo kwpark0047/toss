@@ -222,7 +222,7 @@ export default function VisualTableMap({ storeId, tables, onUpdate }) {
                 touchAction: isEditing ? 'none' : 'auto',
               }}
             >
-              <span className="text-[9px] font-black tracking-tight leading-none opacity-60">{table.capacity}인석</span>
+              <span className="text-[9px] font-black tracking-tight leading-none opacity-60">{table.capacity > 0 ? `${table.capacity}인석` : '매장 공통'}</span>
               <span className="text-sm font-black leading-none mt-1 max-w-[62px] text-center truncate px-1">
                 {table.table_number || table.name}
               </span>

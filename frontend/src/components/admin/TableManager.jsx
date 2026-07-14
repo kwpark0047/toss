@@ -733,7 +733,7 @@ const TableManager = () => {
                     <h3 className="text-base lg:text-xl font-black text-white tracking-tight mb-1 truncate">{getSeatDisplayName(table.table_number || table.name)}</h3>
                     <div className="flex items-center gap-1 text-slate-500">
                       <Users size={10} />
-                      <span className="font-bold text-[10px]">{table.capacity}인석</span>
+                      <span className="font-bold text-[10px]">{table.capacity > 0 ? `${table.capacity}인석` : '매장 공통 QR'}</span>
                     </div>
                   </div>
                   <span className={`flex-shrink-0 px-2 py-0.5 rounded-full font-black text-[8px] lg:text-[9px] border ${
@@ -971,10 +971,17 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
               <p className="text-[8px] font-bold tracking-[0.2em]" style={{ color: d.capColor }}>T  A  B  L  E</p>
               <div className="my-1 mx-auto rounded-full" style={{ height: 2, width: 40, background: d.accent }} />
               <p className="font-black text-[22px] leading-tight" style={{ color: d.titleColor }}>{tableName}</p>
-              <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold"
-                style={{ background: d.accentDim, border: `1px solid ${d.accentLine}`, color: d.accent }}>
-                {table.capacity}인석
-              </span>
+              {table.capacity > 0 ? (
+                <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold"
+                  style={{ background: d.accentDim, border: `1px solid ${d.accentLine}`, color: d.accent }}>
+                  {table.capacity}인석
+                </span>
+              ) : (
+                <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold"
+                  style={{ background: d.accentDim, border: `1px solid ${d.accentLine}`, color: d.accent }}>
+                  매장 공통 QR
+                </span>
+              )}
             </div>
 
             {/* 스캔 안내 */}
@@ -1042,7 +1049,7 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">테이블 정보</p>
               {[
                 { label: '테이블명', value: tableName },
-                { label: '수용 인원', value: `${table.capacity}인석` },
+                { label: '수용 인원', value: table.capacity > 0 ? `${table.capacity}인석` : '테이블 지정 없음 (매장 공통)' },
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between">
                   <span className="text-slate-500 text-xs">{row.label}</span>
