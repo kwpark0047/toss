@@ -247,16 +247,20 @@ const Spark = ({ x, y, size, angle }) => (
 // ────────────────────────────────────────────────────────────────────────────
 export default function TinkerBell({
   lang = 'ko',
-  weather = 'sun',
+  weatherData = null,
   menuItems = [],
   lastAddedItem = null,
   onRecommend,
   voiceEnabled = false,
   largeFont = false,
   mode = 'float',
-  previewTrigger = 0,   // 증가할 때마다 미리보기에서 인사 재실행
-  adminMode = false,    // true면 사업자 전용 대사
+  previewTrigger = 0,   // 관리자 미리보기용
+  adminMode = false,    // true면 사장님용 인사
 }) {
+  const weather = weatherData?.isRaining ? 'rain' : 
+                  (weatherData?.temp < 10 ? 'cold' : 
+                  (weatherData?.temp > 28 ? 'hot' : 'sun'));
+
   const { isAnimationSafe, motionIntensity } = useMotionSafe();
   const [isHappy,  setIsHappy]  = useState(false);
   const [isBusy,   setIsBusy]   = useState(false);
@@ -393,14 +397,19 @@ export default function TinkerBell({
       const isWarm = weather === 'rain' || weather === 'cold';
       const isCool = weather === 'hot';
       let pool = isWarm
-        ? menuItems.filter(m => !m.isSoldOut && (m.isHot || m.cat === 'coffee' || m.cat === 'non-coffee'))
+        ? menuItems.filter(m => !m.isSoldOut && (m.isHot || m.category_id?.includes('coffee') || m.category_id?.includes('non-coffee')))
         : isCool
-        ? menuItems.filter(m => !m.isSoldOut && (m.isCold || m.cat === 'ade' || m.name?.includes('아이스')))
+        ? menuItems.filter(m => !m.isSoldOut && (m.isCold || m.category_id?.includes('ade') || m.name?.includes('아이스')))
         : menuItems.filter(m => !m.isSoldOut && m.isPopular);
       if (!pool.length) pool = menuItems.filter(m => !m.isSoldOut);
       if (!pool.length) return;
       const chosen = pick(pool);
-      const ctx  = L.weatherCtx[weather] || '';
+      
+      let ctx  = L.weatherCtx[weather] || '';
+      if (weatherData && weatherData.temp !== null) {
+        ctx += ` (${weatherData.temp}°C)`;
+      }
+      
       const text = (L.rec[weather] || L.rec.sun).replace('{n}', chosen.name || '');
       setIsBusy(true);
       spawnSparks(8);
@@ -409,7 +418,7 @@ export default function TinkerBell({
       setTimeout(() => setIsBusy(false), 5500);
     }, 11000);
     return () => clearTimeout(t);
-  }, [visible, weather, menuItems, lang]);
+  }, [visible, weather, weatherData, menuItems, lang, adminMode, onRecommend, say, spawnSparks]);
 
   // ── 호기심 메시지 ────────────────────────────────────────────────────────
   useEffect(() => {

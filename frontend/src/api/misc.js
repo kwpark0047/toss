@@ -97,6 +97,10 @@ export const aiAPI = {
   scanMenuImage: (data) => api.post('/ai/scan-menu-image', data),
 };
 
+export const weatherAPI = {
+  getCurrent: (stn) => api.get('/weather/current' + (stn ? `?stn=${stn}` : '')),
+};
+
 export const getSocket = () => {
   if (window.orderSocket) return window.orderSocket;
   return null;

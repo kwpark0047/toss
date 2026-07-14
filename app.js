@@ -263,7 +263,8 @@ const routes = {
     naverPlace: require('./routes/naverPlace'),
     foodTrucks: require('./routes/foodTrucks'),
     kds: require('./routes/kds'),
-    alimtalk: require('./routes/alimtalk')
+    alimtalk: require('./routes/alimtalk'),
+    weather: require('./routes/weather')
 };
 
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
@@ -323,6 +324,7 @@ app.use(`${API_PREFIX}/naver-place`, routes.naverPlace);
 app.use(`${API_PREFIX}/foodtruck`, routes.foodTrucks);
 app.use(`${API_PREFIX}/kds`, routes.kds);
 app.use(`${API_PREFIX}/alimtalk`, routes.alimtalk);
+app.use(`${API_PREFIX}/weather`, routes.weather);
 
 // 정적 파일 서빙
 app.use(express.static(path.join(__dirname, 'public')));

@@ -31,6 +31,7 @@ import ManagerCallSheet from "@/components/customer/ManagerCallSheet";
 import ChatDrawer from "@/components/customer/ChatDrawer";
 import StoreReviews from "@/components/customer/StoreReviews";
 import LegalFooter from "@/components/customer/LegalFooter";
+import { weatherAPI } from "@/api/misc";
 import LanguageSelector from "@/components/menu/LanguageSelector";
 import TinkerBell from "@/components/ai/TinkerBell";
 import { loadTinkerBellSettings } from "@/utils/tinkerbell";
@@ -203,6 +204,19 @@ const MenuPage = () => {
 
   const [tinkerSettings] = useState(() => loadTinkerBellSettings());
   const [lastAddedItem, setLastAddedItem] = useState(null);
+
+  const { data: weatherData } = useQuery({
+    queryKey: ["currentWeather"],
+    queryFn: async () => {
+      try {
+        const res = await weatherAPI.getCurrent('108');
+        return res?.data?.data || null;
+      } catch (err) {
+        return null;
+      }
+    },
+    staleTime: 600000,
+  });
 
   /* 콜드스타트 재시도 설정: 최대 10회, 5초 간격 (최대 30초 간격) */
   const coldStartRetry = {
@@ -649,6 +663,7 @@ const MenuPage = () => {
       <TinkerBell
         lang={lang}
         menuItems={menuItems}
+        weatherData={weatherData}
         voiceEnabled={tinkerSettings?.voiceEnabled}
         largeFont={tinkerSettings?.largeFont}
         lastAddedItem={lastAddedItem}
