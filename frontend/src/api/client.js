@@ -2,9 +2,13 @@ import axios from 'axios';
 import { extractErrorMessage } from '@/lib/errorUtils';
 
 const getApiUrl = () => {
-  // 1. VITE_API_URL 환경변수가 설정된 경우 최우선 사용 (Vercel/배포 환경)
   const envUrl = import.meta.env.VITE_API_URL;
-  if (envUrl) return envUrl;
+  if (envUrl) {
+    if (envUrl.includes('wemarket-toss.onrender.com')) {
+      return envUrl.replace('wemarket-toss.onrender.com', 'wemarket.onrender.com');
+    }
+    return envUrl;
+  }
 
   // 2. 로컬 개발 환경 → localhost 폴백
   const hostname = window.location.hostname;
