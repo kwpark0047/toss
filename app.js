@@ -51,7 +51,8 @@ const allowedOrigins = [
     'https://wemarket.onrender.com',
     'https://wemarket.vercel.app',
     'https://250105.vercel.app',
-    'https://wemarket-6k6.pages.dev'
+    'https://wemarket-6k6.pages.dev',
+    'https://250105.kangwonpark71.workers.dev'
 ];
 // 프로덕션에서 localhost 오리진은 CORS 목록에서 전면 제외 (공격 표면 제거)
 if (!isProduction) {
@@ -72,7 +73,18 @@ if (process.env.CORS_ORIGIN) {
 }
 
 app.use(cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        const isAllowed = allowedOrigins.includes(origin) || 
+            origin.endsWith('.pages.dev') || 
+            origin.endsWith('.workers.dev') || 
+            origin.endsWith('.vercel.app');
+        if (isAllowed) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
