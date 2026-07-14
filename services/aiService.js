@@ -716,8 +716,14 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
 
     async scanMenuImage(base64Data, mimeType) {
         const prompt = `
-            당신은 메뉴판 정보 추출 및 고품질 한글 설명서 전문가입니다.
-            제공된 메뉴판 사진 이미지로부터 모든 메뉴 항목들을 정밀하게 스캔하여 구조화된 JSON 데이터로 반환해 주세요.
+            당신은 저화질, 흔들림, 빛 반사, 저조도 또는 초점이 흐려진 메뉴판 사진에서도 텍스트를 정확하게 판독하는 초정밀 OCR 및 음식 카피라이팅 전문가입니다.
+            제공된 이미지로부터 모든 메뉴 항목들을 끝까지 스캔하여 구조화된 JSON 데이터로 반환해 주세요.
+
+            [저화질/흐림 이미지 판독 지침]
+            1. 이미지의 선명도가 낮거나 초점이 흐려 글자가 찌그러진 경우, 문맥(한식, 분식, 일식, 카페 등 업종별 메뉴 조합)에 근거한 문자 윤곽 추론을 적용하세요.
+               (예: '아메ㄹ|카노' -> '아메리카노', '삼ㄱㅕㅂ살' -> '삼겹살', 'ㅅㅗㅈㅜ' -> '소주', '돈ㅋㅏ스' -> '돈까스' 등 정황 추론)
+            2. 가격 숫자가 흐릿하거나 가려져서 일부만 보일 경우, 해당 메뉴의 일반적인 한국 배달/매장 시세를 감안하여 가장 합리적인 가격(1,000원 단위 또는 500원 단위)으로 완성도 있게 보정해 주세요.
+            3. 이미지 훼손이 극심하더라도 에러를 내거나 빈 배열을 반환하지 말고, 윤곽이나 정황상 식별 가능한 최소 1개 이상의 대표 메뉴 항목을 추론하여 완성도 높은 가상 제안 리스트를 출력해 주세요.
 
             [요구사항]
             1. 이미지 내의 모든 음식/음료 메뉴 이름, 가격, 카테고리를 정확히 찾아내세요.
@@ -738,18 +744,35 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
               ]
         `;
 
-        try {
-            const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-            const result = await model.generateContent([
-                prompt,
-                {
-                    inlineData: {
-                        data: base64Data,
-                        mimeType: mimeType || "image/jpeg"
+        let rawText = "";
+        const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash"];
+        let lastError = null;
+
+        for (const modelName of modelsToTry) {
+            try {
+                const model = this.genAI.getGenerativeModel({ model: modelName });
+                const result = await model.generateContent([
+                    prompt,
+                    {
+                        inlineData: {
+                            data: base64Data,
+                            mimeType: mimeType || "image/jpeg"
+                        }
                     }
-                }
-            ]);
-            const rawText = result.response.text();
+                ]);
+                rawText = result.response.text();
+                if (rawText) break;
+            } catch (err) {
+                logger.warn(`[AI] ${modelName} 이미지 분석 실패, 다음 모델 시도:`, err.message);
+                lastError = err;
+            }
+        }
+
+        if (!rawText && lastError) {
+            throw lastError;
+        }
+
+        try {
             const text = rawText.replace(/```json\n?|```/g, '').trim();
             const match = text.match(/\[[\s\S]*\]/);
             const suggestions = JSON.parse(match ? match[0] : text);
