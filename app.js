@@ -48,7 +48,6 @@ const isProduction = process.env.NODE_ENV === 'production';
 // 프로덕션 허용 오리진 (배포 도메인만). localhost는 개발 환경에서만 추가한다.
 const allowedOrigins = [
     'https://frontend-gamma-ten-89.vercel.app',
-    'https://wemarket-toss.onrender.com',
     'https://wemarket.onrender.com',
     'https://wemarket.vercel.app',
     'https://250105.vercel.app',
@@ -97,7 +96,6 @@ app.use(helmet({
                 ...(isProduction ? [] : ["http://localhost:3000", "ws://localhost:3000"]),
                 "https://wemarket.onrender.com",
                 "wss://wemarket.onrender.com",
-                "https://wemarket-toss.onrender.com",
                 "https://api.tosspayments.com",
                 "https://www.googleapis.com",
                 "https://firebaseinstallations.googleapis.com",
