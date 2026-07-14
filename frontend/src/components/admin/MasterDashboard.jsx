@@ -243,36 +243,20 @@ const MasterDashboard = () => {
 
     useEffect(() => {
         const cleanup = onNewOrder(() => {
-            fetchOrders();
+            if (selectedStore?.id) {
+                fetchStoreData(selectedStore.id, true);
+            }
             if (soundEnabledRef.current) notificationSound.playNewOrder();
-            setNewOrderAlert(true);
-            setTimeout(() => setNewOrderAlert(false), 5000);
         });
         return cleanup;
-    }, [fetchOrders]);
+    }, [selectedStore, fetchStoreData]);
 
     useEffect(() => {
         const cleanup = onOrderUpdated((payload) => {
-            setOrders(prev => prev.map(o => o.id === payload.order_id ? { ...o, status: payload.status } : o));
+            setRecentOrders(prev => prev.map(o => o.id === payload.order_id ? { ...o, status: payload.status } : o));
         });
         return cleanup;
     }, []);
-
-    const filteredOrders = useMemo(() => {
-        if (!searchTerm) return orders;
-        const term = searchTerm.toLowerCase();
-        return orders.filter(o =>
-            o.order_number?.toLowerCase().includes(term) ||
-            o.customer_name?.toLowerCase().includes(term) ||
-            o.table_name?.toLowerCase().includes(term)
-        );
-    }, [orders, searchTerm]);
-
-    const statusCounts = useMemo(() => {
-        const counts = { all: orders.length };
-        Object.keys(statusConfig).forEach(s => { counts[s] = orders.filter(o => o.status === s).length; });
-        return counts;
-    }, [orders]);
 
     const handleNav = useCallback((path) => {
         const s = selectedStore || stores[0];
