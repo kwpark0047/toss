@@ -31,6 +31,9 @@ import ManagerCallSheet from "@/components/customer/ManagerCallSheet";
 import ChatDrawer from "@/components/customer/ChatDrawer";
 import StoreReviews from "@/components/customer/StoreReviews";
 import LegalFooter from "@/components/customer/LegalFooter";
+import LanguageSelector from "@/components/menu/LanguageSelector";
+import TinkerBell from "@/components/ai/TinkerBell";
+import { loadTinkerBellSettings } from "@/utils/tinkerbell";
 
 /** 순수 함수: 항목이 최근 7일 이내 생성되었는지 확인 */
 const isNewItem = (item) => {
@@ -184,6 +187,22 @@ const MenuPage = () => {
   const [showChatDrawer, setShowChatDrawer] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState(null);
   const [currentOrderAmount, setCurrentOrderAmount] = useState(0);
+
+  const [lang, setLang] = useState(() => {
+    try {
+      return localStorage.getItem('wm_customer_lang') || 'ko';
+    } catch {
+      return 'ko';
+    }
+  });
+  
+  const handleLangChange = useCallback((newLang) => {
+    setLang(newLang);
+    try { localStorage.setItem('wm_customer_lang', newLang); } catch { /* 무시 */ }
+  }, []);
+
+  const [tinkerSettings] = useState(() => loadTinkerBellSettings());
+  const [lastAddedItem, setLastAddedItem] = useState(null);
 
   /* 콜드스타트 재시도 설정: 최대 10회, 5초 간격 (최대 30초 간격) */
   const coldStartRetry = {
@@ -620,6 +639,20 @@ const MenuPage = () => {
         store={{ id: parseInt(storeId), ...profile }}
         table={{ name: `${tableNumber}번 테이블` }}
         customerInfo={{ phone: notifyPhone }}
+      />
+
+      <LanguageSelector 
+        currentLang={lang} 
+        onSelectLang={handleLangChange} 
+      />
+
+      <TinkerBell
+        lang={lang}
+        menuItems={menuItems}
+        voiceEnabled={tinkerSettings?.voiceEnabled}
+        largeFont={tinkerSettings?.largeFont}
+        lastAddedItem={lastAddedItem}
+        onAddToCart={(item) => handleAddToCartClick(item)}
       />
     </div>
     </div>

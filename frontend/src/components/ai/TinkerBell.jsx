@@ -104,9 +104,74 @@ const I18N = {
     curious: ['还在选择中吗？需要帮忙吗？ 💬', '要为您推荐人气菜品吗？ ⭐'],
     admin: ['老板好，祝生意兴隆！ 💼', '加油，完成今天的销售目标！ 📊', '顾客们都很喜欢我 😊'],
   },
+  tl: {
+    greet: ['Kumusta! Kailangan mo ba ng tulong sa menu? ✨', 'Maligayang pagdating! Gusto mo ba ng rekomendasyon? 🌟', 'Ano ang gusto mo ngayon? ☕'],
+    weatherCtx: { rain:'Tag-ulan ☔', sun:'Paborito ngayon ☀️', cold:'Manatiling mainit ❄️', hot:'Magpalamig 🧊' },
+    rec: {
+      rain: 'Sa tag-ulan, subukan ang mainit na {n}! ☕',
+      sun:  'Ang ganda ng araw, mag-{n}! ☀️',
+      cold: 'Magpakainit sa {n}! ❄️',
+      hot:  'Magpalamig sa {n}! 🧊',
+    },
+    add: ['Magandang pagpili: {n}! ✨', '{n} — napakagandang pagpili! 😊', 'Mukhang masarap ang {n}! 🤤'],
+    curious: ['Pumipili ka pa ba? Pwede akong tumulong! 💬', 'Gusto mo ba ng sikat na rekomendasyon? ⭐'],
+    admin: ['Hello boss, magandang araw! 💼', 'Abutin natin ang target sa benta ngayon! 📊', 'Gusto ako ng mga customer 😊'],
+  },
+  vi: {
+    greet: ['Xin chào! Bạn cần giúp chọn món không? ✨', 'Chào mừng! Bạn muốn xem gợi ý không? 🌟', 'Hôm nay bạn muốn dùng gì? ☕'],
+    weatherCtx: { rain:'Gợi ý ngày mưa ☔', sun:'Yêu thích hôm nay ☀️', cold:'Giữ ấm nhé ❄️', hot:'Giải nhiệt nào 🧊' },
+    rec: {
+      rain: 'Ngày mưa thì thử {n} ấm nóng nhé! ☕',
+      sun:  'Trời đẹp quá, dùng {n} nhé! ☀️',
+      cold: 'Ấm áp cùng {n}! ❄️',
+      hot:  'Giải nhiệt với {n}! 🧊',
+    },
+    add: ['Lựa chọn tuyệt vời: {n}! ✨', '{n} — lựa chọn rất hay! 😊', '{n} trông ngon quá! 🤤'],
+    curious: ['Bạn vẫn đang chọn à? Để mình giúp nhé! 💬', 'Bạn có muốn xem gợi ý món phổ biến không? ⭐'],
+    admin: ['Chào sếp, ngày mới tốt lành! 💼', 'Cùng đạt mục tiêu doanh số hôm nay nhé! 📊', 'Khách hàng rất thích mình 😊'],
+  },
+  id: {
+    greet: ['Halo! Butuh bantuan dengan menu? ✨', 'Selamat datang! Mau rekomendasi? 🌟', 'Mau pesan apa hari ini? ☕'],
+    weatherCtx: { rain:'Pilihan hari hujan ☔', sun:'Favorit hari ini ☀️', cold:'Tetap hangat ❄️', hot:'Segarkan harimu 🧊' },
+    rec: {
+      rain: 'Di hari hujan, cobalah {n} hangat! ☕',
+      sun:  'Cuaca cerah, nikmati {n}! ☀️',
+      cold: 'Tetap hangat dengan {n}! ❄️',
+      hot:  'Segarkan diri dengan {n}! 🧊',
+    },
+    add: ['Pilihan bagus: {n}! ✨', '{n} — pilihan yang sangat baik! 😊', '{n} kelihatannya enak! 🤤'],
+    curious: ['Masih melihat-lihat? Saya bisa bantu! 💬', 'Mau rekomendasi populer? ⭐'],
+    admin: ['Halo bos, semoga harimu menyenangkan! 💼', 'Ayo capai target penjualan hari ini! 📊', 'Pelanggan menyukai saya 😊'],
+  },
+  th: {
+    greet: ['สวัสดีค่ะ! ให้ช่วยดูเมนูไหมคะ? ✨', 'ยินดีต้อนรับค่ะ! รับคำแนะนำไหมคะ? 🌟', 'วันนี้รับอะไรดีคะ? ☕'],
+    weatherCtx: { rain:'เมนูวันฝนตก ☔', sun:'เมนูยอดฮิตวันนี้ ☀️', cold:'เพิ่มความอบอุ่น ❄️', hot:'คลายร้อน 🧊' },
+    rec: {
+      rain: 'วันฝนตกแบบนี้ รับ {n} อุ่นๆ ไหมคะ? ☕',
+      sun:  'อากาศดีจัง รับ {n} สักแก้วนะคะ! ☀️',
+      cold: 'อบอุ่นร่างกายด้วย {n}! ❄️',
+      hot:  'ดับร้อนด้วย {n}! 🧊',
+    },
+    add: ['เลือกได้ดีมากค่ะ: {n}! ✨', '{n} — เป็นตัวเลือกที่ยอดเยี่ยม! 😊', '{n} น่าทานมากค่ะ! 🤤'],
+    curious: ['ยังเลือกอยู่ไหมคะ? ให้ฉันช่วยนะ! 💬', 'รับคำแนะนำเมนูยอดฮิตไหมคะ? ⭐'],
+    admin: ['สวัสดีค่ะบอส ขอให้เป็นวันที่ดีนะคะ! 💼', 'มาทำยอดขายวันนี้ให้ทะลุเป้ากันเถอะ! 📊', 'ลูกค้าชอบฉันมากเลยค่ะ 😊'],
+  },
+  ms: {
+    greet: ['Hai! Perlukan bantuan dengan menu? ✨', 'Selamat datang! Nak cadangan? 🌟', 'Hari ini nak pesan apa? ☕'],
+    weatherCtx: { rain:'Pilihan hari hujan ☔', sun:'Kegemaran hari ini ☀️', cold:'Kekal panas ❄️', hot:'Hilangkan dahaga 🧊' },
+    rec: {
+      rain: 'Pada hari hujan, cubalah {n} yang hangat! ☕',
+      sun:  'Cuaca yang indah, nikmati {n}! ☀️',
+      cold: 'Kekal selesa dengan {n}! ❄️',
+      hot:  'Sejukkan badan dengan {n}! 🧊',
+    },
+    add: ['Pilihan yang hebat: {n}! ✨', '{n} — pilihan yang sangat baik! 😊', '{n} nampak sedap! 🤤'],
+    curious: ['Masih memilih? Saya boleh tolong! 💬', 'Nak cadangan menu popular? ⭐'],
+    admin: ['Hai bos, semoga hari anda hebat! 💼', 'Mari capai sasaran jualan hari ini! 📊', 'Pelanggan suka saya 😊'],
+  },
 };
 
-const VOICE_LANG = { ko: 'ko-KR', en: 'en-US', ja: 'ja-JP', zh: 'zh-CN' };
+const VOICE_LANG = { ko: 'ko-KR', en: 'en-US', ja: 'ja-JP', zh: 'zh-CN', tl: 'fil-PH', vi: 'vi-VN', id: 'id-ID', th: 'th-TH', ms: 'ms-MY' };
 
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
