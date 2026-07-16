@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState} from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Truck, Layout, Sparkles, MapPin, Eye, Compass, Flame, Coffee, 
-  Settings, ShoppingCart, Info, Check, Search, Filter, Play, Award, 
-  Map, Moon, Sun, AlertTriangle, MessageSquare, Terminal, ChevronRight
+  Truck, _Layout, Sparkles, MapPin, _Eye, _Compass, Flame, Coffee, 
+  Settings, _ShoppingCart, _Info, _Check, Search, _Filter, _Play, Award, 
+  _Map, _Moon, _Sun, _AlertTriangle, _MessageSquare, Terminal, ChevronRight
 } from 'lucide-react';
 
 export default function FoodTruckDesignShowcase() {

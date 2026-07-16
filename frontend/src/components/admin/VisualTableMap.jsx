@@ -13,7 +13,7 @@ const STATUS = {
   dirty:     { label: '정리 필요', color: 'bg-amber-400 text-slate-900 border-amber-500 hover:bg-amber-300',   border: 'border-2',   dot: 'bg-amber-400',   text: 'text-amber-700',   bg: 'hover:bg-amber-50' },
 };
 
-export default function VisualTableMap({ storeId, tables, onUpdate }) {
+export default function VisualTableMap({ _storeId, tables, onUpdate }) {
   const [items, setItems]           = useState([]);
   const [isEditing, setIsEditing]   = useState(false);
   const [saving, setSaving]         = useState(false);

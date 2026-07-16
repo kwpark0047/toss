@@ -1,6 +1,6 @@
 import { SlidersHorizontal, ChevronDown, Heart, RefreshCw, Grid3X3, List, Map as MapIcon } from 'lucide-react';
 
-export const regions = [
+const regions = [
   { id: 'all', name: '전체 지역' },
   { id: 'seoul', name: '서울' },
   { id: 'gyeonggi', name: '경기' },
@@ -12,7 +12,7 @@ export const regions = [
   { id: 'jeju', name: '제주' }
 ];
 
-export const businessTypes = [
+const businessTypes = [
   { id: 'all', name: '전체 업종' },
   { id: 'cafe', name: '카페' },
   { id: 'restaurant', name: '음식점' },

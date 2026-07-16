@@ -9,13 +9,13 @@ const RETRY_INTERVAL_MS = 3000; // 3초 간격
 export default function QrResolvePage() {
   const { qrCode } = useParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState('wakeup'); // wakeup | resolving | error
+  const [status, setStatus] = useState(!qrCode ? 'error' : 'wakeup'); // wakeup | resolving | error
   const [attempt, setAttempt] = useState(0);
   const retryCount = useRef(0);
   const cancelled = useRef(false);
 
   useEffect(() => {
-    if (!qrCode) { setStatus('error'); return; }
+    if (!qrCode) return;
 
     const run = async () => {
       /* 1. Render 서버 웨이크업 */

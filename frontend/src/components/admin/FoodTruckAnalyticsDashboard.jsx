@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import{ useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
     TrendingUp, 
@@ -19,7 +19,7 @@ export default function FoodTruckAnalyticsDashboard() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [analyticsData, setAnalyticsData] = useState(null);
-    const [error, setError] = useState(null);
+    const [_error, setError] = useState(null);
 
     // 가상 데이터 세팅 (서버 통신 실패 또는 데모 환경용 완벽 세팅)
     const fallbackData = {

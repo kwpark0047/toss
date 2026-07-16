@@ -57,6 +57,7 @@ const CommunityPage      = lazy(() => import("@/components/admin/CommunityPage")
 const LegalSettings      = lazy(() => import("@/components/admin/LegalSettings"));
 const LegalPage          = lazy(() => import("@/pages/LegalPage"));
 const StoreSettings      = lazy(() => import("@/components/admin/StoreSettings"));
+const StoreDisplay       = lazy(() => import("@/pages/StoreDisplay"));
 const NotificationTemplatesManager = lazy(() => import("@/components/admin/NotificationTemplatesManager"));
 const DeveloperConsole = lazy(() => import("@/components/admin/DeveloperConsole"));
 const QrCustomizer = lazy(() => import("@/components/admin/QrCustomizer"));
@@ -370,6 +371,11 @@ const AppRoutes = memo(() => (
       <AdminPage>
         <ValidStoreRoute><AdminSuspense><PartnershipManager /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
+    } />
+
+    {/* 매장 디스플레이 (디지털 메뉴보드) */}
+    <Route path="/display/:storeId" element={
+      <AdminSuspense><StoreDisplay /></AdminSuspense>
     } />
 
     {/* 근무표 */}

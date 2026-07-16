@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo} from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
-  MessageSquare, CheckCircle2, RefreshCw, Volume2, VolumeX, 
-  Clock, User, Hash, AlertCircle, Phone, DollarSign, BarChart3, Search, Calendar, ChevronRight
+  MessageSquare, CheckCircle2, RefreshCw, _Volume2, _VolumeX, 
+  _Clock, _User, _Hash, _AlertCircle, _Phone, DollarSign, BarChart3, Search, _Calendar, _ChevronRight
 } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 
@@ -11,7 +11,7 @@ export default function AlimtalkDeliveryConsole() {
   const [data, setData] = useState({ summary: { total: 0, success: 0, fallback: 0, total_cost: 0 }, logs: [] });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [socketStatus, setSocketStatus] = useState('CONNECTED');
+  const [_socketStatus, _setSocketStatus] = useState('CONNECTED');
 
   const fetchAlimtalkHistory = async (showLoading = true) => {
     try {

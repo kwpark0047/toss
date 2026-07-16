@@ -12,11 +12,11 @@ import notificationSound from '../../utils/notificationSound';
 import { onNewOrder, onOrderUpdated } from '../../utils/socket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Store, ShoppingBag, DollarSign, Clock, Plus, ChevronRight, BarChart3, Users, 
+  Store, ShoppingBag, DollarSign, Clock, Plus, _ChevronRight, BarChart3, Users, 
   TrendingUp, Activity, Zap, ArrowUpRight, ArrowDownRight, Sparkles, Settings, 
-  RefreshCw, Bell, QrCode, LayoutGrid, Home, ReceiptText, BadgeCheck, ChefHat, 
+  RefreshCw, Bell, QrCode, LayoutGrid, _Home, ReceiptText, BadgeCheck, ChefHat, 
   AlertCircle, CalendarDays, Download, FileSpreadsheet, FileText, Loader2, 
-  MessageSquareText, Code2, Handshake, X, Volume2, VolumeX, ShieldAlert
+  MessageSquareText, Code2, Handshake, X, _Volume2, _VolumeX, ShieldAlert
 } from 'lucide-react';
 
 /* ─── 내보내기 패널 ─── */
@@ -111,7 +111,7 @@ const StatusBadge = ({ status }) => {
 const MasterDashboard = () => {
     const { user, consumeStoresCache } = useAuth();
     const navigate  = useNavigate();
-    const { notifications, markAsRead, soundEnabled, setSoundEnabled } = useNotifications();
+    const { notifications, markAsRead, soundEnabled, _setSoundEnabled } = useNotifications();
 
     // 실시간으로 수신된 읽지 않은 직원 호출 알림만 집계/정량화 가동
     const activeCalls = useMemo(() => {
@@ -192,7 +192,7 @@ const MasterDashboard = () => {
         setMultiViewLoading(true); setMultiViewError(false);
         try {
             const now = new Date();
-            let start, end = now.toISOString();
+            let start; const end = now.toISOString();
             if (timeRange === 'today') { const d = new Date(now); d.setHours(0,0,0,0); start = d.toISOString(); }
             else if (timeRange === 'week') { const d = new Date(now); d.setDate(d.getDate()-7); start = d.toISOString(); }
             else { const d = new Date(now); d.setMonth(d.getMonth()-1); start = d.toISOString(); }

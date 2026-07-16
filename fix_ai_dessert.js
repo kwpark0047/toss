@@ -1,0 +1,1 @@
+﻿const fs = require("fs"); let code = fs.readFileSync("services/aiService.js", "utf8"); code = code.replace("{ \"id\": 메뉴ID, \"reason\": \"페어링 사유(한 문장, 예: 매콤한 입안을 시원하게 달래줄 아이스크림입니다.)\" }", "{ \"id\": 1, \"reason\": \"페어링 사유(한 문장, 예: 매콤한 입안을 시원하게 달래줄 아이스크림입니다.)\" }"); fs.writeFileSync("services/aiService.js", code); console.log("Fixed aiService.js dessert format");

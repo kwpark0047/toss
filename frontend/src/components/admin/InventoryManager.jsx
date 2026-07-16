@@ -447,7 +447,7 @@ export default function InventoryManager() {
                                 </tr>
                             ) : products.map(product => {
                                 const status = product.stock_status;
-                                const meta = STATUS_META[status];
+                                const _meta = STATUS_META[status];
                                 return (
                                     <motion.tr
                                         key={product.id}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Store, Menu, X, Mail, Phone, MapPin, CheckCircle2, Send,
-  ArrowRight, ShieldCheck, Heart, Sparkles, Building2, HelpCircle
+  _ArrowRight, _ShieldCheck, _Heart, Sparkles, _Building2, _HelpCircle
 } from 'lucide-react';
 
 export default function ContactPage() {

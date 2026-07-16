@@ -10,7 +10,7 @@ import { storesAPI, categoriesAPI, productsAPI, tablesAPI, aiAPI } from '../../a
 
 // 공용 컴포넌트 및 유틸 임포트
 import WizardTinkerbell, { Wing, speak } from './wizard/WizardTinkerbell';
-import TableLayoutCard, { CARD_W } from './wizard/TableLayoutCard';
+
 import BusinessTypePicker, { getBtypeLabel } from './wizard/BusinessTypePicker';
 import Step1InlineGuide from './wizard/Step1InlineGuide';
 
@@ -47,7 +47,7 @@ export default function StoreSetupWizard() {
 
   const [createdStore,    setCreatedStore]    = useState(null);
   const [createdCategory, setCreatedCategory] = useState(null);
-  const [createdMenus,    setCreatedMenus]    = useState([]);
+  const [_createdMenus,    setCreatedMenus]    = useState([]);
   const [layoutTables,    setLayoutTables]    = useState([]);
 
   // Step 1 form
@@ -333,8 +333,7 @@ export default function StoreSetupWizard() {
   };
 
   // ── QR URL
-  const getMenuUrl = (table) =>
-    `${window.location.origin}/menu/${createdStore?.id}?table=${encodeURIComponent(table.table_number || '')}`;
+  const getMenuUrl = (table) => table?.qr_code ? buildQrUrl(table.qr_code) : buildMenuUrl(createdStore?.id, table.table_number || '');
   const getQrImgUrl = (table) =>
     `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(getMenuUrl(table))}&bgcolor=ffffff&color=0f172a&margin=6`;
 

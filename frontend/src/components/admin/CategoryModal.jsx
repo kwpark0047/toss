@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { categoriesAPI } from '../../api';
-import { toast } from 'react-toastify';
+
 import { handleApiError } from '../../utils/apiError';
 import { motion } from 'framer-motion';
 

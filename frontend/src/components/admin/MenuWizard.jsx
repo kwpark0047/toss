@@ -60,8 +60,8 @@ const MenuWizard = ({ storeId, categories, onClose, onSave }) => {
         }
     };
 
-    const activeTabClass = "bg-blue-600 text-white shadow-lg shadow-blue-500/30";
-    const inactiveTabClass = "bg-slate-50 text-slate-400 group-hover:bg-slate-100";
+    const _activeTabClass = "bg-blue-600 text-white shadow-lg shadow-blue-500/30";
+    const _inactiveTabClass = "bg-slate-50 text-slate-400 group-hover:bg-slate-100";
 
     return (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">

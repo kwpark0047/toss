@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
-  MapPin, ShieldAlert, Sparkles, Navigation, CheckCircle2, 
-  RefreshCw, Power, AlertTriangle, Play, HelpCircle
+  MapPin, ShieldAlert, Sparkles, Navigation, _CheckCircle2, 
+  RefreshCw, Power, AlertTriangle, _Play, _HelpCircle
 } from 'lucide-react';
 
 export default function FoodTruckOwnerDashboard() {
@@ -13,9 +13,9 @@ export default function FoodTruckOwnerDashboard() {
   const [autoSync, setAutoSync] = useState(false);
   const [manualAddress, setManualAddress] = useState('');
   const [manualCoords, setManualCoords] = useState({ lat: 37.5562, lng: 126.9224 }); // 기본 홍대입구
-  const [gpsError, setGpsError] = useState(null);
+  const [_gpsError, setGpsError] = useState(null);
 
-  const watchIdRef = useRef(null);
+  const _watchIdRef = useRef(null);
   const syncIntervalRef = useRef(null);
 
   // 푸드트럭 메타 데이터 상세 조회
@@ -145,7 +145,7 @@ export default function FoodTruckOwnerDashboard() {
       (pos) => {
         handleUpdateGpsManually(pos.coords.latitude, pos.coords.longitude);
       },
-      (err) => {
+      (_err) => {
         setGpsError('현재 디바이스의 하드웨어 GPS 칩셋 응답이 없습니다.');
       }
     );

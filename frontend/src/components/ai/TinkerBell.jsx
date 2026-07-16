@@ -231,7 +231,7 @@ const Spark = ({ x, y, size, angle }) => (
     style={{ left: x, top: y }}
     initial={{ opacity: 0.95, scale: 1, y: 0, rotate: angle }}
     animate={{ opacity: 0, scale: 0.12, y: 30, rotate: angle + 170 }}
-    transition={{ duration: 0.9 + Math.random() * 0.4, ease: 'easeOut' }}>
+    transition={{ duration: 2, ease: 'easeOut' }}>
     <svg width={size} height={size} viewBox="0 0 24 24">
       <path fill="#F59E0B" d="M12 2l1.8 6.6c.2.7.8 1.3 1.5 1.5L22 12l-6.7 1.9c-.7.2-1.3.8-1.5 1.5L12 22l-1.8-6.6c-.2-.7-.8-1.3-1.5-1.5L2 12l6.7-1.9c.7-.2 1.3-.8 1.5-1.5L12 2z" />
     </svg>
@@ -261,7 +261,7 @@ export default function TinkerBell({
                   (weatherData?.temp < 10 ? 'cold' : 
                   (weatherData?.temp > 28 ? 'hot' : 'sun'));
 
-  const { isAnimationSafe, motionIntensity } = useMotionSafe();
+  const { _isAnimationSafe, motionIntensity } = useMotionSafe();
   const [isHappy,  setIsHappy]  = useState(false);
   const [isBusy,   setIsBusy]   = useState(false);
   const [visible,  setVisible]  = useState(false);

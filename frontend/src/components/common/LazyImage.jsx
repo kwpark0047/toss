@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ImageOff, Loader2 } from 'lucide-react';
+import { ImageOff} from 'lucide-react';
 
 /**
  * LazyImage — Intersection Observer 기반 지연 로딩 + 스켈레톤 + 블러 업 효과

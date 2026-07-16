@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -31,7 +32,7 @@ export const Spark = ({ x, y, size, angle }) => (
   <motion.div className="absolute pointer-events-none" style={{ left: x, top: y }}
     initial={{ opacity: 0.95, scale: 1, y: 0, rotate: angle }}
     animate={{ opacity: 0, scale: 0.12, y: 30, rotate: angle + 170 }}
-    transition={{ duration: 0.9 + Math.random() * 0.4, ease: 'easeOut' }}>
+    transition={{ duration: 2, ease: 'easeOut' }}>
     <svg width={size} height={size} viewBox="0 0 24 24">
       <path fill="#F59E0B" d="M12 2l1.8 6.6c.2.7.8 1.3 1.5 1.5L22 12l-6.7 1.9c-.7.2-1.3.8-1.5 1.5L12 22l-1.8-6.6c-.2-.7-.8-1.3-1.5-1.5L2 12l6.7-1.9c.7-.2 1.3-.8 1.5-1.5L12 2z" />
     </svg>
@@ -60,7 +61,7 @@ export default function WizardTinkerbell({ message, isHappy = false, voiceEnable
 
   useEffect(() => {
     if (!isHappy) return;
-    const newSparks = Array.from({ length: 8 }, (_, i) => ({
+    const newSparks = Array.from({ length: 8 }, (_, _i) => ({
       id: sparkId.current++,
       x: 10 + Math.random() * 60, y: -10 + Math.random() * 50,
       size: 8 + Math.random() * 8, angle: Math.random() * 360,

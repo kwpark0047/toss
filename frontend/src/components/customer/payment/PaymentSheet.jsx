@@ -88,7 +88,7 @@ export default function PaymentSheet({
     onPaymentComplete,
     userIdentifier = {}
 }) {
-    const { t } = useTranslation();
+    const { _t } = useTranslation();
     const [step, setStep] = useState('method');
     const [selectedMethod, setSelectedMethod] = useState(null);
     // 전자상거래법 §8 결제 전 동의 상태
@@ -96,7 +96,7 @@ export default function PaymentSheet({
     const allConsented = consented.terms && consented.privacy && consented.refund;
     const [storeAccount, setStoreAccount] = useState(null);
     const [paymentResult, setPaymentResult] = useState(null);
-    const [paymentLoading, setPaymentLoading] = useState(false);
+    const [_paymentLoading, setPaymentLoading] = useState(false);
 
     // 매장에서 활성화된 결제수단 파싱
     const enabledMethodIds = useMemo(() => {
@@ -115,8 +115,8 @@ export default function PaymentSheet({
     }, [enabledMethodIds]);
 
     const { points, calculateUsablePoints, calculateEarnPoints } = usePoints(userIdentifier);
-    const { initiateTossPayment, loading: tossPaymentLoading } = useTossPayment();
-    const { requestPayment: initiateBrandPay, loading: brandPayLoading } = useBrandPay();
+    const { initiateTossPayment, loading: _tossPaymentLoading } = useTossPayment();
+    const { requestPayment: _initiateBrandPay, loading: _brandPayLoading } = useBrandPay();
     const [usablePoints, setUsablePoints] = useState(0);
     const [earnPoints, setEarnPoints] = useState(0);
 

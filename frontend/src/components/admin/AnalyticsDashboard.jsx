@@ -7,7 +7,7 @@ import { formatPrice } from '../../utils/format';
 import AdvancedInsights from './AdvancedInsights';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell, PieChart as RePieChart, Pie, Legend, Line, ComposedChart, ReferenceLine
+  BarChart, Bar, Cell, PieChart as RePieChart, Pie, Legend, Line, ComposedChart, _ReferenceLine
 } from 'recharts';
 
 /**
@@ -106,7 +106,7 @@ const AnalyticsDashboard = () => {
       try {
         const forecastRes = await analyticsAPI.getForecast(storeId, 7);
         setForecastData(forecastRes.data);
-      } catch (e) { /* 예측 데이터는 선택적 */ }
+      } catch (_e) { /* 예측 데이터는 선택적 */ }
     } catch (error) {
       if (error.name === 'CanceledError' || error.name === 'AbortError') return;
     }
@@ -117,10 +117,10 @@ const AnalyticsDashboard = () => {
     try {
       const res = await analyticsAPI.getForecast(storeId, days);
       setForecastData(res.data);
-    } catch (e) { /* ignore */ }
+    } catch (_e) { /* ignore */ }
   };
 
-  const { maxSales, salesGrowthPositive, ordersGrowthPositive } = useMemo(() => {
+  const { _maxSales, salesGrowthPositive, ordersGrowthPositive } = useMemo(() => {
     return {
       maxSales: salesData?.data ? Math.max(...salesData.data.map(d => d.sales), 1) : 1,
       salesGrowthPositive: (comparison?.growth?.sales || 0) >= 0,

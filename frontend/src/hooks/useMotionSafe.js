@@ -30,10 +30,9 @@ export const useMotionSafe = () => {
         if (typeof window === 'undefined') return false;
         return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     });
-    const [lowSpec, setLowSpec] = useState(false);
+    const [lowSpec, _setLowSpec] = useState(detectLowSpec);
 
     useEffect(() => {
-        setLowSpec(detectLowSpec());
 
         const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
         const handler = (e) => setReducedMotion(e.matches);

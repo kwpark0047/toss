@@ -613,7 +613,7 @@ function PartnershipCard({ item, type, onRespond }) {
 
 // ── 메인 페이지 ───────────────────────────────────────────────────────
 export default function CommunityPage() {
-  const { user } = useAuth();
+  const { _user } = useAuth();
   const [tab, setTab]           = useState('feed');
   const [myStores, setMyStores] = useState([]);
   const [selectedStore, setSelectedStore] = useState(null);

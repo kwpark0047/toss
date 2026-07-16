@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ExternalLink, Store, MapPin, Phone, Loader2, AlertCircle, ChevronRight } from 'lucide-react';
+import { ExternalLink, Store, MapPin, ChevronRight } from 'lucide-react';
 import { naverPlaceAPI } from '../../api/naverPlace';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';

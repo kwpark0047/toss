@@ -258,13 +258,14 @@ export default function CustomerPhoneSheet({
 
   useEffect(() => {
     if (isOpen) {
-      setStep('idle');
-      // 재방문 고객: 이전에 저장된 알림 수신 번호를 자동 입력
-      let saved = '';
-      try { saved = localStorage.getItem('wm_customer_phone') || ''; } catch { /* 무시 */ }
-      setPhone(saved ? formatPhone(saved) : '');
-      setError('');
-      setResult(null);
+      Promise.resolve().then(() => {
+        setStep('idle');
+        let saved = '';
+        try { saved = localStorage.getItem('wm_customer_phone') || ''; } catch { /* 무시 */ }
+        setPhone(saved ? formatPhone(saved) : '');
+        setError('');
+        setResult(null);
+      });
       setTimeout(() => inputRef.current?.focus(), 300);
     }
   }, [isOpen]);
@@ -382,7 +383,7 @@ export default function CustomerPhoneSheet({
                   { icon: Bell, text: '주문 조리 현황 실시간 알림' },
                   { icon: Star, text: `포인트 적립 (결제금액의 ${estimatedPoints > 0 ? Math.round((estimatedPoints / totalAmount) * 100) : 1}%)` },
                   { icon: Gift, text: '첫 방문 웰컴 쿠폰 즉시 발급' },
-                ].map(({ icon: Icon, text }) => (
+                ].map(({ icon: _Icon, text }) => (
                   <div key={text} className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                       <Check className="w-3.5 h-3.5 text-green-600" strokeWidth={3} />

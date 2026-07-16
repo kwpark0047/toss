@@ -167,13 +167,13 @@ class AIService {
         const cacheKey = `rec_${preferences}_${weather}_${mood}_${pastOrders.length}_${trendingItems.length}_${menuList.length}`;
 
         if (this.cache.has(cacheKey)) {
-            logger.debug(`[AI] 캐시된 추천 결과를 반환합니다.`);
+            logger.debug(`[AI] 캐시에서 추천 결과를 반환합니다.`);
             return this.cache.get(cacheKey);
         }
 
         const menus = menuList.map(m => ({ id: m.id, name: m.name, category: m.categories?.name, price: m.price }));
         const prompt = `
-      당신은 매장의 전문 매니저입니다. 고객의 상황과 선호도에 따라 가장 잘 어울리는 메뉴 3가지를 추천해 주세요.
+      당신은 매장의 전문 매니저입니다. 고객의 상황과 취향에 따라 가장 잘 어울리는 메뉴 3가지를 추천해주세요.
       
       [고객 상황]
       - 선호도: ${preferences || '없음'}
@@ -185,8 +185,8 @@ class AIService {
       - 요즘 인기 메뉴: ${trendingItems.join(", ") || "없음"}
       
       [추천 규칙]
-      1. 시간대와 날씨에 어울리는 메뉴를 우선 추천하세요.
-      2. 고객이 과거에 주문한 메뉴는 새로운 메뉴를 추천하세요.
+      1. 시간대와 날씨에 잘 어울리는 메뉴를 우선 추천하세요.
+      2. 고객이 과거에 주문한 메뉴와 비슷한 메뉴를 추천하세요.
       3. 요즘 인기 메뉴가 있다면 가중치를 두고 고려하세요.
       4. 선호도가 명시된 경우 이를 최우선으로 반영하세요.
       
@@ -194,9 +194,9 @@ class AIService {
       ${JSON.stringify(menus)}
       
       [결과 형식]
-      반드시 다음 JSON 형식으로만 응답하세요:
+      반드시 다음 JSON 형식으로만 응답하세요. 다른 설명은 제외하고 순수 JSON 배열만 반환하세요:
       [
-        { "id": 메뉴ID, "reason": "추천 사유(한 문장, 예: 날씨가 더운 날 시원하게 즐기기 좋은 메뉴입니다.)" },
+        { "id": 메뉴ID, "reason": "추천 이유(한 문장, 예: 비오는 날에 따뜻하게 즐기기 좋은 메뉴입니다.)" },
         ...
       ]
     `;
@@ -257,9 +257,9 @@ class AIService {
       3. 가벼운 식사라면 풍미를 더해줄 진한 디저트 추천.
       
       [결과 형식]
-      반드시 다음 JSON 형식으로만 응답하세요:
+      반드시 다음 JSON 형식으로만 응답하세요. 다른 설명은 제외하고 순수 JSON 배열만 반환하세요:
       [
-        { "id": 메뉴ID, "reason": "페어링 사유(한 문장, 예: 매콤한 입안을 시원하게 달래줄 아이스크림입니다.)" }
+        { "id": 1, "reason": "페어링 사유(한 문장, 예: 매콤한 입안을 시원하게 달래줄 아이스크림입니다.)" }
       ]
       * 최대 2개까지만 추천하세요.
     `;
@@ -283,7 +283,7 @@ class AIService {
     async generateWithFallback(prompt) {
         let lastError = null;
 
-        // 최대 재시도 횟수는 모델 리스트 크기만큼
+        // 설정된 사용 가능한 모델 리스트 크기만큼
         for (let i = 0; i < this.models.length; i++) {
             try {
                 if (!this.model) this.initModel();
@@ -298,8 +298,12 @@ class AIService {
                     if (!hasNext) break;
                 } else {
                     logger.error(error);
-                    break; // 다른 유형의 에러는 즉시 중단
+                    break; // 다른 유형의 에러면 즉시 중단
                 }
+            }
+        }
+        throw lastError;
+    }
             }
         }
         throw lastError;

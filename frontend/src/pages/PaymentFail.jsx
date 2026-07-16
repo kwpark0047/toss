@@ -1,5 +1,5 @@
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { AlertCircle, ArrowLeft, RefreshCw, Home } from 'lucide-react';
+import { Home } from 'lucide-react';
 
 export default function PaymentFail() {
   const [searchParams] = useSearchParams();

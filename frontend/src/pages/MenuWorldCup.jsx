@@ -14,7 +14,7 @@ const STAGE = {
 
 const MenuWorldCup = () => {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { _user } = useAuth();
 
     const [stage, setStage] = useState(STAGE.SETUP);
     const [products, setProducts] = useState([]);
@@ -254,7 +254,7 @@ const BattleStage = ({ pair, roundTotal, currentRound, onSelect }) => {
                     VS
                 </div>
 
-                {pair.map((product, idx) => (
+                {pair.map((product, _idx) => (
                     <div
                         key={product.id}
                         onClick={() => onSelect(product)}

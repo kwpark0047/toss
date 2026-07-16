@@ -126,7 +126,7 @@ const MenuBuilder = () => {
         }
     };
 
-    const previewWidth = previewMode === 'mobile' ? 375 : previewMode === 'tablet' ? 768 : '100%';
+    const _previewWidth = previewMode === 'mobile' ? 375 : previewMode === 'tablet' ? 768 : '100%';
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-[60vh]">

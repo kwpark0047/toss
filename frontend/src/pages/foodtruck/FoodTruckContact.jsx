@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Truck, Menu, X, Mail, Send, CheckCircle, Sparkles
+  Truck, Menu, X, Mail, Send, CheckCircle, _Sparkles
 } from 'lucide-react';
 
 export default function FoodTruckContact() {

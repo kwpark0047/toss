@@ -60,8 +60,8 @@ function StatsBar({ stats, loading }) {
   );
   if (!stats) return null;
 
-  const generalCount  = stats.tier_distribution?.GENERAL  || 0;
-  const silverCount   = stats.tier_distribution?.SILVER   || 0;
+  const _generalCount  = stats.tier_distribution?.GENERAL  || 0;
+  const _silverCount   = stats.tier_distribution?.SILVER   || 0;
   const goldCount     = stats.tier_distribution?.GOLD     || 0;
   const vipCount      = (stats.tier_distribution?.VIP || 0) + (stats.tier_distribution?.PLATINUM || 0);
 
@@ -565,8 +565,8 @@ const CustomerManager = () => {
     setLoading(false);
   }, [storeId, sortBy, order, searchTerm, tierFilter]);
 
-  useEffect(() => { fetchStats(); }, [fetchStats]);
-  useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
+  useEffect(() => { Promise.resolve().then(() => fetchStats()); }, [fetchStats]);
+  useEffect(() => { Promise.resolve().then(() => fetchCustomers()); }, [fetchCustomers]);
 
   // 등급 필터 옵션 (통계 기반)
   const tierTabs = [

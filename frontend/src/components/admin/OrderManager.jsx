@@ -75,7 +75,7 @@ const OrderManager = () => {
     }
   }, [storeId]);
 
-  const fetchOrders = useCallback(async (signal) => {
+  const fetchOrders = useCallback(async (_signal) => {
     try {
       const status = selectedStatus === 'all' ? undefined : selectedStatus;
       const res = await ordersAPI.getByStore(storeId, status, selectedDate);

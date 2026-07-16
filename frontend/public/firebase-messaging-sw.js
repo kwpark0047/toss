@@ -9,4 +9,4 @@ firebase.initializeApp({
     appId: "placeholder"
 });
 
-const messaging = firebase.messaging();
+const _messaging = firebase.messaging();

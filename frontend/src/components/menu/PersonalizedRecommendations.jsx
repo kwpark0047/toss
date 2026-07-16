@@ -20,14 +20,14 @@ const TIME_LABELS = {
   night: '야식',
 };
 
-const WEATHER_ICONS = {
+const _WEATHER_ICONS = {
   sunny: Sun,
   cloudy: CloudSun,
   rainy: CloudRain,
   snowy: CloudRain,
 };
 
-const WEATHER_EMOJIS = {
+const _WEATHER_EMOJIS = {
   sunny: '☀️',
   cloudy: '⛅',
   rainy: '🌧️',

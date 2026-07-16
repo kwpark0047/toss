@@ -66,8 +66,13 @@ class ProductsService {
     /**
      * 상품 정보 수정 + WebSocket 알림
      */
-    async updateProduct(id, data, io) {
+        async updateProduct(id, data, io) {
+        const oldProduct = await Product.findById(id);
         const product = await Product.update(id, data);
+        
+        if (oldProduct && (oldProduct.name !== product.name || oldProduct.description !== product.description)) {
+            this._autoTranslateProduct(product.id, product);
+        }
         if (product?.store_id) cache.flushByStore(product.store_id);
 
         if (io && product.store_id) {
@@ -120,6 +125,41 @@ class ProductsService {
         );
         cache.flushByStore(targetStoreId);
         return imported;
+    }
+
+    /**
+     * �񵿱� �ڵ� ���� �� DB ����
+     */
+    async _autoTranslateProduct(productId, productData) {
+        try {
+            const aiService = require('../services/aiService');
+            const targetLangs = ['en', 'jp', 'cn'];
+            const translations = {};
+            
+            for (const lang of targetLangs) {
+                const res = await aiService.batchTranslateMenus([productData], lang);
+                if (res && res.length > 0) {
+                    translations[lang] = {
+                        name: res[0].translated_name,
+                        description: res[0].translated_description
+                    };
+                }
+            }
+            
+            if (Object.keys(translations).length > 0) {
+                const ProductRepo = require('../repositories/Product');
+                await ProductRepo.update(productId, { translations });
+                if (productData.store_id) {
+                    const cache = require('../utils/cache');
+                    cache.flushByStore(productData.store_id);
+                }
+                const logger = require('../utils/logger');
+                logger.info(`[ProductsService] �ڵ� ���� �Ϸ�: productId=${productId}`);
+            }
+        } catch (e) {
+            const logger = require('../utils/logger');
+            logger.error(`[ProductsService] �ڵ� ���� ����: ${e.message}`);
+        }
     }
 }
 

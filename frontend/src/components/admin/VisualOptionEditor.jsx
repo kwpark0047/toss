@@ -1,20 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState} from 'react';
 import { Trash2, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function VisualOptionEditor({ value, onChange }) {
-  const [groups, setGroups] = useState([]);
-
-  useEffect(() => {
-    try {
-      const parsed = typeof value === 'string' && value.trim()
-        ? JSON.parse(value)
-        : Array.isArray(value) ? value : [];
-      setGroups(parsed);
-    } catch {
-      setGroups([]);
-    }
-  }, []);
+  const [groups, setGroups] = useState(() => { try { return typeof value === 'string' && value.trim() ? JSON.parse(value) : Array.isArray(value) ? value : []; } catch { return []; } });
 
   const emit = (newGroups) => {
     setGroups(newGroups);

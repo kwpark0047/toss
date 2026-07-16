@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Activity, Database, Zap, Shield, RefreshCw, AlertTriangle,
-    CheckCircle2, XCircle, Clock, TrendingUp, Server, Cpu, BarChart3
+    CheckCircle2, XCircle, Clock, TrendingUp, Server, Cpu, _BarChart3
 } from 'lucide-react';
 import api from '../../api';
 

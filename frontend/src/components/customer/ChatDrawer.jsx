@@ -8,7 +8,7 @@ import { chatAPI, getSocket } from '../../api';
  * ChatDrawer 컴포넌트
  * 매니저와 1:1 실시간 대화를 나눌 수 있는 프리미엄 채팅 인터페이스입니다.
  */
-const ChatDrawer = ({ isOpen, onClose, store, table, customerInfo }) => {
+const ChatDrawer = ({ isOpen, onClose, store, _table, customerInfo }) => {
     const { t } = useTranslation();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');

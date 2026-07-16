@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState} from 'react';
 import { Loader2, ImageOff, X } from 'lucide-react';
 
-export const formatFileSize = (bytes) => {
+const _formatFileSize = (bytes) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -9,8 +9,11 @@ export const formatFileSize = (bytes) => {
 
 export function ImagePreview({ src, onRemove }) {
   const [status, setStatus] = useState('loading');
-  
-  useEffect(() => { setStatus('loading'); }, [src]);
+  const [prevSrc, setPrevSrc] = useState(src);
+  if (src !== prevSrc) {
+    setPrevSrc(src);
+    setStatus('loading');
+  }
 
   return (
     <div className="relative w-full max-w-[220px] sm:w-48 mx-auto sm:mx-0">

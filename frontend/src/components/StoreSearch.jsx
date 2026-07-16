@@ -5,7 +5,7 @@ import WaitingSection from './customer/WaitingSection';
 import { storesAPI, waitingAPI, reviewsAPI } from '../api';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './common/LanguageSwitcher';
-import { bizLabel } from '../utils/businessType';
+
 import StoreFilterBar from './StoreFilterBar';
 import StoreCard from './StoreCard';
 import StoreMapSection from './StoreMapSection';
@@ -35,7 +35,7 @@ function classifyError(error) {
 }
 
 const StoreSearch = () => {
-  const { t } = useTranslation();
+  const { _t } = useTranslation();
   const [stores, setStores] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('all');

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Store, QrCode, Smartphone, ArrowRight, Zap, ShieldCheck, Star, Sparkles, TrendingUp } from 'lucide-react';
 
 const Landing = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [_mobileMenuOpen, _setMobileMenuOpen] = useState(false);
 
   const stats = [
     { label: '활성 매장', value: '1,200+', icon: Store },

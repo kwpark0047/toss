@@ -33,7 +33,7 @@ export default function HighlightBanner({ district = '' }) {
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    Promise.resolve().then(() => setLoading(true));
     storesAPI.highlights({ district: district || undefined })
       .then(res => {
         if (!alive) return;
@@ -47,7 +47,7 @@ export default function HighlightBanner({ district = '' }) {
   }, [district]);
 
   const go = useCallback((n) => {
-    setIdx(i => (n + items.length) % items.length);
+    setIdx(_i => (n + items.length) % items.length);
   }, [items.length]);
 
   // 자동 롤링 (모션 최소화 설정 시 정지)

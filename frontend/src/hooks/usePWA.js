@@ -10,11 +10,10 @@ const PING_TIMEOUT    = 4_000;
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [canInstall, setCanInstall]         = useState(false);
-  const [isInstalled, setIsInstalled]       = useState(false);
+  const [isInstalled, setIsInstalled]       = useState(() => typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches);
 
   useEffect(() => {
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
+    if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
       return;
     }
     const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); setCanInstall(true); };
@@ -115,7 +114,7 @@ export function useOnlineStatus() {
 
     // Initial check
     if (!navigator.onLine) {
-      setIsVerified(false);
+      Promise.resolve().then(() => setIsVerified(false));
       startPing();
     } else {
       pingServer().then(ok => {

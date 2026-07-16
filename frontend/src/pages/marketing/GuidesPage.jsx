@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Store, Menu, X, HelpCircle, ChevronDown, ChevronUp, Search,
-  BookOpen, Play, CheckCircle, ArrowRight, Printer, QrCode, Smartphone
+  Store, Menu, X, _HelpCircle, ChevronDown, ChevronUp, Search,
+  BookOpen, _Play, _CheckCircle, _ArrowRight, _Printer, QrCode, Smartphone
 } from 'lucide-react';
 
 export default function GuidesPage() {

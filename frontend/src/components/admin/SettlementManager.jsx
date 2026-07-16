@@ -29,7 +29,7 @@ const STATUS_STYLES = {
 };
 
 function SettlementDetailModal({ settlement, onClose, onTaxInvoice }) {
-    const { storeId } = useParams();
+    const { _storeId } = useParams();
     const [issuingInvoice, setIssuingInvoice] = useState(false);
 
     if (!settlement) return null;

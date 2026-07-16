@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { NotificationProvider, useNotifications } from '../../contexts/NotificationContext';
+import { NotificationProvider} from '../../contexts/NotificationContext';
 import { AdminThemeProvider, useAdminTheme } from '../../contexts/AdminThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -31,7 +31,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
       const stats = res?.data ?? res;
       // paid(신규), pending(대기), confirmed(확인) 합계를 대기 중으로 간주
       const count = (stats?.by_status?.paid || 0) + (stats?.by_status?.pending || 0) + (stats?.by_status?.confirmed || 0);
-      setPendingOrdersCount(count);
+      Promise.resolve().then(() => setPendingOrdersCount(count));
     } catch { /* 무시 */ }
   }, [storeId]);
 
@@ -359,6 +359,26 @@ const AdminLayout = ({ children }) => {
   const isBoardPath = location.pathname.startsWith('/board');
   const isPublicBoardPath = isBoardPath && !location.pathname.startsWith('/board/write') && !location.pathname.startsWith('/board/edit');
 
+  const rawStoreId = location.pathname.split('/')[3];
+  // 'new', 'undefined', 영문 경로 등 비숫자 값은 storeId로 인정하지 않음
+  const storeId = rawStoreId && /^\d+$/.test(rawStoreId) ? rawStoreId : undefined;
+
+  const [storeInfo, setStoreInfo] = useState(null);
+
+  useEffect(() => {
+    if (storeId) {
+      fetch(`/api/stores/${storeId}`)
+        .then(res => res.json())
+        .then(json => {
+          const data = json.data || json;
+          setStoreInfo(data);
+        })
+        .catch(err => console.error('Failed to fetch store info inside sidebar:', err));
+    } else {
+      Promise.resolve().then(() => setStoreInfo(null));
+    }
+  }, [storeId]);
+
   if (!user && !isPublicBoardPath) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950">
@@ -381,25 +401,7 @@ const AdminLayout = ({ children }) => {
     );
   }
 
-  const rawStoreId = location.pathname.split('/')[3];
-  // 'new', 'undefined', 영문 경로 등 비숫자 값은 storeId로 인정하지 않음
-  const storeId = rawStoreId && /^\d+$/.test(rawStoreId) ? rawStoreId : undefined;
-
-  const [storeInfo, setStoreInfo] = useState(null);
-
-  useEffect(() => {
-    if (storeId) {
-      fetch(`/api/stores/${storeId}`)
-        .then(res => res.json())
-        .then(json => {
-          const data = json.data || json;
-          setStoreInfo(data);
-        })
-        .catch(err => console.error('Failed to fetch store info inside sidebar:', err));
-    } else {
-      setStoreInfo(null);
-    }
-  }, [storeId]);
+  
 
   const isFoodTruck = storeInfo?.business_type === 'FOOD_TRUCK' || storeInfo?.business_type === 'food_truck' || storeInfo?.business_type === '푸드트럭';
 

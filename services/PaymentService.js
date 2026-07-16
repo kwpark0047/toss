@@ -607,14 +607,18 @@ class PaymentService {
         logger.error(`[Webhook/Toss] 망취소 API 실패: ${e.message}`);
       }
     } else {
-      const existing = await prisma.payments.findFirst({ where: { order_id: order.id, payment_key: paymentKey } });
-      if (!existing) {
-        await prisma.payments.updateMany({
-          where: { order_id: order.id, status: 'READY' },
-          data: { payment_key: paymentKey, status: 'DONE', approved_at: new Date() }
-        });
-        logger.info(`[Webhook/Toss] 결제 정보 동기화: order=${order.id}`);
+      try {
+        logger.info(`[Webhook/Toss] 결제 승인 처리 (Webhook): orderId=${tossOrderId}`);
+        const result = await this.processApproval(paymentKey, tossOrderId, data.totalAmount, data.customerKey);
+        if (result.alreadyDone) {
+          logger.info(`[Webhook/Toss] 이미 처리된 결제: orderId=${tossOrderId}`);
+        } else {
+          logger.info(`[Webhook/Toss] 결제 승인 완료: orderId=${tossOrderId}`);
+        }
+      } catch (e) {
+        logger.error(`[Webhook/Toss] processApproval 실패: ${e.message}`);
       }
+    }
     }
   }
 

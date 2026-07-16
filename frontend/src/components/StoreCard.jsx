@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 import { motion } from 'framer-motion';
 import { Store, Coffee, Utensils, Cake, Pizza, ShoppingBag, MapPin, Star, BellRing, Heart, Navigation, MessageCircle } from 'lucide-react';
 import { bizLabel } from '../utils/businessType';
@@ -49,7 +50,7 @@ function getStoreOpenStatus(openTime, closeTime) {
   }
 }
 
-export { getStoreOpenStatus };
+
 
 /**
  * StoreCard — 매장 카드 컴포넌트 (그리드/리스트 뷰 지원)

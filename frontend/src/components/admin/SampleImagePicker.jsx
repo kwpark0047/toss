@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Image, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const SAMPLE_IMAGES = {
+const SAMPLE_IMAGES = {
   '한식': [
     { label: '비빔밥', url: 'https://images.unsplash.com/photo-1553163147-622ab57be1c7?w=600&h=600&fit=crop&auto=format' },
     { label: '찌개류', url: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=600&h=600&fit=crop&auto=format' },

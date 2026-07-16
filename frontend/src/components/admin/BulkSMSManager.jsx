@@ -198,7 +198,7 @@ const BulkSMSManager = () => {
                                     <p className="text-slate-400 font-bold">대상 고객이 없습니다. 필터를 변경해 보세요.</p>
                                 </div>
                             ) : (
-                                customers.map((c, idx) => (
+                                customers.map((c, _idx) => (
                                     <motion.div
                                         key={c.id}
                                         variants={itemVariants}

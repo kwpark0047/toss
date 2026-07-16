@@ -10,14 +10,39 @@ const logger = require('../utils/logger');
 const { encryptPhone, decryptPhone, normalizePhone } = require('../utils/phoneEncryption');
 const { AppError } = require('../utils/errorHandler');
 
+// Haversine formula for distance in km
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Radius of the earth in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
 class OrderService {
     constructor(io) {
         this.io = io;
     }
 
     async createOrder(data) {
-        const { user_coupon_id, store_id, table_id, table_number, items, total_amount, phone, customer_phone, payment_method, method } = data;
+        const { user_coupon_id, store_id, table_id, table_number, items, total_amount, phone, customer_phone, payment_method, method, latitude, longitude } = data;
         let discount_amount = 0;
+
+        const Store = require('../repositories/Store');
+        const store = await Store.findById(store_id);
+        if (!store) {
+            throw new AppError('매장을 찾을 수 없습니다.', 404);
+        }
+
+        if (table_id && latitude && longitude && store.latitude && store.longitude) {
+            const distanceKm = getDistanceFromLatLonInKm(latitude, longitude, store.latitude, store.longitude);
+            if (distanceKm > 0.5) {
+                throw new AppError('매장 반경 500m 밖에서는 주문할 수 없습니다.', 403);
+            }
+        }
 
         // 1. 쿠폰 검증
         if (user_coupon_id) {
@@ -96,7 +121,6 @@ class OrderService {
         }
 
         // 재고 차감 및 알림 발송
-        await this._processInventory(order);
         this._notifyNewOrder(order, resolvedTableName);
 
         return order;
@@ -104,11 +128,25 @@ class OrderService {
 
     async updateStatus(id, status, staff_id) {
         const orderId = parseInt(id);
+        const oldOrder = await Order.findById(orderId);
         const updatedOrder = await Order.updateStatus(orderId, status, staff_id);
+
+        // KDS 수락 시 재고 차감 및 품절 처리
+        if (oldOrder && oldOrder.status === 'pending' && ['confirmed', 'preparing', 'ready', 'completed'].includes(status)) {
+            await this._processInventory(updatedOrder);
+        }
 
         if (['completed', 'ready'].includes(status) && updatedOrder.table_id) {
             await Table.update(updatedOrder.table_id, { status: 'dirty' });
             if (this.io) this.io.emit('table-updated', { store_id: updatedOrder.store_id, table_id: updatedOrder.table_id });
+        }
+
+        try {
+            const sseController = require('../controllers/sseController');
+            sseController.notifyOrderStatusChange(orderId, status);
+        } catch (sseErr) {
+            const logger = require('../utils/logger');
+            logger.error(`[SSE Error] ${sseErr.message}`);
         }
 
         // 알림 처리
@@ -164,7 +202,10 @@ class OrderService {
         if (order.status === 'cancelled') return { success: true, message: '이미 취소된 주문입니다.' };
 
         await Order.updateStatus(orderId, 'cancelled');
-        await this._restoreInventory(orderId);
+        // KDS 수락 이후 취소된 경우에만 재고 복구
+        if (order.status !== 'pending') {
+            await this._restoreInventory(orderId);
+        }
         this._sendOrderAlimtalk(order, 'cancelled').catch(e => logger.error(e));
 
         if (this.io) {
@@ -187,17 +228,18 @@ class OrderService {
             const result = await prisma.$transaction(async (tx) => {
                 const product = await tx.products.findUnique({
                     where: { id: item.product_id },
-                    select: { id: true, store_id: true, stock_quantity: true, low_stock_threshold: true }
+                    select: { id: true, name: true, store_id: true, stock_quantity: true, low_stock_threshold: true }
                 });
                 if (!product || product.stock_quantity === null) return null;
                 if (product.stock_quantity < item.quantity) {
                     await tx.products.update({ where: { id: item.product_id }, data: { is_sold_out: true } });
-                    return null;
+                    return { is_sold_out: true, name: product.name, store_id: product.store_id, productId: product.id, newQty: 0, threshold: product.low_stock_threshold };
                 }
                 const newQty = product.stock_quantity - item.quantity;
+                const is_sold_out = newQty === 0;
                 await tx.products.update({
                     where: { id: item.product_id },
-                    data: { stock_quantity: newQty, is_sold_out: newQty === 0 }
+                    data: { stock_quantity: newQty, is_sold_out }
                 });
                 await tx.stock_history.create({
                     data: {
@@ -206,10 +248,19 @@ class OrderService {
                         reason: 'ORDER', order_id: order.id
                     }
                 });
-                return { newQty, threshold: product.low_stock_threshold };
+                return { is_sold_out, name: product.name, store_id: product.store_id, productId: product.id, newQty, threshold: product.low_stock_threshold };
             });
-            if (result && result.newQty <= result.threshold) {
-                notificationService.notifyLowStockDB({ id: item.product_id, stock_quantity: result.newQty }).catch(() => {});
+            if (result) {
+                if (result.newQty <= result.threshold) {
+                    notificationService.notifyLowStockDB({ id: item.product_id, stock_quantity: result.newQty }).catch(() => {});
+                }
+                if (this.io && result.is_sold_out) {
+                    this.io.to('store - ' + result.store_id).emit('product-updated', {
+                        productId: result.productId,
+                        is_sold_out: true,
+                        name: result.name
+                    });
+                }
             }
         }
     }

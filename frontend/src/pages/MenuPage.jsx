@@ -26,7 +26,7 @@ import OrderStatusModal from "@/components/menu/OrderStatusModal";
 import CustomerPhoneSheet from "@/components/menu/CustomerPhoneSheet";
 import PersonalizedRecommendations from "@/components/menu/PersonalizedRecommendations";
 import ReviewModal from "@/components/customer/ReviewModal";
-import FloatingCallButton from "@/components/customer/FloatingCallButton";
+import _FloatingCallButton from "@/components/customer/FloatingCallButton";
 import ManagerCallSheet from "@/components/customer/ManagerCallSheet";
 import ChatDrawer from "@/components/customer/ChatDrawer";
 import StoreReviews from "@/components/customer/StoreReviews";
@@ -186,8 +186,8 @@ const MenuPage = () => {
   const [isPhoneSheetOpen, setIsPhoneSheetOpen] = useState(false);
   const [showCallSheet, setShowCallSheet] = useState(false);
   const [showChatDrawer, setShowChatDrawer] = useState(false);
-  const [currentOrderId, setCurrentOrderId] = useState(null);
-  const [currentOrderAmount, setCurrentOrderAmount] = useState(0);
+  const [currentOrderId, _setCurrentOrderId] = useState(null);
+  const [currentOrderAmount, _setCurrentOrderAmount] = useState(0);
 
   const [lang, setLang] = useState(() => {
     try {
@@ -203,7 +203,7 @@ const MenuPage = () => {
   }, []);
 
   const [tinkerSettings] = useState(() => loadTinkerBellSettings());
-  const [lastAddedItem, setLastAddedItem] = useState(null);
+  const [lastAddedItem, _setLastAddedItem] = useState(null);
 
   const { data: weatherData } = useQuery({
     queryKey: ["currentWeather"],
@@ -211,7 +211,7 @@ const MenuPage = () => {
       try {
         const res = await weatherAPI.getCurrent('108');
         return res?.data?.data || null;
-      } catch (err) {
+      } catch (_err) {
         return null;
       }
     },

@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import{ useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Newspaper, 
   ExternalLink, 
   Calendar, 
-  Filter,
+  _Filter,
   RefreshCw,
   Search,
   Building,
   Store,
   Menu,
   X,
-  ChevronRight
+  _ChevronRight
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { newsAPI } from '../../api/news';

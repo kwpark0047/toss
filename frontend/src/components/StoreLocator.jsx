@@ -44,7 +44,7 @@ export default function StoreLocator() {
   }, [customerPhone]);
 
   const [orderStatus, setOrderStatus] = useState(null);
-  const [orderStatusLoaded, setOrderStatusLoaded] = useState(false);
+  const [_orderStatusLoaded, setOrderStatusLoaded] = useState(false);
   const orderIdParam = orderNo ? Number(orderNo) : null;
   const statusMounted = useRef(true);
 

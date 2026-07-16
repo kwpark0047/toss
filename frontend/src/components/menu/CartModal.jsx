@@ -41,7 +41,7 @@ const formatPhoneInput = (value) => {
   return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
 };
 
-const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice, notifyPhone = '', onNotifyPhoneChange, paymentMethod = 'card', onPaymentMethodChange, menuItems = [], storeId, onAddToCartClick }) => {
+const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice, notifyPhone = '', onNotifyPhoneChange, paymentMethod = 'card', onPaymentMethodChange, menuItems = [], _storeId, onAddToCartClick }) => {
   const cartItemIds = new Set(cart.map(c => c.menuItem.id));
 
   const suggestions = (() => {
