@@ -3,9 +3,7 @@
  */
 
 // 고객 메뉴판이 서빙되는 배포 도메인 (Cloudflare Pages 동적 라우팅 지원)
-export const SITE_ORIGIN = (typeof window !== 'undefined' && window.location.hostname === 'localhost') 
-  ? window.location.origin 
-  : 'https://toss.wemarket.workers.dev';
+export const SITE_ORIGIN = 'https://toss.wemarket.workers.dev';
 
 /**
  * 매장 메뉴판 URL 생성.
