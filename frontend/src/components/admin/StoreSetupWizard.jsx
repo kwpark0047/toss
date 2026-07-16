@@ -7,6 +7,7 @@ import {
   Clock, Phone, MapPin, PartyPopper, X
 } from 'lucide-react';
 import { storesAPI, categoriesAPI, productsAPI, tablesAPI, aiAPI } from '../../api';
+import { buildMenuUrl, buildQrUrl } from '../../utils/site';
 
 // 공용 컴포넌트 및 유틸 임포트
 import WizardTinkerbell, { Wing, speak } from './wizard/WizardTinkerbell';
