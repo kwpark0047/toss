@@ -1,14 +1,14 @@
 /**
- * site.js - 배포 사이트 관련 공용 상수/헬퍼
+ * site.js - 배포 도메인 관련 공용 상수/헬퍼
  */
 
-// 고객 메뉴판이 서빙되는 배포 도메인 (Vercel)
-export const SITE_ORIGIN = 'https://wemarket.vercel.app';
+// 고객 메뉴판이 서빙되는 배포 도메인 (Cloudflare Pages 동적 라우팅 지원)
+export const SITE_ORIGIN = typeof window !== 'undefined' ? window.location.origin : 'https://wemarket.vercel.app';
 
 /**
  * 매장 메뉴판 URL 생성.
  * @param {number|string} storeId
- * @param {string} [table] 테이블 번호/이름 (없으면 table= 부착 안 함)
+ * @param {string} [table] 테이블 번호/이름 (없으면 table= 파라미터 제외)
  */
 export const buildMenuUrl = (storeId, table) =>
   table != null && table !== ''
