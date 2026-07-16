@@ -2,10 +2,11 @@
 import { useParams, Link } from 'react-router-dom';
 import { 
   Play, CheckCircle2, RefreshCw, Printer, Volume2, VolumeX, 
-  Wifi, WifiOff, Clock, User, ChevronRight, Hash, XCircle, Keyboard, Megaphone
+  Wifi, WifiOff, Clock, User, ChevronRight, Hash, XCircle, Keyboard, Megaphone, Bluetooth
 } from 'lucide-react';
 import{ connectKitchen, getSocket } from '../utils/socket';
 import notificationSound, { vibrateShort, vibrateOrderReady } from '../utils/notificationSound';
+import { usePrinter } from '../hooks/usePrinter';
 
 export default function KitchenDisplay() {
   const { storeId } = useParams();
@@ -18,6 +19,8 @@ export default function KitchenDisplay() {
   const [filterType, setFilteredType] = useState('ALL'); // ALL, DINE_IN, TAKEOUT
   const [socketStatus, setSocketStatus] = useState('DISCONNECTED');
   const [updatingId, setUpdatingId] = useState(null);
+
+  const { printerDevice, isConnecting, isSupported, connectPrinter, printReceipt } = usePrinter();
 
   // 개별 주문의 조리 체크 아이템 상태 관리 (KDS 작업자들이 항목 클릭 시 완료선 긋기 용도)
   const [checkedItems, setCheckedItems] = useState({}); // { [order_id + '-' + item_id]: boolean }
@@ -166,6 +169,13 @@ export default function KitchenDisplay() {
       } else {
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: nextStatus } : o));
       }
+
+      if (nextStatus === 'preparing' && printerDevice) {
+        const orderToPrint = orders.find(o => o.id === orderId);
+        if (orderToPrint) {
+          printReceipt(orderToPrint);
+        }
+      }
     } catch (err) {
       alert(err.message);
     } finally {
@@ -177,7 +187,17 @@ export default function KitchenDisplay() {
   const handleReprintSlip = async (orderId) => {
     try {
       setUpdatingId(orderId);
-      // 'preparing' 상태로 서버에 재토글하여 슬립 등록 유도
+      if (printerDevice) {
+        const orderToPrint = orders.find(o => o.id === orderId);
+        if (orderToPrint) {
+          const success = await printReceipt(orderToPrint);
+          if (success) {
+            alert('주방 프린터로 직접 인쇄를 완료했습니다.');
+            return;
+          }
+        }
+      }
+      
       const res = await fetch(`/api/v1/kds/stores/${storeId}/orders/${orderId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -369,6 +389,23 @@ export default function KitchenDisplay() {
 
         {/* 상단 컨트롤 패널 (터치 피드백 강화 및 48px 터치 영역 충족) */}
         <div className="flex items-center gap-2.5">
+          {isSupported && (
+            <button
+              onClick={connectPrinter}
+              disabled={isConnecting}
+              className={`px-4 h-12 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all active:scale-95 ${
+                printerDevice 
+                  ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' 
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-300'
+              }`}
+            >
+              <Bluetooth className={`size-4 ${isConnecting ? 'animate-pulse' : ''}`} />
+              <span className="font-mono text-xs uppercase font-bold">
+                {printerDevice ? 'PRINTER ON' : 'CONNECT PRINTER'}
+              </span>
+            </button>
+          )}
+
           {/* 소켓 연결 표시등 */}
           <div className={`flex items-center gap-1.5 px-4 h-12 rounded-xl text-xs font-mono border ${
             socketStatus === 'CONNECTED' 
