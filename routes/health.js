@@ -17,7 +17,8 @@ const allowedOrigins = [
     'https://wemarket.pages.dev',
     'https://wemarket.vercel.app',
     'https://250105.vercel.app',
-    'https://wemarket-6k6.pages.dev'
+    'https://wemarket-6k6.pages.dev',
+    'https://toss.wemarket.workers.dev'
 ];
 
 // DB 슬립/서버 503 가용성 장애 시에도 브라우저 전송에 필요한 CORS 헤더를 원자적으로 강제 반사 (Workbox fetch 우회 차단 해결)
