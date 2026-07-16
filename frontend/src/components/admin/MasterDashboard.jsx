@@ -4,6 +4,7 @@ import { storesAPI, ordersAPI, analyticsAPI, exportAPI, getSocket } from '../../
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { formatPrice, formatTime } from '../../utils/format';
+import { format } from 'date-fns';
 import EmptyState from '../common/EmptyState';
 import Skeleton from '../common/Skeleton';
 import SuperAdminDashboard from './SuperAdminDashboard';
@@ -170,7 +171,7 @@ const MasterDashboard = () => {
         try {
             const [sRes, oRes, cRes] = await Promise.allSettled([
                 ordersAPI.getStats(storeId),
-                ordersAPI.getByStore(storeId),
+                ordersAPI.getByStore(storeId, undefined, format(new Date(), 'yyyy-MM-dd')),
                 analyticsAPI.getComparison(storeId, timeRange === 'month' ? 'monthly' : 'weekly'),
             ]);
             if (sRes.status === 'fulfilled') setStats(sRes.value?.data ?? sRes.value);
