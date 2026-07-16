@@ -184,6 +184,10 @@ class OrderService {
             });
         }
 
+        if (status === 'completed') {
+            this._processLoyaltyPoints(updatedOrder).catch(e => logger.error('[Loyalty Error] ' + e.message));
+        }
+
         this._emitOrderUpdate(updatedOrder, status);
         return updatedOrder;
     }
@@ -297,6 +301,91 @@ class OrderService {
                 logger.warn(`[Inventory] 복구 실패: ${item.product_id}`, e.message);
             }
         }
+    }
+
+
+    async _processLoyaltyPoints(order) {
+        if (!order.customer_phone) return;
+        
+        const phoneStr = decryptPhone(order.customer_phone);
+        if (!phoneStr) return;
+
+        // Fetch store point settings
+        const settings = await prisma.store_point_settings.findUnique({
+            where: { store_id: order.store_id }
+        });
+        
+        await prisma.$transaction(async (tx) => {
+            // Find or create store_customer
+            let customer = await tx.store_customers.findFirst({
+                where: { store_id: order.store_id, customer_phone: phoneStr }
+            });
+            
+            if (!customer) {
+                customer = await tx.store_customers.create({
+                    data: {
+                        store_id: order.store_id,
+                        customer_phone: phoneStr,
+                        visit_count: 1,
+                        total_spent: order.total_amount,
+                        last_visit_at: new Date()
+                    }
+                });
+            } else {
+                await tx.store_customers.update({
+                    where: { id: customer.id },
+                    data: {
+                        visit_count: customer.visit_count + 1,
+                        total_spent: customer.total_spent + order.total_amount,
+                        last_visit_at: new Date()
+                    }
+                });
+            }
+
+            if (!settings || !settings.is_enabled) return;
+            if (order.total_amount < settings.min_earn_amount) return;
+            
+            const earnedPoints = Math.floor(order.total_amount * ((settings.earn_rate || 0) / 100));
+            if (earnedPoints <= 0) return;
+            
+            // Find or create user_points
+            let userPoint = await tx.user_points.findFirst({
+                where: { phone: phoneStr }
+            });
+            
+            if (!userPoint) {
+                userPoint = await tx.user_points.create({
+                    data: {
+                        phone: phoneStr,
+                        total_points: earnedPoints,
+                        lifetime_earned: earnedPoints,
+                        lifetime_used: 0
+                    }
+                });
+            } else {
+                await tx.user_points.update({
+                    where: { id: userPoint.id },
+                    data: {
+                        total_points: userPoint.total_points + earnedPoints,
+                        lifetime_earned: userPoint.lifetime_earned + earnedPoints
+                    }
+                });
+            }
+            
+            // Add point_transactions
+            await tx.point_transactions.create({
+                data: {
+                    user_point_id: userPoint.id,
+                    store_id: order.store_id,
+                    order_id: order.id,
+                    type: 'EARN',
+                    amount: earnedPoints,
+                    balance_after: (userPoint ? userPoint.total_points : 0) + earnedPoints,
+                    description: `주문 적립 (${order.order_number})`,
+                    expires_at: settings.expiry_days ? new Date(Date.now() + settings.expiry_days * 24 * 60 * 60 * 1000) : null
+                }
+            });
+        });
     }
 
     _notifyNewOrder(order, resolvedTableName) {
