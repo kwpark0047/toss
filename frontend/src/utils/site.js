@@ -3,7 +3,7 @@
  */
 
 // 고객 메뉴판이 서빙되는 배포 도메인 (Cloudflare Pages 동적 라우팅 지원)
-export const SITE_ORIGIN = typeof window !== 'undefined' ? window.location.origin : 'https://wemarket.vercel.app';
+export const SITE_ORIGIN = typeof window !== 'undefined' ? window.location.origin : 'https://wemarket.pages.dev';
 
 /**
  * 매장 메뉴판 URL 생성.
