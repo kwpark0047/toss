@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo} from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
-  MessageSquare, CheckCircle2, RefreshCw, _Volume2, _VolumeX, 
-  _Clock, _User, _Hash, _AlertCircle, _Phone, DollarSign, BarChart3, Search, _Calendar, _ChevronRight
+  MessageSquare, CheckCircle2, RefreshCw, Volume2, VolumeX, 
+  Clock, User, Hash, AlertCircle, Phone, DollarSign, BarChart3, Search, Calendar, ChevronRight
 } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 

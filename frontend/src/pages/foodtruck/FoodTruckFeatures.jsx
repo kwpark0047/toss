@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  MapPin, Navigation, Truck, _Bell, _ShieldCheck, _Clock,
-  Smartphone, _Zap, Menu, X, Sparkles, Signal, Fuel, AlertTriangle
+  MapPin, Navigation, Truck, Bell, ShieldCheck, Clock,
+  Smartphone, Zap, Menu, X, Sparkles, Signal, Fuel, AlertTriangle
 } from 'lucide-react';
 
 export default function FoodTruckFeatures() {

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  QrCode, Store, Bell, CreditCard, _Clock, BarChart3,
-  _Users, Smartphone, Heart, Menu, X,
-  Shield, _CheckCircle, _Zap, _ShieldCheck, MapPin, _Gift, Sparkles, CalendarCheck
+  QrCode, Store, Bell, CreditCard, Clock, BarChart3,
+  Users, Smartphone, Heart, Menu, X,
+  Shield, CheckCircle, Zap, ShieldCheck, MapPin, Gift, Sparkles, CalendarCheck
 } from 'lucide-react';
 
 export default function FeaturesPage() {

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
-  MapPin, ShieldAlert, Sparkles, Navigation, _CheckCircle2, 
-  RefreshCw, Power, AlertTriangle, _Play, _HelpCircle
+  MapPin, ShieldAlert, Sparkles, Navigation, CheckCircle2, 
+  RefreshCw, Power, AlertTriangle, Play, HelpCircle
 } from 'lucide-react';
 
 export default function FoodTruckOwnerDashboard() {

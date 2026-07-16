@@ -7,7 +7,7 @@ import { formatPrice } from '../../utils/format';
 import AdvancedInsights from './AdvancedInsights';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell, PieChart as RePieChart, Pie, Legend, Line, ComposedChart, _ReferenceLine
+  BarChart, Bar, Cell, PieChart as RePieChart, Pie, Legend, Line, ComposedChart, ReferenceLine
 } from 'recharts';
 
 /**

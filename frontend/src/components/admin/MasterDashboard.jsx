@@ -12,11 +12,11 @@ import notificationSound from '../../utils/notificationSound';
 import { onNewOrder, onOrderUpdated } from '../../utils/socket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Store, ShoppingBag, DollarSign, Clock, Plus, _ChevronRight, BarChart3, Users, 
+  Store, ShoppingBag, DollarSign, Clock, Plus, ChevronRight, BarChart3, Users, 
   TrendingUp, Activity, Zap, ArrowUpRight, ArrowDownRight, Sparkles, Settings, 
-  RefreshCw, Bell, QrCode, LayoutGrid, _Home, ReceiptText, BadgeCheck, ChefHat, 
+  RefreshCw, Bell, QrCode, LayoutGrid, Home, ReceiptText, BadgeCheck, ChefHat, 
   AlertCircle, CalendarDays, Download, FileSpreadsheet, FileText, Loader2, 
-  MessageSquareText, Code2, Handshake, X, _Volume2, _VolumeX, ShieldAlert
+  MessageSquareText, Code2, Handshake, X, Volume2, VolumeX, ShieldAlert
 } from 'lucide-react';
 
 /* ─── 내보내기 패널 ─── */

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  MessageSquare, Send, X, _User, _ShieldCheck, 
-  Search, _Clock, _CheckCheck, ChevronLeft, 
-  MessageCircle, _ExternalLink, RefreshCw
+  MessageSquare, Send, X, User, ShieldCheck, 
+  Search, Clock, CheckCheck, ChevronLeft, 
+  MessageCircle, ExternalLink, RefreshCw
 } from 'lucide-react';
 import { chatAPI, getSocket } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';

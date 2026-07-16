@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Truck, Menu, X, _MapPin, Smartphone, QrCode, Navigation,
-  ChevronDown, ChevronUp, Sparkles, _CheckCircle, Fuel, AlertTriangle
+  Truck, Menu, X, MapPin, Smartphone, QrCode, Navigation,
+  ChevronDown, ChevronUp, Sparkles, CheckCircle, Fuel, AlertTriangle
 } from 'lucide-react';
 
 export default function FoodTruckGuides() {

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   Play, CheckCircle2, RefreshCw, Printer, Volume2, VolumeX, 
-  Wifi, WifiOff, Clock, User, _ChevronRight, Hash, XCircle
+  Wifi, WifiOff, Clock, User, ChevronRight, Hash, XCircle
 } from 'lucide-react';
 import{ connectKitchen, getSocket } from '../../utils/socket';
 import notificationSound, { vibrateShort, vibrateOrderReady } from '../../utils/notificationSound';

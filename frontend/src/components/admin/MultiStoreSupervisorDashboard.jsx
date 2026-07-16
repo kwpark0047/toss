@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Building2, TrendingUp, ShoppingCart, DollarSign, Calendar, 
-  _ArrowUpRight, _AlertCircle, RefreshCw, Layers, ChevronRight, Store, _CheckCircle
+  ArrowUpRight, AlertCircle, RefreshCw, Layers, ChevronRight, Store, CheckCircle
 } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import { toast } from 'react-toastify';

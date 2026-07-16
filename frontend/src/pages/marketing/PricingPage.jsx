@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Store, Menu, X, Check, _ArrowRight, _ShieldCheck, _HelpCircle, Sparkles, _Award, _Target
+  Store, Menu, X, Check, ArrowRight, ShieldCheck, HelpCircle, Sparkles, Award, Target
 } from 'lucide-react';
 
 export default function PricingPage() {
