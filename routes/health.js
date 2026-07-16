@@ -14,7 +14,7 @@ const alerting = require('../utils/alerting');
 // 런타임 클라이언트 화이트리스트 (PWA 서비스 워커 및 Vercel 크로스 도메인 수신용)
 const allowedOrigins = [
     'https://frontend-gamma-ten-89.vercel.app',
-    'https://wemarket.onrender.com',
+    'https://wemarket.pages.dev',
     'https://wemarket.vercel.app',
     'https://250105.vercel.app',
     'https://wemarket-6k6.pages.dev'
