@@ -1,40 +1,173 @@
 /**
- * v1.js — WeMarket Open API v1 (외부 개발자용)
- *
- * 인증: X-API-Key (또는 Bearer wm_live_...). 모든 응답은 API 키에 묶인 매장으로
- * 자동 스코프된다(멀티테넌트 격리). 읽기는 read, 주문 생성은 write 스코프 필요.
- *
- * 표준 응답: { data, meta } / 오류: { error, message }
+ * @swagger
+ * tags:
+ *   name: OpenAPI v1
+ *   description: WeMarket 외부 개발자용 Open API v1 (API Key 인증)
  */
 const router = require('express').Router();
 const v1Controller = require('../controllers/v1Controller');
 const { apiKeyAuth, requireScope } = require('../middleware/apiKeyAuth');
 
-// 모든 v1 라우트 API 키 필수 (멀티테넌트 키 격리)
 router.use(apiKeyAuth); 
 
-// ── 매장 정보 조회 (read) ──────────────────────────
+/**
+ * @swagger
+ * /api/v1/store:
+ *   get:
+ *     tags: [OpenAPI v1]
+ *     summary: 매장 정보 조회
+ *     security:
+ *       - apiKeyHeader: []
+ *     responses:
+ *       200:
+ *         description: 매장 정보
+ */
 router.get('/store', v1Controller.getStore);
 
-// ── 메뉴 목록 조회 (read) ──────────────────────────
+/**
+ * @swagger
+ * /api/v1/menus:
+ *   get:
+ *     tags: [OpenAPI v1]
+ *     summary: 메뉴 목록 조회
+ *     security:
+ *       - apiKeyHeader: []
+ *     responses:
+ *       200:
+ *         description: 메뉴 목록
+ */
 router.get('/menus', v1Controller.getMenus);
 
-// ── 주문 내역 검색 (read) ──────────────────────────
+/**
+ * @swagger
+ * /api/v1/orders:
+ *   get:
+ *     tags: [OpenAPI v1]
+ *     summary: 주문 내역 검색
+ *     security:
+ *       - apiKeyHeader: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 주문 목록
+ */
 router.get('/orders', v1Controller.getOrders);
 
-// ── 단일 주문 상세 조회 (read) ─────────────────────
+/**
+ * @swagger
+ * /api/v1/orders/{id}:
+ *   get:
+ *     tags: [OpenAPI v1]
+ *     summary: 단일 주문 상세 조회
+ *     security:
+ *       - apiKeyHeader: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 주문 상세
+ */
 router.get('/orders/:id', v1Controller.getOrderById);
 
-// ── 외부 신규 주문 생성 (write 스코프 필수) ──────────
+/**
+ * @swagger
+ * /api/v1/orders:
+ *   post:
+ *     tags: [OpenAPI v1]
+ *     summary: 외부 신규 주문 생성 (write 스코프 필수)
+ *     security:
+ *       - apiKeyHeader: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       201:
+ *         description: 주문 생성 완료
+ */
 router.post('/orders', requireScope('write'), v1Controller.createOrder);
 
-// ── 기간 매출 분석 통계 조회 (read) ─────────────────
+/**
+ * @swagger
+ * /api/v1/analytics/summary:
+ *   get:
+ *     tags: [OpenAPI v1]
+ *     summary: 기간 매출 분석 통계 조회
+ *     security:
+ *       - apiKeyHeader: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: 매출 분석 통계
+ */
 router.get('/analytics/summary', v1Controller.getAnalyticsSummary);
 
-// ── 주방 프린트 잡 점유 조회 (write 스코프 필수) ──────
+/**
+ * @swagger
+ * /api/v1/print/jobs/claim:
+ *   post:
+ *     tags: [OpenAPI v1]
+ *     summary: 주방 프린트 잡 점유 (write 스코프 필수)
+ *     security:
+ *       - apiKeyHeader: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: 점유된 작업 목록
+ */
 router.post('/print/jobs/claim', requireScope('write'), v1Controller.claimPrintJobs);
 
-// ── 인쇄 피드백 수신 및 상태 갱신 (write 스코프 필수) ──
+/**
+ * @swagger
+ * /api/v1/print/jobs/{id}/ack:
+ *   post:
+ *     tags: [OpenAPI v1]
+ *     summary: 인쇄 피드백 수신 및 상태 갱신 (write 스코프 필수)
+ *     security:
+ *       - apiKeyHeader: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: 상태 갱신 완료
+ */
 router.post('/print/jobs/:id/ack', requireScope('write'), v1Controller.ackPrintJob);
 
 module.exports = router;

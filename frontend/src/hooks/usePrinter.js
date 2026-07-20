@@ -27,7 +27,7 @@ export function usePrinter() {
       });
 
       setPrinterDevice(device);
-      toast.success(\프린터 연결됨: \\);
+      toast.success(`프린터 연결됨: ${device.name}`);
       
       device.addEventListener('gattserverdisconnected', () => {
         setPrinterDevice(null);
@@ -63,22 +63,22 @@ export function usePrinter() {
         let receipt = INIT;
         receipt += ALIGN_CENTER + BOLD_ON + '=== 주문 영수증 ===\n\n' + BOLD_OFF;
         receipt += ALIGN_LEFT;
-        receipt += \주문번호: #\\n\;
-        receipt += \유형: \\n\;
+        receipt += `주문번호: #${order.order_number}\n`;
+        receipt += `유형: ${order.is_takeout ? '포장' : '매장'}\n`;
         if (!order.is_takeout && order.table_name) {
-          receipt += \테이블: \\n\;
+          receipt += `테이블: ${order.table_name}\n`;
         }
-        receipt += \주문일시: \\n\;
+        receipt += `주문일시: ${new Date(order.created_at).toLocaleString()}\n`;
         receipt += '-'.repeat(32) + '\n';
         
         order.items?.forEach(item => {
-          receipt += \\\n\;
-          receipt += \  \개\n\;
+          receipt += `${item.menu_name} x ${item.quantity}\n`;
+          receipt += `  ${item.price}원\n`;
           if (item.options) {
             try {
               const opts = typeof item.options === 'string' ? JSON.parse(item.options) : item.options;
               Object.entries(opts).forEach(([k, v]) => {
-                receipt += \    - \: \\n\;
+                receipt += `    - ${k}: ${v}\n`;
               });
             } catch (e) {}
           }
@@ -86,7 +86,7 @@ export function usePrinter() {
         
         receipt += '-'.repeat(32) + '\n';
         if (order.notes) {
-          receipt += \요청사항: \\n\;
+          receipt += `요청사항: ${order.notes}\n`;
           receipt += '-'.repeat(32) + '\n';
         }
         receipt += '\n\n\n' + CUT;
@@ -105,7 +105,7 @@ export function usePrinter() {
       }
     }
 
-    // 2. Local Print Agent 폴백 (사파리 등 미지원 기기용)
+    // 2. Local Print Agent 폴백 (사파리나 미지원 기기용)
     try {
       let parsedItems = order.items || [];
       if (typeof parsedItems === 'string') {

@@ -1,8 +1,6 @@
 const catchAsync = require('../utils/catchAsync');
 const { AppError } = require('../utils/errorHandler');
-const PointsService = require('../services/PointsService');
-
-const pointsService = new PointsService();
+const pointsService = require('../services/PointsService');
 
 const pointsController = {
     // 포인트 잔액 조회 (인증된 사용자 본인만)

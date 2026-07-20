@@ -1,14 +1,15 @@
 import { io } from 'socket.io-client';
 
-// 런타임 호스트네임 기반 소켓 URL (환경 변수 무시)
 const getSocketUrl = () => {
-  const hostname = window.location.hostname;
+  const envUrl = import.meta.env.VITE_SOCKET_URL;
+  if (envUrl) return envUrl;
 
+  const hostname = window.location.hostname;
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:3000';
+    return 'https://wemarket-toss.onrender.com';
   }
 
-  return 'https://wemarket.onrender.com';
+  return `${window.location.origin}`;
 };
 
 

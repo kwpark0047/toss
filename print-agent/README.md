@@ -1,18 +1,58 @@
-# WeMarket Local Print Agent
+# WeMarket Print Agent
 
-이 프로그램은 iOS 사파리 등 Web Bluetooth API를 지원하지 않는 기기에서 주방 디스플레이(KDS) 영수증 출력을 지원하기 위한 로컬 에이전트입니다.
+매장 POS PC에서 WeMarket 백엔드의 인쇄 대기 작업을 가져와 USB/LAN 감열식 프린터로 자동 인쇄하는 로컬 데몬.
 
-## 설치 및 실행 방법
+## 요구사항
 
-1. Node.js를 설치합니다.
-2. 매장 POS 또는 데스크탑 PC에서 터미널을 열고 다음 명령어를 실행합니다.
-   \\\ash
-   npm install
-   node server.js
-   \\\
-3. \http://localhost:8081\ 에서 서버가 실행됩니다.
-4. KDS 화면에서 블루투스 프린터 연결 실패 시, 자동으로 이 에이전트로 영수증 출력 명령이 전송됩니다.
+- Node.js 18+
+- TCP/LAN 프린터 (9100 포트 기본) 또는 USB 프린터
+- WeMarket 백엔드 API 접근 가능
 
-## 설정
-현재는 오류 방지를 위해 MockDevice(가상 프린터)로 설정되어 있습니다. 
-실제 감열식 프린터를 사용하려면 \server.js\ 내부의 주석을 해제하고 USB 또는 Network IP 설정을 변경하세요.
+## 설치
+
+```bash
+cd print-agent
+cp .env.example .env
+# .env 파일 수정 (백엔드 URL, API 키, 프린터 설정)
+npm install
+```
+
+## 실행
+
+```bash
+npm start
+```
+
+## 프린터 설정
+
+### TCP/LAN 프린터 (기본)
+```
+PRINTER_TYPE=tcp
+PRINTER_HOST=192.168.1.100
+PRINTER_PORT=9100
+```
+
+### USB 프린터
+```
+PRINTER_TYPE=usb
+PRINTER_VID=0x0456
+PRINTER_PID=0x0808
+```
+
+## 아키텍처
+
+```
+[WeMarket Backend] ← API → [Print Agent Daemon] → [ESC/POS] → [프린터]
+   (print_jobs DB)           (이 파일)              (USB/LAN)
+```
+
+1. 에이전트가 `POLL_INTERVAL`마다 백엔드에서 pending 작업 조회
+2. 각 작업을 claim (처리 중 상태로 변경)
+3. ESC/POS 바이트를 프린터로 전송
+4. 완료/실패 상태를 백엔드에 리포트
+
+## 참고
+
+- `print_jobs` 테이블의 `payload_b64` 필드에 인코딩된 ESC/POS 바이트가 저장됨
+- 바이트 생성은 백엔드 `utils/escpos.js`에서 담당 (한글 CP949 인코딩)
+- 프린트 에이전트는 상태less — 네트워크 끊김 시 백엔드가 재시도

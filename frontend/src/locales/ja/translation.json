@@ -1,0 +1,592 @@
+{
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラーが発生しました",
+    "retry": "再試行",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "delete": "削除",
+    "edit": "編集",
+    "add": "追加",
+    "close": "閉じる",
+    "back": "戻る",
+    "next": "次へ",
+    "previous": "前へ",
+    "search": "検索",
+    "no_data": "データがありません",
+    "success": "成功",
+    "failed": "失敗",
+    "yes": "はい",
+    "no": "いいえ",
+    "all": "すべて",
+    "select": "選択",
+    "required": "必須",
+    "optional": "任意"
+  },
+  "menu": {
+    "title": "メニュー",
+    "all_category": "すべて",
+    "sold_out": "品切れ",
+    "call_staff": "店員を呼ぶ",
+    "register_waiting": "順番待ち登録",
+    "my_orders": "注文履歴",
+    "cart": "カート",
+    "order": "注文する",
+    "pay": "決済する",
+    "total_amount": "合計金額",
+    "select_option": "オプション選択",
+    "empty": "メニューが登録されていません",
+    "empty_desc": "美味しいメニューがもうすぐ準備されます！",
+    "category_empty": "このカテゴリにメニューがありません。",
+    "no_menu": "メニューを読み込み中...",
+    "loading": "サーバーを起動中...",
+    "please_wait": "しばらくお待ちください。",
+    "cold_start_hint": "初回アクセス時はサーバーの起動に最大30秒かかります。",
+    "almost_ready": "もうすぐ準備完了です！もう少々お待ちください...",
+    "elapsed": "秒経過",
+    "refresh": "ページを更新",
+    "store_name_default": "위마켓",
+    "kiosk_hint": "画面をタッチするとフルスクリーンキオスクモードに切り替わります",
+    "table": "テーブル{{number}}"
+  },
+  "order": {
+    "title": "注文する",
+    "success": "注文が完了しました！",
+    "failed": "注文に失敗しました。もう一度お試しください。",
+    "not_business_hours": "営業時間外です。営業時間をご確認ください。",
+    "cannot_order": "営業時間外です。注文はできません。",
+    "item_added": "{{name}}をカートに追加しました",
+    "item_removed": "{{name}}がカートから削除されました",
+    "empty_cart": "カートが空です",
+    "order_count": "{{count}}件",
+    "status": {
+      "pending": "受付待ち",
+      "preparing": "調理中",
+      "ready": "受取待ち",
+      "completed": "完了",
+      "cancelled": "キャンセル済み"
+    }
+  },
+  "cart": {
+    "title": "ショッピングカート",
+    "empty": "カートが空です",
+    "total": "合計",
+    "quantity": "数量",
+    "increase": "数量を増やす",
+    "decrease": "数量を減らす",
+    "remove": "削除",
+    "checkout": "購入手続きへ"
+  },
+  "payment": {
+    "title": "お支払い",
+    "processing": "お支払い処理中...",
+    "success": "お支払いが完了しました",
+    "failed": "お支払いに失敗しました",
+    "method": "お支払い方法",
+    "card": "クレジットカード",
+    "cash": "現金",
+    "transfer": "銀行振込",
+    "kakao_pay": "カカオペイ",
+    "toss_pay": "トスペイ",
+    "naver_pay": "ネイバーペイ",
+    "mobile_pay": "モバイル決済",
+    "total": "お支払い金額",
+    "receipt": "領収書"
+  },
+  "kds": {
+    "title": "キッチンオーダーモニター",
+    "subtitle": "店内調理キュー＆レシートプリンターコントローラー",
+    "filters": {
+      "all": "全注文",
+      "dine_in": "店内飲食",
+      "takeout": "テイクアウト"
+    },
+    "search_placeholder": "注文番号、テーブル、お客様名で検索...",
+    "columns": {
+      "pending": "受付待ち",
+      "preparing": "調理中",
+      "ready": "受取待ち"
+    },
+    "empty": {
+      "pending": "待機中の新規注文はありません。",
+      "preparing": "調理中の注文はありません。",
+      "ready": "呼び出し待ちの完成メニューはありません。"
+    },
+    "actions": {
+      "accept": "受付＆調理開始",
+      "complete": "調理完了",
+      "pickup": " food 受取完了",
+      "reprint": "レシート再印刷"
+    },
+    "info": {
+      "phone": "お客様電話番号：",
+      "wait_order": "待ち順番：",
+      "no_registration": "登録情報なし",
+      "no_info": "情報なし"
+    },
+    "labels": {
+      "takeout": "テイクアウト",
+      "table": "テーブル{{name}}",
+      "table_fallback": "店内",
+      "notes": "リクエスト："
+    },
+    "fetch_error": "KDSアクティブ注文の取得に失敗しました。",
+    "status_update_failed": "注文ステータスの更新に失敗しました。",
+    "print": {
+      "success": "キッチンプリンターに印刷完了しました。",
+      "failed": "印刷ジョブの再登録に失敗しました。",
+      "queued": "キッチンプリンターへの印刷ジョブが正常にキューに追加されました。"
+    },
+    "tts": {
+      "new_order": "ピンポン！新規注文受付。テーブル{{table}}から{{items}}のご注文です。調理を開始してください。",
+      "order_ready": "テーブル{{table}}の注文が準備完了です。受け取りにお越しください。"
+    },
+    "shortcuts": {
+      "refresh": "更新",
+      "filter": "全店/店内/テイクアウト切替",
+      "mute": "サウンドミュート切替",
+      "oldest_pending": "最古の注文を受付",
+      "oldest_preparing": "最古の調理を完了",
+      "oldest_ready": "最古の受取を完了"
+    },
+    "footer": {
+      "mobile_console": "モバイル店長コンソール",
+      "peak_dashboard": "スマートピーク分析ダッシュボード"
+    },
+    "voice": {
+      "title": "リアルタイムTTSボイス放送表示",
+      "empty": "待機中のボイス放送メッセージはありません。"
+    }
+  },
+  "waiting": {
+    "title": "順番待ち",
+    "register": "順番待ち登録",
+    "my_number": "自分の番号",
+    "current_number": "呼び出し中",
+    "estimated_time": "予想待ち時間",
+    "people_ahead": "{{count}}組待ち",
+    "called": "{{name}}様、ご入場できます！",
+    "expired": "待ち時間が超過しました",
+    "cancel": "順番待ちキャンセル",
+    "phone_placeholder": "電話番号を入力してください",
+    "name_placeholder": "名前を入力してください",
+    "party_size": "人数",
+    "registered": "順番待ち登録が完了しました"
+  },
+  "review": {
+    "title": "レビュー",
+    "write": "レビューを書く",
+    "rating": "評価",
+    "comment": "コメント",
+    "submit": "レビュー投稿",
+    "empty": "まだレビューがありません",
+    "helpful": "参考になった",
+    "photo": "写真を追加"
+  },
+  "mypage": {
+    "title": "マイページ",
+    "profile": "プロフィール",
+    "orders": "注文履歴",
+    "points": "ポイント",
+    "favorites": "お気に入り",
+    "settings": "設定",
+    "logout": "ログアウト",
+    "language": "言語設定",
+    "notifications": "通知設定",
+    "privacy": "プライバシーポリシー",
+    "terms": "利用規約"
+  },
+  "auth": {
+    "login": "ログイン",
+    "signup": "新規登録",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "confirm_password": "パスワード確認",
+    "phone": "電話番号",
+    "name": "お名前",
+    "forgot_password": "パスワードをお忘れですか？",
+    "no_account": "アカウントをお持ちでないですか？",
+    "has_account": "すでにアカウントをお持ちですか？",
+    "login_with_kakao": "Kakaoでログイン",
+    "login_with_naver": "Naverでログイン",
+    "login_with_google": "Googleでログイン"
+  },
+  "store": {
+    "search": "店舗検索",
+    "nearby": "近くの店舗",
+    "popular": "人気の店舗",
+    "new": "新規店舗",
+    "closed": "営業終了",
+    "open": "営業中",
+    "business_hours": "営業時間",
+    "address": "住所",
+    "phone": "電話番号",
+    "directions": "道順",
+    "bookmark": "お気に入り",
+    "share": "共有"
+  },
+  "reservation": {
+    "title": "予約",
+    "make": "予約する",
+    "date": "日付",
+    "time": "時間",
+    "party_size": "人数",
+    "name": "お名前",
+    "phone": "電話番号",
+    "requests": "リクエスト",
+    "confirm": "予約確認",
+    "cancel": "予約キャンセル",
+    "success": "予約が完了しました",
+    "failed": "予約に失敗しました"
+  },
+  "notification": {
+    "title": "通知",
+    "order_update": "注文状況更新",
+    "table_ready": "テーブル準備完了",
+    "waiting_called": "順番待ち呼び出し",
+    "promotion": "プロモーション通知",
+    "system": "システム通知"
+  },
+  "error": {
+    "network": "ネットワーク接続を確認してください",
+    "server": "サーバーエラーが発生しました",
+    "not_found": "ページが見つかりません",
+    "unauthorized": "ログインが必要です",
+    "forbidden": "アクセス権限がありません",
+    "timeout": "リクエストがタイムアウトしました",
+    "unknown": "不明なエラーが発生しました"
+  },
+  "cart_modal": {
+    "title": "ショッピングカート",
+    "empty_title": "カートが空です",
+    "empty_desc": "メニューを追加して注文を始めましょう。",
+    "split_payment": "お友達と割り勘しますか？",
+    "split_payment_setting": "割り勘設定",
+    "notify_phone": "📱 注文通知先の電話番号",
+    "notify_phone_saved": "保存された番号が入力されました。変更する場合は編集してください。",
+    "notify_phone_hint": "注文状況をSMSで受け取れます。（任意）",
+    "select_payment": "💳 お支払い方法を選択",
+    "select_payment_guide": "お支払い方法を選択してください",
+    "popular_combo": "一緒に食べると更においしい人気コンボ",
+    "popular_menu": "人気メニュー",
+    "recommended_pairing": "おすすめペアリング",
+    "add": "追加",
+    "order_with_method": "{{method}}で注文する",
+    "easy_payment": "簡単決済",
+    "easy_payment_desc": "アプリで素早く決済",
+    "standard_payment": "一般決済",
+    "standard_payment_desc": "店舗で直接お支払い",
+    "toss_pay_desc": "モバイルアプリで簡単決済",
+    "kakao_pay_desc": "カカオトークで素早くお支払い",
+    "naver_pay_desc": "Naverで簡単決済",
+    "cash_desc": "スタッフに直接お支払い",
+    "card_desc": "カード決済後スタッフ確認",
+    "transfer_desc": "店舗口座に振込後確認"
+  },
+  "option": {
+    "required": "必須",
+    "quantity": "数量選択",
+    "add_to_cart": "カートに追加"
+  },
+  "order_status": {
+    "title": "注文状況",
+    "order_number": "注文 #{{number}}",
+    "updated": "更新",
+    "loading": "注文情報を読み込み中...",
+    "no_recent": "最近の注文がありません",
+    "no_recent_desc": "ご注文いただくと、ここで進行状況を確認できます。",
+    "details": "注文詳細",
+    "subtotal": "合計",
+    "review_cta": "レビューを書いて特典を受け取る",
+    "steps": {
+      "pending": "注文受付",
+      "confirmed": "注文確認",
+      "preparing": "調理中",
+      "ready": "準備完了",
+      "completed": "受取完了",
+      "cancelled": "キャンセル"
+    },
+    "messages": {
+      "pending": "注文を受付しました。しばらくお待ちください。",
+      "confirmed": "店舗が注文を確認しました。",
+      "preparing": "美味しいお料理を調理中です！🍳",
+      "ready": "お料理の準備ができました！お受け取りください。🔔",
+      "completed": "ご利用ありがとうございます。",
+      "cancelled": "注文がキャンセルされました。"
+    }
+  },
+  "points": {
+    "thanks": "ご注文ありがとうございます！",
+    "register_subtitle": "番号を登録してポイントを受け取りましょう",
+    "estimated_earn": "今回の注文で獲得予定",
+    "real_time_notification": "調理状況のリアルタイム通知",
+    "points_earn": "ポイント獲得（お支払い金額の{{rate}}%）",
+    "first_visit_coupon": "初回限定ウェルカムクーポン即時発行",
+    "notification_number": "通知先番号",
+    "auto_filled": "自動入力済み",
+    "aes256_encryption": "AES-256暗号化",
+    "enter_phone_error": "正しい携帯番号を入力してください。",
+    "security_notice": "入力された番号はAES-256-GCMで即座に暗号化されます",
+    "get_points": "ポイントを受ける",
+    "later": "後にする",
+    "encrypting_title": "個人情報暗号化中",
+    "encrypting_subtitle": "安全に保護しています",
+    "pbkdf2": "PBKDF2キー導出",
+    "pbkdf2_desc": "安全な暗号化キーの生成",
+    "aes256_gcm": "AES-256-GCM",
+    "aes256_gcm_desc": "軍事レベルの対称暗号化",
+    "hash_store": "ハッシュ保存",
+    "hash_store_desc": "SHA-256単方向ハッシュ",
+    "registering": "ポイント登録中...",
+    "welcome_member": "🎉 メンバーになりました！",
+    "earned_complete": "✅ ポイント獲得完了！",
+    "become_regular": "{{store}}の常連になりました",
+    "earned_this_order": "今回獲得",
+    "cumulative": "累計ポイント",
+    "tier": "会員ランク",
+    "next_tier_remaining": "次のランクまで",
+    "remaining_to_tier": "あと{{remaining}}円 → {{tier}}",
+    "first_visit_benefit": "初回限定特典発行！",
+    "discount_percent": "{{amount}}%OFF",
+    "discount_amount": "{{amount}}円OFF",
+    "live_notification": "調理状況をリアルタイムでお知らせします",
+    "error_already": "この注文のポイントはすでに獲得済みです。",
+    "error_generic": "処理中にエラーが発生しました。",
+    "encrypt_scramble": "暗号化処理中...",
+    "encrypt_mask": "個人情報マスキング中...",
+    "encrypt_seal_done": "AES-256暗号化完了",
+    "encrypt_seal": "セキュリティシール適用中...",
+    "aes256_gcm_label": "AES-256-GCM",
+    "pbkdf2_label": "PBKDF2キー導出",
+    "sha256_label": "SHA-256"
+  },
+  "menu_header": {
+    "call_staff": "店員を呼ぶ",
+    "back": "戻る",
+    "order_history": "注文履歴",
+    "table": "テーブル{{number}}"
+  },
+  "footer": {
+    "about": "サービス紹介",
+    "contact": "お問い合わせ",
+    "faq": "よくある質問",
+    "terms": "利用規約",
+    "privacy": "プライバシーポリシー",
+    "copyright": "© 2024 WeMarket. All rights reserved."
+  }
+  "landing": {
+    "nav": {
+      "features": "機能紹介",
+      "pricing": "料金プラン",
+      "locations": "店舗所在地",
+      "guides": "利用ガイド",
+      "contact": "お問い合わせ",
+      "foodTruck": "フードトラック",
+      "demo": "デモを見る"
+    },
+    "features": {
+      "qrCode": {
+        "title": "QRコード即時生成",
+        "desc": "テーブルごとに固有のQRコードを自動生成。出力してテーブルに掲示すればすぐに使用可能です。"
+      },
+      "storeManagement": {
+        "title": "店舗統合管理",
+        "desc": "店舗情報、営業時間、場所を一か所で管理。地域別店舗分類もサポート。"
+      },
+      "staffPermissions": {
+        "title": "スタッフ権限管理",
+        "desc": "マスター管理者からテーブル担当、厨房スタッフまで役割別権限を細かく分離。"
+      },
+      "webOrder": {
+        "title": "ウェブアプリベース注文",
+        "desc": "アプリインストール不要のブラウザでの注文。顧客の参入障壁を最小化。"
+      },
+      "realTimeAlerts": {
+        "title": "リアルタイム通知",
+        "desc": "注文が来ると担当スタッフとキッチンに即時通知。注文の抜けを防止。"
+      },
+      "paymentMethods": {
+        "title": "様々な支払い方法",
+        "desc": "現金、口座振替はもちろん様々な簡便支払いまでサポート。"
+      },
+      "waitingReservation": {
+        "title": "待機・予約管理",
+        "desc": "待機番号自動発行、事前予約管理で顧客体験を向上。"
+      },
+      "salesAnalysis": {
+        "title": "売上分析",
+        "desc": "日別、月別、年度別売上統計と支払い方法別分析レポートを提供。"
+      },
+      "regularCustomers": {
+        "title": "常連顧客管理リスト",
+        "desc": "訪問履歴・ポイント・VIPグレード自動追跡。パーソナライズドクーポンと再訪メッセージで常連を誘導。"
+      },
+      "community": {
+        "title": "地域コミュニティ",
+        "desc": "近隣の提携店舗と連携し、共同イベント、ポイント共有、地域ピード全体を活性化。"
+      }
+    },
+    "steps": {
+      "step1": {
+        "title": "店舗登録",
+        "desc": "店舗情報を入力し、メニュを登録。"
+      },
+      "step2": {
+        "title": "QR印刷",
+        "desc": "テーブル別QRコードを印刷し、掲示。"
+      },
+      "step3": {
+        "title": "顧客注文",
+        "desc": "顧客がQRスキャン後、メニューを選択。"
+      },
+      "step4": {
+        "title": "支払い完了",
+        "desc": "希望の支払い方法で即時支払い。"
+      }
+    },
+    "customerFlow": {
+      "qrScan": "QRスキャン",
+      "checkMenu": "メニュー確認",
+      "addMenu": "メニュー 담기",
+      "payment": "支払いする",
+      "getFood": "食べ物を受け取る"
+    },
+    "pricingPlan": {
+      "free": {
+        "name": "無料",
+        "price": "₩0",
+        "period": "/月",
+        "features": [
+          "QRコード生成",
+          "注文通知（ウェブ）",
+          "基本売上統計"
+        ],
+        "cta": "無料で始める"
+      },
+      "pro": {
+        "name": "プロ",
+        "price": "₩20,000",
+        "period": "/月",
+        "features": [
+          "すべての支払い方法サポート",
+          "リアルタイムキッチン通知",
+          "詳細売上分析",
+          "待機/予約管理",
+          "優先顧客サポート"
+        ],
+        "cta": "プロを開始する"
+      },
+      "enterprise": {
+        "name": "エンタープライズ",
+        "price": "₩79,000",
+        "period": "/月",
+        "features": [
+          "専用サーバーインフラ",
+          "API連携サポート",
+          "カスタマイズされたレポート",
+          "専任マネージャー配置",
+          "広告露出優位権"
+        ],
+        "cta": "お問い合わせ"
+      }
+    },
+    "testimonials": {
+      "jungHo": {
+        "name": "キム・ジョンフ",
+        "role": "韓国料理店 사장",
+        "location": "ソウル 麻浦区",
+        "avatar": "👨‍🍳",
+        "rating": 5,
+        "text": "紙のメニュー板をなくし、WeMarketに移行したら注文のミスが多く減りました。特にキッチン通知機能が本当に便利で、売上統計も一目で見ることができ、運営がずっと楽になりました。",
+        "stat": "注文ミス80%減少"
+      },
+      "suJin": {
+        "name": "パク・スジン",
+        "role": "カフェ運営者",
+        "location": "プサン 海雲台",
+        "avatar": "☕",
+        "rating": 5,
+        "text": "QR一つでテーブル管理から支払いまで解決。バイトも一日で習得でき、顧客がアプリなしで注文するので拒否反応も全くありません。",
+        "stat": "運営時間30%短縮"
+      },
+      "dongHyun": {
+        "name": "イ・ドンヒュン",
+        "role": "分食店・包装専門",
+        "location": "テグ 水城区",
+        "avatar": "🍱",
+        "rating": 5,
+        "text": "ポイント蓄積機能で常連顧客が目立つほど増えました。支払い後60秒タイマーと事前入力された電話番号で自然な会員登録。注目率63%上昇。",
+        "stat": "再訪問率62%上昇"
+      }
+    },
+    "demoFeatures": {
+      "zeroFriction": {
+        "badge": "Zero Friction",
+        "title": "スキャン一つで即時注文",
+        "desc": "会員登録・ログイン不要のQRスキャンだけで即時カートセッション生成。ランダムUUIDがリアルタイムで割り当て。",
+        "stat": "参入障壁0%"
+      },
+      "sharedOrder": {
+        "badge": "共有オーダー",
+        "title": "同席者のカートも一緒に 담기",
+        "desc": "テーブル共有セッションが自動活性化。他人が持ったメニューが自分の画面にリアルタイムで反映。",
+        "stat": "グループ注文転換率+38%"
+      },
+      "lossAvoidance": {
+        "badge": "損失回避",
+        "title": "60秒タイマーで会員登録誘導",
+        "desc": "支払い後ポイントが消失し始めるタイマーと事前入力された電話番号でワンボタン加入完了。",
+        "stat": "転換率+62%"
+      }
+    },
+    "regularCustomersTitle1": "常連顧客が自ら",
+    "regularCustomersTitle2": "再び訪れる",
+    "regularCustomersTitle3": "店舗",
+    "regularCustomersDescription": "QRスキャン一つで訪問が記録され、ポイントが蓄積され、VIPランクが自動分類されます。",
+    "regularCustomersManager": "店主はしたこともなくWeMarketが常連を管理します。",
+    "communityFeatures": {
+      "networkConfirmation": {
+        "title": "提携店舗ネットワーク",
+        "desc": "近隣の店舗と連携し顧客を互いに推薦。空のテーブルない商圏を作る。"
+      },
+      "jointEvents": {
+        "title": "共同イベント＆プロモーション",
+        "desc": "地域の限定イベントを一緒に企画し、宣伝費用は分け合い効果を高め。"
+      },
+      "integratedPoints": {
+        "title": "統合ポイント共有",
+        "desc": "提携店舗どこでも貯まって使うことができる地域統合ポイントシステム。"
+      },
+      "neighborRecommendation": {
+        "title": "近隣推薦報酬",
+        "desc": "常連が近隣に推薦すると推薦人・新規顧客全員に即時報酬。"
+      },
+      "regionalSearch": {
+        "title": "地域検索優先暴露",
+        "desc": "WeMarketアプリと地図検索で自分の店舗が地域近隣の顧客に優先表示。"
+      },
+      "liveFeed": {
+        "title": "リアルタイム地域フィード",
+        "desc": "今日の特価、イベント、新メニューを地域住民にリアルタイムでプッシュ。"
+      }
+    },
+    "hero": {
+      "title": "1人自営業者向けAI支援常連リスト",
+      "subtitle": "作り上げて差し上げます。",
+      "stats": {
+        "stores": "1,000+店舗",
+        "orders": "500万+注文",
+        "rating": "4.9★評価"
+      }
+    },
+    "footer": {
+      "about": "サービス紹介",
+      "contact": "お問い合わせ",
+      "faq": "よくある質問",
+      "terms": "利用規約",
+      "privacy": "プライバシーポリシー",
+      "copyright": "© 2024 WeMarket. All rights reserved。"
+    }
+  }
+}

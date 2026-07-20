@@ -154,7 +154,7 @@ const register = async (req, res, next) => {
         profile_step: 1,
     });
 
-    const pointService = require('../services/PointService');
+    const pointService = require('../services/PointsService');
     await pointService.unifyPoints(user.id, normalized).catch(err => {
       logger.warn(`[Auth] 포인트 통합 실패 (user ${user.id}): ${err.message}`);
     });

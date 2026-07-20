@@ -13,6 +13,7 @@ import {
 import NotificationBell from './NotificationBell';
 import { TC } from './adminThemes';
 import ThemeSwitcher from './ThemeSwitcher';
+import LanguageSwitcher from '../common/LanguageSwitcher';
 import AdminChatManager from './AdminChatManager';
 import { ordersAPI } from '../../api';
 
@@ -175,6 +176,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full animate-ping" />
               </button>
               <ThemeSwitcher />
+              <LanguageSwitcher />
               <NotificationBell />
               <div className={`hidden md:block h-8 w-px mx-1 ${tc.separator}`} />
               <div className={`hidden md:flex items-center gap-4 px-5 py-2.5 rounded-[20px] ${tc.statusBox}`}>

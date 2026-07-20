@@ -2,7 +2,7 @@ const TossAPI = require('../utils/toss');
 const notificationUtils = require('../utils/notifications');
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
-const pointService = require('./PointService');
+const pointService = require('./PointsService');
 const ledgerService = require('./LedgerService');
 const { AppError } = require('../utils/errorHandler');
 
@@ -618,7 +618,6 @@ class PaymentService {
       } catch (e) {
         logger.error(`[Webhook/Toss] processApproval 실패: ${e.message}`);
       }
-    }
     }
   }
 

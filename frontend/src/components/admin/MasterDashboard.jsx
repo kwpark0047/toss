@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import EmptyState from '../common/EmptyState';
 import Skeleton from '../common/Skeleton';
 import SuperAdminDashboard from './SuperAdminDashboard';
+import SystemStatusWidget from './SystemStatusWidget';
 import Button from '../common/Button';
 import notificationSound from '../../utils/notificationSound';
 import { onNewOrder, onOrderUpdated } from '../../utils/socket';
@@ -326,6 +327,8 @@ const MasterDashboard = () => {
     return (
         /* pb-20: 모바일 하단 네비게이션 여백 */
         <div className="space-y-4 pb-20 md:pb-6 px-0">
+
+            <SystemStatusWidget />
 
             {/* ── 모바일 헤더 ── */}
             <div className="flex items-center justify-between px-1 pt-1">

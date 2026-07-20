@@ -1,4 +1,5 @@
-const { notificationLogger } = require('../utils/logger');
+const logger = require('../utils/logger');
+const { FRONTEND_URL } = require('../config/domain');
 
 class AlimtalkService {
   /**
@@ -8,7 +9,7 @@ class AlimtalkService {
   async sendAlimtalk(phone, templateCode, templateData) {
     try {
       // 1. 발송 데이터 로깅 (비용 과금 방지를 위한 Mocking)
-      notificationLogger.info({
+      logger.info({
         event: 'ALIMTALK_SEND',
         target: phone,
         template: templateCode,
@@ -20,7 +21,7 @@ class AlimtalkService {
 
       return { success: true, message: 'Alimtalk queued (Mock)' };
     } catch (error) {
-      notificationLogger.error({
+      logger.error({
         event: 'ALIMTALK_FAIL',
         target: phone,
         error: error.message
@@ -38,7 +39,7 @@ class AlimtalkService {
       storeName,
       waitingNumber,
       waitingCount,
-      link: 'https://toss.wemarket.workers.dev'
+      link: FRONTEND_URL
     };
     return this.sendAlimtalk(phone, 'WAITING_REG', data);
   }
@@ -59,6 +60,26 @@ class AlimtalkService {
   async sendWaitingCancel(phone, storeName) {
     const data = { storeName };
     return this.sendAlimtalk(phone, 'WAITING_CANCEL', data);
+  }
+
+  // ── 주문 관련 알림톡 ─────────────────────────────────────
+
+  // 템플릿: 주문 접수 확인
+  async sendOrderConfirmed(phone, storeName, orderNumber, queueNumber, totalAmount) {
+    const data = { storeName, orderNumber, queueNumber, totalAmount };
+    return this.sendAlimtalk(phone, 'ORDER_CONFIRMED', data);
+  }
+
+  // 템플릿: 음식 준비 완료
+  async sendFoodReady(phone, storeName, orderNumber, tableName) {
+    const data = { storeName, orderNumber, tableName };
+    return this.sendAlimtalk(phone, 'FOOD_READY', data);
+  }
+
+  // 템플릿: 주문 취소
+  async sendOrderCancelled(phone, storeName, orderNumber, reason) {
+    const data = { storeName, orderNumber, reason };
+    return this.sendAlimtalk(phone, 'ORDER_CANCELLED', data);
   }
 }
 

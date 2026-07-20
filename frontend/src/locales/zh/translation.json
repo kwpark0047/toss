@@ -1,0 +1,592 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "error": "发生错误",
+    "retry": "重试",
+    "save": "保存",
+    "cancel": "取消",
+    "confirm": "确认",
+    "delete": "删除",
+    "edit": "编辑",
+    "add": "添加",
+    "close": "关闭",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "search": "搜索",
+    "no_data": "暂无数据",
+    "success": "成功",
+    "failed": "失败",
+    "yes": "是",
+    "no": "否",
+    "all": "全部",
+    "select": "选择",
+    "required": "必填",
+    "optional": "选填"
+  },
+  "menu": {
+    "title": "菜单",
+    "all_category": "全部",
+    "sold_out": "售罄",
+    "call_staff": "呼叫服务员",
+    "register_waiting": "排队取号",
+    "my_orders": "我的订单",
+    "cart": "购物车",
+    "order": "点餐",
+    "pay": "去结算",
+    "total_amount": "总金额",
+    "select_option": "选择选项",
+    "empty": "暂无菜单",
+    "empty_desc": "美味菜单即将上线！",
+    "category_empty": "该分类暂无菜品。",
+    "no_menu": "菜单加载中...",
+    "loading": "服务器启动中...",
+    "please_wait": "请稍候。",
+    "cold_start_hint": "首次访问时，服务器启动最多需要30秒。",
+    "almost_ready": "即将准备就绪！请再稍等片刻...",
+    "elapsed": "秒已过",
+    "refresh": "刷新页面",
+    "store_name_default": "위마켓",
+    "kiosk_hint": "点击屏幕切换至全屏自助点餐模式",
+    "table": "{{number}}号桌"
+  },
+  "order": {
+    "title": "点餐",
+    "success": "订单已完成！",
+    "failed": "订单失败，请重试。",
+    "not_business_hours": "非营业时间，请查看营业时间。",
+    "cannot_order": "非营业时间，无法下单。",
+    "item_added": "{{name}}已加入购物车",
+    "item_removed": "{{name}}已从购物车移除",
+    "empty_cart": "购物车为空",
+    "order_count": "{{count}}笔",
+    "status": {
+      "pending": "待接单",
+      "preparing": "制作中",
+      "ready": "待取餐",
+      "completed": "已完成",
+      "cancelled": "已取消"
+    }
+  },
+  "cart": {
+    "title": "购物车",
+    "empty": "购物车是空的",
+    "total": "合计",
+    "quantity": "数量",
+    "increase": "增加数量",
+    "decrease": "减少数量",
+    "remove": "删除",
+    "checkout": "去结算"
+  },
+  "payment": {
+    "title": "支付",
+    "processing": "支付处理中...",
+    "success": "支付成功",
+    "failed": "支付失败",
+    "method": "支付方式",
+    "card": "信用卡",
+    "cash": "现金",
+    "transfer": "银行转账",
+    "kakao_pay": "Kakao Pay",
+    "toss_pay": "Toss Pay",
+    "naver_pay": "Naver Pay",
+    "mobile_pay": "移动支付",
+    "total": "支付金额",
+    "receipt": "收据"
+  },
+  "kds": {
+    "title": "厨房订单监控",
+    "subtitle": "店内烹饪队列及小票打印控制器",
+    "filters": {
+      "all": "全部订单",
+      "dine_in": "堂食",
+      "takeout": "外卖"
+    },
+    "search_placeholder": "搜索订单号、桌号、客户名...",
+    "columns": {
+      "pending": "待接单",
+      "preparing": "制作中",
+      "ready": "待取餐"
+    },
+    "empty": {
+      "pending": "暂无待处理订单。",
+      "preparing": "暂无制作中订单。",
+      "ready": "暂无待取餐订单。"
+    },
+    "actions": {
+      "accept": "接单并开始制作",
+      "complete": "制作完成",
+      "pickup": "取餐完成",
+      "reprint": "重打小票"
+    },
+    "info": {
+      "phone": "客户电话：",
+      "wait_order": "排队序号：",
+      "no_registration": "无注册信息",
+      "no_info": "无信息"
+    },
+    "labels": {
+      "takeout": "外卖",
+      "table": "{{name}}号桌",
+      "table_fallback": "堂食",
+      "notes": "备注："
+    },
+    "fetch_error": "获取KDS活跃订单失败。",
+    "status_update_failed": "更新订单状态失败。",
+    "print": {
+      "success": "已发送至厨房打印机。",
+      "failed": "打印任务重新排队失败。",
+      "queued": "打印任务已成功加入厨房打印机队列。"
+    },
+    "tts": {
+      "new_order": "叮咚！新订单。{{table}}号桌点了{{items}}，请开始制作。",
+      "order_ready": "{{table}}号桌订单已备好，请取餐。"
+    },
+    "shortcuts": {
+      "refresh": "刷新",
+      "filter": "切换全部/堂食/外卖",
+      "mute": "静音切换",
+      "oldest_pending": "接最早待处理订单",
+      "oldest_preparing": "完成最早制作中订单",
+      "oldest_ready": "完成最早待取餐订单"
+    },
+    "footer": {
+      "mobile_console": "移动端店长控制台",
+      "peak_dashboard": "智能高峰分析看板"
+    },
+    "voice": {
+      "title": "实时TTS语音播报显示屏",
+      "empty": "暂无待播报语音消息。"
+    }
+  },
+  "waiting": {
+    "title": "排队等位",
+    "register": "取号排队",
+    "my_number": "我的号码",
+    "current_number": "当前叫号",
+    "estimated_time": "预计等待",
+    "people_ahead": "前方还有{{count}}桌",
+    "called": "{{name}}，您可以入场了！",
+    "expired": "等待时间已超",
+    "cancel": "取消等位",
+    "phone_placeholder": "请输入手机号",
+    "name_placeholder": "请输入姓名",
+    "party_size": "用餐人数",
+    "registered": "排队登记成功"
+  },
+  "review": {
+    "title": "评价",
+    "write": "写评价",
+    "rating": "评分",
+    "comment": "评论",
+    "submit": "提交评价",
+    "empty": "暂无评价",
+    "helpful": "有帮助",
+    "photo": "添加照片"
+  },
+  "mypage": {
+    "title": "我的页面",
+    "profile": "个人资料",
+    "orders": "订单记录",
+    "points": "积分",
+    "favorites": "收藏",
+    "settings": "设置",
+    "logout": "退出登录",
+    "language": "语言设置",
+    "notifications": "通知设置",
+    "privacy": "隐私政策",
+    "terms": "服务条款"
+  },
+  "auth": {
+    "login": "登录",
+    "signup": "注册",
+    "email": "邮箱",
+    "password": "密码",
+    "confirm_password": "确认密码",
+    "phone": "手机号",
+    "name": "姓名",
+    "forgot_password": "忘记密码？",
+    "no_account": "还没有账号？",
+    "has_account": "已有账号？",
+    "login_with_kakao": "Kakao登录",
+    "login_with_naver": "Naver登录",
+    "login_with_google": "Google登录"
+  },
+  "store": {
+    "search": "搜索店铺",
+    "nearby": "附近店铺",
+    "popular": "热门店铺",
+    "new": "新开店铺",
+    "closed": "已打烊",
+    "open": "营业中",
+    "business_hours": "营业时间",
+    "address": "地址",
+    "phone": "电话",
+    "directions": "导航",
+    "bookmark": "收藏",
+    "share": "分享"
+  },
+  "reservation": {
+    "title": "预约",
+    "make": "预约",
+    "date": "日期",
+    "time": "时间",
+    "party_size": "人数",
+    "name": "姓名",
+    "phone": "电话",
+    "requests": "特殊要求",
+    "confirm": "确认预约",
+    "cancel": "取消预约",
+    "success": "预约成功",
+    "failed": "预约失败"
+  },
+  "notification": {
+    "title": "通知",
+    "order_update": "订单状态更新",
+    "table_ready": "餐桌已就绪",
+    "waiting_called": "排队叫号",
+    "promotion": "促销通知",
+    "system": "系统通知"
+  },
+  "error": {
+    "network": "请检查网络连接",
+    "server": "服务器错误",
+    "not_found": "页面未找到",
+    "unauthorized": "需要登录",
+    "forbidden": "无访问权限",
+    "timeout": "请求超时",
+    "unknown": "未知错误"
+  },
+  "cart_modal": {
+    "title": "购物车",
+    "empty_title": "购物车是空的",
+    "empty_desc": "添加一些菜品开始点餐吧。",
+    "split_payment": "和朋友AA制结账？",
+    "split_payment_setting": "设置AA制",
+    "notify_phone": "📱 接收订单通知的手机号",
+    "notify_phone_saved": "已输入保存的号码。如需更改请编辑。",
+    "notify_phone_hint": "输入后可短信接收订单状态。（可选）",
+    "select_payment": "💳 选择支付方式",
+    "select_payment_guide": "请选择支付方式",
+    "popular_combo": "一起吃更好吃的人气组合",
+    "popular_menu": "人气菜单",
+    "recommended_pairing": "推荐搭配",
+    "add": "添加",
+    "order_with_method": "使用{{method}}下单",
+    "easy_payment": "快捷支付",
+    "easy_payment_desc": "APP快速支付",
+    "standard_payment": "普通支付",
+    "standard_payment_desc": "在柜台直接支付",
+    "toss_pay_desc": "手机APP快捷支付",
+    "kakao_pay_desc": "KakaoTalk快捷支付",
+    "naver_pay_desc": "Naver快捷支付",
+    "cash_desc": "直接向店员付现金",
+    "card_desc": "刷卡后店员确认",
+    "transfer_desc": "转账至店铺账户后确认"
+  },
+  "option": {
+    "required": "必选",
+    "quantity": "选择数量",
+    "add_to_cart": "加入购物车"
+  },
+  "order_status": {
+    "title": "订单状态",
+    "order_number": "订单 #{{number}}",
+    "updated": "已更新",
+    "loading": "加载订单信息中...",
+    "no_recent": "暂无最近订单",
+    "no_recent_desc": "下单后即可在此查看进度。",
+    "details": "订单详情",
+    "subtotal": "合计",
+    "review_cta": "写评价领福利",
+    "steps": {
+      "pending": "已下单",
+      "confirmed": "已确认",
+      "preparing": "制作中",
+      "ready": "准备就绪",
+      "completed": "已取餐",
+      "cancelled": "已取消"
+    },
+    "messages": {
+      "pending": "已接单，请稍候。",
+      "confirmed": "店铺已确认您的订单。",
+      "preparing": "正在为您精心制作！🍳",
+      "ready": "餐品已备好，请取餐！🔔",
+      "completed": "感谢您的光临。",
+      "cancelled": "订单已取消。"
+    }
+  },
+  "points": {
+    "thanks": "感谢您的点餐！",
+    "register_subtitle": "注册号码获取积分",
+    "estimated_earn": "本次预计获得",
+    "real_time_notification": "实时烹饪进度通知",
+    "points_earn": "积分奖励（支付金额的{{rate}}%）",
+    "first_visit_coupon": "首次到店优惠券即刻发放",
+    "notification_number": "通知号码",
+    "auto_filled": "自动填入",
+    "aes256_encryption": "AES-256加密",
+    "enter_phone_error": "请输入正确的手机号码。",
+    "security_notice": "您输入的号码将通过AES-256-GCM立即加密存储",
+    "get_points": "获取积分",
+    "later": "稍后再说",
+    "encrypting_title": "个人信息加密中",
+    "encrypting_subtitle": "正在安全保护您的信息",
+    "pbkdf2": "PBKDF2密钥派生",
+    "pbkdf2_desc": "安全的加密密钥生成",
+    "aes256_gcm": "AES-256-GCM",
+    "aes256_gcm_desc": "军用级对称加密",
+    "hash_store": "哈希存储",
+    "hash_store_desc": "SHA-256单向哈希",
+    "registering": "积分注册中...",
+    "welcome_member": "🎉 您已成为会员！",
+    "earned_complete": "✅ 积分已到账！",
+    "become_regular": "成为{{store}}的常客",
+    "earned_this_order": "本次获得",
+    "cumulative": "累计积分",
+    "tier": "会员等级",
+    "next_tier_remaining": "距下一等级",
+    "remaining_to_tier": "还差{{remaining}}元 → {{tier}}",
+    "first_visit_benefit": "首次到店福利发放！",
+    "discount_percent": "减{{amount}}%",
+    "discount_amount": "减{{amount}}元",
+    "live_notification": "我们将实时通知您烹饪进度",
+    "error_already": "该订单的积分已经发放过了。",
+    "error_generic": "处理过程中发生错误。",
+    "encrypt_scramble": "加密处理中...",
+    "encrypt_mask": "个人信息脱敏中...",
+    "encrypt_seal_done": "AES-256加密完成",
+    "encrypt_seal": "安全封印应用中...",
+    "aes256_gcm_label": "AES-256-GCM",
+    "pbkdf2_label": "PBKDF2密钥派生",
+    "sha256_label": "SHA-256"
+  },
+  "menu_header": {
+    "call_staff": "呼叫服务员",
+    "back": "返回",
+    "order_history": "订单记录",
+    "table": "{{number}}号桌"
+  },
+  "footer": {
+    "about": "关于我们",
+    "contact": "联系我们",
+    "faq": "常见问题",
+    "terms": "服务条款",
+    "privacy": "隐私政策",
+    "copyright": "© 2024 WeMarket. 版权所有。"
+  }
+  "landing": {
+    "nav": {
+      "features": "功能介绍",
+      "pricing": "价格方案",
+      "locations": "门店所在地",
+      "guides": "使用指南",
+      "contact": "联系我们",
+      "foodTruck": "食品卡车",
+      "demo": "演示查看"
+    },
+    "features": {
+      "qrCode": {
+        "title": "QR码即时生成",
+        "desc": "为每个桌子自动生成唯一的二维码。输出后张贴在桌子上就能立即使用。"
+      },
+      "storeManagement": {
+        "title": "门店统一管理",
+        "desc": "门店信息、营业时间、位置统一管理，支持区域门店分类。"
+      },
+      "staffPermissions": {
+        "title": "员工权限管理",
+        "desc": "从大师管理员到桌位服务员、主厨员工，都能精细地分离角色权限。"
+      },
+      "webOrder": {
+        "title": "网页应用下单",
+        "desc": "无需安装应用，直接在浏览器中进行订单下单，降低客户进入门槛。"
+      },
+      "realTimeAlerts": {
+        "title": "实时通知",
+        "desc": "订单过来后立即通知负责员工和厨房，避免订单遗漏。"
+      },
+      "paymentMethods": {
+        "title": "多种支付方法",
+        "desc": "现金、银行转账 물론各种便捷支付都支持。"
+      },
+      "waitingReservation": {
+        "title": " 대기·预约管理",
+        "desc": "等待号码自动生成、事前预约管理，提升客户体验。"
+      },
+      "salesAnalysis": {
+        "title": "销售分析",
+        "desc": "提供日/月/年营业额统计和支付方式分析报表。"
+      },
+      "regularCustomers": {
+        "title": "常客管理名单",
+        "desc": "自动跟踪访问历史、积分、VIP等级，利用个性化优惠和回头信息，培养回头客。"
+      },
+      "community": {
+        "title": "区域社区",
+        "desc": "与周边合作商家连接，实现客户共享，联合打造商圈，激活区域经济。"
+      }
+    },
+    "steps": {
+      "step1": {
+        "title": "门店注册",
+        "desc": "输入门店信息，注册菜单。"
+      },
+      "step2": {
+        "title": "二维码打印",
+        "desc": "为每个桌号打印二维码，贴在桌上。"
+      },
+      "step3": {
+        "title": "顾客下单",
+        "desc": "顾客扫描二维码后，进行菜单点选。"
+      },
+      "step4": {
+        "title": "付款完成",
+        "desc": "用想要的支付方式，立即完成付款。"
+      }
+    },
+    "customerFlow": {
+      "qrScan": "扫描二维码",
+      "checkMenu": "查看菜单",
+      "addMenu": "选择点餐",
+      "payment": "进行支付",
+      "getFood": "取餐"
+    },
+    "pricingPlan": {
+      "free": {
+        "name": "免费",
+        "price": "￥0",
+        "period": "/月",
+        "features": [
+          "二维码生",
+          "订单通知（网",
+          "基本销售统计"
+        ],
+        "cta": "免费开始"
+      },
+      "pro": {
+        "name": "专业",
+        "price": "￥20000",
+        "period": "/月",
+        "features": [
+          "所有支付方式支持",
+          "实时厨房通知",
+          "详细销售分析",
+          "等待/预约管理",
+          "优先客户支持"
+        ],
+        "cta": "专业开始"
+      },
+      "enterprise": {
+        "name": "企业",
+        "price": "￥79000",
+        "period": "/月",
+        "features": [
+          "专用服务器基础设施",
+          "API 集成支持",
+          "定制化报告",
+          "专属经理分配",
+          "宣传曝光优先权"
+        ],
+        "cta": "咨询"
+      }
+    },
+    "testimonials": {
+      "jungHo": {
+        "name": "金正浩",
+        "role": "韩国料理店老板",
+        "location": "首尔 麻浦区",
+        "avatar": "👨‍🍳",
+        "rating": 5,
+        "text": "摆脱了纸质菜单，与WeMarket转向后，订单错误率明显降低。尤其是厨房通知功能真的很方便，销售统计也一目了见，经营变得轻松了很多。",
+        "stat": "订单错误率80%下降"
+      },
+      "suJin": {
+        "name": "朴秀珍",
+        "role": "咖啡店经营者",
+        "location": "釜山 海云台",
+        "avatar": "☕",
+        "rating": 5,
+        "text": "二维码一个就能完成桌子管理和付款。店员也能一天之内熟练操作，顾客也不需要用app下单，完全没有抵触。",
+        "stat": "运营时间30%缩短"
+      },
+      "dongHyun": {
+        "name": "李东贤",
+        "role": " 分食店·包装专门",
+        "location": "大邱 水城区",
+        "avatar": "🍱",
+        "rating": 5,
+        "text": "通过积分累计功能，让回头客明显增加。60秒倒计时，加上预先输入的电话号码，自然就能引导加入会员。回头率显著提升。",
+        "stat": "回头率62%上升"
+      }
+    },
+    "demoFeatures": {
+      "zeroFriction": {
+        "badge": "零摩擦",
+        "title": "扫码即可下单",
+        "desc": "无需会员注册·登录，直接扫码即可生成临时购物车会话，随机UUID实时分配。",
+        "stat": " 参与门槛0 %"
+      },
+      "sharedOrder": {
+        "badge": " 共享订单",
+        "title": "和同桌一起选菜单",
+        "desc": "桌子共享会话自动激活，可以实时与其他人一起选菜， 菜单会实时显示在两人面前。",
+        "stat": "小组订单转化率+38 %"
+      },
+      "lossAvoidance": {
+        "badge": " 损失回避",
+        "title": " 60秒计时，自动引导会员注册",
+        "desc": "支付后60秒内，积分开始扣除，提供预先输入电话号码，一键完成会员注册。",
+        "stat": " 转化率+62 %"
+      }
+    },
+    "regularCustomersTitle1": " 回头客携伴",
+    "regularCustomersTitle2": "再次光临",
+    "regularCustomersTitle3": " 身边店铺",
+    "regularCustomersDescription": " 扫描二维码一次即可 记录访问信息、 积累积分自动分级，",
+    "regularCustomersManager": " 老板们 啥都不用做  WeMarket帮您管理回头客 ",
+    "communityFeatures": {
+      "networkConfirmation": {
+        "title": " 加盟商 网络",
+        "desc": " 与周边加盟商家连接，实现 相互推荐客户 形成无客源商圈。"
+      },
+      "jointEvents": {
+        "title": " 共同活动·宣传",
+        "desc": " 联合策划区域限定活动 ，宣传费用分担，效果倍增 。"
+      },
+      "integratedPoints": {
+        "title": " 积分系统",
+        "desc": " 加盟 商家 的积分 可以在 任意一个区域使用 。"
+      },
+      "neighborRecommendation": {
+        "title": " 邻\u0000坊\u0000推荐\u0000奖励",
+        "desc": " 常客\u0000推荐邻\u0000坊客户 ， 推荐人　\u0000和新\u0000增客\u0000\u0000 均\u0000得\u0000\u0000即\u0000时\u0000\u0000\u0000奖励\u0000 ",
+      },
+      "regionalSearch": {
+        "title": " "区域"\u0000搜索\u0000\u0000\u0000\u0000\u0000 优先\u0000\u0000\u0000暴露",
+        "desc": " 在\u0000"\u0000WeMarket\u0000的\u0000"\u0000app\u0000\u0000\u0000和\u0000 地图\u0000搜索\u0000中\u0000\u0000\u0000首先\u0000展\u0000\u0000\u0000\u0000\u0000 示\u0000\u0000\u0000\u0000\u0000\u0000。 \u0000"
+      },
+      "liveFeed": {
+        "title": " 实时\u0000区域\u0000信息\u0000流",
+        "desc": " 每\u0000日\u0000的\u0000\u0000特\u0000价\u0000\u0000\u0000\u0000\u0000\u0000 活动\u0000和\u0000新\u0000菜\u0000\u0000信息\u0000\u0000\u0000\u0000\u0000 及时\u0000\u0000\u0000\u0000\u0000\u0000\u0000 向\u0000\u0000区域\u0000居民\u0000\u0000\u0000\u0000\u0000\u0000 推送\u0000\u0000。"
+      }
+    },
+    "hero": {
+      "title": " 1人自営業\u0000者向け\u0000 AI支援\u0000回\u0000     回头\u0000客\u0000リスト\u0000\u0000\u0000\u0000\u0000",
+      "subtitle": " 作り\u0000\u0000上げて\u0000\u0000\u0000差し\u0000\u0000上げ\u0000\u0000\u0000ます\u0000\u0000。",
+      "stats": {
+        "stores": " 1000+ 登録\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "orders": " 500 万+ 累積\u0000\u0000\u0000\u0000\u0000\u0000",
+        "rating": " 4.9★ 評価"
+      }
+    },
+    "footer": {
+      "about": " 服务介绍",
+      "contact": " 联系我们",
+      "faq": " 经常问的问题",
+      "terms": " 服务条款",
+      "privacy": " 隐私政策",
+      "copyright": " © 2024 WeMarket. All rights reserved。"
+    }
+  }
+}

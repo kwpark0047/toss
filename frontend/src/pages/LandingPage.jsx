@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import StoreLocator from '../components/StoreLocator';
 import { storesAPI } from '../api/stores';
 import { getRecentStores } from '../utils/recentStores';
+import LanguageSwitcher from '../components/common/LanguageSwitcher';
 import {
     QrCode, Store, Bell, CreditCard, Clock, BarChart3,
     Users, Smartphone, Check, ArrowRight, Menu, X, ChevronRight,
@@ -16,6 +18,7 @@ import {
 
 const LandingPage = () => {
     const { user } = useAuth();
+    const { t } = useTranslation('landing', { keyPrefix: 'landing' });
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [demoStep, setDemoStep] = useState(0); // 0=entry, 1=uuid, 2=menu, 3=shared
@@ -57,58 +60,74 @@ const LandingPage = () => {
     }, [cycleKey]);
 
     const navItems = [
-        { label: '기능 소개', to: '/features' },
-        { label: '요금제', to: '/pricing' },
-        { label: '매장 위치', href: '#locations' },
-        { label: '이용 가이드', to: '/guides' },
-        { label: '문의하기', to: '/contact' },
-        { label: '푸드트럭', to: '/foodtruck/landing' },
-        { label: '데모 보기', href: '#demo' },
+        { label: t('nav.features', '기능 소개'), to: '/features' },
+        { label: t('nav.pricing', '요금제'), to: '/pricing' },
+        { label: t('nav.locations', '매장 위치'), href: '#locations' },
+        { label: t('nav.guides', '이용 가이드'), to: '/guides' },
+        { label: t('nav.contact', '문의하기'), to: '/contact' },
+        { label: t('nav.foodTruck', '푸드트럭'), to: '/foodtruck/landing' },
+        { label: t('nav.demo', '데모 보기'), href: '#demo' },
     ];
 
     const features = [
-        { icon: QrCode,      title: 'QR 코드 즉시 생성',   desc: '테이블마다 고유한 QR 코드를 자동 생성. 출력해서 테이블에 부착하면 바로 사용 가능합니다.', color: 'orange' },
-        { icon: Store,       title: '매장 통합 관리',       desc: '매장 정보, 영업시간, 위치까지 한 곳에서 관리. 지역별 매장 분류도 지원합니다.', color: 'blue' },
-        { icon: Users,       title: '직원 권한 관리',       desc: '마스터 관리자부터 테이블 담당, 주방 직원까지 역할별 권한을 세밀하게 분리합니다.', color: 'green' },
-        { icon: Smartphone,  title: '웹앱 기반 주문',       desc: '앱 설치 없이 브라우저에서 바로 주문. 고객의 진입 장벽을 최소화합니다.', color: 'purple' },
-        { icon: Bell,        title: '실시간 알림',          desc: '주문이 들어오면 담당 직원과 주방에 즉시 알림. 주문 누락을 방지합니다.', color: 'red' },
-        { icon: CreditCard,  title: '다양한 결제 수단',     desc: '현금, 계좌이체는 물론 다양한 간편결제까지 지원합니다.', color: 'indigo' },
-        { icon: Clock,       title: '대기·예약 관리',       desc: '대기 번호 자동 발급, 사전 예약 관리로 고객 경험을 향상시킵니다.', color: 'yellow' },
-        { icon: BarChart3,   title: '매출 분석',            desc: '일별, 월별, 연도별 매출 통계와 결제 수단별 분석 리포트를 제공합니다.', color: 'teal' },
-        { icon: Heart,       title: '단골고객 관리리스트',  desc: '방문 이력·포인트·VIP 등급 자동 추적. 개인화 쿠폰과 재방문 메시지로 단골을 키웁니다.', color: 'rose' },
-        { icon: Building2,   title: '지역 커뮤니티',        desc: '주변 제휴 매장과 연결해 공동 이벤트, 포인트 공유, 지역 피드로 상권 전체를 활성화합니다.', color: 'sky' },
+        { icon: QrCode,      title: t('features.qrCode.title', 'QR 코드 즉시 생성'),   desc: t('features.qrCode.desc', '테이블마다 고유한 QR 코드를 자동 생성. 출력해서 테이블에 부착하면 바로 사용 가능합니다.'), color: 'orange' },
+        { icon: Store,       title: t('features.storeManagement.title', '매장 통합 관리'),       desc: t('features.storeManagement.desc', '매장 정보, 영업시간, 위치까지 한 곳에서 관리. 지역별 매장 분류도 지원합니다.'), color: 'blue' },
+        { icon: Users,       title: t('features.staffPermissions.title', '직원 권한 관리'),       desc: t('features.staffPermissions.desc', '마스터 관리자부터 테이블 담당, 주방 직원까지 역할별 권한을 세밀하게 분리합니다.'), color: 'green' },
+        { icon: Smartphone,  title: t('features.webOrder.title', '웹앱 기반 주문'),       desc: t('features.webOrder.desc', '앱 설치 없이 브라우저에서 바로 주문. 고객의 진입 장벽을 최소화합니다.'), color: 'purple' },
+        { icon: Bell,        title: t('features.realTimeAlerts.title', '실시간 알림'),          desc: t('features.realTimeAlerts.desc', '주문이 들어오면 담당 직원과 주방에 즉시 알림. 주문 누락을 방지합니다.'), color: 'red' },
+        { icon: CreditCard,  title: t('features.paymentMethods.title', '다양한 결제 수단'),     desc: t('features.paymentMethods.desc', '현금, 계좌이체는 물론 다양한 간편결제까지 지원합니다.'), color: 'indigo' },
+        { icon: Clock,       title: t('features.waitingReservation.title', '대기·예약 관리'),       desc: t('features.waitingReservation.desc', '대기 번호 자동 발급, 사전 예약 관리로 고객 경험을 향상시킵니다.'), color: 'yellow' },
+        { icon: BarChart3,   title: t('features.salesAnalysis.title', '매출 분석'),            desc: t('features.salesAnalysis.desc', '일별, 월별, 연도별 매출 통계와 결제 수단별 분석 리포트를 제공합니다.'), color: 'teal' },
+        { icon: Heart,       title: t('features.regularCustomers.title', '단골고객 관리리스트'),  desc: t('features.regularCustomers.desc', '방문 이력·포인트·VIP 등급 자동 추적. 개인화 쿠폰과 재방문 메시지로 단골을 키웁니다.'), color: 'rose' },
+        { icon: Building2,   title: t('features.community.title', '지역 커뮤니티'),        desc: t('features.community.desc', '주변 제휴 매장과 연결해 공동 이벤트, 포인트 공유, 지역 피드로 상권 전체를 활성화합니다.'), color: 'sky' },
     ];
 
     const steps = [
-        { num: '01', title: '매장 등록', desc: '매장 정보를 입력하고 메뉴를 등록합니다.' },
-        { num: '02', title: 'QR 인쇄',  desc: '테이블별 QR 코드를 출력해 부착합니다.' },
-        { num: '03', title: '고객 주문', desc: '고객이 QR 스캔 후 메뉴를 선택합니다.' },
-        { num: '04', title: '결제 완료', desc: '원하는 결제 수단으로 즉시 결제합니다.' },
+        { num: '01', title: t('steps.step1.title', '매장 등록'), desc: t('steps.step1.desc', '매장 정보를 입력하고 메뉴를 등록합니다.'), },
+        { num: '02', title: t('steps.step2.title', 'QR 인쇄'),  desc: t('steps.step2.desc', '테이블별 QR 코드를 출력해 부착합니다.'), },
+        { num: '03', title: t('steps.step3.title', '고객 주문'), desc: t('steps.step3.desc', '고객이 QR 스캔 후 메뉴를 선택합니다.'), },
+        { num: '04', title: t('steps.step4.title', '결제 완료'), desc: t('steps.step4.desc', '원하는 결제 수단으로 즉시 결제합니다.'), },
     ];
 
     const customerFlow = [
-        { icon: '📱', label: 'QR 스캔' },
-        { icon: '📋', label: '메뉴 확인' },
-        { icon: '🛒', label: '메뉴 담기' },
-        { icon: '💳', label: '결제하기' },
-        { icon: '🍽️', label: '음식 받기' },
+        { icon: '📱', label: t('customerFlow.qrScan', 'QR 스캔') },
+        { icon: '📋', label: t('customerFlow.checkMenu', '메뉴 확인') },
+        { icon: '🛒', label: t('customerFlow.addMenu', '메뉴 담기') },
+        { icon: '💳', label: t('customerFlow.payment', '결제하기') },
+        { icon: '🍽️', label: t('customerFlow.getFood', '음식 받기') },
     ];
 
     const pricingPlans = [
         {
-            name: '무료', price: '₩0', period: '/월',
-            features: ['QR 코드 생성', '주문 알림 (웹)', '기본 매출 통계'],
-            cta: '무료로 시작', popular: false,
+            name: t('pricingPlan.free.name', '무료'), price: t('pricingPlan.free.price', '₩0'), period: t('pricingPlan.free.period', '/월'),
+            features: [
+                t('pricingPlan.free.features.qrCode', 'QR 코드 생성'),
+                t('pricingPlan.free.features.orderNotification', '주문 알림 (웹)'),
+                t('pricingPlan.free.features.basicStats', '기본 매출 통계')
+            ],
+            cta: t('pricingPlan.free.cta', '무료로 시작'), popular: false,
         },
         {
-            name: '프로', price: '₩20,000', period: '/월',
-            features: ['모든 결제 수단 지원', '실시간 주방 알림', '상세 매출 분석', '대기/예약 관리', '우선 고객 지원'],
-            cta: '프로 시작하기', popular: true,
+            name: t('pricingPlan.pro.name', '프로'), price: t('pricingPlan.pro.price', '₩20,000'), period: t('pricingPlan.pro.period', '/월'),
+            features: [
+                t('pricingPlan.pro.features.allPaymentMethods', '모든 결제 수단 지원'),
+                t('pricingPlan.pro.features.realTimeKitchen', '실시간 주방 알림'),
+                t('pricingPlan.pro.features.detailedAnalysis', '상세 매출 분석'),
+                t('pricingPlan.pro.features.waitingReservation', '대기/예약 관리'),
+                t('pricingPlan.pro.features.prioritySupport', '우선 고객 지원')
+            ],
+            cta: t('pricingPlan.pro.cta', '프로 시작하기'), popular: true,
         },
         {
-            name: '엔터프라이즈', price: '₩79,000', period: '/월',
-            features: ['전용 서버 인프라', 'API 연동 지원', '맞춤형 리포트', '전담 매니저 배정', '광고 노출 우선권'],
-            cta: '문의하기', popular: false,
+            name: t('pricingPlan.enterprise.name', '엔터프라이즈'), price: t('pricingPlan.enterprise.price', '₩79,000'), period: t('pricingPlan.enterprise.period', '/월'),
+            features: [
+                t('pricingPlan.enterprise.features.dedicatedInfrastructure', '전용 서버 인프라'),
+                t('pricingPlan.enterprise.features.apiIntegration', 'API 연동 지원'),
+                t('pricingPlan.enterprise.features.customReports', '맞춤형 리포트'),
+                t('pricingPlan.enterprise.features.dedicatedManager', '전담 매니저 배정'),
+                t('pricingPlan.enterprise.features.advertisingPriority', '광고 노출 우선권')
+            ],
+            cta: t('pricingPlan.enterprise.cta', '문의하기'), popular: false,
         },
     ];
 
@@ -122,33 +141,33 @@ const LandingPage = () => {
 
     const testimonials = [
         {
-            name: '김정호',
-            role: '한식당 사장',
-            location: '서울 마포구',
+            name: t('testimonials.jungHo.name', '김정호'),
+            role: t('testimonials.jungHo.role', '한식당 사장'),
+            location: t('testimonials.jungHo.location', '서울 마포구'),
             avatar: '👨‍🍳',
             rating: 5,
-            text: '종이 메뉴판을 없애고 위마켓으로 전환했더니 주문 실수가 확 줄었어요. 특히 주방 알림 기능이 정말 편리하고, 매출 통계도 한눈에 볼 수 있어서 운영이 훨씬 수월해졌습니다.',
-            stat: '주문 오류 80% 감소',
+            text: t('testimonials.jungHo.text', '종이 메뉴판을 없애고 위마켓으로 전환했더니 주문 실수가 확 줄었어요. 특히 주방 알림 기능이 정말 편리하고, 매출 통계도 한눈에 볼 수 있어서 운영이 훨씬 수월해졌습니다.'),
+            stat: t('testimonials.jungHo.stat', '주문 오류 80% 감소'),
             color: 'orange',
         },
         {
-            name: '박수진',
-            role: '카페 운영자',
-            location: '부산 해운대구',
+            name: t('testimonials.suJin.name', '박수진'),
+            role: t('testimonials.suJin.role', '카페 운영자'),
+            location: t('testimonials.suJin.location', '부산 해운대구'),
             avatar: '☕',
             rating: 5,
-            text: 'QR 하나로 테이블 관리부터 결제까지 해결돼요. 아르바이트생도 하루 만에 익혔고, 고객들이 앱 없이 바로 주문할 수 있어서 거부감이 전혀 없습니다.',
-            stat: '운영 시간 30% 단축',
+            text: t('testimonials.suJin.text', 'QR 하나로 테이블 관리부터 결제까지 해결돼요. 아르바이트생도 하루 만에 익혔고, 고객들이 앱 없이 바로 주문할 수 있어서 거부감이 전혀 없습니다.'),
+            stat: t('testimonials.suJin.stat', '운영 시간 30% 단축'),
             color: 'blue',
         },
         {
-            name: '이동현',
-            role: '분식집·포장 전문',
-            location: '대구 수성구',
+            name: t('testimonials.dongHyun.name', '이동현'),
+            role: t('testimonials.dongHyun.role', '분식집·포장 전문'),
+            location: t('testimonials.dongHyun.location', '대구 수성구'),
             avatar: '🍱',
             rating: 5,
-            text: '포인트 적립 기능으로 단골 고객이 눈에 띄게 늘었어요. 결제 후 60초 타이머로 자연스럽게 회원가입을 유도하는 방식이 정말 영리합니다. 재방문율이 크게 올랐어요.',
-            stat: '재방문율 62% 상승',
+            text: t('testimonials.dongHyun.text', '포인트 적립 기능으로 단골 고객이 눈에 띄게 늘었어요. 결제 후 60초 타이머로 자연스럽게 회원가입을 유도하는 방식이 정말 영리합니다. 재방문율이 크게 올랐어요.'),
+            stat: t('testimonials.dongHyun.stat', '재방문율 62% 상승'),
             color: 'green',
         },
     ];
@@ -225,6 +244,7 @@ const LandingPage = () => {
                                 </Link>
                             </>
                         )}
+                        <LanguageSwitcher />
                     </div>
 
                     <button className="md:hidden p-2 text-gray-600" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -250,6 +270,7 @@ const LandingPage = () => {
                             <div className="pt-4 border-t border-gray-100 space-y-3">
                                 <Link to="/auth" className="block text-center py-3 text-gray-700 font-bold border border-gray-200 rounded-full">로그인</Link>
                                 <Link to="/register" className="block text-center py-3 bg-orange-500 text-white rounded-full font-bold hover:bg-orange-600 transition-colors">무료로 시작하기</Link>
+                                <LanguageSwitcher />
                             </div>
                         </motion.div>
                     )}
@@ -490,11 +511,11 @@ const LandingPage = () => {
                 <div className="absolute inset-0 opacity-[0.015] pointer-events-none"
                     style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
                 <div className="max-w-7xl mx-auto relative z-10">
-                    <div className="text-center mb-16">
-                        <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">기능 소개</span>
-                        <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">매장 운영에 필요한 모든 것</h2>
-                        <p className="text-gray-500 text-lg">종이 메뉴판, 복잡한 POS, 예약 수첩… 이제 위마켓 하나로 통합하세요.</p>
-                    </div>
+                        <div className="text-center mb-16">
+                            <span classcn="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">{t('features.title', '기능 소개')}</span>
+                            <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">{t('features.title', '매장 운영에 필요한 모든 것')}</h2>
+                            <p className="text-gray-500 text-lg">{t('features.subtitle', '종이 메뉴판, 복잡한 POS, 예약 수첩… 이제 위마켓 하나로 통합하세요.')}</p>
+                        </div>
                     <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
                         {features.map((feature, i) => (
                             <motion.div key={feature.title}
@@ -530,12 +551,12 @@ const LandingPage = () => {
                                 <span className="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-[10px] font-black">핵심 기능</span>
                             </div>
                             <h2 className="text-4xl font-black text-gray-900 mb-4 leading-tight text-balance">
-                                단골고객이 스스로<br />
-                                <span className="text-rose-500">다시 찾아오는</span> 매장
+                                {t('regularCustomers.title1', '단골고객이 스스로')}<br />
+                                <span className="text-rose-500">{t('regularCustomers.title2', '다시 찾아오는')}</span> {t('regularCustomers.title3', '매장')}
                             </h2>
                             <p className="text-gray-500 text-lg mb-8 leading-relaxed">
-                                QR 스캔 한 번으로 방문이 기록되고, 포인트가 쌓이고, VIP 등급이 자동 분류됩니다.
-                                사장님은 아무것도 하지 않아도 위마켓이 단골을 관리합니다.
+                                {t('regularCustomers.description', 'QR 스캔 한 번으로 방문이 기록되고, 포인트가 쌓이고, VIP 등급이 자동 분류됩니다.')}<br />
+                                {t('regularCustomers.manager', '사장님은 아무것도 하지 않아도 위마켓이 단골을 관리합니다.')}
                             </p>
 
                             <div className="space-y-4 mb-10">

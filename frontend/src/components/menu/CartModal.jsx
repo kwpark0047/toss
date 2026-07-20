@@ -1,38 +1,35 @@
 import { formatWon } from '../../utils/format';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { X, Minus, Plus, Trash2, CreditCard, Sparkles, Banknote, Building2, Smartphone, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../common/Button';
 import EmptyState from '../common/EmptyState';
 import { vibrateClick } from '../../utils/notificationSound';
 import LazyImage from '../common/LazyImage';
 
-// ── 결제수단 정의 ──────────────────────────────────────────────────
-const PAYMENT_GROUPS = [
+// ── 결제수단 정의 (번역 함수로 생성) ────────────────────────────────
+const getPaymentGroups = (t) => [
   {
     id: 'easy',
-    label: '간편결제',
-    description: '앱으로 빠르게 결제',
+    label: t('cart_modal.easy_payment'),
+    description: t('cart_modal.easy_payment_desc'),
     methods: [
-      { id: 'toss',     label: '토스페이',     icon: Smartphone, desc: '모바일 앱으로 간편 결제',        brandColor: '#0064FF', bgClass: 'bg-blue-500' },
-      { id: 'kakao',    label: '카카오페이',   icon: Smartphone, desc: '카카오톡으로 빠른 결제',         brandColor: '#FEE500', bgClass: 'bg-yellow-300', textColor: '#000000' },
-      { id: 'naver',    label: '네이버페이',   icon: Smartphone, desc: '네이버로 간편 결제',             brandColor: '#03C75A', bgClass: 'bg-green-500' },
+      { id: 'toss',     label: '토스페이',     icon: Smartphone, desc: t('cart_modal.toss_pay_desc'),   brandColor: '#0064FF', bgClass: 'bg-blue-500' },
+      { id: 'kakao',    label: '카카오페이',   icon: Smartphone, desc: t('cart_modal.kakao_pay_desc'),  brandColor: '#FEE500', bgClass: 'bg-yellow-300', textColor: '#000000' },
+      { id: 'naver',    label: '네이버페이',   icon: Smartphone, desc: t('cart_modal.naver_pay_desc'),  brandColor: '#03C75A', bgClass: 'bg-green-500' },
     ],
   },
   {
     id: 'standard',
-    label: '일반결제',
-    description: '매장에서 직접 결제',
+    label: t('cart_modal.standard_payment'),
+    description: t('cart_modal.standard_payment_desc'),
     methods: [
-      { id: 'cash',     label: '현금',         icon: Banknote,   desc: '직원에게 현금 직접 결제',        brandColor: '#16A34A', bgClass: 'bg-emerald-500' },
-      { id: 'card',     label: '신용카드',     icon: CreditCard, desc: '카드 결제 후 직원 확인',         brandColor: '#0EA5E9', bgClass: 'bg-sky-500' },
-      { id: 'transfer', label: '계좌이체',     icon: Building2,  desc: '매장 계좌 송금 후 확인',         brandColor: '#475569', bgClass: 'bg-slate-600' },
+      { id: 'cash',     label: '현금',         icon: Banknote,   desc: t('cart_modal.cash_desc'),       brandColor: '#16A34A', bgClass: 'bg-emerald-500' },
+      { id: 'card',     label: '신용카드',     icon: CreditCard, desc: t('cart_modal.card_desc'),       brandColor: '#0EA5E9', bgClass: 'bg-sky-500' },
+      { id: 'transfer', label: '계좌이체',     icon: Building2,  desc: t('cart_modal.transfer_desc'),   brandColor: '#475569', bgClass: 'bg-slate-600' },
     ],
   },
 ];
-
-const METHOD_MAP = Object.fromEntries(
-  PAYMENT_GROUPS.flatMap(g => g.methods).map(m => [m.id, m])
-);
 
 const formatPhoneInput = (value) => {
   const d = value.replace(/\D/g, '').slice(0, 11);
@@ -42,6 +39,11 @@ const formatPhoneInput = (value) => {
 };
 
 const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice, notifyPhone = '', onNotifyPhoneChange, paymentMethod = 'card', onPaymentMethodChange, menuItems = [], _storeId, onAddToCartClick }) => {
+  const { t } = useTranslation();
+  const PAYMENT_GROUPS = getPaymentGroups(t);
+  const METHOD_MAP = Object.fromEntries(
+    PAYMENT_GROUPS.flatMap(g => g.methods).map(m => [m.id, m])
+  );
   const cartItemIds = new Set(cart.map(c => c.menuItem.id));
 
   const suggestions = (() => {
@@ -87,15 +89,15 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
             <div className="w-12 h-1.5 bg-grey-200 dark:bg-white/10 rounded-full mx-auto my-3" />
             
             <div className="px-6 pb-4 flex items-center justify-between border-b cust-border">
-              <h2 className="text-xl font-black cust-text-main">장바구니</h2>
-              <button onClick={onClose} aria-label="닫기" className="p-2 hover:bg-grey-100 dark:hover:bg-white/10 rounded-full transition-colors">
+              <h2 className="text-xl font-black cust-text-main">{t('cart_modal.title')}</h2>
+              <button onClick={onClose} aria-label={t('common.close')} className="p-2 hover:bg-grey-100 dark:hover:bg-white/10 rounded-full transition-colors">
                 <X className="w-6 h-6 text-grey-400" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
               {cart.length === 0 ? (
-                <EmptyState icon="🛒" title="장바구니가 비어 있습니다" description="메뉴를 담아 주문을 시작해 보세요." />
+                <EmptyState icon="🛒" title={t('cart_modal.empty_title')} description={t('cart_modal.empty_desc')} />
               ) : (
                 <>
                   <div className="space-y-4">
@@ -165,7 +167,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                     <div className="pt-5 border-t cust-border">
                       <div className="flex items-center gap-2 mb-3">
                         <Sparkles size={16} className="text-orange-400" />
-                        <h4 className="font-black cust-text-main text-sm">함께 먹으면 더 맛있는 인기조합</h4>
+                        <h4 className="font-black cust-text-main text-sm">{t('cart_modal.popular_combo')}</h4>
                       </div>
                       <div className="flex gap-3 overflow-x-auto pb-3 -mx-2 px-2 scrollbar-hide">
                         {suggestions.map((menuItem) => (
@@ -181,7 +183,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                             </div>
                             <div className="min-w-0">
                               <p className="text-[10px] font-bold text-orange-600">
-                                {menuItem.is_popular ? '인기 메뉴' : '추천 페어링'}
+                                {menuItem.is_popular ? t('cart_modal.popular_menu') : t('cart_modal.recommended_pairing')}
                               </p>
                               <p className="text-xs font-black cust-text-main truncate">{menuItem.name}</p>
                               <p className="text-[10px] cust-text-sub">{formatWon(menuItem.price)}</p>
@@ -193,7 +195,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                               }}
                               className="w-full py-1.5 bg-white dark:bg-white/10 border border-orange-200 dark:border-orange-500/30 text-orange-600 dark:text-orange-400 text-[10px] font-bold rounded-lg hover:bg-orange-100 transition-colors active:scale-95"
                             >
-                              추가하기
+                              {t('cart_modal.add')}
                             </button>
                           </div>
                         ))}
@@ -212,15 +214,15 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                   <div className="w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center text-white">
                     <span className="text-[10px] font-bold">1/N</span>
                   </div>
-                  <span className="text-xs font-bold text-blue-900 dark:text-blue-300">친구와 나누어 결제할까요?</span>
+                  <span className="text-xs font-bold text-blue-900 dark:text-blue-300">{t('cart_modal.split_payment')}</span>
                 </div>
-                <button className="text-[10px] font-black text-blue-600 dark:text-blue-400 underline">분할 결제 설정</button>
+                <button className="text-[10px] font-black text-blue-600 dark:text-blue-400 underline">{t('cart_modal.split_payment_setting')}</button>
               </div>
 
               {/* 알림 받을 번호 */}
               <div className="p-3 cust-bg-card rounded-xl border cust-border">
                 <label htmlFor="notify-phone" className="block text-[10px] font-black cust-text-sub mb-1">
-                  📱 주문 알림 받을 번호
+                  📱 {t('cart_modal.notify_phone')}
                 </label>
                 <input
                   id="notify-phone"
@@ -232,7 +234,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                   className="w-full bg-grey-50 dark:bg-white/5 border border-grey-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-bold cust-text-main placeholder:text-grey-400 outline-none focus:border-primary"
                 />
                 <p className="text-[10px] text-grey-400 mt-1">
-                  {notifyPhone ? '저장된 번호가 입력되었어요. 다른 번호로 받으려면 수정하세요.' : '입력하시면 주문 상태를 문자로 안내받을 수 있어요. (선택)'}
+                  {notifyPhone ? t('cart_modal.notify_phone_saved') : t('cart_modal.notify_phone_hint')}
                 </p>
               </div>
 
@@ -241,7 +243,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                 <div className="cust-bg-card rounded-xl border cust-border overflow-hidden">
                   <div className="px-3 pt-3 pb-2">
                     <label className="block text-[10px] font-black cust-text-sub">
-                      💳 결제 수단 선택
+                      💳 {t('cart_modal.select_payment')}
                     </label>
                   </div>
 
@@ -339,7 +341,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                     </div>
                   </div>
                 ) : (
-                  <span className="text-xs font-bold text-grey-400">결제 수단을 선택해주세요</span>
+                  <span className="text-xs font-bold text-grey-400">{t('cart_modal.select_payment_guide')}</span>
                 )}
                 <span className="text-base font-black text-primary flex-shrink-0 ml-2">{formatWon(totalPrice)}</span>
               </div>
@@ -359,9 +361,9 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                   const methodData = paymentMethod && METHOD_MAP[paymentMethod];
                   if (methodData) {
                     const Icon = methodData.icon;
-                    return (<><Icon size={18} /><span>{methodData.label}으로 주문하기</span></>);
+                    return (<><Icon size={18} /><span>{t('cart_modal.order_with_method', { method: methodData.label })}</span></>);
                   }
-                  return (<><CreditCard size={20} /><span>주문하기</span></>);
+                  return (<><CreditCard size={20} /><span>{t('cart_modal.title')}</span></>);
                 })()}
               </Button>
             </div>

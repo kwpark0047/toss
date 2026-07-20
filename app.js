@@ -25,6 +25,10 @@ const alerting = require('./utils/alerting');
 const healthRouter = require('./routes/health');
 const { requestTracker } = require('./routes/health');
 
+// Security middleware
+const { basicXssProtection, strictSanitizer, htmlSanitizer } = require('./middleware/xssSanitizer');
+const { cspNonceMiddleware } = require('./middleware/cspNonce');
+
 // 앱 버전 단일 소스: package.json (엔드포인트 간 불일치 방지)
 const APP_VERSION = require('./package.json').version;
 
@@ -41,37 +45,8 @@ const httpServer = createServer(app);
 // 알림 서비스 인스턴스
 const notificationService = require('./services/notificationService');
 
-/**
- * CORS 설정
- */
-const isProduction = process.env.NODE_ENV === 'production';
-// 프로덕션 허용 오리진 (배포 도메인만). localhost는 개발 환경에서만 추가한다.
-const allowedOrigins = [
-    'https://frontend-gamma-ten-89.vercel.app',
-    'https://wemarket.onrender.com',
-    'https://wemarket.vercel.app',
-    'https://250105.vercel.app',
-    'https://wemarket-6k6.pages.dev',
-    'https://toss.wemarket.workers.dev',
-    'https://250105.kangwonpark71.workers.dev'
-];
-// 프로덕션에서 localhost 오리진은 CORS 목록에서 전면 제외 (공격 표면 제거)
-if (!isProduction) {
-    allowedOrigins.push(
-        'http://localhost:3000',
-        'http://localhost:3002',
-        'http://localhost:5173',
-        'http://localhost:5174'
-    );
-}
-
-if (process.env.CORS_ORIGIN) {
-    process.env.CORS_ORIGIN.split(',').forEach(origin => {
-        if (!allowedOrigins.includes(origin.trim())) {
-            allowedOrigins.push(origin.trim());
-        }
-    });
-}
+const { getAllowedOrigins, isProduction } = require('./config/domain');
+const allowedOrigins = getAllowedOrigins();
 
 app.use(cors({
     origin: function (origin, callback) {
@@ -135,6 +110,11 @@ app.use(express.json());
 
 // HttpOnly Cookie 기반 인증 (USE_HTTPONLY_COOKIE=true 시 활성화)
 app.use(require('cookie-parser')());
+
+// Security middleware - XSS protection
+app.use(basicXssProtection);    // Basic XSS protection for all requests
+app.use(strictSanitizer);       // Strict sanitization for all inputs
+app.use(cspNonceMiddleware);    // CSP nonce generation for inline scripts
 
 app.use(responseFormatter);
 app.use(i18nMiddleware);
@@ -267,7 +247,8 @@ const routes = {
     alimtalk: require('./routes/alimtalk'),
     weather: require('./routes/weather'),
     news: require('./routes/news'),
-    sse: require('./routes/sse')
+    sse: require('./routes/sse'),
+    printJobs: require('./routes/printJobs')
 };
 
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
@@ -329,6 +310,7 @@ app.use(`${API_PREFIX}/kds`, routes.kds);
 app.use(`${API_PREFIX}/alimtalk`, routes.alimtalk);
 app.use(`${API_PREFIX}/weather`, routes.weather);
 app.use(`${API_PREFIX}/sse`, routes.sse);
+app.use(`${API_PREFIX}/print-jobs`, routes.printJobs);
 
 // 정적 파일 서빙
 app.use(express.static(path.join(__dirname, 'public')));

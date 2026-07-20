@@ -1,10 +1,8 @@
 /**
- * health.js — 서비스 가용성 진단 엔드포인트
- *
- * GET /api/health          — Render 자동 재시작 프로브 (가볍고 빠름)
- * GET /api/health/deep     — 전체 의존성 점검 (DB, 외부 API, 메모리)
- * GET /api/health/circuits — Circuit Breaker 상태
- * GET /api/health/sla      — SLA 지표 (업타임, 에러율, 응답시간)
+ * @swagger
+ * tags:
+ *   name: Health
+ *   description: 서비스 가용성 진단 (Health Check)
  */
 const router  = require('express').Router();
 const prisma  = require('../config/prisma');
@@ -79,7 +77,19 @@ const requestTracker = (req, res, next) => {
     next();
 };
 
-// ── GET /api/health (Render liveness probe) ────────────────────────────────
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     tags: [Health]
+ *     summary: 서비스 헬스체크 (Render liveness probe)
+ *     description: DB 연결 상태, 업타임, 암호화 설정 여부를 반환합니다.
+ *     responses:
+ *       200:
+ *         description: 정상 (DB 연결)
+ *       503:
+ *         description: 서비스 저하 (DB 불가)
+ */
 router.get('/', async (req, res) => {
     // DB 핑 타임아웃 3초
     let dbOk = false;
@@ -102,7 +112,19 @@ router.get('/', async (req, res) => {
     });
 });
 
-// ── GET /api/health/deep ───────────────────────────────────────────────────
+/**
+ * @swagger
+ * /api/health/deep:
+ *   get:
+ *     tags: [Health]
+ *     summary: 심층 헬스체크 (DB, 메모리, 외부 API, SLA)
+ *     description: DB 지연시간, 힙 메모리, TossPayments Circuit Breaker, P50/P95/P99 응답시간을 포함한 전체 의존성 점검
+ *     responses:
+ *       200:
+ *         description: 전체 점검 정상
+ *       503:
+ *         description: 점검 항목 중 이상 감지
+ */
 router.get('/deep', async (req, res) => {
     const checks = {};
     let overallOk = true;
@@ -170,12 +192,32 @@ router.get('/deep', async (req, res) => {
     res.status(overallOk ? 200 : 503).json(payload);
 });
 
-// ── GET /api/health/circuits ───────────────────────────────────────────────
+/**
+ * @swagger
+ * /api/health/circuits:
+ *   get:
+ *     tags: [Health]
+ *     summary: Circuit Breaker 상태 조회
+ *     description: 모든 외부 의존성의 Circuit Breaker 통계를 반환합니다.
+ *     responses:
+ *       200:
+ *         description: Circuit Breaker 상태 목록
+ */
 router.get('/circuits', (req, res) => {
     res.json({ circuits: cb.allStats(), ts: new Date().toISOString() });
 });
 
-// ── GET /api/health/sla ────────────────────────────────────────────────────
+/**
+ * @swagger
+ * /api/health/sla:
+ *   get:
+ *     tags: [Health]
+ *     summary: SLA 지표 조회
+ *     description: SLO 목표 및 현재 업타임, 에러율, P50/P95/P99 응답시간을 반환합니다.
+ *     responses:
+ *       200:
+ *         description: SLA/SLO 메트릭
+ */
 router.get('/sla', (req, res) => {
     const uptimeSec = Math.floor((Date.now() - START_TIME) / 1000);
     // SLO: 99.5% 가용성 = 분기당 최대 10.8시간 다운 허용

@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   Play, CheckCircle2, RefreshCw, Printer, Volume2, VolumeX, 
   Wifi, WifiOff, Clock, User, ChevronRight, Hash, XCircle, Keyboard, Megaphone, Bluetooth
@@ -9,6 +10,7 @@ import notificationSound, { vibrateShort, vibrateOrderReady } from '../utils/not
 import { usePrinter } from '../hooks/usePrinter';
 
 export default function KitchenDisplay() {
+  const { t } = useTranslation();
   const { storeId } = useParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,7 @@ export default function KitchenDisplay() {
     try {
       if (showLoading) setLoading(true);
       const res = await fetch(`/api/v1/kds/stores/${storeId}/orders`);
-      if (!res.ok) throw new Error('KDS 활성 주문 목록을 조회하지 못했습니다.');
+      if (!res.ok) throw new Error(t('kds.fetch_error'));
       const json = await res.json();
       setOrders(json.data || json || []);
     } catch (err) {
@@ -156,7 +158,7 @@ export default function KitchenDisplay() {
         body: JSON.stringify({ status: nextStatus })
       });
 
-      if (!res.ok) throw new Error('주문 상태 변경 요청이 실패했습니다.');
+      if (!res.ok) throw new Error(t('kds.status_update_failed'));
       
       if (soundEnabled) {
         notificationSound.playSuccess();
@@ -192,7 +194,7 @@ export default function KitchenDisplay() {
         if (orderToPrint) {
           const success = await printReceipt(orderToPrint);
           if (success) {
-            alert('주방 프린터로 직접 인쇄를 완료했습니다.');
+            alert(t('kds.print.success'));
             return;
           }
         }
@@ -203,8 +205,8 @@ export default function KitchenDisplay() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'preparing' })
       });
-      if (!res.ok) throw new Error('인쇄 작업 대기열 재등록에 실패했습니다.');
-      alert('주방 프린터 출력 작업이 인쇄 대기열에 성공적으로 등록되었습니다.');
+      if (!res.ok) throw new Error(t('kds.print.failed'));
+      alert(t('kds.print.queued'));
     } catch (err) {
       alert(err.message);
     } finally {
@@ -330,7 +332,7 @@ export default function KitchenDisplay() {
     // 재생 대기열 초기화 후 신규 오더 즉시 점유
     window.speechSynthesis.cancel();
 
-    const tableLabel = order.is_takeout ? '포장 주문' : `${order.table_name || '일반'}번 테이블`;
+    const tableLabel = order.is_takeout ? t('kds.labels.takeout') : t('kds.labels.table', { name: order.table_name || '일반' });
     
     let itemsLabel = '';
     const itemsList = order.items || order.order_items || [];
@@ -341,7 +343,7 @@ export default function KitchenDisplay() {
       itemsLabel = itemsLabel.slice(0, -2); // 마지막 쉼표 제거
     }
 
-    const textToSpeak = `딩동! 신규 주문 접수. ${tableLabel}에서 ${itemsLabel} 주문하셨습니다. 조리 시작해 주세요.`;
+    const textToSpeak = t('kds.tts.new_order', { table: tableLabel, items: itemsLabel });
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = 'ko-KR';
@@ -378,12 +380,12 @@ export default function KitchenDisplay() {
           </div>
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2 tracking-tight">
-              주방 주문 모니터
+              {t('kds.title')}
               <span className="text-xs font-mono font-normal text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
                 Advanced KDS v1.2
               </span>
             </h1>
-            <p className="text-xs text-slate-400">매장 내 조리 대기열 및 영수증 인쇄 연동 컨트롤러</p>
+            <p className="text-xs text-slate-400">{t('kds.subtitle')}</p>
           </div>
         </div>
 
@@ -467,9 +469,9 @@ export default function KitchenDisplay() {
         {/* 포장/매장 필터 칩 (48px 터치 영역 충족 및 모션 효과 적용) */}
         <div className="flex bg-slate-900 p-1 rounded-2xl border border-slate-800">
           {[
-            { id: 'ALL', label: '전체 주문' },
-            { id: 'DINE_IN', label: '매장 식사' },
-            { id: 'TAKEOUT', label: '포장 주문' }
+            { id: 'ALL', label: t('kds.filters.all') },
+            { id: 'DINE_IN', label: t('kds.filters.dine_in') },
+            { id: 'TAKEOUT', label: t('kds.filters.takeout') }
           ].map(opt => (
             <button
               key={opt.id}
@@ -489,7 +491,7 @@ export default function KitchenDisplay() {
         <div className="relative max-w-md w-full md:w-80">
           <input 
             type="text"
-            placeholder="주문 번호, 테이블, 고객명 검색..."
+            placeholder={t('kds.search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-orange-500 placeholder-slate-500 transition-all"
@@ -524,7 +526,7 @@ export default function KitchenDisplay() {
             <div className="p-3.5 bg-slate-900/50 border-b border-slate-850 flex items-center justify-between">
               <h2 className="text-xs font-bold text-amber-400 tracking-wider flex items-center gap-2">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                접수 대기 (PENDING)
+                {t('kds.columns.pending')}
               </h2>
               <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400">
                 {pendingOrders.length}
@@ -535,7 +537,7 @@ export default function KitchenDisplay() {
               {pendingOrders.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-10">
                   <Clock className="size-8 stroke-[1.5] mb-2 opacity-50" />
-                  <p className="text-xs">대기 중인 신규 주문이 없습니다.</p>
+                  <p className="text-xs">{t('kds.empty.pending')}</p>
                 </div>
               ) : (
                 pendingOrders.map(order => (
@@ -551,7 +553,7 @@ export default function KitchenDisplay() {
                         <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${
                           order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'
                         }`}>
-                          {order.is_takeout ? '포장' : `${order.table_name || '매장'}번`}
+                          {order.is_takeout ? t('kds.labels.takeout') : `${order.table_name || t('kds.labels.table_fallback')}번`}
                         </span>
                       </div>
                       <div className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border ${getTimerSeverityClass(order.created_at)}`}>
@@ -579,7 +581,7 @@ export default function KitchenDisplay() {
 
                       {order.notes && (
                         <div className="text-[10px] bg-slate-950 p-2.5 rounded-lg text-slate-400 border border-slate-900 leading-relaxed">
-                          <strong className="text-amber-500">요청사항:</strong> {order.notes}
+                          <strong className="text-amber-500">{t('kds.labels.notes')}</strong> {order.notes}
                         </div>
                       )}
 
@@ -590,7 +592,7 @@ export default function KitchenDisplay() {
                         className="w-full mt-2 h-12 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-amber-500/10"
                       >
                         <Play className="size-3.5 fill-current" />
-                        주문 접수 & 조리 시작
+                        {t('kds.actions.accept')}
                       </button>
                     </div>
                   </div>
@@ -604,7 +606,7 @@ export default function KitchenDisplay() {
             <div className="p-3.5 bg-slate-900/50 border-b border-slate-850 flex items-center justify-between">
               <h2 className="text-xs font-bold text-sky-400 tracking-wider flex items-center gap-2">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
-                조리 중 (PREPARING)
+                {t('kds.columns.preparing')}
               </h2>
               <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-400">
                 {preparingOrders.length}
@@ -615,7 +617,7 @@ export default function KitchenDisplay() {
               {preparingOrders.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-10">
                   <Printer className="size-8 stroke-[1.5] mb-2 opacity-50" />
-                  <p className="text-xs">조리 중인 주문이 없습니다.</p>
+                  <p className="text-xs">{t('kds.empty.preparing')}</p>
                 </div>
               ) : (
                 preparingOrders.map(order => (
@@ -631,7 +633,7 @@ export default function KitchenDisplay() {
                         <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${
                           order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'
                         }`}>
-                          {order.is_takeout ? '포장' : `${order.table_name || '매장'}번`}
+                          {order.is_takeout ? t('kds.labels.takeout') : `${order.table_name || t('kds.labels.table_fallback')}번`}
                         </span>
                       </div>
                       <div className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border ${getTimerSeverityClass(order.created_at)}`}>
@@ -675,7 +677,7 @@ export default function KitchenDisplay() {
 
                       {order.notes && (
                         <div className="text-[10px] bg-slate-950 p-2.5 rounded-lg text-slate-400 border border-slate-900 leading-relaxed">
-                          <strong className="text-sky-500">요청사항:</strong> {order.notes}
+                          <strong className="text-sky-500">{t('kds.labels.notes')}</strong> {order.notes}
                         </div>
                       )}
 
@@ -696,7 +698,7 @@ export default function KitchenDisplay() {
                           className="flex-1 h-12 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-slate-950 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-sky-500/10"
                         >
                           <CheckCircle2 className="size-3.5" />
-                          조리 완료 (CALL)
+                          {t('kds.actions.complete')}
                         </button>
                       </div>
                     </div>
@@ -711,7 +713,7 @@ export default function KitchenDisplay() {
             <div className="p-3.5 bg-slate-900/50 border-b border-slate-850 flex items-center justify-between">
               <h2 className="text-xs font-bold text-emerald-400 tracking-wider flex items-center gap-2">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                수령 대기 (READY)
+                {t('kds.columns.ready')}
               </h2>
               <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400">
                 {readyOrders.length}
@@ -724,7 +726,7 @@ export default function KitchenDisplay() {
                 {readyOrders.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-10">
                     <CheckCircle2 className="size-8 stroke-[1.5] mb-2 opacity-50" />
-                    <p className="text-xs">호출 대기 중인 완료 메뉴가 없습니다.</p>
+                    <p className="text-xs">{t('kds.empty.ready')}</p>
                   </div>
                 ) : (
                   readyOrders.map(order => (
@@ -740,7 +742,7 @@ export default function KitchenDisplay() {
                           <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${
                             order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'
                           }`}>
-                            {order.is_takeout ? '포장' : `${order.table_name || '매장'}번`}
+                            {order.is_takeout ? t('kds.labels.takeout') : `${order.table_name || t('kds.labels.table_fallback')}번`}
                           </span>
                         </div>
                         <div className="text-[10px] px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg font-mono font-bold">
@@ -753,16 +755,16 @@ export default function KitchenDisplay() {
                         <div className="bg-slate-950 p-3 rounded-xl border border-slate-850/60 flex flex-col gap-1.5">
                           <div className="flex items-center gap-1.5 text-xs text-slate-400">
                             <User className="size-3.5" />
-                            <span>고객 연락처:</span>
+                            <span>{t('kds.info.phone')}</span>
                             <span className="font-mono text-slate-200">
-                              {order.customer_phone ? '010-****-' + order.customer_phone.slice(-4) : '등록 정보 없음'}
+                              {order.customer_phone ? '010-****-' + order.customer_phone.slice(-4) : t('kds.info.no_registration')}
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5 text-xs text-slate-400">
                             <Hash className="size-3.5" />
-                            <span>대기순서:</span>
+                            <span>{t('kds.info.wait_order')}</span>
                             <span className="font-mono text-slate-200">
-                              {order.queue_number ? `${order.queue_number}번` : '정보 없음'}
+                              {order.queue_number ? `${order.queue_number}번` : t('kds.info.no_info')}
                             </span>
                           </div>
                         </div>
@@ -784,7 +786,7 @@ export default function KitchenDisplay() {
                           className="w-full mt-2 h-12 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-emerald-500/10"
                         >
                           <CheckCircle2 className="size-3.5" />
-                          음식 수령 완료
+                          {t('kds.actions.pickup')}
                         </button>
                       </div>
                     </div>
@@ -797,11 +799,11 @@ export default function KitchenDisplay() {
                 <div className="mt-4 p-4 rounded-2xl bg-white/[0.01] border border-white/5 space-y-3 shrink-0 text-left">
                   <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
                     <Megaphone className="size-4 text-rose-400 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-300">실시간 TTS 보이스 방송 전광판</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-300">{t('kds.voice.title')}</span>
                   </div>
                   {voiceLogs.length === 0 ? (
                     <p className="text-[10px] text-slate-600 font-semibold italic text-center py-2">
-                      대기 중인 보이스 방송 메시지가 없습니다.
+                      {t('kds.voice.empty')}
                     </p>
                   ) : (
                     <div className="space-y-1.5 max-h-24 overflow-y-auto">
@@ -826,32 +828,32 @@ export default function KitchenDisplay() {
         <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-[10px] font-mono font-semibold">
           <span className="flex items-center gap-1">
             <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">Space</kbd>
-            <span>새로고침</span>
+            <span>{t('kds.shortcuts.refresh')}</span>
           </span>
           <span className="text-slate-800">|</span>
           <span className="flex items-center gap-1">
             <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">1/2/3</kbd>
-            <span>전체/매장/포장 필터</span>
+            <span>{t('kds.shortcuts.filter')}</span>
           </span>
           <span className="text-slate-800">|</span>
           <span className="flex items-center gap-1">
             <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">Q</kbd>
-            <span>알림음 음소거 토글</span>
+            <span>{t('kds.shortcuts.mute')}</span>
           </span>
           <span className="text-slate-800">|</span>
           <span className="flex items-center gap-1">
             <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">P</kbd>
-            <span>가장 오래된 주문 접수</span>
+            <span>{t('kds.shortcuts.oldest_pending')}</span>
           </span>
           <span className="text-slate-800">|</span>
           <span className="flex items-center gap-1">
             <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">R</kbd>
-            <span>가장 오래된 조리 완료</span>
+            <span>{t('kds.shortcuts.oldest_preparing')}</span>
           </span>
           <span className="text-slate-800">|</span>
           <span className="flex items-center gap-1">
             <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">C</kbd>
-            <span>가장 오래된 수령 완료</span>
+            <span>{t('kds.shortcuts.oldest_ready')}</span>
           </span>
         </div>
       </div>
@@ -862,11 +864,11 @@ export default function KitchenDisplay() {
           <span>&copy; WeMarket Store Display.</span>
           <span className="text-slate-700">|</span>
           <Link to={`/admin/stores/${storeId}/foodtruck`} className="hover:text-slate-300 underline">
-            모바일 점주 콘솔
+            {t('kds.footer.mobile_console')}
           </Link>
           <span className="text-slate-700">|</span>
           <Link to={`/admin/stores/${storeId}/foodtruck/analytics`} className="hover:text-slate-300 underline">
-            지능형 피크분석 대시보드
+            {t('kds.footer.peak_dashboard')}
           </Link>
         </div>
         <div className="font-mono">

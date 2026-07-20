@@ -1,6 +1,8 @@
 const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
 const aiService = require('../services/aiService');
+const { sendSms } = require('../utils/smsService');
+const logger = require('../utils/logger');
 
 /**
  * RFM 세그먼트 기준
@@ -133,10 +135,25 @@ const sendSmartMarketingSms = async (req, res, next) => {
             if (improved && improved.length <= 80) message = improved;
         } catch (_) { /* AI 실패 시 기본 메시지 사용 */ }
 
-        // 실제 SMS 발송 로직 위치 (현재 스텁 — 실제 SMS API 연동 필요)
         const phones = targets.map(c => c.customer_phone);
-        const logger = require('../utils/logger');
-        logger.info(`[CRM SMS] ${store.name} → ${phones.length}명 발송:`, message);
+        setImmediate(async () => {
+            let successCount = 0;
+            let failCount = 0;
+            for (const phone of phones) {
+                try {
+                    const result = await sendSms(phone, message);
+                    if (result.sent || result.dev || result.fallback) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                } catch (smsErr) {
+                    logger.error(`[CRM SMS] ${phone} 발송 실패:`, smsErr.message);
+                    failCount++;
+                }
+            }
+            logger.info(`[CRM SMS] ${store.name} → 성공 ${successCount}건, 실패 ${failCount}건`);
+        });
 
         res.success({
             sent: phones.length,

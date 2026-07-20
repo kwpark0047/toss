@@ -1,6 +1,8 @@
 const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
 const { encryptPhone, decryptPhoneFields, phoneSearchCandidates } = require('../utils/phoneEncryption');
+const alimtalkService = require('./AlimtalkService');
+const logger = require('../utils/logger');
 
 class WaitingService {
     /**
@@ -65,7 +67,23 @@ class WaitingService {
             }
         });
 
-        return decryptPhoneFields(entry);
+        const result = decryptPhoneFields(entry);
+
+        try {
+            const store = await prisma.stores.findUnique({
+                where: { id: parseInt(store_id) },
+                select: { name: true }
+            });
+            const waitingCount = await this.getStoreStatus(store_id);
+            alimtalkService.sendWaitingRegistered(
+                customer_phone,
+                store?.name || '매장',
+                newQueueNumber,
+                waitingCount
+            ).catch(e => logger.warn(`[Waiting] 알림톡 발송 실패: ${e.message}`));
+        } catch (_) {}
+
+        return result;
     }
 
     /**
@@ -79,7 +97,26 @@ class WaitingService {
                 called_at: status === 'called' ? new Date() : undefined
             }
         });
-        return decryptPhoneFields(entry);
+        const result = decryptPhoneFields(entry);
+
+        try {
+            const store = await prisma.stores.findUnique({
+                where: { id: entry.store_id },
+                select: { name: true }
+            });
+            const storeName = store?.name || '매장';
+            const phone = result.customer_phone;
+
+            if (status === 'called') {
+                alimtalkService.sendWaitingCall(phone, storeName, entry.queue_number)
+                    .catch(e => logger.warn(`[Waiting] 호출 알림톡 실패: ${e.message}`));
+            } else if (status === 'cancelled') {
+                alimtalkService.sendWaitingCancel(phone, storeName)
+                    .catch(e => logger.warn(`[Waiting] 취소 알림톡 실패: ${e.message}`));
+            }
+        } catch (_) {}
+
+        return result;
     }
 
     /**

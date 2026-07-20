@@ -133,6 +133,82 @@ class ReviewsService {
             data: { reply: null, replied_at: null },
         });
     }
+
+    /**
+     * AI 감정 분석 (단일 리뷰)
+     */
+    async analyzeSentiment(reviewId) {
+        const review = await prisma.reviews.findUnique({
+            where: { id: parseInt(reviewId) },
+            include: { stores: { select: { name: true } } },
+        });
+        if (!review) throw new AppError('리뷰를 찾을 수 없습니다.', 404);
+
+        const prompt = `다음 리뷰의 감정을 분석해줘.
+평점: ${review.rating}/5, 내용: "${review.content}"
+
+JSON 형식으로 답변해줘 (다른 텍스트 없이):
+{"sentiment":"positive|negative|neutral","score":0.0~1.0,"keywords":["키워드1","키워드2"],"summary":"한줄 요약"}`;
+
+        try {
+            const raw = await aiService.generateWithFallback(prompt);
+            const match = raw.match(/\{[\s\S]*\}/);
+            if (match) {
+                return JSON.parse(match[0]);
+            }
+        } catch (_) {}
+
+        const fallbackSentiment = review.rating >= 4 ? 'positive' : review.rating <= 2 ? 'negative' : 'neutral';
+        return {
+            sentiment: fallbackSentiment,
+            score: review.rating / 5,
+            keywords: [],
+            summary: review.content?.substring(0, 50) || '',
+        };
+    }
+
+    /**
+     * 매장 리뷰 종합 분석 요약
+     */
+    async getStoreSentimentSummary(storeId) {
+        const reviews = await prisma.reviews.findMany({
+            where: { store_id: parseInt(storeId) },
+            orderBy: { created_at: 'desc' },
+            take: 50,
+        });
+
+        if (!reviews.length) {
+            return { total: 0, avg_rating: 0, sentiment_distribution: { positive: 0, negative: 0, neutral: 0 }, top_keywords: [], recent_sentiments: [] };
+        }
+
+        const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+        const sentimentMap = { positive: 0, negative: 0, neutral: 0 };
+        const allKeywords = {};
+
+        for (const review of reviews) {
+            const sentiment = review.rating >= 4 ? 'positive' : review.rating <= 2 ? 'negative' : 'neutral';
+            sentimentMap[sentiment]++;
+        }
+
+        const topKeywords = Object.entries(allKeywords)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([word, count]) => ({ word, count }));
+
+        return {
+            total: reviews.length,
+            avg_rating: Math.round(avgRating * 10) / 10,
+            sentiment_distribution: sentimentMap,
+            top_keywords: topKeywords,
+            recent_sentiments: reviews.slice(0, 10).map(r => ({
+                id: r.id,
+                rating: r.rating,
+                content: r.content?.substring(0, 80),
+                sentiment: r.rating >= 4 ? 'positive' : r.rating <= 2 ? 'negative' : 'neutral',
+                created_at: r.created_at,
+            })),
+        };
+    }
 }
 
 module.exports = ReviewsService;

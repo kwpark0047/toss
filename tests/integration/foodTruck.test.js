@@ -49,6 +49,7 @@ jest.mock('../../middleware/storeAuth', () => {
 // ── Prisma 데이터베이스 어댑터 모의 ────────────────────────────────────────────────
 jest.mock('../../config/prisma', () => {
     return {
+        metrics: { create: jest.fn(), aggregate: jest.fn() },
         food_trucks: {
             findUnique: jest.fn(),
             upsert: jest.fn(),

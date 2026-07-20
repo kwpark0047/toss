@@ -1,19 +1,8 @@
 /**
- * _devOps.js — 운영 편의를 위한 시드/DB 마이그레이션 원격 실행 엔드포인트
- *
- * ⚠️ 보안: 이 라우터는 임의 명령 실행(execFile) 및 raw SQL을 노출하므로
- * 기본적으로 프로덕션에서 마운트되지 않는다. 프로덕션에서 한시적으로 필요할 때만
- * 환경변수 ENABLE_DEV_OPS=<고유값> 으로 명시적으로 켜야 하며, 모든 요청은 SEED_KEY
- * (timingSafeEqual) 인증을 통과해야 한다. 사용 후 즉시 플래그를 내릴 것.
- *
- * ENABLE_DEV_OPS 단순히 "true"가 아니라 특정 토큰값을 요구하도록 변경:
- *   process.env.ENABLE_DEV_OPS 가 문자열 "true"가 아닌, 설정한 실제 값과
- *   x-devops-token 헤더가 일치해야 접근 가능 (2중 인증).
- *
- * app.js에서 조건부 마운트:
- *   if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEV_OPS)
- *       app.use('/api/_devops', require('./routes/_devOps'));
- *   (ENABLE_DEV_OPS= 가 설정된 값과 x-devops-token 헤더가 일치해야 접근 가능)
+ * @swagger
+ * tags:
+ *   name: DevOps
+ *   description: 운영 편의용 시드/DB 마이그레이션 엔드포인트 ( ENABLE_DEV_OPS + SEED_KEY 이중 인증 )
  */
 const router = require('express').Router();
 const { timingSafeEqual } = require('crypto');
@@ -47,7 +36,18 @@ router.use((req, res, next) => {
     next();
 });
 
-// ── 시드 실행 ────────────────────────────────────────────────────────────────
+/**
+ * @swagger
+ * /api/_devops/seed-start:
+ *   post:
+ *     tags: [DevOps]
+ *     summary: 시드 데이터 생성 실행
+ *     security:
+ *       - devopsToken: []
+ *     responses:
+ *       200:
+ *         description: 시드 실행 시작
+ */
 let _seedJob = null;
 router.post('/seed-start', (req, res) => {
     if (_seedJob?.status === 'running') return res.json({ status: 'already_running', output: _seedJob.output });
@@ -66,9 +66,32 @@ router.post('/seed-start', (req, res) => {
     res.json({ status: 'started', message: '시드 실행 시작. /api/_devops/seed-status 로 확인하세요.' });
 });
 
+/**
+ * @swagger
+ * /api/_devops/seed-status:
+ *   get:
+ *     tags: [DevOps]
+ *     summary: 시드 실행 상태 조회
+ *     security:
+ *       - devopsToken: []
+ *     responses:
+ *       200:
+ *         description: 시드 작업 상태
+ */
 router.get('/seed-status', (req, res) => res.json(_seedJob || { status: 'not_started' }));
 
-// ── prisma db push ───────────────────────────────────────────────────────────
+/**
+ * @swagger
+ * /api/_devops/db-push:
+ *   post:
+ *     tags: [DevOps]
+ *     summary: Prisma DB Push 실행
+ *     security:
+ *       - devopsToken: []
+ *     responses:
+ *       200:
+ *         description: DB Push 시작
+ */
 let _dbPushJob = null;
 router.post('/db-push', (req, res) => {
     if (_dbPushJob?.status === 'running') return res.json({ status: 'already_running' });
@@ -87,9 +110,32 @@ router.post('/db-push', (req, res) => {
     res.json({ status: 'started', message: 'prisma db push 실행 중. /api/_devops/db-push-status 로 확인하세요.' });
 });
 
+/**
+ * @swagger
+ * /api/_devops/db-push-status:
+ *   get:
+ *     tags: [DevOps]
+ *     summary: Prisma DB Push 상태 조회
+ *     security:
+ *       - devopsToken: []
+ *     responses:
+ *       200:
+ *         description: DB Push 작업 상태
+ */
 router.get('/db-push-status', (req, res) => res.json(_dbPushJob || { status: 'not_started' }));
 
-// ── 공개 스키마 테이블 목록 (진단용) ──────────────────────────────────────────
+/**
+ * @swagger
+ * /api/_devops/db-tables:
+ *   get:
+ *     tags: [DevOps]
+ *     summary: 공개 스키마 테이블 목록 조회 (진단용)
+ *     security:
+ *       - devopsToken: []
+ *     responses:
+ *       200:
+ *         description: 테이블 목록
+ */
 router.get('/db-tables', async (req, res) => {
     try {
         const prisma = require('../config/prisma');

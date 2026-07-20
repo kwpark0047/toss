@@ -6,7 +6,13 @@ const fs = require('fs');
 const authMiddleware = require('../middleware/auth');
 const { generalLimiter } = require('../middleware/rateLimiter');
 
-// 업로드 디렉토리 확인 및 생성
+/**
+ * @swagger
+ * tags:
+ *   name: Uploads
+ *   description: 파일 업로드/삭제 API
+ */
+
 const uploadDir = path.join(__dirname, '../public/uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -45,7 +51,26 @@ const upload = multer({
 });
 
 /**
- * 단일 이미지 업로드
+ * @swagger
+ * /api/uploads/image:
+ *   post:
+ *     tags: [Uploads]
+ *     summary: 단일 이미지 업로드
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: 업로드된 이미지 URL
  */
 router.post('/image', authMiddleware, upload.single('image'), (req, res) => {
     if (!req.file) {
@@ -60,8 +85,25 @@ router.post('/image', authMiddleware, upload.single('image'), (req, res) => {
 });
 
 /**
- * 리뷰 이미지 업로드 (고객용 무인증)
- * 고객은 로그인하지 않으므로 인증 없이 허용하되, rate limit + 5MB + 이미지 한정 제한으로 방어.
+ * @swagger
+ * /api/uploads/review-image:
+ *   post:
+ *     tags: [Uploads]
+ *     summary: 리뷰 이미지 업로드 (고객용 무인증)
+ *     description: 고객은 로그인하지 않으므로 인증 없이 허용하되, rate limit + 5MB + 이미지 한정 제한으로 방어.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: 업로드된 이미지 URL
  */
 router.post('/review-image', generalLimiter, upload.single('image'), (req, res) => {
     if (!req.file) {
@@ -75,7 +117,28 @@ router.post('/review-image', generalLimiter, upload.single('image'), (req, res) 
 });
 
 /**
- * 다중 이미지 업로드
+ * @swagger
+ * /api/uploads/images:
+ *   post:
+ *     tags: [Uploads]
+ *     summary: 다중 이미지 업로드 (최대 10장)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: 업로드된 이미지 URL 배열
  */
 router.post('/images', authMiddleware, upload.array('images', 10), (req, res) => {
     if (!req.files || req.files.length === 0) {
@@ -89,7 +152,24 @@ router.post('/images', authMiddleware, upload.array('images', 10), (req, res) =>
 });
 
 /**
- * 이미지 파일 삭제
+ * @swagger
+ * /api/uploads/image/{filename}:
+ *   delete:
+ *     tags: [Uploads]
+ *     summary: 이미지 파일 삭제
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: filename
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: 파일 삭제 완료
+ *       404:
+ *         description: 파일 미발견
  */
 router.delete('/image/:filename', authMiddleware, (req, res) => {
     const { filename } = req.params;

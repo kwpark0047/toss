@@ -4,7 +4,33 @@ const prisma = require('../config/prisma');
 const naverPlaceService = require('../services/naverPlaceService');
 const catchAsync = require('../utils/catchAsync');
 
-// [GET] 매장의 네이버 플레이스 정보 조회
+/**
+ * @swagger
+ * tags:
+ *   name: NaverPlace
+ *   description: 네이버 플레이스 연동 API
+ */
+
+/**
+ * @swagger
+ * /api/naver-place/store/{storeId}:
+ *   get:
+ *     tags: [NaverPlace]
+ *     summary: 매장의 네이버 플레이스 정보 조회
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 네이버 플레이스 정보 (매장명, 별점, 리뷰URL 등)
+ *       404:
+ *         description: 매장 미발견
+ *       503:
+ *         description: NAVER_CLIENT_SECRET 미설정
+ */
 router.get('/store/:storeId', catchAsync(async (req, res) => {
   const { storeId } = req.params;
   const id = parseInt(storeId);

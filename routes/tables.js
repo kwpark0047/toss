@@ -9,12 +9,65 @@ const logger = require('../utils/logger');
 const crypto = require('crypto');
 const prisma = require('../config/prisma');
 
-// 매장�??�이�?목록 조회 (매장 권한 ?�요)
+/**
+ * @swagger
+ * tags:
+ *   name: Tables
+ *   description: 테이블/좌석 관리 및 QR 코드 API
+ */
+
+/**
+ * @swagger
+ * /api/tables/store/{storeId}:
+ *   get:
+ *     tags: [Tables]
+ *     summary: 매장 테이블 목록 조회
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 테이블 목록
+ */
 router.get('/store/:storeId', authMiddleware, checkStorePermission('order:read'), catchAsync(async (req, res) => {
     const tables = await Table.findByStoreId(req.params.storeId);
     res.success(tables);
 }));
 
+/**
+ * @swagger
+ * /api/tables/store/{storeId}/layout:
+ *   put:
+ *     tags: [Tables]
+ *     summary: 테이블 배치도 저장
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               layout:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: 배치도 저장 완료
+ */
 router.put('/store/:storeId/layout', authMiddleware, checkStorePermission('store:update'), catchAsync(async (req, res) => {
     const { layout } = req.body;
     if (!layout || !Array.isArray(layout)) {
@@ -30,20 +83,77 @@ router.put('/store/:storeId/layout', authMiddleware, checkStorePermission('store
     res.success(tables, '테이블 배치도가 저장되었습니다.');
 }));
 
-// QR 코드�??�이�?조회 (?�증 불필??- 고객 QR ?�캔??
+/**
+ * @swagger
+ * /api/tables/qr/{qrCode}:
+ *   get:
+ *     tags: [Tables]
+ *     summary: QR 코드로 테이블 조회 (인증 불필요 - 고객 QR 스캔용)
+ *     parameters:
+ *       - in: path
+ *         name: qrCode
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: 테이블 정보
+ *       404:
+ *         description: 유효하지 않은 QR 코드
+ */
 router.get('/qr/:qrCode', catchAsync(async (req, res) => {
     const table = await Table.findByQrCode(req.params.qrCode);
     if (!table) return res.status(404).json({ error: '?�효?��? ?��? QR 코드?�니??' });
     res.success(table);
 }));
 
-// ?�이�??�성
+/**
+ * @swagger
+ * /api/tables:
+ *   post:
+ *     tags: [Tables]
+ *     summary: 테이블 생성
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       201:
+ *         description: 테이블 생성 완료
+ */
 router.post('/', authMiddleware, catchAsync(async (req, res) => {
     const table = await Table.create(req.body);
     res.success(table, '?�이블이 ?�성?�었?�니??', 201);
 }));
 
-// ?�이�??�정
+/**
+ * @swagger
+ * /api/tables/{id}:
+ *   put:
+ *     tags: [Tables]
+ *     summary: 테이블 수정
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: 테이블 수정 완료
+ */
 router.put('/:id', authMiddleware, catchAsync(async (req, res) => {
     const table = await Table.update(req.params.id, req.body);
 
@@ -55,7 +165,24 @@ router.put('/:id', authMiddleware, catchAsync(async (req, res) => {
     res.success(table, '?�이�??�보가 ?�정?�었?�니??');
 }));
 
-// QR 코드 ?�생??(?�이�??�속 매장 권한 검�?
+/**
+ * @swagger
+ * /api/tables/{id}/regenerate-qr:
+ *   post:
+ *     tags: [Tables]
+ *     summary: QR 코드 재생성
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: QR 코드 재생성 완료
+ */
 router.post('/:id/regenerate-qr', authMiddleware, catchAsync(async (req, res) => {
     const existing = await Table.findById(req.params.id);
     if (!existing) return res.status(404).json({ error: '?�이블을 찾을 ???�습?�다.' });
@@ -74,7 +201,24 @@ router.post('/:id/regenerate-qr', authMiddleware, catchAsync(async (req, res) =>
     res.success(table, 'QR 코드가 ?�생?�되?�습?�다.');
 }));
 
-// ?�이�???��
+/**
+ * @swagger
+ * /api/tables/{id}:
+ *   delete:
+ *     tags: [Tables]
+ *     summary: 테이블 삭제
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 테이블 삭제 완료
+ */
 router.delete('/:id', authMiddleware, catchAsync(async (req, res) => {
     const table = await Table.findById(req.params.id);
     if (table) {

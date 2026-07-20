@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { wakeupServer } from '../api';
 import { Store, Phone, Lock, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,14 +13,15 @@ const formatPhone = (value) => {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
 };
 
-const Login = () => {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [serverStatus, setServerStatus] = useState('idle'); // idle | waking | ready
+  const Login = () => {
+    const { login } = useAuth();
+    const { t } = useTranslation('auth', { keyPrefix: 'auth' });
+    const navigate = useNavigate();
+    const [identifier, setIdentifier] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [serverStatus, setServerStatus] = useState('idle'); // idle | waking | ready
 
   // 로그인 페이지 진입 즉시 서버 예열
   useEffect(() => {
@@ -90,7 +92,7 @@ const Login = () => {
               <Store className="w-10 h-10 text-white" />
             </motion.div>
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">위마켓</h1>
-            <p className="text-slate-500 mt-3 font-medium text-lg">매장 관리 시스템 로그인</p>
+            <p className="text-slate-500 mt-3 font-medium text-lg">{t('loginSubTitle', '매장 관리 시스템 로그인')}</p>
           </div>
 
           <AnimatePresence mode="wait">
@@ -111,7 +113,7 @@ const Login = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label htmlFor="login-phone" className="block text-sm font-bold text-slate-700 ml-1">
-                핸드폰 번호
+                {t('phone', '핸드폰 번호')}
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -162,7 +164,7 @@ const Login = () => {
 
             <div className="space-y-2">
               <label className="block text-sm font-bold text-slate-700 ml-1">
-                비밀번호
+                {t('password', '비밀번호')}
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -194,7 +196,7 @@ const Login = () => {
                   </>
                 ) : (
                   <>
-                    <span>로그인</span>
+                    <span>{t('login', '로그인')}</span>
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}

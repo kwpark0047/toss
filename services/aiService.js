@@ -304,10 +304,6 @@ class AIService {
         }
         throw lastError;
     }
-            }
-        }
-        throw lastError;
-    }
 
     /**
      * 캐시 저장 관리 (크기 제한)

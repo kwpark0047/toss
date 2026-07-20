@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { apiLogger } = require('./logger');
+const { apiLogger } = require('../utils/logger');
 
 class WeatherService {
   constructor() {

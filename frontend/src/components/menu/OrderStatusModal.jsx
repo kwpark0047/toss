@@ -2,27 +2,28 @@ import { formatWon } from '../../utils/format';
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, CheckCircle2, ChefHat, BellRing, Package, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { ordersAPI } from '@/api';
 import { joinOrderRoom, onOrderUpdated } from '@/utils/socket';
 import EmptyState from '../common/EmptyState';
 import { vibrateClick, vibrateSuccess } from '../../utils/notificationSound';
 
-const STEPS = [
-  { key: 'pending',   label: '주문 접수',  icon: Clock,         color: 'text-amber-500',   bg: 'bg-amber-50',   ring: 'ring-amber-400' },
-  { key: 'confirmed', label: '주문 확인',  icon: CheckCircle2,  color: 'text-blue-500',    bg: 'bg-blue-50',    ring: 'ring-blue-400' },
-  { key: 'preparing', label: '조리 중',    icon: ChefHat,       color: 'text-purple-500',  bg: 'bg-purple-50',  ring: 'ring-purple-400' },
-  { key: 'ready',     label: '준비 완료',  icon: BellRing,      color: 'text-emerald-500', bg: 'bg-emerald-50', ring: 'ring-emerald-400' },
-  { key: 'completed', label: '수령 완료',  icon: Package,       color: 'text-grey-400',   bg: 'bg-grey-50',   ring: 'ring-grey-300' },
+const STEPS_CONFIG = [
+  { key: 'pending',   icon: Clock,         color: 'text-amber-500',   bg: 'bg-amber-50',   ring: 'ring-amber-400' },
+  { key: 'confirmed', icon: CheckCircle2,  color: 'text-blue-500',    bg: 'bg-blue-50',    ring: 'ring-blue-400' },
+  { key: 'preparing', icon: ChefHat,       color: 'text-purple-500',  bg: 'bg-purple-50',  ring: 'ring-purple-400' },
+  { key: 'ready',     icon: BellRing,      color: 'text-emerald-500', bg: 'bg-emerald-50', ring: 'ring-emerald-400' },
+  { key: 'completed', icon: Package,       color: 'text-grey-400',   bg: 'bg-grey-50',   ring: 'ring-grey-300' },
 ];
-const CANCELLED = { key: 'cancelled', label: '주문 취소', icon: X, color: 'text-rose-500', bg: 'bg-rose-50', ring: 'ring-rose-400' };
+const CANCELLED_CONFIG = { key: 'cancelled', icon: X, color: 'text-rose-500', bg: 'bg-rose-50', ring: 'ring-rose-400' };
 
-const STATUS_MSG = {
-  pending:   '주문을 접수했습니다. 잠시 기다려주세요.',
-  confirmed: '매장에서 주문을 확인했습니다.',
-  preparing: '맛있게 조리하고 있습니다! 🍳',
-  ready:     '음식이 준비됐습니다. 수령해주세요! 🔔',
-  completed: '이용해주셔서 감사합니다.',
-  cancelled: '주문이 취소되었습니다.',
+const STATUS_MSG_KEYS = {
+  pending:   'order_status.messages.pending',
+  confirmed: 'order_status.messages.confirmed',
+  preparing: 'order_status.messages.preparing',
+  ready:     'order_status.messages.ready',
+  completed: 'order_status.messages.completed',
+  cancelled: 'order_status.messages.cancelled',
 };
 
 
@@ -30,6 +31,10 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const { t } = useTranslation();
+
+  const STEPS = STEPS_CONFIG.map(s => ({ ...s, label: t(`order_status.steps.${s.key}`) }));
+  const CANCELLED = { ...CANCELLED_CONFIG, label: t('order_status.steps.cancelled') };
 
   const fetchOrder = useCallback(async () => {
     if (!orderId && !storeId) return;
@@ -108,13 +113,13 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
             {/* 헤더 */}
             <div className="px-6 pb-4 flex items-center justify-between border-b cust-border">
               <div>
-                <h2 className="tds-title cust-text-main">주문 현황</h2>
+                <h2 className="tds-title cust-text-main">{t('order_status.title')}</h2>
                 {order && (
                   <p className="tds-caption cust-text-sub mt-0.5">
-                    주문 #{order.order_number || order.id}
+                    {t('order_status.order_number', { number: order.order_number || order.id })}
                     {lastUpdated && (
                       <span className="ml-1 text-emerald-500">
-                        · {lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} 업데이트
+                        · {lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} {t('order_status.updated')}
                       </span>
                     )}
                   </p>
@@ -129,10 +134,10 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
               {loading && !order ? (
                 <div className="flex flex-col items-center justify-center py-20">
                   <Loader2 className="w-10 h-10 text-orange-400 animate-spin mb-4" />
-                  <p className="tds-body cust-text-sub">주문 정보를 불러오는 중...</p>
+                  <p className="tds-body cust-text-sub">{t('order_status.loading')}</p>
                 </div>
               ) : !order ? (
-                <EmptyState icon="📋" title="최근 주문 내역이 없습니다" description="주문하시면 여기에서 진행 상태를 확인할 수 있어요." />
+                <EmptyState icon="📋" title={t('order_status.no_recent')} description={t('order_status.no_recent_desc')} />
               ) : (
                 <div className="space-y-8">
 
@@ -185,13 +190,13 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                     <CurIcon className={`w-6 h-6 ${curStep.color} flex-shrink-0`} />
                     <div>
                       <p className={`font-black text-sm ${curStep.color}`}>{curStep.label}</p>
-                      <p className="text-xs cust-text-sub mt-0.5">{STATUS_MSG[status] || ''}</p>
+                      <p className="text-xs cust-text-sub mt-0.5">{t(STATUS_MSG_KEYS[status]) || ''}</p>
                     </div>
                   </div>
 
                   {/* ── 주문 상품 ── */}
                   <div>
-                    <h3 className="text-xs font-black text-grey-400 dark:text-grey-600 uppercase tracking-widest mb-3">주문 내역</h3>
+                    <h3 className="text-xs font-black text-grey-400 dark:text-grey-600 uppercase tracking-widest mb-3">{t('order_status.details')}</h3>
                     <div className="bg-grey-50 dark:bg-white/5 rounded-2xl p-5 space-y-3">
                       {(order.items || order.order_items || []).map((item, idx) => (
                         <div key={idx} className="flex justify-between text-sm">
@@ -205,7 +210,7 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                         </div>
                       ))}
                       <div className="pt-3 border-t cust-border flex justify-between">
-                        <span className="text-sm font-black cust-text-sub">합계</span>
+                        <span className="text-sm font-black cust-text-sub">{t('order_status.subtotal')}</span>
                         <span className="text-base font-black cust-text-main">{formatWon(order.total_amount)}</span>
                       </div>
                     </div>
@@ -222,14 +227,14 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                   className="w-full h-14 bg-orange-500 text-white rounded-2xl font-black active:scale-95 transition-transform flex items-center justify-center gap-2"
                 >
                   <BellRing className="w-5 h-5" aria-hidden="true" />
-                  리뷰 작성하고 혜택 받기
+                  {t('order_status.review_cta')}
                 </button>
               )}
               <button
                 onClick={() => { vibrateClick(); onClose(); }}
                 className="w-full h-14 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl font-black active:scale-95 transition-transform"
               >
-                확인
+                {t('common.confirm')}
               </button>
             </div>
           </motion.div>

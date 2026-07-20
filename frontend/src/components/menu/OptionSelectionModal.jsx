@@ -2,11 +2,13 @@ import { formatWon } from '../../utils/format';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../common/Button';
 import { vibrateClick } from '../../utils/notificationSound';
 
 const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }) => {
   const [quantity, setQuantity] = useState(1);
+  const { t } = useTranslation();
   const [selections, setSelections] = useState(() => {
     const initial = {};
     if (optionGroups) {
@@ -79,7 +81,7 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
                   <div className="flex items-center justify-between">
                     <h3 className="tds-body-strong cust-text-main flex items-center gap-2">
                       {group.name}
-                      {group.is_required && <span className="bg-primary/10 text-primary text-[9px] px-1.5 py-0.5 rounded uppercase font-black">필수</span>}
+                      {group.is_required && <span className="bg-primary/10 text-primary text-[9px] px-1.5 py-0.5 rounded uppercase font-black">{t('option.required')}</span>}
                     </h3>
                   </div>
                   
@@ -118,7 +120,7 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
               ))}
 
               <div className="space-y-3">
-                <h3 className="tds-body-strong cust-text-main">수량 선택</h3>
+                <h3 className="tds-body-strong cust-text-main">{t('option.quantity')}</h3>
                 <div className="flex items-center justify-center gap-6 bg-grey-50 dark:bg-white/5 rounded-2xl py-4">
                   <button 
                     onClick={() => {
@@ -154,7 +156,7 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
                   handleConfirm();
                 }}
               >
-                <span>장바구니 담기</span>
+                <span>{t('option.add_to_cart')}</span>
                 <span className="bg-white/20 px-3 py-1 rounded-full text-sm">{formatWon(calculateTotal())}</span>
               </Button>
             </div>

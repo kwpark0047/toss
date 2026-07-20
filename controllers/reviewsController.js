@@ -53,7 +53,17 @@ const reviewsController = {
     deleteReply: catchAsync(async (req, res) => {
         const updated = await reviewsService.deleteReply(req.params.id, req.user);
         res.success(updated, '리플라이가 삭제되었습니다.');
-    })
+    }),
+
+    analyzeSentiment: catchAsync(async (req, res) => {
+        const result = await reviewsService.analyzeSentiment(req.params.id);
+        res.success(result, '감정 분석이 완료되었습니다.');
+    }),
+
+    getStoreSentimentSummary: catchAsync(async (req, res) => {
+        const result = await reviewsService.getStoreSentimentSummary(req.params.storeId);
+        res.success(result, '매장 리뷰 분석 요약입니다.');
+    }),
 };
 
 module.exports = reviewsController;

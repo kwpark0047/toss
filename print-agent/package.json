@@ -1,20 +1,24 @@
 {
-  "name": "print-agent",
+  "name": "@wemarket/print-agent",
   "version": "1.0.0",
-  "description": "",
+  "description": "WeMarket 로컬 프린트 에이전트 — 매장 POS PC에서 USB/LAN 프린터로 주방 영수증 자동 인쇄",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
-    "cors": "^2.8.6",
-    "escpos": "^3.0.0-alpha.6",
-    "escpos-network": "^3.0.0-alpha.5",
-    "escpos-usb": "^3.0.0-alpha.4",
-    "express": "^5.2.1"
-  }
+    "dotenv": "^16.4.7",
+    "node-fetch": "^3.3.2",
+    "usb": "^2.14.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "license": "MIT"
 }

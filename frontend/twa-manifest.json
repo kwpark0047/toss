@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicepkg/bubblewrap/main/packages/cli/src/lib/Manifest.schema.json",
+  "packageId": "work.wemarket.app",
+  "host": "toss.wemarket.workers.dev",
+  "name": "WeMarket QR Menu",
+  "shortName": "WeMarket",
+  "startUrl": "/",
+  "scope": "/",
+  "signing": {
+    "file": "./keystore/release.keystore",
+    "alias": "wemarket"
+  },
+  "icon": {
+    "src": "./public/icons/icon-512.png",
+    "maskable": {
+      "src": "./public/icons/icon-maskable-512.png"
+    },
+    "purpose": "any"
+  },
+  "splashScreen": {
+    "backgroundColor": "#0f172a",
+    "deviceColor": "#F97316"
+  },
+  "themeColor": "#F97316",
+  "backgroundColor": "#0f172a",
+  "orientation": "portrait",
+  "display": "standalone",
+  "minSdkVersion": 23,
+  "maxSdkVersion": 35,
+  "appVersionCode": 1,
+  "appVersionName": "1.1.0",
+  "locationDelegation": {
+    "enabled": true
+  },
+  "isChromeOSEnabled": true,
+  "privacySandbox": {
+    "enabled": false
+  }
+}

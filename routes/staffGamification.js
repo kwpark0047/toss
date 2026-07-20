@@ -7,18 +7,59 @@ const { authMiddleware } = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 
 /**
- * [직원 게임??API ?�우??
- * 직원 ?�과 분석 �?리더보드 관???�드?�인?��? 관리합?�다.
+ * @swagger
+ * tags:
+ *   name: StaffGamification
+ *   description: 직원 게임화/성과 분석 API
  */
 
-// 1. 매장�??�과 리더보드 조회 (매장 ?�계 ?�기 권한 ?�요)
+/**
+ * @swagger
+ * /api/staff-gamification/store/{storeId}/leaderboard:
+ *   get:
+ *     tags: [StaffGamification]
+ *     summary: 매장별 성과 리더보드 조회
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 리더보드 데이터
+ */
 router.get('/store/:storeId/leaderboard', 
   authMiddleware, 
   checkStorePermission('stats:read'), 
   staffGamificationController.getLeaderboard
 );
 
-// 2. 개별 직원 ?�과 ?�세 조회
+/**
+ * @swagger
+ * /api/staff-gamification/store/{storeId}/performance/{staffId}:
+ *   get:
+ *     tags: [StaffGamification]
+ *     summary: 개별 직원 성과 상세 조회
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: staffId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 직원 성과 상세
+ */
 router.get('/store/:storeId/performance/:staffId', 
   authMiddleware, 
   checkStorePermission('stats:read'), 

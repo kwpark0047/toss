@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Loader2, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { storesAPI } from "@/api/stores";
 import { categoriesAPI, productsAPI } from "@/api/products";
@@ -58,6 +59,7 @@ const getOptionsForMenuItem = (menuItems, itemId) => {
 
 /** 콜드스타트 로딩 화면 */
 const ColdStartLoading = ({ elapsed }) => {
+  const { t } = useTranslation();
   const isColdStart = elapsed >= 8;
   const progressPct = Math.min(elapsed * 1.8, 88);
   return (
@@ -71,14 +73,14 @@ const ColdStartLoading = ({ elapsed }) => {
 
         <div>
           <h2 className="text-white font-black text-lg mb-1.5">
-            {isColdStart ? '서버를 깨우는 중...' : '메뉴를 불러오는 중...'}
+            {isColdStart ? t('menu.loading') : t('menu.no_menu')}
           </h2>
           <p className="text-slate-500 text-sm leading-relaxed">
             {elapsed < 8
-              ? '잠시만 기다려주세요.'
+              ? t('menu.please_wait')
               : elapsed < 30
-                ? '처음 접속 시 서버를 깨우는 데 최대 30초 걸립니다.'
-                : '거의 준비됐습니다! 조금만 더 기다려주세요...'}
+                ? t('menu.cold_start_hint')
+                : t('menu.almost_ready')}
           </p>
         </div>
 
@@ -91,7 +93,7 @@ const ColdStartLoading = ({ elapsed }) => {
 
         <div className="flex items-center justify-center gap-2 text-slate-600">
           <Loader2 size={14} className="animate-spin" />
-          <span className="text-xs">{elapsed}초 경과</span>
+          <span className="text-xs">{elapsed}{t('menu.elapsed')}</span>
         </div>
 
         {elapsed >= 50 && (
@@ -99,7 +101,7 @@ const ColdStartLoading = ({ elapsed }) => {
             onClick={() => window.location.reload()}
             className="w-full py-3 bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all"
           >
-            <RefreshCw size={15} /> 페이지 새로고침
+            <RefreshCw size={15} /> {t('menu.refresh')}
           </button>
         )}
       </div>
@@ -124,6 +126,7 @@ const buildThemeStyle = (theme) => {
 };
 
 const MenuPage = () => {
+  const { t, i18n } = useTranslation();
   const { storeId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -199,7 +202,13 @@ const MenuPage = () => {
   
   const handleLangChange = useCallback((newLang) => {
     setLang(newLang);
+    i18n.changeLanguage(newLang);
     try { localStorage.setItem('wm_customer_lang', newLang); } catch { /* 무시 */ }
+  }, [i18n]);
+
+  // i18next 초기 언어 동기화
+  useEffect(() => {
+    i18n.changeLanguage(lang);
   }, []);
 
   const [tinkerSettings] = useState(() => loadTinkerBellSettings());
@@ -307,10 +316,10 @@ const MenuPage = () => {
   // Computed values
   const todayHours = getTodayHours();
   const storeOpen = isStoreOpen();
-  const categoryNames = useMemo(() => ["전체", ...categories.map(c => c.name)], [categories]);
+  const categoryNames = useMemo(() => [t('menu.all_category'), ...categories.map(c => c.name)], [categories, t]);
   
   const filteredItems = useMemo(() => {
-    if (selectedCategory === "전체") return menuItems;
+    if (selectedCategory === t('menu.all_category')) return menuItems;
     return menuItems.filter(item => {
       const category = categories.find(c => c.id === item.category_id);
       return category?.name === selectedCategory;
@@ -323,7 +332,7 @@ const MenuPage = () => {
   // Handlers
   const handleAddToCartClick = useCallback(async (item) => {
     if (!storeOpen) {
-      toast.error("영업시간이 아닙니다. 영업시간을 확인해주세요.");
+      toast.error(t('order.not_business_hours'));
       return;
     }
     
@@ -348,7 +357,7 @@ const MenuPage = () => {
       unitPrice,
     }]);
     
-    toast.success(`${item.name}을(를) 담았습니다`);
+    toast.success(t('order.item_added', { name: item.name }));
   }, []);
 
   const handleOptionConfirm = useCallback((quantity, selectedOptions, totalPrice) => {
@@ -377,7 +386,7 @@ const MenuPage = () => {
     if (!storeId || cart.length === 0) return;
     
     if (!storeOpen) {
-      toast.error("영업시간이 아닙니다. 주문할 수 없습니다.");
+      toast.error(t('order.cannot_order'));
       return;
     }
     
@@ -417,7 +426,7 @@ const MenuPage = () => {
 
       const order = await ordersAPI.create(orderData);
 
-      toast.success("주문이 완료되었습니다! 🎉");
+      toast.success(t('order.success'));
 
       const orderData_ = order?.data || order || {};
       const orderNo = orderData_.order_number || orderData_.id;
@@ -436,7 +445,7 @@ const MenuPage = () => {
       if (profile?.store_name) params.set('store', profile.store_name);
       navigate(`/?${params.toString()}#locations`);
     } catch {
-      toast.error("주문에 실패했습니다. 다시 시도해주세요.");
+      toast.error(t('order.failed'));
     } finally {
       setIsOrdering(false);
     }
@@ -477,7 +486,7 @@ const MenuPage = () => {
           className="w-full px-4 py-2.5 flex items-center justify-center gap-2 bg-orange-500 text-white text-sm font-black"
           aria-label="전체화면으로 전환"
         >
-          <Maximize2 size={16} /> 화면을 터치하면 전체화면 키오스크 모드로 전환됩니다
+          <Maximize2 size={16} /> {t('menu.kiosk_hint')}
         </button>
       )}
 
@@ -491,7 +500,7 @@ const MenuPage = () => {
 
       {/* Header */}
       <MenuHeader
-        storeName={profile?.store_name || "위마켓"}
+        storeName={profile?.store_name || t('menu.store_name_default')}
         tableNumber={tableNumber}
         onOrderHistoryClick={handleOpenOrderHistory}
         onCallStaffClick={() => setShowCallSheet(true)}
@@ -527,8 +536,8 @@ const MenuPage = () => {
         {filteredItems.length === 0 ? (
           <EmptyState
             icon="🍽️"
-            title="등록된 메뉴가 없습니다"
-            description={selectedCategory === '전체' ? '곧 맛있는 메뉴가 준비될 거예요!' : `'${selectedCategory}' 카테고리에 메뉴가 없어요.`}
+            title={t('menu.empty')}
+            description={selectedCategory === t('menu.all_category') ? t('menu.empty_desc') : t('menu.category_empty')}
           />
         ) : (
           // TDS 리스트 그룹: 둥근 흰 컨테이너 + 행 사이 divider (flush)
@@ -622,7 +631,7 @@ const MenuPage = () => {
         storeId={storeId}
         orderId={currentOrderId}
         totalAmount={currentOrderAmount}
-        storeName={profile?.store_name || "위마켓"}
+        storeName={profile?.store_name || t('menu.store_name_default')}
       />
 
       {/* 전자상거래법 §13 필수 사업자 정보 표시 */}
@@ -633,14 +642,14 @@ const MenuPage = () => {
         isOpen={showCallSheet}
         onClose={() => setShowCallSheet(false)}
         store={profile}
-        table={{ name: `${tableNumber}번 테이블` }}
+        table={{ name: t('menu.table', { number: tableNumber }) }}
         onOpenChat={() => setShowChatDrawer(true)}
         onVoiceCall={(type) => {
           const socket = ordersAPI.getSocket();
           if (socket) {
             socket.emit('manager-call', {
               storeId: parseInt(storeId),
-              tableName: `${tableNumber}번 테이블`,
+              tableName: t('menu.table', { number: tableNumber }),
               type
             });
           }
@@ -651,7 +660,7 @@ const MenuPage = () => {
         isOpen={showChatDrawer}
         onClose={() => setShowChatDrawer(false)}
         store={{ id: parseInt(storeId), ...profile }}
-        table={{ name: `${tableNumber}번 테이블` }}
+        table={{ name: t('menu.table', { number: tableNumber }) }}
         customerInfo={{ phone: notifyPhone }}
       />
 

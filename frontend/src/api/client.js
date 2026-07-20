@@ -3,17 +3,14 @@ import { extractErrorMessage } from '@/lib/errorUtils';
 
 const getApiUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL;
-  if (envUrl) {
-    if (envUrl.includes('wemarket-toss.onrender.com')) {
-      return envUrl.replace('wemarket-toss.onrender.com', 'wemarket.onrender.com');
-    }
-    return envUrl;
-  }
+  if (envUrl) return envUrl;
 
-  // 2. 로컬 개발 환경 → localhost 폴백
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  if (backendUrl) return `${backendUrl}/api`;
+
   const hostname = window.location.hostname;
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:3000/api';
+    return 'https://wemarket-toss.onrender.com/api';
   }
 
   return `${window.location.origin}/api`;

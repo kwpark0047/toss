@@ -1,5 +1,5 @@
 const weatherService = require('../services/weatherService');
-const { apiLogger } = require('../services/logger');
+const { apiLogger } = require('../utils/logger');
 
 const getCurrentWeather = async (req, res) => {
   try {

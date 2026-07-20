@@ -6,28 +6,363 @@ const bulkSmsController = require('../controllers/bulkSmsController');
 const { authMiddleware } = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 
-// === [정산 API] ===
+/**
+ * @swagger
+ * tags:
+ *   name: Admin
+ *   description: 관리자 전용 API (정산, 설정, Bulk SMS)
+ */
+
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/settlements:
+ *   get:
+ *     tags: [Admin]
+ *     summary: 정산 목록 조회
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 정산 목록 반환
+ */
 router.get('/stores/:storeId/settlements', authMiddleware, checkStorePermission('stats:read'), settlementController.getStoreSettlements);
+
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/settlements/generate:
+ *   post:
+ *     tags: [Admin]
+ *     summary: 정산 생성
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               period:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 정산 생성 완료
+ */
 router.post('/stores/:storeId/settlements/generate', authMiddleware, checkStorePermission('admin'), settlementController.generateSettlement);
+
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/settlements/{id}/status:
+ *   patch:
+ *     tags: [Admin]
+ *     summary: 정산 상태 변경
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 상태 변경 완료
+ */
 router.patch('/stores/:storeId/settlements/:id/status', authMiddleware, checkStorePermission('admin'), settlementController.updateStatus);
+
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/settlements/{id}/tax-invoice:
+ *   post:
+ *     tags: [Admin]
+ *     summary: 세금계산서 발행
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 세금계산서 발행 완료
+ */
 router.post('/stores/:storeId/settlements/:id/tax-invoice', authMiddleware, checkStorePermission('settings:write'), settlementController.issueTaxInvoice);
+
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/settlements/{id}:
+ *   get:
+ *     tags: [Admin]
+ *     summary: 정산 상세 조회
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 정산 상세 반환
+ */
 router.get('/stores/:storeId/settlements/:id', authMiddleware, checkStorePermission('stats:read'), settlementController.getSettlementDetails);
 
-// === [영수증 설정 API] ===
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/receipt-settings:
+ *   get:
+ *     tags: [Admin]
+ *     summary: 영수증 설정 조회
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 영수증 설정 반환
+ */
 router.get('/stores/:storeId/receipt-settings', authMiddleware, checkStorePermission('settings:read'), storeSettingsController.getReceiptSettings);
+
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/receipt-settings:
+ *   put:
+ *     tags: [Admin]
+ *     summary: 영수증 설정 수정
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               template:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 영수증 설정 수정 완료
+ */
 router.put('/stores/:storeId/receipt-settings', authMiddleware, checkStorePermission('settings:write'), storeSettingsController.updateReceiptSettings);
 
-// === [등급 설정 API] ===
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/tier-settings:
+ *   get:
+ *     tags: [Admin]
+ *     summary: 등급 설정 조회
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 등급 설정 반환
+ */
 router.get('/stores/:storeId/tier-settings', authMiddleware, checkStorePermission('settings:read'), storeSettingsController.getTierSettings);
+
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/tier-settings:
+ *   post:
+ *     tags: [Admin]
+ *     summary: 등급 설정 저장
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               threshold:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: 등급 설정 저장 완료
+ */
 router.post('/stores/:storeId/tier-settings', authMiddleware, checkStorePermission('settings:write'), storeSettingsController.upsertTierSetting);
+
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/tier-settings/{tierName}:
+ *   delete:
+ *     tags: [Admin]
+ *     summary: 등급 설정 삭제
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: tierName
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: 등급 설정 삭제 완료
+ */
 router.delete('/stores/:storeId/tier-settings/:tierName', authMiddleware, checkStorePermission('settings:write'), storeSettingsController.deleteTierSetting);
 
-// === [수수료율 설정 (최고관리자)] ===
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/commission:
+ *   put:
+ *     tags: [Admin]
+ *     summary: 수수료율 설정 (최고관리자)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               commissionRate:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: 수수료율 설정 완료
+ */
 router.put('/stores/:storeId/commission', authMiddleware, checkStorePermission('admin'), storeSettingsController.updateCommission);
 
-// === [통합 Bulk SMS API (최고관리자 전용)] ===
+/**
+ * @swagger
+ * /api/admin/bulk-sms/filter-options:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Bulk SMS 필터 옵션 조회
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 필터 옵션 반환
+ */
 router.get('/bulk-sms/filter-options', authMiddleware, bulkSmsController.getFilterOptions);
+
+/**
+ * @swagger
+ * /api/admin/bulk-sms/customers:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Bulk SMS 대상 고객 조회
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: store_id
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: tier
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: 대상 고객 목록 반환
+ */
 router.get('/bulk-sms/customers', authMiddleware, bulkSmsController.getFilteredCustomers);
+
+/**
+ * @swagger
+ * /api/admin/bulk-sms/send:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Bulk SMS 발송
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [message, recipients]
+ *             properties:
+ *               message:
+ *                 type: string
+ *               recipients:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: SMS 발송 완료
+ */
 router.post('/bulk-sms/send', authMiddleware, bulkSmsController.sendBulkSms);
 
 module.exports = router;

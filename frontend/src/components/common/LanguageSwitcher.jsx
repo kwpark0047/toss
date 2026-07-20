@@ -6,8 +6,8 @@ import { useState } from 'react';
 const languages = [
     { code: 'ko', name: '한국어', flag: '🇰🇷' },
     { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'jp', name: '日本語', flag: '🇯🇵' },
-    { code: 'cn', name: '简体中文', flag: '🇨🇳' }
+    { code: 'ja', name: '日本語', flag: '🇯🇵' },
+    { code: 'zh', name: '简体中文', flag: '🇨🇳' }
 ];
 
 const LanguageSwitcher = () => {
