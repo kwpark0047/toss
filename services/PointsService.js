@@ -309,6 +309,14 @@ class PointsService {
             });
         }
 
+        // store_point_settings의 expiry_days 사용 (없으면 365일)
+        const settings = await tx.store_point_settings.findUnique({
+            where: { store_id: storeId }
+        });
+        const expiresAt = settings?.expiry_days
+            ? new Date(Date.now() + settings.expiry_days * 24 * 60 * 60 * 1000)
+            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
         return tx.point_transactions.create({
             data: {
                 user_point_id: userPoint.id,
@@ -319,7 +327,7 @@ class PointsService {
                 amount: earnAmount,
                 balance_after: userPoint.total_points + earnAmount,
                 description: `주문(#${orderNumber}) 적립`,
-                expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+                expires_at: expiresAt
             }
         });
     }

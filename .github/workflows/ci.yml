@@ -134,11 +134,38 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy to Render (backend)
-        uses: biomejs/setup-biome@v2
-        if: false
-      - run: echo "Backend auto-deploys via Render webhook on push to main"
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
 
       - name: Deploy to Cloudflare Workers (frontend)
         uses: cloudflare/wrangler-action@v3
-        if: false
-      - run: echo "Frontend auto-deploys via Cloudflare on push to main"
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: frontend
+
+  security-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Semgrep (backend)
+        run: npm run security:scan
+      - name: Run Semgrep (frontend)
+        run: npm run security:scan:frontend
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run frontend tests
+        run: npm run test:coverage

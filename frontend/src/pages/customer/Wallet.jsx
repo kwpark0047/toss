@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Wallet as WalletIcon, History, ChevronLeft, QrCode, Search, TrendingUp, TrendingDown, Zap, Trophy } from "lucide-react";
+import { Wallet as WalletIcon, History, ChevronLeft, QrCode, Search, TrendingUp, TrendingDown, Zap, Trophy, Star, Medal } from "lucide-react";
 import { motion } from "framer-motion";
 
 const Wallet = () => {
@@ -95,7 +95,7 @@ const Wallet = () => {
         );
     }
 
-    const { balance, history, store_settings } = data || {};
+    const { balance, history, store_settings, tier_info } = data || {};
 
     return (
         <div className="min-h-screen bg-slate-50 pb-20">
@@ -134,7 +134,7 @@ const Wallet = () => {
                                     <Zap size={24} className="text-yellow-300 fill-yellow-300" />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-100/60 leading-none mb-1">Elite Membership</p>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-100/60 leading-none mb-1">{tier_info?.current?.tier_name || 'GENERAL'} 멤버십</p>
                                     <p className="font-black text-lg tracking-tight leading-none">WeMarket <span className="text-indigo-200/80">Premium</span></p>
                                 </div>
                             </div>
@@ -172,6 +172,56 @@ const Wallet = () => {
                     </div>
                 </motion.div>
 
+                {/* 등급 현황 */}
+                {tier_info && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="glass-panel p-6"
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-black text-slate-900 tracking-tight flex items-center gap-2 text-lg">
+                                <Medal className="text-indigo-500" size={20} /> 내 등급
+                            </h3>
+                            {tier_info.current && (
+                                <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-sm shadow-lg shadow-indigo-100">
+                                    {tier_info.current.tier_name}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* 다음 등급까지 진행 바 */}
+                        {tier_info.next ? (
+                            <div className="space-y-3">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-500 font-bold">
+                                        다음 등급까지 <span className="text-indigo-600">{tier_info.remaining_for_next.toLocaleString()}원</span> 남음
+                                    </span>
+                                    <span className="text-slate-400 font-bold text-xs">
+                                        {tier_info.total_spent.toLocaleString()}원 / {tier_info.next.min_spent.toLocaleString()}원
+                                    </span>
+                                </div>
+                                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${Math.min(100, (tier_info.total_spent / tier_info.next.min_spent) * 100)}%` }}
+                                        transition={{ duration: 1, ease: 'easeOut' }}
+                                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full"
+                                    />
+                                </div>
+                                <p className="text-xs text-slate-400 font-bold text-center pt-1">
+                                    {tier_info.next.tier_name} 등급 도달 시 <span className="text-indigo-600">{tier_info.next.earn_rate}%</span> 적립
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="text-center py-4">
+                                <Trophy size={32} className="mx-auto text-yellow-400 mb-2" />
+                                <p className="text-slate-500 font-bold text-sm">최고 등급입니다! 모든 혜택을 누리고 계세요</p>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+
                 {/* 스탬프 현황 (Glassmorphism) */}
                 {store_settings?.use_points && (
                     <motion.div
@@ -184,7 +234,7 @@ const Wallet = () => {
                                 <Star className="text-orange-500 fill-orange-500" size={20} /> 스탬프 혜택 현황
                             </h3>
                             <div className="px-4 py-1.5 rounded-2xl bg-orange-500 text-white font-black text-[10px] shadow-lg shadow-orange-100">
-                                {store_settings.earn_rate}% 적립
+                                {tier_info?.current?.earn_rate || store_settings.earn_rate}% 적립
                             </div>
                         </div>
                         <div className="grid grid-cols-5 gap-4">

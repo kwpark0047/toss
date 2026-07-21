@@ -48,12 +48,28 @@ const notificationService = require('./services/notificationService');
 const { getAllowedOrigins, isProduction } = require('./config/domain');
 const allowedOrigins = getAllowedOrigins();
 
+/**
+ * 보안 헤더 및 기본 미들웨어
+ */
+// 보안 헤더 설정 (helmet을 cors보다 먼저 배치: 헤더 설정 교착 방지)
+// CSP는 cspNonceMiddleware가 단독 소유한다 (helmet CSP 비활성화).
+// 이유: helmet의 <%%= nonce %%> 치환이 본 설정에서 동작하지 않고,
+// helmet과 cspNonce가 모두 CSP 헤더를 setHeader 하면 요청이 hangs됨(이전 디버깅 확인).
+// 따라서 helmet은 CSP 외 보안 헤더(HSTS, X-Frame-Options 등)만 담당하고,
+// nonce가 포함된 CSP 헤더는 cspNonceMiddleware가 유일하게 설정한다.
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// helmet 이후에 cors 배치 (순서 교착 방지)
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin) return callback(null, true);
-        const isAllowed = allowedOrigins.includes(origin) || 
-            origin.endsWith('.pages.dev') || 
-            origin.endsWith('.workers.dev') || 
+        const isAllowed = allowedOrigins.includes(origin) ||
+            origin.endsWith('.pages.dev') ||
+            origin.endsWith('.workers.dev') ||
             origin.endsWith('.vercel.app');
         if (isAllowed) {
             callback(null, true);
@@ -65,37 +81,6 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     maxAge: 3600
-}));
-
-/**
- * 보안 헤더 및 기본 미들웨어
- */
-// 보안 헤더 설정
-app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "https://www.gstatic.com", "https://cdn.jsdelivr.net"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://www.gstatic.com"],
-            fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "data:", "https:", "blob:"],
-            connectSrc: [
-                "'self'",
-                ...(isProduction ? [] : ["http://localhost:3000", "ws://localhost:3000"]),
-                "https://wemarket.onrender.com",
-                "wss://wemarket.onrender.com",
-                "https://api.tosspayments.com",
-                "https://www.googleapis.com",
-                "https://firebaseinstallations.googleapis.com",
-                "https://fcmregistrations.googleapis.com"
-            ],
-            frameSrc: ["'self'", "https://js.tosspayments.com"],
-            objectSrc: ["'none'"],
-            baseUri: ["'self'"],
-        },
-    },
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 app.use((req, res, next) => {
@@ -114,7 +99,8 @@ app.use(require('cookie-parser')());
 // Security middleware - XSS protection
 app.use(basicXssProtection);    // Basic XSS protection for all requests
 app.use(strictSanitizer);       // Strict sanitization for all inputs
-app.use(cspNonceMiddleware);    // CSP nonce generation for inline scripts
+// CSP nonce: helmet이 생성한 nonce를 res.locals.cspNonce에 재사용 (자체 setHeader 안 함)
+app.use(cspNonceMiddleware());
 
 app.use(responseFormatter);
 app.use(i18nMiddleware);

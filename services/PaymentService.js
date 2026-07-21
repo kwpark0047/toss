@@ -25,28 +25,17 @@ class PaymentService {
     return `${dateStr}-${randomStr}`;
   }
 
-  // ── 헬퍼: 단골 고객 정보 갱신 ────────────────────────────────
+  // ── 헬퍼: 단골 고객 정보 갱신 (StoreCustomer.upsertCustomer 위임 — tier 계산 + 캠페인 포함) ──
   async _upsertCustomer(storeId, phone, customerName, tossUserKey, amount, tx) {
     if (!phone) return;
-    await tx.store_customers.upsert({
-      where: { uk_store_customer: { store_id: storeId, customer_phone: phone } },
-      update: {
-        customer_name: customerName || undefined,
-        toss_user_key: tossUserKey || undefined,
-        visit_count: { increment: 1 },
-        total_spent: { increment: amount },
-        last_visit_at: new Date()
-      },
-      create: {
-        store_id: storeId,
-        customer_phone: phone,
-        customer_name: customerName || phone,
-        toss_user_key: tossUserKey || null,
-        visit_count: 1,
-        total_spent: amount,
-        tier: 'GENERAL'
-      }
-    });
+    const StoreCustomer = require('../repositories/StoreCustomer');
+    await StoreCustomer.upsertCustomer({
+      store_id: storeId,
+      customer_phone: phone,
+      customer_name: customerName,
+      toss_user_key: tossUserKey,
+      amount
+    }, tx);
   }
 
   // ── 헬퍼: WebSocket 알림 전송 ────────────────────────────────
@@ -629,24 +618,30 @@ class PaymentService {
     if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
     if (order.payment_status === 'paid') return { alreadyPaid: true };
 
-    await prisma.$transaction([
-      prisma.payments.updateMany({
+    const { decryptPhone } = require('../utils/phoneEncryption');
+    const plainPhone = order.customer_phone ? decryptPhone(order.customer_phone) : null;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.payments.updateMany({
         where: { order_id: parseInt(orderId), method: { in: ['STORE_CARD', 'store_card'] } },
         data: { status: 'DONE', approved_at: new Date(), transfer_reference: terminalReceiptNo || null }
-      }),
-      prisma.orders.update({
+      });
+      await tx.orders.update({
         where: { id: parseInt(orderId) },
         data: { payment_status: 'paid', updated_at: new Date() }
-      }),
-      prisma.ledger.create({
+      });
+      await tx.ledger.create({
         data: {
           store_id: order.store_id, order_id: parseInt(orderId),
           type: 'INCOME', category: 'SALE', amount: order.total_amount, method: 'STORE_CARD',
           description: `매장카드 확인: #${order.order_number}${terminalReceiptNo ? ` (영수증${terminalReceiptNo})` : ''}`,
           created_at: new Date()
         }
-      })
-    ]);
+      });
+      if (plainPhone) {
+        await this._upsertCustomer(order.store_id, plainPhone, order.customer_name, null, order.total_amount, tx);
+      }
+    });
 
     if (this.io) {
       this.io.to(`store - ${order.store_id}`).emit('payment-confirmed', { order_id: parseInt(orderId), method: 'store_card' });
@@ -663,27 +658,33 @@ class PaymentService {
     if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
     if (order.payment_status === 'paid') return { alreadyPaid: true };
 
-    await prisma.$transaction([
-      prisma.payments.updateMany({
+    const { decryptPhone } = require('../utils/phoneEncryption');
+    const plainPhone = order.customer_phone ? decryptPhone(order.customer_phone) : null;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.payments.updateMany({
         where: { order_id: parseInt(orderId), method: { in: ['TRANSFER', 'transfer'] } },
         data: {
           status: 'DONE', transfer_confirmed: true, transfer_confirmed_at: new Date(),
           transfer_reference: transferReference || null, approved_at: new Date()
         }
-      }),
-      prisma.orders.update({
+      });
+      await tx.orders.update({
         where: { id: parseInt(orderId) },
         data: { payment_status: 'paid', updated_at: new Date() }
-      }),
-      prisma.ledger.create({
+      });
+      await tx.ledger.create({
         data: {
           store_id: order.store_id, order_id: parseInt(orderId),
           type: 'INCOME', category: 'SALE', amount: order.total_amount, method: 'TRANSFER',
           description: `계좌이체 확인: #${order.order_number}${depositorName ? ` (입금자: ${depositorName})` : ''}`,
           created_at: new Date()
         }
-      })
-    ]);
+      });
+      if (plainPhone) {
+        await this._upsertCustomer(order.store_id, plainPhone, order.customer_name, null, order.total_amount, tx);
+      }
+    });
 
     if (this.io) {
       this.io.to(`store - ${order.store_id}`).emit('payment-confirmed', { order_id: parseInt(orderId), method: 'transfer' });

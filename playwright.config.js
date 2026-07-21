@@ -95,12 +95,14 @@ module.exports = defineConfig({
         },
     ],
 
-    // 테스트 전 로컬 서버 기동 (CI 환경에서)
-    // webServer: [
-    //     { command: 'npm run start', url: API_URL, reuseExistingServer: true },
-    //     { command: 'cd frontend && npm run dev', url: BASE_URL, reuseExistingServer: true },
-    // ],
+    // 테스트 전 로컬 서버 기동. reuseExistingServer:true 이므로 이미 떠 있으면 그대로 사용.
+    // 데모 스토어(/menu/demo)는 하드코딩 mock 데이터라 백엔드 없이 동작 → 프론트(Vite dev)만 기동.
+    // 백엔드 의존 스펙이 추가되면 아래 backend entry를 복원할 것:
+    //   { command: 'npm run start', url: API_URL, reuseExistingServer: true, timeout: 120_000 }
+    webServer: [
+        { command: 'cd frontend && npm run dev', url: BASE_URL, reuseExistingServer: false, timeout: 120_000 },
+    ],
 
-    globalSetup: './tests/e2e/setup/global-setup.js',
+    // globalSetup: './tests/e2e/setup/global-setup.js',
     // globalTeardown: './tests/globalTeardown.js',
 });

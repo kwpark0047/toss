@@ -14,7 +14,7 @@ export { storesAPI, storeAccountAPI, businessAPI } from './stores';
 export { categoriesAPI, productsAPI, optionTemplatesAPI } from './products';
 export { ordersAPI, paymentsAPI } from './orders';
 export { staffAPI } from './staff';
-export { adminAPI, planRequestsAPI, staffRequestsAPI, bulkSmsAPI, exportAPI } from './admin';
+export { adminAPI, planRequestsAPI, tierSettingsAPI, staffRequestsAPI, bulkSmsAPI, exportAPI } from './admin';
 export { boardAPI, communityAPI, chatAPI } from './board';
 export { reviewsAPI } from './reviews';
 export { naverPlaceAPI } from './naverPlace';

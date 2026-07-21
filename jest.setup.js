@@ -77,3 +77,35 @@ if (typeof DOMException === "undefined") {
   global.DOMException = require("domexception");
 }
 
+// axios is imported by frontend menu code paths pulled in via app bootstrap
+jest.mock("axios", () => ({
+  create: () => ({
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    interceptors: { request: { use: jest.fn() }, response: { use: jest.fn() } },
+  }),
+  get: jest.fn(),
+  post: jest.fn(),
+  put: jest.fn(),
+  delete: jest.fn(),
+}));
+
+// xss-clean (v2) tries to reassign req.query, which is a read-only getter in
+// Express 5 / modern Node and throws "Cannot set property query ... only a getter".
+// The module is used as `const xss = require('xss-clean'); xss()` so the mock
+// factory returns a function; calling it returns a pass-through middleware.
+jest.mock("xss-clean", () => {
+  const factory = () => (req, res, next) => next();
+  factory.default = factory;
+  factory.xss = factory;
+  return factory;
+});
+
+// sanitize-html is pulled in by xssSanitizer middleware; keep its simpleTransform mock.
+jest.mock("sanitize-html", () => {
+  const fn = (html) => html;
+  fn.simpleTransform = (tagName) => (x) => `<${tagName}>${x}</${tagName}>`;
+  return fn;
+});

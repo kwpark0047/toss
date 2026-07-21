@@ -306,53 +306,47 @@ class OrderService {
 
     async _processLoyaltyPoints(order) {
         if (!order.customer_phone) return;
-        
+
         const phoneStr = decryptPhone(order.customer_phone);
         if (!phoneStr) return;
 
-        // Fetch store point settings
+        // 중복 적립 방지: 이미 이 주문에 대한 포인트 트랜잭션이 있으면 skip
+        const existingTx = await prisma.point_transactions.findFirst({
+            where: { order_id: order.id }
+        });
+        if (existingTx) return;
+
+        // StoreCustomer upsert (tier 계산 + 캠페인 트리거 포함)
+        const StoreCustomer = require('../repositories/StoreCustomer');
+        await StoreCustomer.upsertCustomer({
+            store_id: order.store_id,
+            customer_phone: phoneStr,
+            amount: order.total_amount
+        }).catch(err => {
+            console.error('[StoreCustomer Upsert Error]:', err);
+        });
+
+        // Store point settings
         const settings = await prisma.store_point_settings.findUnique({
             where: { store_id: order.store_id }
         });
-        
-        await prisma.$transaction(async (tx) => {
-            // Find or create store_customer
-            let customer = await tx.store_customers.findFirst({
-                where: { store_id: order.store_id, customer_phone: phoneStr }
-            });
-            
-            if (!customer) {
-                customer = await tx.store_customers.create({
-                    data: {
-                        store_id: order.store_id,
-                        customer_phone: phoneStr,
-                        visit_count: 1,
-                        total_spent: order.total_amount,
-                        last_visit_at: new Date()
-                    }
-                });
-            } else {
-                await tx.store_customers.update({
-                    where: { id: customer.id },
-                    data: {
-                        visit_count: customer.visit_count + 1,
-                        total_spent: customer.total_spent + order.total_amount,
-                        last_visit_at: new Date()
-                    }
-                });
-            }
+        if (!settings || !settings.is_enabled) return;
+        if (order.total_amount < settings.min_earn_amount) return;
 
-            if (!settings || !settings.is_enabled) return;
-            if (order.total_amount < settings.min_earn_amount) return;
-            
-            const earnedPoints = Math.floor(order.total_amount * ((settings.earn_rate || 0) / 100));
-            if (earnedPoints <= 0) return;
-            
-            // Find or create user_points
+        // Tier-aware 적립 포인트 계산
+        const PointsService = require('./PointsService');
+        const earnedPoints = await PointsService.calculateEarnPoints(
+            order.total_amount, order.store_id,
+            { phone: phoneStr }
+        );
+        if (earnedPoints <= 0) return;
+
+        // 포인트 적립
+        await prisma.$transaction(async (tx) => {
             let userPoint = await tx.user_points.findFirst({
                 where: { phone: phoneStr }
             });
-            
+
             if (!userPoint) {
                 userPoint = await tx.user_points.create({
                     data: {
@@ -371,18 +365,20 @@ class OrderService {
                     }
                 });
             }
-            
-            // Add point_transactions
+
             await tx.point_transactions.create({
                 data: {
                     user_point_id: userPoint.id,
                     store_id: order.store_id,
                     order_id: order.id,
+                    payment_id: null, // OrderService 경로: payment_id 없음 (PaymentService 경유 시에는 existingTx 체크로 skip)
                     type: 'EARN',
                     amount: earnedPoints,
-                    balance_after: (userPoint ? userPoint.total_points : 0) + earnedPoints,
+                    balance_after: (userPoint.total_points || 0) + earnedPoints,
                     description: `주문 적립 (${order.order_number})`,
-                    expires_at: settings.expiry_days ? new Date(Date.now() + settings.expiry_days * 24 * 60 * 60 * 1000) : null
+                    expires_at: settings.expiry_days
+                        ? new Date(Date.now() + settings.expiry_days * 24 * 60 * 60 * 1000)
+                        : null
                 }
             });
         });

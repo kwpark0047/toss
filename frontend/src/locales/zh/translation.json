@@ -374,7 +374,61 @@
     "terms": "服务条款",
     "privacy": "隐私政策",
     "copyright": "© 2024 WeMarket. 版权所有。"
-  }
+  },
+  "admin": {
+    "home": "首页",
+    "orders": "订单",
+    "products": "商品",
+    "ai": "AI",
+    "community": "社区",
+    "board": "论坛",
+    "adminCenter": "管理中心",
+    "completeProfile": "完善您的个人资料",
+    "nameNotSet": "姓名未设置",
+    "superAdmin": "超级管理员",
+    "manager": "经理",
+    "staff": "员工",
+    "admin": "管理员",
+    "profile": "个人资料",
+    "logout": "退出登录",
+    "login": "登录",
+    "goToAdminMain": "前往管理主页",
+    "wemarketAdmin": "WeMarket管理",
+    "systemNormal": "系统正常运行中",
+    "chatInquiry": "1:1聊天咨询",
+    "status": "状态",
+    "active": "活跃",
+    "more": "更多",
+    "allMenu": "全部菜单",
+    "noAccess": "无访问权限",
+    "noAccessDesc": "您没有访问权限。",
+    "loginAsAdmin": "请使用管理员账户登录。",
+    "goToLogin": "前往登录页面",
+    "dashboard": "仪表盘",
+    "brandManagement": "品牌管理",
+    "ordersStatus": "订单状态",
+    "kitchenMonitor": "厨房监控 (KDS)",
+    "alimtalkMonitor": "Alimtalk监控",
+    "productManagement": "商品管理",
+    "menuBuilder": "菜单构建器",
+    "smartReservation": "智能预订",
+    "settlementAnalysis": "结算分析",
+    "businessPayment": "商家·结算",
+    "legalInfo": "法律信息",
+    "receiptCustom": "收据定制",
+    "inventoryManagement": "库存管理",
+    "customerManagement": "常客管理",
+    "staffManagement": "员工管理",
+    "storeSettings": "门店设置",
+    "foodtruckManagement": "食品卡车管理",
+    "foodtruckAnalysis": "食品卡车分析",
+    "truckDesignShowcase": "卡车设计展示",
+    "notificationTemplates": "通知模板",
+    "systemStatus": "系统状态",
+    "aiTinkerbell": "AI Tinkerbell",
+    "bulkSms": "批量短信",
+    "localCommunity": "本地社区"
+  },
   "landing": {
     "nav": {
       "features": "功能介绍",
@@ -560,11 +614,11 @@
       },
       "neighborRecommendation": {
         "title": " 邻\u0000坊\u0000推荐\u0000奖励",
-        "desc": " 常客\u0000推荐邻\u0000坊客户 ， 推荐人　\u0000和新\u0000增客\u0000\u0000 均\u0000得\u0000\u0000即\u0000时\u0000\u0000\u0000奖励\u0000 ",
+        "desc": " 常客\u0000推荐邻\u0000坊客户 ， 推荐人　\u0000和新\u0000增客\u0000\u0000 均\u0000得\u0000\u0000即\u0000时\u0000\u0000\u0000奖励\u0000 "
       },
       "regionalSearch": {
-        "title": " "区域"\u0000搜索\u0000\u0000\u0000\u0000\u0000 优先\u0000\u0000\u0000暴露",
-        "desc": " 在\u0000"\u0000WeMarket\u0000的\u0000"\u0000app\u0000\u0000\u0000和\u0000 地图\u0000搜索\u0000中\u0000\u0000\u0000首先\u0000展\u0000\u0000\u0000\u0000\u0000 示\u0000\u0000\u0000\u0000\u0000\u0000。 \u0000"
+        "title": " \"区域\"\u0000搜索\u0000\u0000\u0000\u0000\u0000 优先\u0000\u0000\u0000暴露",
+        "desc": " 在\u0000\"\u0000WeMarket\u0000的\u0000\"\u0000app\u0000\u0000\u0000和\u0000 地图\u0000搜索\u0000中\u0000\u0000\u0000首先\u0000展\u0000\u0000\u0000\u0000\u0000 示\u0000\u0000\u0000\u0000\u0000\u0000。 \u0000"
       },
       "liveFeed": {
         "title": " 实时\u0000区域\u0000信息\u0000流",
@@ -572,7 +626,7 @@
       }
     },
     "hero": {
-      "title": " 1人自営業\u0000者向け\u0000 AI支援\u0000回\u0000     回头\u0000客\u0000リスト\u0000\u0000\u0000\u0000\u0000",
+      "title": " 1人自営業\u0000者向け\u0000 AI支援\u0000回\u0000  \u0000 回头\u0000客\u0000リスト\u0000\u0000\u0000\u0000\u0000",
       "subtitle": " 作り\u0000\u0000上げて\u0000\u0000\u0000差し\u0000\u0000上げ\u0000\u0000\u0000ます\u0000\u0000。",
       "stats": {
         "stores": " 1000+ 登録\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",

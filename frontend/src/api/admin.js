@@ -36,6 +36,12 @@ export const planRequestsAPI = {
   reject: (id, adminNote = '') => api.post(`/plan-requests/${id}/reject`, { admin_note: adminNote }),
 };
 
+export const tierSettingsAPI = {
+  getTiers: (storeId) => api.get(`/admin/stores/${storeId}/tier-settings`),
+  upsertTier: (storeId, data) => api.post(`/admin/stores/${storeId}/tier-settings`, data),
+  deleteTier: (storeId, tierName) => api.delete(`/admin/stores/${storeId}/tier-settings/${encodeURIComponent(tierName)}`),
+};
+
 export const staffRequestsAPI = {
   create: (data) => api.post('/staff-requests', data),
   getByStore: (storeId) => api.get(`/staff-requests/store/${storeId}`),

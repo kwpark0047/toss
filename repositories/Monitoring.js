@@ -8,6 +8,8 @@ const Metrics = {
     // [성능 데이터 기록]
     record: async (data) => {
         try {
+            // metrics 모델이 없으면(미모의·미생성) 기록 생략 — 테스트 노이즈/런타임 크래시 방지
+            if (!prisma.metrics) return;
             const { endpoint, method, response_time, status_code, store_id, user_id } = data;
             await prisma.metrics.create({
                 data: {

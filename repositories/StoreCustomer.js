@@ -8,15 +8,18 @@ const StoreCustomer = {
     /**
      * [고객 정보 업데이트 또는 생성 (Upsert)]
      * 결제 완료 시 호출되어 방문 횟수와 결제 금액을 누적합니다.
+     * @param {Object} data - { store_id, customer_phone, customer_name, toss_user_key, amount }
+     * @param {import('@prisma/client').PrismaTransactionClient} [tx] - 트랜잭션 클라이언트 (선택)
      */
-    upsertCustomer: async (data) => {
+    upsertCustomer: async (data, tx) => {
         const { store_id, customer_phone, customer_name, toss_user_key, amount } = data;
+        const db = tx || prisma;
 
         if (!customer_phone) return null;
 
         try {
             // 1. 기존 고객 정보 및 누적 금액 확인 (등급 계산용)
-            const existing = await prisma.store_customers.findUnique({
+            const existing = await db.store_customers.findUnique({
                 where: {
                     uk_store_customer: {
                         store_id: parseInt(store_id),
@@ -49,7 +52,7 @@ const StoreCustomer = {
             }
 
             // 3. Upsert 실행
-            return await prisma.store_customers.upsert({
+            return await db.store_customers.upsert({
                 where: {
                     uk_store_customer: {
                         store_id: parseInt(store_id),

@@ -1,37 +1,114 @@
-# WeMarket i18n Implementation Project Report
-## v2.1 - Final Documentation Update
+# WeMarket
 
-**Date:** 2025-07-19
-**Project:** WeMarket QR Menu Platform Internationalization Implementation
-**Status:** ✅ **COMPLETED - ALL TASKS FINISHED**
+SaaS QR Menu & Small Business Platform — QR 코드 기반 매장 운영(메뉴, 주문, 결제, 키칭 디스플레이, 알림)을 지원하는 풀스택 플랫폼.
 
----
+## 기술 스택
 
-## 🎯 PROJECT OVERVIEW
+- **Backend**: Node.js + Express 5 (`express@^5.2.1`), Socket.IO (`^4.8.3`), Helmet (`^8.1.0`), CORS
+- **Database**: PostgreSQL + Prisma ORM (`^5.22.0`)
+- **Frontend**: React (Vite SPA), `react-i18next` (ko/en/ja/zh 4개 locale)
+- **Infra**: Cloudflare Pages / Workers, Vercel (빌드), Render (`render.yaml`) 배포 지원
+- **Test**: Jest (`^25.5.4`), Playwright (E2E), React Testing Library
+- **Security**: helmet 보안 헤더 + CSP nonce (`middleware/cspNonce.js`), XSS sanitizer, domain 기반 CORS 화이트리스트 (`config/domain.js`)
 
-**Objective:** Implement comprehensive internationalization (i18n) infrastructure across the WeMarket platform to support Korean, English, Japanese, and Chinese markets while maintaining technical excellence and consistent user experience.
+## 디렉토리 구조
 
-**Scope:** Complete translation implementation across all user-facing components including authentication, landing page, features, pricing, testimonials, and localized content for Korean, English, Japanese, and Chinese markets.
+```
+app.js                 Express 앱 + 미들웨어 체인 (helmet → cors → cspNonce → ...)
+index.js               HTTP 서버 기동 + Socket.IO + Graceful Shutdown + 크론
+routes/                Express 5 Router (46개 도메인 라우트)
+controllers/           요청 핸들러 (41개)
+services/              비즈니스 로직 (36개)
+repositories/          Prisma 데이터 접근 계층 (22개)
+middleware/            인증/보안/검증 미들웨어 (11개)
+socket/                Socket.IO 핸들러 (주문/채팅/웨이팅 실시간)
+utils/                 공통 유틸 (로깅, 검증 스키마, 에러)
+config/                domain/CORS, env 설정
+frontend/              React SPA (pages 32, components 127)
+prisma/                schema.prisma (53개 모델) + 마이그레이션/시드
+tests/                 backend 통합/회귀/단위 테스트 (52개 .test.js)
+docs/                  Swagger 수동 정의
+```
 
-**Business Impact:** Enable international expansion while maintaining high-quality user experience across all supported languages.
+## 시작하기
 
----
+### 요구사항
 
-## ✅ COMPLETED WORK SUMMARY
+- Node.js 18+ (`.nvmrc` 참고)
+- PostgreSQL (또는 호환 DB) + `DATABASE_URL`
+- 패키지 매니저: npm (또는 pnpm)
 
-### **4 Out of 4 Major Tasks Completed Successfully**\n
+### 설치 및 실행
 
-#### **TASK 1 - Login.jsx i18n Implementation** ✅ **COMPLETED**\n- **Files Modified:** `frontend/src/components/Login.jsx`\n- **Translations Applied:** 15 hardcoded Korean strings converted to useTranslation hooks\n- **Technical Implementation:** \n  ```javascript\n  // Added import\n  import { useTranslation } from 'react-i18next';\n  const { t } = useTranslation('auth', { keyPrefix: 'auth' });\n  \n  // Applied translations\n  t('auth.login', '로그인');\n  t('auth.phone', '핸드폰 번호');\n  t('auth.password', '비밀번호');\n  ```\n- **Impact:** Authentication system now fully localized with consistent translation structure\n\n#### **TASK 2 - ko/en/translation.json + en/translation.json Landing 섹션** ✅ **COMPLETED**\n- **Files Modified:** \n  - `frontend/src/locales/ko/translation.json`\n  - `frontend/src/locales/en/translation.json`\n- **Translation Coverage:** 150+ new keys added to both files\n- **Structure Implemented:**\n  - Navigation items: 7 items\n  - Features section: 10 items (22+ translatable strings)\n  - Steps array: 4 items\n  - Customer flow: 5 items\n  - Pricing plans: 3 items (24+ translatable strings)\n  - Testimonials: 3 items (9+ translatable strings)\n  - Demo features: 3 items\n\n#### **TASK 3 - LandingPage.jsx i18n Implementation** ✅ **COMPLETED**\n- **Files Modified:** `frontend/src/pages/LandingPage.jsx`\n- **Component Coverage:** Complete i18n implementation across 1,359-line monolithic component\n- **Technical Implementation:**\n  ```javascript\n  // Added i18n support\n  import { useTranslation } from 'react-i18next';\n  const { t } = useTranslation('landing', { keyPrefix: 'landing' });\n  \n  // Applied translations throughout all sections\n  t('landing.features.qrCode.title', 'QR 코드 즉시 생성');\n  t('landing.pricingPlan.free.name', '무료');\n  ```\n- **Impact:** Entire landing page now fully localized with consistent translation patterns\n\n#### **TASK 4 - ja/translation.json + zh/translation.json Landing 섹션 추가** ✅ **COMPLETED**\n- **Files Modified:**\n  - `frontend/src/locales/ja/translation.json` (COMPLETED)\n  - `frontend/src/locales/zh/translation.json` (COMPLETED)\n- **Implementation Strategy:** Used Korean structure as reference for Japanese and Chinese translations\n- **Cultural Adaptation:** Localized content appropriate for target markets\n\n---\n\n## 📊 IMPLEMENTATION METRICS\n\n### **Translation Coverage Achieved:**\n- **Total Strings Translated:** ~350+ (including 15 Login + 200+ Landing + 150+ ja/zh)\n- **Translation Files:** 4/4 complete (ko, en, ja, zh with landing sections)\n- **Components Translated:** 2/2 (Login.jsx, LandingPage.jsx) ✅\n- **Coverage Percentage:** 100% of user-facing text i18n-ready ✅\n\n### **File Structure Implementation:**\n- ✅ **ko/translation.json** - Complete with landing section\n- ✅ **en/translation.json** - Complete with landing section  \n- ✅ **ja/translation.json** - Complete with landing section ✓\n- ✅ **zh/translation.json** - Complete with landing section ✓\n\n### **Component Implementation:**\n- ✅ **Login.jsx** - Fully i18n translated (15/15 strings)\n- ✅ **LandingPage.jsx** - Fully i18n translated (~200+ strings)\n\n### **Quality Standards Met:**\n- ✅ **Consistency**: Uniform translation structure across all files\n- ✅ **Completeness**: All user-facing elements i18n-ready\n- ✅ **Integration**: React hooks implemented correctly\n- ✅ **Cultural Adaptation**: Localized text appropriate for target markets\n\n---\n\n## 🔧 TECHNICAL IMPLEMENTATION\n\n### **React-i18next Integration**:\n```javascript\n// Login.jsx implementation\nimport { useTranslation } from 'react-i18next';\nconst { t } = useTranslation('auth', { keyPrefix: 'auth' });\n\n// LandingPage.jsx implementation  \nimport { useTranslation } from 'react-i18next';\nconst { t } = useTranslation('landing', { keyPrefix: 'landing' });\n```\n\n### **Translation Key Structure**:\n- **Standardized**: Consistent `keyPrefix` approach across all i18n implementations\n- **Hierarchical**: Organized by functional areas (auth, landing, features, etc.)\n- **Maintainable**: Clear, predictable naming conventions\n- **Scalable**: Easy to add new languages and features\n\n### **Component Integration Strategy**:\n- **Login.jsx**: Auth-specific translations with `keyPrefix: 'auth'`\n- **LandingPage.jsx**: Page-specific translations with `keyPrefix: 'landing'`\n- **Consistent Pattern**: All translations follow the same structure\n\n---\n\n## 💼 BUSINESS IMPACT\n\n### **Commercial Benefits Achieved:**\n- ✅ **Market Expansion**: Ready for Japanese and Chinese markets\n- ✅ **User Experience**: Seamless multilingual support across all platforms\n- ✅ **Operational Efficiency**: Standardized translation infrastructure\n- ✅ **Competitive Advantage**: Early international market entry capability\n\n### **Technical Benefits Achieved:**\n- ✅ **Code Quality**: Consistent, maintainable i18n patterns\n- ✅ **Scalability**: Foundation for future multilingual expansion\n- ✅ **User Satisfaction**: Natural language experience across markets\n- ✅ **Developer Experience**: Streamlined translation workflow\n\n---\n\n## 🎯 SUCCESS INDICATORS\n\n### **Implementation Excellence Confirmed**:\n- ✅ **Technical Foundation**: Fully operational and consistent i18n infrastructure\n- ✅ **Translation Coverage**: 100% user-facing text localized\n- ✅ **International Readiness**: Japanese and Chinese markets prepared\n- ✅ **Documentation**: Production-ready architecture implemented\n\n### **Market Expansion Readiness**:\n- ✅ **Korean Market**: Fully localized with i18n support\n- ✅ **Japanese Market**: Ready for deployment with localized content\n- ✅ **Chinese Market**: Ready for deployment with localized content\n- ✅ **Global Foundation**: Prepared for future expansion\n\n---\n\n## 🚦 PROJECT HEALTH STATUS\n\n### **Current Phase**: ✅ **COMPLETED - ALL TASKS FINISHED**\n\n**Implementation Completion Overview:**\n```\n📊 IMPLEMENTATION STATUS: 100% COMPLETE\n├── Task 1 - Login.jsx i18n: ✅ COMPLETED (15/15 translations)\n├── Task 2 - ko/en landing translations: ✅ COMPLETED (150+ keys)\n├── Task 3 - LandingPage.jsx i18n: ✅ COMPLETED (~200+ strings)\n├── Task 4 - ja/zh landing translations: ✅ COMPLETED\n└── Task 5 - ANALYSIS_REPORT.md v2.1: ✅ COMPLETED\n```\n\n**Quality Metrics:**\n- **Translation Coverage**: 100% ✓\n- **Component Implementation**: 100% ✓\n- **Technical Consistency**: 100% ✓\n- **Market Readiness**: 90% ✓\n\n**Business Impact:**\n- **International Expansion**: Ready for Japanese and Chinese markets ✓\n- **User Experience**: Seamless multilingual support ✓\n- **Operational Excellence**: Standardized infrastructure ✓\n- **Competitive Position**: Enhanced global market presence ✓\n\n---\n\n## 📋 TECHNICAL IMPLEMENTATION DETAILS\n\n### **Login.jsx Implementation Example**:\n```javascript\n// Before: Hardcoded Korean strings\nconst loginButton = document.createElement('button');\nloginButton.textContent = '로그인';\n\n// After: Localized with i18n\nconst { t } = useTranslation('auth', { keyPrefix: 'auth' });\nconst loginButton = <button>{t('auth.login', '로그인')}</button>;\n```\n\n### **LandingPage.jsx Implementation Example**:\n```javascript\n// Before: Hardcoded Korean text\n<h1 className=\"text-4xl font-black\">위마켓</h1>\n<p className=\"text-gray-500\">서문 메뉴판과 복잡한 POS...</p>\n\n// After: Localized with i18n  \nh1 className=\"text-4xl font-black\">{t('landing.title', '위마켓')}</h1>\n<p className=\"text-gray-500\">{t('landing.subtitle', '서문 메뉴판과 복잡한 POS...')}</p>\n```\n\n### **Japanese/Chinese Translation Strategy**:\n- **Reference Structure**: Korean translation structure served as reference\n- **Cultural Adaptation**: Localized content appropriate for target markets\n- **Quality Assurance**: Consistent translation standards maintained\n\n---\n\n## 🎉 FINAL ASSESSMENT\n\n### **Project Status: READY FOR PRODUCTION DEPLOYMENT** 🏁 **COMPLETED 🏁**\n\n**Technical Excellence Achieved**:\n- ✅ **Architecture**: Clean, maintainable code structure maintained\n- ✅ **Consistency**: Uniform i18n approach across all components\n- ✅ **Quality**: 100% user-facing text coverage\n- ✅ **Performance**: React hooks implemented efficiently\n- ✅ **International**: Japanese and Chinese markets ready\n\n**Business Impact Delivered**:\n- ✅ **Korean Market**: Fully supported with i18n\n- ✅ **Japanese Market**: Ready for deployment with localized content\n- ✅ **Chinese Market**: Ready for deployment with localized content\n- ✅ **Global Foundation**: Prepared for future expansion\n\n### **Deliverables Completed**:\n- ✅ **i18n Infrastructure**: Fully operational and consistent\n- ✅ **Translation Coverage**: 100% of user-facing text localized\n- ✅ **International Ready**: Japanese and Chinese markets prepared\n- ✅ **Documentation**: Ready for final project documentation\n\n---\n\n## 📈 EXECUTION SUMMARY\n\n### **Work Completed Successfully**:\n1. ✅ **Login.jsx i18n Implementation** - 15 translations applied\n2. ✅ **Korean/English Landing Translations** - 150+ keys added\n3. ✅ **LandingPage.jsx i18n** - ~200+ strings translated\n4. ✅ **Japanese/Chinese Landing Translations** - Korean reference + localized\n5. ✅ **Project Documentation** - Comprehensive report completed\n\n### **Key Achievements**:\n- ✅ **Technical Excellence**: Consistent, maintainable i18n patterns\n- ✅ **International Readiness**: All target markets supported\n- ✅ **User Experience**: Seamless multilingual interface\n- ✅ **Business Impact**: Enhanced global market position\n\n### **Ready for**: Production deployment, market expansion, continued maintenance\n\n---\n\n### **Summary**\n\n**WeMarket i18n Implementation Project** - **100% COMPLETED ✅\n\nComprehensive internationalization implementation successfully completed across all components:\n- ✅ Authentication system fully localized\n- ✅ Landing page completely i18n-ready\n- ✅ Japanese and Chinese markets prepared\n- ✅ Technical architecture consistently implemented\n- ✅ Documentation completed and finalized\n\n**Project Status**: ✨ **READY FOR PRODUCTION DEPLOYMENT** ✨\n\n---\n\n*End of Analysis Report v2.1 - All i18n implementation tasks completed successfully*\n\n---\n\n## 📋 MANPOWER USAGE AND TIME TRACKING
+```bash
+# 1. 의존성 설치 (postinstall 가 prisma generate 자동 실행)
+npm install
 
-### **Resource Allocation**:
-- **Engineering Hours Invested**: 180 hours across 5 tasks
-- **Documentation Hours**: 28 hours (for comprehensive report)
-- **Quality Assurance**: 24 hours (testing and validation)
-- **Overall Timeframe**: 4 weeks (scheduled)
-\n### **Personnel Involved**:
-- **Team**: Senior Engineer, i18n Specialist, QA Tester\n- **Skill Sets**: React, TypeScript, Node.js, Prisma, PostgreSQL, i18next\n- **Experience Level**: Mid-Senior to Principal
-\n### **ROI Metrics**:
-- **Business Impact**: 3x internationalization expansion readiness
-- **Technical Debt**: 85% reduction in code duplication\n- **User Experience**: 100% of text elements i18n-compliant\n- **Time to Market**: International launch ready in 2 weeks\n\n---\n\n## 🎆 **SUCCESS SUMMARY**\n\n### **WeMarket Internationalization Project**: **✅ COMPLETED SUCCESSFULLY**\n\n**Core Achievements:**\n🚀 **100% Translation Coverage** - All user-facing text localized\n🚀 **International Ready** - Japanese and Chinese markets prepared\n🚀 **Technical Consistency** - Standardized i18n architecture\n🚀 **Quality Assurance** - 100% test coverage maintained\n\n**Key Milestones Reached:**\n1. **Authentication System**: Full i18n implementation complete\n2. **Landing Page**: Complete localization deployment\n3. **Japanese Market**: Ready for immediate deployment\n4. **Chinese Market**: Ready for immediate deployment\n5. **Documentation**: Comprehensive project report finalized\n\n### **Technical Excellence Demonstrated:**\n- ✅ **React Integration**: Seamless i18next implementation\n- ✅ **Architecture**: Clean, maintainable patterns\n- ✅ **Quality**: Comprehensive testing and validation\n- ✅ **Scalability**: Future expansion ready\n\n---\n\n## 🚀 **FINAL EXECUTION STATUS**
-\n**Project Status**: **🎯 COMPLETE - READY FOR PRODUCTION DEPLOYMENT** 🎯\n\n**All i18n Implementation Tasks Successfully Executed** 🏁\n\n**Work Completed:**\n✅ Task 1: Login.jsx i18n Implementation\n✅ Task 2: Korean/English Landing Translations\n✅ Task 3: LandingPage.jsx i18n Implementation\n✅ Task 4: Japanese/Chinese Landing Translations\n✅ Task 5: ANALYSIS_REPORT.md v2.1 Documentation\n\n**Ready for:** Immediate production deployment, international market expansion\n\n---\n\n**🎯 EXECUTION COMPLETE: ALL i18n IMPLEMENTATION TASKS FINISHED ✅**\n\n**WeMarket Internationalization Project - Successfully Delivered On Schedule** 🎆
-\n---\n\n*End of final project documentation - All i18n implementation completed successfully*\n\n>
+# 2. 환경변수 설정
+cp .env.example .env
+# DATABASE_URL, JWT_SECRET, 세션 키 등 필수 값 입력
+
+# 3. DB 마이그레이션 + 시드
+npx prisma migrate dev
+npm run seed
+
+# 4. 개발 서버 (백엔드 :3000, 프론트 별도)
+npm start
+```
+
+### 프론트엔드 개발
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## 주요 스크립트
+
+| 스크립트 | 설명 |
+|---|---|
+| `npm start` | 프로덕션 서버 기동 (`node index.js`) |
+| `npm run build` | Prisma generate + 프론트엔드 빌드 |
+| `npm test` | Jest 전체 (coverage, `--forceExit --detectOpenHandles`) |
+| `npm run test:unit` | 단위 테스트 |
+| `npm run test:integration` | 통합 테스트 (`tests/integration`) |
+| `npm run test:regression` | 회귀 테스트 |
+| `npm run test:e2e` | Playwright E2E |
+| `npm run db:migrate` | Prisma 마이그레이션(dev) |
+| `npm run db:migrate:prod` | Prisma 마이그레이션(deploy) |
+| `npm run seed` | 운영 시드 데이터 |
+| `npm run lint:backend` | ESLint |
+| `npm run security:scan` | semgrep 보안 스캔 (backend) |
+| `npm run security:scan:frontend` | semgrep 보안 스캔 (frontend) |
+
+## API 개요
+
+모든 API는 `/api` 프리픽스. 주요 도메인: `auth`, `stores`, `products`, `orders`, `tables`, `payments`, `notifications`, `categories`, `admin`, `points`, `reviews`, `analytics`, `chat`, `cart`, `coupons`, `kds`(주방 디스플레이), `alimtalk`(카카오 알림톡), `sse`, `print-jobs`(로컬 프린트 에이전트) 등.
+
+응답 형식은 `responseFormatter`(`utils/responseFormatter.js`)가 표준화: `res.success(data, msg, statusCode=200)`, `res.paginated(...)`.
+
+실시간 기능은 Socket.IO로 제공 (주문 상태, 키칭 디스플레이, 채팅, 웨이팅).
+
+## 보안
+
+- **CSP + nonce**: `helmet`이 비-CSP 보안 헤더(HSTS, X-Frame-Options 등)를 담당하고, `middleware/cspNonce.js`가 요청별 CSP nonce를 생성해 `Content-Security-Policy` 헤더를 단독 소유 (helmet `contentSecurityPolicy: false` 로 충돌 회피).
+- **CORS**: `config/domain.js` 화이트리스트 기반 origin 검증.
+- **XSS**: 요청 본문 sanitizer(`middleware/xss*`) + 응답 포맷터.
+- 보안 스캔: `npm run security:scan` (semgrep).
+
+## 문서
+
+- `CHANGELOG.md` — 실제 진행 이력 (최신 v1.1.0)
+- `PROJECT_ANALYSIS.md` — 아키텍처/기술부채/추가기능 제안 분석 보고서
+- `CLAUDE.md` — 개발 가이드
+- `ANALYSIS_REPORT.md`, `ANALYSIS_REPORT.md v2.1.md` — i18n 구현 프로젝트 보고서 (별도 문서, 본 README와 무관)
+- `docs/` — Swagger API 정의
+
+## 알려진 기술 부채 (요약)
+
+- `jest@^25.5.4` 낡음 + `express@^5.2.1` 조합, 테스트 스크립트가 `--forceExit --detectOpenHandles` 사용
+- `responseFormatter` 기본 200 (생성 API 201 미사용)
+- 테스트 커버리지가 backend 일부 라우트에 편중, E2E spec 대부분 제거됨
+- 일부 미들웨어/utils가 10줄 미만으로 분산
+- 자세한 내용은 `PROJECT_ANALYSIS.md` 참고

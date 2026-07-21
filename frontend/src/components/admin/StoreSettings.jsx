@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { storesAPI } from '../../api';
-import { Clock, Palette, Save, CheckCircle2, ChevronDown, ChevronUp, Sun, Moon, Store, Type, Layout, Brush, ToggleLeft, ToggleRight, CopyCheck } from 'lucide-react';
+import { storesAPI, tierSettingsAPI } from '../../api';
+import { Clock, Palette, Save, CheckCircle2, ChevronDown, ChevronUp, Sun, Moon, Store, Type, Layout, Brush, ToggleLeft, ToggleRight, CopyCheck, Award, Plus, Trash2, Edit3 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
@@ -122,12 +122,25 @@ export default function StoreSettings() {
   // 테마
   const [theme, setTheme] = useState(DEFAULT_THEME);
 
+  // 등급 설정
+  const [tiers, setTiers] = useState([]);
+  const [tiersLoading, setTiersLoading] = useState(false);
+  const [showTierForm, setShowTierForm] = useState(false);
+  const [editingTier, setEditingTier] = useState(null);
+  const [tierForm, setTierForm] = useState({ tier_name: 'GOLD', min_spent: 100000, earn_rate: 5.0 });
+  const [tierSaving, setTierSaving] = useState(false);
+
   // ── 데이터 로드 ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!storeId) return;
     storesAPI.getById(storeId)
       .then(res => {
         const s = res.data;
+
+        // 등급 로드
+        tierSettingsAPI.getTiers(storeId)
+          .then(tRes => setTiers(tRes.data || []))
+          .catch(() => {});
         setGlobalOpen(s.open_time  || '09:00');
         setGlobalClose(s.close_time || '22:00');
 
@@ -146,6 +159,55 @@ export default function StoreSettings() {
       .catch(() => toast.error('매장 정보를 불러오지 못했습니다.'))
       .finally(() => setLoading(false));
   }, [storeId]);
+
+  // ── 등급 CRUD ──────────────────────────────────────────────────────────────
+  const fetchTiers = async () => {
+    try {
+      const res = await tierSettingsAPI.getTiers(storeId);
+      setTiers(res.data || []);
+    } catch { toast.error('등급 설정을 불러오지 못했습니다.'); }
+  };
+
+  const handleTierSubmit = async () => {
+    if (!tierForm.tier_name || tierForm.min_spent === undefined || tierForm.earn_rate === undefined) {
+      toast.warning('모든 항목을 입력해주세요.');
+      return;
+    }
+    setTierSaving(true);
+    try {
+      await tierSettingsAPI.upsertTier(storeId, tierForm);
+      toast.success('등급이 저장되었습니다.');
+      fetchTiers();
+      setShowTierForm(false);
+      setEditingTier(null);
+      setTierForm({ tier_name: 'GOLD', min_spent: 100000, earn_rate: 5.0 });
+    } catch (err) {
+      toast.error(err?.response?.data?.error || '저장에 실패했습니다.');
+    } finally {
+      setTierSaving(false);
+    }
+  };
+
+  const handleEditTier = (tier) => {
+    setEditingTier(tier);
+    setTierForm({
+      tier_name: tier.tier_name,
+      min_spent: tier.min_spent,
+      earn_rate: tier.earn_rate,
+    });
+    setShowTierForm(true);
+  };
+
+  const handleDeleteTier = async (tierName) => {
+    if (!window.confirm(`'${tierName}' 등급을 삭제하시겠습니까?`)) return;
+    try {
+      await tierSettingsAPI.deleteTier(storeId, tierName);
+      toast.success('등급이 삭제되었습니다.');
+      fetchTiers();
+    } catch (err) {
+      toast.error(err?.response?.data?.error || '삭제에 실패했습니다.');
+    }
+  };
 
   // ── 저장 ───────────────────────────────────────────────────────────────────
   const handleSave = async () => {
@@ -444,6 +506,113 @@ export default function StoreSettings() {
             </div>
           </div>
         </div>
+      </Section>
+
+      {/* ── 등급 설정 ────────────────────────────────────────────────────── */}
+      <Section title="등급 설정" icon={Award} color="text-orange-500">
+        <p className="text-sm text-slate-400 mb-4">고객 누적 구매액에 따라 자동 적용될 등급을 설정하세요. 등급별로 적립률을 다르게 적용할 수 있습니다.</p>
+
+        {/* 등급 목록 */}
+        {tiers.length === 0 ? (
+          <div className="text-center py-8 bg-gray-50 rounded-xl mb-4">
+            <Award className="mx-auto mb-2 text-gray-300" size={32} />
+            <p className="text-sm text-gray-400">등록된 등급이 없습니다</p>
+            <p className="text-xs text-gray-300 mt-1">새 등급을 추가해주세요</p>
+          </div>
+        ) : (
+          <div className="space-y-2 mb-4">
+            {tiers.map((tier) => (
+              <div key={tier.tier_name} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center shrink-0">
+                  <Award className="text-white" size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-800 text-sm">{tier.tier_name}</p>
+                  <p className="text-xs text-gray-500">
+                    최소 <span className="font-bold text-gray-700">{tier.min_spent?.toLocaleString()}원</span> 이상 · 적립 <span className="font-bold text-orange-600">{tier.earn_rate}%</span>
+                  </p>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => handleEditTier(tier)} className="p-2 hover:bg-blue-50 rounded-lg text-blue-500 transition-colors" title="수정">
+                    <Edit3 size={14} />
+                  </button>
+                  <button onClick={() => handleDeleteTier(tier.tier_name)} className="p-2 hover:bg-red-50 rounded-lg text-red-400 transition-colors" title="삭제">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 등록/수정 폼 */}
+        {showTierForm && (
+          <div className="p-4 bg-white border-2 border-orange-100 rounded-xl mb-4 space-y-3">
+            <p className="text-sm font-bold text-gray-700">
+              {editingTier ? '등급 수정' : '새 등급 추가'}
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1 font-bold">등급명</label>
+                <input
+                  type="text"
+                  value={tierForm.tier_name}
+                  onChange={e => setTierForm(f => ({ ...f, tier_name: e.target.value }))}
+                  placeholder="예: GOLD"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:border-orange-500"
+                  disabled={!!editingTier}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1 font-bold">최소 구매액 (원)</label>
+                <input
+                  type="number"
+                  value={tierForm.min_spent}
+                  onChange={e => setTierForm(f => ({ ...f, min_spent: parseInt(e.target.value) || 0 }))}
+                  placeholder="100000"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:border-orange-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1 font-bold">적립률 (%)</label>
+                <input
+                  type="number"
+                  value={tierForm.earn_rate}
+                  onChange={e => setTierForm(f => ({ ...f, earn_rate: parseFloat(e.target.value) || 0 }))}
+                  placeholder="5.0"
+                  step="0.1"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:border-orange-500"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={handleTierSubmit}
+                disabled={tierSaving}
+                className="flex items-center gap-1.5 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 disabled:opacity-50 transition-colors"
+              >
+                {tierSaving ? '저장 중...' : (editingTier ? '수정 완료' : '등급 추가')}
+              </button>
+              <button
+                onClick={() => { setShowTierForm(false); setEditingTier(null); setTierForm({ tier_name: 'GOLD', min_spent: 100000, earn_rate: 5.0 }); }}
+                className="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg text-sm font-bold hover:bg-gray-300 transition-colors"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 새 등급 추가 버튼 */}
+        {!showTierForm && (
+          <button
+            onClick={() => setShowTierForm(true)}
+            className="flex items-center gap-2 w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm font-bold text-gray-500 hover:border-orange-300 hover:text-orange-500 transition-colors justify-center"
+          >
+            <Plus size={16} />
+            새 등급 추가
+          </button>
+        )}
       </Section>
 
       {/* 하단 저장 버튼 (고정) */}

@@ -141,7 +141,7 @@ router.get('/settings/:storeId', pointsController.getStoreSettings);
  *             properties:
  *               earn_rate:
  *                 type: number
- *                 description: 포인트 적립률 (예: 0.01 = 1%)
+ *                 description: "포인트 적립률 (예: 0.01 = 1%)"
  *               use_rate:
  *                 type: number
  *                 description: 포인트 사용률

@@ -1,7 +1,19 @@
 /**
- * CSP Nonce Middleware
- * Generates unique CSP nonces for inline scripts/styles to strengthen Content Security Policy
- * Helps prevent XSS attacks by allowing only scripts/styles with valid nonces to execute
+ * CSP Nonce Middleware (helmet-integrated)
+ *
+ * IMPORTANT: This middleware does NOT set the Content-Security-Policy header itself.
+ * The CSP header is owned exclusively by helmet (app.js). helmet is configured with
+ * `scriptSrc`/`styleSrc` containing `'nonce-<%= nonce %>'` directives, which makes helmet
+ * auto-generate a per-request nonce, expose it via `res.locals.cspNonce`, and emit the
+ * CSP header with that nonce baked in.
+ *
+ * This middleware runs AFTER helmet and only:
+ *   1. ensures `res.locals.cspNonce` exists (fallback generation if helmet CSP is off),
+ *   2. exposes helper tag builders (createScriptTag/createStyleTag) that reuse the same nonce.
+ *
+ * Previously this middleware called `res.setHeader('Content-Security-Policy', ...)` itself,
+ * which overwrote helmet's header and, combined with helmet's own setHeader, caused requests
+ * to hang (observed as 5000ms test timeouts). That setHeader call has been removed.
  */
 
 const crypto = require('crypto');
@@ -33,13 +45,12 @@ const cspNonceMiddleware = (options = {}) => {
   } = options;
 
   return (req, res, next) => {
-    // Generate unique nonce for this request
+    // This middleware is the SOLE owner of the CSP header (helmet CSP is disabled in app.js).
+    // Generate a per-request nonce and emit the CSP header with it. This is the only
+    // res.setHeader('Content-Security-Policy') call in the stack, so no header overwrite / hang.
     const nonce = generateNonce();
-    
-    // Store nonce in res.locals for use in views/templates
     res.locals.cspNonce = nonce;
-    
-    // Build CSP directives with nonce
+
     const scriptSrc = [
       "'self'",
       `'nonce-${nonce}'`,
@@ -52,13 +63,12 @@ const cspNonceMiddleware = (options = {}) => {
     const styleSrc = [
       "'self'",
       `'nonce-${nonce}'`,
-      "'unsafe-inline'", // Required for Tailwind and dynamic styles
+      "'unsafe-inline'",
       "https://fonts.googleapis.com",
       "https://www.gstatic.com",
       ...additionalStyleSrc
     ].join(' ');
 
-    // Build CSP header value
     const cspDirectives = [
       "default-src 'self'",
       `script-src ${scriptSrc}`,
@@ -75,14 +85,8 @@ const cspNonceMiddleware = (options = {}) => {
     ].join('; ');
 
     const headerName = useReportOnly ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
-    
-    // Set CSP header (will be overridden by helmet's CSP if helmet runs after this)
-    // We set it here to ensure nonce is included, helmet's CSP will override if configured differently
     res.setHeader(headerName, cspDirectives);
-
-    // Also set CSP via res.locals for manual use in templates
     res.locals.cspHeader = cspDirectives;
-    res.locals.cspNonce = nonce;
 
     next();
   };

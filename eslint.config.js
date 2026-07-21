@@ -1,5 +1,6 @@
 const globals = require('globals');
 const js = require('@eslint/js');
+const prettier = require('eslint-config-prettier');
 
 module.exports = [
   {
@@ -68,4 +69,6 @@ module.exports = [
       },
     },
   },
+  // Prettier 충돌 규칙 비활성화 (ESLint + Prettier 공존)
+  prettier,
 ];

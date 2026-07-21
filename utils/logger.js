@@ -1,5 +1,29 @@
 const winston = require('winston');
 const path = require('path');
+const Transport = require('winston-transport');
+
+// [Sentry 연동] SENTRY_DSN 환경변수가 있을 때만 활성화 (로컬/테스트는 무시)
+// 외부 aggregator(Sentry)로 에러/경고 로그 전송 — 운영 가시성 확보
+let Sentry = null;
+let sentryTransport = null;
+if (process.env.SENTRY_DSN && process.env.NODE_ENV === 'production') {
+  Sentry = require('@sentry/node');
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV,
+    tracesSampleRate: 0.1,
+  });
+  sentryTransport = new Transport({ level: 'warn' });
+  const originalLog = sentryTransport.log.bind(sentryTransport);
+  sentryTransport.log = (info, callback) => {
+    if (Sentry && info.level === 'error') {
+      Sentry.captureException(info.stack || info.message);
+    } else if (Sentry && info.level === 'warn') {
+      Sentry.captureMessage(info.message, 'warning');
+    }
+    originalLog(info, callback);
+  };
+}
 
 const { combine, timestamp, printf, colorize, errors } = winston.format;
 
@@ -32,7 +56,9 @@ const logger = winston.createLogger({
         // 3. 파일 출력 (전체 로그)
         new winston.transports.File({
             filename: path.join(process.env.LOG_DIR || path.join(__dirname, '../logs'), 'combined.log')
-        })
+        }),
+        // 4. Sentry 전송 (SENTRY_DSN + production 에서만 존재)
+        ...(sentryTransport ? [sentryTransport] : [])
     ]
 });
 

@@ -74,6 +74,7 @@ const NewsPage = lazy(() => import("./pages/marketing/NewsPage"));
 const ContactPage = lazy(() => import("./pages/marketing/ContactPage"));
 const MultiStoreSupervisorDashboard = lazy(() => import("@/components/admin/MultiStoreSupervisorDashboard"));
 const AlimtalkDeliveryConsole = lazy(() => import("@/components/admin/AlimtalkDeliveryConsole"));
+const PlanUpgrade = lazy(() => import("@/pages/PlanUpgrade"));
 
 const queryClient = new QueryClient();
 
@@ -409,6 +410,13 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/alimtalk" element={
       <AdminPage>
         <ValidStoreRoute><AdminSuspense><AlimtalkDeliveryConsole /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
+    {/* 플랜 업그레이드 */}
+    <Route path="/admin/stores/:storeId/plan-upgrade" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><PlanUpgrade /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 

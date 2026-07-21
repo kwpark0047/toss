@@ -3,12 +3,13 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationProvider} from '../../contexts/NotificationContext';
 import { AdminThemeProvider, useAdminTheme } from '../../contexts/AdminThemeContext';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Store, LogOut, LayoutDashboard, UtensilsCrossed,
   Settings, Users, Receipt, Wallet, Palette,
   Menu as MenuIcon, MessageSquare, LogIn, Smartphone, CalendarCheck, Sparkles, Package, Bell,
-  UserCircle, ChevronRight, ShoppingBag, Building2, Activity, Scale, Headset, Truck, ChefHat
+  UserCircle, ChevronRight, ShoppingBag, Building2, Activity, Scale, Headset, Truck, ChefHat, Award
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import { TC } from './adminThemes';
@@ -19,6 +20,7 @@ import { ordersAPI } from '../../api';
 
 function AdminLayoutInner({ children, storeId, user, handleLogout, location, filteredNavItems }) {
   const { themeId } = useAdminTheme();
+  const { t } = useTranslation('admin', { keyPrefix: 'admin' });
   const tc = TC[themeId];
   const [isMoreOpen, setMoreOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -43,15 +45,15 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
   }, [fetchPendingCount]);
 
   const mobileBottomNav = storeId ? [
-    { label: '홈', icon: LayoutDashboard, path: '/admin' },
-    { label: '주문', icon: UtensilsCrossed, path: `/admin/stores/${storeId}/orders`, badge: pendingOrdersCount },
-    { label: '상품', icon: ShoppingBag, path: `/admin/stores/${storeId}/menu` },
-    { label: 'AI', icon: Sparkles, path: '/admin/tinkerbell' },
+    { label: t('home'), icon: LayoutDashboard, path: '/admin' },
+    { label: t('orders'), icon: UtensilsCrossed, path: `/admin/stores/${storeId}/orders`, badge: pendingOrdersCount },
+    { label: t('products'), icon: ShoppingBag, path: `/admin/stores/${storeId}/menu` },
+    { label: t('ai'), icon: Sparkles, path: '/admin/tinkerbell' },
   ] : [
-    { label: '홈', icon: LayoutDashboard, path: '/admin' },
-    { label: 'AI', icon: Sparkles, path: '/admin/tinkerbell' },
-    { label: '커뮤니티', icon: Building2, path: '/admin/community' },
-    { label: '게시판', icon: MessageSquare, path: '/board' },
+    { label: t('home'), icon: LayoutDashboard, path: '/admin' },
+    { label: t('ai'), icon: Sparkles, path: '/admin/tinkerbell' },
+    { label: t('community'), icon: Building2, path: '/admin/community' },
+    { label: t('board'), icon: MessageSquare, path: '/board' },
   ];
 
   return (
@@ -68,7 +70,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
               </div>
               <div>
                 <span className={`text-xl font-black tracking-tighter block leading-none mb-1 uppercase ${tc.logoText}`}>WeMarket</span>
-                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${tc.logoSub}`}>관리자 센터</span>
+                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${tc.logoSub}`}>{t('adminCenter')}</span>
               </div>
             </Link>
           </div>
@@ -111,7 +113,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                   >
                     <div className={`w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0 ${tc.bannerDot}`} />
                     <span className={`text-[11px] font-bold flex-1 leading-tight ${tc.bannerTxt}`}>
-                      프로필을 완성해 보세요
+                      {t('completeProfile')}
                     </span>
                     <ChevronRight size={12} className={`${tc.bannerArrow} group-hover:translate-x-0.5 transition-transform`} />
                   </Link>
@@ -121,8 +123,8 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                     {user.name ? user.name.charAt(0) : <UserCircle size={20} className={tc.textSub} />}
                   </div>
                   <div className="overflow-hidden flex-1">
-                    <p className={`text-sm font-black truncate ${tc.textStrong}`}>{user.name || '이름 미설정'}</p>
-                    <p className={`text-[10px] font-black uppercase tracking-widest ${tc.textAccent}`}>{user.role === 'super_admin' ? '슈퍼관리자' : user.role === 'manager' ? '매니저' : user.role === 'staff' ? '직원' : '관리자'}</p>
+                    <p className={`text-sm font-black truncate ${tc.textStrong}`}>{user.name || t('nameNotSet')}</p>
+                    <p className={`text-[10px] font-black uppercase tracking-widest ${tc.textAccent}`}>{user.role === 'super_admin' ? t('superAdmin') : user.role === 'manager' ? t('manager') : user.role === 'staff' ? t('staff') : t('admin')}</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -130,13 +132,13 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                     to="/admin/profile"
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${tc.btnBase}`}
                   >
-                    <UserCircle size={13} /> 프로필
+                    <UserCircle size={13} /> {t('profile')}
                   </Link>
                   <button
                     onClick={handleLogout}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${tc.btnDanger}`}
                   >
-                    <LogOut size={13} /> 로그아웃
+                    <LogOut size={13} /> {t('logout')}
                   </button>
                 </div>
               </div>
@@ -145,7 +147,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                 to="/login"
                 className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white text-slate-950 text-sm font-black hover:shadow-xl hover:shadow-white/10 transition-all active:scale-95"
               >
-                <LogIn size={18} /> 로그인
+                <LogIn size={18} /> {t('login')}
               </Link>
             )}
           </div>
@@ -154,23 +156,23 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
         {/* Main Area */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
           <header className={`h-14 lg:h-24 flex items-center justify-between px-4 lg:px-10 sticky top-0 z-20 ${tc.header}`}>
-            <Link to="/admin" aria-label="관리자 메인으로 이동" className="flex items-center gap-2.5 lg:hidden">
+            <Link to="/admin" aria-label={t('goToAdminMain')} className="flex items-center gap-2.5 lg:hidden">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
                 <Store size={15} className="text-white" aria-hidden="true" />
               </div>
-              <span className={`font-black text-sm tracking-tight ${tc.logoText}`}>위마켓 관리자</span>
+              <span className={`font-black text-sm tracking-tight ${tc.logoText}`}>{t('wemarketAdmin')}</span>
             </Link>
 
             <div className={`hidden lg:flex items-center gap-3 px-4 py-2 rounded-full ${tc.operational}`}>
               <div className={`w-2 h-2 rounded-full animate-pulse ${tc.operationalDot}`} />
-              <span className={`text-[10px] font-black uppercase tracking-widest ${tc.operationalTxt}`}>시스템 정상 운영 중</span>
+              <span className={`text-[10px] font-black uppercase tracking-widest ${tc.operationalTxt}`}>{t('systemNormal')}</span>
             </div>
 
             <div className="flex items-center gap-2 lg:gap-3">
               <button
                 onClick={() => setIsChatOpen(true)}
                 className={`p-2 lg:p-3 rounded-2xl transition-all relative group ${tc.statusBox} hover:scale-105 active:scale-95`}
-                aria-label="1:1 채팅 문의"
+                aria-label={t('chatInquiry')}
               >
                 <Headset size={20} className={tc.navIconHover} />
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full animate-ping" />
@@ -184,9 +186,9 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                   <Sparkles size={18} />
                 </div>
                 <div className="hidden sm:block">
-                  <p className={`text-[10px] font-black uppercase tracking-widest leading-none mb-1 ${tc.statusLabel}`}>상태</p>
+                  <p className={`text-[10px] font-black uppercase tracking-widest leading-none mb-1 ${tc.statusLabel}`}>{t('status')}</p>
                   <p className={`text-xs font-black leading-none ${tc.textStrong}`}>
-                    {(user?.role === 'super_admin' ? '슈퍼관리자' : user?.role === 'manager' ? '매니저' : user?.role === 'staff' ? '직원' : '관리자')} 활성
+                    {user?.role === 'super_admin' ? t('superAdmin') : user?.role === 'manager' ? t('manager') : user?.role === 'staff' ? t('staff') : t('admin')} {t('active')}
                   </p>
                 </div>
               </div>
@@ -237,7 +239,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                 <div className="w-9 h-9 rounded-[14px] flex items-center justify-center">
                   <MenuIcon size={12} />
                 </div>
-                <span className="font-bold leading-none" style={{ fontSize: '13.5px' }}>더보기</span>
+                <span className="font-bold leading-none" style={{ fontSize: '13.5px' }}>{t('more')}</span>
               </button>
             </div>
           </nav>
@@ -277,7 +279,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                         className={`flex items-center gap-2 mb-3 px-3 py-2 rounded-xl ${tc.banner}`}
                       >
                         <div className={`w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0 ${tc.bannerDot}`} />
-                        <span className={`text-[11px] font-bold flex-1 ${tc.bannerTxt}`}>프로필을 완성해 보세요</span>
+                        <span className={`text-[11px] font-bold flex-1 ${tc.bannerTxt}`}>{t('completeProfile')}</span>
                         <ChevronRight size={12} className={tc.bannerArrow} />
                       </Link>
                     )}
@@ -286,18 +288,18 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                         {user.name ? user.name.charAt(0) : <UserCircle size={18} className={tc.textSub} />}
                       </div>
                       <div className="flex-1 overflow-hidden">
-                        <p className={`text-sm font-black truncate ${tc.textStrong}`}>{user.name || '이름 미설정'}</p>
-                        <p className={`text-[10px] font-bold uppercase tracking-widest ${tc.textAccent}`}>{user.role === 'super_admin' ? '슈퍼관리자' : user.role === 'manager' ? '매니저' : user.role === 'staff' ? '직원' : '관리자'}</p>
+                        <p className={`text-sm font-black truncate ${tc.textStrong}`}>{user.name || t('nameNotSet')}</p>
+                        <p className={`text-[10px] font-bold uppercase tracking-widest ${tc.textAccent}`}>{user.role === 'super_admin' ? t('superAdmin') : user.role === 'manager' ? t('manager') : user.role === 'staff' ? t('staff') : t('admin')}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <Link to="/admin/profile" onClick={() => setMoreOpen(false)}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${tc.btnBase}`}>
-                        <UserCircle size={13} /> 프로필
+                        <UserCircle size={13} /> {t('profile')}
                       </Link>
                       <button onClick={() => { setMoreOpen(false); handleLogout(); }}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${tc.btnDanger}`}>
-                        <LogOut size={13} /> 로그아웃
+                        <LogOut size={13} /> {t('logout')}
                       </button>
                     </div>
                   </div>
@@ -305,7 +307,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
 
                 {/* All Nav Items */}
                 <div className="px-4 pb-8 space-y-1">
-                  <p className={`text-[10px] font-black uppercase tracking-[0.2em] px-2 mb-3 ${tc.textSub}`}>전체 메뉴</p>
+                  <p className={`text-[10px] font-black uppercase tracking-[0.2em] px-2 mb-3 ${tc.textSub}`}>{t('allMenu')}</p>
                   {filteredNavItems.map((item) => {
                     const isActive = location.pathname === item.path || (item.id === 'dashboard' && location.pathname === '/admin');
                     return (
@@ -335,6 +337,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
 
 const AdminLayout = ({ children }) => {
   const { user, logout } = useAuth();
+  const { t } = useTranslation('admin', { keyPrefix: 'admin' });
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -393,10 +396,10 @@ const AdminLayout = ({ children }) => {
           <div className="w-24 h-24 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-2xl shadow-orange-500/20">
             <Store className="w-12 h-12 text-white" />
           </div>
-          <h2 className="text-3xl font-black text-white mb-4 tracking-tight">접근 권한 없음</h2>
-          <p className="mb-10 text-slate-400 font-medium">진입 권한이 없습니다.<br />관리자 계정으로 로그인해 주세요.</p>
+          <h2 className="text-3xl font-black text-white mb-4 tracking-tight">{t('noAccess')}</h2>
+          <p className="mb-10 text-slate-400 font-medium">{t('noAccessDesc')}<br />{t('loginAsAdmin')}</p>
           <Link to="/login" className="w-full py-4 bg-white text-slate-950 rounded-2xl font-black text-sm hover:shadow-xl hover:shadow-white/10 transition-all block">
-            로그인 페이지로 이동
+            {t('goToLogin')}
           </Link>
         </motion.div>
       </div>
@@ -408,31 +411,32 @@ const AdminLayout = ({ children }) => {
   const isFoodTruck = storeInfo?.business_type === 'FOOD_TRUCK' || storeInfo?.business_type === 'food_truck' || storeInfo?.business_type === '푸드트럭';
 
   const navItems = [
-    { label: '대시보드',      icon: LayoutDashboard, path: '/admin',                                           id: 'dashboard', roles: [] },
-    { label: '통합 브랜드 관리', icon: Building2,         path: '/admin/supervisor',                                         roles: [] },
-    { label: '주문서 현황',   icon: UtensilsCrossed,  path: `/admin/stores/${storeId}/orders`,                  show: !!storeId, roles: [] },
-    { label: '주방 모니터 (KDS)', icon: ChefHat,          path: `/kitchen/${storeId}`,                              show: !!storeId, roles: [] },
-    { label: '알림톡 모니터', icon: MessageSquare,      path: `/admin/stores/${storeId}/alimtalk`,                show: !!storeId, roles: [] },
-    { label: '상품 관리',     icon: ShoppingBag,       path: `/admin/stores/${storeId}/menu`,                    show: !!storeId, roles: [] },
-    { label: '메뉴판 빌더',   icon: Palette,           path: `/admin/stores/${storeId}/visual-builder`,          show: !!storeId, roles: [] },
-    { label: '스마트 예약',   icon: CalendarCheck,     path: `/admin/stores/${storeId}/reservations`,            show: !!storeId, roles: [] },
-    { label: '정산 분석',     icon: Wallet,            path: `/admin/stores/${storeId}/settlements`,             show: !!storeId, roles: [] },
-    { label: '사업자·결제',  icon: Building2,         path: `/admin/stores/${storeId}/business-settings`,       show: !!storeId, roles: [] },
-    { label: '법적 정보',    icon: Scale,             path: `/admin/stores/${storeId}/legal`,                   show: !!storeId, roles: [] },
-    { label: '영수증 커스텀', icon: Receipt,           path: `/admin/stores/${storeId}/receipt-settings`,        show: !!storeId, roles: [] },
-    { label: '재고 관리',     icon: Package,           path: `/admin/stores/${storeId}/inventory`,               show: !!storeId, roles: [] },
-    { label: '단골 관리',     icon: Users,             path: `/admin/stores/${storeId}/customers`,               show: !!storeId, roles: [] },
-    { label: '팀원 관리',     icon: Users,             path: `/admin/stores/${storeId}/staff`,                   show: !!storeId, roles: [] },
-    { label: '매장 환경설정', icon: Settings,          path: `/admin/stores/${storeId}/settings`,               show: !!storeId, roles: [] },
-    { label: '푸드트럭 관리', icon: Truck,             path: `/admin/stores/${storeId}/foodtruck`,              show: !!storeId && isFoodTruck, roles: [] },
-    { label: '푸드트럭 분석', icon: Activity,          path: `/admin/stores/${storeId}/foodtruck/analytics`,    show: !!storeId && isFoodTruck, roles: [] },
-    { label: '트럭 디자인 쇼케이스', icon: Palette,    path: '/foodtruck/showcase',                             show: isFoodTruck, roles: [] },
-    { label: '알림 템플릿',   icon: Bell,              path: `/admin/stores/${storeId}/notification-templates`,  show: !!storeId, roles: [] },
-    { label: '시스템 현황',   icon: Activity,     path: '/admin/system-status', roles: [] },
-    { label: 'AI 팅커벨',     icon: Sparkles,     path: '/admin/tinkerbell',   roles: [] },
-    { label: '통합 SMS 발송', icon: Smartphone,   path: '/admin/bulk-sms',     roles: ['super_admin'] },
-    { label: '지역 커뮤니티', icon: Building2,    path: '/admin/community',    roles: [] },
-    { label: '게시판',        icon: MessageSquare, path: '/board',             id: 'board', roles: [] },
+    { label: t('dashboard'),      icon: LayoutDashboard, path: '/admin',                                           id: 'dashboard', roles: [] },
+    { label: t('brandManagement'), icon: Building2,         path: '/admin/supervisor',                                         roles: [] },
+    { label: t('ordersStatus'),   icon: UtensilsCrossed,  path: `/admin/stores/${storeId}/orders`,                  show: !!storeId, roles: [] },
+    { label: t('kitchenMonitor'), icon: ChefHat,          path: `/kitchen/${storeId}`,                              show: !!storeId, roles: [] },
+    { label: t('alimtalkMonitor'), icon: MessageSquare,      path: `/admin/stores/${storeId}/alimtalk`,                show: !!storeId, roles: [] },
+    { label: t('productManagement'),     icon: ShoppingBag,       path: `/admin/stores/${storeId}/menu`,                    show: !!storeId, roles: [] },
+    { label: t('menuBuilder'),   icon: Palette,           path: `/admin/stores/${storeId}/visual-builder`,          show: !!storeId, roles: [] },
+    { label: t('smartReservation'),   icon: CalendarCheck,     path: `/admin/stores/${storeId}/reservations`,            show: !!storeId, roles: [] },
+    { label: t('settlementAnalysis'),     icon: Wallet,            path: `/admin/stores/${storeId}/settlements`,             show: !!storeId, roles: [] },
+    { label: t('businessPayment'),  icon: Building2,         path: `/admin/stores/${storeId}/business-settings`,       show: !!storeId, roles: [] },
+    { label: t('legalInfo'),    icon: Scale,             path: `/admin/stores/${storeId}/legal`,                   show: !!storeId, roles: [] },
+    { label: t('receiptCustom'), icon: Receipt,           path: `/admin/stores/${storeId}/receipt-settings`,        show: !!storeId, roles: [] },
+    { label: t('inventoryManagement'),     icon: Package,           path: `/admin/stores/${storeId}/inventory`,               show: !!storeId, roles: [] },
+    { label: t('customerManagement'),     icon: Users,             path: `/admin/stores/${storeId}/customers`,               show: !!storeId, roles: [] },
+    { label: t('staffManagement'),     icon: Users,             path: `/admin/stores/${storeId}/staff`,                   show: !!storeId, roles: [] },
+    { label: t('storeSettings'), icon: Settings,          path: `/admin/stores/${storeId}/settings`,               show: !!storeId, roles: [] },
+    { label: t('membership'),    icon: Award,             path: `/admin/stores/${storeId}/plan-upgrade`,           show: !!storeId, roles: [] },
+    { label: t('foodtruckManagement'), icon: Truck,             path: `/admin/stores/${storeId}/foodtruck`,              show: !!storeId && isFoodTruck, roles: [] },
+    { label: t('foodtruckAnalysis'), icon: Activity,          path: `/admin/stores/${storeId}/foodtruck/analytics`,    show: !!storeId && isFoodTruck, roles: [] },
+    { label: t('truckDesignShowcase'), icon: Palette,    path: '/foodtruck/showcase',                             show: isFoodTruck, roles: [] },
+    { label: t('notificationTemplates'),   icon: Bell,              path: `/admin/stores/${storeId}/notification-templates`,  show: !!storeId, roles: [] },
+    { label: t('systemStatus'),   icon: Activity,     path: '/admin/system-status', roles: [] },
+    { label: t('aiTinkerbell'),     icon: Sparkles,     path: '/admin/tinkerbell',   roles: [] },
+    { label: t('bulkSms'), icon: Smartphone,   path: '/admin/bulk-sms',     roles: ['super_admin'] },
+    { label: t('localCommunity'), icon: Building2,    path: '/admin/community',    roles: [] },
+    { label: t('board'),        icon: MessageSquare, path: '/board',             id: 'board', roles: [] },
   ];
 
   const filteredNavItems = navItems.filter(item => {
