@@ -427,7 +427,8 @@
     "systemStatus": "システム状況",
     "aiTinkerbell": "AIティンカーベル",
     "bulkSms": "統合SMS送信",
-    "localCommunity": "地域コミュニティ"
+    "localCommunity": "地域コミュニティ",
+    "membership": "メンバーシップ"
   },
   "landing": {
     "nav": {

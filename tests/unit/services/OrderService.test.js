@@ -20,6 +20,7 @@ jest.mock('../../../config/prisma', () => ({
     },
     point_transactions: {
         create: jest.fn(),
+        findFirst: jest.fn().mockResolvedValue(null),
     },
     products: {
         findUnique: jest.fn(),
@@ -319,6 +320,7 @@ describe('OrderService', () => {
             },
             point_transactions: {
                 create: jest.fn().mockResolvedValue({}),
+                findFirst: jest.fn().mockResolvedValue(null),
             },
         });
 

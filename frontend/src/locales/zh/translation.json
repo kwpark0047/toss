@@ -427,7 +427,8 @@
     "systemStatus": "系统状态",
     "aiTinkerbell": "AI Tinkerbell",
     "bulkSms": "批量短信",
-    "localCommunity": "本地社区"
+    "localCommunity": "本地社区",
+    "membership": "会员计划"
   },
   "landing": {
     "nav": {

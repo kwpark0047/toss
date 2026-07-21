@@ -366,7 +366,7 @@ describe('PaymentService', () => {
 
       const result = await service.confirmStoreCard(5, 'T12345');
 
-      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Array));
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
       expect(result).toEqual({ store_id: 1, order_id: 5 });
     });
 
@@ -386,7 +386,7 @@ describe('PaymentService', () => {
 
       const result = await service.confirmTransfer(7, 'REF001', '김철수');
 
-      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Array));
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
       expect(result).toEqual({ store_id: 2, order_id: 7 });
     });
   });

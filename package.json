@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "build": "npx prisma generate && cd frontend && npm install && npm run build",
+    "build": "npx prisma generate && cd frontend && npm install --legacy-peer-deps && npm run build",
     "cloudflare-build": "cd frontend && npm install && npm run build",
     "db:push": "npx prisma db push",
     "db:push:force": "npx prisma db push --accept-data-loss",

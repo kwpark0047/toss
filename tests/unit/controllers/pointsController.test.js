@@ -12,9 +12,7 @@ const mockService = {
     adminEarn: jest.fn(),
     adminDeduct: jest.fn(),
 };
-jest.mock('../../../services/PointsService', () => {
-    return jest.fn().mockImplementation(() => mockService);
-});
+jest.mock('../../../services/PointsService', () => mockService);
 
 const pointsController = require('../../../controllers/pointsController');
 
