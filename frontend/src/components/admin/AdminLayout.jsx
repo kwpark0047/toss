@@ -20,7 +20,7 @@ import { ordersAPI } from '../../api';
 
 function AdminLayoutInner({ children, storeId, user, handleLogout, location, filteredNavItems }) {
   const { themeId } = useAdminTheme();
-  const { t } = useTranslation('admin', { keyPrefix: 'admin' });
+  const { t } = useTranslation(undefined, { keyPrefix: 'admin' });
   const tc = TC[themeId];
   const [isMoreOpen, setMoreOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -337,7 +337,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
 
 const AdminLayout = ({ children }) => {
   const { user, logout } = useAuth();
-  const { t } = useTranslation('admin', { keyPrefix: 'admin' });
+  const { t } = useTranslation(undefined, { keyPrefix: 'admin' });
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setSidebarOpen] = useState(false);

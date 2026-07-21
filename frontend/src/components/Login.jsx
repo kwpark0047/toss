@@ -15,7 +15,7 @@ const formatPhone = (value) => {
 
   const Login = () => {
     const { login } = useAuth();
-    const { t } = useTranslation('auth', { keyPrefix: 'auth' });
+    const { t } = useTranslation(undefined, { keyPrefix: 'auth' });
     const navigate = useNavigate();
     const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
