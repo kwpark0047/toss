@@ -8,7 +8,7 @@ const planRequestsController = {
     // 플랜 업그레이드 신청
     createRequest: catchAsync(async (req, res, next) => {
         const request = await planRequestsService.createRequest(req.user.id, req.body);
-        res.success(request, '플랜 업그레이드 신청이 완료되었습니다', 201);
+        res.created(request, '플랜 업그레이드 신청이 완료되었습니다');
     }),
 
     // 내 매장의 신청 내역

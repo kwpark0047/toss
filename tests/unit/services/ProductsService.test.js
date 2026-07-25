@@ -14,6 +14,7 @@ jest.mock('../../../utils/cache', () => ({
 jest.mock('../../../utils/logger', () => ({
     info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn(),
 }));
+jest.mock('../../../services/aiService');
 
 const ProductsService = require('../../../services/ProductsService');
 const Product = require('../../../repositories/Product');
@@ -66,12 +67,10 @@ describe('ProductsService', () => {
             const products = [{ id: 1, name: '아메리카노', description: '맛있는 커피' }];
             Product.findByStoreId.mockResolvedValue(products);
 
-            // aiService 모킹 (지연 require)
-            jest.mock('../../../services/aiService', () => ({
-                batchTranslateMenus: jest.fn().mockResolvedValue([
-                    { id: 1, translated_name: 'Americano', translated_description: 'Delicious coffee' }
-                ]),
-            }), { virtual: true });
+            const aiService = require('../../../services/aiService');
+            aiService.batchTranslateMenus.mockResolvedValue([
+                { id: 1, translated_name: 'Americano', translated_description: 'Delicious coffee' }
+            ]);
 
             const result = await svc.getStoreProducts(1, { lang: 'en' });
 

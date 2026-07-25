@@ -17,7 +17,7 @@ const developerController = {
         const storeId = await developerService.ensureStorePermission(req.user, parseInt(req.params.storeId));
         const { name, scopes } = req.body;
         const result = await developerService.createApiKey(storeId, name, scopes);
-        res.success(result, 'API 키가 발급되었습니다. 이 키는 다시 표시되지 않으니 안전하게 보관하세요.', 201);
+        res.created(result, 'API 키가 발급되었습니다. 이 키는 다시 표시되지 않으니 안전하게 보관하세요.');
     }),
 
     // 폐기
@@ -38,7 +38,7 @@ const developerController = {
         const storeId = await developerService.ensureStorePermission(req.user, parseInt(req.params.storeId));
         const { url, events } = req.body;
         const result = await developerService.createWebhook(storeId, url, events);
-        res.success(result, '웹훅이 등록되었습니다. 서명 검증에 secret을 사용하세요.', 201);
+        res.created(result, '웹훅이 등록되었습니다. 서명 검증에 secret을 사용하세요.');
     }),
 
     deleteWebhook: catchAsync(async (req, res) => {

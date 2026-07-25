@@ -1,7 +1,34 @@
 # Changelog
 
 > WeMarket QR Menu Platform — SaaS for Small Business
-> 최신 버전: v1.1.0 (2026-07-20)
+> 최신 버전: v1.1.1 (2026-07-25)
+
+---
+
+## v1.1.1 (2026-07-25)
+
+### 성능 최적화 고도화 (Performance Optimization)
+
+#### ⚡ 프론트엔드 성능 최적화
+- **이미지 최적화**: `vite-imagetools` 도입 — AVIF/WebP/JPEG 자동 변환, `picture` 엘리먼트 생성으로 반응형 이미지 지원
+- **번들 크기 분석**: `rollup-plugin-visualizer` 추가 — `bundle-analysis.html` 생성, gzip/brotli 크기 자동 계산
+- **Critical CSS 인라인화**: `vite-plugin-critical-css` 적용 — index.html/offline.html above-the-fold CSS 인라인화로 FCP/LCP 개선
+- **성능 예산 CI 통합**: `performance-budget.json` + `perf:budget` 스크립트 — script 4000KB, stylesheet 350KB, total 8500KB 게이트 설정
+- **Web Vitals 모니터링**: `web-vitals` 라이브러리 통합 — LCP/FID/CLS/FCP/TTFB/INP 실시간 측정, `navigator.sendBeacon` 분석 엔드포인트 전송 지원
+- **Preload/Preconnect 힌트**: `index.html`에 critical font preload, third-party(Unsplash, Kakao Maps, Solapi) preconnect/dns-prefetch 추가
+
+#### 🔧 Service Worker 캐시 전략 강화
+- **API 계층**: `NetworkFirst`(3s timeout) + `StaleWhileRevalidate`(비중요 GET) 하이브리드 전략 — perceived performance 향상
+- **이미지/업로드/외부 리소스**: `CacheFirst` 전략 유지 (7일~1년 TTL)
+- **Supabase Storage/Unsplash/Google Fonts**: 개별 캐시 전략 유지
+
+#### 🏗 빌드/테스트 인프라
+- **vite-imagetools**: AVIF/WebP/JPEG 자동 변환, `picture` 엘리먼트 생성
+- **rollup-plugin-visualizer**: `bundle-analysis.html` 자동 생성 (gzip/brotli 크기 표시)
+- **vite-plugin-critical-css**: Critical CSS 추출/인라인화 (index.html, offline.html)
+- **performance-budget.json + perf:budget**: CI 게이트용 성능 예산 스크립트
+- **web-vitals**: LCP/FID/CLS/FCP/TTFB/INP 측정, `navigator.sendBeacon` 분석 전송
+- **vite.config.js**: `imagetools`, `visualizer`, `criticalCss` 플러그인 체인 추가
 
 ---
 
@@ -28,9 +55,9 @@
 #### 🖨 print-agent 통합
 - 프린터 인쇄 에이전트 신규 구축 (`print-agent/`)
   - `index.js`, `lib/client.js`, `lib/printer.js`
-- Jest 기반 단위 테스트 2개 (client, printer)
-- `printJobsController` + `routes/printJobs.js` 연동
-- `usePrinter` 훅 수정 및 통합
+  - Jest 기반 단위 테스트 2개 (client, printer)
+  - `printJobsController` + `routes/printJobs.js` 연동
+  - `usePrinter` 훅 수정 및 통합
 
 #### 🔒 보안 및 미들웨어 강화
 - **CSP nonce 미들웨어** 추가 (`middleware/cspNonce.js`)
@@ -65,7 +92,7 @@
 
 ---
 
-## v1.0.9 (2026-07-14 ~ 2026-07-19)
+## v1.1.0 (2026-07-20)
 
 ### Cloudflare 마이그레이션 및 알림톡 연동
 

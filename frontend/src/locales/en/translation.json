@@ -418,6 +418,7 @@
     "receiptCustom": "Receipt Custom",
     "inventoryManagement": "Inventory Management",
     "customerManagement": "Customer Management",
+    "campaignDashboard": "Campaign Dashboard",
     "staffManagement": "Staff Management",
     "storeSettings": "Store Settings",
     "foodtruckManagement": "Food Truck Management",
@@ -429,5 +430,219 @@
     "bulkSms": "Bulk SMS",
     "localCommunity": "Local Community",
     "membership": "Membership & Plan"
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "pricing": "Pricing",
+      "locations": "Locations",
+      "guides": "Guides",
+      "contact": "Contact",
+      "foodTruck": "Food Truck",
+      "demo": "View Demo"
+    },
+    "features": {
+      "qrCode": {
+        "title": "Instant QR Code Generation",
+        "desc": "Auto-generate unique QR codes for every table. Print and display — ready to use immediately."
+      },
+      "storeManagement": {
+        "title": "Unified Store Management",
+        "desc": "Manage store info, hours, and locations in one place. Regional store categorization supported."
+      },
+      "staffPermissions": {
+        "title": "Staff Permission Control",
+        "desc": "Granular role-based access control from master admin to table staff and kitchen crew."
+      },
+      "webOrder": {
+        "title": "Web-Based Ordering",
+        "desc": "No app download needed — orders through the browser. Minimizes customer friction."
+      },
+      "realTimeAlerts": {
+        "title": "Real-Time Notifications",
+        "desc": "Instant alerts to staff and kitchen when orders come in. Never miss an order."
+      },
+      "paymentMethods": {
+        "title": "Multiple Payment Options",
+        "desc": "Support for cash, bank transfer, and various convenient payment methods."
+      },
+      "waitingReservation": {
+        "title": "Waitlist & Reservation Management",
+        "desc": "Auto-issue waiting numbers and manage advance reservations to enhance customer experience."
+      },
+      "salesAnalysis": {
+        "title": "Sales Analytics",
+        "desc": "Daily, monthly, and yearly sales stats with payment method analysis reports."
+      },
+      "regularCustomers": {
+        "title": "Loyal Customer Management",
+        "desc": "Auto-track visit history, points, and VIP tiers. Personalized coupons and re-visit campaigns."
+      },
+      "community": {
+        "title": "Local Community",
+        "desc": "Connect with neighboring partner stores for joint events, shared points, and local feed."
+      }
+    },
+    "steps": {
+      "step1": {
+        "title": "Register Store",
+        "desc": "Enter your store info and register your menu."
+      },
+      "step2": {
+        "title": "Print QR Codes",
+        "desc": "Print table-specific QR codes and display them."
+      },
+      "step3": {
+        "title": "Customer Orders",
+        "desc": "Customers scan QR, browse menu, and place orders."
+      },
+      "step4": {
+        "title": "Payment Complete",
+        "desc": "Pay instantly with their preferred payment method."
+      }
+    },
+    "customerFlow": {
+      "qrScan": "Scan QR",
+      "checkMenu": "Browse Menu",
+      "addMenu": "Add to Cart",
+      "payment": "Pay",
+      "getFood": "Get Your Food"
+    },
+    "pricingPlan": {
+      "free": {
+        "name": "Free",
+        "price": "₩0",
+        "period": "/month",
+        "features": [
+          "QR Code Generation",
+          "Order Notifications (Web)",
+          "Basic Sales Stats"
+        ],
+        "cta": "Start Free"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "₩20,000",
+        "period": "/month",
+        "features": [
+          "All Payment Methods",
+          "Real-Time Kitchen Notifications",
+          "Detailed Sales Analytics",
+          "Waitlist & Reservation",
+          "Priority Customer Support"
+        ],
+        "cta": "Start Pro"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "₩79,000",
+        "period": "/month",
+        "features": [
+          "Dedicated Server Infrastructure",
+          "API Integration Support",
+          "Custom Reports",
+          "Dedicated Account Manager",
+          "Priority Ad Placement"
+        ],
+        "cta": "Contact Us"
+      }
+    },
+    "testimonials": {
+      "jungHo": {
+        "name": "Kim Jung-ho",
+        "role": "Korean Restaurant Owner",
+        "location": "Seoul, Mapo-gu",
+        "avatar": "👨‍🍳",
+        "rating": 5,
+        "text": "Switching to WeMarket from paper menus drastically reduced order errors. The kitchen notification feature is incredibly useful, and the sales stats at a glance make operations so much easier.",
+        "stat": "80% Fewer Order Errors"
+      },
+      "suJin": {
+        "name": "Park Su-jin",
+        "role": "Cafe Owner",
+        "location": "Busan, Haeundae",
+        "avatar": "☕",
+        "rating": 5,
+        "text": "One QR solves everything from table management to payment. Part-timers learned it in a day, and customers order without any app download — zero resistance.",
+        "stat": "30% Reduced Ops Time"
+      },
+      "dongHyun": {
+        "name": "Lee Dong-hyun",
+        "role": "Bistro & Takeout Owner",
+        "location": "Daegu, Suseong-gu",
+        "avatar": "🍱",
+        "rating": 5,
+        "text": "The points accumulation feature noticeably increased repeat customers. The 60-second post-payment timer and pre-filled phone number make membership registration natural.",
+        "stat": "62% Higher Return Rate"
+      }
+    },
+    "demoFeatures": {
+      "zeroFriction": {
+        "badge": "Zero Friction",
+        "title": "Scan & Order Instantly",
+        "desc": "No sign-up, no login. Just scan the QR code to generate an instant cart session with a random UUID.",
+        "stat": "0% Friction"
+      },
+      "sharedOrder": {
+        "badge": "Shared Order",
+        "title": "Combine Carts at the Same Table",
+        "desc": "Table sharing session activates automatically. Items added by companions appear on your screen in real time.",
+        "stat": "+38% Group Order Conversion"
+      },
+      "lossAvoidance": {
+        "badge": "Loss Prevention",
+        "title": "60-Second Timer Drives Sign-Up",
+        "desc": "A post-payment timer shows points about to expire. One tap with the pre-filled phone number completes registration.",
+        "stat": "+62% Conversion Rate"
+      }
+    },
+    "regularCustomersTitle1": "Loyal Customers",
+    "regularCustomersTitle2": "Come Back",
+    "regularCustomersTitle3": "Automatically",
+    "regularCustomersDescription": "One QR scan records visits, accumulates points, and auto-classifies VIP tiers.",
+    "regularCustomersManager": "Owners don't lift a finger — WeMarket manages your loyal customers.",
+    "communityFeatures": {
+      "networkConfirmation": {
+        "title": "Partner Store Network",
+        "desc": "Connect with neighboring stores to cross-recommend customers. Build a thriving commercial district with no empty tables."
+      },
+      "jointEvents": {
+        "title": "Joint Events & Promotions",
+        "desc": "Plan regional exclusive events together, share promotional costs, and amplify impact."
+      },
+      "integratedPoints": {
+        "title": "Unified Points System",
+        "desc": "Earn and use points across all partner stores with a regional integrated points system."
+      },
+      "neighborRecommendation": {
+        "title": "Referral Rewards",
+        "desc": "When loyal customers refer neighbors, both the referrer and new customer get instant rewards."
+      },
+      "regionalSearch": {
+        "title": "Local Search Priority",
+        "desc": "Get priority visibility in WeMarket app and map searches for nearby customers."
+      },
+      "liveFeed": {
+        "title": "Real-Time Local Feed",
+        "desc": "Push today's specials, events, and new menu items to local residents in real time."
+      }
+    },
+    "hero": {
+      "title": "AI-Powered Loyalty for",
+      "subtitle": "Independent Business Owners",
+      "stats": {
+        "stores": "1,000+ Stores",
+        "orders": "5M+ Orders",
+        "rating": "4.9★ Rating"
+      }
+    },
+    "footer": {
+      "about": "About",
+      "contact": "Contact",
+      "faq": "FAQ",
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy",
+      "copyright": "© 2024 WeMarket. All rights reserved."
+    }
   }
 }

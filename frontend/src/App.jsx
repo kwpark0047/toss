@@ -40,6 +40,7 @@ const BusinessSettings   = lazy(() => import("@/components/admin/BusinessSetting
 const SystemStatus       = lazy(() => import("@/components/admin/SystemStatus"));
 const ReceiptSettings    = lazy(() => import("@/components/admin/ReceiptSettings"));
 const CustomerManager    = lazy(() => import("@/components/admin/CustomerManager"));
+const CampaignDashboard  = lazy(() => import("@/components/admin/CampaignDashboard"));
 const ReservationManager = lazy(() => import("@/components/admin/ReservationManager"));
 const StoreForm          = lazy(() => import("@/components/admin/StoreForm"));
 const BulkSMSManager     = lazy(() => import("@/components/admin/BulkSMSManager"));
@@ -275,6 +276,13 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/customers" element={
       <AdminPage>
         <ValidStoreRoute><AdminSuspense><CustomerManager /></AdminSuspense></ValidStoreRoute>
+      </AdminPage>
+    } />
+
+    {/* CRM 캠페인 대시보드 */}
+    <Route path="/admin/stores/:storeId/campaigns" element={
+      <AdminPage>
+        <ValidStoreRoute><AdminSuspense><CampaignDashboard /></AdminSuspense></ValidStoreRoute>
       </AdminPage>
     } />
 

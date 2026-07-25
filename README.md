@@ -8,8 +8,9 @@ SaaS QR Menu & Small Business Platform — QR 코드 기반 매장 운영(메뉴
 - **Database**: PostgreSQL + Prisma ORM (`^5.22.0`)
 - **Frontend**: React (Vite SPA), `react-i18next` (ko/en/ja/zh 4개 locale)
 - **Infra**: Cloudflare Pages / Workers, Vercel (빌드), Render (`render.yaml`) 배포 지원
-- **Test**: Jest (`^25.5.4`), Playwright (E2E), React Testing Library
+- **Test**: Jest (`^30.4.2`), Playwright (E2E), React Testing Library
 - **Security**: helmet 보안 헤더 + CSP nonce (`middleware/cspNonce.js`), XSS sanitizer, domain 기반 CORS 화이트리스트 (`config/domain.js`)
+- **Performance**: WebP/AVIF 자동 변환, Critical CSS 인라인화, 번들 분석, 성능 예산, Web Vitals 모니터링
 
 ## 디렉토리 구조
 
@@ -81,6 +82,38 @@ npm run dev
 | `npm run lint:backend` | ESLint |
 | `npm run security:scan` | semgrep 보안 스캔 (backend) |
 | `npm run security:scan:frontend` | semgrep 보안 스캔 (frontend) |
+| `npm run perf:budget` | 프론트엔드 성능 예산 검증 |
+
+## 성능 최적화 현황 (v1.1.1)
+
+| 최적화 | 도구/기술 | 효과 |
+|---|---|---|
+| 이미지 최적화 | `vite-imagetools` (AVIF/WebP/JPEG) | 원본 대비 ~70% 용량 감소 |
+| 번들 분석 | `rollup-plugin-visualizer` | `bundle-analysis.html` 자동 생성 |
+| Critical CSS | `vite-plugin-critical-css` | index.html/offline.html 인라인화 (LCP 개선) |
+| 성능 예산 | `perf:budget` 스크립트 | CI 게이트로 용량/LCP/FID/CLS 강제 |
+| Web Vitals | `web-vitals` 라이브러리 | LCP/FID/CLS/FCP/TTFB/INP 실시간 측정 |
+| 리소스 힌트 | preconnect/preload/dns-prefetch | 폰트/Unsplash/Kakao Maps/Solapi 조기 연결 |
+| SW 캐시 전략 | Workbox `NetworkFirst` + `StaleWhileRevalidate` | API 응답 지연 숨김, 오프라인 지원 |
+
+## 주요 스크립트
+
+| 스크립트 | 설명 |
+|---|---|
+| `npm start` | 프로덕션 서버 기동 (`node index.js`) |
+| `npm run build` | Prisma generate + 프론트엔드 빌드 |
+| `npm test` | Jest 전체 (coverage, `--forceExit --detectOpenHandles`) |
+| `npm run test:unit` | 단위 테스트 |
+| `npm run test:integration` | 통합 테스트 (`tests/integration`) |
+| `npm run test:regression` | 회귀 테스트 |
+| `npm run test:e2e` | Playwright E2E |
+| `npm run db:migrate` | Prisma 마이그레이션(dev) |
+| `npm run db:migrate:prod` | Prisma 마이그레이션(deploy) |
+| `npm run seed` | 운영 시드 데이터 |
+| `npm run lint:backend` | ESLint |
+| `npm run security:scan` | semgrep 보안 스캔 (backend) |
+| `npm run security:scan:frontend` | semgrep 보안 스캔 (frontend) |
+| `npm run perf:budget` | 프론트엔드 성능 예산 검증 |
 
 ## API 개요
 
@@ -99,10 +132,11 @@ npm run dev
 
 ## 문서
 
-- `CHANGELOG.md` — 실제 진행 이력 (최신 v1.1.0)
-- `PROJECT_ANALYSIS.md` — 아키텍처/기술부채/추가기능 제안 분석 보고서
+- `CHANGELOG.md` — 실제 진행 이력 (최신 v1.1.1)
+- `CONTRIBUTING.md` — 기여 가이드
 - `CLAUDE.md` — 개발 가이드
-- `ANALYSIS_REPORT.md`, `ANALYSIS_REPORT.md v2.1.md` — i18n 구현 프로젝트 보고서 (별도 문서, 본 README와 무관)
+- `handoff.md` — 인수인계 문서
+- `NEXT_TASK.md` — 다음 작업 우선순위
 - `docs/` — Swagger API 정의
 
 ## 알려진 기술 부채 (요약)

@@ -9,7 +9,7 @@ import {
   Store, LogOut, LayoutDashboard, UtensilsCrossed,
   Settings, Users, Receipt, Wallet, Palette,
   Menu as MenuIcon, MessageSquare, LogIn, Smartphone, CalendarCheck, Sparkles, Package, Bell,
-  UserCircle, ChevronRight, ShoppingBag, Building2, Activity, Scale, Headset, Truck, ChefHat, Award
+  UserCircle, ChevronRight, ShoppingBag, Building2, Activity, Scale, Headset, Truck, ChefHat, Award, Megaphone
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import { TC } from './adminThemes';
@@ -425,6 +425,7 @@ const AdminLayout = ({ children }) => {
     { label: t('receiptCustom'), icon: Receipt,           path: `/admin/stores/${storeId}/receipt-settings`,        show: !!storeId, roles: [] },
     { label: t('inventoryManagement'),     icon: Package,           path: `/admin/stores/${storeId}/inventory`,               show: !!storeId, roles: [] },
     { label: t('customerManagement'),     icon: Users,             path: `/admin/stores/${storeId}/customers`,               show: !!storeId, roles: [] },
+    { label: t('campaignDashboard'),  icon: Megaphone,         path: `/admin/stores/${storeId}/campaigns`,               show: !!storeId, roles: [] },
     { label: t('staffManagement'),     icon: Users,             path: `/admin/stores/${storeId}/staff`,                   show: !!storeId, roles: [] },
     { label: t('storeSettings'), icon: Settings,          path: `/admin/stores/${storeId}/settings`,               show: !!storeId, roles: [] },
     { label: t('membership'),    icon: Award,             path: `/admin/stores/${storeId}/plan-upgrade`,           show: !!storeId, roles: [] },

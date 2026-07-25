@@ -1,19 +1,19 @@
 /**
- * CSP Nonce Middleware (helmet-integrated)
+ * CSP Nonce Middleware (sole CSP header owner)
  *
- * IMPORTANT: This middleware does NOT set the Content-Security-Policy header itself.
- * The CSP header is owned exclusively by helmet (app.js). helmet is configured with
- * `scriptSrc`/`styleSrc` containing `'nonce-<%= nonce %>'` directives, which makes helmet
- * auto-generate a per-request nonce, expose it via `res.locals.cspNonce`, and emit the
- * CSP header with that nonce baked in.
+ * helmet CSP is disabled in app.js (`contentSecurityPolicy: false`) to avoid
+ * double-setHeader conflicts. This middleware is the SOLE owner of the CSP
+ * header — it generates a per-request nonce and calls `res.setHeader()`
+ * once with the full CSP policy.
  *
- * This middleware runs AFTER helmet and only:
- *   1. ensures `res.locals.cspNonce` exists (fallback generation if helmet CSP is off),
- *   2. exposes helper tag builders (createScriptTag/createStyleTag) that reuse the same nonce.
+ * Responsibilities:
+ *   1. Generate per-request nonce → `res.locals.cspNonce`
+ *   2. Emit `Content-Security-Policy` header with nonce baked in
+ *   3. Expose tag builders (createScriptTag/createStyleTag) that reuse the same nonce
  *
- * Previously this middleware called `res.setHeader('Content-Security-Policy', ...)` itself,
- * which overwrote helmet's header and, combined with helmet's own setHeader, caused requests
- * to hang (observed as 5000ms test timeouts). That setHeader call has been removed.
+ * connect-src includes both legacy (wemarket.onrender.com) and current
+ * (wemarket-toss.onrender.com) backend URLs so both deployment stages work.
+ * Keep legacy entries until old infra is fully decommissioned.
  */
 
 const crypto = require('crypto');
@@ -75,7 +75,7 @@ const cspNonceMiddleware = (options = {}) => {
       `style-src ${styleSrc}`,
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: https: blob:",
-      "connect-src 'self' https://wemarket.onrender.com wss://wemarket.onrender.com https://api.tosspayments.com https://www.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com",
+      "connect-src 'self' https://wemarket-toss.onrender.com wss://wemarket-toss.onrender.com https://toss.wemarket.workers.dev https://wemarket.onrender.com wss://wemarket.onrender.com https://api.tosspayments.com https://www.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com",
       "frame-src 'self' https://js.tosspayments.com",
       "object-src 'none'",
       "base-uri 'self'",

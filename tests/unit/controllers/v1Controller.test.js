@@ -63,6 +63,7 @@ describe('v1Controller Unit Tests', () => {
         mockRes = {
             status: jest.fn().mockReturnThis(),
             json: jest.fn().mockReturnThis(),
+            created: jest.fn(),
         };
     });
 

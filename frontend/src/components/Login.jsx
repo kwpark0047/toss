@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { wakeupServer } from '../api';
 import { Store, Phone, Lock, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import SocialLoginButtons from './SocialLoginButtons';
 
 const formatPhone = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -14,7 +15,7 @@ const formatPhone = (value) => {
 };
 
   const Login = () => {
-    const { login } = useAuth();
+    const { login, socialLogin } = useAuth();
     const { t } = useTranslation(undefined, { keyPrefix: 'auth' });
     const navigate = useNavigate();
     const [identifier, setIdentifier] = useState('');
@@ -63,6 +64,19 @@ const formatPhone = (value) => {
       navigate('/admin', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || err.message || '로그인에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSocialLogin = async (provider, accessToken) => {
+    setLoading(true);
+    setError('');
+    try {
+      await socialLogin(provider, accessToken);
+      navigate('/admin', { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'SNS 로그인에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -232,7 +246,9 @@ const formatPhone = (value) => {
             </div>
           </form>
 
-          <div className="mt-10 pt-8 border-t border-slate-50 text-center">
+          <SocialLoginButtons onSuccess={handleSocialLogin} loading={loading} />
+
+          <div className="mt-8 pt-6 border-t border-slate-50 text-center">
             <p className="text-slate-500 font-medium tracking-tight">
               계정이 없으신가요?{' '}
               <Link to="/register" className="text-orange-600 font-bold hover:text-orange-700 transition-colors underline-offset-4 hover:underline">

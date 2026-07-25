@@ -1,0 +1,23 @@
+{
+  "budgets": [
+    {
+      "resourceSizes": [
+        { "resourceType": "script", "budget": 4000 },
+        { "resourceType": "stylesheet", "budget": 350 },
+        { "resourceType": "image", "budget": 100 },
+        { "resourceType": "font", "budget": 50 },
+        { "resourceType": "total", "budget": 8500 }
+      ],
+      "resourceCounts": [
+        { "resourceType": "third-party", "budget": 15 }
+      ]
+    }
+  ],
+  "thresholds": {
+    "LCP": 2500,
+    "FID": 100,
+    "CLS": 0.1,
+    "FCP": 1800,
+    "TTFB": 800
+  }
+}

@@ -29,6 +29,10 @@ const { requestTracker } = require('./routes/health');
 const { basicXssProtection, strictSanitizer, htmlSanitizer } = require('./middleware/xssSanitizer');
 const { cspNonceMiddleware } = require('./middleware/cspNonce');
 
+// Sentry (에러 추적 및 성능 모니터링)
+const { initSentry, Sentry } = require('./utils/sentry');
+const sentryClient = initSentry();
+
 // 앱 버전 단일 소스: package.json (엔드포인트 간 불일치 방지)
 const APP_VERSION = require('./package.json').version;
 
@@ -93,8 +97,9 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// HttpOnly Cookie 기반 인증 (USE_HTTPONLY_COOKIE=true 시 활성화)
-app.use(require('cookie-parser')());
+  // Sentry v10+: requestHandler 통합됨 (별도 미들웨어 불필요)
+  // HttpOnly Cookie 기반 인증 (USE_HTTPONLY_COOKIE=true 시 활성화)
+  app.use(require('cookie-parser')());
 
 // Security middleware - XSS protection
 app.use(basicXssProtection);    // Basic XSS protection for all requests
@@ -107,6 +112,42 @@ app.use(i18nMiddleware);
 app.use(performanceMonitor);
 app.use(requestTracker);        // SLA 지표 수집
 app.use('/api', generalLimiter); // 전체 API 속도 제한
+
+/**
+ * Clean Architecture DI 컨테이너 설정
+ * ESM migration: 동적 import()로 ESM 컨테이너 로드 (CommonJS ↔ ESM interop)
+ * .mjs 파일이 로드 실패 시 .js (CommonJS) 버전으로 폴백
+ */
+let diContainer;
+let diMiddlewareFn;
+
+// ESM 동적 로드 (비동기이지만 서버 시작 전 완료됨)
+const diLoadPromise = import('./app/infrastructure/di/container.mjs')
+  .then((module) => {
+    diContainer = module.createDIContainer();
+    diMiddlewareFn = module.diMiddleware;
+    app.use(diMiddlewareFn(diContainer));
+    app.set('diContainer', diContainer);
+  })
+  .catch((_err) => {
+    // 폴백: CommonJS 버전 사용
+    const { createDIContainer, diMiddleware } = require('./app/infrastructure/di/container');
+    diContainer = createDIContainer();
+    diMiddlewareFn = diMiddleware;
+    app.use(diMiddlewareFn(diContainer));
+    app.set('diContainer', diContainer);
+  });
+
+// DI 컨테이너가 준비될 때까지 요청 대기
+app.use((req, res, next) => {
+  if (diLoadPromise.isFulfilled !== undefined || diContainer) {
+    next();
+  } else {
+    // 초기화 중: 헬스체크만 허용
+    if (req.path.startsWith('/api/health')) return next();
+    res.status(503).json({ error: 'Server initializing' });
+  }
+});
 
 /**
  * API 모니터링 (가장 먼저 시작)
@@ -234,7 +275,10 @@ const routes = {
     weather: require('./routes/weather'),
     news: require('./routes/news'),
     sse: require('./routes/sse'),
-    printJobs: require('./routes/printJobs')
+    printJobs: require('./routes/printJobs'),
+    socialAuth: require('./routes/socialAuth'),
+    adminAuth: require('./routes/adminAuth'),
+    monitoring: require('./routes/monitoring')
 };
 
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
@@ -257,6 +301,7 @@ app.use(`${API_PREFIX}/developer`, require('./routes/developer'));
 app.use(`${API_PREFIX}/v1`, require('./routes/v1'));
 
 app.use(`${API_PREFIX}/auth`, authLimiter, routes.auth);
+app.use(`${API_PREFIX}/auth/social`, authLimiter, routes.socialAuth);
 app.use(`${API_PREFIX}/stores`, routes.stores);
 app.use(`${API_PREFIX}/products`, routes.products);
 app.use(`${API_PREFIX}/orders`, orderLimiter, routes.orders);
@@ -266,6 +311,7 @@ app.use(`${API_PREFIX}/notifications`, routes.notifications);
 app.use(`${API_PREFIX}/notification-templates`, routes.notificationTemplates);
 app.use(`${API_PREFIX}/categories`, routes.categories);
 app.use(`${API_PREFIX}/admin`, routes.admin);
+app.use(`${API_PREFIX}/admin/auth`, routes.adminAuth);
 app.use(`${API_PREFIX}/points`, routes.points);
 app.use(`${API_PREFIX}/plan-requests`, routes.planRequests);
 app.use(`${API_PREFIX}/staff-requests`, routes.staffRequests);
@@ -297,6 +343,9 @@ app.use(`${API_PREFIX}/alimtalk`, routes.alimtalk);
 app.use(`${API_PREFIX}/weather`, routes.weather);
 app.use(`${API_PREFIX}/sse`, routes.sse);
 app.use(`${API_PREFIX}/print-jobs`, routes.printJobs);
+// Clean Architecture: 모니터링 라우트는 DI 컨테이너 기반 새 라우터 사용
+// 기존 routes/monitoring.js는 하위 호환성을 위해 유지됨
+app.use(`${API_PREFIX}/monitoring`, require('./app/interfaces/http/monitoringRouter'));
 
 // 정적 파일 서빙
 app.use(express.static(path.join(__dirname, 'public')));
@@ -384,6 +433,10 @@ app.use((req, res, next) => {
 });
 
 // 에러 핸들러 (반드시 모든 라우트 등록 후 마지막에 위치)
+// Sentry v10: setupExpressErrorHandler()가 requestHandler + errorHandler를 대체
+if (sentryClient) {
+  Sentry.setupExpressErrorHandler(app);
+}
 app.use(errorHandler);
 
 const { startNewsCron } = require('./services/newsCrawlerService');

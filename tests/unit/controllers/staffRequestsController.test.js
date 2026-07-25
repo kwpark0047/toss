@@ -21,7 +21,7 @@ describe('staffRequestsController', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         req = { body: {}, query: {}, params: {}, user: { id: 10, role: 'owner' } };
-        res = { json: jest.fn(), status: jest.fn().mockReturnThis(), success: jest.fn() };
+        res = { json: jest.fn(), status: jest.fn().mockReturnThis(), success: jest.fn(), created: jest.fn() };
         next = jest.fn();
     });
 
@@ -30,14 +30,14 @@ describe('staffRequestsController', () => {
             req.body = { store_id: 1, role: 'manager' };
             mockService.createRequest.mockResolvedValue({ id: 1, role: 'manager' });
             await staffRequestsController.createRequest(req, res, next);
-            expect(res.success).toHaveBeenCalled();
+            expect(res.created).toHaveBeenCalled();
         });
 
         test('주방 역할 계정 신청을 생성한다', async () => {
             req.body = { store_id: 1, role: 'kitchen', count: 2 };
             mockService.createRequest.mockResolvedValue({ id: 1, role: 'kitchen' });
             await staffRequestsController.createRequest(req, res, next);
-            expect(res.success).toHaveBeenCalled();
+            expect(res.created).toHaveBeenCalled();
         });
     });
 

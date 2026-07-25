@@ -22,7 +22,7 @@ describe('categoriesController', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         req = { body: {}, query: {}, params: {} };
-        res = { json: jest.fn(), status: jest.fn().mockReturnThis(), success: jest.fn() };
+        res = { json: jest.fn(), status: jest.fn().mockReturnThis(), success: jest.fn(), created: jest.fn() };
         next = jest.fn();
     });
 
@@ -52,8 +52,7 @@ describe('categoriesController', () => {
             req.body = { name: '신규 카테고리', store_id: 1 };
             mockService.createCategory.mockResolvedValue({ id: 3, name: '신규 카테고리' });
             await categoriesController.createCategory(req, res);
-            expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith({ id: 3, name: '신규 카테고리' });
+            expect(res.created).toHaveBeenCalledWith({ id: 3, name: '신규 카테고리' });
         });
     });
 

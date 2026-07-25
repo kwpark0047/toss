@@ -2,14 +2,15 @@ const prisma = require('../config/prisma');
 const Point = require('../repositories/Point');
 const StoreTier = require('../repositories/StoreTier');
 const StoreCustomer = require('../repositories/StoreCustomer');
-const { normalizePhone } = require('../utils/phoneEncryption');
+const { normalizePhone, encryptPhone, decryptPhone, phoneSearchCandidates } = require('../utils/phoneEncryption');
 const { haversineKm } = require('../utils/geo');
 const logger = require('../utils/logger');
 
 class CustomerService {
     // 고객 휴대폰 번호 통합 등록 (phone-join)
     async phoneJoin({ phone, store_id, order_id, total_amount }) {
-        const normalizedPhone = normalizePhone(phone);
+        const rawPhone = normalizePhone(phone);
+        const encryptedPhone = encryptPhone(rawPhone);
         const storeId = parseInt(store_id);
         const amount = parseInt(total_amount) || 0;
         const orderId = order_id ? parseInt(order_id) : null;
@@ -25,7 +26,7 @@ class CustomerService {
         }
 
         const existingCustomer = await prisma.store_customers.findFirst({
-            where: { store_id: storeId, customer_phone: normalizedPhone }
+            where: { store_id: storeId, customer_phone: { in: phoneSearchCandidates(rawPhone) } }
         });
         const isNewCustomer = !existingCustomer;
 
@@ -33,9 +34,9 @@ class CustomerService {
         const newTier = await StoreTier.calculateTier(storeId, newTotalSpent);
 
         const customer = await prisma.store_customers.upsert({
-            where: { uk_store_customer: { store_id: storeId, customer_phone: normalizedPhone } },
+            where: { uk_store_customer: { store_id: storeId, customer_phone: encryptedPhone } },
             create: {
-                store_id: storeId, customer_phone: normalizedPhone,
+                store_id: storeId, customer_phone: encryptedPhone,
                 visit_count: 1, total_spent: amount, tier: newTier.tier_name, last_visit_at: new Date()
             },
             update: {
@@ -44,21 +45,21 @@ class CustomerService {
             }
         });
 
-        // 포인트 적립
+        // 포인트 적립 (포인트 시스템은 이미 자체 암호화 처리)
         const earnPoints = amount > 0
-            ? await Point.calculateEarnPoints(amount, storeId, { phone: normalizedPhone })
+            ? await Point.calculateEarnPoints(amount, storeId, { phone: rawPhone })
             : 0;
 
         let pointResult = null;
         let totalPoints = 0;
         if (earnPoints > 0) {
             pointResult = await Point.earn({
-                identifier: { phone: normalizedPhone }, store_id: storeId, order_id: orderId,
+                identifier: { phone: rawPhone }, store_id: storeId, order_id: orderId,
                 amount: earnPoints, description: `주문 적립 (${amount.toLocaleString()}원)`
             });
             totalPoints = pointResult.balance;
         } else {
-            const balance = await Point.getBalance({ phone: normalizedPhone });
+            const balance = await Point.getBalance({ phone: rawPhone });
             totalPoints = balance.total_points;
         }
 
@@ -72,7 +73,7 @@ class CustomerService {
                 const expiresAt = new Date();
                 expiresAt.setDate(expiresAt.getDate() + coupon.valid_days);
                 await prisma.user_coupons.create({
-                    data: { customer_phone: normalizedPhone, coupon_id: coupon.id, status: 'UNUSED', expires_at: expiresAt }
+                    data: { customer_phone: encryptedPhone, coupon_id: coupon.id, status: 'UNUSED', expires_at: expiresAt }
                 });
                 welcomeCoupon = { name: coupon.name, amount: coupon.amount, type: coupon.type };
             }
@@ -82,7 +83,7 @@ class CustomerService {
         if (orderId) {
             await prisma.notifications.create({
                 data: { store_id: storeId, type: 'NEW_ORDER', title: '주문 알림 등록',
-                    message: `${normalizedPhone} 고객님의 알림이 등록되었습니다.`, priority: 'low' }
+                    message: `${rawPhone} 고객님의 알림이 등록되었습니다.`, priority: 'low' }
             }).catch(err => logger.warn(`[알림 실패] 고객 알림 등록 (store ${storeId}): ${err.message}`));
         }
 
@@ -98,7 +99,7 @@ class CustomerService {
             visit_count: customer.visit_count, total_spent: customer.total_spent,
             welcome_coupon: welcomeCoupon,
             next_tier: nextTier ? { name: nextTier.tier_name, remaining: nextTier.min_spent - newTotalSpent } : null,
-            socket_channel: `customer-orders-${normalizedPhone}`
+            socket_channel: `customer-orders-${rawPhone}`
         };
     }
 
@@ -223,10 +224,11 @@ class CustomerService {
     // FCM 토큰 등록
     async registerFcmToken({ phone, store_id, fcm_token }) {
         const storeId = parseInt(store_id);
+        const encryptedPhone = encryptPhone(phone);
         await prisma.store_customers.upsert({
-            where: { uk_store_customer: { store_id: storeId, customer_phone: phone } },
+            where: { uk_store_customer: { store_id: storeId, customer_phone: encryptedPhone } },
             update: { fcm_token, updated_at: new Date() },
-            create: { store_id: storeId, customer_phone: phone, fcm_token }
+            create: { store_id: storeId, customer_phone: encryptedPhone, fcm_token }
         });
     }
 

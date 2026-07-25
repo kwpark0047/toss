@@ -6,6 +6,13 @@ const pointService = require('./PointsService');
 const ledgerService = require('./LedgerService');
 const { AppError } = require('../utils/errorHandler');
 
+function maskCardNumber(cardNumber) {
+  if (!cardNumber) return null;
+  const digits = cardNumber.replace(/\D/g, '');
+  const lastFour = digits.slice(-4);
+  return `****-****-****-${lastFour}`;
+}
+
 /**
  * [PaymentService]
  * 결제 승인/취소 오케스트레이션을 담당합니다.
@@ -313,7 +320,7 @@ class PaymentService {
             approved_at: tossResponse.approvedAt ? new Date(tossResponse.approvedAt) : new Date(),
             receipt_url: tossResponse.receipt?.url,
             card_company: tossResponse.card?.company,
-            card_number: tossResponse.card?.number,
+            card_number: maskCardNumber(tossResponse.card?.number),
             installment_months: tossResponse.card?.installmentMonths || 0,
             easy_pay_provider: tossResponse.easyPay?.provider,
             raw_response: JSON.stringify(tossResponse),

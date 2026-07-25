@@ -21,7 +21,7 @@ describe('planRequestsController', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         req = { body: {}, query: {}, params: {}, user: { id: 10, role: 'owner' } };
-        res = { json: jest.fn(), status: jest.fn().mockReturnThis(), success: jest.fn() };
+        res = { json: jest.fn(), status: jest.fn().mockReturnThis(), success: jest.fn(), created: jest.fn() };
         next = jest.fn();
     });
 
@@ -30,7 +30,7 @@ describe('planRequestsController', () => {
             req.body = { store_id: 1, requested_plan: 'pro' };
             mockService.createRequest.mockResolvedValue({ id: 1, status: 'pending' });
             await planRequestsController.createRequest(req, res, next);
-            expect(res.success).toHaveBeenCalled();
+            expect(res.created).toHaveBeenCalled();
         });
     });
 

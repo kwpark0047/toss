@@ -1,4 +1,5 @@
 const CouponsService = require('../services/CouponsService');
+const prisma = require('../config/prisma');
 
 const couponsService = new CouponsService();
 
@@ -45,6 +46,17 @@ const couponsController = {
         const { storeId } = req.params;
         const campaign = await couponsService.saveCampaign(storeId, req.body);
         res.success(campaign, '마케팅 캠페인 설정이 정상적으로 저장되었습니다.');
+    },
+
+    /**
+     * DELETE /api/coupons/stores/:storeId/campaigns/:campaignId
+     */
+    async deleteCampaign(req, res) {
+        const { storeId, campaignId } = req.params;
+        await prisma.campaign_settings.delete({
+            where: { id: parseInt(campaignId), store_id: parseInt(storeId) }
+        });
+        res.success(null, '캠페인이 삭제되었습니다.');
     },
 
     /**

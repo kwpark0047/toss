@@ -19,33 +19,41 @@ class AIService {
         this.cache = new Map(); // 메뉴 설명 및 추천 캐시를 위한 메모리 맵
         this.MAX_CACHE_SIZE = 100; // 최대 캐시 항목 수
         this.models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"]; // 가용 가능한 모델 리스트 (폴백용)
-        this.currentModelIndex = 0;
-        this.model = null;
-
-        this.initModel();
     }
 
     /**
-     * 사용 가능한 모델 중 최적의 모델로 초기화
+     * 폴백 로직을 포함한 콘텐츠 생성 공통 메서드
+     * @param {string} prompt - 사용자 메시지
+     * @param {Object} [options] - 추가 옵션
+     * @param {string} [options.systemInstruction] - 모델 시스템 지시사항
+     * @param {Object} [options.generationConfig] - 생성 설정 (temperature, topP, maxOutputTokens, response_mime_type 등)
      */
-    initModel() {
-        const modelName = this.models[this.currentModelIndex];
-        this.model = this.genAI.getGenerativeModel({ model: modelName });
-        logger.info(`[AI] ${modelName} 모델로 엔진이 초기화되었습니다.`);
-    }
+    async generateWithFallback(prompt, options = {}) {
+        const { systemInstruction, generationConfig } = options;
+        let lastError = null;
 
-    /**
-     * 다음 우선순위 모델로 폴백 수행
-     */
-    async fallbackModel() {
-        if (this.currentModelIndex < this.models.length - 1) {
-            this.currentModelIndex++;
-            const nextModel = this.models[this.currentModelIndex];
-            this.model = this.genAI.getGenerativeModel({ model: nextModel });
-            logger.warn(`[AI] 오류 발생으로 인해 ${nextModel} 모델로 폴백합니다.`);
-            return true;
+        for (let i = 0; i < this.models.length; i++) {
+            try {
+                const modelName = this.models[i];
+                const modelParams = { model: modelName };
+                if (systemInstruction) modelParams.systemInstruction = systemInstruction;
+                if (generationConfig) modelParams.generationConfig = generationConfig;
+
+                const model = this.genAI.getGenerativeModel(modelParams);
+                const result = await model.generateContent(prompt);
+                const response = await result.response;
+                return response.text().trim();
+            } catch (error) {
+                lastError = error;
+                if (error.status === 429 || error.status === 404 || error.message?.includes('quota')) {
+                    logger.warn(`[AI] ${this.models[i]} failed, fallback: ${error.message}`);
+                    continue;
+                }
+                logger.error(`[AI] Non-retryable error on ${this.models[i]}:`, error.message);
+                throw error;
+            }
         }
-        return false;
+        throw lastError || new Error('All AI models exhausted');
     }
 
     /**
@@ -68,7 +76,7 @@ class AIService {
     `;
 
         try {
-            const result = await this.generateWithFallback(prompt);
+            const result = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.8 } });
             return result;
         } catch (error) {
             logger.error(error);
@@ -112,7 +120,7 @@ class AIService {
     `;
 
         try {
-            const res = await this.generateWithFallback(prompt);
+            const res = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.7 } });
             this.setCache(cacheKey, res); // 결과 캐싱 (with eviction)
             return res;
         } catch (error) {
@@ -149,7 +157,7 @@ class AIService {
     `;
 
         try {
-            return await this.generateWithFallback(prompt);
+            return await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.8 } });
         } catch (error) {
             logger.error(error);
             return `✨ [${name}] 인스타 핫플 등극 예감! 💖\n\n비주얼 장인급 퀄리티에 한 번 반하고 입안 가득 퍼지는 달콤함에 두 번 반하는 인생샷 치트키 등장..🍰\n단돈 ₩${Number(price || 0).toLocaleString()}원으로 만나는 소소하지만 확실한 행복을 지금 바로 매장에서 경험해 보세용! ✨\n\n#인스타감성 #디저트맛집 #인생샷치트키 #비주얼끝판왕`;
@@ -202,15 +210,14 @@ class AIService {
     `;
 
         try {
-            const rawText = await this.generateWithFallback(prompt);
+            const rawText = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.2, response_mime_type: "application/json" } });
             const text = rawText.replace(/```json|```/g, "").trim();
 
             let result;
             try {
                 result = JSON.parse(text);
             } catch (pErr) {
-                logger.warn("[AI] JSON 파싱 에러, 정규표현식 추출 시도:", pErr);
-                // JSON 부분만 추출 시도
+                logger.warn("[AI] JSON 파싱 에러 (recommendMenus):", pErr);
                 const jsonMatch = text.match(/\[.*\]/s);
                 if (jsonMatch) {
                     result = JSON.parse(jsonMatch[0]);
@@ -223,7 +230,6 @@ class AIService {
             return result;
         } catch (error) {
             logger.error(error);
-            // 최소한의 방어 레이어: 1순위 메뉴 추천 (JSON 포맷)
             if (menuList.length > 0) {
                 return [{ id: menuList[0].id, reason: "취향에 맞는 메뉴를 골라보세요." }];
             }
@@ -265,44 +271,15 @@ class AIService {
     `;
 
         try {
-            const rawText = await this.generateWithFallback(prompt);
+            const rawText = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.2, response_mime_type: "application/json" } });
             const text = rawText.replace(/```json|```/g, "").trim();
             const result = JSON.parse(text);
             this.setCache(cacheKey, result);
             return result;
         } catch (error) {
             logger.error(error);
-            // 기본값: 첫 번째 디저트 추천
             return [{ id: dessertList[0].id, reason: "달콤한 마무리를 위한 추천 메뉴입니다." }];
         }
-    }
-
-    /**
-     * 폴백 로직을 포함한 콘텐츠 생성 공통 메서드
-     */
-    async generateWithFallback(prompt) {
-        let lastError = null;
-
-        // 설정된 사용 가능한 모델 리스트 크기만큼
-        for (let i = 0; i < this.models.length; i++) {
-            try {
-                if (!this.model) this.initModel();
-                const result = await this.model.generateContent(prompt);
-                const response = await result.response;
-                return response.text().trim();
-            } catch (error) {
-                lastError = error;
-                // 429(할당량 초과) 또는 404(모델 없음)일 때 폴백 시도
-                if (error.status === 429 || error.status === 404 || error.message?.includes('quota')) {
-                    const hasNext = await this.fallbackModel();
-                    if (!hasNext) break;
-                } else {
-                    logger.error(error);
-                    break; // 다른 유형의 에러면 즉시 중단
-                }
-            }
-        }
-        throw lastError;
     }
 
     /**
@@ -355,7 +332,7 @@ class AIService {
         `;
 
         try {
-            const rawText = await this.generateWithFallback(prompt);
+            const rawText = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.1, response_mime_type: "application/json" } });
             const text = rawText.replace(/```json|```/g, "").trim();
 
             let result;
@@ -373,7 +350,6 @@ class AIService {
             return result;
         } catch (error) {
             logger.error(error);
-            // 실패 시 원본 리스트를 유지하는 형태로 반환
             return menuList.map(m => ({
                 id: m.id,
                 translated_name: m.name,
@@ -496,9 +472,8 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
 
         let suggestions;
         try {
-            const rawText = await this.generateWithFallback(prompt);
+            const rawText = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.2, response_mime_type: "application/json" } });
             const text = rawText.replace(/```json\n?|```/g, '').trim();
-            // JSON 배열 추출 (앞뒤 텍스트 제거)
             const match = text.match(/\[[\s\S]*\]/);
             suggestions = JSON.parse(match ? match[0] : text);
         } catch (error) {
@@ -553,7 +528,7 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
         `;
 
         try {
-            const rawText = await this.generateWithFallback(prompt);
+            const rawText = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.2, response_mime_type: "application/json" } });
             const text = rawText.replace(/```json|```/g, "").trim();
             return JSON.parse(text);
         } catch (_error) {
@@ -585,12 +560,12 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
         `;
 
         try {
-            const res = await this.generateWithFallback(prompt);
+            const res = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.1 } });
             this.setCache(cacheKey, res);
             return res;
         } catch (error) {
             logger.error(error);
-            return text; // 실패 시 원본 반환
+            return text;
         }
     }
 
@@ -620,7 +595,7 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
         `;
 
         try {
-            const rawText = await this.generateWithFallback(prompt);
+            const rawText = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.4, response_mime_type: "application/json" } });
             const text = rawText.replace(/```json|```/g, "").trim();
             return JSON.parse(text);
         } catch (error) {
@@ -671,7 +646,7 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
     `;
 
         try {
-            const rawText = await this.generateWithFallback(prompt);
+            const rawText = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.3, response_mime_type: "application/json" } });
             const text = rawText.replace(/```json|```/g, '').trim();
             const parsed = JSON.parse(text);
             const keyword = parsed.keyword || `${name} food plated`;
@@ -710,7 +685,7 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
             5. 답글 텍스트만 반환하세요 (따옴표, 설명 없이).
         `;
 
-        const text = await this.generateWithFallback(prompt);
+        const text = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.5 } });
         return text.replace(/^["']|["']$/g, '').trim();
     }
 

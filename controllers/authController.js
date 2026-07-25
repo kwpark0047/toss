@@ -161,7 +161,7 @@ const register = async (req, res, next) => {
 
     const { token, refreshToken } = signTokens(user);
     setTokenCookies(res, token, refreshToken);
-    res.success({ token, refreshToken, user: safeUser(user) }, '회원가입이 완료되었습니다.', 201);
+    res.created({ token, refreshToken, user: safeUser(user) }, '회원가입이 완료되었습니다.');
   } catch (error) {
     next(error);
   }
@@ -198,6 +198,16 @@ const login = async (req, res, next) => {
 
     if (!user || !bcrypt.compareSync(password, user.password)) {
       return next(new AppError('아이디 또는 비밀번호가 올바르지 않습니다.', 401));
+    }
+
+    // 관리자 2FA가 활성화된 경우 temp_token 발급 (2차 인증 필요)
+    if (user.role === 'super_admin' && user.two_factor_enabled) {
+      const tempToken = jwt.sign(
+        { id: user.id, name: user.name, role: user.role, type: '2fa_pending' },
+        JWT_SECRET,
+        { expiresIn: '5m' }
+      );
+      return res.success({ tempToken, two_factor_required: true }, '2FA 인증이 필요합니다.');
     }
 
     const { token, refreshToken } = signTokens(user);

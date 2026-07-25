@@ -39,7 +39,7 @@ describe('AlimtalkService', () => {
                 waitingNumber: 5,
                 waitingCount: 3,
                 link: expect.any(String)
-            }));
+            }), 'ko');
             expect(result.success).toBe(true);
         });
     });
@@ -51,7 +51,7 @@ describe('AlimtalkService', () => {
             expect(spy).toHaveBeenCalledWith('01012345678', 'WAITING_READY', expect.objectContaining({
                 storeName: '테스트매장',
                 waitingNumber: 5
-            }));
+            }), 'ko');
         });
     });
 
@@ -62,7 +62,7 @@ describe('AlimtalkService', () => {
             expect(spy).toHaveBeenCalledWith('01012345678', 'WAITING_CALL', expect.objectContaining({
                 storeName: '테스트매장',
                 waitingNumber: 5
-            }));
+            }), 'ko');
         });
     });
 
@@ -72,7 +72,7 @@ describe('AlimtalkService', () => {
             await AlimtalkService.sendWaitingCancel('01012345678', '테스트매장');
             expect(spy).toHaveBeenCalledWith('01012345678', 'WAITING_CANCEL', expect.objectContaining({
                 storeName: '테스트매장'
-            }));
+            }), 'ko');
         });
     });
 
@@ -82,7 +82,7 @@ describe('AlimtalkService', () => {
             await AlimtalkService.sendOrderConfirmed('01012345678', '매장', 'ORD-001', 1, 15000);
             expect(spy).toHaveBeenCalledWith('01012345678', 'ORDER_CONFIRMED', expect.objectContaining({
                 storeName: '매장', orderNumber: 'ORD-001', queueNumber: 1, totalAmount: 15000
-            }));
+            }), 'ko');
         });
     });
 
@@ -92,7 +92,7 @@ describe('AlimtalkService', () => {
             await AlimtalkService.sendFoodReady('01012345678', '매장', 'ORD-001', '3번');
             expect(spy).toHaveBeenCalledWith('01012345678', 'FOOD_READY', expect.objectContaining({
                 storeName: '매장', orderNumber: 'ORD-001', tableName: '3번'
-            }));
+            }), 'ko');
         });
     });
 
@@ -102,7 +102,7 @@ describe('AlimtalkService', () => {
             await AlimtalkService.sendOrderCancelled('01012345678', '매장', 'ORD-001', '재고 소진');
             expect(spy).toHaveBeenCalledWith('01012345678', 'ORDER_CANCELLED', expect.objectContaining({
                 storeName: '매장', orderNumber: 'ORD-001', reason: '재고 소진'
-            }));
+            }), 'ko');
         });
     });
 });

@@ -113,7 +113,7 @@ const createTemplate = async (req, res, next) => {
       }
     });
 
-    res.success(template, '알림 템플릿이 생성되었습니다.', 201);
+    res.created(template, '알림 템플릿이 생성되었습니다.');
   } catch (err) { next(err); }
 };
 

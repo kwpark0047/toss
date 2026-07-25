@@ -21,12 +21,12 @@ exports.getStaffList = async (req, res) => {
 
 exports.selfRegister = async (req, res) => {
     const result = await staffService.selfRegister(req.user.id, req.body.storeId);
-    res.success(result, '셀프 근태 추적이 활성화되었습니다.', 201);
+    res.created(result, '셀프 근태 추적이 활성화되었습니다.');
 };
 
 exports.createStaff = async (req, res) => {
     const result = await staffService.createStaff(req.body);
-    res.success(result, '직원이 생성되었습니다.', 201);
+    res.created(result, '직원이 생성되었습니다.');
 };
 
 exports.getAttendance = async (req, res) => {
@@ -38,7 +38,7 @@ exports.getAttendance = async (req, res) => {
 exports.clockIn = async (req, res) => {
     const staffId = parseId(req.params.id, '직원 ID');
     const record = await staffService.clockIn(staffId, req.user.id, req.user.role, req.body.note);
-    res.success(record, '출근 처리되었습니다.', 201);
+    res.created(record, '출근 처리되었습니다.');
 };
 
 exports.clockOut = async (req, res) => {
@@ -66,7 +66,7 @@ exports.lookupUser = async (req, res) => {
 
 exports.addExistingUser = async (req, res) => {
     const result = await staffService.addExistingUser(req.body, req.user.id);
-    res.success(result, '팀원이 추가되었습니다.', 201);
+    res.created(result, '팀원이 추가되었습니다.');
 };
 
 exports.getSchedules = async (req, res) => {
@@ -80,7 +80,7 @@ exports.createSchedules = async (req, res) => {
     const entries = Array.isArray(req.body) ? req.body : [req.body];
     if (entries.length === 0) throw new AppError('등록할 일정이 없습니다.', 400);
     const created = await staffService.createSchedules(storeId, entries, Array.isArray(req.body));
-    res.success({ schedules: created }, created.length + '개의 시프트가 등록되었습니다.', 201);
+    res.created({ schedules: created }, created.length + '개의 시프트가 등록되었습니다.');
 };
 
 exports.updateSchedule = async (req, res) => {

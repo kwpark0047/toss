@@ -35,7 +35,14 @@ const i18nMiddleware = (req, res, next) => {
     next();
 };
 
+// 다국어 번역 함수 (알림톡/영수증/알림)
+const { t, getAlimtalkTemplate, getNotificationTemplate, translations } = require('./i18nTranslations');
+
 module.exports = {
     SUPPORTED_LANGUAGES,
-    i18nMiddleware
+    i18nMiddleware,
+    t,
+    getAlimtalkTemplate,
+    getNotificationTemplate,
+    translations
 };

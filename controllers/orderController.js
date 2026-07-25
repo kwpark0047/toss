@@ -9,7 +9,7 @@ const orderController = {
     createOrder: catchAsync(async (req, res) => {
         const orderService = new OrderService(req.app.get('io'));
         const order = await orderService.createOrder(req.body);
-        res.success(order, '주문이 생성되었습니다.', 201);
+        res.created(order, '주문이 생성되었습니다.');
     }),
 
     // 고객별 주문 내역 조회

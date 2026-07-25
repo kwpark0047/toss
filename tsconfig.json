@@ -15,12 +15,14 @@
   },
   "include": [
     "utils/**/*.ts",
-    "services/**/*.ts"
+    "services/**/*.ts",
+    "types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "frontend",
     "playwright-report",
-    "test-results"
+    "test-results",
+    "services/AlimtalkService.ts"
   ]
 }

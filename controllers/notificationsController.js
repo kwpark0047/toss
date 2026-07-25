@@ -164,7 +164,7 @@ const createSystemNotification = async (req, res, next) => {
         const record = await notificationService.createNotification({
             store_id, type: 'SYSTEM', title, message, priority, link
         });
-        res.success(record, '시스템 알림이 발송되었습니다.', 201);
+        res.created(record, '시스템 알림이 발송되었습니다.');
     } catch (err) { next(err); }
 };
 

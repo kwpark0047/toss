@@ -187,8 +187,22 @@ export const AuthProvider = ({ children }) => {
     return null;
   };
 
+  const socialLogin = async (provider, accessToken) => {
+    const res = await authAPI.socialLogin(provider, accessToken);
+    const data = res.data || res;
+    const { token, refreshToken, user: userData } = data;
+    if (!token || !userData) throw new Error('서버 응답이 올바르지 않습니다.');
+
+    if (!USE_COOKIE) {
+      localStorage.setItem('token', token);
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    }
+    setUser(userData);
+    return { token, user: userData };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, sendOtp, verifyOtp, login, register, updateProfile, changePassword, logout, consumeStoresCache }}>
+    <AuthContext.Provider value={{ user, loading, sendOtp, verifyOtp, login, socialLogin, register, updateProfile, changePassword, logout, consumeStoresCache }}>
       {children}
     </AuthContext.Provider>
   );

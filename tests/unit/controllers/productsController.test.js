@@ -22,7 +22,7 @@ describe('productsController', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         req = { body: {}, query: {}, params: {}, app: { get: jest.fn() } };
-        res = { json: jest.fn(), status: jest.fn().mockReturnThis(), success: jest.fn() };
+        res = { json: jest.fn(), status: jest.fn().mockReturnThis(), success: jest.fn(), created: jest.fn() };
         next = jest.fn();
         req.app.get.mockReturnValue(null);
     });
@@ -54,7 +54,7 @@ describe('productsController', () => {
             req.body = { store_id: 1, name: '카푸치노', price: 5500 };
             mockService.createProduct.mockResolvedValue({ id: 1 });
             await productsController.createProduct(req, res);
-            expect(res.success).toHaveBeenCalled();
+            expect(res.created).toHaveBeenCalled();
         });
     });
 
@@ -82,7 +82,7 @@ describe('productsController', () => {
             req.body = { store_id: 1, products: [{ name: 'A' }, { name: 'B' }] };
             mockService.bulkCreate.mockResolvedValue([{ id: 1 }, { id: 2 }]);
             await productsController.bulkCreate(req, res);
-            expect(res.success).toHaveBeenCalled();
+            expect(res.created).toHaveBeenCalled();
         });
     });
 

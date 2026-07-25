@@ -2,15 +2,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useMenuManager } from '../../hooks/useMenuManager';
 import { ArrowLeft, Plus, Sparkles, Folders, Store } from 'lucide-react';
 import { motion } from 'framer-motion';
-import BulkMenuModal from './BulkMenuModal';
-import MenuScanModal from './MenuScanModal';
-import MenuWizard from './MenuWizard';
-import OptionTemplateModal from './OptionTemplateModal';
+import { lazy, Suspense } from 'react';
 import Skeleton from '../common/Skeleton';
 import { CategoryModal } from './CategoryModal';
-import { ProductModal } from './ProductModal';
 import { CategoryList } from './menu/CategoryList';
 import { MenuItemList } from './menu/MenuItemList';
+
+const BulkMenuModal = lazy(() => import('./BulkMenuModal'));
+const MenuScanModal = lazy(() => import('./MenuScanModal'));
+const MenuWizard = lazy(() => import('./MenuWizard'));
+const OptionTemplateModal = lazy(() => import('./OptionTemplateModal'));
+const ProductModal = lazy(() => import('./ProductModal'));
 
 const MenuManager = () => {
   const { storeId } = useParams();
@@ -166,47 +168,57 @@ const MenuManager = () => {
       )}
 
       {showProductModal && (
-        <ProductModal
-          storeId={storeId}
-          categories={categories}
-          product={editingProduct}
-          onClose={() => setShowProductModal(false)}
-          onSave={() => { setShowProductModal(false); fetchData(); }}
-        />
+        <Suspense fallback={null}>
+          <ProductModal
+            storeId={storeId}
+            categories={categories}
+            product={editingProduct}
+            onClose={() => setShowProductModal(false)}
+            onSave={() => { setShowProductModal(false); fetchData(); }}
+          />
+        </Suspense>
       )}
 
       {showBulkModal && (
-        <BulkMenuModal
-          storeId={storeId}
-          existingCategories={categories}
-          onClose={() => setShowBulkModal(false)}
-          onSave={() => { setShowBulkModal(false); fetchData(); }}
-        />
+        <Suspense fallback={null}>
+          <BulkMenuModal
+            storeId={storeId}
+            existingCategories={categories}
+            onClose={() => setShowBulkModal(false)}
+            onSave={() => { setShowBulkModal(false); fetchData(); }}
+          />
+        </Suspense>
       )}
 
       {showScanModal && (
-        <MenuScanModal
-          storeId={storeId}
-          existingCategories={categories}
-          onClose={() => setShowScanModal(false)}
-          onSave={() => { setShowScanModal(false); fetchData(); }}
-        />
+        <Suspense fallback={null}>
+          <MenuScanModal
+            storeId={storeId}
+            existingCategories={categories}
+            onClose={() => setShowScanModal(false)}
+            onSave={() => { setShowScanModal(false); fetchData(); }}
+          />
+        </Suspense>
       )}
 
       {showWizard && (
-        <MenuWizard
-          storeId={storeId}
-          categories={categories}
-          onClose={() => setShowWizard(false)}
-          onSave={() => { setShowWizard(false); fetchData(); }}
-        />
+        <Suspense fallback={null}>
+          <MenuWizard
+            storeId={storeId}
+            categories={categories}
+            onClose={() => setShowWizard(false)}
+            onSave={() => { setShowWizard(false); fetchData(); }}
+          />
+        </Suspense>
       )}
 
       {showOptionTemplateModal && (
-        <OptionTemplateModal
-          storeId={storeId}
-          onClose={() => setShowOptionTemplateModal(false)}
-        />
+        <Suspense fallback={null}>
+          <OptionTemplateModal
+            storeId={storeId}
+            onClose={() => setShowOptionTemplateModal(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

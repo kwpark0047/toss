@@ -127,6 +127,8 @@ router.get('/stores/:storeId/campaigns', authMiddleware, checkStorePermission('s
  */
 router.post('/stores/:storeId/campaigns', authMiddleware, checkStorePermission('settings:write'), catchAsync(couponsController.saveCampaign));
 
+router.delete('/stores/:storeId/campaigns/:campaignId', authMiddleware, checkStorePermission('settings:write'), catchAsync(couponsController.deleteCampaign));
+
 /**
  * @swagger
  * /api/coupons/my-coupons:

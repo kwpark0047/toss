@@ -1,0 +1,126 @@
+# Docker Compose for WeMarket Development Environment
+# Usage:
+#   docker-compose up -d          # Start all services
+#   docker-compose down           # Stop all services
+#   docker-compose logs -f        # View logs
+#   docker-compose exec app sh    # Enter app container
+
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: wemarket-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-wemarket}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-wemarket123}
+      POSTGRES_DB: ${DB_NAME:-wemarket}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./prisma/migrations:/docker-entrypoint-initdb.d/migrations
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-wemarket}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wemarket-network
+
+  # Redis (for caching, rate limiting, queues)
+  redis:
+    image: redis:7-alpine
+    container_name: wemarket-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wemarket-network
+
+  # WeMarket API Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: wemarket-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://wemarket:wemarket123@postgres:5432/wemarket
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      # Mount source code for development (hot reload)
+      - .:/app
+      - /app/node_modules
+      # Mount Prisma generated client
+      - /app/node_modules/@prisma/client
+    command: npm run dev
+    networks:
+      - wemarket-network
+
+  # Frontend (Vite dev server)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: wemarket-frontend
+    restart: unless-stopped
+    env_file:
+      - ./frontend/.env
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3000/api
+      - VITE_APP_PORT=5173
+    depends_on:
+      - app
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+    networks:
+      - wemarket-network
+
+  # Adminer (Database GUI)
+  adminer:
+    image: adminer:latest
+    container_name: wemarket-adminer
+    restart: unless-stopped
+    ports:
+      - "${ADMINER_PORT:-8080}:8080"
+    environment:
+      - ADMINER_DEFAULT_DRIVER=postgresql
+      - ADMINER_DEFAULT_SERVER=postgres
+      - ADMINER_DEFAULT_USERNAME=wemarket
+    depends_on:
+      - postgres
+    networks:
+      - wemarket-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  wemarket-network:
+    driver: bridge

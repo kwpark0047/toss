@@ -438,11 +438,11 @@ async function seedStore(def) {
     }
     staffIds.push(staffRec.id);
 
-    // store_staff (PIN 기반)
-    await prisma.store_staff.upsert({
-      where: { id: (await prisma.store_staff.findFirst({ where: { store_id: sid, name: s.name } }))?.id ?? 0 },
+    // staff (PIN 기반)
+    await prisma.staff.upsert({
+      where: { id: staffRec.id },
       update: {},
-      create: { store_id: sid, user_id: sUser.id, name: s.name, role: s.role, pin_code: String(rnd(1000, 9999)), is_active: 1 },
+      create: { store_id: sid, user_id: sUser.id, role: s.role, pin_code: String(rnd(1000, 9999)), is_active: 1 },
     }).catch(() => {});
 
     // 출퇴근 기록 (최근 7일)

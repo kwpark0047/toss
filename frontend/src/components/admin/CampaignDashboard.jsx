@@ -1,0 +1,401 @@
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
+import {
+  Megaphone, Plus, Settings, Play, Pause, Trash2, BarChart3,
+  Users, TrendingUp, Gift, Target, Calendar, Clock, Loader2,
+  Zap, MessageSquare, Smartphone, CheckCircle2, XCircle, Eye,
+  Percent, DollarSign, AlertTriangle, Sparkles, ChevronRight
+} from 'lucide-react';
+import api from '@/api';
+import Skeleton from '@/components/common/Skeleton';
+import EmptyState from '@/components/common/EmptyState';
+
+/* ── 유형별 메타 ─────────────────────────────────────────────── */
+const TRIGGER_META = {
+  WELCOME:  { label: '첫 방문 환영', icon: Gift,        color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  TIER_UP:  { label: '등급 승급',    icon: TrendingUp,  color: 'text-purple-600',  bg: 'bg-purple-50' },
+  BIRTHDAY: { label: '생일 축하',    icon: Gift,         color: 'text-rose-600',   bg: 'bg-rose-50' },
+  LAPSED:   { label: '재방문 유도',  icon: Target,       color: 'text-orange-600',  bg: 'bg-orange-50' },
+  MANUAL:   { label: '수동 발송',    icon: Megaphone,    color: 'text-blue-600',   bg: 'bg-blue-50' },
+};
+
+const TIER_LABELS = { GENERAL: '일반', SILVER: '실버', GOLD: '골드', VIP: 'VIP', PLATINUM: '플래티넘' };
+
+const statusClass = (active) =>
+  active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500';
+
+/* ── RFM 세그먼트 분석 결과 타입 ───────────────────────────── */
+const SEGMENT_INFO = {
+  Champions: { label: '최우수 고객', color: 'text-purple-700 bg-purple-100', score: 5 },
+  Loyal:     { label: '충성 고객',   color: 'text-blue-700 bg-blue-100',     score: 4 },
+  At_Risk:   { label: '이탈 위험',   color: 'text-orange-700 bg-orange-100', score: 2 },
+  Lost:      { label: '이탈 고객',   color: 'text-red-700 bg-red-100',       score: 1 },
+  New:       { label: '신규 고객',   color: 'text-green-700 bg-green-100',   score: 3 },
+  General:   { label: '일반 고객',   color: 'text-gray-700 bg-gray-100',     score: 3 },
+};
+
+/* ================================================================
+ *  CampaignDashboard
+ *  ================================================================
+ *  통합 캠페인 관리 + RFM 분석 + AI SMS 발송 + 성과 추적
+ * ================================================================ */
+export default function CampaignDashboard() {
+  const { storeId } = useParams();
+  const [tab, setTab] = useState('campaigns'); // campaigns | analysis | create
+  const [campaigns, setCampaigns] = useState([]);
+  const [coupons, setCoupons] = useState([]);
+  const [analysis, setAnalysis] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  // Campaign form
+  const [form, setForm] = useState({ trigger_type: 'WELCOME', target_tier: '', coupon_id: '', is_active: 1 });
+
+  const showToast = useCallback((msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  /* ── 데이터 로드 ───────────────────────────────────────── */
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const sid = storeId;
+      const [campRes, coupRes, analysisRes] = await Promise.all([
+        api.get(`/coupons/stores/${sid}/campaigns`),
+        api.get(`/coupons/stores/${sid}/coupons`),
+        api.get(`/crm/store/${sid}/analysis`).catch(() => null),
+      ]);
+      setCampaigns(campRes.data || []);
+      setCoupons(coupRes.data || []);
+      if (analysisRes?.data) setAnalysis(analysisRes.data);
+    } catch (e) {
+      setError(e.response?.data?.error || e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [storeId]);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  /* ── 캠페인 저장 ───────────────────────────────────────── */
+  const handleSave = async () => {
+    if (!form.trigger_type || !form.coupon_id) {
+      showToast('트리거 유형과 쿠폰을 선택하세요.', 'error');
+      return;
+    }
+    try {
+      await api.post(`/coupons/stores/${storeId}/campaigns`, form);
+      showToast('캠페인이 저장되었습니다.');
+      setForm({ trigger_type: 'WELCOME', target_tier: '', coupon_id: '', is_active: 1 });
+      loadAll();
+    } catch (e) {
+      showToast(e.response?.data?.error || '저장 실패', 'error');
+    }
+  };
+
+  /* ── 캠페인 토글 / 삭제 ────────────────────────────────── */
+  const toggleCampaign = async (c) => {
+    try {
+      await api.post(`/coupons/stores/${storeId}/campaigns`, {
+        id: c.id, trigger_type: c.trigger_type, coupon_id: c.coupon_id,
+        target_tier: c.target_tier, is_active: c.is_active ? 0 : 1,
+      });
+      loadAll();
+    } catch (e) { showToast('상태 변경 실패', 'error'); }
+  };
+
+  const deleteCampaign = async (id) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    try {
+      await api.delete(`/coupons/stores/${storeId}/campaigns/${id}`);
+      showToast('삭제되었습니다.');
+      loadAll();
+    } catch (e) { showToast('삭제 실패', 'error'); }
+  };
+
+  /* ── AI 스마트 SMS 발송 ────────────────────────────────── */
+  const sendSmartSms = async (segmentName) => {
+    setSending(true);
+    try {
+      const res = await api.post(`/crm/store/${storeId}/send-smart-sms`, { segmentName });
+      const { sent, message, preview_phones } = res.data;
+      showToast(`${sent}명에게 AI SMS 발송 완료! (예: ${preview_phones?.join(', ') || ''})`);
+    } catch (e) {
+      showToast(e.response?.data?.error || 'SMS 발송 실패', 'error');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  /* ── RFM 분석 요약 ─────────────────────────────────────── */
+  const segmentData = useMemo(() => {
+    if (!analysis?.summary?.segments) return [];
+    return Object.entries(analysis.summary.segments)
+      .filter(([_, count]) => count > 0)
+      .sort((a, b) => (SEGMENT_INFO[b[0]]?.score || 0) - (SEGMENT_INFO[a[0]]?.score || 0));
+  }, [analysis]);
+
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      <Skeleton className="h-8 w-48" />
+      <div className="grid grid-cols-4 gap-4">
+        {[1,2,3,4].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
+      </div>
+      <Skeleton className="h-64 rounded-xl" />
+    </div>
+  );
+
+  if (error) return (
+    <div className="p-6">
+      <div className="rounded-2xl bg-red-50 p-6 text-center border border-red-100">
+        <AlertTriangle size={36} className="mx-auto mb-3 text-red-400" />
+        <p className="text-red-600 font-medium">데이터를 불러오지 못했습니다</p>
+        <p className="text-sm text-red-400 mt-1">{error}</p>
+        <button onClick={loadAll} className="mt-4 text-sm text-red-600 underline">다시 시도</button>
+      </div>
+    </div>
+  );
+
+  const totalCustomers = analysis?.summary?.total_customers || 0;
+  const avgSpent = analysis?.summary?.avg_spent_per_customer || 0;
+
+  return (
+    <div className="p-6 max-w-6xl mx-auto">
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-2xl shadow-lg text-sm font-medium animate-in slide-in-from-right
+          ${toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-gray-900 text-white'}`}>
+          {toast.msg}
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Megaphone size={24} className="text-indigo-600" /> 스마트 마케팅
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">AI 기반 고객 세그먼트 분석 + 자동 캠페인</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setTab('campaigns')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'campaigns' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 border hover:bg-gray-50'}`}>
+            캠페인 목록
+          </button>
+          <button onClick={() => setTab('analysis')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'analysis' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 border hover:bg-gray-50'}`}>
+            고객 분석
+          </button>
+          <button onClick={() => setTab('create')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'create' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 border hover:bg-gray-50'}`}>
+            + 새 캠페인
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid gap-4 sm:grid-cols-4 mb-6">
+        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Users size={14} /> 전체 고객</div>
+          <p className="text-xl font-bold text-gray-900">{totalCustomers.toLocaleString()}명</p>
+        </div>
+        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Megaphone size={14} /> 활성 캠페인</div>
+          <p className="text-xl font-bold text-gray-900">{campaigns.filter(c => c.is_active).length}건</p>
+        </div>
+        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><DollarSign size={14} /> 객단가</div>
+          <p className="text-xl font-bold text-gray-900">{avgSpent.toLocaleString()}원</p>
+        </div>
+        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Target size={14} /> 자동 캠페인</div>
+          <p className="text-xl font-bold text-gray-900">{campaigns.filter(c => c.trigger_type !== 'MANUAL').length}건</p>
+        </div>
+      </div>
+
+      {/* ── TAB: 캠페인 목록 ─────────────────────────────── */}
+      {tab === 'campaigns' && (
+        <>
+          {campaigns.length === 0 ? (
+            <EmptyState icon={Megaphone} title="등록된 캠페인이 없습니다"
+              description="자동 마케팅 캠페인을 만들어 고객 방문을 유도하세요."
+              action={{ label: '캠페인 만들기', onClick: () => setTab('create') }} />
+          ) : (
+            <div className="space-y-3">
+              {campaigns.map(c => {
+                const meta = TRIGGER_META[c.trigger_type] || TRIGGER_META.MANUAL;
+                const Icon = meta.icon;
+                return (
+                  <div key={c.id} className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-all">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className={`p-2.5 rounded-xl ${meta.bg} ${meta.color}`}>
+                          <Icon size={20} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-gray-900">{meta.label}</span>
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusClass(c.is_active)}`}>
+                              {c.is_active ? '활성' : '비활성'}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                            {c.target_tier && <span>대상 등급: {TIER_LABELS[c.target_tier] || c.target_tier}</span>}
+                            {c.coupon && <span>쿠폰: {c.coupon.name} ({c.coupon.amount.toLocaleString()}원 할인)</span>}
+                            <span>등록일: {new Date(c.created_at).toLocaleDateString('ko-KR')}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => toggleCampaign(c)}
+                          className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                          title={c.is_active ? '비활성화' : '활성화'}>
+                          {c.is_active ? <Pause size={16} /> : <Play size={16} />}
+                        </button>
+                        <button onClick={() => deleteCampaign(c.id)}
+                          className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── TAB: RFM 고객 분석 ───────────────────────────── */}
+      {tab === 'analysis' && (
+        <>
+          {analysis ? (
+            <>
+              <div className="rounded-2xl border bg-white p-6 shadow-sm mb-6">
+                <h3 className="text-sm font-semibold text-gray-900 mb-4">RFM 세그먼트 분석</h3>
+                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  {segmentData.map(([seg, count]) => {
+                    const info = SEGMENT_INFO[seg] || { label: seg, color: 'text-gray-600 bg-gray-100' };
+                    const total = totalCustomers || 1;
+                    const pct = ((count / total) * 100).toFixed(0);
+                    return (
+                      <div key={seg} className="rounded-xl border p-3 text-center">
+                        <div className={`inline-block px-2 py-1 rounded-lg text-xs font-semibold mb-1 ${info.color}`}>
+                          {info.label}
+                        </div>
+                        <p className="text-xl font-bold text-gray-900">{count}명</p>
+                        <div className="mt-1 h-1.5 w-full rounded-full bg-gray-100">
+                          <div className="h-1.5 rounded-full bg-indigo-500" style={{ width: `${pct}%` }} />
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-1">전체의 {pct}%</p>
+                        <button onClick={() => sendSmartSms(seg)}
+                          disabled={sending}
+                          className="mt-2 w-full text-xs py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 disabled:opacity-50 font-medium transition-colors">
+                          {sending ? <Loader2 size={12} className="animate-spin inline" /> : null}
+                          {' '}AI SMS 발송
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border bg-white p-6 shadow-sm">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">세그먼트별 추천 액션</h3>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-50">
+                    <Sparkles size={16} className="text-purple-500 mt-0.5 shrink-0" />
+                    <div><strong className="text-purple-700">Champions (최우수):</strong> VIP 전용 쿠폰, 단독 이벤트 초대, 감사 메시지로 로열티 강화</div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-blue-50">
+                    <Sparkles size={16} className="text-blue-500 mt-0.5 shrink-0" />
+                    <div><strong className="text-blue-700">Loyal (충성):</strong> 포인트 2배 적립 프로모션, 등급 업데이트 안내로 VIP 전환 유도</div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-orange-50">
+                    <Sparkles size={16} className="text-orange-500 mt-0.5 shrink-0" />
+                    <div><strong className="text-orange-700">At_Risk (이탈 위험):</strong> 할인 쿠폰 + 재방문 유도 SMS로 즉시 액션 필요</div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-red-50">
+                    <Sparkles size={16} className="text-red-500 mt-0.5 shrink-0" />
+                    <div><strong className="text-red-700">Lost (이탈):</strong> 강력 할인 쿠폰 + "그리웠어요" 메시지로 재유입 시도</div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-green-50">
+                    <Sparkles size={16} className="text-green-500 mt-0.5 shrink-0" />
+                    <div><strong className="text-green-700">New (신규):</strong> 두 번째 방문 유도 쿠폰 발행 + 웰컴 메시지</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <EmptyState icon={BarChart3} title="RFM 분석 데이터 없음"
+              description="고객 방문 기록이 쌓이면 자동으로 세그먼트가 분석됩니다." />
+          )}
+        </>
+      )}
+
+      {/* ── TAB: 새 캠페인 생성 ──────────────────────────── */}
+      {tab === 'create' && (
+        <div className="rounded-2xl border bg-white p-6 shadow-sm max-w-xl">
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">새 캠페인 설정</h3>
+
+          <div className="space-y-4">
+            {/* 트리거 유형 */}
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1.5 block">트리거 유형</label>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(TRIGGER_META).map(([key, meta]) => {
+                  const Icon = meta.icon;
+                  return (
+                    <button key={key} onClick={() => setForm(p => ({ ...p, trigger_type: key }))}
+                      className={`flex items-center gap-2 p-3 rounded-xl border text-sm transition-all
+                        ${form.trigger_type === key ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                      <Icon size={16} /> {meta.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 등급 조건 (TIER_UP일 때) */}
+            {form.trigger_type === 'TIER_UP' && (
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1.5 block">대상 등급</label>
+                <select value={form.target_tier} onChange={e => setForm(p => ({ ...p, target_tier: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-400">
+                  <option value="">등급 선택</option>
+                  {Object.entries(TIER_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>{v}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* 연결 쿠폰 */}
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1.5 block">연결 쿠폰</label>
+              <select value={form.coupon_id} onChange={e => setForm(p => ({ ...p, coupon_id: e.target.value }))}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-400">
+                <option value="">쿠폰 선택</option>
+                {coupons.map(c => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.amount.toLocaleString()}원 할인, {c.type})</option>
+                ))}
+              </select>
+              {coupons.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">먼저 쿠폰을 생성해주세요.</p>
+              )}
+            </div>
+
+            <button onClick={handleSave}
+              className="w-full py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
+              캠페인 저장
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

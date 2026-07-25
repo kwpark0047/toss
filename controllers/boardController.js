@@ -100,7 +100,7 @@ const boardController = {
             author_name: req.user.name
         });
 
-        return res.status(201).json({ success: true, data: comment, message: '등록되었습니다.' });
+        return res.created(comment, '등록되었습니다.');
     }),
 
     // [댓글 삭제]
@@ -170,7 +170,7 @@ const boardController = {
             tags: normalizedTags
         });
 
-        return res.status(201).json({ success: true, data: post, message: '등록되었습니다.' });
+        return res.created(post, '등록되었습니다.');
     })
 };
 

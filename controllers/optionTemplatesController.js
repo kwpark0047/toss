@@ -28,7 +28,7 @@ const optionTemplatesController = {
             name,
             options
         });
-        res.status(201).json(template);
+        res.created(template);
     },
 
     /**

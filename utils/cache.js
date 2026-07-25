@@ -1,47 +1,69 @@
 const NodeCache = require('node-cache');
+const redisCache = require('./redisCache');
+const logger = require('./logger');
 
-/**
- * 인메모리 캐시 유틸리티
- * 데이터베이스 부하를 줄이기 위해 자주 조회되는 데이터를 메모리에 저장합니다.
- */
 class Cache {
     constructor(ttlSeconds = 300) {
-        this.cache = new NodeCache({
-            stdTTL: ttlSeconds, // 기본 유지 시간: 5분
-            checkperiod: ttlSeconds * 0.2, // 만료 확인 주기
-            useClones: false // 성능을 위해 클론 생략
+        this.ttl = ttlSeconds;
+        this.nodeCache = new NodeCache({
+            stdTTL: ttlSeconds,
+            checkperiod: ttlSeconds * 0.2,
+            useClones: false
         });
+        this.redisReady = false;
+        this._initRedis();
     }
 
-    // [데이터 저장]
-    set(key, value, ttl) {
-        return this.cache.set(key, value, ttl);
-    }
-
-    // [데이터 조회]
-    get(key) {
-        return this.cache.get(key);
-    }
-
-    // [데이터 삭제]
-    del(key) {
-        return this.cache.del(key);
-    }
-
-    // [매장 관련 전체 캐시 삭제 (데이터 변경 시 호출)]
-    flushByStore(storeId) {
-        const keys = this.cache.keys();
-        const storeKeys = keys.filter(k => k.includes(`store:${storeId}`));
-        if (storeKeys.length > 0) {
-            this.cache.del(storeKeys);
+    async _initRedis() {
+        try {
+            const connected = await redisCache.connect();
+            if (connected) {
+                this.redisReady = true;
+                logger.info('[Cache] Redis connected');
+            }
+        } catch (_err) {
+            logger.warn('[Cache] Redis unavailable, using NodeCache only');
         }
     }
 
-    // [전체 초기화]
+    set(key, value, ttl) {
+        const result = this.nodeCache.set(key, value, ttl);
+        if (this.redisReady) {
+            redisCache.set(key, value, ttl || this.ttl).catch(() => {});
+        }
+        return result;
+    }
+
+    get(key) {
+        return this.nodeCache.get(key);
+    }
+
+    del(key) {
+        const result = this.nodeCache.del(key);
+        if (this.redisReady) {
+            redisCache.del(key).catch(() => {});
+        }
+        return result;
+    }
+
+    flushByStore(storeId) {
+        const keys = this.nodeCache.keys();
+        const storeKeys = keys.filter(k => k.includes(`store:${storeId}`));
+        if (storeKeys.length > 0) {
+            this.nodeCache.del(storeKeys);
+        }
+        if (this.redisReady) {
+            redisCache.flushByStore(storeId).catch(() => {});
+        }
+    }
+
     flushAll() {
-        return this.cache.flushAll();
+        const result = this.nodeCache.flushAll();
+        if (this.redisReady) {
+            redisCache.flushAll().catch(() => {});
+        }
+        return result;
     }
 }
 
-// 싱글톤 인스턴스 수출
 module.exports = new Cache();

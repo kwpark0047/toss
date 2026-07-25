@@ -191,13 +191,11 @@ const v1Controller = {
             source: 'open_api',
         });
 
-        res.status(201).json({ 
-            data: { 
-                id: order.id, 
-                order_number: order.order_number, 
-                status: order.status, 
-                total_amount: order.total_amount 
-            } 
+        res.created({ 
+            id: order.id, 
+            order_number: order.order_number, 
+            status: order.status, 
+            total_amount: order.total_amount 
         });
     }),
 

@@ -23,7 +23,7 @@ describe('developerController', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         req = { body: {}, query: {}, params: {}, user: { id: 10, role: 'owner' } };
-        res = { json: jest.fn(), status: jest.fn().mockReturnThis(), success: jest.fn() };
+        res = { json: jest.fn(), status: jest.fn().mockReturnThis(), success: jest.fn(), created: jest.fn() };
         next = jest.fn();
     });
 
@@ -44,7 +44,7 @@ describe('developerController', () => {
             mockService.ensureStorePermission.mockResolvedValue(1);
             mockService.createApiKey.mockResolvedValue({ key: 'sk_123', name: 'My API Key' });
             await developerController.createApiKey(req, res);
-            expect(res.success).toHaveBeenCalled();
+            expect(res.created).toHaveBeenCalled();
         });
     });
 
@@ -76,7 +76,7 @@ describe('developerController', () => {
             mockService.ensureStorePermission.mockResolvedValue(1);
             mockService.createWebhook.mockResolvedValue({ id: 1 });
             await developerController.createWebhook(req, res);
-            expect(res.success).toHaveBeenCalled();
+            expect(res.created).toHaveBeenCalled();
         });
     });
 

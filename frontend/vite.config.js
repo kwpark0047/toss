@@ -1,7 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { imagetools } from 'vite-imagetools'
+import { visualizer } from 'rollup-plugin-visualizer'
 import { VitePWA } from 'vite-plugin-pwa'
+import criticalCss from 'vite-plugin-critical-css'
 
 export default defineConfig({
   test: {
@@ -13,6 +16,26 @@ export default defineConfig({
 
   plugins: [
     react(),
+    imagetools({
+      defaultDirectives: (url) => {
+        return new URLSearchParams({
+          format: 'avif;webp;jpeg',
+          as: 'picture',
+        })
+      },
+    }),
+    visualizer({
+      filename: 'bundle-analysis.html',
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+    }),
+    criticalCss({
+      include: ['/'],
+      minify: true,
+      height: 800,
+      width: 1280,
+    }),
     VitePWA({
       registerType: 'autoUpdate',      // 새 버전 배포 시 SW 자동 교체
       injectRegister: 'auto',
@@ -27,13 +50,31 @@ export default defineConfig({
 
         // 런타임 캐시 전략
         runtimeCaching: [
-          // API — Network Only (캐시 사용 안 함, Render 콜드스타트는 MenuPage retry로 처리)
-          // networkTimeoutSeconds 5초는 Render 슬립 시 즉시 캐시 낙오 → offline.html 서빙 버그 유발
+          // API — Network First with Stale-While-Revalidate fallback for better perceived performance
+          // Use NetworkFirst for critical API, with stale-while-revalidate behavior
           {
             urlPattern: /^https?:\/\/.+\/api\//,
-            handler: 'NetworkOnly',
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'wemarket-api',
+              networkTimeoutSeconds: 3,
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24, // 1 day
+              },
+            },
+          },
+          // API — Stale-While-Revalidate for non-critical GET requests (search, listings)
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/') && 
+              (url.searchParams.has('list') || url.searchParams.has('search') || url.pathname.includes('/list')),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'wemarket-api-stale',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24, // 1 day
+              },
             },
           },
           // 메뉴 이미지 / 업로드 파일 — Cache First

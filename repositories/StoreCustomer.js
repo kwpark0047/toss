@@ -1,9 +1,6 @@
 const prisma = require('../config/prisma');
+const { encryptPhone, phoneSearchCandidates } = require('../utils/phoneEncryption');
 
-/**
- * [단골고객 모델]
- * 매장별 고객의 방문 횟수, 총 결제 금액, 마지막 방문일 등을 관리합니다.
- */
 const StoreCustomer = {
     /**
      * [고객 정보 업데이트 또는 생성 (Upsert)]
@@ -12,7 +9,8 @@ const StoreCustomer = {
      * @param {import('@prisma/client').PrismaTransactionClient} [tx] - 트랜잭션 클라이언트 (선택)
      */
     upsertCustomer: async (data, tx) => {
-        const { store_id, customer_phone, customer_name, toss_user_key, amount } = data;
+        const { store_id, customer_phone: rawPhone, customer_name, toss_user_key, amount } = data;
+        const customer_phone = encryptPhone(rawPhone);
         const db = tx || prisma;
 
         if (!customer_phone) return null;
@@ -96,8 +94,12 @@ const StoreCustomer = {
         };
 
         if (search) {
+            const candidates = phoneSearchCandidates(search);
+            const phoneOr = candidates.length > 1
+                ? { customer_phone: { in: candidates } }
+                : { customer_phone: { contains: candidates[0] || search } };
             where.OR = [
-                { customer_phone: { contains: search } },
+                phoneOr,
                 { customer_name: { contains: search } }
             ];
         }

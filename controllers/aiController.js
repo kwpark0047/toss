@@ -230,6 +230,26 @@ const aiController = {
         }
         const suggestions = await aiService.scanMenuImage(image, mimeType);
         res.json({ success: true, suggestions });
+    }),
+
+    // [리뷰 답글 생성]
+    generateReviewReply: catchAsync(async (req, res) => {
+        const { rating, content, customer_name, store_name } = req.body;
+        if (rating == null || !content) {
+            return res.status(400).json({ success: false, error: "rating과 content 필드가 필요합니다." });
+        }
+        const reply = await aiService.generateReviewReply(
+            { rating, content, customer_name },
+            store_name || '매장'
+        );
+        res.json({ success: true, reply });
+    }),
+
+    // [이미지 보정 필터 추천]
+    recommendImageEnhancement: catchAsync(async (req, res) => {
+        const { description } = req.body;
+        const filters = await aiService.recommendImageEnhancement(description || '');
+        res.json({ success: true, filters });
     })
 };
 

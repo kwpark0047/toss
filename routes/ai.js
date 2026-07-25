@@ -278,4 +278,52 @@ router.post("/generate-menu-image", validateBody(["store_id", "name"]), aiContro
  */
 router.post("/scan-menu-image", aiController.scanMenuImage);
 
+/**
+ * @swagger
+ * /api/ai/generate-review-reply:
+ *   post:
+ *     tags: [AI]
+ *     summary: 리뷰 답글 자동 생성
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [rating, content]
+ *             properties:
+ *               rating:
+ *                 type: integer
+ *               content:
+ *                 type: string
+ *               customer_name:
+ *                 type: string
+ *               store_name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 생성된 답글
+ */
+router.post("/generate-review-reply", validateBody(["rating", "content"]), aiController.generateReviewReply);
+
+/**
+ * @swagger
+ * /api/ai/recommend-image-enhancement:
+ *   post:
+ *     tags: [AI]
+ *     summary: 메뉴 이미지 보정 필터 추천
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               description:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 추천 필터 값
+ */
+router.post("/recommend-image-enhancement", aiController.recommendImageEnhancement);
+
 module.exports = router;

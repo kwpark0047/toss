@@ -78,13 +78,13 @@ const OrderDetailModal = ({ order, statusConfig, onClose, onStatusChange, onPaym
                                 <Eye className="w-4 h-4" /> 입금 증빙 사진 (송금 확인증)
                             </h3>
                             <a
-                                href={order.proof_image_url.startsWith('http') ? order.proof_image_url : `https://wemarket.onrender.com${order.proof_image_url}`}
+                                href={order.proof_image_url.startsWith('http') ? order.proof_image_url : `${import.meta.env.VITE_API_URL || window.location.origin}${order.proof_image_url}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="block rounded-xl overflow-hidden border-2 border-white shadow-sm hover:opacity-90 transition-opacity"
                             >
                                 <img
-                                    src={order.proof_image_url.startsWith('http') ? order.proof_image_url : `https://wemarket.onrender.com${order.proof_image_url}`}
+                                    src={order.proof_image_url.startsWith('http') ? order.proof_image_url : `${import.meta.env.VITE_API_URL || window.location.origin}${order.proof_image_url}`}
                                     alt="입금 증빙"
                                     className="w-full h-auto max-h-64 object-contain bg-white"
                                 />

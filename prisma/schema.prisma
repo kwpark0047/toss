@@ -334,6 +334,8 @@ model staff {
   store_id         Int
   user_id          Int
   role             String?            @default("staff")
+  pin_code         String?
+  is_active        Int?               @default(1)
   created_at       DateTime?          @default(now())
   users            users              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   stores           stores             @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -423,21 +425,6 @@ model store_receipt_settings {
   stores             stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-model store_staff {
-  id         Int       @id @default(autoincrement())
-  store_id   Int
-  user_id    Int?
-  name       String
-  role       String?   @default("staff")
-  pin_code   String?
-  is_active  Int?      @default(1)
-  created_at DateTime? @default(now())
-  users      users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  stores     stores    @relation(fields: [store_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([store_id], map: "idx_store_staff_store_id")
-}
-
 model stores {
   id                       Int                      @id @default(autoincrement())
   user_id                  Int
@@ -501,7 +488,6 @@ model stores {
   store_customers        store_customers[]
   store_point_settings   store_point_settings?
   store_receipt_settings store_receipt_settings?
-  store_staff            store_staff[]
   store_tier_settings    store_tier_settings[]
   users                  users                    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   tables                 tables[]
@@ -578,6 +564,7 @@ model users {
   address                                                          String?
   profile_step                                                     Int?                     @default(1)
   password                                                         String
+  two_factor_enabled                                               Boolean                  @default(false)
   created_at                                                       DateTime?                @default(now())
   role                                                             String?                  @default("user")
   fcm_token                                                        String?
@@ -589,11 +576,12 @@ model users {
   staff                                                            staff[]
   staff_account_requests_staff_account_requests_reviewed_byTousers staff_account_requests[] @relation("staff_account_requests_reviewed_byTousers")
   staff_account_requests_staff_account_requests_user_idTousers     staff_account_requests[] @relation("staff_account_requests_user_idTousers")
-  store_staff                                                      store_staff[]
   stores                                                           stores[]
   user_points                                                      user_points[]
   community_post_likes                                             community_post_likes[]
   chat_rooms                                                       chat_rooms[]
+  social_accounts                                                  social_accounts[]
+  admin_otps                                                       admin_otps[]
 
   @@index([email], map: "idx_users_email")
 }
@@ -1015,6 +1003,42 @@ model food_trucks {
   stores                stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
 
   @@index([store_id, is_active_session], map: "idx_food_trucks_store_active")
+}
+
+model social_accounts {
+  id            Int      @id @default(autoincrement())
+  user_id       Int?
+  provider      String   // kakao | naver | google
+  provider_id   String   // provider's unique user ID
+  email         String?
+  name          String?
+  profile_image String?
+  access_token  String?  @db.Text
+  refresh_token String?  @db.Text
+  expires_at    DateTime?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now())
+  users         users?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([provider, provider_id])
+  @@index([user_id])
+  @@index([provider])
+}
+
+// 관리자 2FA OTP — SMS OTP 기반 2차 인증
+model admin_otps {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  otp        String
+  purpose    String   @default("LOGIN")  // LOGIN | ENABLE | DISABLE
+  expires_at DateTime
+  verified   Boolean  @default(false)
+  used       Boolean  @default(false)
+  created_at DateTime @default(now())
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, purpose])
+  @@index([user_id, created_at(sort: Desc)])
 }
 
 model news {

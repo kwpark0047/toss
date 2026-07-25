@@ -165,15 +165,11 @@ describe('emitEvent()', () => {
 /*  startRetryScheduler()                                              */
 /* ------------------------------------------------------------------ */
 describe('startRetryScheduler()', () => {
-  beforeEach(() => { jest.useFakeTimers(); });
+  beforeEach(() => {
+    // doNotFake setImmediate: pump()에서 setImmediate로 이벤트 루프를 플러시해야 하므로 제외
+    jest.useFakeTimers({ doNotFake: ['setImmediate'] });
+  });
   afterEach(() => { jest.useRealTimers(); });
-
-  /** setInterval(async) 내부 await 체인을 완료시키기 위해 이벤트 루프 펌프 */
-  async function pump() {
-    for (let i = 0; i < 10; i++) {
-      await new Promise(resolve => setImmediate(resolve));
-    }
-  }
 
   it('지연된 pending delivery를 재발송', async () => {
     mockPrisma.webhook_deliveries.findMany.mockResolvedValue([{
@@ -185,8 +181,7 @@ describe('startRetryScheduler()', () => {
     global.fetch = jest.fn(() => Promise.resolve({ status: 200 }));
 
     startRetryScheduler(1000);
-    jest.advanceTimersByTime(1000);
-    await pump();
+    await jest.advanceTimersByTimeAsync(1000);
 
     expect(mockPrisma.webhook_deliveries.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ status: 'pending' }) })
@@ -203,8 +198,7 @@ describe('startRetryScheduler()', () => {
     global.fetch = jest.fn();
 
     startRetryScheduler(1000);
-    jest.advanceTimersByTime(1000);
-    await pump();
+    await jest.advanceTimersByTimeAsync(1000);
 
     expect(global.fetch).not.toHaveBeenCalled();
   });

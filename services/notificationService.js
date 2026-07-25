@@ -3,6 +3,7 @@ const path = require('path');
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const { resolveTemplate } = require('../utils/notificationTemplate');
+const { getNotificationTemplate, t } = require('../utils/i18n');
 
 /**
  * [NotificationService]
@@ -74,14 +75,22 @@ class NotificationService {
    * 주문 상태 변경 통합 알림
    * 상황에 따라 소켓과 푸시를 동시에 처리합니다.
    */
-  async notifyOrderStatus(order, newStatus, customerToken = null) {
-    let title = '주문 상태 업데이트 🔔';
-    let body = `주문 #${order.order_number || order.id}번이 "${this._getStatusLabel(newStatus)}" 상태로 변경되었습니다.`;
+  async notifyOrderStatus(order, newStatus, customerToken = null, lang = 'ko') {
+    const statusLabel = this._getStatusLabel(newStatus, lang);
+    let title = t('notifications.ORDER_STATUS.title', lang, { icon: '🔔', statusLabel });
+    let body = t('notifications.ORDER_STATUS.message', lang, {
+      orderNumber: order.order_number || order.id,
+      statusLabel,
+    });
 
-    // 조리 취소/반려 상황 시 20대 타겟의 직관적이고 친절한 한국어 문구 커스텀화
+    // 조리 취소/반려 상황 시 직관적인 문구 커스텀화
     if (newStatus === 'cancelled' || newStatus === 'cancelled_by_kds') {
-      title = '주문 취소/반려 안내 ❌';
-      body = `정말 죄송합니다. 매장 사정으로 주문 #${order.order_number || order.id}번이 취소되었습니다. 결제 수단으로 즉시 환불 처리됩니다.`;
+      title = '❌ ' + t('status.cancelled', lang);
+      body = t('notifications.ORDER_CANCELLED.message', lang, {
+        storeName: order.store?.name || '',
+        orderNumber: order.order_number || order.id,
+        reason: '매장 사정',
+      });
     }
 
     const payload = {
@@ -108,9 +117,12 @@ class NotificationService {
   /**
    * 새 주문 발생 알림
    */
-  async notifyNewOrder(order, managerTokens = []) {
-    const title = '🚀 새 주문 접수!';
-    const body = `${order.table_name || '포장'}에서 새 주문이 들어왔습니다.`;
+  async notifyNewOrder(order, managerTokens = [], lang = 'ko') {
+    const title = '🚀 ' + t('notifications.NEW_ORDER.title', lang);
+    const body = t('notifications.NEW_ORDER.message', lang, {
+      tableName: order.table_name || '포장',
+      orderNumber: order.order_number || order.id,
+    });
 
     const payload = {
       type: 'NEW_ORDER',
@@ -163,17 +175,18 @@ class NotificationService {
   }
 
   /** 주문 생성 시 NEW_ORDER 알림 (관리자 커스텀 템플릿 우선 적용) */
-  async notifyNewOrderDB(order) {
+  async notifyNewOrderDB(order, lang = 'ko') {
     const tableName = order.table_name || '테이블';
     const orderNumber = order.order_number || order.id;
     const tpl = await resolveTemplate(order.store_id, 'NEW_ORDER', {
       tableName, orderNumber, storeId: order.store_id,
     });
+    const i18n = getNotificationTemplate('NEW_ORDER', lang, { tableName, orderNumber });
     return this.createNotification({
       store_id: order.store_id,
       type: 'NEW_ORDER',
-      title: tpl?.title || '🛎️ 새 주문 접수',
-      message: tpl?.message || `${tableName}에서 주문이 들어왔습니다. (주문번호: ${orderNumber})`,
+      title: tpl?.title || i18n.title,
+      message: tpl?.message || i18n.message,
       data: { orderId: order.id, orderNumber: order.order_number, tableId: order.table_id },
       priority: 'high',
       link: `/admin/stores/${order.store_id}/orders`
@@ -181,7 +194,7 @@ class NotificationService {
   }
 
   /** 주문 상태 변경 시 알림 (관리자 커스텀 템플릿 우선 적용) */
-  async notifyOrderStatusDB(order, newStatus) {
+  async notifyOrderStatusDB(order, newStatus, lang = 'ko') {
     const labels = { confirmed: '주문 확인', preparing: '조리 시작', ready: '준비 완료', completed: '완료', cancelled: '취소됨' };
     const icons = { confirmed: '✅', preparing: '👨‍🍳', ready: '🔔', completed: '🎉', cancelled: '❌' };
     const priorities = { ready: 'high', cancelled: 'high', confirmed: 'normal', preparing: 'normal', completed: 'low' };
@@ -190,11 +203,14 @@ class NotificationService {
     const tpl = await resolveTemplate(order.store_id, 'ORDER_STATUS', {
       orderNumber, status: statusLabel, tableName: order.table_name || '테이블',
     });
+    const i18n = getNotificationTemplate('ORDER_STATUS', lang, {
+      orderNumber, statusLabel, icon: icons[newStatus] || '📦',
+    });
     return this.createNotification({
       store_id: order.store_id,
       type: 'ORDER_STATUS',
-      title: tpl?.title || `${icons[newStatus] || '📦'} 주문 ${statusLabel}`,
-      message: tpl?.message || `주문 #${orderNumber} 상태가 "${statusLabel}"(으)로 변경되었습니다.`,
+      title: tpl?.title || i18n.title,
+      message: tpl?.message || i18n.message,
       data: { orderId: order.id, newStatus },
       priority: priorities[newStatus] || 'normal',
       link: `/admin/stores/${order.store_id}/orders`
@@ -202,12 +218,16 @@ class NotificationService {
   }
 
   /** 재고 부족 알림 (DB + 소켓 + 사장님 FCM 푸시) */
-  async notifyLowStockDB(product) {
+  async notifyLowStockDB(product, lang = 'ko') {
+    const i18n = getNotificationTemplate('LOW_STOCK', lang, {
+      productName: product.name,
+      stock: product.stock_quantity,
+    });
     const record = await this.createNotification({
       store_id: product.store_id,
       type: 'LOW_STOCK',
-      title: '⚠️ 재고 부족 경고',
-      message: `"${product.name}" 재고가 ${product.stock_quantity}개 남았습니다. 재고를 보충해주세요.`,
+      title: i18n.title,
+      message: i18n.message,
       data: { productId: product.id, stock: product.stock_quantity, threshold: product.low_stock_threshold },
       priority: 'urgent',
       link: `/admin/stores/${product.store_id}/menu`
@@ -240,12 +260,17 @@ class NotificationService {
   }
 
   /** 새 예약 알림 */
-  async notifyNewReservationDB(reservation) {
+  async notifyNewReservationDB(reservation, lang = 'ko') {
+    const i18n = getNotificationTemplate('NEW_RESERVATION', lang, {
+      customerName: reservation.customer_name,
+      partySize: reservation.party_size,
+      reservationTime: new Date(reservation.reservation_time).toLocaleString(lang === 'ko' ? 'ko-KR' : lang === 'ja' ? 'ja-JP' : lang === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    });
     return this.createNotification({
       store_id: reservation.store_id,
       type: 'NEW_RESERVATION',
-      title: '📅 새 예약 신청',
-      message: `${reservation.customer_name}(${reservation.party_size}명) — ${new Date(reservation.reservation_time).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 예약`,
+      title: i18n.title,
+      message: i18n.message,
       data: { reservationId: reservation.id },
       priority: 'normal',
       link: `/admin/stores/${reservation.store_id}/reservations`
@@ -253,13 +278,16 @@ class NotificationService {
   }
 
   /** 새 리뷰 알림 */
-  async notifyNewReviewDB(review) {
+  async notifyNewReviewDB(review, lang = 'ko') {
     const stars = '⭐'.repeat(review.rating || 0);
+    const i18n = getNotificationTemplate('NEW_REVIEW', lang, {
+      stars, rating: review.rating || 0, content: (review.content || '').slice(0, 40),
+    });
     return this.createNotification({
       store_id: review.store_id,
       type: 'NEW_REVIEW',
-      title: '💬 새 리뷰 등록',
-      message: `${stars} ${review.rating}점 — "${(review.content || '').slice(0, 40)}${review.content?.length > 40 ? '…' : ''}"`,
+      title: i18n.title,
+      message: i18n.message,
       data: { reviewId: review.id, rating: review.rating },
       priority: 'low',
       link: `/admin/stores/${review.store_id}/reviews`
@@ -267,12 +295,16 @@ class NotificationService {
   }
 
   /** 매니저 호출 알림 */
-  async notifyManagerCallDB(storeId, tableName, callType) {
+  async notifyManagerCallDB(storeId, tableName, callType, lang = 'ko') {
+    const i18n = getNotificationTemplate('MANAGER_CALL', lang, {
+      tableName: tableName || '고객',
+      callTypeLabel: t(`callType.${callType}`, lang),
+    });
     return this.createNotification({
       store_id: storeId,
       type: 'MANAGER_CALL',
-      title: '🙋 매니저 호출',
-      message: `${tableName || '고객'}님이 ${callType === 'help' ? '도움' : callType === 'bill' ? '계산' : '매니저'}을 요청했습니다.`,
+      title: i18n.title,
+      message: i18n.message,
       data: { tableName, callType },
       priority: 'urgent',
       link: null
@@ -280,28 +312,23 @@ class NotificationService {
   }
 
   /** 정산 생성 알림 */
-  async notifySettlementDB(settlement) {
+  async notifySettlementDB(settlement, lang = 'ko') {
+    const i18n = getNotificationTemplate('SETTLEMENT', lang, {
+      netAmount: Number(settlement.net_amount || 0).toLocaleString(lang === 'ko' ? 'ko-KR' : lang === 'ja' ? 'ja-JP' : lang === 'zh' ? 'zh-CN' : 'en-US'),
+    });
     return this.createNotification({
       store_id: settlement.store_id,
       type: 'SETTLEMENT',
-      title: '💰 정산 보고서 생성',
-      message: `정산 완료 — 순수익 ₩${Number(settlement.net_amount || 0).toLocaleString('ko-KR')}`,
+      title: i18n.title,
+      message: i18n.message,
       data: { settlementId: settlement.id },
       priority: 'normal',
       link: `/admin/stores/${settlement.store_id}/settlements`
     });
   }
 
-  _getStatusLabel(status) {
-    const labels = {
-      pending: '대기중',
-      confirmed: '주문확인',
-      preparing: '조리중',
-      ready: '준비완료',
-      completed: '완료',
-      cancelled: '취소'
-    };
-    return labels[status] || status;
+  _getStatusLabel(status, lang = 'ko') {
+    return t(`status.${status}`, lang);
   }
 }
 

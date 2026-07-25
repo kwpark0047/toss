@@ -20,7 +20,7 @@ const productsController = {
     // [POST] 상품 생성
     createProduct: catchAsync(async (req, res) => {
         const product = await productsService.createProduct(req.body);
-        res.success(product, '상품이 생성되었습니다.', 201);
+        res.created(product, '상품이 생성되었습니다.');
     }),
 
     // [PUT] 상품 정보 수정
@@ -40,7 +40,7 @@ const productsController = {
     bulkCreate: catchAsync(async (req, res) => {
         const { store_id, products } = req.body;
         const createdProducts = await productsService.bulkCreate(store_id, products);
-        res.success(createdProducts, `${createdProducts.length}개의 상품이 등록되었습니다.`, 201);
+        res.created(createdProducts, `${createdProducts.length}개의 상품이 등록되었습니다.`);
     }),
 
     // [POST] 다른 매장에서 메뉴 가져오기

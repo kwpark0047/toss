@@ -19,7 +19,7 @@ const categoriesController = {
     // [POST] 카테고리 생성
     createCategory: catchAsync(async (req, res) => {
         const category = await categoriesService.createCategory(req.body);
-        res.status(201).json(category);
+        res.created(category);
     }),
 
     // [PUT] 카테고리 수정

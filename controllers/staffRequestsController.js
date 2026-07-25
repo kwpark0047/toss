@@ -9,7 +9,7 @@ const staffRequestsController = {
     createRequest: catchAsync(async (req, res, next) => {
         const request = await staffRequestsService.createRequest(req.user.id, req.body);
         const roleLabel = req.body.role === 'manager' ? '매니저' : '주방';
-        res.success(request, `${roleLabel} 계정 신청이 완료되었습니다`, 201);
+        res.created(request, `${roleLabel} 계정 신청이 완료되었습니다`);
     }),
 
     // 매장별 신청 내역 조회

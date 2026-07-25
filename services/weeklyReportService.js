@@ -8,9 +8,35 @@
  */
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
+const https = require('https');
 const notificationService = require('./notificationService');
 const { kstNow, KST_OFFSET_MS } = require('../utils/kstTime');
 const { fmtWon } = require('../utils/format');
+
+const EMAIL_WEBHOOK_URL = process.env.REPORT_EMAIL_WEBHOOK_URL || '';
+const EMAIL_RECIPIENT = process.env.REPORT_EMAIL_TO || '';
+
+async function _sendEmail(subject, htmlBody) {
+    if (!EMAIL_WEBHOOK_URL || !EMAIL_RECIPIENT) return;
+    try {
+        const { hostname, pathname, search } = new URL(EMAIL_WEBHOOK_URL);
+        const payload = JSON.stringify({ to: EMAIL_RECIPIENT, subject, html: htmlBody });
+        await new Promise((resolve, reject) => {
+            const req = https.request(
+                { hostname, path: pathname + (search || ''), method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } },
+                (res) => { res.resume(); res.on('end', resolve); }
+            );
+            req.on('error', reject);
+            req.setTimeout(10000, () => { req.destroy(); reject(new Error('timeout')); });
+            req.write(payload);
+            req.end();
+        });
+        logger.info(`[리포트] 이메일 발송 완료 → ${EMAIL_RECIPIENT}`);
+    } catch (err) {
+        logger.warn(`[리포트] 이메일 발송 실패: ${err.message}`);
+    }
+}
 
 const POLL_INTERVAL_MS = 10 * 60 * 1000;
 
@@ -57,6 +83,7 @@ async function sendWeeklyReports() {
     });
 
     let sent = 0;
+    const storeSummaries = [];
     for (const { store_id } of activeStores) {
         try {
             // 중복 방지: 최근 6일 내 이미 발송했으면 스킵
@@ -76,7 +103,7 @@ async function sendWeeklyReports() {
             await notificationService.createNotification({
                 store_id,
                 type: 'WEEKLY_REPORT',
-                title: '📊 주간 매출 리포트',
+                title: '주간 매출 리포트',
                 message: `지난 7일 주문 ${report.orderCount}건 · 매출 ${fmtWon(report.revenue)} · 객단가 ${fmtWon(report.avgOrder)}.${top}`,
                 data: {
                     period: { from: from.toISOString(), to: now.toISOString() },
@@ -88,12 +115,20 @@ async function sendWeeklyReports() {
                 priority: 'normal',
                 link: `/admin/stores/${store_id}/stats`,
             });
+            storeSummaries.push(`<tr><td>store#${store_id}</td><td>${report.orderCount}</td><td>${fmtWon(report.revenue)}</td><td>${fmtWon(report.avgOrder)}</td></tr>`);
             sent++;
         } catch (err) {
             logger.warn(`[주간리포트] store ${store_id} 발송 실패: ${err.message}`);
         }
     }
-    if (sent > 0) logger.info(`[주간리포트] ${sent}개 매장 발송 완료`);
+    if (sent > 0) {
+        logger.info(`[주간리포트] ${sent}개 매장 발송 완료`);
+        const tableRows = storeSummaries.join('');
+        await _sendEmail(
+            `[WeMarket] 주간 리포트 요약 (${from.toLocaleDateString()}~${now.toLocaleDateString()})`,
+            `<h2>주간 매출 리포트 요약</h2><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse"><tr><th>매장</th><th>주문</th><th>매출</th><th>객단가</th></tr>${tableRows}</table><p><small>전체 ${sent}개 매장</small></p>`
+        );
+    }
     return sent;
 }
 
@@ -147,7 +182,13 @@ async function sendMonthlyReports() {
             logger.warn(`[월간리포트] store ${store_id} 발송 실패: ${err.message}`);
         }
     }
-    if (sent > 0) logger.info(`[월간리포트] ${sent}개 매장 발송 완료`);
+    if (sent > 0) {
+        logger.info(`[월간리포트] ${sent}개 매장 발송 완료`);
+        await _sendEmail(
+            `[WeMarket] 월간 리포트 요약 (${lastMonthStartUtc.toLocaleDateString()}~${thisMonthStartUtc.toLocaleDateString()})`,
+            `<h2>월간 매출 리포트 요약</h2><p>전체 ${sent}개 매장에서 리포트를 생성했습니다.</p>`
+        );
+    }
     return sent;
 }
 
