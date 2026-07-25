@@ -2,6 +2,7 @@ const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
 const aiService = require('../services/aiService');
 const { getStoreRole } = require('../middleware/storeAuth');
+const logger = require('../utils/logger');
 
 class ReviewsService {
     /**
@@ -156,7 +157,9 @@ JSON 형식으로 답변해줘 (다른 텍스트 없이):
             if (match) {
                 return JSON.parse(match[0]);
             }
-        } catch (_) {}
+        } catch (e) {
+            logger.warn(`[Reviews] AI 감정분석 응답 파싱 실패: ${e.message}`);
+        }
 
         const fallbackSentiment = review.rating >= 4 ? 'positive' : review.rating <= 2 ? 'negative' : 'neutral';
         return {

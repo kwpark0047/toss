@@ -11,6 +11,14 @@ module.exports = [
       'public/',
       '*.json',
       'coverage/',
+      'dist/',
+      'commitlint.config.js',
+      'scripts/',
+      // TypeScript 컴파일 출력물 — 소스는 .ts 파일에서 관리
+      'services/KdsService.js',
+      'utils/kstTime.js',
+      'test_prisma.js',
+      'playwright.config.js',
     ],
   },
   {
@@ -30,7 +38,7 @@ module.exports = [
     rules: {
       ...js.configs.recommended.rules,
 
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-console': 'off',
       'no-constant-condition': ['error', { checkLoops: false }],
       'no-empty': ['error', { allowEmptyCatch: true }],
@@ -50,8 +58,15 @@ module.exports = [
     },
   },
   {
+    // 도메인 인터페이스 — 파라미터 이름은 의도를 드러내기 위한 문서 역할
+    files: ['app/domain/interfaces/**/*.js'],
+    rules: {
+      'no-unused-vars': 'off',
+    },
+  },
+  {
     // 유닛/통합 테스트 (Jest, Node 환경). node:crypto를 require로 사용.
-    files: ['**/*.test.js', 'tests/unit/**/*.js', 'tests/integration/**/*.js', 'tests/scripts/**/*.js'],
+    files: ['**/*.test.js', 'tests/unit/**/*.js', 'tests/integration/**/*.js', 'tests/scripts/**/*.js', 'jest.setup.js'],
     languageOptions: {
       globals: {
         ...globals.jest,

@@ -1,5 +1,6 @@
 const StoreService = require('../services/StoreService');
 const Store = require('../repositories/Store');
+const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 
 const storeService = new StoreService();
@@ -9,8 +10,6 @@ const storeController = {
     async getStores(req, res) {
         const limit = parseInt(req.query.limit) || 0;
         if (limit > 0) {
-            const prisma = require('../config/prisma');
-            const { NOT } = require('@prisma/client');
             const stores = await prisma.stores.findMany({
                 where: { is_active: true, NOT: [{ name: { contains: '?' } }, { name: { contains: '\uFFFD' } }] },
                 select: { id: true, name: true, address: true, business_type: true, latitude: true, longitude: true },
@@ -110,7 +109,7 @@ const storeController = {
             );
         }
 
-        res.success(result.store, '매장이 생성되었습니다.', 201);
+        res.created(result.store, '매장이 생성되었습니다.');
     },
 
     // GET /:id — 매장 상세 조회

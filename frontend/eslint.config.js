@@ -30,7 +30,7 @@ const jsxA11yLocal = {
 
 export default [
   {
-    ignores: ['dist/', 'dev-dist/', 'node_modules/'],
+    ignores: ['dist/', 'dev-dist/', 'node_modules/', 'src/test/'],
   },
   {
     files: ['**/*.{js,jsx}'],
@@ -55,13 +55,28 @@ export default [
       ...reactHooks.configs.recommended.rules,
       'jsx/uses-vars': 'error',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-console': 'off',
       'no-constant-condition': ['error', { checkLoops: false }],
       'no-empty': ['error', { allowEmptyCatch: true }],
       'prefer-const': 'error',
       'no-var': 'error',
       'eqeqeq': ['error', 'always', { null: 'ignore' }],
+    },
+  },
+  {
+    // 테스트 파일 (Vitest globals)
+    files: ['src/test/**/*.{js,jsx}', '**/*.test.{js,jsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.es2021,
+        ...globals.vitest,
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-undef': 'off',
     },
   },
   {

@@ -264,4 +264,4 @@ class KdsService {
 }
 
 const kdsServiceInstance = new KdsService();
-export = kdsServiceInstance;
+export default kdsServiceInstance;

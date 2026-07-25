@@ -1,19 +1,20 @@
-﻿const { ReadableStream } = require("stream/web");
-const { Blob, File } = require("buffer");
-const { MessageChannel, MessagePort } = require("worker_threads");
-
-global.ReadableStream = ReadableStream;
-global.Blob = Blob;
-if (typeof File !== "undefined") {
-  global.File = File;
-} else {
-  global.File = class File extends Blob {
-    constructor(chunks, name, options = {}) {
-      super(chunks, options);
-      this.name = name;
-      this.lastModified = options.lastModified || Date.now();
-    }
-  };
+﻿// Node 22+ built-in globals — only polyfill if missing
+if (typeof ReadableStream === "undefined") {
+  const { ReadableStream: RS } = require("stream/web");
+  global.ReadableStream = RS;
+}
+if (typeof Blob === "undefined") {
+  const { Blob: B } = require("buffer");
+  global.Blob = B;
+}
+if (typeof File === "undefined") {
+  const { File: F } = require("buffer");
+  global.File = F;
+}
+if (typeof MessageChannel === "undefined") {
+  const { MessageChannel: MC, MessagePort: MP } = require("worker_threads");
+  global.MessageChannel = MC;
+  global.MessagePort = MP;
 }
 
 const crypto = require("crypto");
@@ -37,41 +38,43 @@ if (typeof fetch === "undefined") {
   global.Response = nodeFetch.Response;
 }
 
-global.MessageChannel = MessageChannel;
-global.MessagePort = MessagePort;
 global.performance = require("perf_hooks").performance;
 
-class Event {
-  constructor(type, options = {}) {
-    this.type = type;
-    this.bubbles = !!options.bubbles;
-    this.cancelable = !!options.cancelable;
-    this.composed = !!options.composed;
-    this.defaultPrevented = false;
+if (typeof Event === "undefined") {
+  class Event {
+    constructor(type, options = {}) {
+      this.type = type;
+      this.bubbles = !!options.bubbles;
+      this.cancelable = !!options.cancelable;
+      this.composed = !!options.composed;
+      this.defaultPrevented = false;
+    }
+    preventDefault() { this.defaultPrevented = true; }
+    stopPropagation() {}
+    stopImmediatePropagation() {}
   }
-  preventDefault() { this.defaultPrevented = true; }
-  stopPropagation() {}
-  stopImmediatePropagation() {}
+  global.Event = Event;
 }
-global.Event = Event;
 
-class EventTarget {
-  constructor() { this.listeners = {}; }
-  addEventListener(type, callback) {
-    if (!this.listeners[type]) this.listeners[type] = [];
-    this.listeners[type].push(callback);
+if (typeof EventTarget === "undefined") {
+  class EventTarget {
+    constructor() { this.listeners = {}; }
+    addEventListener(type, callback) {
+      if (!this.listeners[type]) this.listeners[type] = [];
+      this.listeners[type].push(callback);
+    }
+    removeEventListener(type, callback) {
+      if (!this.listeners[type]) return;
+      this.listeners[type] = this.listeners[type].filter(cb => cb !== callback);
+    }
+    dispatchEvent(event) {
+      if (!this.listeners[event.type]) return true;
+      for (const callback of this.listeners[event.type]) callback(event);
+      return !event.defaultPrevented;
+    }
   }
-  removeEventListener(type, callback) {
-    if (!this.listeners[type]) return;
-    this.listeners[type] = this.listeners[type].filter(cb => cb !== callback);
-  }
-  dispatchEvent(event) {
-    if (!this.listeners[event.type]) return true;
-    for (const callback of this.listeners[event.type]) callback(event);
-    return !event.defaultPrevented;
-  }
+  global.EventTarget = EventTarget;
 }
-global.EventTarget = EventTarget;
 
 if (typeof DOMException === "undefined") {
   global.DOMException = require("domexception");

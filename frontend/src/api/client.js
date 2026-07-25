@@ -2,21 +2,30 @@ import axios from 'axios';
 import { extractErrorMessage } from '@/lib/errorUtils';
 
 const getApiUrl = () => {
+  // 1순위: 환경변수 (VITE_API_URL)
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl) return envUrl;
 
+  // 2순위: VITE_BACKEND_URL + /api
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   if (backendUrl) return `${backendUrl}/api`;
 
   const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'https://wemarket-toss.onrender.com/api';
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+  if (isLocalhost) {
+    // 개발 환경: 로컬 서버로 폴백 (Vite dev server가 5173이므로 Express는 3000)
+    return 'http://localhost:3000/api';
   }
 
+  // 프로덕션: 같은 origin의 /api로 프록시
   return `${window.location.origin}/api`;
 };
 
 const API_URL = getApiUrl();
+
+/** API_URL의 `/api` 접미사를 제거한 베이스 URL (웨이크업 등에 사용) */
+const getBaseUrl = () => API_URL.replace(/\/api(?:\/.*)?$/, '');
 
 const USE_COOKIE = import.meta.env.VITE_HTTPONLY_COOKIE === 'true';
 
@@ -94,5 +103,5 @@ api.interceptors.response.use(
   }
 );
 
-export { API_URL };
+export { API_URL, getBaseUrl };
 export default api;

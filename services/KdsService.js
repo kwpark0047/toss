@@ -1,3 +1,13 @@
+/**
+ * [Compiled Output — Do Not Edit Directly]
+ *
+ * 이 파일은 KdsService.ts로부터 TypeScript 컴파일러(tsc)로 생성된 출력물입니다.
+ * 소스 코드의 변경이 필요한 경우 KdsService.ts를 수정하고 tsc로 재컴파일하십시오.
+ *
+ * 관련 파일:
+ * - Source: services/KdsService.ts (타입 정의 + 비즈니스 로직)
+ * - Runtime: 이 파일 (컴파일된 JavaScript)
+ */
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -184,7 +194,9 @@ class KdsService {
                         slip += `   └ ${key}: ${val}\n`;
                     });
                 }
-                catch (_) { }
+                catch (e) {
+                    logger.warn(`[KDS] 옵션 파싱 실패: ${e.message}`);
+                }
             }
         });
         slip += `==============================\n`;

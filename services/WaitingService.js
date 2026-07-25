@@ -81,7 +81,9 @@ class WaitingService {
                 newQueueNumber,
                 waitingCount
             ).catch(e => logger.warn(`[Waiting] 알림톡 발송 실패: ${e.message}`));
-        } catch (_) {}
+        } catch (e) {
+            logger.warn(`[Waiting] 등록 알림 처리 중 예외: ${e.message}`);
+        }
 
         return result;
     }
@@ -114,7 +116,9 @@ class WaitingService {
                 alimtalkService.sendWaitingCancel(phone, storeName)
                     .catch(e => logger.warn(`[Waiting] 취소 알림톡 실패: ${e.message}`));
             }
-        } catch (_) {}
+        } catch (e) {
+            logger.warn(`[Waiting] 상태 변경 알림 처리 중 예외: ${e.message}`);
+        }
 
         return result;
     }

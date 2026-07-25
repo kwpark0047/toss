@@ -73,8 +73,7 @@ describe('TcpPrinter', () => {
     }, 10000);
 
     test('rejects on socket error', async () => {
-        mockSocket.connect.mockImplementation((port, host, cb) => cb());
-        mockSocket.write.mockImplementation((data, cb) => cb());
+        mockSocket.connect.mockImplementation(() => {});
         mockSocket.on.mockImplementation((event, cb) => {
             if (event === 'error') {
                 cb(new Error('ECONNREFUSED'));
@@ -93,6 +92,7 @@ describe('UsbPrinter', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         printer = new UsbPrinter(0x0456, 0x0808);
+        usb.getDeviceList.mockReturnValue([mockUsbDevice]);
     });
 
     test('prints successfully', async () => {
@@ -114,7 +114,7 @@ describe('UsbPrinter', () => {
         usb.getDeviceList.mockReturnValue([]);
 
         const payload = Buffer.from('TEST').toString('base64');
-        await expect(printer.print(payload)).rejects.toThrow('USB print failed: USB printer not found');
+        await expect(printer.print(payload)).rejects.toThrow('USB print failed: USB printer not found (VID:1110 PID:2056)');
     });
 
     test('detaches kernel driver if active', async () => {

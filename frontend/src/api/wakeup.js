@@ -1,4 +1,4 @@
-import { API_URL } from './client';
+import { getBaseUrl } from './client';
 
 /**
  * Render 콜드스타트 웨이크업: 서버가 슬립 상태일 때 깨울 때까지 폴링.
@@ -7,7 +7,7 @@ import { API_URL } from './client';
 let _wakeupPromise = null;
 export const wakeupServer = () => {
   if (_wakeupPromise) return _wakeupPromise;
-  const baseUrl = API_URL.replace('/api', '');
+  const baseUrl = getBaseUrl();
   const MAX_WAIT_MS = 60_000;
   const POLL_MS = 3_000;
   const startedAt = Date.now();
