@@ -15,7 +15,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -27,7 +27,7 @@ jobs:
       - name: Unit & Integration Tests
         run: npm run test:coverage
 
-  backend-unit-tests:
+backend-unit-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -53,7 +53,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -65,7 +65,7 @@ jobs:
       - name: Run backend unit tests
         run: npx jest tests/unit/ --no-cache --forceExit
 
-  backend-integration-tests:
+backend-integration-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: backend-unit-tests
@@ -92,7 +92,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -104,7 +104,7 @@ jobs:
       - name: Run integration tests
         run: npx jest tests/integration/ --no-cache --forceExit
 
-  print-agent-test:
+print-agent-test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -115,7 +115,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: print-agent/package-lock.json
 
@@ -132,6 +132,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Deploy to Render (backend)
         run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
@@ -162,7 +170,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies

@@ -52,9 +52,8 @@ prismaPrimary.$on('query', (e) => {
 
     if (duration >= threshold) {
         try {
-            const loggerInstance = require('../utils/logger');
-            if (loggerInstance && typeof loggerInstance.warn === 'function') {
-                loggerInstance.warn(`🐌 [Prisma Slow Query] ${duration}ms | Query: ${e.query} | Params: ${e.params}`);
+            if (logger && typeof logger.warn === 'function') {
+                logger.warn(`🐌 [Prisma Slow Query] ${duration}ms | Query: ${e.query} | Params: ${e.params}`);
             } else {
                 console.warn(`🐌 [Prisma Slow Query] ${duration}ms | Query: ${e.query}`);
             }
@@ -63,7 +62,7 @@ prismaPrimary.$on('query', (e) => {
             console.warn(`🐌 [Prisma Slow Query] ${duration}ms | Query: ${e.query}`);
         }
     }
-});
+    }); // <-- closing for arrow function
 
 // 3. 투명한 데이터베이스 읽기/쓰기 분기 라우팅 프록시 핸들러 설계
 // 레포지토리의 소스코드 수정 오버헤드를 0%로 줄이기 위해 ES6 Proxy를 사용해 호출을 가로챕니다.
