@@ -27,7 +27,7 @@ jobs:
       - name: Unit & Integration Tests
         run: npm run test:coverage
 
-backend-unit-tests:
+  backend-unit-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -65,7 +65,7 @@ backend-unit-tests:
       - name: Run backend unit tests
         run: npx jest tests/unit/ --no-cache --forceExit
 
-backend-integration-tests:
+  backend-integration-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: backend-unit-tests
@@ -104,7 +104,7 @@ backend-integration-tests:
       - name: Run integration tests
         run: npx jest tests/integration/ --no-cache --forceExit
 
-print-agent-test:
+  print-agent-test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
