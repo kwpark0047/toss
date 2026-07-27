@@ -1,5 +1,6 @@
 const Order = require('../repositories/Order');
 const Store = require('../repositories/Store');
+const dbCache = require('../utils/dbCache');
 const catchAsync = require('../utils/catchAsync');
 
 /**
@@ -45,33 +46,44 @@ const analyticsController = {
     /**
      * [GET] 해당 매장의 인기 판매 메뉴 순위 조회
      */
-    getPopularProducts: catchAsync(async (req, res) => {
-        const storeId = parseInt(req.params.storeId);
-        if (isNaN(storeId)) return res.status(400).json({ error: '유효하지 않은 매장 ID입니다.' });
+getPopularProducts: catchAsync(async (req, res) => {
+         const storeId = parseInt(req.params.storeId);
+         if (isNaN(storeId)) return res.status(400).json({ error: '유효하지 않은 매장 ID입니다.' });
 
-        const { limit = 10 } = req.query;
-        let { start_date, end_date } = req.query;
+         const { limit = 10 } = req.query;
+         let { start_date, end_date } = req.query;
 
-        if (!start_date || !end_date) {
-            const today = new Date();
-            const lastWeek = new Date();
-            lastWeek.setDate(today.getDate() - 7);
-            start_date = lastWeek.toISOString();
-            end_date = today.toISOString();
-        }
+         if (!start_date || !end_date) {
+             const today = new Date();
+             const lastWeek = new Date();
+             lastWeek.setDate(today.getDate() - 7);
+             start_date = lastWeek.toISOString();
+             end_date = today.toISOString();
+         }
 
-        const stats = await Order.getDetailedStats(storeId, start_date, end_date);
+         const cacheKey = `popular_products:store:${storeId}:${start_date}:${end_date}:${limit}`;
+         const cached = dbCache.get(cacheKey);
+         if (cached) {
+             return res.success({
+                 products: cached,
+                 cached: true
+             });
+         }
 
-        res.success({
-            products: stats.products.slice(0, parseInt(limit)).map((p, idx) => ({
-                rank: idx + 1,
-                product_id: p.product_name,
-                product_name: p.product_name,
-                total_quantity: p.total_quantity,
-                total_sales: p.total_amount
-            }))
-        });
-    }),
+         const stats = await Order.getDetailedStats(storeId, start_date, end_date);
+
+         const products = stats.products.slice(0, parseInt(limit)).map((p, idx) => ({
+             rank: idx + 1,
+             product_id: p.product_name,
+             product_name: p.product_name,
+             total_quantity: p.total_quantity,
+             total_sales: p.total_amount
+         }));
+
+         dbCache.set(cacheKey, products, 120);
+
+         res.success({ products, cached: false });
+     }),
 
     /**
      * [GET] 기간 대비 매출 성장률 및 증감 분석
