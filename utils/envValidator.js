@@ -30,9 +30,8 @@ const vars = [
   { key: 'FIREBASE_API_KEY', level: levels.REQUIRED, desc: 'Firebase Web' },
 
   // OPTIONAL - 없어도 기본 동작 가능
-  { key: 'GEMINI_API_KEY', level: levels.OPTIONAL, desc: 'Gemini AI (없으면 AI 기능 비활성화)' },
-  { key: 'AI_PROVIDER', level: levels.OPTIONAL, desc: 'AI 프로바이더: gemini(기본) | omniroute' },
-  { key: 'OMNIROUTE_BASE_URL', level: levels.OPTIONAL, desc: 'OmniRoute 게이트웨이 URL (기본: http://localhost:20128/v1)' },
+  { key: 'GEMINI_API_KEY', level: levels.OPTIONAL, desc: 'Gemini AI (1차 프로바이더)' },
+  { key: 'OMNIROUTE_BASE_URL', level: levels.OPTIONAL, desc: 'OmniRoute 게이트웨이 URL (기본: http://localhost:20128/v1, 토큰 소진 시 fallback)' },
   { key: 'OMNIROUTE_MODEL', level: levels.OPTIONAL, desc: 'OmniRoute 모델명 (기본: gpt-4o-mini)' },
   { key: 'NCP_GEOCODE_KEY_ID', level: levels.OPTIONAL, desc: 'NCP 지오코드 옵션' },
   { key: 'NCP_GEOCODE_KEY', level: levels.OPTIONAL, desc: 'NCP 지오코드 옵션' },

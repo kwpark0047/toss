@@ -7,97 +7,85 @@ dotenv.config();
 
 class AIService {
     constructor() {
-        const provider = (process.env.AI_PROVIDER || 'gemini').toLowerCase();
-        this.provider = provider;
-
-        if (provider === 'omniroute') {
-            const baseURL = process.env.OMNIROUTE_BASE_URL || 'http://localhost:20128/v1';
-            this.openai = new OpenAI({
-                apiKey: process.env.OMNIROUTE_API_KEY || 'sk-omniroute',
-                baseURL,
-            });
-            this.model = process.env.OMNIROUTE_MODEL || 'gpt-4o-mini';
-            logger.info(`[AI] OmniRoute provider initialized: ${baseURL} model=${this.model}`);
+        const geminiKey = process.env.GEMINI_API_KEY;
+        if (geminiKey) {
+            this.genAI = new GoogleGenerativeAI(geminiKey);
+            this.geminiModels = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
         } else {
-            const apiKey = process.env.GEMINI_API_KEY;
-            if (!apiKey) {
-                logger.error('GEMINI_API_KEY is not set in environment');
-            }
-            this.genAI = new GoogleGenerativeAI(apiKey);
-            this.models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
+            logger.warn('[AI] GEMINI_API_KEY 누락 — Gemini 사용 불가');
         }
+
+        const baseURL = process.env.OMNIROUTE_BASE_URL || 'http://localhost:20128/v1';
+        this.openai = new OpenAI({
+            apiKey: process.env.OMNIROUTE_API_KEY || 'sk-omniroute',
+            baseURL,
+            timeout: 15000,
+        });
+        this.omnirouteModel = process.env.OMNIROUTE_MODEL || 'gpt-4o-mini';
 
         this.cache = new Map();
         this.MAX_CACHE_SIZE = 100;
     }
 
-    /**
-     * 콘텐츠 생성 - OmniRoute 또는 Gemini 자동 선택
-     * @param {string} prompt - 사용자 메시지
-     * @param {Object} [options] - 추가 옵션
-     * @param {string} [options.systemInstruction] - 모델 시스템 지시사항
-     * @param {Object} [options.generationConfig] - 생성 설정 (temperature, topP, maxOutputTokens, response_mime_type 등)
-     */
     async generateWithFallback(prompt, options = {}) {
         const { systemInstruction, generationConfig } = options;
 
-        if (this.provider === 'omniroute') {
-            try {
-                const messages = [];
-                if (systemInstruction) {
-                    messages.push({ role: 'system', content: systemInstruction });
-                }
-                messages.push({ role: 'user', content: prompt });
-
-                const params = {
-                    model: this.model,
-                    messages,
-                };
-
-                if (generationConfig) {
-                    if (generationConfig.temperature != null) params.temperature = generationConfig.temperature;
-                    if (generationConfig.maxOutputTokens != null) params.max_tokens = generationConfig.maxOutputTokens;
-                    if (generationConfig.response_mime_type === 'application/json') {
-                        params.response_format = { type: 'json_object' };
-                    }
-                    if (generationConfig.topP != null) params.top_p = generationConfig.topP;
-                }
-
-                const response = await this.openai.chat.completions.create(params);
-                const content = response.choices?.[0]?.message?.content;
-                if (!content) {
-                    throw new Error('Empty response from OmniRoute');
-                }
-                return content.trim();
-            } catch (error) {
-                logger.error(`[AI/OmniRoute] Error: ${error.message}`);
-                throw error;
-            }
-        }
-
         let lastError = null;
-        for (let i = 0; i < this.models.length; i++) {
-            try {
-                const modelName = this.models[i];
-                const modelParams = { model: modelName };
-                if (systemInstruction) modelParams.systemInstruction = systemInstruction;
-                if (generationConfig) modelParams.generationConfig = generationConfig;
 
-                const model = this.genAI.getGenerativeModel(modelParams);
-                const result = await model.generateContent(prompt);
-                const response = await result.response;
-                return response.text().trim();
-            } catch (error) {
-                lastError = error;
-                if (error.status === 429 || error.status === 404 || error.message?.includes('quota')) {
-                    logger.warn(`[AI] ${this.models[i]} failed, fallback: ${error.message}`);
-                    continue;
+        if (this.genAI) {
+            const models = this.geminiModels;
+            for (let i = 0; i < models.length; i++) {
+                try {
+                    const modelName = models[i];
+                    const modelParams = { model: modelName };
+                    if (systemInstruction) modelParams.systemInstruction = systemInstruction;
+                    if (generationConfig) modelParams.generationConfig = generationConfig;
+
+                    const model = this.genAI.getGenerativeModel(modelParams);
+                    const result = await model.generateContent(prompt);
+                    const response = await result.response;
+                    return response.text().trim();
+                } catch (error) {
+                    lastError = error;
+                    if (error.status === 429 || error.status === 404 || error.message?.includes('quota')) {
+                        logger.warn(`[AI] Gemini ${models[i]} 한도초과, OmniRoute fallback: ${error.message}`);
+                        break;
+                    }
+                    logger.warn(`[AI] Gemini ${models[i]} 실패, fallback: ${error.message}`);
                 }
-                logger.error(`[AI] Non-retryable error on ${this.models[i]}:`, error.message);
-                throw error;
             }
         }
-        throw lastError || new Error('All AI models exhausted');
+
+        try {
+            const messages = [];
+            if (systemInstruction) {
+                messages.push({ role: 'system', content: systemInstruction });
+            }
+            messages.push({ role: 'user', content: prompt });
+
+            const params = {
+                model: this.omnirouteModel,
+                messages,
+            };
+
+            if (generationConfig) {
+                if (generationConfig.temperature != null) params.temperature = generationConfig.temperature;
+                if (generationConfig.maxOutputTokens != null) params.max_tokens = generationConfig.maxOutputTokens;
+                if (generationConfig.response_mime_type === 'application/json') {
+                    params.response_format = { type: 'json_object' };
+                }
+                if (generationConfig.topP != null) params.top_p = generationConfig.topP;
+            }
+
+            const response = await this.openai.chat.completions.create(params);
+            const content = response.choices?.[0]?.message?.content;
+            if (!content) throw new Error('Empty response from OmniRoute');
+            logger.info('[AI] OmniRoute fallback 응답 성공');
+            return content.trim();
+        } catch (error) {
+            logger.error(`[AI/OmniRoute] Error: ${error.message}`);
+            throw lastError || error;
+        }
     }
 
     /**
@@ -766,31 +754,7 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
         let rawText = "";
         let lastError = null;
 
-        if (this.provider === 'omniroute') {
-            try {
-                const response = await this.openai.chat.completions.create({
-                    model: this.model,
-                    messages: [
-                        {
-                            role: 'user',
-                            content: [
-                                { type: 'text', text: prompt },
-                                {
-                                    type: 'image_url',
-                                    image_url: {
-                                        url: `data:${mimeType || 'image/jpeg'};base64,${base64Data}`,
-                                    },
-                                },
-                            ],
-                        },
-                    ],
-                });
-                rawText = response.choices?.[0]?.message?.content || '';
-            } catch (err) {
-                logger.error(`[AI/OmniRoute] 이미지 분석 실패:`, err.message);
-                lastError = err;
-            }
-        } else {
+        if (this.genAI) {
             const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash"];
 
             for (const modelName of modelsToTry) {
@@ -808,9 +772,36 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
                     rawText = result.response.text();
                     if (rawText) break;
                 } catch (err) {
-                    logger.warn(`[AI] ${modelName} 이미지 분석 실패, 다음 모델 시도:`, err.message);
+                    logger.warn(`[AI] Gemini ${modelName} 이미지 분석 실패:`, err.message);
                     lastError = err;
                 }
+            }
+        }
+
+        if (!rawText) {
+            try {
+                const response = await this.openai.chat.completions.create({
+                    model: this.omnirouteModel,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                { type: 'text', text: prompt },
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: `data:${mimeType || 'image/jpeg'};base64,${base64Data}`,
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                });
+                rawText = response.choices?.[0]?.message?.content || '';
+                if (rawText) logger.info('[AI] OmniRoute 이미지 분석 fallback 성공');
+            } catch (err) {
+                logger.error(`[AI/OmniRoute] 이미지 분석 실패:`, err.message);
+                lastError = err;
             }
         }
 
