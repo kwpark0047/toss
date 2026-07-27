@@ -3,6 +3,7 @@ const OpenAI = require('openai');
 const dotenv = require("dotenv");
 const logger = require('../utils/logger');
 const aiUsageTracker = require('../utils/aiUsageTracker');
+const aiPromptService = require('./AIPromptService');
 const dbCache = require('../utils/dbCache');
 
 dotenv.config();
