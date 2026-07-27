@@ -16,15 +16,34 @@ const makeHandler = (message, limitLabel) => (req, res) => {
     res.status(429).json({ success: false, error: message, retryAfter: '잠시 후 다시 시도해주세요.' });
 };
 
-// ── 1. 일반 API 전체: 100 req / 1분 / IP ────────────────────────────────────
 const generalLimiter = rateLimit({
     windowMs: 60_000,
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
     validate: { xForwardedForHeader: false },
-    skip: (req) => req.path === '/api/health' || req.path === '/api/health/deep',
+    skip: (req) => {
+        if (req.path === '/api/health' || req.path === '/api/health/deep') return true;
+        const isPublicGet = req.method === 'GET' && (
+            req.path.startsWith('/api/tables/qr/') ||
+            req.path.startsWith('/api/stores/') ||
+            req.path.startsWith('/api/categories/store/') ||
+            req.path.startsWith('/api/products/store/') ||
+            req.path.startsWith('/api/weather/')
+        );
+        if (isPublicGet) return true;
+        return false;
+    },
     handler: makeHandler('요청이 너무 많습니다. 잠시 후 다시 시도해주세요.', 'general'),
+});
+
+const publicLimiter = rateLimit({
+    windowMs: 60_000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: { xForwardedForHeader: false },
+    handler: makeHandler('요청이 너무 많습니다. 잠시 후 다시 시도해주세요.', 'public'),
 });
 
 // ── 2. 주문 생성: 30 req / 1분 / IP (피크 보호) ──────────────────────────────
@@ -70,4 +89,4 @@ const paymentLimiter = rateLimit({
     handler: makeHandler('결제 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.', 'payment'),
 });
 
-module.exports = { generalLimiter, orderLimiter, authLimiter, smsLimiter, paymentLimiter };
+module.exports = { generalLimiter, publicLimiter, orderLimiter, authLimiter, smsLimiter, paymentLimiter };

@@ -31,7 +31,4 @@ export const wakeupServer = () => {
   return _wakeupPromise;
 };
 
-// 프로덕션에서 모듈 로드 즉시 서버 웨이크업 시작 (트리 쉐이킹 가능하도록 분리)
-if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-  wakeupServer().catch(() => {});
-}
+

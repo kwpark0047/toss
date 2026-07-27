@@ -462,7 +462,9 @@ const App = () => (
       <OfflineBanner />
       <PWAUpdateNotification />
       <ErrorBoundary
-        fallback={<ErrorFallback error={new Error('앱을 불러올 수 없습니다.')} fullPage />}
+        fallback={({ error, resetErrorBoundary }) => (
+          <ErrorFallback error={error} resetErrorBoundary={resetErrorBoundary} fullPage />
+        )}
         onError={logError}
       >
         <BrowserRouter>

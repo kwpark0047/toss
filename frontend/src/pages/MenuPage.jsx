@@ -470,7 +470,17 @@ const MenuPage = () => {
     setTimeout(() => setIsOrderStatusOpen(true), 300);
   }, []);
 
-  if (!isNumericStoreId) return null;
+  if (!isNumericStoreId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6">
+        <div className="text-center space-y-4">
+          <Loader2 size={28} className="animate-spin text-orange-400 mx-auto" />
+          <h2 className="text-white font-black text-lg">메뉴판으로 이동 중...</h2>
+          <p className="text-slate-400 text-sm">잠시만 기다려주세요.</p>
+        </div>
+      </div>
+    );
+  }
   if (isLoading) return <ColdStartLoading elapsed={elapsed} />;
 
   const themeStyle = buildThemeStyle(profile?.theme);
