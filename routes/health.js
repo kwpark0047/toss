@@ -8,6 +8,7 @@ const router  = require('express').Router();
 const prisma  = require('../config/prisma');
 const cb      = require('../utils/circuitBreaker');
 const alerting = require('../utils/alerting');
+const axios   = require('axios');
 
 // 런타임 클라이언트 화이트리스트 (PWA 서비스 워커 및 Vercel 크로스 도메인 수신용)
 const allowedOrigins = [
@@ -164,6 +165,25 @@ router.get('/deep', async (req, res) => {
         circuitState: tossCB.state
     };
     if (tossCB.state === 'OPEN') overallOk = false;
+
+    // 5. OmniRoute (AI fallback gateway) — 연결 가능 여부 확인
+    const omniUrl = process.env.OMNIROUTE_BASE_URL || 'http://localhost:20128/v1';
+    let omniOk = false;
+    let omniLatencyMs = null;
+    try {
+        const t0 = Date.now();
+        await axios.get(`${omniUrl.replace(/\/v1$/, '')}/v1/models`, {
+            headers: { Authorization: 'Bearer sk-omniroute' },
+            timeout: 3000,
+        });
+        omniLatencyMs = Date.now() - t0;
+        omniOk = true;
+    } catch { /* OmniRoute unavailable */ }
+    checks.omniroute = {
+        status: omniOk ? 'ok' : 'unavailable',
+        baseUrl: omniUrl,
+        latencyMs: omniLatencyMs,
+    };
 
     // 4. SLA 지표
     const uptimeSec = Math.floor((Date.now() - START_TIME) / 1000);
