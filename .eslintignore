@@ -1,0 +1,8 @@
+node_modules/
+frontend/node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+logs/
+print-agent/
