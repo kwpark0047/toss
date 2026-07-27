@@ -34,7 +34,7 @@ const TossAPI = {
     confirmPayment: async (paymentKey, orderId, amount) => {
         // [테스트 시뮬레이션 모드] mock_ 으로 시작하는 키는 실제 API 호출 없이 성공 응답 반환
         if (paymentKey && paymentKey.startsWith('mock_')) {
-            console.log('[Mock] 결제 승인 시뮬레이션:', paymentKey);
+            logger.info('[Mock] 결제 승인 시뮬레이션:', paymentKey);
             return {
                 paymentKey: paymentKey,
                 orderId: orderId,
@@ -122,7 +122,7 @@ const TossAPI = {
     cancelPayment: async (paymentKey, cancelReason, cancelAmount) => {
         // [테스트 시뮬레이션 모드]
         if (paymentKey && paymentKey.startsWith('mock_')) {
-            console.log('[Mock] 결제 취소 시뮬레이션:', paymentKey);
+            logger.info('[Mock] 결제 취소 시뮬레이션:', paymentKey);
             return {
                 paymentKey: paymentKey,
                 status: 'CANCELED',

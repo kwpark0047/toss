@@ -50,16 +50,8 @@ prismaPrimary.$on('query', (e) => {
         queryLogBuffer.pop();
     }
 
-    if (duration >= threshold) {
-        try {
-            if (logger && typeof logger.warn === 'function') {
-                logger.warn(`🐌 [Prisma Slow Query] ${duration}ms | Query: ${e.query} | Params: ${e.params}`);
-            } else {
-                console.warn(`🐌 [Prisma Slow Query] ${duration}ms | Query: ${e.query}`);
-            }
-        } catch (_) {
-            // Jest 환경이 종료된(Torn Down) 비동기 백그라운드 쿼리 수신 시를 위한 안전 폴백
-            console.warn(`🐌 [Prisma Slow Query] ${duration}ms | Query: ${e.query}`);
+if (duration >= threshold) {
+             logger.warn(`🐌 [Prisma Slow Query] ${duration}ms | Query: ${e.query} | Params: ${e.params}`);
         }
     }
     }); // <-- closing for arrow function

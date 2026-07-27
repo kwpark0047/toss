@@ -6,11 +6,13 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 require('dotenv').config();
 
+const logger = require('./utils/logger');
+
 // 환경변수 검증
 const { checkEnv } = require('./utils/envValidator');
 const envCheck = checkEnv();
 if (!envCheck.ok) {
-  console.error('서버 시작 불가 — 위 환경변수를 .env 파일에 설정하세요.');
+  logger.error('서버 시작 불가 — 위 환경변수를 .env 파일에 설정하세요.');
   process.exit(1);
 }
 
@@ -422,7 +424,7 @@ app.use((req, res, next) => {
 // 404 핸들러 (매칭되는 라우트가 없을 경우 상세 로깅 및 응답 보장)
 app.use((req, res, next) => {
     if (req.path.startsWith('/api')) {
-        console.error(`[CRITICAL 404] Unmatched API Path: ${req.method} ${req.originalUrl}`);
+        logger.error(`[CRITICAL 404] Unmatched API Path: ${req.method} ${req.originalUrl}`);
         return res.status(404).json({
             success: false,
             message: `요청하신 API 경로를 찾을 수 없습니다: ${req.method} ${req.originalUrl}.`,

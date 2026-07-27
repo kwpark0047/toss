@@ -1,10 +1,4 @@
-﻿/**
- * 환경변수 검증 - 서버 시작 전 필수/선택 누락 확인
- *
- * - CRITICAL: 누락 시 서버 시작 불가 (DB, JWT)
- * - REQUIRED: 누락 시 일부 기능 비활성화
- * - OPTIONAL: 기본값 적용 가능
- */
+﻿const logger = require('./logger');
 
 const levels = {
   CRITICAL: 'CRITICAL',
@@ -71,20 +65,20 @@ function checkEnv() {
 
   if (missingCritical.length > 0) {
     const msg = `[CRITICAL] 누락된 필수 환경변수:\n${missingCritical.map(v => `  - ${v.key} (${v.desc})`).join('\n')}`;
-    console.error(msg);
+    logger.error(msg);
     return { ok: false, warnings: [msg] };
   }
 
   if (missingRequired.length > 0) {
     const msg = `[WARN] 설정되지 않은 환경변수 (관련 기능 동작 안함):\n${missingRequired.map(v => `  - ${v.key} (${v.desc})`).join('\n')}`;
-    console.warn(msg);
+    logger.warn(msg);
     warnings.push(msg);
   }
 
   if (missingOptional.length > 0) {
     missingOptional.forEach(v => {
       const line = `[INFO] ${v.key}: ${v.desc}`;
-      console.info(line);
+      logger.info(line);
       warnings.push(line);
     });
   }

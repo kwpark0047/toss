@@ -323,7 +323,7 @@ class OrderService {
             customer_phone: phoneStr,
             amount: order.total_amount
         }).catch(err => {
-            console.error('[StoreCustomer Upsert Error]:', err);
+            logger.error('[StoreCustomer Upsert Error]:', err);
         });
 
         // Store point settings

@@ -54,7 +54,7 @@ async function sendViaCoolsms(to, text) {
 
 async function sendSms(phone, text) {
   if (IS_DEV || SMS_ENV === 'none') {
-    console.log(`[DEV SMS] → ${phone}: ${text}`);
+    logger.info(`[DEV SMS] → ${phone}: ${text}`);
     return { dev: true };
   }
 
@@ -62,15 +62,15 @@ async function sendSms(phone, text) {
     // Coolsms (기본)
     if (SMS_ENV === 'coolsms') {
       const result = await sendViaCoolsms(phone, text);
-      console.log(`[SMS] 발송 성공 → ${phone}: ${text.substring(0, 20)}...`);
+      logger.info(`[SMS] 발송 성공 → ${phone}: ${text.substring(0, 20)}...`);
       return { sent: true, messageId: result.messageId };
     }
 
     // 기타 SMS 프로바이더는 이곳에 확장
     // if (SMS_ENV === 'nhncloud') { ... }
 
-    logger.warn(`[SMS] 알 수 없는 SMS_ENV(${SMS_ENV}), 콘솔 출력으로 대체`);
-    console.log(`[SMS] → ${phone}: ${text}`);
+    logger.warn(`[SMS] 알 수 없는 SMS_ENV(${SMS_ENV}), 로거로 대체`);
+    logger.info(`[SMS] → ${phone}: ${text}`);
     return { fallback: true };
   } catch (err) {
     logger.error('[SMS] 발송 실패:', err.response?.data || err.message);

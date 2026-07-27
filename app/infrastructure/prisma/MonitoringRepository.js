@@ -10,6 +10,7 @@
 
 const IMonitoringRepository = require('../../domain/interfaces/IMonitoringRepository');
 const prisma = require('../../../config/prisma');
+const logger = require('../../../utils/logger');
 
 class MonitoringRepository extends IMonitoringRepository {
   /**
