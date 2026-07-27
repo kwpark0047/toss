@@ -1,4 +1,7 @@
 const catchAsync = require('../utils/catchAsync');
+const aiService = require('../services/aiService');
+const Product = require('../repositories/Product');
+const Order = require('../repositories/Order');
 const WaitingService = require('../services/WaitingService');
 
 const waitingService = new WaitingService();
@@ -32,6 +35,62 @@ const waitingController = {
     getMyWaiting: catchAsync(async (req, res) => {
         const data = await waitingService.getMyWaiting(req.params.phone);
         res.json({ success: true, data });
+    }),
+
+    // [GET] AI 기반 대기 중 메뉴 추천
+    // GET /api/waiting/store/:storeId/ai-suggestions?weather=&mood=&phone=&toss_user_key=
+    getAISuggestions: catchAsync(async (req, res) => {
+        const storeId = parseInt(req.params.storeId);
+        if (isNaN(storeId)) return res.status(400).json({ error: '유효하지 않은 매장 ID입니다.' });
+
+        const { weather, mood, phone, toss_user_key } = req.query;
+
+        const menuList = await Product.findActiveAndInStock(storeId);
+        if (menuList.length === 0) {
+            return res.json({ suggestions: [], source: 'ai' });
+        }
+
+        let pastOrders = [];
+        if (phone || toss_user_key) {
+            const history = await Order.findByCustomer(phone, toss_user_key);
+            pastOrders = history
+                .flatMap(order => order.items.map(item => item.product_name))
+                .slice(0, 10);
+        }
+
+        const hour = new Date().getHours();
+        const time = new Date().toLocaleTimeString('ko-KR');
+        const timePeriod =
+            hour >= 5 && hour < 10 ? '아침 (조식)' :
+            hour >= 10 && hour < 15 ? '점심 (중식)' :
+            hour >= 15 && hour < 17 ? '오후 간식' :
+            hour >= 17 && hour < 22 ? '저녁 (석식)' : '야식';
+
+        const trendingProductIds = await Order.findTrendingProducts(storeId);
+        const trendingNames = trendingProductIds.length > 0
+            ? await Product.findByIds(trendingProductIds, { name: true }).then(rows => rows.map(r => r.name))
+            : [];
+
+        const recommendations = await aiService.recommendMenus(
+            {
+                preferences: undefined,
+                time,
+                weather: weather || '맑음',
+                mood: mood || '보통',
+                pastOrders,
+                trendingItems: trendingNames,
+                timePeriod,
+            },
+            menuList
+        );
+
+        const suggestions = recommendations.slice(0, 3).map(rec => {
+            const menu = menuList.find(m => m.id === rec.id);
+            if (!menu) return null;
+            return { id: menu.id, name: menu.name, price: menu.price, reason: rec.reason };
+        }).filter(Boolean);
+
+        res.json({ suggestions, source: 'ai' });
     })
 };
 

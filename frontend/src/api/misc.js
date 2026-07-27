@@ -45,6 +45,7 @@ export const waitingAPI = {
   register: (data) => api.post('/waiting/register', data),
   cancel: (id) => api.patch(`/waiting/${id}/status`, { status: 'cancelled' }),
   getMyWaiting: (phone) => api.get(`/waiting/my/${phone}`),
+  getAISuggestions: (storeId, params = {}) => api.get(`/waiting/store/${storeId}/ai-suggestions`, { params }),
 };
 
 export const reservationsAPI = {

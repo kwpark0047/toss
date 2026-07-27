@@ -1,19 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Phone, User, X, ChevronRight, BellRing, Sparkles, CheckCircle } from 'lucide-react';
-import { waitingAPI, ordersAPI } from '../../api';
+import { Users, Phone, User, X, ChevronRight, BellRing, Sparkles, CheckCircle, ChefHat } from 'lucide-react';
+import { waitingAPI } from '../../api';
+import { ordersAPI } from '../../api';
 import { useTranslation } from 'react-i18next';
 
 const WaitingSection = ({ store, onClose }) => {
     const { t } = useTranslation();
-    const [step, setStep] = useState('status'); // 'status', 'register', 'success'
+    const [step, setStep] = useState('status');
     const [loading, setLoading] = useState(false);
     const [myWaiting, setMyWaiting] = useState(null);
-    const [formData, setFormData] = useState({
-        name: '',
-        phone: '',
-        partySize: 2
-    });
+    const [formData, setFormData] = useState({ name: '', phone: '', partySize: 2 });
+    const [aiSuggestions, setAiSuggestions] = useState([]);
+    const [aiLoading, setAiLoading] = useState(false);
 
     // 초기 로드 시 기존 대입 상태 확인 (로컬 스토리지 또는 전화번호 입력 유도)
     useEffect(() => {
@@ -32,7 +31,8 @@ const WaitingSection = ({ store, onClose }) => {
                 if (active) {
                     setMyWaiting(active);
                     setStep('status');
-                    // 소켓 룸 입장
+                    fetchAISuggestions();
+
                     const socket = ordersAPI.getSocket();
                     socket.emit('join-my-waiting', { phone });
                     socket.on('waiting-status-changed', (data) => {
@@ -42,7 +42,7 @@ const WaitingSection = ({ store, onClose }) => {
                         }
                     });
                     socket.on('refresh-ahead-count', () => {
-                        fetchMyStatus(phone); // 다시 조회하여 순번 갱신
+                        fetchMyStatus(phone);
                     });
                 }
             }
@@ -205,10 +205,36 @@ const WaitingSection = ({ store, onClose }) => {
                                         <p className="text-[10px] uppercase font-black text-slate-400 mb-1">Estimated</p>
                                         <p className="font-black text-slate-800">{t('waiting.estimated_time', { count: (myWaiting.ahead_count || 0) * 10 + 5 })}</p>
                                     </div>
-                                </div>
-                            </div>
+</div>
+                             </div>
 
-                            <div className="flex gap-4">
+                             {/* AI 추천 메뉴 */}
+                             {aiLoading && (
+                                 <div className="flex items-center justify-center gap-2 py-4 text-slate-400 text-sm font-medium">
+                                     <ChefHat size={16} className="animate-pulse" />
+                                     AI가 추천하는 메뉴를 분석 중...
+                                 </div>
+                             )}
+                             {!aiLoading && aiSuggestions.length > 0 && (
+                                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+                                     <h4 className="text-xs font-black text-slate-400 uppercase mb-3 flex items-center gap-1">
+                                         <ChefHat size={12} /> AI 추천 메뉴
+                                     </h4>
+                                     <div className="space-y-2">
+                                         {aiSuggestions.map((s) => (
+                                             <div key={s.id} className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-xl">
+                                                 <div>
+                                                     <p className="font-bold text-slate-800 text-sm">{s.name}</p>
+                                                     <p className="text-[10px] text-slate-400">{s.reason}</p>
+                                                 </div>
+                                                 <span className="text-xs font-black text-orange-500">₩{s.price?.toLocaleString()}</span>
+                                             </div>
+                                         ))}
+                                     </div>
+                                 </div>
+                             )}
+
+                             <div className="flex gap-4">
                                 <button
                                     onClick={handleCancel}
                                     className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold border border-slate-200"

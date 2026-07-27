@@ -110,4 +110,34 @@ router.patch('/:id/status', waitingController.updateStatus);
  */
 router.get('/my/:phone', waitingController.getMyWaiting);
 
+/**
+ * @swagger
+ * /api/waiting/store/{storeId}/ai-suggestions:
+ *   get:
+ *     tags: [Waiting]
+ *     summary: 대기 중 AI 메뉴 추천
+ *     description: OmniRoute AI 기반으로 대기 중인 고객에게 메뉴를 추천합니다. 날씨, 과거 주문, 인기 메뉴를 고려합니다.
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: weather
+ *         schema: { type: string, enum: [맑음, 비, 눈, 흐림] }
+ *       - in: query
+ *         name: mood
+ *         schema: { type: string, enum: [보통, 기분좋음, 피곤함, 스트레스] }
+ *       - in: query
+ *         name: phone
+ *         schema: { type: string }
+ *       - in: query
+ *         name: toss_user_key
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: AI 추천 메뉴 3개
+ */
+router.get('/store/:storeId/ai-suggestions', waitingController.getAISuggestions);
+
 module.exports = router;
