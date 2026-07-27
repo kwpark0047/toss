@@ -3,6 +3,7 @@ const OpenAI = require('openai');
 const dotenv = require("dotenv");
 const logger = require('../utils/logger');
 const aiUsageTracker = require('../utils/aiUsageTracker');
+const dbCache = require('../utils/dbCache');
 
 dotenv.config();
 
@@ -24,7 +25,7 @@ class AIService {
         });
         this.omnirouteModel = process.env.OMNIROUTE_MODEL || 'gpt-4o-mini';
 
-        this.cache = new Map();
+        this.cache = dbCache;
         this.MAX_CACHE_SIZE = 100;
     }
 
@@ -192,9 +193,10 @@ class AIService {
         const cacheKey = `desc_${name}_${category}_${price || 0}`;
 
         // 1. 캐시 확인
-        if (this.cache.has(cacheKey)) {
+        const cached = this.cache.get(cacheKey);
+        if (cached !== undefined) {
             logger.debug(`[AI] 캐시된 설명을 반환합니다: ${name}`);
-            return this.cache.get(cacheKey);
+            return cached;
         }
 
         const prompt = `
@@ -272,9 +274,10 @@ class AIService {
         const { preferences, time, weather = "맑음", mood = "보통", pastOrders = [], trendingItems = [], timePeriod = '' } = context;
         const cacheKey = `rec_${preferences}_${weather}_${mood}_${pastOrders.length}_${trendingItems.length}_${menuList.length}`;
 
-        if (this.cache.has(cacheKey)) {
+        const cachedRec = this.cache.get(cacheKey);
+        if (cachedRec) {
             logger.debug(`[AI] 캐시에서 추천 결과를 반환합니다.`);
-            return this.cache.get(cacheKey);
+            return cachedRec;
         }
 
         const menus = menuList.map(m => ({ id: m.id, name: m.name, category: m.categories?.name, price: m.price }));
@@ -344,7 +347,8 @@ class AIService {
         if (!dessertList || dessertList.length === 0) return [];
 
         const cacheKey = `dessert_${currentItems.join("_")}_${dessertList.length}`;
-        if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
 
         const prompt = `
       당신은 디저트 페어링 전문가입니다. 고객이 현재 주문한 메뉴들과 가장 잘 어울리는 후식을 추천해 주세요.
@@ -378,16 +382,9 @@ class AIService {
             logger.error(error);
             return [{ id: dessertList[0].id, reason: "달콤한 마무리를 위한 추천 메뉴입니다." }];
         }
-    }
+}
 
-    /**
-     * 캐시 저장 관리 (크기 제한)
-     */
     setCache(key, value) {
-        if (this.cache.size >= this.MAX_CACHE_SIZE) {
-            const firstKey = this.cache.keys().next().value;
-            this.cache.delete(firstKey);
-        }
         this.cache.set(key, value);
     }
 
@@ -641,7 +638,8 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
      */
     async translateText(text, targetLang) {
         const cacheKey = `trans_${targetLang}_${text}`;
-        if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
+        const cached = this.cache.get(cacheKey);
+        if (cached !== undefined) return cached;
 
         const langMap = {
             'en': 'English',
@@ -724,7 +722,8 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
     async generateMenuImage(menuInfo) {
         const { name, category, description } = menuInfo;
         const cacheKey = `img_${name}_${category}`;
-        if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
 
         const prompt = `
       You are a food photography expert. Generate 3~5 English keywords
