@@ -1,28 +1,38 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const OpenAI = require('openai');
 const dotenv = require("dotenv");
 const logger = require('../utils/logger');
 
-// 환경 변수 로드
 dotenv.config();
 
-/**
- * AI 서비스 모듈
- * Google Gemini API를 사용하여 메뉴 설명 생성 및 추천 기능을 제공합니다.
- */
 class AIService {
     constructor() {
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            logger.error('GEMINI_API_KEY is not set in environment');
+        const provider = (process.env.AI_PROVIDER || 'gemini').toLowerCase();
+        this.provider = provider;
+
+        if (provider === 'omniroute') {
+            const baseURL = process.env.OMNIROUTE_BASE_URL || 'http://localhost:20128/v1';
+            this.openai = new OpenAI({
+                apiKey: process.env.OMNIROUTE_API_KEY || 'sk-omniroute',
+                baseURL,
+            });
+            this.model = process.env.OMNIROUTE_MODEL || 'gpt-4o-mini';
+            logger.info(`[AI] OmniRoute provider initialized: ${baseURL} model=${this.model}`);
+        } else {
+            const apiKey = process.env.GEMINI_API_KEY;
+            if (!apiKey) {
+                logger.error('GEMINI_API_KEY is not set in environment');
+            }
+            this.genAI = new GoogleGenerativeAI(apiKey);
+            this.models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
         }
-        this.genAI = new GoogleGenerativeAI(apiKey);
-        this.cache = new Map(); // 메뉴 설명 및 추천 캐시를 위한 메모리 맵
-        this.MAX_CACHE_SIZE = 100; // 최대 캐시 항목 수
-        this.models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"]; // 가용 가능한 모델 리스트 (폴백용)
+
+        this.cache = new Map();
+        this.MAX_CACHE_SIZE = 100;
     }
 
     /**
-     * 폴백 로직을 포함한 콘텐츠 생성 공통 메서드
+     * 콘텐츠 생성 - OmniRoute 또는 Gemini 자동 선택
      * @param {string} prompt - 사용자 메시지
      * @param {Object} [options] - 추가 옵션
      * @param {string} [options.systemInstruction] - 모델 시스템 지시사항
@@ -30,8 +40,42 @@ class AIService {
      */
     async generateWithFallback(prompt, options = {}) {
         const { systemInstruction, generationConfig } = options;
-        let lastError = null;
 
+        if (this.provider === 'omniroute') {
+            try {
+                const messages = [];
+                if (systemInstruction) {
+                    messages.push({ role: 'system', content: systemInstruction });
+                }
+                messages.push({ role: 'user', content: prompt });
+
+                const params = {
+                    model: this.model,
+                    messages,
+                };
+
+                if (generationConfig) {
+                    if (generationConfig.temperature != null) params.temperature = generationConfig.temperature;
+                    if (generationConfig.maxOutputTokens != null) params.max_tokens = generationConfig.maxOutputTokens;
+                    if (generationConfig.response_mime_type === 'application/json') {
+                        params.response_format = { type: 'json_object' };
+                    }
+                    if (generationConfig.topP != null) params.top_p = generationConfig.topP;
+                }
+
+                const response = await this.openai.chat.completions.create(params);
+                const content = response.choices?.[0]?.message?.content;
+                if (!content) {
+                    throw new Error('Empty response from OmniRoute');
+                }
+                return content.trim();
+            } catch (error) {
+                logger.error(`[AI/OmniRoute] Error: ${error.message}`);
+                throw error;
+            }
+        }
+
+        let lastError = null;
         for (let i = 0; i < this.models.length; i++) {
             try {
                 const modelName = this.models[i];
@@ -720,26 +764,53 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
         `;
 
         let rawText = "";
-        const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash"];
         let lastError = null;
 
-        for (const modelName of modelsToTry) {
+        if (this.provider === 'omniroute') {
             try {
-                const model = this.genAI.getGenerativeModel({ model: modelName });
-                const result = await model.generateContent([
-                    prompt,
-                    {
-                        inlineData: {
-                            data: base64Data,
-                            mimeType: mimeType || "image/jpeg"
-                        }
-                    }
-                ]);
-                rawText = result.response.text();
-                if (rawText) break;
+                const response = await this.openai.chat.completions.create({
+                    model: this.model,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                { type: 'text', text: prompt },
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: `data:${mimeType || 'image/jpeg'};base64,${base64Data}`,
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                });
+                rawText = response.choices?.[0]?.message?.content || '';
             } catch (err) {
-                logger.warn(`[AI] ${modelName} 이미지 분석 실패, 다음 모델 시도:`, err.message);
+                logger.error(`[AI/OmniRoute] 이미지 분석 실패:`, err.message);
                 lastError = err;
+            }
+        } else {
+            const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash"];
+
+            for (const modelName of modelsToTry) {
+                try {
+                    const model = this.genAI.getGenerativeModel({ model: modelName });
+                    const result = await model.generateContent([
+                        prompt,
+                        {
+                            inlineData: {
+                                data: base64Data,
+                                mimeType: mimeType || "image/jpeg"
+                            }
+                        }
+                    ]);
+                    rawText = result.response.text();
+                    if (rawText) break;
+                } catch (err) {
+                    logger.warn(`[AI] ${modelName} 이미지 분석 실패, 다음 모델 시도:`, err.message);
+                    lastError = err;
+                }
             }
         }
 
