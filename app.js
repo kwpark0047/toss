@@ -266,6 +266,7 @@ const routes = {
     menuOptimization: require('./routes/menuOptimization'),
     staffGamification: require('./routes/staffGamification'),
     aiAssistant: require('./routes/aiAssistant'),
+    aiUsage: require('./routes/aiUsage'),
     export: require('./routes/export'),
     inventory: require('./routes/inventory'),
     community: require('./routes/community'),
@@ -334,6 +335,7 @@ app.use(`${API_PREFIX}/crm`, routes.crm);
 app.use(`${API_PREFIX}/menu-optimization`, routes.menuOptimization);
 app.use(`${API_PREFIX}/staff-gamification`, routes.staffGamification);
 app.use(`${API_PREFIX}/ai-assistant`, routes.aiAssistant);
+app.use(`${API_PREFIX}/ai-usage`, routes.aiUsage);
 app.use(`${API_PREFIX}/export`, routes.export);
 app.use(`${API_PREFIX}/inventory`, routes.inventory);
 app.use(`${API_PREFIX}/community`, routes.community);

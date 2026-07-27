@@ -2,6 +2,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const OpenAI = require('openai');
 const dotenv = require("dotenv");
 const logger = require('../utils/logger');
+const aiUsageTracker = require('../utils/aiUsageTracker');
 
 dotenv.config();
 
@@ -29,6 +30,36 @@ class AIService {
 
     async generateWithFallback(prompt, options = {}) {
         const { systemInstruction, generationConfig } = options;
+        const startTime = Date.now();
+        let provider = null;
+        let promptTokens = null;
+        let completionTokens = null;
+        let totalTokens = null;
+        let costUsd = null;
+        let statusCode = null;
+        let fallbackUsed = false;
+        let cacheHit = false;
+
+        const estimateTokens = (text) => Math.ceil(text.length / 4);
+
+        const trackEnd = async (result) => {
+            const durationMs = Date.now() - startTime;
+            try {
+                await aiUsageTracker.track({
+                    provider,
+                    endpoint: 'generateWithFallback',
+                    promptTokens,
+                    completionTokens,
+                    totalTokens,
+                    costUsd,
+                    statusCode,
+                    durationMs,
+                    cacheHit,
+                    fallbackUsed,
+                });
+            } catch { /* tracking failure non-critical */ }
+            return result;
+        };
 
         let lastError = null;
 
@@ -44,7 +75,13 @@ class AIService {
                     const model = this.genAI.getGenerativeModel(modelParams);
                     const result = await model.generateContent(prompt);
                     const response = await result.response;
-                    return response.text().trim();
+                    const text = response.text().trim();
+                    provider = 'gemini';
+                    promptTokens = estimateTokens(prompt);
+                    completionTokens = estimateTokens(text);
+                    totalTokens = promptTokens + completionTokens;
+                    statusCode = 200;
+                    return await trackEnd(text);
                 } catch (error) {
                     lastError = error;
                     if (error.status === 429 || error.status === 404 || error.message?.includes('quota')) {
@@ -55,6 +92,8 @@ class AIService {
                 }
             }
         }
+
+        fallbackUsed = true;
 
         try {
             const messages = [];
@@ -80,12 +119,39 @@ class AIService {
             const response = await this.openai.chat.completions.create(params);
             const content = response.choices?.[0]?.message?.content;
             if (!content) throw new Error('Empty response from OmniRoute');
+
+            provider = 'omniroute';
+            promptTokens = estimateTokens(prompt);
+            completionTokens = estimateTokens(content);
+            totalTokens = promptTokens + completionTokens;
+
+            const usage = response.usage;
+            if (usage) {
+                promptTokens = usage.prompt_tokens;
+                completionTokens = usage.completion_tokens;
+                totalTokens = usage.total_tokens;
+            }
+
+            costUsd = this._estimateCost(totalTokens, this.omnirouteModel);
+            statusCode = 200;
             logger.info('[AI] OmniRoute fallback 응답 성공');
-            return content.trim();
+            return await trackEnd(content.trim());
         } catch (error) {
             logger.error(`[AI/OmniRoute] Error: ${error.message}`);
+            statusCode = 500;
+            await trackEnd(null);
             throw lastError || error;
         }
+    }
+
+    _estimateCost(tokens, model) {
+        const pricing = {
+            'gpt-4o-mini': 0.00015,
+            'gpt-4o': 0.005,
+            'gpt-4-turbo': 0.01,
+        };
+        const rate = pricing[model] || 0.00015;
+        return (tokens * rate) / 1000;
     }
 
     /**
