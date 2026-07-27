@@ -250,6 +250,63 @@ const aiController = {
         const { description } = req.body;
         const filters = await aiService.recommendImageEnhancement(description || '');
         res.json({ success: true, filters });
+    }),
+
+    // [틱커벨 AI 추천] - 매장 AI 어시스턴트 동적 메뉴 추천
+    tinkerbellRecommend: catchAsync(async (req, res) => {
+        const { store_id, weather, mood, phone, toss_user_key } = req.body;
+
+        if (!store_id) {
+            return res.status(400).json({ error: 'store_id가 필요합니다.' });
+        }
+
+        const hour = new Date().getHours();
+        const timePeriod =
+            hour >= 5 && hour < 10 ? '아침 (조식)' :
+            hour >= 10 && hour < 15 ? '점심 (중식)' :
+            hour >= 15 && hour < 17 ? '오후 간식' :
+            hour >= 17 && hour < 22 ? '저녁 (석식)' : '야식';
+
+        let pastOrders = [];
+        if (phone || toss_user_key) {
+            const history = await Order.findByCustomer(phone, toss_user_key);
+            pastOrders = history
+                .flatMap(order => order.items.map(item => item.product_name))
+                .slice(0, 10);
+        }
+
+        const menuList = await Product.findActiveAndInStock(store_id);
+        if (menuList.length === 0) {
+            return res.json({ recommendations: [], source: 'ai' });
+        }
+
+        const trendingProductIds = await Order.findTrendingProducts(store_id);
+        const trendingNames = trendingProductIds.length > 0
+            ? await Product.findByIds(trendingProductIds, { name: true }).then(rows => rows.map(r => r.name))
+            : [];
+
+        const time = new Date().toLocaleTimeString('ko-KR');
+        const preferences = mood ? `기분: ${mood}` : undefined;
+
+        const recommendations = await aiService.recommendMenus(
+            { preferences, time, weather: weather || '맑음', mood: mood || '보통', pastOrders, trendingItems: trendingNames, timePeriod },
+            menuList
+        );
+
+        const enriched = recommendations.map(rec => {
+            const menu = menuList.find(m => m.id === rec.id);
+            if (!menu) return null;
+            const isTrending = trendingProductIds.includes(menu.id);
+            return {
+                ...menu,
+                recommend_reason: rec.reason,
+                is_trending: isTrending,
+                time_period: timePeriod,
+                source: 'ai',
+            };
+        }).filter(Boolean);
+
+        res.json({ recommendations: enriched, source: 'ai' });
     })
 };
 

@@ -326,4 +326,39 @@ router.post("/generate-review-reply", validateBody(["rating", "content"]), aiCon
  */
 router.post("/recommend-image-enhancement", aiController.recommendImageEnhancement);
 
+/**
+ * @swagger
+ * /api/ai/tinkerbell-rec:
+ *   post:
+ *     tags: [AI]
+ *     summary: AI 팅keeper 동적 메뉴 추천
+ *     description: 매장 컨텍스트(날씨, 시간, 고객 선호도)를 기반으로 OmniRoute AI가 메뉴를 추천합니다.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [store_id]
+ *             properties:
+ *               store_id:
+ *                 type: integer
+ *               weather:
+ *                 type: string
+ *                 enum: [맑음, 비, 눈, 흐림]
+ *               mood:
+ *                 type: string
+ *                 enum: [보통, 기분좋음, 피곤함, 스트레스]
+ *               phone:
+ *                 type: string
+ *                 description: 고객 전화번호 (주문 이력 기반 추천용)
+ *               toss_user_key:
+ *                 type: string
+ *                 description: 토스 사용자 키 (주문 이력 기반 추천용)
+ *     responses:
+ *       200:
+ *         description: AI 추천 메뉴 목록
+ */
+router.post("/tinkerbell-rec", aiController.tinkerbellRecommend);
+
 module.exports = router;

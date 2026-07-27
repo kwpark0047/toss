@@ -166,7 +166,7 @@ router.get('/deep', async (req, res) => {
     };
     if (tossCB.state === 'OPEN') overallOk = false;
 
-    // 5. OmniRoute (AI fallback gateway) — 연결 가능 여부 확인
+    // 4. OmniRoute (AI fallback gateway) — 연결 가능 여부 확인
     const omniUrl = process.env.OMNIROUTE_BASE_URL || 'http://localhost:20128/v1';
     let omniOk = false;
     let omniLatencyMs = null;
@@ -185,7 +185,7 @@ router.get('/deep', async (req, res) => {
         latencyMs: omniLatencyMs,
     };
 
-    // 4. SLA 지표
+    // 5. SLA 지표
     const uptimeSec = Math.floor((Date.now() - START_TIME) / 1000);
     const errorRate = _req5m.length ? ((_err5m.length / _req5m.length) * 100).toFixed(1) : '0.0';
     checks.sla = {

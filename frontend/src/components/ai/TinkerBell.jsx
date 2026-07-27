@@ -246,32 +246,60 @@ const Spark = ({ x, y, size, angle }) => (
 //  mode='admin'   → position:fixed, 관리자 전용 대사
 // ────────────────────────────────────────────────────────────────────────────
 export default function TinkerBell({
-  lang = 'ko',
-  weatherData = null,
-  menuItems = [],
-  lastAddedItem = null,
-  onRecommend,
-  voiceEnabled = false,
-  largeFont = false,
-  mode = 'float',
-  previewTrigger = 0,   // 관리자 미리보기용
-  adminMode = false,    // true면 사장님용 인사
-}) {
+   lang = 'ko',
+   weatherData = null,
+   menuItems = [],
+   lastAddedItem = null,
+   onRecommend,
+   voiceEnabled = false,
+   largeFont = false,
+   mode = 'float',
+   previewTrigger = 0,
+   adminMode = false,
+   storeId = null,
+ }) {
   const weather = weatherData?.isRaining ? 'rain' : 
                   (weatherData?.temp < 10 ? 'cold' : 
                   (weatherData?.temp > 28 ? 'hot' : 'sun'));
 
   const { _isAnimationSafe, motionIntensity } = useMotionSafe();
-  const [isHappy,  setIsHappy]  = useState(false);
-  const [isBusy,   setIsBusy]   = useState(false);
-  const [visible,  setVisible]  = useState(false);
-  const [floatY,   setFloatY]   = useState(0);   // 유동 수직 오프셋
-  const [bubble,   setBubble]   = useState({ show: false, ctx: '', typed: '', full: '' });
-  const [sparks,   setSparks]   = useState([]);
+const [isHappy,  setIsHappy]  = useState(false);
+   const [isBusy,   setIsBusy]   = useState(false);
+   const [visible,  setVisible]  = useState(false);
+   const [floatY,   setFloatY]   = useState(0);
+   const [bubble,   setBubble]   = useState({ show: false, ctx: '', typed: '', full: '' });
+   const [sparks,   setSparks]   = useState([]);
+   const [aiRecs,    setAiRecs]   = useState([]);
+   const [aiLoading, setAiLoading] = useState(false);
 
-  const typingRef  = useRef(null);
-  const sparkId    = useRef(0);
-  const prevAdded  = useRef(null);
+const typingRef  = useRef(null);
+   const sparkId    = useRef(0);
+   const prevAdded  = useRef(null);
+
+   // ── AI 추천 가져오기 (OmniRoute 기반) ──────────────────────────
+   const fetchAIRec = useCallback(async () => {
+       if (!storeId || !menuItems.length) return;
+       setAiLoading(true);
+       try {
+           const res = await fetch('/api/ai/tinkerbell-rec', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({
+                   store_id: storeId,
+                   weather: weatherData?.isRaining ? '비' :
+                            (weatherData?.temp < 10 ? '비' : '맑음'),
+                   mood: '보통',
+               }),
+           });
+           if (res.ok) {
+               const data = await res.json();
+               if (data.recommendations?.length) {
+                   setAiRecs(data.recommendations);
+               }
+           }
+       } catch { /* AI 추천 실패 시 하드코딩 폴백 */ }
+       setAiLoading(false);
+   }, [storeId, menuItems.length, weatherData]);
 
   // ── 음성: 녹음 파일(mp3) 우선, 없으면 브라우저 TTS ─────────────────────────
   const audioRef = useRef(null);
@@ -389,46 +417,55 @@ export default function TinkerBell({
     setTimeout(() => setIsHappy(false), 1900);
   }, [lastAddedItem]);
 
-  // ── 날씨 기반 자동 추천 ──────────────────────────────────────────────────
-  useEffect(() => {
-    if (!visible || !menuItems.length || adminMode) return;
-    const t = setTimeout(() => {
-      const L = I18N[lang] || I18N.ko;
-      const isWarm = weather === 'rain' || weather === 'cold';
-      const isCool = weather === 'hot';
-      let pool = isWarm
-        ? menuItems.filter(m => !m.isSoldOut && (m.isHot || m.category_id?.includes('coffee') || m.category_id?.includes('non-coffee')))
-        : isCool
-        ? menuItems.filter(m => !m.isSoldOut && (m.isCold || m.category_id?.includes('ade') || m.name?.includes('아이스')))
-        : menuItems.filter(m => !m.isSoldOut && m.isPopular);
-      if (!pool.length) pool = menuItems.filter(m => !m.isSoldOut);
-      if (!pool.length) return;
-      const chosen = pick(pool);
-      
-      let ctx  = L.weatherCtx[weather] || '';
-      if (weatherData && weatherData.temp !== null) {
-        ctx += ` (${weatherData.temp}°C)`;
-      }
-      
-      const text = (L.rec[weather] || L.rec.sun).replace('{n}', chosen.name || '');
-      setIsBusy(true);
-      spawnSparks(8);
-      say(ctx, text, false, 'cust_weather');
-      if (onRecommend) onRecommend(chosen);
-      setTimeout(() => setIsBusy(false), 5500);
-    }, 11000);
-    return () => clearTimeout(t);
-  }, [visible, weather, weatherData, menuItems, lang, adminMode, onRecommend, say, spawnSparks]);
+// ── 날씨 기반 자동 추천 ──────────────────────────────────────────────────
+   useEffect(() => {
+       if (!visible || !menuItems.length || adminMode) return;
+       const t = setTimeout(() => {
+           fetchAIRec();
+           const L = I18N[lang] || I18N.ko;
+           const isWarm = weather === 'rain' || weather === 'cold';
+           const isCool = weather === 'hot';
+           let pool = isWarm
+               ? menuItems.filter(m => !m.isSoldOut && (m.isHot || m.category_id?.includes('coffee') || m.category_id?.includes('non-coffee')))
+               : isCool
+               ? menuItems.filter(m => !m.isSoldOut && (m.isCold || m.category_id?.includes('ade') || m.name?.includes('아이스')))
+               : menuItems.filter(m => !m.isSoldOut && m.isPopular);
+           if (!pool.length) pool = menuItems.filter(m => !m.isSoldOut);
+           if (!pool.length) return;
+           const chosen = pick(pool);
 
-  // ── 호기심 메시지 ────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!visible || !menuItems.length || adminMode) return;
-    const t = setTimeout(() => {
-      const L = I18N[lang] || I18N.ko;
-      say('', pick(L.curious), false, 'cust_recommend');
-    }, 26000);
-    return () => clearTimeout(t);
-  }, [visible, lang]);
+           let ctx  = L.weatherCtx[weather] || '';
+           if (weatherData && weatherData.temp !== null) {
+               ctx += ` (${weatherData.temp}°C)`;
+           }
+
+           const text = (L.rec[weather] || L.rec.sun).replace('{n}', chosen.name || '');
+           setIsBusy(true);
+           spawnSparks(8);
+           say(ctx, text, false, 'cust_weather');
+           if (onRecommend) onRecommend(chosen);
+           setIsBusy(false);
+       }, 11000);
+       return () => clearTimeout(t);
+   }, [visible, weather, weatherData, menuItems, lang, adminMode, onRecommend, say, spawnSparks, fetchAIRec]);
+
+// ── 호기심 메시지 (AI 추천 우선) ──────────────────────────────────
+   useEffect(() => {
+       if (!visible || !menuItems.length || adminMode) return;
+       const t = setTimeout(() => {
+           const L = I18N[lang] || I18N.ko;
+           if (aiRecs.length > 0 && !aiLoading) {
+               const rec = pick(aiRecs);
+               const ctx = '🤖 AI 추천';
+               const text = `${rec.name} — ${rec.recommend_reason || rec.name} 추천!`;
+               say(ctx, text, false, 'cust_recommend');
+               if (onRecommend) onRecommend(rec);
+           } else {
+               say('', pick(L.curious), false, 'cust_recommend');
+           }
+       }, 26000);
+       return () => clearTimeout(t);
+   }, [visible, lang, aiRecs, aiLoading, menuItems, adminMode, onRecommend, say]);
 
   // ── 말풍선 위치 ─────────────────────────────────────────────────────────
   const bubbleStyle = mode === 'preview'
