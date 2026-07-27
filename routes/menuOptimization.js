@@ -3,6 +3,7 @@ const router = express.Router();
 const menuOptimizationController = require('../controllers/menuOptimizationController');
 const { authMiddleware } = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
+const { createAIRateLimiter } = require('../utils/aiRateLimiter');
 
 /**
  * @swagger
@@ -29,9 +30,10 @@ const { checkStorePermission } = require('../middleware/storeAuth');
  *       200:
  *         description: 메뉴 분석 데이터
  */
-router.get('/store/:storeId/analysis', 
-  authMiddleware, 
-  checkStorePermission('stats:read'), 
+router.get('/store/:storeId/analysis',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  createAIRateLimiter('getMenuAnalysis'),
   menuOptimizationController.getMenuAnalysis
 );
 
@@ -53,9 +55,10 @@ router.get('/store/:storeId/analysis',
  *       200:
  *         description: AI 세트 메뉴 제안
  */
-router.get('/store/:storeId/proposal', 
-  authMiddleware, 
-  checkStorePermission('products:write'), 
+router.get('/store/:storeId/proposal',
+  authMiddleware,
+  checkStorePermission('products:write'),
+  createAIRateLimiter('proposeSetMenus'),
   menuOptimizationController.proposeSetMenus
 );
 

@@ -138,6 +138,9 @@ router.get('/my/:phone', waitingController.getMyWaiting);
  *       200:
  *         description: AI 추천 메뉴 3개
  */
-router.get('/store/:storeId/ai-suggestions', waitingController.getAISuggestions);
+router.get('/store/:storeId/ai-suggestions',
+  createAIRateLimiter('getAISuggestions'),
+  waitingController.getAISuggestions
+);
 
 module.exports = router;

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const aiAssistantController = require('../controllers/aiAssistantController');
 const { authMiddleware } = require('../middleware/auth');
+const { createAIRateLimiter } = require('../utils/aiRateLimiter');
 
 /**
  * @swagger
@@ -31,7 +32,7 @@ const { authMiddleware } = require('../middleware/auth');
  *       200:
  *         description: AI 응답
  */
-router.post('/chat', authMiddleware, aiAssistantController.chatWithAI);
+router.post('/chat', authMiddleware, createAIRateLimiter('chat'), aiAssistantController.chatWithAI);
 
 /**
  * @swagger
@@ -57,6 +58,6 @@ router.post('/chat', authMiddleware, aiAssistantController.chatWithAI);
  *       200:
  *         description: 번역 결과
  */
-router.post('/translate', authMiddleware, aiAssistantController.translateMessage);
+router.post('/translate', authMiddleware, createAIRateLimiter('translateMessage'), aiAssistantController.translateMessage);
 
 module.exports = router;
