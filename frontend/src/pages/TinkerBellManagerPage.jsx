@@ -47,9 +47,9 @@ const WEATHERS = [
 ];
 
 // ── 폰 프레임 미리보기 ────────────────────────────────────────────────────────
-function PhonePreview({ lang, weather, voiceEnabled, largeFont, triggerKey, lastAddedItem }) {
-  return (
-    <div className="relative mx-auto" style={{ width: 280, height: 560 }}>
+function PhonePreview({ lang, weather, voiceEnabled, largeFont, triggerKey, lastAddedItem, aiRecEnabled, previewStoreId }) {
+   return (
+     <div className="relative mx-auto" style={{ width: 280, height: 560 }}>
       {/* 폰 외곽선 */}
       <div className="absolute inset-0 rounded-[2.8rem] border-[10px] border-slate-900 bg-white shadow-2xl shadow-slate-900/40 overflow-hidden">
         {/* 노치 */}
@@ -83,16 +83,18 @@ function PhonePreview({ lang, weather, voiceEnabled, largeFont, triggerKey, last
           </div>
 
           {/* 팅커벨 오버레이 */}
-          <TinkerBell
-            lang={lang}
-            weather={weather}
-            menuItems={PREVIEW_MENU}
-            voiceEnabled={voiceEnabled}
-            largeFont={largeFont}
-            mode="preview"
-            previewTrigger={triggerKey}
-            lastAddedItem={lastAddedItem}
-          />
+<TinkerBell
+             lang={lang}
+             weather={weather}
+             menuItems={PREVIEW_MENU}
+             voiceEnabled={voiceEnabled}
+             largeFont={largeFont}
+             mode="preview"
+             previewTrigger={triggerKey}
+             lastAddedItem={lastAddedItem}
+             storeId={aiRecEnabled && previewStoreId ? Number(previewStoreId) : null}
+             adminMode
+           />
         </div>
       </div>
 
@@ -122,26 +124,28 @@ function Toggle({ on, onChange, label, desc }) {
 // ── 메인 페이지 ────────────────────────────────────────────────────────────────
 export default function TinkerBellManagerPage() {
   const initial = loadTinkerBellSettings();
-  const [enabled,      setEnabled]      = useState(initial.enabled);
-  const [lang,         setLang]         = useState(initial.lang);
-  const [weather,      setWeather]      = useState('sun');
-  const [voiceEnabled, setVoiceEnabled] = useState(initial.voiceEnabled);
-  const [largeFont,    setLargeFont]    = useState(initial.largeFont);
-  const [triggerKey,   setTriggerKey]   = useState(0);
-  const [lastAdded,    setLastAdded]    = useState(null);
-  const [customMsg,    setCustomMsg]    = useState(initial.customMsg);
-  const [activeTab,    setActiveTab]    = useState('settings'); // 'settings' | 'analytics'
-  const [saving,       setSaving]       = useState(false);
+const [enabled,      setEnabled]      = useState(initial.enabled);
+   const [lang,         setLang]         = useState(initial.lang);
+   const [weather,      setWeather]      = useState('sun');
+   const [voiceEnabled, setVoiceEnabled] = useState(initial.voiceEnabled);
+   const [largeFont,    setLargeFont]    = useState(initial.largeFont);
+   const [triggerKey,   setTriggerKey]   = useState(0);
+   const [lastAdded,    setLastAdded]    = useState(null);
+   const [customMsg,    setCustomMsg]    = useState(initial.customMsg);
+   const [aiRecEnabled, setAiRecEnabled] = useState(initial.aiRecommendation ?? true);
+   const [activeTab,    setActiveTab]    = useState('settings');
+   const [saving,       setSaving]       = useState(false);
+   const [previewStoreId, setPreviewStoreId] = useState('');
 
   const replay = () => setTriggerKey(k => k + 1);
 
   // 설정 저장 (localStorage 영속화)
-  const handleSave = () => {
-    setSaving(true);
-    const ok = saveTinkerBellSettings({ enabled, lang, voiceEnabled, largeFont, customMsg });
-    toast[ok ? 'success' : 'error'](ok ? '팅커벨 설정이 저장되었습니다.' : '설정 저장에 실패했습니다.');
-    setSaving(false);
-  };
+const handleSave = () => {
+     setSaving(true);
+     const ok = saveTinkerBellSettings({ enabled, lang, voiceEnabled, largeFont, customMsg, aiRecommendation: aiRecEnabled, aiModel: 'omniroute' });
+     toast[ok ? 'success' : 'error'](ok ? '팅커벨 설정이 저장되었습니다.' : '설정 저장에 실패했습니다.');
+     setSaving(false);
+   };
 
   const demoAdd = (item) => {
     setLastAdded({ name: item.name });
@@ -271,9 +275,35 @@ export default function TinkerBellManagerPage() {
                   </p>
                 </div>
 
-                {/* 접근성 설정 */}
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-5">
-                  <h3 className="text-sm font-black text-slate-900">접근성 옵션</h3>
+{/* AI 추천 설정 */}
+                 <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-5">
+                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                     <Sparkles size={14} className="text-amber-500" />
+                     AI 추천 설정
+                   </h3>
+                   <Toggle
+                     on={aiRecEnabled}
+                     onChange={setAiRecEnabled}
+                     label="AI 기반 동적 추천 활성화"
+                     desc="OmniRoute AI가 날씨, 시간, 고객 이력을 기반으로 메뉴를 추천합니다"
+                   />
+                   {aiRecEnabled && (
+                     <div>
+                       <p className="text-xs text-slate-400 mb-2">미리보기용 매장 ID (선택사항)</p>
+                       <input
+                         type="text"
+                         value={previewStoreId}
+                         onChange={e => setPreviewStoreId(e.target.value)}
+                         placeholder="매장 ID를 입력하면 AI 추천을 미리볼 수 있습니다"
+                         className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                       />
+                     </div>
+                   )}
+                 </div>
+
+                 {/* 접근성 설정 */}
+                 <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-5">
+                   <h3 className="text-sm font-black text-slate-900">접근성 옵션</h3>
                   <Toggle
                     on={voiceEnabled}
                     onChange={setVoiceEnabled}
@@ -338,9 +368,9 @@ export default function TinkerBellManagerPage() {
                     </button>
                   </div>
 
-                  {enabled
-                    ? <PhonePreview lang={lang} weather={weather} voiceEnabled={voiceEnabled} largeFont={largeFont} triggerKey={triggerKey} lastAddedItem={lastAdded} />
-                    : (
+{enabled
+                     ? <PhonePreview lang={lang} weather={weather} voiceEnabled={voiceEnabled} largeFont={largeFont} triggerKey={triggerKey} lastAddedItem={lastAdded} aiRecEnabled={aiRecEnabled} previewStoreId={previewStoreId} />
+                     : (
                       <div className="mx-auto" style={{ width: 280, height: 420 }}>
                         <div className="w-full h-full rounded-3xl bg-slate-100 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 text-slate-400">
                           <Sparkles size={28} className="opacity-30" />

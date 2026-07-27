@@ -5,12 +5,14 @@
 export const TINKERBELL_SETTINGS_KEY = 'wm_tinkerbell_settings';
 
 export const DEFAULT_TINKERBELL_SETTINGS = {
-  enabled: true,
-  lang: 'ko',
-  voiceEnabled: true,   // 기본 온
-  largeFont: false,
-  customMsg: '',
-};
+   enabled: true,
+   lang: 'ko',
+   voiceEnabled: true,
+   largeFont: false,
+   customMsg: '',
+   aiRecommendation: true,
+   aiModel: 'omniroute',
+ };
 
 /** 저장된 설정 로드 (없으면 기본값). */
 export function loadTinkerBellSettings() {
