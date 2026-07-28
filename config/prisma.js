@@ -50,9 +50,8 @@ prismaPrimary.$on('query', (e) => {
         queryLogBuffer.pop();
     }
 
-if (duration >= threshold) {
-             logger.warn(`🐌 [Prisma Slow Query] ${duration}ms | Query: ${e.query} | Params: ${e.params}`);
-        }
+    if (duration >= threshold) {
+        logger.warn(`🐌 [Prisma Slow Query] ${duration}ms | Query: ${e.query} | Params: ${e.params}`);
     }
     }); // <-- closing for arrow function
 
