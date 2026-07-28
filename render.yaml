@@ -8,10 +8,10 @@ services:
   - type: web
     name: wemarket
     runtime: node
-    region: singapore          # Supabase(ap-southeast-1)와 동일 리전으로 DB 왕복 최소화
+    region: singapore # Supabase(ap-southeast-1)와 동일 리전으로 DB 왕복 최소화
     plan: free
     branch: main
-    buildCommand: npm install && npx prisma generate
+    buildCommand: npm install && npx prisma migrate deploy && npx prisma generate
     startCommand: node index.js
     healthCheckPath: /api/health
     autoDeploy: true
