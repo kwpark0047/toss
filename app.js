@@ -391,29 +391,11 @@ const io = new Server(httpServer, {
 });
 
 const { registerSocketHandlers } = require('./socket/handlers');
+const { authenticateSocket } = require('./socket/auth');
 
-io.on('connection', (socket) => {
-  logger.debug(`[Socket] 연결됨: ${socket.id}`);
-  socket.on('join-order', (orderId) => socket.join(`order - ${orderId}`));
-  socket.on('join-store', (data) => {
-    const storeId = typeof data === 'object' ? data.storeId : data;
-    const userId = typeof data === 'object' ? data.userId : null;
-    socket.join(`store - ${storeId}`);
-    if (userId) socket.join(`user - ${userId}`);
-  });
-  socket.on('join-kitchen', ({ storeId, userId }) => {
-    socket.join(`kitchen - ${storeId}`);
-    if (userId) socket.join(`user - ${userId}`);
-  });
-  socket.on('join-admin', (userId) => {
-    if (userId) socket.join(`user - ${userId}`);
-    socket.join('admin');
-    logger.debug(`[Socket] 관리자 입장: ${socket.id}`);
-  });
-  socket.on('disconnect', () => logger.debug(`[Socket] 연결 해제됨: ${socket.id}`));
-});
+io.use(authenticateSocket);
 
-// 채팅/공유장바구니/웨이팅 핸들러 (분리된 모듈)
+// 모든 Socket.IO 이벤트는 단일 connection 핸들러에서 등록한다.
 registerSocketHandlers(io);
 
 // 알림 서비스 초기화 (Socket.io 인스턴스 주입)

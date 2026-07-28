@@ -14,13 +14,12 @@ const getSocketUrl = () => {
   return `${window.location.origin}`;
 };
 
-
 const SOCKET_URL = getSocketUrl();
-
 
 const socket = io(SOCKET_URL, {
   autoConnect: false,
   withCredentials: true,
+  auth: (callback) => callback({ token: localStorage.getItem('token') || undefined }),
   reconnection: true,
   reconnectionAttempts: 10,
   reconnectionDelay: 1000,
