@@ -66,7 +66,7 @@ const storeInfoEnhancementController = {
             hours,
             message: '영업시간이 생성되었습니다.'
         });
-    }),
+    },
 
     // 업종 자동 분류
     classifyBusinessType: async (req, res) => {
@@ -90,7 +90,7 @@ const storeInfoEnhancementController = {
             businessType,
             message: `업종이 "${businessType}"으로 분류되었습니다.`
         });
-    }),
+    },
 
     // 매장 설명 자동 생성
     generateDescription: async (req, res) => {
@@ -114,7 +114,7 @@ const storeInfoEnhancementController = {
             description,
             message: '매장 설명이 생성되었습니다.'
         });
-    }),
+    },
 
     // 서비스/메뉴 제안
     getServiceSuggestions: async (req, res) => {
@@ -131,7 +131,7 @@ const storeInfoEnhancementController = {
             suggestions,
             businessType: store.business_type
         });
-    }),
+    },
 
     // 매장 정보 완성도 검증 (실시간)
     validateStoreInfo: async (req, res) => {
@@ -152,7 +152,7 @@ const storeInfoEnhancementController = {
             missingCount: report.missingCount,
             priorityActions: report.priorityActions
         });
-    }),
+    },
 
     // 저장된 매장 정보에 보강 데이터 적용
     applyEnhancements: async (req, res) => {
@@ -176,7 +176,7 @@ const storeInfoEnhancementController = {
             store: updated,
             message: `${Object.keys(enhancements).length}개 필드가 업데이트되었습니다.`
         });
-    }),
+    },
 
     // 일괄 매장 정보 보강 (관리자용)
     bulkEnhanceStores: async (req, res) => {
@@ -210,7 +210,6 @@ const storeInfoEnhancementController = {
             results,
             errors
         });
-    })
+    }
 };
-
 module.exports = storeInfoEnhancementController;

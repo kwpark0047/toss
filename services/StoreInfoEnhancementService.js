@@ -316,7 +316,7 @@ class StoreInfoEnhancementService {
         try {
             const response = await aiService.generateWithFallback(prompt, {
                 generationConfig: { temperature: 0.3, response_mime_type: 'application/json' }
-            );
+            });
             
             const parsed = JSON.parse(response.replace(/```json|```/g, '').trim());
             return {
