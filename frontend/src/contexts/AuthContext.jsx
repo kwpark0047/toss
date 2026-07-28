@@ -168,8 +168,16 @@ export const AuthProvider = ({ children }) => {
     return res.data || res;
   };
 
-  const logout = () => {
-    if (!USE_COOKIE) {
+  const logout = async () => {
+    if (USE_COOKIE) {
+      // 쿠키 모드: HttpOnly 쿠키는 JS 로 지울 수 없으므로 서버에 삭제를 요청한다.
+      try {
+        const { authAPI } = await import('@/api');
+        await authAPI.logout();
+      } catch {
+        // 로그아웃 실패는 치명적이지 않다 — 사용자 상태만 초기화한다.
+      }
+    } else {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
     }

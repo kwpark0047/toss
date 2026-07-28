@@ -5,6 +5,7 @@ const fs = require('fs');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const paymentController = require('../controllers/paymentController');
+const idempotency = require('../middleware/idempotency');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -15,7 +16,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
     cb(null, `proof_${req.params.paymentId}_${Date.now()}${ext}`);
-  }
+  },
 });
 const upload = multer({
   storage,
@@ -23,7 +24,7 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('이미지 파일만 업로드 가능합니다.'));
-  }
+  },
 });
 
 /**
@@ -57,7 +58,7 @@ const upload = multer({
  *       200:
  *         description: 결제 정보
  */
-router.post('/', paymentController.createPayment);
+router.post('/', idempotency({ namespace: 'payments:create' }), paymentController.createPayment);
 
 /**
  * @swagger
@@ -109,7 +110,11 @@ router.post('/ready', paymentController.preparePayment);
  *       200:
  *         description: 결제 승인 완료
  */
-router.post('/:orderId/confirm', paymentController.confirmPayment);
+router.post(
+  '/:orderId/confirm',
+  idempotency({ namespace: 'payments:confirm' }),
+  paymentController.confirmPayment
+);
 
 /**
  * @swagger
@@ -305,7 +310,7 @@ router.get('/split/:orderId/status', paymentController.getSplitStatus);
  *       200:
  *         description: 분할 결제 완료
  */
-router.post('/split/pay', paymentController.paySplit);
+router.post('/split/pay', idempotency({ namespace: 'payments:split' }), paymentController.paySplit);
 
 /**
  * @swagger
@@ -337,7 +342,11 @@ router.post('/webhooks/toss', paymentController.handleTossWebhook);
  *       200:
  *         description: 카드 결제 승인 완료
  */
-router.post('/order/:orderId/confirm-store-card', authMiddleware, paymentController.confirmStoreCard);
+router.post(
+  '/order/:orderId/confirm-store-card',
+  authMiddleware,
+  paymentController.confirmStoreCard
+);
 
 /**
  * @swagger

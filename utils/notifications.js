@@ -1,4 +1,3 @@
-const path = require('path');
 const logger = require('../utils/logger');
 
 /**
@@ -16,27 +15,15 @@ const logger = require('../utils/logger');
  */
 
 function deprecationWarning(fnName) {
-  logger.warn(`[Deprecated] utils/notifications.js의 ${fnName}()이(가) 호출되었습니다. notificationService.js로 이전하세요.`);
+  logger.warn(
+    `[Deprecated] utils/notifications.js의 ${fnName}()이(가) 호출되었습니다. notificationService.js로 이전하세요.`
+  );
 }
 
 let messaging = null;
 try {
-  const admin = require('firebase-admin');
-  if (admin.apps.length === 0) {
-    // 환경 변수에 설정된 서비스 계정 키 경로를 사용하여 초기화합니다.
-    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-    if (serviceAccountPath) {
-      try {
-        admin.initializeApp({
-          credential: admin.credential.cert(require(path.resolve(serviceAccountPath)))
-        });
-        logger.info('[Notification] Firebase Admin SDK 초기화 완료');
-      } catch (e) {
-        logger.error('[Notification] Firebase 초기화 실패:', e.message || e);
-      }
-    }
-  }
-  messaging = admin.messaging();
+  // firebase-admin v14 모듈러 API — 초기화는 utils/firebaseAdmin 이 단독 담당
+  messaging = require('./firebaseAdmin').getMessagingClient();
 } catch {
   logger.warn('[Notification] Firebase Admin SDK를 로드할 수 없습니다. 푸시 알림이 제한됩니다.');
 }
@@ -53,7 +40,7 @@ async function sendFCMNotification(token, payload) {
         body: payload.body,
       },
       data: payload.data || {},
-      token: token
+      token: token,
     };
 
     const response = await messaging.send(message);
@@ -76,7 +63,7 @@ async function sendOrderReadyNotification(io, order, tableAssignment, customerTo
     tableId: order.table_id,
     storeId: order.store_id,
     message: body,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   // [실시간] 특정 주문 룸과 해당 매장 룸에 각각 알림 발송
@@ -111,7 +98,7 @@ async function sendNewOrderNotification(io, order, managerTokens = []) {
     storeId: order.store_id,
     totalAmount: order.total_amount,
     message: body,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   // [실시간] 매장 룸과 주방 룸에 주문 발생 사실 전파
@@ -120,9 +107,11 @@ async function sendNewOrderNotification(io, order, managerTokens = []) {
 
   // [푸시] 등록된 모든 매니저 기기에 푸시 알림 전송 (병렬 처리로 성능 최적화)
   if (managerTokens && managerTokens.length > 0) {
-    await Promise.all(managerTokens.map(token =>
-      sendFCMNotification(token, { title, body, data: { orderId: String(order.id) } })
-    ));
+    await Promise.all(
+      managerTokens.map((token) =>
+        sendFCMNotification(token, { title, body, data: { orderId: String(order.id) } })
+      )
+    );
   }
 }
 
@@ -157,7 +146,7 @@ async function sendSettlementNotification(io, store, settlement, managerTokens =
       storeId: store.id,
       amount: settlement.net_amount,
       message: body,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -173,7 +162,7 @@ async function sendSettlementNotification(io, store, settlement, managerTokens =
     await sendAlimTalk(store.owner_phone, 'SETTLEMENT_INFO', {
       storeName: store.name,
       amount: settlement.net_amount,
-      period: `${settlement.period_start}~${settlement.period_end}`
+      period: `${settlement.period_start}~${settlement.period_end}`,
     });
   }
 }
@@ -191,7 +180,7 @@ async function sendOrderStatusNotification(io, order, oldStatus, newStatus, cust
     preparing: '조리중',
     ready: '준비완료',
     completed: '완료',
-    cancelled: '취소'
+    cancelled: '취소',
   };
 
   const label = statusLabels[newStatus] || newStatus;
@@ -203,7 +192,7 @@ async function sendOrderStatusNotification(io, order, oldStatus, newStatus, cust
     orderNumber: order.order_number,
     newStatus,
     message,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   // [실시간] 특정 주문 조회 중인 고객에게 전송
@@ -216,7 +205,7 @@ async function sendOrderStatusNotification(io, order, oldStatus, newStatus, cust
     await sendFCMNotification(customerToken, {
       title: '주문 상태 업데이트',
       body: message,
-      data: { orderId: String(order.id), status: newStatus }
+      data: { orderId: String(order.id), status: newStatus },
     });
   }
 
@@ -224,7 +213,7 @@ async function sendOrderStatusNotification(io, order, oldStatus, newStatus, cust
   if (order.customer_phone && newStatus === 'cancelled') {
     await sendAlimTalk(order.customer_phone, 'ORDER_CANCELLED', {
       orderNumber: order.order_number,
-      reason: '매장 사정 또는 재고 소진'
+      reason: '매장 사정 또는 재고 소진',
     });
   }
 }
@@ -242,20 +231,23 @@ async function sendReservationNotification(reservation, newStatus) {
     CONFIRMED: 'RESERVATION_CONFIRMED',
     REJECTED: 'RESERVATION_REJECTED',
     NOSHOW: 'RESERVATION_NOSHOW',
-    CANCELED: 'RESERVATION_CANCELED'
+    CANCELED: 'RESERVATION_CANCELED',
   };
 
   const templateCode = statusToTemplate[newStatus];
   if (!templateCode) return;
 
   const dateStr = new Date(reservation.reservation_time).toLocaleString('ko-KR', {
-    month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 
   await sendAlimTalk(reservation.customer_phone, templateCode, {
     customerName: reservation.customer_name,
     partySize: reservation.party_size,
-    reservationTime: dateStr
+    reservationTime: dateStr,
   });
 }
 
@@ -265,5 +257,5 @@ module.exports = {
   sendOrderStatusNotification,
   sendSettlementNotification,
   sendAlimTalk,
-  sendReservationNotification
+  sendReservationNotification,
 };

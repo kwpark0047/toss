@@ -2,53 +2,49 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const authMiddleware = require('../middleware/auth');
 const { generalLimiter } = require('../middleware/rateLimiter');
+const catchAsync = require('../utils/catchAsync');
+const logger = require('../utils/logger');
+const { getDriver, ALLOWED_EXTENSIONS } = require('../utils/storage');
 
 /**
  * @swagger
  * tags:
  *   name: Uploads
- *   description: 파일 업로드/삭제 API
+ *   description: |
+ *     파일 업로드/삭제 API.
+ *     저장소는 STORAGE_DRIVER 환경변수로 선택한다(local | supabase).
+ *     운영에서는 supabase 를 사용해야 재배포 시 파일이 소실되지 않는다. (M-9)
  */
 
-const uploadDir = path.join(__dirname, '../public/uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// 업로드 파일 절대 URL 생성.
-// Render 등 프록시 환경에서 req.protocol이 http인 경우에도 https(Vercel 기준)를 우선 적용하여 mixed content 차단 방지.
-const buildUploadUrl = (req, filename) => {
-    const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
-    return `${proto}://${req.get('host')}/uploads/${filename}`;
-};
-
-// Multer 설정
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-    cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
+// 메모리 스토리지 사용 — 드라이버가 로컬/원격 어디로든 쓸 수 있도록 버퍼로 받는다.
 const upload = multer({
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB 제한
-    fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp|gif/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-        if (extname && mimetype) {
-    return cb(null, true);
-    }
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+    files: 10,
+  },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const extOk = ALLOWED_EXTENSIONS.has(ext);
+    const mimeOk = /^image\/(jpeg|jpg|png|webp|gif)$/i.test(file.mimetype || '');
+    if (extOk && mimeOk) return cb(null, true);
     cb(new Error('이미지 파일만 업로드 가능합니다.'));
-    }
+  },
 });
+
+/**
+ * 드라이버가 반환한 URL 을 클라이언트가 바로 쓸 수 있는 절대 URL 로 보정한다.
+ * - 원격(supabase) 드라이버는 이미 절대 URL 이므로 그대로 사용
+ * - 로컬 드라이버는 상대 경로이므로 요청 호스트를 붙인다
+ *   (Render 등 프록시 환경에서 mixed content 를 피하려고 x-forwarded-proto 우선)
+ */
+const toAbsoluteUrl = (req, url) => {
+  if (/^https?:\/\//i.test(url)) return url;
+  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
+  return `${proto}://${req.get('host')}${url}`;
+};
 
 /**
  * @swagger
@@ -72,17 +68,23 @@ const upload = multer({
  *       200:
  *         description: 업로드된 이미지 URL
  */
-router.post('/image', authMiddleware, upload.single('image'), (req, res) => {
+router.post(
+  '/image',
+  authMiddleware,
+  upload.single('image'),
+  catchAsync(async (req, res) => {
     if (!req.file) {
-        return res.status(400).json({ success: false, error: '파일이 없습니다.' });
+      return res.status(400).json({ success: false, error: '파일이 없습니다.' });
     }
-    const imageUrl = buildUploadUrl(req, req.file.filename);
-    res.json({
-        success: true,
-        url: imageUrl,
-        filename: req.file.filename
+    const { key, url } = await getDriver().save({
+      buffer: req.file.buffer,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      prefix: 'image',
     });
-});
+    res.json({ success: true, url: toAbsoluteUrl(req, url), filename: key });
+  })
+);
 
 /**
  * @swagger
@@ -105,16 +107,23 @@ router.post('/image', authMiddleware, upload.single('image'), (req, res) => {
  *       200:
  *         description: 업로드된 이미지 URL
  */
-router.post('/review-image', generalLimiter, upload.single('image'), (req, res) => {
+router.post(
+  '/review-image',
+  generalLimiter,
+  upload.single('image'),
+  catchAsync(async (req, res) => {
     if (!req.file) {
-        return res.status(400).json({ success: false, error: '파일이 없습니다.' });
+      return res.status(400).json({ success: false, error: '파일이 없습니다.' });
     }
-    res.json({
-        success: true,
-        url: buildUploadUrl(req, req.file.filename),
-        filename: req.file.filename
+    const { key, url } = await getDriver().save({
+      buffer: req.file.buffer,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      prefix: 'review',
     });
-});
+    res.json({ success: true, url: toAbsoluteUrl(req, url), filename: key });
+  })
+);
 
 /**
  * @swagger
@@ -140,16 +149,34 @@ router.post('/review-image', generalLimiter, upload.single('image'), (req, res) 
  *       200:
  *         description: 업로드된 이미지 URL 배열
  */
-router.post('/images', authMiddleware, upload.array('images', 10), (req, res) => {
+router.post(
+  '/images',
+  authMiddleware,
+  upload.array('images', 10),
+  catchAsync(async (req, res) => {
     if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ success: false, error: '파일이 없습니다.' });
+      return res.status(400).json({ success: false, error: '파일이 없습니다.' });
     }
-    const urls = req.files.map(file => buildUploadUrl(req, file.filename));
+    const driver = getDriver();
+    const saved = [];
+    for (const file of req.files) {
+      // 순차 저장: 부분 실패 시 이미 올라간 것을 되돌릴 수 있도록 키를 추적한다.
+      saved.push(
+        await driver.save({
+          buffer: file.buffer,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          prefix: 'image',
+        })
+      );
+    }
     res.json({
-        success: true,
-        urls: urls
+      success: true,
+      urls: saved.map((s) => toAbsoluteUrl(req, s.url)),
+      filenames: saved.map((s) => s.key),
     });
-});
+  })
+);
 
 /**
  * @swagger
@@ -168,30 +195,29 @@ router.post('/images', authMiddleware, upload.array('images', 10), (req, res) =>
  *     responses:
  *       200:
  *         description: 파일 삭제 완료
+ *       400:
+ *         description: 잘못된 파일 이름
  *       404:
  *         description: 파일 미발견
  */
-router.delete('/image/:filename', authMiddleware, (req, res) => {
+router.delete(
+  '/image/:filename',
+  authMiddleware,
+  catchAsync(async (req, res) => {
     const { filename } = req.params;
-    // 1차 방어: 경로 구분자·상위참조 문자 차단
-    if (filename.includes('..') || filename.includes('/') || filename.includes('\\') || filename.includes('\0')) {
-        return res.status(400).json({ success: false, error: '잘못된 파일 이름입니다.' });
+    const { isSafeKey } = require('../utils/storage');
+
+    if (!isSafeKey(filename)) {
+      return res.status(400).json({ success: false, error: '잘못된 파일 이름입니다.' });
     }
 
-    // 2차 방어(defense-in-depth): 정규화된 실제 경로가 uploadDir 내부인지 확인
-    const safeName = path.basename(filename);
-    const baseResolved = path.resolve(uploadDir);
-    const filePath = path.resolve(uploadDir, safeName);
-    if (filePath !== path.join(baseResolved, safeName) || !filePath.startsWith(baseResolved + path.sep)) {
-        return res.status(400).json({ success: false, error: '잘못된 파일 경로입니다.' });
+    const removed = await getDriver().remove(filename);
+    if (!removed) {
+      return res.status(404).json({ success: false, error: '파일을 찾을 수 없습니다.' });
     }
-
-    if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        res.json({ success: true, message: '파일이 성공적으로 삭제되었습니다.' });
-    } else {
-        res.status(404).json({ success: false, error: '파일을 찾을 수 없습니다.' });
-    }
-});
+    logger.info(`[Uploads] 파일 삭제: ${filename} (user=${req.user?.id})`);
+    res.json({ success: true, message: '파일이 성공적으로 삭제되었습니다.' });
+  })
+);
 
 module.exports = router;

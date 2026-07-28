@@ -5,7 +5,13 @@ const prisma = require('../config/prisma'); // 다른 모델 접근을 위해 �
 const logger = require('../utils/logger');
 const { AppError } = require('../utils/errorHandler');
 const { sendSms } = require('../utils/smsService');
-const { normalizePhone, encryptPhone, decryptPhone, encryptPhoneForSearch, phoneSearchCandidates } = require('../utils/phoneEncryption');
+const {
+  normalizePhone,
+  encryptPhone,
+  decryptPhone,
+  encryptPhoneForSearch,
+  phoneSearchCandidates,
+} = require('../utils/phoneEncryption');
 const { setTokenCookies } = require('../utils/tokenCookies');
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -17,7 +23,6 @@ if (!JWT_SECRET && !IS_DEV) {
   process.exit(1);
 }
 
-
 const JWT_ACCESS_EXPIRY = process.env.JWT_ACCESS_EXPIRY || '2h';
 const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d';
 
@@ -27,11 +32,9 @@ const signTokens = (user) => {
     JWT_SECRET,
     { expiresIn: JWT_ACCESS_EXPIRY }
   );
-  const refreshToken = jwt.sign(
-    { id: user.id, type: 'refresh' },
-    JWT_REFRESH_SECRET,
-    { expiresIn: JWT_REFRESH_EXPIRY }
-  );
+  const refreshToken = jwt.sign({ id: user.id, type: 'refresh' }, JWT_REFRESH_SECRET, {
+    expiresIn: JWT_REFRESH_EXPIRY,
+  });
   return { token, refreshToken };
 };
 
@@ -50,7 +53,8 @@ const sendOtp = async (req, res, next) => {
     if (!phone) return next(new AppError('핸드폰 번호를 입력해주세요.', 400));
 
     const normalized = normalizePhone(phone);
-    if (normalized.length < 10) return next(new AppError('올바른 핸드폰 번호를 입력해주세요.', 400));
+    if (normalized.length < 10)
+      return next(new AppError('올바른 핸드폰 번호를 입력해주세요.', 400));
 
     // 기존 미사용 OTP 무효화
     await prisma.phone_otps.updateMany({
@@ -68,7 +72,8 @@ const sendOtp = async (req, res, next) => {
     await sendSms(normalized, `[위마켓] 인증번호: ${otp}`);
 
     const responseData = { message: '인증번호가 발송되었습니다.' };
-    if (IS_DEV || !process.env.SMS_ENV || process.env.SMS_ENV === 'none') responseData.dev_otp = otp;
+    if (IS_DEV || !process.env.SMS_ENV || process.env.SMS_ENV === 'none')
+      responseData.dev_otp = otp;
 
     res.success(responseData, '인증번호가 발송되었습니다.');
   } catch (error) {
@@ -92,7 +97,8 @@ const verifyOtp = async (req, res, next) => {
     });
 
     if (!record) return next(new AppError('인증번호를 다시 요청해주세요.', 400));
-    if (new Date() > record.expires_at) return next(new AppError('인증번호가 만료되었습니다. 다시 요청해주세요.', 400));
+    if (new Date() > record.expires_at)
+      return next(new AppError('인증번호가 만료되었습니다. 다시 요청해주세요.', 400));
     if (record.otp !== String(otp)) return next(new AppError('인증번호가 일치하지 않습니다.', 400));
 
     await prisma.phone_otps.update({
@@ -115,7 +121,8 @@ const register = async (req, res, next) => {
     const { phone, password } = req.body;
 
     if (!phone) return next(new AppError('핸드폰 번호는 필수입니다.', 400));
-    if (!password || password.length < 6) return next(new AppError('비밀번호는 최소 6자 이상이어야 합니다.', 400));
+    if (!password || password.length < 6)
+      return next(new AppError('비밀번호는 최소 6자 이상이어야 합니다.', 400));
 
     const normalized = normalizePhone(phone);
     const encryptedPhone = encryptPhone(normalized);
@@ -148,14 +155,14 @@ const register = async (req, res, next) => {
 
     const hashedPassword = bcrypt.hashSync(password, 10);
     const user = await userRepository.create({
-        phone: encryptedPhone,
-        password: hashedPassword,
-        role: 'user',
-        profile_step: 1,
+      phone: encryptedPhone,
+      password: hashedPassword,
+      role: 'user',
+      profile_step: 1,
     });
 
     const pointService = require('../services/PointsService');
-    await pointService.unifyPoints(user.id, normalized).catch(err => {
+    await pointService.unifyPoints(user.id, normalized).catch((err) => {
       logger.warn(`[Auth] 포인트 통합 실패 (user ${user.id}): ${err.message}`);
     });
 
@@ -187,7 +194,7 @@ const login = async (req, res, next) => {
       user = await userRepository.findByEmail(loginId);
     } else {
       const normalizedPhone = normalizePhone(loginId);
-      const encryptedPhone  = encryptPhoneForSearch(normalizedPhone);
+      const encryptedPhone = encryptPhoneForSearch(normalizedPhone);
       // 현행/레거시 암호문 + 평문 후보를 한 번에 검색
       user = await userRepository.findByPhone(phoneSearchCandidates(normalizedPhone));
       // 레거시/평문 레코드는 현행 방식으로 재암호화 (점진적 마이그레이션)
@@ -226,7 +233,7 @@ const getMe = async (req, res, next) => {
     const user = await userRepository.findUnique(req.user.id);
 
     if (!user) return next(new AppError('사용자를 찾을 수 없습니다.', 404));
-    
+
     const safe = safeUser(user);
     res.success({ ...safe, phone: decryptPhone(safe.phone) });
   } catch (error) {
@@ -260,7 +267,8 @@ const updateProfile = async (req, res, next) => {
           return next(new AppError('이메일 형식이 올바르지 않습니다.', 400));
         }
         const dup = await userRepository.findByEmail(normalizedEmail);
-        if (dup && dup.id !== userId) return next(new AppError('이미 사용 중인 이메일입니다.', 409));
+        if (dup && dup.id !== userId)
+          return next(new AppError('이미 사용 중인 이메일입니다.', 409));
       }
       updateData.email = normalizedEmail;
       if (nextStep < 3) nextStep = 3;
@@ -274,7 +282,7 @@ const updateProfile = async (req, res, next) => {
     updateData.profile_step = nextStep;
 
     const updated = await userRepository.update(userId, updateData);
-    
+
     const { ...safe } = updated;
     res.success(safe, '프로필이 업데이트되었습니다.');
   } catch (error) {
@@ -319,11 +327,15 @@ const changePassword = async (req, res, next) => {
  */
 const refreshToken = async (req, res, next) => {
   try {
-    const { refreshToken: clientToken } = req.body;
+    // 쿠키 모드: HttpOnly refreshToken 쿠키에서 읽는다.
+    // 헤더 모드(하위 호환): 요청 본문의 refreshToken 을 사용한다.
+    const { isCookieMode } = require('../utils/tokenCookies');
+    const clientToken = isCookieMode() ? req.cookies?.refreshToken : req.body?.refreshToken;
     if (!clientToken) return next(new AppError('리프레시 토큰이 필요합니다.', 400));
 
     const decoded = jwt.verify(clientToken, JWT_REFRESH_SECRET);
-    if (decoded.type !== 'refresh') return next(new AppError('유효하지 않은 토큰 타입입니다.', 401));
+    if (decoded.type !== 'refresh')
+      return next(new AppError('유효하지 않은 토큰 타입입니다.', 401));
 
     const user = await userRepository.findUnique(decoded.id);
     if (!user) return next(new AppError('사용자를 찾을 수 없습니다.', 404));
@@ -336,4 +348,26 @@ const refreshToken = async (req, res, next) => {
   }
 };
 
-module.exports = { sendOtp, verifyOtp, register, login, getMe, updateProfile, changePassword, refreshToken };
+/**
+ * 로그아웃 (H-2)
+ * 쿠키 모드에서는 서버가 HttpOnly 쿠키를 제거해야 로그아웃이 완료된다.
+ * (JS 가 HttpOnly 쿠키를 지울 수 없으므로)
+ */
+const logout = async (req, res) => {
+  const { clearTokenCookies } = require('../utils/tokenCookies');
+  clearTokenCookies(res);
+  // JWT 는 무상태라 서버 측 무효화는 없고, 쿠키 제거 + 클라이언트 토큰 폐기로 완료한다.
+  res.success(null, '로그아웃되었습니다.');
+};
+
+module.exports = {
+  sendOtp,
+  verifyOtp,
+  register,
+  login,
+  getMe,
+  updateProfile,
+  changePassword,
+  refreshToken,
+  logout,
+};

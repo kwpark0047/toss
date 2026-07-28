@@ -1,5 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+// [수정] 모듈마다 new PrismaClient() 를 만들면 커넥션 풀이 중복 생성되어
+// 서버리스/컨테이너 환경에서 DB 연결 수가 폭증한다. 공유 싱글턴을 사용한다.
+const prisma = require('../../../config/prisma');
 
 class StoreRepository {
   async findById(id) {
@@ -56,9 +57,15 @@ class StoreRepository {
     const stores = await prisma.stores.findMany({
       where,
       select: {
-        id: true, name: true, business_type: true, address: true,
-        latitude: true, longitude: true,
-        open_time: true, close_time: true, business_hours: true,
+        id: true,
+        name: true,
+        business_type: true,
+        address: true,
+        latitude: true,
+        longitude: true,
+        open_time: true,
+        close_time: true,
+        business_hours: true,
       },
       skip,
       take: limit,
@@ -75,8 +82,12 @@ class StoreRepository {
     return await prisma.stores.findMany({
       where: { is_active: true },
       select: {
-        id: true, name: true, address: true, business_type: true,
-        latitude: true, longitude: true,
+        id: true,
+        name: true,
+        address: true,
+        business_type: true,
+        latitude: true,
+        longitude: true,
         _count: { select: { orders: { where: { status: 'completed' } } } },
       },
       orderBy: { orders: { _count: 'desc' } },
@@ -98,7 +109,11 @@ class StoreRepository {
         stores: storeRel,
       },
       select: {
-        id: true, type: true, title: true, content: true, image_url: true,
+        id: true,
+        type: true,
+        title: true,
+        content: true,
+        image_url: true,
         stores: { select: { id: true, name: true } },
       },
       orderBy: { created_at: 'desc' },
@@ -108,7 +123,12 @@ class StoreRepository {
     const products = await prisma.products.findMany({
       where: { is_active: true, is_sold_out: false, stores: storeRel },
       select: {
-        id: true, name: true, price: true, image_url: true, is_popular: true, store_id: true,
+        id: true,
+        name: true,
+        price: true,
+        image_url: true,
+        is_popular: true,
+        store_id: true,
         stores: { select: { id: true, name: true } },
       },
       orderBy: [{ is_popular: 'desc' }, { id: 'desc' }],

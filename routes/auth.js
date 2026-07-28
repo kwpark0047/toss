@@ -145,7 +145,12 @@ router.get('/me', authMiddleware, authController.getMe);
  *       200:
  *         description: 프로필 수정 완료
  */
-router.put('/profile', authMiddleware, validate(schema.updateProfile), authController.updateProfile);
+router.put(
+  '/profile',
+  authMiddleware,
+  validate(schema.updateProfile),
+  authController.updateProfile
+);
 
 /**
  * @swagger
@@ -171,7 +176,12 @@ router.put('/profile', authMiddleware, validate(schema.updateProfile), authContr
  *       200:
  *         description: 비밀번호 변경 완료
  */
-router.put('/password', authMiddleware, validate(schema.changePassword), authController.changePassword);
+router.put(
+  '/password',
+  authMiddleware,
+  validate(schema.changePassword),
+  authController.changePassword
+);
 
 /**
  * @swagger
@@ -194,5 +204,20 @@ router.put('/password', authMiddleware, validate(schema.changePassword), authCon
  *         description: 새 토큰 발급
  */
 router.post('/refresh-token', authController.refreshToken);
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     tags: [Auth]
+ *     summary: 로그아웃
+ *     description: |
+ *       HttpOnly 쿠키 모드에서는 서버가 인증 쿠키(token, refreshToken)를 제거한다.
+ *       헤더 모드에서는 쿠키가 없으므로 no-op 이며, 클라이언트가 로컬 토큰을 폐기하면 된다.
+ *     responses:
+ *       200:
+ *         description: 로그아웃 완료
+ */
+router.post('/logout', authController.logout);
 
 module.exports = router;

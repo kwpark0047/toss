@@ -1,5 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+// [수정] 모듈마다 new PrismaClient() 를 만들면 커넥션 풀이 중복 생성되어
+// 서버리스/컨테이너 환경에서 DB 연결 수가 폭증한다. 공유 싱글턴을 사용한다.
+const prisma = require('../../../config/prisma');
 
 class CustomerRepository {
   async findById(storeId, customerId) {
@@ -56,7 +57,12 @@ class CustomerRepository {
 
   async issueCoupon(customerPhone, couponId, expiresAt) {
     return prisma.user_coupons.create({
-      data: { customer_phone: customerPhone, coupon_id: couponId, status: 'UNUSED', expires_at: expiresAt },
+      data: {
+        customer_phone: customerPhone,
+        coupon_id: couponId,
+        status: 'UNUSED',
+        expires_at: expiresAt,
+      },
     });
   }
 
@@ -71,14 +77,27 @@ class CustomerRepository {
         _count: { id: true },
         _avg: { visit_count: true, total_spent: true },
       }),
-      prisma.store_customers.count({ where: { store_id: storeId, created_at: { gte: startOfMonth } } }),
-      prisma.store_customers.groupBy({ by: ['tier'], where: { store_id: storeId }, _count: { id: true } }),
-      prisma.store_customers.count({ where: { store_id: storeId, last_visit_at: { lt: thirtyDaysAgo } } }),
-      prisma.store_tier_settings.findMany({ where: { store_id: storeId }, orderBy: { min_spent: 'asc' } }),
+      prisma.store_customers.count({
+        where: { store_id: storeId, created_at: { gte: startOfMonth } },
+      }),
+      prisma.store_customers.groupBy({
+        by: ['tier'],
+        where: { store_id: storeId },
+        _count: { id: true },
+      }),
+      prisma.store_customers.count({
+        where: { store_id: storeId, last_visit_at: { lt: thirtyDaysAgo } },
+      }),
+      prisma.store_tier_settings.findMany({
+        where: { store_id: storeId },
+        orderBy: { min_spent: 'asc' },
+      }),
     ]);
 
     const tierMap = {};
-    tierCounts.forEach((t) => { tierMap[t.tier] = t._count.id; });
+    tierCounts.forEach((t) => {
+      tierMap[t.tier] = t._count.id;
+    });
 
     return {
       total_customers: all._count.id || 0,
@@ -112,7 +131,14 @@ class CustomerRepository {
         where: { store_id: customer.store_id, user_points: { phone: customer.customer_phone } },
         orderBy: { created_at: 'desc' },
         take: 15,
-        select: { id: true, type: true, amount: true, balance_after: true, description: true, created_at: true },
+        select: {
+          id: true,
+          type: true,
+          amount: true,
+          balance_after: true,
+          description: true,
+          created_at: true,
+        },
       }),
       prisma.user_coupons.findMany({
         where: {
@@ -124,12 +150,16 @@ class CustomerRepository {
         orderBy: { created_at: 'desc' },
         take: 10,
       }),
-      prisma.store_tier_settings.findMany({ where: { store_id: customer.store_id }, orderBy: { min_spent: 'asc' } }),
+      prisma.store_tier_settings.findMany({
+        where: { store_id: customer.store_id },
+        orderBy: { min_spent: 'asc' },
+      }),
     ]);
 
-    const nextTier = tiers
-      .filter((t) => t.min_spent > customer.total_spent)
-      .sort((a, b) => a.min_spent - b.min_spent)[0] || null;
+    const nextTier =
+      tiers
+        .filter((t) => t.min_spent > customer.total_spent)
+        .sort((a, b) => a.min_spent - b.min_spent)[0] || null;
 
     return {
       customer,
@@ -171,10 +201,12 @@ class CustomerRepository {
       include: { coupons: { where: { is_active: 1 }, take: 1 } },
     });
 
-    return activeStores.find((store) => {
-      const distance = haversineKm(lat, lng, store.latitude, store.longitude);
-      return distance <= NEARBY_DISTANCE_KM;
-    }) || null;
+    return (
+      activeStores.find((store) => {
+        const distance = haversineKm(lat, lng, store.latitude, store.longitude);
+        return distance <= NEARBY_DISTANCE_KM;
+      }) || null
+    );
   }
 
   async getCoupons(storeId) {

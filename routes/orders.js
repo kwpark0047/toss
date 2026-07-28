@@ -4,6 +4,7 @@ const orderController = require('../controllers/orderController');
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const validate = require('../middleware/validate');
+const idempotency = require('../middleware/idempotency');
 const { order: schema } = require('../utils/validationSchemas');
 
 /**
@@ -12,6 +13,16 @@ const { order: schema } = require('../utils/validationSchemas');
  *   post:
  *     tags: [Orders]
  *     summary: 주문 생성
+ *     description: |
+ *       `Idempotency-Key` 헤더(UUID 권장)를 보내면 네트워크 타임아웃 후 재시도해도
+ *       중복 주문이 생성되지 않는다. 동일 키의 이전 성공 응답이 그대로 재생되며
+ *       응답에 `Idempotency-Replayed: true` 헤더가 포함된다.
+ *     parameters:
+ *       - in: header
+ *         name: Idempotency-Key
+ *         required: false
+ *         schema: { type: string }
+ *         description: 중복 주문 방지용 고유 키 (권장)
  *     requestBody:
  *       required: true
  *       content:
@@ -28,8 +39,17 @@ const { order: schema } = require('../utils/validationSchemas');
  *     responses:
  *       201:
  *         description: 주문 생성 완료
+ *       409:
+ *         description: 동일 Idempotency-Key 요청이 처리 중
+ *       422:
+ *         description: 동일 Idempotency-Key로 다른 본문 전송
  */
-router.post('/', validate(schema.create), orderController.createOrder);
+router.post(
+  '/',
+  idempotency({ namespace: 'orders:create' }),
+  validate(schema.create),
+  orderController.createOrder
+);
 
 /**
  * @swagger
@@ -94,7 +114,12 @@ router.get('/customer/history', orderController.getCustomerHistory);
  *       200:
  *         description: 시간대별/카테고리별 상세 통계
  */
-router.get('/store/:storeId/detailed-stats', authMiddleware, checkStorePermission('stats:read'), orderController.getDetailedStats);
+router.get(
+  '/store/:storeId/detailed-stats',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  orderController.getDetailedStats
+);
 
 /**
  * @swagger
@@ -113,7 +138,12 @@ router.get('/store/:storeId/detailed-stats', authMiddleware, checkStorePermissio
  *       200:
  *         description: 오늘/이번 달 매출, 주문 수 등
  */
-router.get('/store/:storeId/stats', authMiddleware, checkStorePermission('stats:read'), orderController.getStats);
+router.get(
+  '/store/:storeId/stats',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  orderController.getStats
+);
 
 /**
  * @swagger
@@ -141,7 +171,12 @@ router.get('/store/:storeId/stats', authMiddleware, checkStorePermission('stats:
  *       200:
  *         description: 주문 목록 (페이지네이션)
  */
-router.get('/store/:storeId', authMiddleware, checkStorePermission('order:read'), orderController.getStoreOrders);
+router.get(
+  '/store/:storeId',
+  authMiddleware,
+  checkStorePermission('order:read'),
+  orderController.getStoreOrders
+);
 
 /**
  * @swagger

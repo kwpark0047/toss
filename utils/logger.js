@@ -29,38 +29,52 @@ const { combine, timestamp, printf, colorize, errors } = winston.format;
 
 // [로그 포맷 정의]
 const logFormat = printf(({ level, message, timestamp, stack }) => {
-    return `${timestamp} [${level}]: ${stack || message}`;
+  return `${timestamp} [${level}]: ${stack || message}`;
 });
 
 // [로거 인스턴스 생성]
 const logger = winston.createLogger({
-    level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-    format: combine(
-        errors({ stack: true }), // 에러 스택 추적 지원
-        timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-        logFormat
-    ),
-    transports: [
-        // 1. 콘솔 출력 (색상 적용)
-        new winston.transports.Console({
-            format: combine(
-                colorize(),
-                logFormat
-            )
-        }),
-        // 2. 파일 출력 (에러 전용) — LOG_DIR 환경변수로 경로 변경 가능
-        new winston.transports.File({
-            filename: path.join(process.env.LOG_DIR || path.join(__dirname, '../logs'), 'error.log'),
-            level: 'error'
-        }),
-        // 3. 파일 출력 (전체 로그)
-        new winston.transports.File({
-            filename: path.join(process.env.LOG_DIR || path.join(__dirname, '../logs'), 'combined.log')
-        }),
-        // 4. Sentry 전송 (SENTRY_DSN + production 에서만 존재)
-        ...(sentryTransport ? [sentryTransport] : [])
-    ]
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  format: combine(
+    errors({ stack: true }), // 에러 스택 추적 지원
+    timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    logFormat
+  ),
+  transports: [
+    // 1. 콘솔 출력 (색상 적용)
+    new winston.transports.Console({
+      format: combine(colorize(), logFormat),
+    }),
+    // 2. 파일 출력 (에러 전용) — LOG_DIR 환경변수로 경로 변경 가능
+    new winston.transports.File({
+      filename: path.join(process.env.LOG_DIR || path.join(__dirname, '../logs'), 'error.log'),
+      level: 'error',
+    }),
+    // 3. 파일 출력 (전체 로그)
+    new winston.transports.File({
+      filename: path.join(process.env.LOG_DIR || path.join(__dirname, '../logs'), 'combined.log'),
+    }),
+    // 4. Sentry 전송 (SENTRY_DSN + production 에서만 존재)
+    ...(sentryTransport ? [sentryTransport] : []),
+  ],
 });
 
 module.exports = logger;
-module.exports.dbLogger = logger;
+
+// ── 도메인별 네임드 로거 ────────────────────────────────────────────
+// [배경] 일부 모듈이 `const { apiLogger } = require('../utils/logger')` 형태로
+// 가져다 쓰는데 apiLogger 가 export 되지 않아 `undefined.info(...)` 로 터졌다.
+// (newsController / weatherController 가 500 을 반환하던 원인)
+// 당장은 동일 winston 인스턴스를 재노출해 호환을 보장하고,
+// 추후 child logger(라벨 부착)로 승격한다.
+const namedLoggers = [
+  'apiLogger',
+  'dbLogger',
+  'syncLogger',
+  'webLogger',
+  'authLogger',
+  'notificationLogger',
+];
+for (const name of namedLoggers) {
+  module.exports[name] = logger;
+}

@@ -1,5 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+// [수정] 모듈마다 new PrismaClient() 를 만들면 커넥션 풀이 중복 생성되어
+// 서버리스/컨테이너 환경에서 DB 연결 수가 폭증한다. 공유 싱글턴을 사용한다.
+const prisma = require('../config/prisma');
 const { apiLogger } = require('../utils/logger');
 const newsCrawlerService = require('../services/newsCrawlerService');
 
@@ -21,9 +22,9 @@ exports.getNews = async (req, res) => {
         where,
         skip,
         take: limit,
-        orderBy: { publishedAt: 'desc' }
+        orderBy: { publishedAt: 'desc' },
       }),
-      prisma.news.count({ where })
+      prisma.news.count({ where }),
     ]);
 
     apiLogger.info({ count: items.length }, 'News retrieved');
@@ -33,7 +34,7 @@ exports.getNews = async (req, res) => {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
     apiLogger.error({ error: error.message }, 'Failed to fetch news');

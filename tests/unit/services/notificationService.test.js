@@ -1,6 +1,6 @@
 /**
  * notificationService 단위 테스트
- * 실제 구조: firebase-admin(푸시) + prisma(notifications 테이블) + Socket.io(실시간)
+ * 실제 구조: firebase-admin v14 모듈러 API(utils/firebaseAdmin) + prisma + Socket.io
  */
 jest.mock('../../../config/prisma', () => ({
   notifications: { create: jest.fn() },
@@ -8,11 +8,11 @@ jest.mock('../../../config/prisma', () => ({
   users: { findUnique: jest.fn().mockResolvedValue(null) },
 }));
 
-jest.mock('firebase-admin', () => ({
-  apps: [],
-  initializeApp: jest.fn(),
-  credential: { cert: jest.fn() },
-  messaging: jest.fn(() => ({ send: jest.fn() })),
+// firebase-admin v14 는 admin.apps / admin.messaging() 네임스페이스 API 를 제거했다.
+// 초기화는 utils/firebaseAdmin 로 일원화되었으므로 그 모듈을 목으로 대체한다.
+jest.mock('../../../utils/firebaseAdmin', () => ({
+  getMessagingClient: jest.fn(() => ({ send: jest.fn() })),
+  shutdownFirebase: jest.fn(),
 }));
 
 const prisma = require('../../../config/prisma');
@@ -39,7 +39,10 @@ describe('notificationService', () => {
       prisma.notifications.create.mockResolvedValue(makeRecord());
 
       const result = await notificationService.createNotification({
-        store_id: 3, type: 'NEW_ORDER', title: '제목', message: '내용',
+        store_id: 3,
+        type: 'NEW_ORDER',
+        title: '제목',
+        message: '내용',
       });
 
       expect(result).not.toBeNull();
@@ -52,7 +55,11 @@ describe('notificationService', () => {
       prisma.notifications.create.mockResolvedValue(makeRecord());
 
       await notificationService.createNotification({
-        store_id: 3, type: 'X', title: 't', message: 'm', data: { orderId: 7 },
+        store_id: 3,
+        type: 'X',
+        title: 't',
+        message: 'm',
+        data: { orderId: 7 },
       });
 
       const args = prisma.notifications.create.mock.calls[0][0];
@@ -63,7 +70,10 @@ describe('notificationService', () => {
       prisma.notifications.create.mockRejectedValue(new Error('DB down'));
 
       const result = await notificationService.createNotification({
-        store_id: 3, type: 'X', title: 't', message: 'm',
+        store_id: 3,
+        type: 'X',
+        title: 't',
+        message: 'm',
       });
 
       expect(result).toBeNull();
@@ -73,7 +83,10 @@ describe('notificationService', () => {
       prisma.notifications.create.mockResolvedValue(makeRecord());
 
       await notificationService.createNotification({
-        store_id: '3', type: 'X', title: 't', message: 'm',
+        store_id: '3',
+        type: 'X',
+        title: 't',
+        message: 'm',
       });
 
       expect(prisma.notifications.create.mock.calls[0][0].data.store_id).toBe(3);
@@ -85,7 +98,10 @@ describe('notificationService', () => {
       prisma.notifications.create.mockResolvedValue(makeRecord());
 
       await notificationService.notifyNewOrderDB({
-        id: 9, store_id: 3, order_number: 'A001', table_name: '5번',
+        id: 9,
+        store_id: 3,
+        order_number: 'A001',
+        table_name: '5번',
       });
 
       const args = prisma.notifications.create.mock.calls[0][0].data;
@@ -105,7 +121,10 @@ describe('notificationService', () => {
     ])('%s 상태는 %s 우선순위', async (status, priority) => {
       prisma.notifications.create.mockResolvedValue(makeRecord());
 
-      await notificationService.notifyOrderStatusDB({ id: 9, store_id: 3, order_number: 'A001' }, status);
+      await notificationService.notifyOrderStatusDB(
+        { id: 9, store_id: 3, order_number: 'A001' },
+        status
+      );
 
       expect(prisma.notifications.create.mock.calls[0][0].data.priority).toBe(priority);
     });
@@ -116,7 +135,11 @@ describe('notificationService', () => {
       prisma.notifications.create.mockResolvedValue(makeRecord());
 
       await notificationService.notifyLowStockDB({
-        id: 5, store_id: 3, name: '떡볶이', stock_quantity: 2, low_stock_threshold: 5,
+        id: 5,
+        store_id: 3,
+        name: '떡볶이',
+        stock_quantity: 2,
+        low_stock_threshold: 5,
       });
 
       const args = prisma.notifications.create.mock.calls[0][0].data;
@@ -152,7 +175,9 @@ describe('notificationService', () => {
     test('token과 messaging이 모두 있으면 messaging.send를 호출하고 true 반환', async () => {
       notificationService.messaging = { send: jest.fn().mockResolvedValue('ok') };
       const result = await notificationService.sendPush('fcm-token-xyz', {
-        title: 'test title', body: 'test body', data: { orderId: 42 },
+        title: 'test title',
+        body: 'test body',
+        data: { orderId: 42 },
       });
       expect(result).toBe(true);
       expect(notificationService.messaging.send).toHaveBeenCalledWith(
@@ -164,7 +189,9 @@ describe('notificationService', () => {
     });
 
     test('messaging.send 실패 시 false 반환 (예외 swallow)', async () => {
-      notificationService.messaging = { send: jest.fn().mockRejectedValue(new Error('invalid token')) };
+      notificationService.messaging = {
+        send: jest.fn().mockRejectedValue(new Error('invalid token')),
+      };
       const result = await notificationService.sendPush('bad-token', { title: 't', body: 'b' });
       expect(result).toBe(false);
     });
@@ -181,25 +208,36 @@ describe('notificationService', () => {
       await notificationService.notifyOrderStatus(order, 'ready', 'customer-token');
 
       expect(notificationService.sendSocket).toHaveBeenCalledWith(
-        'order - 9', 'notification', expect.objectContaining({ target: 'customer' })
+        'order - 9',
+        'notification',
+        expect.objectContaining({ target: 'customer' })
       );
       expect(notificationService.sendSocket).toHaveBeenCalledWith(
-        'store - 3', 'notification', expect.objectContaining({ target: 'manager' })
+        'store - 3',
+        'notification',
+        expect.objectContaining({ target: 'manager' })
       );
       expect(notificationService.sendPush).toHaveBeenCalledWith(
-        'customer-token', expect.objectContaining({ title: expect.stringContaining('주문') })
+        'customer-token',
+        expect.objectContaining({ title: expect.stringContaining('주문') })
       );
     });
 
-    test.each(['confirmed', 'ready', 'cancelled'])('중요 상태(%s)에서 customerToken이 있으면 푸시 발송', async (status) => {
-      await notificationService.notifyOrderStatus({ id: 1, store_id: 1 }, status, 'tok');
-      expect(notificationService.sendPush).toHaveBeenCalled();
-    });
+    test.each(['confirmed', 'ready', 'cancelled'])(
+      '중요 상태(%s)에서 customerToken이 있으면 푸시 발송',
+      async (status) => {
+        await notificationService.notifyOrderStatus({ id: 1, store_id: 1 }, status, 'tok');
+        expect(notificationService.sendPush).toHaveBeenCalled();
+      }
+    );
 
-    test.each(['pending', 'preparing', 'completed'])('비중요 상태(%s)에서는 customerToken이 있어도 푸시 미발송', async (status) => {
-      await notificationService.notifyOrderStatus({ id: 1, store_id: 1 }, status, 'tok');
-      expect(notificationService.sendPush).not.toHaveBeenCalled();
-    });
+    test.each(['pending', 'preparing', 'completed'])(
+      '비중요 상태(%s)에서는 customerToken이 있어도 푸시 미발송',
+      async (status) => {
+        await notificationService.notifyOrderStatus({ id: 1, store_id: 1 }, status, 'tok');
+        expect(notificationService.sendPush).not.toHaveBeenCalled();
+      }
+    );
 
     test('customerToken 없으면 푸시 미발송 (소켓만)', async () => {
       await notificationService.notifyOrderStatus({ id: 1, store_id: 1 }, 'ready');
@@ -220,10 +258,14 @@ describe('notificationService', () => {
       await notificationService.notifyNewOrder(order, tokens);
 
       expect(notificationService.sendSocket).toHaveBeenCalledWith(
-        'store - 3', 'notification', expect.objectContaining({ target: 'store' })
+        'store - 3',
+        'notification',
+        expect.objectContaining({ target: 'store' })
       );
       expect(notificationService.sendSocket).toHaveBeenCalledWith(
-        'kitchen - 3', 'notification', expect.objectContaining({ target: 'kitchen' })
+        'kitchen - 3',
+        'notification',
+        expect.objectContaining({ target: 'kitchen' })
       );
       expect(notificationService.sendPush).toHaveBeenCalledTimes(2);
       expect(notificationService.sendPush).toHaveBeenCalledWith('mgr-tok-1', expect.any(Object));

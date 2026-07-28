@@ -6,8 +6,9 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (identifier, password) => api.post('/auth/login', { identifier, password }),
   me: () => api.get('/auth/me'),
-  logout: () => Promise.resolve(),
+  logout: () => api.post('/auth/logout'),
   updateProfile: (data) => api.put('/auth/profile', data),
-  changePassword: (current_password, new_password) => api.put('/auth/password', { current_password, new_password }),
+  changePassword: (current_password, new_password) =>
+    api.put('/auth/password', { current_password, new_password }),
   socialLogin: (provider, accessToken) => api.post(`/auth/social/${provider}`, { accessToken }),
 };

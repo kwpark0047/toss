@@ -4,7 +4,22 @@ const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const pointService = require('./PointsService');
 const ledgerService = require('./LedgerService');
+const alerting = require('../utils/alerting');
 const { AppError } = require('../utils/errorHandler');
+
+/**
+ * PG가 승인한 금액과 서버가 기대한 금액이 어긋났을 때 발생.
+ * 트랜잭션을 롤백시키고 상위에서 PG 자동 취소를 유발한다.
+ */
+class PaymentAmountMismatchError extends AppError {
+  constructor(expected, actual, orderNumber) {
+    super('결제 승인 금액이 주문 금액과 일치하지 않아 결제를 취소했습니다.', 409);
+    this.name = 'PaymentAmountMismatchError';
+    this.expected = Number(expected);
+    this.actual = Number(actual);
+    this.orderNumber = orderNumber;
+  }
+}
 
 function maskCardNumber(cardNumber) {
   if (!cardNumber) return null;
@@ -28,7 +43,9 @@ class PaymentService {
   _generateOrderNumber() {
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-    const randomStr = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    const randomStr = Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, '0');
     return `${dateStr}-${randomStr}`;
   }
 
@@ -36,13 +53,16 @@ class PaymentService {
   async _upsertCustomer(storeId, phone, customerName, tossUserKey, amount, tx) {
     if (!phone) return;
     const StoreCustomer = require('../repositories/StoreCustomer');
-    await StoreCustomer.upsertCustomer({
-      store_id: storeId,
-      customer_phone: phone,
-      customer_name: customerName,
-      toss_user_key: tossUserKey,
-      amount
-    }, tx);
+    await StoreCustomer.upsertCustomer(
+      {
+        store_id: storeId,
+        customer_phone: phone,
+        customer_name: customerName,
+        toss_user_key: tossUserKey,
+        amount,
+      },
+      tx
+    );
   }
 
   // ── 헬퍼: WebSocket 알림 전송 ────────────────────────────────
@@ -54,7 +74,9 @@ class PaymentService {
   _emitPaymentSuccess(storeId, orderId, orderNumber, amount) {
     if (!this.io) return;
     this.io.to(`store - ${storeId}`).emit('payment-success', {
-      order_id: orderId, order_number: orderNumber, amount
+      order_id: orderId,
+      order_number: orderNumber,
+      amount,
     });
   }
 
@@ -66,7 +88,7 @@ class PaymentService {
       paidAmount: totalPaid,
       remainingAmount: Math.max(0, order.total_amount - totalPaid),
       status: isFullyPaid ? 'COMPLETED' : 'PARTIAL',
-      payer
+      payer,
     });
   }
 
@@ -75,8 +97,14 @@ class PaymentService {
   // ═════════════════════════════════════════════════════════════════
   async processDirectPayment(paymentData) {
     const {
-      store_id, items, total_amount, payment_method,
-      point_amount = 0, phone, toss_user_key, customer_name
+      store_id,
+      items,
+      total_amount,
+      payment_method,
+      point_amount = 0,
+      phone,
+      toss_user_key,
+      customer_name,
     } = paymentData;
 
     const result = await prisma.$transaction(async (tx) => {
@@ -87,7 +115,8 @@ class PaymentService {
         if (!product || product.store_id !== parseInt(store_id)) {
           throw new AppError(`상품 정보를 찾을 수 없습니다: ${item.product_name}`, 400);
         }
-        if (product.is_sold_out) throw new AppError(`품절된 상품이 포함되어 있습니다: ${product.name}`, 409);
+        if (product.is_sold_out)
+          throw new AppError(`품절된 상품이 포함되어 있습니다: ${product.name}`, 409);
         if (!product.is_active) throw new AppError(`판매 중단된 상품입니다: ${product.name}`, 400);
       }
 
@@ -106,24 +135,25 @@ class PaymentService {
           created_at: new Date(),
           updated_at: new Date(),
           order_items: {
-            create: items.map(item => ({
+            create: items.map((item) => ({
               product_id: item.product_id,
               product_name: item.product_name,
               quantity: item.quantity,
               price: item.price,
               subtotal: item.price * item.quantity,
               options: item.options ? JSON.stringify(item.options) : null,
-              user_phone: item.user_phone || phone || null
-            }))
-          }
+              user_phone: item.user_phone || phone || null,
+            })),
+          },
         },
-        include: { order_items: true }
+        include: { order_items: true },
       });
 
       // 결제 기록 생성
-      const orderName = items.length > 1
-        ? `${items[0].product_name} 외 ${items.length - 1}건`
-        : items[0].product_name;
+      const orderName =
+        items.length > 1
+          ? `${items[0].product_name} 외 ${items.length - 1}건`
+          : items[0].product_name;
 
       const payment = await tx.payments.create({
         data: {
@@ -132,10 +162,10 @@ class PaymentService {
           order_name: orderName,
           amount: parseInt(total_amount),
           method: payment_method.toUpperCase(),
-          status: (payment_method === 'cash' || payment_method === 'point') ? 'DONE' : 'READY',
+          status: payment_method === 'cash' || payment_method === 'point' ? 'DONE' : 'READY',
           created_at: new Date(),
-          updated_at: new Date()
-        }
+          updated_at: new Date(),
+        },
       });
 
       // 즉시완료 결제 후처리
@@ -143,26 +173,43 @@ class PaymentService {
       if (IMMEDIATE_METHODS.includes(payment_method)) {
         if (point_amount > 0) {
           await pointService.use(
-            order.id, payment.id, parseInt(store_id), orderNumber,
-            { phone, toss_user_key }, point_amount, tx
+            order.id,
+            payment.id,
+            parseInt(store_id),
+            orderNumber,
+            { phone, toss_user_key },
+            point_amount,
+            tx
           );
         }
 
-        const earnPoints = await pointService.calculateEarnPoints(
-          total_amount, store_id, { phone, toss_user_key }
-        );
+        const earnPoints = await pointService.calculateEarnPoints(total_amount, store_id, {
+          phone,
+          toss_user_key,
+        });
         if (earnPoints > 0) {
           await pointService.earn(
-            order.id, payment.id, parseInt(store_id), orderNumber,
-            phone, earnPoints, tx
+            order.id,
+            payment.id,
+            parseInt(store_id),
+            orderNumber,
+            phone,
+            earnPoints,
+            tx
           );
         }
 
-        await ledgerService.recordIncome({
-          storeId: parseInt(store_id), orderId: order.id, paymentId: payment.id,
-          amount: parseInt(total_amount), method: payment_method.toUpperCase(),
-          description: `결제 완료: ${orderNumber}`
-        }, tx);
+        await ledgerService.recordIncome(
+          {
+            storeId: parseInt(store_id),
+            orderId: order.id,
+            paymentId: payment.id,
+            amount: parseInt(total_amount),
+            method: payment_method.toUpperCase(),
+            description: `결제 완료: ${orderNumber}`,
+          },
+          tx
+        );
 
         await tx.orders.update({
           where: { id: order.id },
@@ -171,11 +218,18 @@ class PaymentService {
             payment_status: 'paid',
             status: 'paid',
             updated_at: new Date(),
-            completed_at: new Date()
-          }
+            completed_at: new Date(),
+          },
         });
 
-        await this._upsertCustomer(parseInt(store_id), phone, customer_name, toss_user_key, parseInt(total_amount), tx);
+        await this._upsertCustomer(
+          parseInt(store_id),
+          phone,
+          customer_name,
+          toss_user_key,
+          parseInt(total_amount),
+          tx
+        );
       }
 
       return { payment, order };
@@ -189,7 +243,7 @@ class PaymentService {
     return {
       ...result.payment,
       order_number: result.order.order_number,
-      order_id: result.order.id
+      order_id: result.order.id,
     };
   }
 
@@ -202,10 +256,10 @@ class PaymentService {
     const txResult = await prisma.$transaction(async (tx) => {
       const order = await tx.orders.findUnique({
         where: { id: parseInt(order_id) },
-        include: { 
+        include: {
           order_items: true,
-          payments: { where: { status: 'DONE' } }
-        }
+          payments: { where: { status: 'DONE' } },
+        },
       });
       if (!order) throw new Error('주문을 찾을 수 없습니다.');
 
@@ -214,7 +268,10 @@ class PaymentService {
       const requestedAmount = parseInt(amount);
 
       if (requestedAmount > remaining) {
-        throw new AppError(`결제 요청 금액(${requestedAmount.toLocaleString()}원)이 남은 금액(${remaining.toLocaleString()}원)을 초과합니다.`, 400);
+        throw new AppError(
+          `결제 요청 금액(${requestedAmount.toLocaleString()}원)이 남은 금액(${remaining.toLocaleString()}원)을 초과합니다.`,
+          400
+        );
       }
 
       const payment = await tx.payments.create({
@@ -229,15 +286,21 @@ class PaymentService {
           is_partial: true,
           created_at: new Date(),
           updated_at: new Date(),
-          approved_at: new Date()
-        }
+          approved_at: new Date(),
+        },
       });
 
-      await ledgerService.recordIncome({
-        storeId: order.store_id, orderId: order.id, paymentId: payment.id,
-        amount: requestedAmount, method: (payment_method || 'CARD').toUpperCase(),
-        description: `분할결제: #${order.order_number} (${payer_phone || '익명'})`
-      }, tx);
+      await ledgerService.recordIncome(
+        {
+          storeId: order.store_id,
+          orderId: order.id,
+          paymentId: payment.id,
+          amount: requestedAmount,
+          method: (payment_method || 'CARD').toUpperCase(),
+          description: `분할결제: #${order.order_number} (${payer_phone || '익명'})`,
+        },
+        tx
+      );
 
       const totalPaid = currentPaid + requestedAmount;
       const isFullyPaid = totalPaid >= order.total_amount;
@@ -248,18 +311,31 @@ class PaymentService {
           payment_status: isFullyPaid ? 'paid' : 'partial',
           split_status: isFullyPaid ? 'COMPLETED' : 'PARTIAL',
           status: isFullyPaid ? 'paid' : undefined,
-          updated_at: new Date()
-        }
+          updated_at: new Date(),
+        },
       });
 
       if (payer_phone) {
-        await this._upsertCustomer(order.store_id, payer_phone, payer_phone, null, requestedAmount, tx);
+        await this._upsertCustomer(
+          order.store_id,
+          payer_phone,
+          payer_phone,
+          null,
+          requestedAmount,
+          tx
+        );
       }
 
       return { payment, order, totalPaid, isFullyPaid };
     });
 
-    this._emitSplitUpdate(txResult.order.table_id, txResult.order, txResult.totalPaid, txResult.isFullyPaid, payer_phone);
+    this._emitSplitUpdate(
+      txResult.order.table_id,
+      txResult.order,
+      txResult.totalPaid,
+      txResult.isFullyPaid,
+      payer_phone
+    );
     if (txResult.isFullyPaid) {
       this._emitNewOrder(txResult.order.store_id, txResult.order);
     }
@@ -272,17 +348,59 @@ class PaymentService {
       is_fully_paid: txResult.isFullyPaid,
       message: txResult.isFullyPaid
         ? '분할 결제가 모두 완료되었습니다.'
-        : `분할 결제 중 — ${txResult.totalPaid.toLocaleString()}원 / ${txResult.order.total_amount.toLocaleString()}원`
+        : `분할 결제 중 — ${txResult.totalPaid.toLocaleString()}원 / ${txResult.order.total_amount.toLocaleString()}원`,
     };
   }
 
   // ═════════════════════════════════════════════════════════════════
   // [결제 승인 처리]
   // ═════════════════════════════════════════════════════════════════
+  /**
+   * 승인 대상 READY 결제 레코드를 조회하고, 클라이언트가 보낸 금액이
+   * 서버가 생성한 READY 레코드 금액과 일치하는지 **토스 호출 전에** 검증한다.
+   * (금액 변조 요청이 PG까지 도달하는 것 자체를 차단)
+   */
+  async _assertRequestedAmount(orderIdString, amount) {
+    const requested = Number(amount);
+    if (!Number.isInteger(requested) || requested <= 0) {
+      throw new AppError('결제 금액이 올바르지 않습니다.', 400);
+    }
+
+    const orderData = await prisma.orders.findUnique({ where: { order_number: orderIdString } });
+    if (!orderData) return { requested, order: null, pendingPayment: null };
+
+    const pendingPayment = await prisma.payments.findFirst({
+      where: { order_id: orderData.id, status: 'READY' },
+    });
+    if (!pendingPayment) return { requested, order: orderData, pendingPayment: null };
+
+    if (Number(pendingPayment.amount) !== requested) {
+      logger.error(
+        `[PaymentService] 결제 금액 변조 의심 — order=${orderIdString} ` +
+          `expected=${pendingPayment.amount} requested=${requested}`
+      );
+      alerting
+        .send({
+          level: 'critical',
+          title: '결제 금액 불일치 차단',
+          message: `주문 ${orderIdString}: READY ${pendingPayment.amount}원 ≠ 요청 ${requested}원`,
+          meta: { orderNumber: orderIdString, expected: pendingPayment.amount, requested },
+        })
+        .catch(() => {});
+      throw new AppError('결제 금액이 주문 정보와 일치하지 않습니다.', 400);
+    }
+
+    return { requested, order: orderData, pendingPayment };
+  }
+
   async processApproval(paymentKey, orderIdString, amount, customerKey) {
     if (!paymentKey || typeof paymentKey !== 'string') {
       throw new AppError('결제 키(paymentKey)가 필요합니다.', 400);
     }
+
+    // [1차 방어] PG 호출 전 서버 기준 금액과 대조 (변조 요청 조기 차단)
+    await this._assertRequestedAmount(orderIdString, amount);
+
     let tossResponse;
     if (paymentKey.startsWith('bp_') || customerKey) {
       tossResponse = await TossAPI.confirmBrandPay(paymentKey, orderIdString, amount, customerKey);
@@ -295,20 +413,32 @@ class PaymentService {
     try {
       const result = await prisma.$transaction(async (tx) => {
         const orderData = await tx.orders.findUnique({
-          where: { order_number: orderIdString }
+          where: { order_number: orderIdString },
         });
         if (!orderData) throw new Error(`주문번호(${orderIdString})를 찾을 수 없습니다.`);
 
         const pendingPayment = await tx.payments.findFirst({
-          where: { order_id: orderData.id, status: 'READY' }
+          where: { order_id: orderData.id, status: 'READY' },
         });
 
         if (!pendingPayment) {
           const donePayment = await tx.payments.findFirst({
-            where: { order_id: orderData.id, status: 'DONE', payment_key: paymentKey }
+            where: { order_id: orderData.id, status: 'DONE', payment_key: paymentKey },
           });
           if (donePayment) return { alreadyDone: true };
           throw new Error('결제 대기 중인(READY) 레코드를 찾을 수 없습니다.');
+        }
+
+        // [2차 방어 — 최종 권위] PG가 실제로 승인한 금액과 READY 금액을 대조한다.
+        // 여기서 어긋나면 승인은 났지만 장부에 반영하면 안 되므로 트랜잭션을 되돌리고
+        // 상위에서 자동 취소를 시도한다.
+        const approvedAmount = Number(tossResponse.totalAmount);
+        if (!Number.isFinite(approvedAmount) || approvedAmount !== Number(pendingPayment.amount)) {
+          throw new PaymentAmountMismatchError(
+            pendingPayment.amount,
+            tossResponse.totalAmount,
+            orderIdString
+          );
         }
 
         const updatedPayment = await tx.payments.update({
@@ -317,6 +447,8 @@ class PaymentService {
             payment_key: paymentKey,
             method: tossResponse.method,
             status: 'DONE',
+            // PG가 승인한 실제 금액으로 동기화 (집계·정산의 단일 진실)
+            amount: approvedAmount,
             approved_at: tossResponse.approvedAt ? new Date(tossResponse.approvedAt) : new Date(),
             receipt_url: tossResponse.receipt?.url,
             card_company: tossResponse.card?.company,
@@ -324,36 +456,52 @@ class PaymentService {
             installment_months: tossResponse.card?.installmentMonths || 0,
             easy_pay_provider: tossResponse.easyPay?.provider,
             raw_response: JSON.stringify(tossResponse),
-            updated_at: new Date()
-          }
+            updated_at: new Date(),
+          },
         });
 
-        await ledgerService.recordIncome({
-          storeId: orderData.store_id, orderId: orderData.id, paymentId: updatedPayment.id,
-          amount: tossResponse.totalAmount, method: tossResponse.method,
-          description: `결제 승인: ${orderData.order_number}`
-        }, tx);
+        await ledgerService.recordIncome(
+          {
+            storeId: orderData.store_id,
+            orderId: orderData.id,
+            paymentId: updatedPayment.id,
+            amount: tossResponse.totalAmount,
+            method: tossResponse.method,
+            description: `결제 승인: ${orderData.order_number}`,
+          },
+          tx
+        );
 
         await this._upsertCustomer(
-          orderData.store_id, orderData.customer_phone, orderData.customer_name,
-          tossResponse.customerKey || orderData.toss_user_key, tossResponse.totalAmount, tx
+          orderData.store_id,
+          orderData.customer_phone,
+          orderData.customer_name,
+          tossResponse.customerKey || orderData.toss_user_key,
+          tossResponse.totalAmount,
+          tx
         );
 
         const earnPoints = await pointService.calculateEarnPoints(
-          tossResponse.totalAmount, orderData.store_id,
+          tossResponse.totalAmount,
+          orderData.store_id,
           { phone: orderData.customer_phone }
         );
         let pointResult = null;
         if (earnPoints > 0 && orderData.customer_phone) {
           pointResult = await pointService.earn(
-            orderData.id, updatedPayment.id, orderData.store_id, orderData.order_number,
-            orderData.customer_phone, earnPoints, tx
+            orderData.id,
+            updatedPayment.id,
+            orderData.store_id,
+            orderData.order_number,
+            orderData.customer_phone,
+            earnPoints,
+            tx
           );
         }
 
         const aggregates = await tx.payments.aggregate({
           where: { order_id: orderData.id, status: 'DONE' },
-          _sum: { amount: true }
+          _sum: { amount: true },
         });
         const totalPaidAmount = aggregates._sum.amount || 0;
         const isFullyPaid = totalPaidAmount >= orderData.total_amount;
@@ -363,10 +511,14 @@ class PaymentService {
           data: {
             method: tossResponse.method,
             payment_status: isFullyPaid ? 'paid' : 'partial',
-            split_status: orderData.is_split_payment ? (isFullyPaid ? 'COMPLETED' : 'PARTIAL') : undefined,
+            split_status: orderData.is_split_payment
+              ? isFullyPaid
+                ? 'COMPLETED'
+                : 'PARTIAL'
+              : undefined,
             status: isFullyPaid ? 'paid' : undefined,
-            updated_at: new Date()
-          }
+            updated_at: new Date(),
+          },
         });
 
         return { updatedPayment, order: orderData, totalPaidAmount, pointResult };
@@ -379,22 +531,35 @@ class PaymentService {
       const { order, totalPaidAmount } = result;
 
       if (this.io) {
-        this._emitSplitUpdate(order.table_id, order, totalPaidAmount, totalPaidAmount >= order.total_amount, tossResponse.customerKey || order.customer_phone);
+        this._emitSplitUpdate(
+          order.table_id,
+          order,
+          totalPaidAmount,
+          totalPaidAmount >= order.total_amount,
+          tossResponse.customerKey || order.customer_phone
+        );
 
-        const store = await prisma.stores.findUnique({ where: { id: order.store_id }, include: { users: true } });
-        const managerTokens = store?.users?.map(u => u.fcm_token).filter(t => t) || [];
+        const store = await prisma.stores.findUnique({
+          where: { id: order.store_id },
+          include: { users: true },
+        });
+        const managerTokens = store?.users?.map((u) => u.fcm_token).filter((t) => t) || [];
 
-        notificationUtils.sendNewOrderNotification(this.io, {
-          ...order,
-          total_amount: tossResponse.totalAmount,
-          message: `결제 완료: ${order.order_number}번 주문 (${tossResponse.totalAmount.toLocaleString()}원)`
-        }, managerTokens);
+        notificationUtils.sendNewOrderNotification(
+          this.io,
+          {
+            ...order,
+            total_amount: tossResponse.totalAmount,
+            message: `결제 완료: ${order.order_number}번 주문 (${tossResponse.totalAmount.toLocaleString()}원)`,
+          },
+          managerTokens
+        );
 
         if (store.owner_phone) {
           notificationUtils.sendAlimTalk(store.owner_phone, 'PAYMENT_COMPLETE', {
             storeName: store.name,
             amount: tossResponse.totalAmount,
-            orderNumber: order.order_number
+            orderNumber: order.order_number,
           });
         }
       }
@@ -411,6 +576,38 @@ class PaymentService {
 
       return { success: true, payment: tossResponse, point: result.pointResult };
     } catch (e) {
+      // 금액 불일치: PG에서는 승인이 났으나 장부 반영을 거부한 상태 →
+      // 고객 돈이 묶이지 않도록 즉시 자동 취소를 시도하고 critical 알림을 보낸다.
+      if (e instanceof PaymentAmountMismatchError) {
+        logger.error(
+          `[PaymentService] 승인 금액 불일치 — order=${e.orderNumber} ` +
+            `expected=${e.expected} approved=${e.actual} → 자동 취소 시도`
+        );
+        let autoCanceled = false;
+        try {
+          await TossAPI.cancelPayment(paymentKey, '승인 금액 불일치 자동 취소');
+          autoCanceled = true;
+          logger.warn(`[PaymentService] 금액 불일치 결제 자동 취소 완료: ${paymentKey}`);
+        } catch (cancelErr) {
+          logger.error(`[PaymentService] 자동 취소 실패 (수동 처리 필요): ${cancelErr.message}`);
+        }
+        alerting
+          .send({
+            level: 'critical',
+            title: autoCanceled
+              ? '결제 금액 불일치 — 자동 취소됨'
+              : '결제 금액 불일치 — 자동 취소 실패(수동 확인 필요)',
+            message: `주문 ${e.orderNumber} / 기대 ${e.expected}원 / 실제 승인 ${e.actual}원 / paymentKey=${paymentKey}`,
+            meta: {
+              orderNumber: e.orderNumber,
+              expected: e.expected,
+              actual: e.actual,
+              paymentKey,
+              autoCanceled,
+            },
+          })
+          .catch(() => {});
+      }
       logger.error(e);
       throw e;
     }
@@ -422,12 +619,12 @@ class PaymentService {
   async processCancellation(orderId, cancelReason) {
     const payment = await prisma.payments.findFirst({
       where: { order_id: parseInt(orderId), status: 'DONE' },
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
     });
 
     // 멱등성: 이미 취소된 결제는 재처리 없이 반환
     const alreadyCanceled = await prisma.payments.findFirst({
-      where: { order_id: parseInt(orderId), status: { in: ['CANCELED', 'CANCELLED'] } }
+      where: { order_id: parseInt(orderId), status: { in: ['CANCELED', 'CANCELLED'] } },
     });
     if (alreadyCanceled) {
       logger.info('[PaymentService] 중복 취소 요청 무시 (멱등성)');
@@ -450,25 +647,31 @@ class PaymentService {
           status: 'CANCELED',
           cancelled_at: new Date(),
           cancel_reason: cancelReason,
-          updated_at: new Date()
-        }
+          updated_at: new Date(),
+        },
       });
 
       await pointService.revertOnCancel(payment.id, tx);
 
-      await ledgerService.recordRefund({
-        storeId: payment.store_id, orderId: payment.order_id, paymentId: payment.id,
-        amount: payment.amount, method: payment.method,
-        description: `환불: ${cancelReason}`
-      }, tx);
+      await ledgerService.recordRefund(
+        {
+          storeId: payment.store_id,
+          orderId: payment.order_id,
+          paymentId: payment.id,
+          amount: payment.amount,
+          method: payment.method,
+          description: `환불: ${cancelReason}`,
+        },
+        tx
+      );
 
       await tx.orders.update({
         where: { id: payment.order_id },
         data: {
           payment_status: 'refunded',
           status: 'cancelled',
-          updated_at: new Date()
-        }
+          updated_at: new Date(),
+        },
       });
     });
 
@@ -476,20 +679,20 @@ class PaymentService {
     try {
       const items = await prisma.order_items.findMany({
         where: { order_id: payment.order_id },
-        select: { product_id: true, quantity: true }
+        select: { product_id: true, quantity: true },
       });
       for (const item of items) {
         if (!item.product_id) continue;
         const product = await prisma.products.findUnique({
           where: { id: item.product_id },
-          select: { id: true, store_id: true, stock_quantity: true }
+          select: { id: true, store_id: true, stock_quantity: true },
         });
         if (!product || product.stock_quantity === null) continue;
 
         const restoredQty = product.stock_quantity + item.quantity;
         await prisma.products.update({
           where: { id: item.product_id },
-          data: { stock_quantity: restoredQty, is_sold_out: false }
+          data: { stock_quantity: restoredQty, is_sold_out: false },
         });
         await prisma.stock_history.create({
           data: {
@@ -498,10 +701,12 @@ class PaymentService {
             change: item.quantity,
             qty_after: restoredQty,
             reason: 'CANCEL',
-            order_id: payment.order_id
-          }
+            order_id: payment.order_id,
+          },
         });
-        logger.info(`[PaymentService] 재고 복구: product_id=${item.product_id}, +${item.quantity}개`);
+        logger.info(
+          `[PaymentService] 재고 복구: product_id=${item.product_id}, +${item.quantity}개`
+        );
       }
     } catch (e) {
       logger.warn('[PaymentService] 재고 복구 실패 (취소는 완료):', e.message);
@@ -538,8 +743,8 @@ class PaymentService {
         status: 'READY',
         checkout_url: checkout_url || null,
         created_at: new Date(),
-        updated_at: new Date()
-      }
+        updated_at: new Date(),
+      },
     });
 
     return { paymentId: payment.id };
@@ -553,16 +758,23 @@ class PaymentService {
     if (!amount || amount <= 0) throw new AppError('환불 금액이 올바르지 않습니다.', 400);
 
     const payments = await prisma.payments.findMany({
-      where: { order_id: parseInt(orderId) }
+      where: { order_id: parseInt(orderId) },
     });
-    const payment = payments.find(p => p.status === 'DONE');
+    const payment = payments.find((p) => p.status === 'DONE');
     if (!payment) throw new AppError('취소 가능한 결제 내역이 없습니다.', 404);
 
     if (amount > payment.amount) {
-      throw new AppError(`환불 금액(${amount.toLocaleString()}원)이 결제 금액(${payment.amount.toLocaleString()}원)을 초과합니다.`, 400);
+      throw new AppError(
+        `환불 금액(${amount.toLocaleString()}원)이 결제 금액(${payment.amount.toLocaleString()}원)을 초과합니다.`,
+        400
+      );
     }
 
-    const tossResponse = await TossAPI.cancelPayment(payment.payment_key, cancelReason || '부분 환불', amount);
+    const tossResponse = await TossAPI.cancelPayment(
+      payment.payment_key,
+      cancelReason || '부분 환불',
+      amount
+    );
     logger.info(`[PaymentService] 부분 환불 완료: orderId=${orderId}, amount=${amount}`);
 
     await prisma.ledger.create({
@@ -575,8 +787,8 @@ class PaymentService {
         amount: -amount,
         method: payment.method,
         description: `부분 환불: ${cancelReason || '부분 환불'} (${amount.toLocaleString()}원)`,
-        created_at: new Date()
-      }
+        created_at: new Date(),
+      },
     });
 
     return { refundedAmount: amount, tossResponse };
@@ -605,7 +817,12 @@ class PaymentService {
     } else {
       try {
         logger.info(`[Webhook/Toss] 결제 승인 처리 (Webhook): orderId=${tossOrderId}`);
-        const result = await this.processApproval(paymentKey, tossOrderId, data.totalAmount, data.customerKey);
+        const result = await this.processApproval(
+          paymentKey,
+          tossOrderId,
+          data.totalAmount,
+          data.customerKey
+        );
         if (result.alreadyDone) {
           logger.info(`[Webhook/Toss] 이미 처리된 결제: orderId=${tossOrderId}`);
         } else {
@@ -631,27 +848,44 @@ class PaymentService {
     await prisma.$transaction(async (tx) => {
       await tx.payments.updateMany({
         where: { order_id: parseInt(orderId), method: { in: ['STORE_CARD', 'store_card'] } },
-        data: { status: 'DONE', approved_at: new Date(), transfer_reference: terminalReceiptNo || null }
+        data: {
+          status: 'DONE',
+          approved_at: new Date(),
+          transfer_reference: terminalReceiptNo || null,
+        },
       });
       await tx.orders.update({
         where: { id: parseInt(orderId) },
-        data: { payment_status: 'paid', updated_at: new Date() }
+        data: { payment_status: 'paid', updated_at: new Date() },
       });
       await tx.ledger.create({
         data: {
-          store_id: order.store_id, order_id: parseInt(orderId),
-          type: 'INCOME', category: 'SALE', amount: order.total_amount, method: 'STORE_CARD',
+          store_id: order.store_id,
+          order_id: parseInt(orderId),
+          type: 'INCOME',
+          category: 'SALE',
+          amount: order.total_amount,
+          method: 'STORE_CARD',
           description: `매장카드 확인: #${order.order_number}${terminalReceiptNo ? ` (영수증${terminalReceiptNo})` : ''}`,
-          created_at: new Date()
-        }
+          created_at: new Date(),
+        },
       });
       if (plainPhone) {
-        await this._upsertCustomer(order.store_id, plainPhone, order.customer_name, null, order.total_amount, tx);
+        await this._upsertCustomer(
+          order.store_id,
+          plainPhone,
+          order.customer_name,
+          null,
+          order.total_amount,
+          tx
+        );
       }
     });
 
     if (this.io) {
-      this.io.to(`store - ${order.store_id}`).emit('payment-confirmed', { order_id: parseInt(orderId), method: 'store_card' });
+      this.io
+        .to(`store - ${order.store_id}`)
+        .emit('payment-confirmed', { order_id: parseInt(orderId), method: 'store_card' });
     }
 
     return { store_id: order.store_id, order_id: parseInt(orderId) };
@@ -672,29 +906,45 @@ class PaymentService {
       await tx.payments.updateMany({
         where: { order_id: parseInt(orderId), method: { in: ['TRANSFER', 'transfer'] } },
         data: {
-          status: 'DONE', transfer_confirmed: true, transfer_confirmed_at: new Date(),
-          transfer_reference: transferReference || null, approved_at: new Date()
-        }
+          status: 'DONE',
+          transfer_confirmed: true,
+          transfer_confirmed_at: new Date(),
+          transfer_reference: transferReference || null,
+          approved_at: new Date(),
+        },
       });
       await tx.orders.update({
         where: { id: parseInt(orderId) },
-        data: { payment_status: 'paid', updated_at: new Date() }
+        data: { payment_status: 'paid', updated_at: new Date() },
       });
       await tx.ledger.create({
         data: {
-          store_id: order.store_id, order_id: parseInt(orderId),
-          type: 'INCOME', category: 'SALE', amount: order.total_amount, method: 'TRANSFER',
+          store_id: order.store_id,
+          order_id: parseInt(orderId),
+          type: 'INCOME',
+          category: 'SALE',
+          amount: order.total_amount,
+          method: 'TRANSFER',
           description: `계좌이체 확인: #${order.order_number}${depositorName ? ` (입금자: ${depositorName})` : ''}`,
-          created_at: new Date()
-        }
+          created_at: new Date(),
+        },
       });
       if (plainPhone) {
-        await this._upsertCustomer(order.store_id, plainPhone, order.customer_name, null, order.total_amount, tx);
+        await this._upsertCustomer(
+          order.store_id,
+          plainPhone,
+          order.customer_name,
+          null,
+          order.total_amount,
+          tx
+        );
       }
     });
 
     if (this.io) {
-      this.io.to(`store - ${order.store_id}`).emit('payment-confirmed', { order_id: parseInt(orderId), method: 'transfer' });
+      this.io
+        .to(`store - ${order.store_id}`)
+        .emit('payment-confirmed', { order_id: parseInt(orderId), method: 'transfer' });
     }
 
     return { store_id: order.store_id, order_id: parseInt(orderId) };
@@ -706,11 +956,16 @@ class PaymentService {
   async setupSplitPayment(orderId, splitType, numPeople) {
     const order = await prisma.orders.findUnique({
       where: { id: parseInt(orderId) },
-      include: { order_items: true }
+      include: { order_items: true },
     });
     if (!order) throw new AppError('주문이 존재하지 않습니다.', 404);
 
-    const splitData = { order_id: order.id, total_amount: order.total_amount, split_type: splitType, items: [] };
+    const splitData = {
+      order_id: order.id,
+      total_amount: order.total_amount,
+      split_type: splitType,
+      items: [],
+    };
 
     if (splitType === 'EQUAL') {
       const amountPerPerson = Math.floor(order.total_amount / numPeople);
@@ -719,18 +974,21 @@ class PaymentService {
         splitData.items.push({
           index: i + 1,
           amount: i === numPeople - 1 ? amountPerPerson + lastPersonExtra : amountPerPerson,
-          status: 'PENDING'
+          status: 'PENDING',
         });
       }
     } else if (splitType === 'ITEM') {
-      splitData.items = order.order_items.map(item => ({
-        id: item.id, name: item.product_name, amount: item.subtotal, status: 'PENDING'
+      splitData.items = order.order_items.map((item) => ({
+        id: item.id,
+        name: item.product_name,
+        amount: item.subtotal,
+        status: 'PENDING',
       }));
     }
 
     await prisma.orders.update({
       where: { id: order.id },
-      data: { is_split_payment: true, split_type: splitType, split_status: 'PENDING' }
+      data: { is_split_payment: true, split_type: splitType, split_status: 'PENDING' },
     });
 
     return splitData;
@@ -745,9 +1003,9 @@ class PaymentService {
       include: {
         payments: {
           where: { status: 'DONE' },
-          select: { amount: true, payer_phone: true, method: true, approved_at: true }
-        }
-      }
+          select: { amount: true, payer_phone: true, method: true, approved_at: true },
+        },
+      },
     });
     if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
 
@@ -755,10 +1013,13 @@ class PaymentService {
     const remaining = Math.max(0, order.total_amount - totalPaid);
 
     return {
-      order_id: order.id, order_number: order.order_number,
-      total_amount: order.total_amount, total_paid: totalPaid,
-      remaining_amount: remaining, is_completed: remaining === 0,
-      payments: order.payments
+      order_id: order.id,
+      order_number: order.order_number,
+      total_amount: order.total_amount,
+      total_paid: totalPaid,
+      remaining_amount: remaining,
+      is_completed: remaining === 0,
+      payments: order.payments,
     };
   }
 
@@ -768,14 +1029,16 @@ class PaymentService {
   async processProofUpload(paymentId, proofUrl) {
     await prisma.payments.update({
       where: { id: parseInt(paymentId) },
-      data: { proof_image_url: proofUrl, updated_at: new Date() }
+      data: { proof_image_url: proofUrl, updated_at: new Date() },
     });
 
     const payment = await prisma.payments.findUnique({ where: { id: parseInt(paymentId) } });
     if (payment && this.io) {
       this.io.to(`store - ${payment.store_id}`).emit('payment-proof-uploaded', {
-        payment_id: paymentId, order_id: payment.order_id,
-        proof_url: proofUrl, timestamp: new Date().toISOString()
+        payment_id: paymentId,
+        order_id: payment.order_id,
+        proof_url: proofUrl,
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -784,3 +1047,4 @@ class PaymentService {
 }
 
 module.exports = PaymentService;
+module.exports.PaymentAmountMismatchError = PaymentAmountMismatchError;
