@@ -120,7 +120,7 @@ class StoreInfoEnhancementService {
 
     // 중첩 객체 값 가져오기
     getNestedValue(obj, path) {
-        return path.split('.').reduce((o, k) => (o || {})[k], store);
+        return path.split('.').reduce((o, k) => (o || {})[k], obj);
     }
 
     // 누락 필드 분석

@@ -1,7 +1,7 @@
 const AIUsageRepository = require('../repositories/AIUsageRepository');
 const logger = require('./logger');
 
-let aiUsageTracker = {
+const aiUsageTracker = {
     async track(options) {
         const {
             provider,

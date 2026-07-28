@@ -44,7 +44,7 @@ describe('StaffRequestsService', () => {
             Store.findById.mockResolvedValue({ id: 1, user_id: 10 });
             StaffAccountRequest.create.mockResolvedValue({ id: 2, role: 'kitchen', status: 'pending' });
 
-            const result = await svc.createRequest(10, { store_id: 1, role: 'kitchen', count: 3 });
+            const _result = await svc.createRequest(10, { store_id: 1, role: 'kitchen', count: 3 });
 
             expect(StaffAccountRequest.create).toHaveBeenCalledWith(expect.objectContaining({
                 role: 'kitchen',

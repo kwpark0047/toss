@@ -56,7 +56,7 @@ class RedisStore {
         this.useMemFallback = false;
     }
 
-    async init(options) {
+    async init(_options) {
         this.client = await getRedisClient();
         if (!this.client) {
             this.useMemFallback = true;
