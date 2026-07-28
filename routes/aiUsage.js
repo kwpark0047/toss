@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const aiUsageTracker = require('../utils/aiUsageTracker');
-const { catchAsync } = require('../utils/catchAsync');
+const catchAsync = require('../utils/catchAsync');
 
 router.get('/stats', catchAsync(async (req, res) => {
     const storeId = req.query.storeId ? parseInt(req.query.storeId) : null;
