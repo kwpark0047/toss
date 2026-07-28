@@ -135,10 +135,16 @@ const strictSanitizer = (req, res, next) => {
     req.body = sanitizeObject(req.body);
   }
   if (req.query && typeof req.query === 'object') {
-    req.query = sanitizeObject(req.query);
+    // Express 5: req.query is read-only, create sanitized copy
+    const sanitizedQuery = sanitizeObject(req.query);
+    Object.keys(req.query).forEach(key => delete req.query[key]);
+    Object.assign(req.query, sanitizedQuery);
   }
   if (req.params && typeof req.params === 'object') {
-    req.params = sanitizeObject(req.params);
+    // Express 5: req.params is read-only
+    const sanitizedParams = sanitizeObject(req.params);
+    Object.keys(req.params).forEach(key => delete req.params[key]);
+    Object.assign(req.params, sanitizedParams);
   }
 
   next();
