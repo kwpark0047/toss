@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { adminAPI } from '../../api/admin';
 import { useAuth } from '../../contexts/AuthContext';
-import { MapPinned, Play, Loader2 } from 'lucide-react';
+import { MapPinned, Play, Square, Loader2, AlertCircle } from 'lucide-react';
 
 /**
  * StoreEnrichment — 네이버 지역검색 API로 매장 좌표·전화·업종을 보강하는

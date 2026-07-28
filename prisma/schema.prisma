@@ -1056,38 +1056,3 @@ model news {
   @@index([publishedAt(sort: Desc)])
 }
 
-model ai_usage_logs {
-  id          Int      @id @default(autoincrement())
-  provider    String   // 'gemini' | 'omniroute'
-  endpoint    String   // e.g., 'generateWithFallback', 'recommendMenus', 'describeMenu'
-  promptTokens Int?
-  completionTokens Int?
-  totalTokens  Int?
-  costUsd     Decimal? @db.Decimal(10, 6)
-  statusCode  Int?
-  durationMs  Int?
-  cacheHit    Boolean  @default(false)
-  fallbackUsed Boolean @default(false)
-  storeId     Int?
-  ipAddress   String?  @db.VarChar(45)
-  createdAt   DateTime @default(now())
-
-  @@index([provider, created_at(sort: Desc)])
-  @@index([storeId, created_at(sort: Desc)])
-  @@index([created_at(sort: Desc)])
-
-
-model ai_prompt_templates {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
-  prompt      String   @db.Text
-  version     Int      @default(1)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([name])
-  @@index([isActive])
-}
-}

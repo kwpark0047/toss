@@ -238,6 +238,7 @@ app.get("/api/config/firebase", (req, res) => {
 const routes = {
     auth: require('./routes/auth'),
     stores: require('./routes/stores'),
+    storeInfoEnhancement: require('./routes/storeInfoEnhancement'),
     products: require('./routes/products'),
     orders: require('./routes/orders'),
     tables: require('./routes/tables'),
@@ -307,6 +308,7 @@ app.use(`${API_PREFIX}/v1`, require('./routes/v1'));
 app.use(`${API_PREFIX}/auth`, authLimiter, routes.auth);
 app.use(`${API_PREFIX}/auth/social`, authLimiter, routes.socialAuth);
 app.use(`${API_PREFIX}/stores`, publicLimiter, routes.stores);
+app.use(`${API_PREFIX}/stores`, publicLimiter, routes.storeInfoEnhancement);
 app.use(`${API_PREFIX}/products`, publicLimiter, routes.products);
 app.use(`${API_PREFIX}/orders`, orderLimiter, routes.orders);
 app.use(`${API_PREFIX}/tables`, publicLimiter, routes.tables);

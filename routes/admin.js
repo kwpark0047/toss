@@ -3,7 +3,10 @@ const router = express.Router();
 const settlementController = require('../controllers/settlementController');
 const storeSettingsController = require('../controllers/storeSettingsController');
 const bulkSmsController = require('../controllers/bulkSmsController');
-const { authMiddleware } = require('../middleware/auth');
+const platformController = require('../controllers/platformController');
+const storeEnrichmentController = require('../controllers/storeEnrichmentController');
+const storeLinkController = require('../controllers/storeLinkController');
+const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 
 /**
@@ -364,5 +367,23 @@ router.get('/bulk-sms/customers', authMiddleware, bulkSmsController.getFilteredC
  *         description: SMS 발송 완료
  */
 router.post('/bulk-sms/send', authMiddleware, bulkSmsController.sendBulkSms);
+
+// ── 플랫폼 대시보드 (super_admin) ──────────────────────────────────────────
+router.get('/platform/overview', authMiddleware, adminOnly, platformController.getOverview);
+router.get('/platform/stores', authMiddleware, adminOnly, platformController.getStores);
+router.get('/platform/trend', authMiddleware, adminOnly, platformController.getTrend);
+router.get('/platform/stores/:id/detail', authMiddleware, adminOnly, platformController.getStoreDetail);
+router.patch('/platform/stores/:id/active', authMiddleware, adminOnly, platformController.toggleActive);
+router.post('/platform/stores/:id/points', authMiddleware, adminOnly, platformController.grantPoints);
+
+// ── 매장 정보 보강 (super_admin) ──────────────────────────────────────────
+router.post('/enrich-stores', authMiddleware, adminOnly, storeEnrichmentController.enrichNaver);
+router.post('/enrich-seoul', authMiddleware, adminOnly, storeEnrichmentController.enrichSeoul);
+router.post('/geocode-stores', authMiddleware, adminOnly, storeEnrichmentController.geocodeStores);
+
+// ── 매장 연동 승인 요청 (super_admin) ──────────────────────────────────────
+router.get('/store-link-requests', authMiddleware, adminOnly, storeLinkController.listRequests);
+router.post('/store-link-requests/:id/approve', authMiddleware, adminOnly, storeLinkController.approveRequest);
+router.post('/store-link-requests/:id/reject', authMiddleware, adminOnly, storeLinkController.rejectRequest);
 
 module.exports = router;
