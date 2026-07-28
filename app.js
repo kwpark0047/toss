@@ -375,7 +375,6 @@ const io = new Server(httpServer, {
     }
 });
 
-const logger = require('./utils/logger');
 const { registerSocketHandlers } = require('./socket/handlers');
 
 io.on('connection', (socket) => {
