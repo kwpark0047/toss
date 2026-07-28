@@ -28,7 +28,7 @@ const healthRouter = require('./routes/health');
 const { requestTracker } = require('./routes/health');
 
 // Security middleware
-const { basicXssProtection, strictSanitizer, htmlSanitizer } = require('./middleware/xssSanitizer');
+const { basicXssProtection, strictSanitizer } = require('./middleware/xssSanitizer');
 const { cspNonceMiddleware } = require('./middleware/cspNonce');
 
 // Sentry (에러 추적 및 성능 모니터링)
@@ -51,7 +51,7 @@ const httpServer = createServer(app);
 // 알림 서비스 인스턴스
 const notificationService = require('./services/notificationService');
 
-const { getAllowedOrigins, isProduction } = require('./config/domain');
+const { getAllowedOrigins } = require('./config/domain');
 const allowedOrigins = getAllowedOrigins();
 
 /**
