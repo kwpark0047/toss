@@ -1,10 +1,10 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
-import { imagetools } from 'vite-imagetools'
-import { visualizer } from 'rollup-plugin-visualizer'
-import { VitePWA } from 'vite-plugin-pwa'
-import criticalCss from 'vite-plugin-critical-css'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import { imagetools } from 'vite-imagetools';
+import { visualizer } from 'rollup-plugin-visualizer';
+import { VitePWA } from 'vite-plugin-pwa';
+import criticalCss from 'vite-plugin-critical-css';
 
 export default defineConfig({
   test: {
@@ -21,7 +21,7 @@ export default defineConfig({
         return new URLSearchParams({
           format: 'avif;webp;jpeg',
           as: 'picture',
-        })
+        });
       },
     }),
     visualizer({
@@ -37,10 +37,10 @@ export default defineConfig({
       width: 1280,
     }),
     VitePWA({
-      registerType: 'autoUpdate',      // 새 버전 배포 시 SW 자동 교체
+      registerType: 'autoUpdate', // 새 버전 배포 시 SW 자동 교체
       injectRegister: 'auto',
       includeAssets: ['icons/*.svg', 'icons/*.png', 'offline.html'],
-      manifest: false,                 // public/manifest.json 사용
+      manifest: false, // public/manifest.json 사용
 
       workbox: {
         importScripts: ['/sw-sync.js'],
@@ -66,8 +66,11 @@ export default defineConfig({
           },
           // API — Stale-While-Revalidate for non-critical GET requests (search, listings)
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/') && 
-              (url.searchParams.has('list') || url.searchParams.has('search') || url.pathname.includes('/list')),
+            urlPattern: ({ url }) =>
+              url.pathname.startsWith('/api/') &&
+              (url.searchParams.has('list') ||
+                url.searchParams.has('search') ||
+                url.pathname.includes('/list')),
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'wemarket-api-stale',
@@ -111,7 +114,7 @@ export default defineConfig({
               cacheName: 'wemarket-unsplash',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24,   // 1일
+                maxAgeSeconds: 60 * 60 * 24, // 1일
               },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -136,8 +139,8 @@ export default defineConfig({
 
         // 기존 sw.js와 충돌 방지
         cleanupOutdatedCaches: true,
-        skipWaiting: true,             // 새 SW 설치 즉시 activate (waiting 건너뜀)
-        clientsClaim: true,            // activate 후 모든 탭을 즉시 제어
+        skipWaiting: true, // 새 SW 설치 즉시 activate (waiting 건너뜀)
+        clientsClaim: true, // activate 후 모든 탭을 즉시 제어
       },
 
       devOptions: {
@@ -149,7 +152,7 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
     },
   },
 
@@ -168,9 +171,14 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom', 'react-router-dom', 'react-router'],
           'vendor-icons': ['lucide-react'],
           'vendor-utils': ['axios', 'socket.io-client'],
+          // framer-motion 은 랜딩/메뉴(초기 경로)에서 실제로 쓰이므로 초기 청크에 둔다.
+          'vendor-motion': ['framer-motion'],
+          // [M-5] recharts/xlsx 는 대시보드·일괄등록 전용으로 이미 라우트 분할되어 있다.
+          //   별도 manualChunk 로 강제하면 entry 가 해당 모듈까지 끌어와 초기 로드가
+          //   무거워지므로(modulepreload 주입), 여기서는 제외하고 Rollup 자동 분할에 맡긴다.
         },
       },
     },
     chunkSizeWarningLimit: 500,
   },
-})
+});

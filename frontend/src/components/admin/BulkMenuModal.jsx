@@ -2,7 +2,15 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Wand2, Check, Loader2, FileSpreadsheet, Upload, Download, Info, ChevronDown, ChevronUp, RefreshCw, ImageOff } from 'lucide-react';
 import { aiAPI, productsAPI, categoriesAPI } from '../../api';
-import * as XLSX from 'xlsx';
+
+// [번들 최적화 M-5] xlsx 는 gzip 이후에도 ~450KB 로, 정적 import 하면 이 모달을
+// 포함한 청크 전체가 무거워진다. 실제로 필요한 시점(샘플 다운로드 / 파일 파싱)에만
+// 동적 로드한다.
+let _xlsxPromise = null;
+const loadXLSX = () => {
+    if (!_xlsxPromise) _xlsxPromise = import('xlsx');
+    return _xlsxPromise;
+};
 
 // 엑셀 샘플 데이터
 const SAMPLE_ROWS = [
@@ -40,7 +48,8 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
     const [uploadedFileName, setUploadedFileName] = useState('');
 
     // 샘플 엑셀 다운로드
-    const downloadSampleExcel = () => {
+    const downloadSampleExcel = async () => {
+        const XLSX = await loadXLSX();
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(SAMPLE_ROWS);
 
@@ -70,8 +79,9 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
     const parseFile = (file) => {
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (evt) => {
+        reader.onload = async (evt) => {
             try {
+                const XLSX = await loadXLSX();
                 const wb = XLSX.read(evt.target.result, { type: 'binary' });
                 const ws = wb.Sheets[wb.SheetNames[0]];
                 const raw = XLSX.utils.sheet_to_json(ws, { header: 1 });
