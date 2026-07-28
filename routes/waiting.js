@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const waitingController = require('../controllers/waitingController');
+const { createAIRateLimiter } = require('../utils/aiRateLimiter');
 
 /**
  * @swagger
