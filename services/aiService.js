@@ -1,159 +1,59 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const OpenAI = require('openai');
 const dotenv = require("dotenv");
 const logger = require('../utils/logger');
-const aiUsageTracker = require('../utils/aiUsageTracker');
-const aiPromptService = require('./AIPromptService');
-const dbCache = require('../utils/dbCache');
 
+// 환경 변수 로드
 dotenv.config();
 
+/**
+ * AI 서비스 모듈
+ * Google Gemini API를 사용하여 메뉴 설명 생성 및 추천 기능을 제공합니다.
+ */
 class AIService {
     constructor() {
-        const geminiKey = process.env.GEMINI_API_KEY;
-        if (geminiKey) {
-            this.genAI = new GoogleGenerativeAI(geminiKey);
-            this.geminiModels = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
-        } else {
-            logger.warn('[AI] GEMINI_API_KEY 누락 — Gemini 사용 불가');
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            logger.error('GEMINI_API_KEY is not set in environment');
         }
-
-        const baseURL = process.env.OMNIROUTE_BASE_URL || 'http://localhost:20128/v1';
-        this.openai = new OpenAI({
-            apiKey: process.env.OMNIROUTE_API_KEY || 'sk-omniroute',
-            baseURL,
-            timeout: 15000,
-        });
-        this.omnirouteModel = process.env.OMNIROUTE_MODEL || 'gpt-4o-mini';
-
-        this.cache = dbCache;
-        this.MAX_CACHE_SIZE = 100;
+        this.genAI = new GoogleGenerativeAI(apiKey);
+        this.cache = new Map(); // 메뉴 설명 및 추천 캐시를 위한 메모리 맵
+        this.MAX_CACHE_SIZE = 100; // 최대 캐시 항목 수
+        this.models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"]; // 가용 가능한 모델 리스트 (폴백용)
     }
 
+    /**
+     * 폴백 로직을 포함한 콘텐츠 생성 공통 메서드
+     * @param {string} prompt - 사용자 메시지
+     * @param {Object} [options] - 추가 옵션
+     * @param {string} [options.systemInstruction] - 모델 시스템 지시사항
+     * @param {Object} [options.generationConfig] - 생성 설정 (temperature, topP, maxOutputTokens, response_mime_type 등)
+     */
     async generateWithFallback(prompt, options = {}) {
         const { systemInstruction, generationConfig } = options;
-        const startTime = Date.now();
-        let provider = null;
-        let promptTokens = null;
-        let completionTokens = null;
-        let totalTokens = null;
-        let costUsd = null;
-        let statusCode = null;
-        let fallbackUsed = false;
-        let cacheHit = false;
-
-        const estimateTokens = (text) => Math.ceil(text.length / 4);
-
-        const trackEnd = async (result) => {
-            const durationMs = Date.now() - startTime;
-            try {
-                await aiUsageTracker.track({
-                    provider,
-                    endpoint: 'generateWithFallback',
-                    promptTokens,
-                    completionTokens,
-                    totalTokens,
-                    costUsd,
-                    statusCode,
-                    durationMs,
-                    cacheHit,
-                    fallbackUsed,
-                });
-            } catch { /* tracking failure non-critical */ }
-            return result;
-        };
-
         let lastError = null;
 
-        if (this.genAI) {
-            const models = this.geminiModels;
-            for (let i = 0; i < models.length; i++) {
-                try {
-                    const modelName = models[i];
-                    const modelParams = { model: modelName };
-                    if (systemInstruction) modelParams.systemInstruction = systemInstruction;
-                    if (generationConfig) modelParams.generationConfig = generationConfig;
+        for (let i = 0; i < this.models.length; i++) {
+            try {
+                const modelName = this.models[i];
+                const modelParams = { model: modelName };
+                if (systemInstruction) modelParams.systemInstruction = systemInstruction;
+                if (generationConfig) modelParams.generationConfig = generationConfig;
 
-                    const model = this.genAI.getGenerativeModel(modelParams);
-                    const result = await model.generateContent(prompt);
-                    const response = await result.response;
-                    const text = response.text().trim();
-                    provider = 'gemini';
-                    promptTokens = estimateTokens(prompt);
-                    completionTokens = estimateTokens(text);
-                    totalTokens = promptTokens + completionTokens;
-                    statusCode = 200;
-                    return await trackEnd(text);
-                } catch (error) {
-                    lastError = error;
-                    if (error.status === 429 || error.status === 404 || error.message?.includes('quota')) {
-                        logger.warn(`[AI] Gemini ${models[i]} 한도초과, OmniRoute fallback: ${error.message}`);
-                        break;
-                    }
-                    logger.warn(`[AI] Gemini ${models[i]} 실패, fallback: ${error.message}`);
+                const model = this.genAI.getGenerativeModel(modelParams);
+                const result = await model.generateContent(prompt);
+                const response = await result.response;
+                return response.text().trim();
+            } catch (error) {
+                lastError = error;
+                if (error.status === 429 || error.status === 404 || error.message?.includes('quota')) {
+                    logger.warn(`[AI] ${this.models[i]} failed, fallback: ${error.message}`);
+                    continue;
                 }
+                logger.error(`[AI] Non-retryable error on ${this.models[i]}:`, error.message);
+                throw error;
             }
         }
-
-        fallbackUsed = true;
-
-        try {
-            const messages = [];
-            if (systemInstruction) {
-                messages.push({ role: 'system', content: systemInstruction });
-            }
-            messages.push({ role: 'user', content: prompt });
-
-            const params = {
-                model: this.omnirouteModel,
-                messages,
-            };
-
-            if (generationConfig) {
-                if (generationConfig.temperature != null) params.temperature = generationConfig.temperature;
-                if (generationConfig.maxOutputTokens != null) params.max_tokens = generationConfig.maxOutputTokens;
-                if (generationConfig.response_mime_type === 'application/json') {
-                    params.response_format = { type: 'json_object' };
-                }
-                if (generationConfig.topP != null) params.top_p = generationConfig.topP;
-            }
-
-            const response = await this.openai.chat.completions.create(params);
-            const content = response.choices?.[0]?.message?.content;
-            if (!content) throw new Error('Empty response from OmniRoute');
-
-            provider = 'omniroute';
-            promptTokens = estimateTokens(prompt);
-            completionTokens = estimateTokens(content);
-            totalTokens = promptTokens + completionTokens;
-
-            const usage = response.usage;
-            if (usage) {
-                promptTokens = usage.prompt_tokens;
-                completionTokens = usage.completion_tokens;
-                totalTokens = usage.total_tokens;
-            }
-
-            costUsd = this._estimateCost(totalTokens, this.omnirouteModel);
-            statusCode = 200;
-            logger.info('[AI] OmniRoute fallback 응답 성공');
-            return await trackEnd(content.trim());
-        } catch (error) {
-            logger.error(`[AI/OmniRoute] Error: ${error.message}`);
-            statusCode = 500;
-            await trackEnd(null);
-            throw lastError || error;
-        }
-    }
-
-    _estimateCost(tokens, model) {
-        const pricing = {
-            'gpt-4o-mini': 0.00015,
-            'gpt-4o': 0.005,
-            'gpt-4-turbo': 0.01,
-        };
-        const rate = pricing[model] || 0.00015;
-        return (tokens * rate) / 1000;
+        throw lastError || new Error('All AI models exhausted');
     }
 
     /**
@@ -194,10 +94,9 @@ class AIService {
         const cacheKey = `desc_${name}_${category}_${price || 0}`;
 
         // 1. 캐시 확인
-        const cached = this.cache.get(cacheKey);
-        if (cached !== undefined) {
+        if (this.cache.has(cacheKey)) {
             logger.debug(`[AI] 캐시된 설명을 반환합니다: ${name}`);
-            return cached;
+            return this.cache.get(cacheKey);
         }
 
         const prompt = `
@@ -275,10 +174,9 @@ class AIService {
         const { preferences, time, weather = "맑음", mood = "보통", pastOrders = [], trendingItems = [], timePeriod = '' } = context;
         const cacheKey = `rec_${preferences}_${weather}_${mood}_${pastOrders.length}_${trendingItems.length}_${menuList.length}`;
 
-        const cachedRec = this.cache.get(cacheKey);
-        if (cachedRec) {
+        if (this.cache.has(cacheKey)) {
             logger.debug(`[AI] 캐시에서 추천 결과를 반환합니다.`);
-            return cachedRec;
+            return this.cache.get(cacheKey);
         }
 
         const menus = menuList.map(m => ({ id: m.id, name: m.name, category: m.categories?.name, price: m.price }));
@@ -348,8 +246,7 @@ class AIService {
         if (!dessertList || dessertList.length === 0) return [];
 
         const cacheKey = `dessert_${currentItems.join("_")}_${dessertList.length}`;
-        const cached = this.cache.get(cacheKey);
-        if (cached) return cached;
+        if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
 
         const prompt = `
       당신은 디저트 페어링 전문가입니다. 고객이 현재 주문한 메뉴들과 가장 잘 어울리는 후식을 추천해 주세요.
@@ -383,9 +280,13 @@ class AIService {
             logger.error(error);
             return [{ id: dessertList[0].id, reason: "달콤한 마무리를 위한 추천 메뉴입니다." }];
         }
-}
+    }
 
     setCache(key, value) {
+        if (this.cache.size >= this.MAX_CACHE_SIZE) {
+            const firstKey = this.cache.keys().next().value;
+            this.cache.delete(firstKey);
+        }
         this.cache.set(key, value);
     }
 
@@ -639,8 +540,7 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
      */
     async translateText(text, targetLang) {
         const cacheKey = `trans_${targetLang}_${text}`;
-        const cached = this.cache.get(cacheKey);
-        if (cached !== undefined) return cached;
+        if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
 
         const langMap = {
             'en': 'English',
@@ -713,6 +613,34 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
      * @param {object} review - { rating, content, customer_name }
      * @param {string} storeName - 매장명
      */
+    async generateReviewReply(review, storeName) {
+        const tone = review.rating >= 4
+            ? '감사 인사를 진심으로 전하고, 다음 방문을 기대하게 만드는'
+            : review.rating === 3
+                ? '방문에 감사하되 아쉬운 점을 겸허히 수용하고 개선 의지를 보이는'
+                : '불편에 대해 진정성 있게 사과하고 구체적인 개선 약속과 재방문을 정중히 요청하는';
+
+        const prompt = `
+            당신은 "${storeName}" 매장의 사장님입니다.
+            아래 고객 리뷰에 대한 답글을 작성해 주세요.
+
+            [리뷰 정보]
+            - 평점: ${review.rating}/5
+            - 고객명: ${review.customer_name || '고객'}
+            - 내용: "${review.content}"
+
+            [작성 지침]
+            1. ${tone} 톤으로 작성하세요.
+            2. 3~4문장, 200자 이내로 간결하게.
+            3. 리뷰에서 언급된 구체적 내용(메뉴, 서비스 등)을 자연스럽게 인용하세요.
+            4. 과장된 표현이나 이모지 남발은 피하고, 이모지는 최대 1개만.
+            5. 답글 텍스트만 반환하세요 (따옴표, 설명 없이).
+        `;
+
+        const text = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.5 } });
+        return text.replace(/^["']|["']$/g, '').trim();
+    }
+
     /**
      * AI 메뉴 이미지 생성/검색 (유료 구독자 전용).
      * Gemini가 메뉴명+설명으로 최적의 검색 키워드를 생성하고,
@@ -723,8 +651,7 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
     async generateMenuImage(menuInfo) {
         const { name, category, description } = menuInfo;
         const cacheKey = `img_${name}_${category}`;
-        const cached = this.cache.get(cacheKey);
-        if (cached) return cached;
+        if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
 
         const prompt = `
       You are a food photography expert. Generate 3~5 English keywords
@@ -759,34 +686,9 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
         }
     }
 
-    async generateReviewReply(review, storeName) {
-        const tone = review.rating >= 4
-            ? '감사 인사를 진심으로 전하고, 다음 방문을 기대하게 만드는'
-            : review.rating === 3
-                ? '방문에 감사하되 아쉬운 점을 겸허히 수용하고 개선 의지를 보이는'
-                : '불편에 대해 진정성 있게 사과하고 구체적인 개선 약속과 재방문을 정중히 요청하는';
-
-        const prompt = `
-            당신은 "${storeName}" 매장의 사장님입니다.
-            아래 고객 리뷰에 대한 답글을 작성해 주세요.
-
-            [리뷰 정보]
-            - 평점: ${review.rating}/5
-            - 고객명: ${review.customer_name || '고객'}
-            - 내용: "${review.content}"
-
-            [작성 지침]
-            1. ${tone} 톤으로 작성하세요.
-            2. 3~4문장, 200자 이내로 간결하게.
-            3. 리뷰에서 언급된 구체적 내용(메뉴, 서비스 등)을 자연스럽게 인용하세요.
-            4. 과장된 표현이나 이모지 남발은 피하고, 이모지는 최대 1개만.
-            5. 답글 텍스트만 반환하세요 (따옴표, 설명 없이).
-        `;
-
-        const text = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.5 } });
-        return text.replace(/^["']|["']$/g, '').trim();
-    }
-
+    /**
+     * 저화질/흐림 메뉴판 이미지 → 구조화된 메뉴 JSON 변환 (Gemini Vision)
+     */
     async scanMenuImage(base64Data, mimeType) {
         const prompt = `
             당신은 저화질, 흔들림, 빛 반사, 저조도 또는 초점이 흐려진 메뉴판 사진에서도 텍스트를 정확하게 판독하는 초정밀 OCR 및 음식 카피라이팅 전문가입니다.
@@ -841,33 +743,6 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
                     logger.warn(`[AI] Gemini ${modelName} 이미지 분석 실패:`, err.message);
                     lastError = err;
                 }
-            }
-        }
-
-        if (!rawText) {
-            try {
-                const response = await this.openai.chat.completions.create({
-                    model: this.omnirouteModel,
-                    messages: [
-                        {
-                            role: 'user',
-                            content: [
-                                { type: 'text', text: prompt },
-                                {
-                                    type: 'image_url',
-                                    image_url: {
-                                        url: `data:${mimeType || 'image/jpeg'};base64,${base64Data}`,
-                                    },
-                                },
-                            ],
-                        },
-                    ],
-                });
-                rawText = response.choices?.[0]?.message?.content || '';
-                if (rawText) logger.info('[AI] OmniRoute 이미지 분석 fallback 성공');
-            } catch (err) {
-                logger.error(`[AI/OmniRoute] 이미지 분석 실패:`, err.message);
-                lastError = err;
             }
         }
 
