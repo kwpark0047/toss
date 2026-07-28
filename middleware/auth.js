@@ -27,7 +27,9 @@ const authMiddleware = (req, res, next) => {
     if (!token) return res.status(401).json({ error: '인증 토큰이 필요합니다.' });
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.type === 'refresh') return res.status(401).json({ error: '액세스 토큰이 필요합니다.' });
+    if (decoded.type !== 'access') {
+      return res.status(401).json({ error: '액세스 토큰이 필요합니다.' });
+    }
 
     req.user = decoded;
     next();
@@ -44,7 +46,7 @@ const optionalAuth = (req, res, next) => {
     const token = extractToken(req);
     if (token) {
       const decoded = jwt.verify(token, JWT_SECRET);
-      if (decoded.type !== 'refresh') req.user = decoded;
+      if (decoded.type === 'access') req.user = decoded;
     }
     next();
   } catch {

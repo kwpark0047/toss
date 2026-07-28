@@ -48,7 +48,8 @@ function mountApp(mountPath, router) {
   return app;
 }
 
-const tokenFor = (payload) => jwt.sign(payload, process.env.JWT_SECRET);
+const tokenFor = (payload, options) =>
+  jwt.sign({ type: 'access', ...payload }, process.env.JWT_SECRET, options);
 const USER_TOKEN = tokenFor({ id: 1, role: 'owner' });
 const ADMIN_TOKEN = tokenFor({ id: 99, role: 'super_admin' });
 
@@ -142,15 +143,23 @@ describe('라우트 보안 경계', () => {
       expect(res.status).toBe(403);
     });
 
+    test('2FA 완료 전 임시 관리자 토큰은 401', async () => {
+      const pendingToken = tokenFor({ id: 99, role: 'super_admin', type: '2fa_pending' });
+      const res = await request(app)
+        .get('/api/monitoring/stats')
+        .set('Authorization', `Bearer ${pendingToken}`);
+
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('액세스 토큰이 필요합니다.');
+    });
+
     test('errors 엔드포인트도 동일하게 보호된다', async () => {
       const res = await request(app).get('/api/monitoring/errors');
       expect(res.status).toBe(401);
     });
 
     test('만료된 토큰은 401 + TOKEN_EXPIRED 코드', async () => {
-      const expired = jwt.sign({ id: 1, role: 'super_admin' }, process.env.JWT_SECRET, {
-        expiresIn: '-1s',
-      });
+      const expired = tokenFor({ id: 1, role: 'super_admin' }, { expiresIn: '-1s' });
       const res = await request(app)
         .get('/api/monitoring/stats')
         .set('Authorization', `Bearer ${expired}`);

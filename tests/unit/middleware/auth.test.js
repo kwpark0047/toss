@@ -32,7 +32,7 @@ describe('auth middleware', () => {
 
     test('extracts token from Authorization header and calls next()', () => {
       isCookieMode.mockReturnValue(false);
-      const decoded = { id: 1, role: 'owner', name: '장사장' };
+      const decoded = { id: 1, role: 'owner', name: '장사장', type: 'access' };
       jwt.verify.mockReturnValue(decoded);
       req.headers.authorization = 'Bearer valid-jwt-token';
 
@@ -45,7 +45,7 @@ describe('auth middleware', () => {
 
     test('extracts token from cookie when isCookieMode is true', () => {
       isCookieMode.mockReturnValue(true);
-      const decoded = { id: 2, role: 'staff' };
+      const decoded = { id: 2, role: 'staff', type: 'access' };
       jwt.verify.mockReturnValue(decoded);
       req.cookies.token = 'cookie-jwt-token';
 
@@ -68,11 +68,37 @@ describe('auth middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
+    test('returns 401 when token type is 2fa_pending', () => {
+      isCookieMode.mockReturnValue(false);
+      jwt.verify.mockReturnValue({ id: 1, role: 'super_admin', type: '2fa_pending' });
+      req.headers.authorization = 'Bearer pending-token';
+
+      auth.authMiddleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ error: '액세스 토큰이 필요합니다.' });
+      expect(req.user).toBeUndefined();
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('returns 401 when token type is missing', () => {
+      isCookieMode.mockReturnValue(false);
+      jwt.verify.mockReturnValue({ id: 1, role: 'super_admin' });
+      req.headers.authorization = 'Bearer legacy-token';
+
+      auth.authMiddleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(next).not.toHaveBeenCalled();
+    });
+
     test('returns 401 with TOKEN_EXPIRED when token is expired', () => {
       isCookieMode.mockReturnValue(false);
       const err = new Error('jwt expired');
       err.name = 'TokenExpiredError';
-      jwt.verify.mockImplementation(() => { throw err; });
+      jwt.verify.mockImplementation(() => {
+        throw err;
+      });
       req.headers.authorization = 'Bearer expired-token';
 
       auth.authMiddleware(req, res, next);
@@ -87,7 +113,9 @@ describe('auth middleware', () => {
 
     test('returns 401 when token is invalid (generic JWT error)', () => {
       isCookieMode.mockReturnValue(false);
-      jwt.verify.mockImplementation(() => { throw new Error('invalid signature'); });
+      jwt.verify.mockImplementation(() => {
+        throw new Error('invalid signature');
+      });
       req.headers.authorization = 'Bearer bad-token';
 
       auth.authMiddleware(req, res, next);
@@ -110,7 +138,7 @@ describe('auth middleware', () => {
 
     test('prefers cookie over Authorization header when isCookieMode is true', () => {
       isCookieMode.mockReturnValue(true);
-      const decoded = { id: 3, role: 'super_admin' };
+      const decoded = { id: 3, role: 'super_admin', type: 'access' };
       jwt.verify.mockReturnValue(decoded);
       req.cookies.token = 'cookie-token';
       req.headers.authorization = 'Bearer header-token';
@@ -135,7 +163,7 @@ describe('auth middleware', () => {
 
     test('sets req.user with valid token', () => {
       isCookieMode.mockReturnValue(false);
-      const decoded = { id: 1, role: 'owner' };
+      const decoded = { id: 1, role: 'owner', type: 'access' };
       jwt.verify.mockReturnValue(decoded);
       req.headers.authorization = 'Bearer valid-token';
 
@@ -156,9 +184,22 @@ describe('auth middleware', () => {
       expect(next).toHaveBeenCalled();
     });
 
+    test('skips setting req.user when token is 2fa_pending type', () => {
+      isCookieMode.mockReturnValue(false);
+      jwt.verify.mockReturnValue({ id: 1, role: 'super_admin', type: '2fa_pending' });
+      req.headers.authorization = 'Bearer pending-token';
+
+      auth.optionalAuth(req, res, next);
+
+      expect(req.user).toBeUndefined();
+      expect(next).toHaveBeenCalled();
+    });
+
     test('silently ignores invalid/expired token and calls next()', () => {
       isCookieMode.mockReturnValue(false);
-      jwt.verify.mockImplementation(() => { throw new Error('bad token'); });
+      jwt.verify.mockImplementation(() => {
+        throw new Error('bad token');
+      });
       req.headers.authorization = 'Bearer bad-token';
 
       auth.optionalAuth(req, res, next);
@@ -169,7 +210,7 @@ describe('auth middleware', () => {
 
     test('extracts token from cookie when isCookieMode is true', () => {
       isCookieMode.mockReturnValue(true);
-      const decoded = { id: 5, role: 'staff' };
+      const decoded = { id: 5, role: 'staff', type: 'access' };
       jwt.verify.mockReturnValue(decoded);
       req.cookies.token = 'cookie-token';
 
