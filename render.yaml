@@ -55,6 +55,17 @@ services:
         sync: false
       - key: NAVER_CLIENT_SECRET
         sync: false
+      - key: SEOUL_OPENAPI_KEYS
+        sync: false
+      - key: KAKAO_REST_API_KEY
+        sync: false
+      - key: NCP_GEOCODE_KEY_ID
+        sync: false
+      - key: NCP_GEOCODE_KEY
+        sync: false
+      # ── 프론트엔드 연동 ──
+      - key: FRONTEND_URL
+        sync: false
       # ── SMS ──
       - key: SMS_API_KEY
         sync: false
