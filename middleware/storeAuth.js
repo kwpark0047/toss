@@ -70,6 +70,9 @@ const checkStorePermission = (requiredPermission) => {
       if (!storeId) {
         return res.status(400).json({ error: '매장 ID가 필요합니다' });
       }
+      if (!Number.isInteger(Number(storeId)) || Number(storeId) <= 0) {
+        return res.status(400).json({ error: '유효하지 않은 매장 ID입니다.' });
+      }
 
       // 비동기로 역할 조회 (여기서 getStoreRole은 async)
       const role = await getStoreRole(req.user.id, storeId);

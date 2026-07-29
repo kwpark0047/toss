@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import {
   Truck, Menu, X, MapPin, Smartphone, QrCode, Navigation,
   ChevronDown, ChevronUp, Sparkles, CheckCircle, Fuel, AlertTriangle

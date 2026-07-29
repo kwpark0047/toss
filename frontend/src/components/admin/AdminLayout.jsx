@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationProvider} from '../../contexts/NotificationContext';
 import { AdminThemeProvider, useAdminTheme } from '../../contexts/AdminThemeContext';

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router";
 import axios from "axios";
 import { Wallet as WalletIcon, History, ChevronLeft, QrCode, Search, TrendingUp, TrendingDown, Zap, Trophy, Star, Medal } from "lucide-react";
 import { motion } from "framer-motion";

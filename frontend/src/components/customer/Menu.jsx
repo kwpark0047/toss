@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router";
 import { storesAPI, categoriesAPI, productsAPI, tablesAPI, ordersAPI, cartAPI, paymentsAPI } from "../../api";
 import {
   ShoppingCart, Plus, Minus, X, CreditCard, Banknote, Building2,
@@ -20,6 +20,7 @@ import ReservationSection from "./ReservationSection";
 import MenuStoryModal from "./MenuStoryModal";
 import FloatingCallButton from "./FloatingCallButton";
 import { formatPrice } from "../../utils/format";
+import { requestTossCheckout } from "../../utils/tossCheckout";
 
 // 모듈화된 하위 컴포넌트들 임포트
 import MenuSkeleton from "./MenuSkeleton";
@@ -356,7 +357,7 @@ const Menu = () => {
         order_id: order.id,
         split_type: splitData.split_type,
         num_people: splitData.people_count || 2
-      });
+      }, order.order_capability);
 
       const payRes = await paymentsAPI.splitPay({
         order_id: order.id,
@@ -364,22 +365,15 @@ const Menu = () => {
         payer_phone: orderForm.customer_phone || userPhone || '',
         split_type: splitData.split_type,
         payment_method: 'card'
-      });
+      }, order.order_capability);
 
-      setOrderSuccess({
-        ...payRes.data,
-        payment_method: 'card',
-        is_split_payment: true,
-        order_number: order.order_number
+      await requestTossCheckout({
+        paymentId: payRes.data.payment_id,
+        amount: payRes.data.amount,
+        orderId: payRes.data.pg_order_id,
+        orderName: `WeMarket 분할결제 - ${order.order_number}`,
+        phone: orderForm.customer_phone || userPhone || undefined,
       });
-      setCart([]);
-      if (table?.id) {
-        cartAPI.clearCart(table.id);
-        ordersAPI.getSocket().emit('update-shared-cart', { tableId: table.id, action: 'clear' });
-      }
-      setShowCart(false);
-      setShowTogetherSheet(false);
-      setOrderStep("cart");
     } catch (err) {
       const errorMsg = err.response?.data?.error || "분할 결제 처리 중 오류가 발생했습니다.";
       alert(errorMsg);

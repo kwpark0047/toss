@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { Download, X, Smartphone } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWA';
 

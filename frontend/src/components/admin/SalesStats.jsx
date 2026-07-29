@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { ordersAPI, storesAPI } from '../../api';
 import { ArrowLeft, TrendingUp, DollarSign, ShoppingBag, BarChart3, PieChart, Clock, Award, RefreshCw } from 'lucide-react';
 import { formatPrice } from '../../utils/format';

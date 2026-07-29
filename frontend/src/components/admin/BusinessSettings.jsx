@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { businessAPI, storeAccountAPI } from '../../api';
 import {
     Building2, CreditCard, BadgeCheck, RefreshCw, Save,

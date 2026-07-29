@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { staffAPI } from '../../api/staff';
 import { ChevronLeft, ChevronRight, Plus, X, Trash2, Clock, Users } from 'lucide-react';
 

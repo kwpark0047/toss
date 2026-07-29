@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, AlertTriangle, TrendingDown, TrendingUp, RefreshCw, Search, X, History, Plus, Minus, Edit3, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { inventoryAPI } from '../../api';

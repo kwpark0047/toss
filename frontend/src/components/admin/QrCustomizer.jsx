@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import QRCode from 'qrcode';
 import { storesAPI } from '../../api/stores';
 import { ArrowLeft, Download, RotateCcw, Loader2, QrCode as QrIcon, Save } from 'lucide-react';

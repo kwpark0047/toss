@@ -28,6 +28,7 @@ let initialized = false;
  */
 const initSentry = () => {
   if (initialized) return Sentry;
+  if (process.env.NODE_ENV === 'test') return null;
 
   const dsn = process.env.SENTRY_DSN;
   if (!dsn) {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { categoriesAPI, productsAPI, storesAPI } from '../api';
 import { toast } from 'react-toastify';
 import { handleApiError } from '../utils/apiError';
@@ -54,30 +54,41 @@ export const useMenuManager = (storeId) => {
     }
   }, [storeId, navigate]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  const filteredProducts = (Array.isArray(products) ? products : [])
-    .filter((p) => (!selectedCategory || p.category_id === selectedCategory) &&
+  const filteredProducts = (Array.isArray(products) ? products : []).filter(
+    (p) =>
+      (!selectedCategory || p.category_id === selectedCategory) &&
       (p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.description || '').toLowerCase().includes(searchTerm.toLowerCase())));
+        (p.description || '').toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   const handleSelectAll = (e) => {
-    setSelectedProducts(e.target.checked ? filteredProducts.map(p => p.id) : []);
+    setSelectedProducts(e.target.checked ? filteredProducts.map((p) => p.id) : []);
   };
 
   const handleSelectProduct = (id) => {
-    setSelectedProducts(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setSelectedProducts((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
 
   const handleBulkStatusUpdate = async (isSoldOut) => {
     if (!selectedProducts.length) return;
     try {
       setLoading(true);
-      await Promise.all(selectedProducts.map(id => productsAPI.update(id, { is_sold_out: isSoldOut ? 1 : 0 })));
+      await Promise.all(
+        selectedProducts.map((id) => productsAPI.update(id, { is_sold_out: isSoldOut ? 1 : 0 }))
+      );
       fetchData();
       setSelectedProducts([]);
-    } catch (e) { handleApiError(e, '상태 변경 실패'); }
-    finally { setLoading(false); }
+    } catch (e) {
+      handleApiError(e, '상태 변경 실패');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBulkDelete = async () => {
@@ -85,20 +96,26 @@ export const useMenuManager = (storeId) => {
     if (!window.confirm(`${selectedProducts.length}개 메뉴를 삭제하시겠습니까?`)) return;
     try {
       setLoading(true);
-      await Promise.all(selectedProducts.map(id => productsAPI.delete(id)));
+      await Promise.all(selectedProducts.map((id) => productsAPI.delete(id)));
       fetchData();
       setSelectedProducts([]);
-    } catch (e) { handleApiError(e, '일괄 삭제 실패'); }
-    finally { setLoading(false); }
+    } catch (e) {
+      handleApiError(e, '일괄 삭제 실패');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteCategory = async (id) => {
-    if (!window.confirm('이 카테고리를 삭제하시겠습니까? 포함된 메뉴는 미분류로 이동됩니다.')) return;
+    if (!window.confirm('이 카테고리를 삭제하시겠습니까? 포함된 메뉴는 미분류로 이동됩니다.'))
+      return;
     try {
       await categoriesAPI.delete(id);
       if (selectedCategory === id) setSelectedCategory(null);
       fetchData();
-    } catch (e) { toast.error(e.response?.data?.error || '카테고리 삭제에 실패했습니다'); }
+    } catch (e) {
+      toast.error(e.response?.data?.error || '카테고리 삭제에 실패했습니다');
+    }
   };
 
   const handleDeleteProduct = async (id) => {
@@ -106,12 +123,19 @@ export const useMenuManager = (storeId) => {
     try {
       await productsAPI.delete(id);
       fetchData();
-    } catch (e) { toast.error(e.response?.data?.error || '메뉴 삭제에 실패했습니다'); }
+    } catch (e) {
+      toast.error(e.response?.data?.error || '메뉴 삭제에 실패했습니다');
+    }
   };
 
   // 카테고리 드래그 정렬
-  const handleCatDragStart = (idx) => { dragCatIdx.current = idx; };
-  const handleCatDragOver = (e, idx) => { e.preventDefault(); dragOverCatIdx.current = idx; };
+  const handleCatDragStart = (idx) => {
+    dragCatIdx.current = idx;
+  };
+  const handleCatDragOver = (e, idx) => {
+    e.preventDefault();
+    dragOverCatIdx.current = idx;
+  };
   const handleCatDrop = async () => {
     if (dragCatIdx.current === null || dragOverCatIdx.current === null) return;
     const reordered = reorder(categories, dragCatIdx.current, dragOverCatIdx.current);
@@ -120,7 +144,9 @@ export const useMenuManager = (storeId) => {
     dragOverCatIdx.current = null;
     try {
       await categoriesAPI.updateSort(reordered.map((c, i) => ({ id: c.id, sort_order: i })));
-    } catch { fetchData(); }
+    } catch {
+      fetchData();
+    }
   };
 
   const importFromStore = async (sourceStoreId) => {
@@ -130,8 +156,11 @@ export const useMenuManager = (storeId) => {
         await productsAPI.importFromStore(storeId, sourceStoreId);
         toast.success('데이터 가져오기 완료');
         fetchData();
-      } catch (e) { handleApiError(e, '데이터 가져오기 실패'); }
-      finally { setLoading(false); }
+      } catch (e) {
+        handleApiError(e, '데이터 가져오기 실패');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -173,6 +202,6 @@ export const useMenuManager = (storeId) => {
     handleCatDragStart,
     handleCatDragOver,
     handleCatDrop,
-    importFromStore
+    importFromStore,
   };
 };

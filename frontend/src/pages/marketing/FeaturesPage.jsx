@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { 
   QrCode, Store, Bell, CreditCard, Clock, BarChart3,
   Users, Smartphone, Heart, Menu, X,

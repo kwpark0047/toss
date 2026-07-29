@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, ChevronLeft, RefreshCw, ShoppingCart, UtensilsCrossed } from 'lucide-react';
 import { productsAPI, categoriesAPI } from '../api';

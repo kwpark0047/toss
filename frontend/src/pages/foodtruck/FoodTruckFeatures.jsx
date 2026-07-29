@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import {
   MapPin, Navigation, Truck, Bell, ShieldCheck, Clock,
   Smartphone, Zap, Menu, X, Sparkles, Signal, Fuel, AlertTriangle

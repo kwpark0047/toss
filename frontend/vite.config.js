@@ -166,9 +166,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // react-router-dom v7은 react-router를 peer dependency로 사용.
-          // 둘을 같은 청크로 묶어야 createContext 중복(Blank Screen)을 방지한다.
-          'vendor-react': ['react', 'react-dom', 'react-router-dom', 'react-router'],
+          'vendor-react': ['react', 'react-dom', 'react-router'],
           'vendor-icons': ['lucide-react'],
           'vendor-utils': ['axios', 'socket.io-client'],
           // framer-motion 은 랜딩/메뉴(초기 경로)에서 실제로 쓰이므로 초기 청크에 둔다.

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { 
   Building2, TrendingUp, ShoppingCart, DollarSign, Calendar, 
   ArrowUpRight, AlertCircle, RefreshCw, Layers, ChevronRight, Store, CheckCircle

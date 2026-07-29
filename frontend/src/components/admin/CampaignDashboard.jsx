@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import {
   Megaphone, Plus, Settings, Play, Pause, Trash2, BarChart3,
   Users, TrendingUp, Gift, Target, Calendar, Clock, Loader2,

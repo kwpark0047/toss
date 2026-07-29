@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { 
   Store, Menu, X, HelpCircle, ChevronDown, ChevronUp, Search,
   BookOpen, Play, CheckCircle, ArrowRight, Printer, QrCode, Smartphone

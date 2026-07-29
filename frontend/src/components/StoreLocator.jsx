@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useSearchParams, useLocation } from 'react-router-dom';
+import { Link, useSearchParams, useLocation } from 'react-router';
 import { motion } from 'framer-motion';
 import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils, Map as MapIcon, List, LayoutGrid, CheckCircle2, Clock, Heart, ChefHat, BellRing, XCircle, AlertTriangle, RefreshCw, Server } from 'lucide-react';
 import NaverShareButton from './common/NaverShareButton';

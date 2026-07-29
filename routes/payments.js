@@ -6,6 +6,7 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const paymentController = require('../controllers/paymentController');
 const idempotency = require('../middleware/idempotency');
+const orderCapability = require('../middleware/orderCapability');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -269,7 +270,7 @@ router.post('/:paymentId/proof', upload.single('proof'), paymentController.uploa
  *       200:
  *         description: 분할 결제 설정
  */
-router.post('/split/request', paymentController.setupSplitPayment);
+router.post('/split/request', orderCapability, paymentController.setupSplitPayment);
 
 /**
  * @swagger
@@ -287,7 +288,7 @@ router.post('/split/request', paymentController.setupSplitPayment);
  *       200:
  *         description: 분할 결제 상태
  */
-router.get('/split/:orderId/status', paymentController.getSplitStatus);
+router.get('/split/:orderId/status', orderCapability, paymentController.getSplitStatus);
 
 /**
  * @swagger
@@ -310,7 +311,12 @@ router.get('/split/:orderId/status', paymentController.getSplitStatus);
  *       200:
  *         description: 분할 결제 완료
  */
-router.post('/split/pay', idempotency({ namespace: 'payments:split' }), paymentController.paySplit);
+router.post(
+  '/split/pay',
+  orderCapability,
+  idempotency({ namespace: 'payments:split', required: true }),
+  paymentController.paySplit
+);
 
 /**
  * @swagger

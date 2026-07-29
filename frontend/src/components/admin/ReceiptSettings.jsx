@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { adminAPI } from '../../api';
 import { formatPrice } from '../../utils/format';
 import { Save, Type, Eye, CheckSquare, Square, Store } from 'lucide-react';

@@ -8,13 +8,13 @@ const h = React.createElement;
 // Module-level mocks (hoisted by vitest)
 // =====================
 
-// react-router-dom: controlled via mockUseParams/mockUseSearchParams
+// react-router: controlled via mockUseParams/mockUseSearchParams
 const mockUseParams = vi.fn(() => ({ storeId: '1' }));
 const mockUseSearchParams = vi.fn(() => [new URLSearchParams('table=1'), vi.fn()]);
 const mockNavigate = vi.fn();
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual('react-router');
   return {
     ...actual,
     useParams: () => mockUseParams(),

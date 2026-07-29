@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router';
 import { CheckCircle2, Loader2, Sparkles, ShoppingBag, ArrowRight, Bell, Smartphone, Share, Info } from 'lucide-react';
 import { paymentsAPI } from '../api';
 import { requestNotificationPermission } from '../firebase';
@@ -62,7 +62,7 @@ export default function PaymentSuccess() {
     if (confirmTriggered.current) return;
     confirmTriggered.current = true;
 
-    if (!paymentKey || !orderId || !paymentId) {
+    if (!paymentKey || !orderId || !paymentId || !Number.isInteger(Number(amount)) || Number(amount) <= 0) {
       setStatus('error');
       setErrorMsg('유효하지 않은 결제 정보이거나 필수 정보가 누락되었습니다.');
       return;
@@ -70,11 +70,11 @@ export default function PaymentSuccess() {
 
     const capturePayment = async () => {
       try {
-        const { data } = await paymentsAPI.confirm(paymentId, {
-          toss_payment_key: paymentKey,
-          toss_transaction_id: orderId, // order_number
-          toss_user_key: tossUserKey || undefined,
-          phone: phone || undefined
+        const data = await paymentsAPI.confirm(paymentId, {
+          paymentKey,
+          orderId,
+          amount: Number(amount),
+          customerKey: tossUserKey || undefined,
         });
 
         if (data && data.success) {

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Bell, Volume2, VolumeX, Check, Trash2, X, RefreshCw, ChevronDown, Wifi, WifiOff, ShoppingBag, Star, Calendar, AlertTriangle, Phone, Banknote, Settings } from 'lucide-react';
 import { useNotifications } from '../../contexts/NotificationContext';
 

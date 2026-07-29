@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import WaitingSection from './customer/WaitingSection';
 import { storesAPI, waitingAPI, reviewsAPI } from '../api';

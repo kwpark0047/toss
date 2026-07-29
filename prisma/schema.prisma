@@ -137,7 +137,7 @@ model payments {
   cash_amount           Int?                 @default(0)
   toss_pay_token        String?
   payment_key           String?
-  toss_transaction_id   String?
+  toss_transaction_id   String?              @unique(map: "payments_toss_transaction_id_key")
   transfer_confirmed    Boolean?             @default(false)
   transfer_confirmed_at DateTime?
   transfer_reference    String?
@@ -1055,4 +1055,3 @@ model news {
   @@index([source])
   @@index([publishedAt(sort: Desc)])
 }
-

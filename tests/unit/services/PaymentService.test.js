@@ -103,12 +103,20 @@ describe('PaymentService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    prisma.payments.findFirst.mockReset();
+    prisma.payments.aggregate.mockReset();
+    mockTx.payments.findFirst.mockReset();
+    mockTx.payments.aggregate.mockReset();
+    mockTx.payments.updateMany.mockReset();
 
     // $transaction: callback form by default
     prisma.$transaction.mockImplementation(async (fn) => {
       if (typeof fn === 'function') return fn(mockTx);
       return Promise.all(Array.from(fn));
     });
+    prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+    mockTx.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+    mockTx.payments.updateMany.mockResolvedValue({ count: 1 });
 
     mockIo = { to: jest.fn().mockReturnThis(), emit: jest.fn() };
     service = new PaymentService(mockIo);
@@ -137,6 +145,7 @@ describe('PaymentService', () => {
 
     test('falls back to order data when store_id or amount missing', async () => {
       prisma.orders.findUnique.mockResolvedValue({ id: 5, store_id: 5, total_amount: 30000 });
+      prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
       prisma.payments.create.mockResolvedValue({ id: 42 });
 
       const result = await service.preparePayment({ order_id: 5 });
@@ -146,6 +155,34 @@ describe('PaymentService', () => {
         expect.objectContaining({ data: expect.objectContaining({ store_id: 5, amount: 30000 }) })
       );
       expect(result).toEqual({ paymentId: 42 });
+    });
+
+    test('ignores client store and amount overrides when order_id is present', async () => {
+      prisma.orders.findUnique.mockResolvedValue({ id: 5, store_id: 5, total_amount: 30000 });
+      prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 5000 } });
+      prisma.payments.create.mockResolvedValue({ id: 43 });
+
+      await service.preparePayment({ order_id: 5, store_id: 999, amount: 1 });
+
+      expect(prisma.payments.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ store_id: 5, amount: 25000 }) })
+      );
+    });
+
+    test('reuses the existing READY payment for an order', async () => {
+      prisma.orders.findUnique.mockResolvedValue({ id: 5, store_id: 5, total_amount: 30000 });
+      prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+      prisma.payments.findFirst.mockResolvedValue({
+        id: 77,
+        order_id: 5,
+        status: 'READY',
+        amount: 30000,
+      });
+
+      const result = await service.preparePayment({ order_id: 5 });
+
+      expect(result).toEqual({ paymentId: 77 });
+      expect(prisma.payments.create).not.toHaveBeenCalled();
     });
 
     test('throws AppError(400) when store_id missing and no order', async () => {
@@ -173,6 +210,7 @@ describe('PaymentService', () => {
         id: 10,
         store_id: 1,
         name: '아메리카노',
+        price: 3000,
         is_sold_out: false,
         is_active: true,
       });
@@ -220,6 +258,7 @@ describe('PaymentService', () => {
         id: 10,
         store_id: 1,
         name: '아메리카노',
+        price: 3000,
         is_sold_out: true,
         is_active: true,
       });
@@ -231,10 +270,117 @@ describe('PaymentService', () => {
         id: 10,
         store_id: 1,
         name: '아메리카노',
+        price: 3000,
         is_sold_out: false,
         is_active: false,
       });
       await expect(service.processDirectPayment(baseInput)).rejects.toThrow(AppError);
+    });
+
+    test('rejects forged client prices and totals', async () => {
+      mockTx.products.findUnique.mockResolvedValue({
+        id: 10,
+        store_id: 1,
+        name: '아메리카노',
+        price: 3000,
+        is_sold_out: false,
+        is_active: true,
+      });
+
+      await expect(
+        service.processDirectPayment({
+          ...baseInput,
+          items: [{ ...baseInput.items[0], price: 1 }],
+          total_amount: 2,
+        })
+      ).rejects.toThrow(/가격이 변경/);
+      expect(mockTx.orders.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('processSplitPayment', () => {
+    const splitOrder = {
+      id: 50,
+      store_id: 1,
+      order_number: 'ORD-SPLIT',
+      total_amount: 12000,
+      is_split_payment: true,
+      payments: [{ amount: 4000 }],
+      order_items: [],
+    };
+
+    test('creates only a READY payment and does not write ledger income', async () => {
+      mockTx.orders.findUnique.mockResolvedValue(splitOrder);
+      mockTx.payments.findFirst.mockResolvedValue(null);
+      mockTx.payments.create.mockImplementation(async ({ data }) => ({ id: 501, ...data }));
+
+      const result = await service.processSplitPayment({
+        order_id: 50,
+        amount: 4000,
+        payer_phone: '01012345678',
+        payment_method: 'card',
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          payment_id: 501,
+          amount: 4000,
+          status: 'READY',
+          total_paid: 4000,
+        })
+      );
+      expect(result.pg_order_id).toMatch(/^ORD-SPLIT-S-[a-f0-9]{12}$/);
+      expect(mockTx.payments.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'READY', is_partial: true, amount: 4000 }),
+        })
+      );
+      expect(ledgerService.recordIncome).not.toHaveBeenCalled();
+      expect(mockTx.orders.update).not.toHaveBeenCalled();
+    });
+
+    test.each(['cash', 'point', 'transfer', 'store_card'])(
+      'rejects public offline method %s',
+      async (paymentMethod) => {
+        await expect(
+          service.processSplitPayment({
+            order_id: 50,
+            amount: 4000,
+            payment_method: paymentMethod,
+          })
+        ).rejects.toThrow(/온라인 결제/);
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      }
+    );
+
+    test('rejects non-positive and over-remaining amounts', async () => {
+      await expect(
+        service.processSplitPayment({
+          order_id: 50,
+          amount: 0,
+          payment_method: 'card',
+        })
+      ).rejects.toThrow(/금액이 올바르지/);
+
+      mockTx.orders.findUnique.mockResolvedValue(splitOrder);
+      await expect(
+        service.processSplitPayment({
+          order_id: 50,
+          amount: 9000,
+          payment_method: 'card',
+        })
+      ).rejects.toThrow(/남은 금액/);
+    });
+
+    test('rejects an order that was not configured for split payment', async () => {
+      mockTx.orders.findUnique.mockResolvedValue({ ...splitOrder, is_split_payment: false });
+      await expect(
+        service.processSplitPayment({
+          order_id: 50,
+          amount: 4000,
+          payment_method: 'card',
+        })
+      ).rejects.toThrow(/설정된 주문이 아닙니다/);
     });
   });
 
@@ -332,6 +478,19 @@ describe('PaymentService', () => {
         total_amount: 30000,
         customer_phone: '010-1111-2222',
       });
+      prisma.orders.findUnique.mockResolvedValue({
+        id: 1,
+        store_id: 1,
+        order_number: 'ORD-001',
+        total_amount: 30000,
+      });
+      prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+      prisma.payments.findFirst.mockResolvedValue({
+        id: 20,
+        order_id: 1,
+        status: 'READY',
+        amount: 30000,
+      });
       TossAPI.confirmPayment.mockResolvedValue({
         paymentKey: 'key_wh',
         method: 'CARD',
@@ -348,9 +507,16 @@ describe('PaymentService', () => {
         customer_name: '테스트',
         toss_user_key: null,
       });
-      mockTx.payments.findFirst.mockResolvedValue({ id: 20, order_id: 1, status: 'READY' });
+      mockTx.payments.findFirst.mockResolvedValue({
+        id: 20,
+        order_id: 1,
+        status: 'READY',
+        amount: 30000,
+      });
       mockTx.payments.update.mockResolvedValue({});
-      mockTx.payments.aggregate.mockResolvedValue({ _sum: { amount: 30000 } });
+      mockTx.payments.aggregate
+        .mockResolvedValueOnce({ _sum: { amount: 0 } })
+        .mockResolvedValueOnce({ _sum: { amount: 30000 } });
       mockTx.store_customers.upsert.mockResolvedValue({});
       pointService.calculateEarnPoints.mockResolvedValue(0);
       prisma.stores.findUnique.mockResolvedValue({
@@ -418,7 +584,9 @@ describe('PaymentService', () => {
         amount: 50000,
       });
       mockTx.payments.update.mockResolvedValue({});
-      mockTx.payments.aggregate.mockResolvedValue({ _sum: { amount: 50000 } });
+      mockTx.payments.aggregate
+        .mockResolvedValueOnce({ _sum: { amount: 0 } })
+        .mockResolvedValueOnce({ _sum: { amount: 50000 } });
       mockTx.store_customers.upsert.mockResolvedValue({});
       pointService.calculateEarnPoints.mockResolvedValue(0);
       prisma.stores.findUnique.mockResolvedValue({
@@ -433,7 +601,7 @@ describe('PaymentService', () => {
       expect(TossAPI.confirmPayment).toHaveBeenCalledWith('pk_regular', 'ORD-001', 50000);
       expect(result.success).toBe(true);
       // PG 승인 금액으로 payments.amount 를 동기화해야 한다
-      expect(mockTx.payments.update).toHaveBeenCalledWith(
+      expect(mockTx.payments.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ amount: 50000, status: 'DONE' }),
         })
@@ -476,7 +644,9 @@ describe('PaymentService', () => {
         amount: 30000,
       });
       mockTx.payments.update.mockResolvedValue({});
-      mockTx.payments.aggregate.mockResolvedValue({ _sum: { amount: 30000 } });
+      mockTx.payments.aggregate
+        .mockResolvedValueOnce({ _sum: { amount: 0 } })
+        .mockResolvedValueOnce({ _sum: { amount: 30000 } });
       mockTx.store_customers.upsert.mockResolvedValue({});
       pointService.calculateEarnPoints.mockResolvedValue(0);
       prisma.stores.findUnique.mockResolvedValue({
@@ -517,6 +687,40 @@ describe('PaymentService', () => {
       });
 
       await expect(service.processApproval('pk_x', 'ORD-001', 1000)).rejects.toThrow(AppError);
+      expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
+    });
+
+    test('[1차 방어] READY와 요청 금액이 같아도 주문 잔액과 다르면 PG를 호출하지 않는다', async () => {
+      prisma.orders.findUnique.mockResolvedValue({
+        id: 1,
+        order_number: 'ORD-001',
+        total_amount: 50000,
+        is_split_payment: false,
+      });
+      prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+      prisma.payments.findFirst.mockResolvedValue({
+        id: 10,
+        order_id: 1,
+        status: 'READY',
+        amount: 1000,
+      });
+
+      await expect(service.processApproval('pk_x', 'ORD-001', 1000)).rejects.toThrow(AppError);
+      expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
+    });
+
+    test('[1차 방어] READY와 같은 키의 DONE 결제가 모두 없으면 PG를 호출하지 않는다', async () => {
+      prisma.orders.findUnique.mockResolvedValue({
+        id: 1,
+        order_number: 'ORD-001',
+        total_amount: 50000,
+      });
+      prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+      prisma.payments.findFirst.mockResolvedValue(null);
+
+      await expect(service.processApproval('pk_unknown', 'ORD-001', 50000)).rejects.toThrow(
+        /READY/
+      );
       expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
     });
 
@@ -566,7 +770,7 @@ describe('PaymentService', () => {
         /일치하지 않아/
       );
 
-      expect(mockTx.payments.update).not.toHaveBeenCalled();
+      expect(mockTx.payments.updateMany).not.toHaveBeenCalled();
       expect(ledgerService.recordIncome).not.toHaveBeenCalled();
       expect(TossAPI.cancelPayment).toHaveBeenCalledWith(
         'pk_regular',
@@ -611,19 +815,25 @@ describe('PaymentService', () => {
       await expect(service.processApproval('pk_regular', 'ORD-001', 50000)).rejects.toThrow(
         AppError
       );
-      expect(mockTx.payments.update).not.toHaveBeenCalled();
+      expect(mockTx.payments.updateMany).not.toHaveBeenCalled();
     });
 
-    test('READY 레코드가 없으면 1차 방어를 통과하고 기존 멱등 흐름을 탄다', async () => {
+    test('[원자 전환] READY 선점에 실패한 중복 승인은 장부 반영 없이 자동 취소한다', async () => {
       prisma.orders.findUnique.mockResolvedValue({
         id: 1,
-        store_id: 1,
         order_number: 'ORD-001',
         total_amount: 50000,
+        is_split_payment: false,
       });
-      prisma.payments.findFirst.mockResolvedValue(null); // READY 없음
+      prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+      prisma.payments.findFirst.mockResolvedValue({
+        id: 10,
+        order_id: 1,
+        status: 'READY',
+        amount: 50000,
+      });
       TossAPI.confirmPayment.mockResolvedValue({
-        paymentKey: 'pk_dup',
+        paymentKey: 'pk_race',
         method: 'CARD',
         totalAmount: 50000,
         card: {},
@@ -634,13 +844,44 @@ describe('PaymentService', () => {
         store_id: 1,
         order_number: 'ORD-001',
         total_amount: 50000,
+        is_split_payment: false,
       });
-      mockTx.payments.findFirst
-        .mockResolvedValueOnce(null) // READY 조회
-        .mockResolvedValueOnce({ id: 9, status: 'DONE', payment_key: 'pk_dup' }); // DONE 조회
+      mockTx.payments.findFirst.mockResolvedValue({
+        id: 10,
+        order_id: 1,
+        status: 'READY',
+        amount: 50000,
+      });
+      mockTx.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+      mockTx.payments.updateMany.mockResolvedValue({ count: 0 });
+      prisma.payments.findFirst
+        .mockResolvedValueOnce({ id: 10, order_id: 1, status: 'READY', amount: 50000 })
+        .mockResolvedValueOnce(null);
+      TossAPI.cancelPayment.mockResolvedValue({});
+
+      await expect(service.processApproval('pk_race', 'ORD-001', 50000)).rejects.toThrow(
+        /이미 처리 중/
+      );
+
+      expect(ledgerService.recordIncome).not.toHaveBeenCalled();
+      expect(TossAPI.cancelPayment).toHaveBeenCalledWith('pk_race', '중복 결제 승인 자동 취소');
+    });
+
+    test('READY 레코드가 없고 같은 키의 DONE 결제가 있으면 PG 재호출 없이 멱등 반환한다', async () => {
+      prisma.orders.findUnique.mockResolvedValue({
+        id: 1,
+        store_id: 1,
+        order_number: 'ORD-001',
+        total_amount: 50000,
+      });
+      prisma.payments.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 9, status: 'DONE', payment_key: 'pk_dup' });
 
       const result = await service.processApproval('pk_dup', 'ORD-001', 50000);
       expect(result.message).toBe('이미 처리된 결제');
+      expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
     });
   });
 

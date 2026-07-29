@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { ChevronLeft, History } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { vibrateClick } from '../../utils/notificationSound';
 import LanguageSwitcher from '../common/LanguageSwitcher';

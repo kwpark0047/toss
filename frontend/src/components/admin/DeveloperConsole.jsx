@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { developerAPI } from '../../api/developer';
 import { storesAPI } from '../../api/stores';
 import {

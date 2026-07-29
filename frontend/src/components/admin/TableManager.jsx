@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router';
 import { tablesAPI, storesAPI } from '../../api';
 import {
   ArrowLeft, Plus, Edit, Trash2, QrCode, RefreshCw,

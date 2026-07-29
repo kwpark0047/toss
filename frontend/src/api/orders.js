@@ -18,7 +18,8 @@ export const ordersAPI = {
     return api.get(url);
   },
   create: (data) => api.post('/orders', data),
-  updateStatus: (id, status, staffId = null) => api.put('/orders/' + id + '/status', { status, staff_id: staffId }),
+  updateStatus: (id, status, staffId = null) =>
+    api.put('/orders/' + id + '/status', { status, staff_id: staffId }),
   cancel: (id) => api.post('/orders/' + id + '/cancel'),
   delete: (id) => api.delete('/orders/' + id),
   getById: (id) => api.get('/orders/' + id),
@@ -38,12 +39,26 @@ export const paymentsAPI = {
   confirm: (id, data) => api.post('/payments/' + id + '/confirm', data),
   cancel: (id, data) => api.post('/payments/' + id + '/cancel', data),
   cancelByOrder: (orderId, data) => api.post('/payments/order/' + orderId + '/cancel', data),
-  partialCancel: (orderId, cancelAmount, cancelReason) => api.post('/payments/order/' + orderId + '/partial-cancel', { cancelAmount, cancelReason }),
-  uploadProof: (id, formData) => api.post(`/payments/${id}/proof`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
+  partialCancel: (orderId, cancelAmount, cancelReason) =>
+    api.post('/payments/order/' + orderId + '/partial-cancel', { cancelAmount, cancelReason }),
+  uploadProof: (id, formData) =>
+    api.post(`/payments/${id}/proof`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
   getBrandPayConfig: () => api.get('/payments/brandpay/config'),
-  splitRequest: (data) => api.post('/payments/split/request', data),
-  splitPay: (data) => api.post('/payments/split/pay', data),
-  splitStatus: (orderId) => api.get('/payments/split/' + orderId + '/status'),
+  splitRequest: (data, capability) =>
+    api.post('/payments/split/request', data, {
+      headers: { 'x-order-capability': capability },
+    }),
+  splitPay: (data, capability) =>
+    api.post('/payments/split/pay', data, {
+      headers: {
+        'x-order-capability': capability,
+        'Idempotency-Key': crypto.randomUUID(),
+      },
+    }),
+  splitStatus: (orderId, capability) =>
+    api.get('/payments/split/' + orderId + '/status', {
+      headers: { 'x-order-capability': capability },
+    }),
 };

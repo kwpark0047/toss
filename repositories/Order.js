@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const { phoneSearchCandidates } = require('../utils/phoneEncryption');
 const { kstDayRange, KST_OFFSET_MS } = require('../utils/kstTime');
+const { priceOrderItem } = require('../utils/orderPricing');
 
 /**
  * 주문 모델 (Prisma 기반)
@@ -11,9 +12,16 @@ const Order = {
   create: async (data) => {
     try {
       const {
-        store_id, table_id, customer_name, customer_phone, customer_fcm_token,
-        total_amount, status = 'pending',
-        method, notes, items, is_takeout = false
+        store_id,
+        table_id,
+        customer_name,
+        customer_phone,
+        customer_fcm_token,
+        status = 'pending',
+        method,
+        notes,
+        items,
+        is_takeout = false,
       } = data;
       let order_number = data.order_number; // 아래에서 자동 생성 시 재할당
 
@@ -21,84 +29,72 @@ const Order = {
       if (!order_number) {
         const now = new Date();
         const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-        const randomStr = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        const randomStr = Math.floor(Math.random() * 10000)
+          .toString()
+          .padStart(4, '0');
         order_number = `${dateStr}-${randomStr}`;
       }
 
-      return await prisma.$transaction(async (tx) => {
-        let calculatedTotal = 0;
+      return await prisma.$transaction(
+        async (tx) => {
+          let calculatedTotal = 0;
 
-        // 1. 주문 상품 유효성 검사
-        if (!items || items.length === 0) {
-          throw new Error('주문 상품이 없습니다.');
-        }
+          // 1. 주문 상품 유효성 검사
+          if (!items || items.length === 0) {
+            throw new Error('주문 상품이 없습니다.');
+          }
 
-        const validatedItems = [];
-        for (const item of items) {
-          const product = await tx.products.findUnique({
-            where: { id: item.product_id }
+          const validatedItems = [];
+          for (const item of items) {
+            const product = await tx.products.findUnique({
+              where: { id: item.product_id },
+            });
+
+            const pricedItem = priceOrderItem(product, item, store_id);
+            calculatedTotal += pricedItem.subtotal;
+            validatedItems.push({
+              ...pricedItem,
+              options: pricedItem.options.length ? JSON.stringify(pricedItem.options) : null,
+              user_phone: pricedItem.user_phone || customer_phone || null,
+            });
+          }
+
+          // 쿠폰 할인도 서버가 검증한 상품 합계에만 적용한다.
+          const discountAmount = Math.max(0, Number(data.discount_amount) || 0);
+          const authoritativeTotal = Math.max(0, calculatedTotal - discountAmount);
+
+          // 3. 주문 마스터 및 아이템 저장
+          const order = await tx.orders.create({
+            data: {
+              store_id: parseInt(store_id),
+              table_id: table_id ? parseInt(table_id) : null,
+              order_number,
+              customer_name: customer_name || null,
+              customer_phone: customer_phone || null,
+              customer_fcm_token: customer_fcm_token || null,
+              total_amount: authoritativeTotal,
+              status,
+              method: method || null,
+              notes: notes || null,
+              is_takeout: is_takeout ? 1 : 0,
+              split_type: data.split_type || 'NONE',
+              is_split_payment: data.is_split_payment || false,
+              split_status: data.split_status || 'PENDING',
+              created_at: new Date(),
+              updated_at: new Date(),
+              order_items: {
+                create: validatedItems,
+              },
+            },
+            include: {
+              order_items: true,
+            },
           });
 
-          if (!product || product.store_id !== store_id) {
-            throw new Error(`상품 정보를 찾을 수 없습니다: ${item.product_name}`);
-          }
-
-          if (product.is_sold_out) {
-            throw new Error(`죄송합니다. 현재 품절된 상품이 포함되어 있습니다: ${product.name}`);
-          }
-
-          if (!product.is_active) {
-            throw new Error(`현재 판매가 중단된 상품입니다: ${product.name}`);
-          }
-
-          calculatedTotal += product.price * item.quantity;
-          validatedItems.push({
-            product_id: product.id,
-            product_name: product.name,
-            quantity: item.quantity,
-            price: product.price,
-            subtotal: product.price * item.quantity,
-            options: item.options ? JSON.stringify(item.options) : null,
-            user_phone: item.user_phone || customer_phone || null
-          });
-        }
-
-        // 2. 최종 결제 금액 검증
-        if (calculatedTotal !== total_amount && !data.is_split_payment) {
-          // 분할 결제인 경우 전체 금액과 다를 수 있으므로 체크 제외하거나 로직 보강 필요
-          // 여기서는 기본 검증만 수행
-        }
-
-        // 3. 주문 마스터 및 아이템 저장
-        const order = await tx.orders.create({
-          data: {
-            store_id: parseInt(store_id),
-            table_id: table_id ? parseInt(table_id) : null,
-            order_number,
-            customer_name: customer_name || null,
-            customer_phone: customer_phone || null,
-            customer_fcm_token: customer_fcm_token || null,
-            total_amount: parseFloat(total_amount),
-            status,
-            method: method || null,
-            notes: notes || null,
-            is_takeout: is_takeout ? 1 : 0,
-            split_type: data.split_type || "NONE",
-            is_split_payment: data.is_split_payment || false,
-            split_status: data.split_status || "PENDING",
-            created_at: new Date(),
-            updated_at: new Date(),
-            order_items: {
-              create: validatedItems
-            }
-          },
-          include: {
-            order_items: true
-          }
-        });
-
-        return order;
-      }, { timeout: 15000 });
+          return order;
+        },
+        { timeout: 15000 }
+      );
     } catch (error) {
       console.error('[Prisma Error] Order.create failed:', error);
       throw error;
@@ -114,12 +110,12 @@ const Order = {
           order_items: true,
           payments: {
             orderBy: { id: 'desc' },
-            take: 1
+            take: 1,
           },
           stores: {
-            select: { name: true }
-          }
-        }
+            select: { name: true },
+          },
+        },
       });
 
       if (!order) return null;
@@ -131,7 +127,7 @@ const Order = {
         store_name: order.stores?.name,
         items: order.order_items,
         receipt_url: latestPayment?.receipt_url || null,
-        actual_payment_method: latestPayment?.method || order.method
+        actual_payment_method: latestPayment?.method || order.method,
       };
     } catch (error) {
       console.error(`[Prisma Error] findById failed for ID: ${id}`, error);
@@ -149,7 +145,7 @@ const Order = {
 
       if (status) {
         if (status.includes(',')) {
-          where.status = { in: status.split(',').map(s => s.trim()) };
+          where.status = { in: status.split(',').map((s) => s.trim()) };
         } else {
           where.status = status;
         }
@@ -169,33 +165,36 @@ const Order = {
             order_items: true,
             payments: {
               orderBy: { id: 'desc' },
-              take: 1
+              take: 1,
             },
             tables: {
-              select: { table_number: true }
-            }
+              select: { table_number: true },
+            },
           },
-          orderBy: { created_at: 'desc' }
+          orderBy: { created_at: 'desc' },
         });
       } catch (innerErr) {
-        console.warn(`[Prisma Warning] findByStoreId with include:payments failed, retrying without payments...`, innerErr);
+        console.warn(
+          `[Prisma Warning] findByStoreId with include:payments failed, retrying without payments...`,
+          innerErr
+        );
         orders = await prisma.orders.findMany({
           where,
           include: {
             order_items: true,
             tables: {
-              select: { table_number: true }
-            }
+              select: { table_number: true },
+            },
           },
-          orderBy: { created_at: 'desc' }
+          orderBy: { created_at: 'desc' },
         });
       }
 
-      return orders.map(order => ({
+      return orders.map((order) => ({
         ...order,
         items: order.order_items || [],
         table_name: order.tables?.table_number || null,
-        latest_payment: (order.payments && order.payments.length > 0) ? order.payments[0] : null
+        latest_payment: order.payments && order.payments.length > 0 ? order.payments[0] : null,
       }));
     } catch (error) {
       console.error(`[Prisma Error] findByStoreId failed for Store: ${storeId}`, error);
@@ -217,16 +216,16 @@ const Order = {
         where,
         include: {
           order_items: true,
-          stores: { select: { name: true } }
+          stores: { select: { name: true } },
         },
         orderBy: { created_at: 'desc' },
-        take: 50
+        take: 50,
       });
 
-      return orders.map(order => ({
+      return orders.map((order) => ({
         ...order,
         store_name: order.stores?.name,
-        items: order.order_items
+        items: order.order_items,
       }));
     } catch (error) {
       console.error('[Prisma Error] findByCustomer failed:', error);
@@ -239,7 +238,7 @@ const Order = {
     try {
       const data = {
         status,
-        updated_at: new Date()
+        updated_at: new Date(),
       };
 
       if (staff_id) data.handled_by_staff_id = parseInt(staff_id);
@@ -250,7 +249,7 @@ const Order = {
       return await prisma.orders.update({
         where: { id: parseInt(id) },
         data,
-        include: { order_items: true }
+        include: { order_items: true },
       });
     } catch (error) {
       console.error(`[Prisma Error] updateStatus failed for ID: ${id}`, error);
@@ -275,13 +274,13 @@ const Order = {
       const summary = await prisma.orders.aggregate({
         where,
         _count: { id: true },
-        _sum: { total_amount: true }
+        _sum: { total_amount: true },
       });
 
       const byStatus = await prisma.orders.groupBy({
         by: ['status'],
         where,
-        _count: { id: true }
+        _count: { id: true },
       });
 
       const statusMap = byStatus.reduce((acc, curr) => {
@@ -294,7 +293,7 @@ const Order = {
         total_sales: summary._sum.total_amount || 0,
         by_status: statusMap,
         settlement_rate: 0, // 기본값
-        efficiency: 0 // 기본값
+        efficiency: 0, // 기본값
       };
     } catch (error) {
       console.error(`[Prisma Error] getStats failed for Store: ${storeId}`, error);
@@ -313,13 +312,13 @@ const Order = {
       const orders = await prisma.orders.findMany({
         where,
         select: { id: true, total_amount: true, created_at: true, status: true },
-        orderBy: { created_at: 'asc' }
+        orderBy: { created_at: 'asc' },
       });
 
       const dailyMap = {};
       const hourly = Array.from({ length: 24 }, (_, i) => ({ hour: i, count: 0, amount: 0 }));
 
-      orders.forEach(order => {
+      orders.forEach((order) => {
         const date = order.created_at.toISOString().slice(0, 10);
         if (!dailyMap[date]) dailyMap[date] = { date, amount: 0, count: 0 };
         dailyMap[date].amount += order.total_amount;
@@ -334,7 +333,7 @@ const Order = {
         products: [],
         daily: Object.values(dailyMap),
         hourly: hourly,
-        dayOfWeek: []
+        dayOfWeek: [],
       };
     } catch (error) {
       console.error(`[Prisma Error] getDetailedStats failed for Store: ${storeId}`, error);
@@ -342,7 +341,7 @@ const Order = {
         products: [],
         daily: [],
         hourly: Array.from({ length: 24 }, (_, i) => ({ hour: i, count: 0, amount: 0 })),
-        dayOfWeek: []
+        dayOfWeek: [],
       };
     }
   },
@@ -404,7 +403,11 @@ const Order = {
       // 카테고리별 매출 (order_items → products → categories)
       const items = await prisma.order_items.findMany({
         where: { orders: { is: where } },
-        select: { subtotal: true, quantity: true, products: { select: { categories: { select: { name: true } } } } },
+        select: {
+          subtotal: true,
+          quantity: true,
+          products: { select: { categories: { select: { name: true } } } },
+        },
       });
       const catMap = {};
       items.forEach((it) => {
@@ -426,7 +429,7 @@ const Order = {
   getStaffPerformance: async (_storeId, _startDate, _endDate) => {
     return {
       summary: { total_orders: 0, total_sales: 0 },
-      staff_data: []
+      staff_data: [],
     };
   },
 
@@ -435,7 +438,7 @@ const Order = {
     return {
       avg_cooking_time: 0,
       total_orders: 0,
-      efficiency_score: 0
+      efficiency_score: 0,
     };
   },
 
@@ -447,9 +450,9 @@ const Order = {
         data: {
           method,
           payment_status: status,
-          updated_at: new Date()
+          updated_at: new Date(),
         },
-        include: { order_items: true }
+        include: { order_items: true },
       });
     } catch (error) {
       console.error(`[Prisma Error] updatePayment failed for ID: ${id}`, error);
@@ -461,7 +464,7 @@ const Order = {
   delete: async (id) => {
     try {
       await prisma.orders.delete({
-        where: { id: parseInt(id) }
+        where: { id: parseInt(id) },
       });
       return true;
     } catch (error) {
@@ -491,15 +494,23 @@ const Order = {
 
       const [current, previous] = await Promise.all([
         prisma.orders.aggregate({
-          where: { store_id: numericStoreId, created_at: { gte: currentStart, lte: currentEnd }, status: { not: 'cancelled' } },
+          where: {
+            store_id: numericStoreId,
+            created_at: { gte: currentStart, lte: currentEnd },
+            status: { not: 'cancelled' },
+          },
           _sum: { total_amount: true },
-          _count: { id: true }
+          _count: { id: true },
         }),
         prisma.orders.aggregate({
-          where: { store_id: numericStoreId, created_at: { gte: previousStart, lte: previousEnd }, status: { not: 'cancelled' } },
+          where: {
+            store_id: numericStoreId,
+            created_at: { gte: previousStart, lte: previousEnd },
+            status: { not: 'cancelled' },
+          },
           _sum: { total_amount: true },
-          _count: { id: true }
-        })
+          _count: { id: true },
+        }),
       ]);
 
       const curSales = current._sum.total_amount || 0;
@@ -507,17 +518,26 @@ const Order = {
       const curOrders = current._count.id || 0;
       const preOrders = previous._count.id || 0;
 
-      const salesGrowth = preSales === 0 ? (curSales > 0 ? 100 : 0) : ((curSales - preSales) / preSales) * 100;
-      const ordersGrowth = preOrders === 0 ? (curOrders > 0 ? 100 : 0) : ((curOrders - preOrders) / preOrders) * 100;
+      const salesGrowth =
+        preSales === 0 ? (curSales > 0 ? 100 : 0) : ((curSales - preSales) / preSales) * 100;
+      const ordersGrowth =
+        preOrders === 0 ? (curOrders > 0 ? 100 : 0) : ((curOrders - preOrders) / preOrders) * 100;
 
       return {
         current: { sales: curSales, orders: curOrders },
         previous: { sales: preSales, orders: preOrders },
-        growth: { sales: Math.round(salesGrowth * 10) / 10, orders: Math.round(ordersGrowth * 10) / 10 }
+        growth: {
+          sales: Math.round(salesGrowth * 10) / 10,
+          orders: Math.round(ordersGrowth * 10) / 10,
+        },
       };
     } catch (error) {
       console.error('[Prisma Error] getComparisonStats failed:', error);
-      return { current: { sales: 0, orders: 0 }, previous: { sales: 0, orders: 0 }, growth: { sales: 0, orders: 0 } };
+      return {
+        current: { sales: 0, orders: 0 },
+        previous: { sales: 0, orders: 0 },
+        growth: { sales: 0, orders: 0 },
+      };
     }
   },
 
@@ -527,32 +547,42 @@ const Order = {
       const start = new Date(startDate);
       const end = new Date(endDate);
 
-      const storeStats = await Promise.all(storeIds.map(async (storeId) => {
-        const stats = await prisma.orders.aggregate({
-          where: { store_id: storeId, created_at: { gte: start, lte: end }, status: { not: 'cancelled' } },
-          _sum: { total_amount: true },
-          _count: { id: true }
-        });
+      const storeStats = await Promise.all(
+        storeIds.map(async (storeId) => {
+          const stats = await prisma.orders.aggregate({
+            where: {
+              store_id: storeId,
+              created_at: { gte: start, lte: end },
+              status: { not: 'cancelled' },
+            },
+            _sum: { total_amount: true },
+            _count: { id: true },
+          });
 
-        const storeInfo = await prisma.stores.findUnique({
-          where: { id: storeId },
-          select: { name: true }
-        });
+          const storeInfo = await prisma.stores.findUnique({
+            where: { id: storeId },
+            select: { name: true },
+          });
 
-        return {
-          store_id: storeId,
-          store_name: storeInfo?.name || '알 수 없는 매장',
-          total_sales: stats._sum.total_amount || 0,
-          total_orders: stats._count.id || 0
-        };
-      }));
+          return {
+            store_id: storeId,
+            store_name: storeInfo?.name || '알 수 없는 매장',
+            total_sales: stats._sum.total_amount || 0,
+            total_orders: stats._count.id || 0,
+          };
+        })
+      );
 
       const totalSales = storeStats.reduce((sum, s) => sum + s.total_sales, 0);
       const totalOrders = storeStats.reduce((sum, s) => sum + s.total_orders, 0);
 
       return {
-        summary: { total_sales: totalSales, total_orders: totalOrders, store_count: storeIds.length },
-        stores: storeStats.sort((a, b) => b.total_sales - a.total_sales)
+        summary: {
+          total_sales: totalSales,
+          total_orders: totalOrders,
+          store_count: storeIds.length,
+        },
+        stores: storeStats.sort((a, b) => b.total_sales - a.total_sales),
       };
     } catch (error) {
       console.error('[Prisma Error] getMultiStoreStats failed:', error);
@@ -572,10 +602,10 @@ const Order = {
         where: {
           store_id: storeId,
           created_at: { gte: historicalStart, lte: today },
-          status: { not: 'cancelled' }
+          status: { not: 'cancelled' },
         },
         select: { total_amount: true, created_at: true },
-        orderBy: { created_at: 'asc' }
+        orderBy: { created_at: 'asc' },
       });
 
       const dailyMap = {};
@@ -591,7 +621,7 @@ const Order = {
         dailyData.push({
           date: dateKey,
           sales: dailyMap[dateKey] || 0,
-          dayOfWeek: cursor.getDay()
+          dayOfWeek: cursor.getDay(),
         });
         cursor.setDate(cursor.getDate() + 1);
       }
@@ -607,12 +637,12 @@ const Order = {
       });
 
       const dowGroups = [[], [], [], [], [], [], []];
-      dailyData.forEach(d => {
+      dailyData.forEach((d) => {
         if (d.sales > 0) dowGroups[d.dayOfWeek].push(d.sales);
       });
-      const allSales = dailyData.map(d => d.sales);
+      const allSales = dailyData.map((d) => d.sales);
       const overallAvg = allSales.reduce((a, b) => a + b, 0) / allSales.length || 1;
-      const dowFactors = dowGroups.map(group => {
+      const dowFactors = dowGroups.map((group) => {
         if (group.length === 0) return 1;
         const avg = group.reduce((a, b) => a + b, 0) / group.length;
         return avg / overallAvg;
@@ -626,16 +656,14 @@ const Order = {
           residuals.push(Math.abs(dailyData[i].sales - ma) / ma);
         }
       }
-      const avgResidual = residuals.length > 0
-        ? residuals.reduce((a, b) => a + b, 0) / residuals.length
-        : 0.3;
+      const avgResidual =
+        residuals.length > 0 ? residuals.reduce((a, b) => a + b, 0) / residuals.length : 0.3;
       const volatility = Math.min(Math.max(avgResidual, 0.1), 0.8);
 
-      const validMA = movingAverages.filter(m => m !== null);
+      const validMA = movingAverages.filter((m) => m !== null);
       const baseMA = validMA.length > 0 ? validMA[validMA.length - 1] : 0;
-      const recentTrend = validMA.length > 14
-        ? (validMA[validMA.length - 1] - validMA[validMA.length - 15]) / 14
-        : 0;
+      const recentTrend =
+        validMA.length > 14 ? (validMA[validMA.length - 1] - validMA[validMA.length - 15]) / 14 : 0;
 
       const DOW_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
       const forecast = [];
@@ -651,7 +679,7 @@ const Order = {
           dayOfWeek: DOW_LABELS[dow],
           predicted,
           lower_bound: Math.max(0, predicted - interval),
-          upper_bound: predicted + interval
+          upper_bound: predicted + interval,
         });
       }
 
@@ -659,13 +687,13 @@ const Order = {
         forecast,
         confidence: Math.max(0, Math.min(1, 1 - volatility)),
         metadata: {
-          training_days: dailyData.filter(d => d.sales > 0).length,
+          training_days: dailyData.filter((d) => d.sales > 0).length,
           total_period_days: dailyData.length,
           avg_daily_sales: Math.round(overallAvg),
           dow_factors: Object.fromEntries(
             dowFactors.map((f, i) => [DOW_LABELS[i], Math.round(f * 100) / 100])
-          )
-        }
+          ),
+        },
       };
     } catch (error) {
       console.error('[Prisma Error] getForecast failed:', error);
@@ -684,13 +712,13 @@ const Order = {
           created_at: { gte: thresholdTime },
           orders: {
             store_id: parseInt(storeId),
-          }
+          },
         },
         _count: { product_id: true },
         orderBy: { _count: { product_id: 'desc' } },
         take: limit,
       });
-      return trendingData.map(t => t.product_id).filter(Boolean);
+      return trendingData.map((t) => t.product_id).filter(Boolean);
     } catch (error) {
       console.error('[Prisma Error] findTrendingProducts failed:', error);
       return [];
@@ -700,14 +728,14 @@ const Order = {
   // [상품 조합 페어링 데이터 조회]
   findPairingData: async (productIds, limit = 10) => {
     try {
-      const parsedProductIds = productIds.map(id => parseInt(id));
-      
+      const parsedProductIds = productIds.map((id) => parseInt(id));
+
       // 1. 해당 상품들이 포함된 주문 ID 조회
       const orderItemsWithProducts = await prisma.order_items.findMany({
         where: { product_id: { in: parsedProductIds } },
-        select: { order_id: true }
+        select: { order_id: true },
       });
-      const orderIds = orderItemsWithProducts.map(i => i.order_id);
+      const orderIds = orderItemsWithProducts.map((i) => i.order_id);
 
       if (orderIds.length === 0) return [];
 
@@ -716,11 +744,11 @@ const Order = {
         by: ['product_id'],
         where: {
           order_id: { in: orderIds },
-          product_id: { notIn: parsedProductIds }
+          product_id: { notIn: parsedProductIds },
         },
         _count: { product_id: true },
         orderBy: { _count: { product_id: 'desc' } },
-        take: limit
+        take: limit,
       });
 
       return pairingData;
@@ -728,7 +756,7 @@ const Order = {
       console.error('[Prisma Error] findPairingData failed:', error);
       return [];
     }
-  }
+  },
 };
 
 module.exports = Order;

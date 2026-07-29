@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { ordersAPI, getSocket } from '../../api';
 import { ChevronLeft, ShoppingBag, Clock, CheckCircle2, XCircle, Calendar, RefreshCw, MoreVertical, ChevronRight, UtensilsCrossed, PackageCheck, BellRing } from 'lucide-react';
 import { motion } from 'framer-motion';

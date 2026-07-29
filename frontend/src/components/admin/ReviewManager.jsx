@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { reviewsAPI, storesAPI } from '../../api';
 import { ArrowLeft, RefreshCw, Star, MessageSquareText, Send, Sparkles, Loader2, ImageOff, Heart } from 'lucide-react';
 import { toast } from 'react-toastify';

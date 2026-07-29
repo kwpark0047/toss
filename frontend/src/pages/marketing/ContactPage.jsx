@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { 
   Store, Menu, X, Mail, Phone, MapPin, CheckCircle2, Send,
   ArrowRight, ShieldCheck, Heart, Sparkles, Building2, HelpCircle

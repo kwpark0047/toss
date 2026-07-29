@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams, Navigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Loader2, AlertCircle } from 'lucide-react';

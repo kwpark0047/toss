@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { customersAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus, Search, Edit, Trash2, Users, UserCheck, UserX, UserPlus } from 'lucide-react';

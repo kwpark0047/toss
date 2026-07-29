@@ -4,7 +4,7 @@
   "description": "WeMarket QR Menu Platform API",
   "main": "index.js",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.22.0"
   },
   "scripts": {
     "start": "node index.js",
@@ -19,14 +19,14 @@
     "db:status": "npx prisma migrate status",
     "postinstall": "node -e \"if(!process.env.VERCEL && !process.env.CF_PAGES){require('child_process').execSync('prisma generate',{stdio:'inherit'})}\"",
     "seed": "node scripts/seed_production_direct.js",
-    "test": "jest --config jest.config.js tests/unit tests/routes --coverage --forceExit",
-    "test:unit": "jest --config jest.config.js tests/unit tests/routes --forceExit",
-    "test:routes": "jest --config jest.config.js tests/routes --forceExit",
-    "test:integration": "jest --config jest.config.js tests/integration --forceExit",
-    "test:regression": "jest --config jest.config.js tests/regression --forceExit",
+    "test": "jest --config jest.config.js tests/unit tests/routes --coverage",
+    "test:unit": "jest --config jest.config.js tests/unit tests/routes",
+    "test:routes": "jest --config jest.config.js tests/routes",
+    "test:integration": "jest --config jest.config.js tests/integration",
+    "test:regression": "jest --config jest.config.js tests/regression",
     "test:watch": "jest --config jest.config.js --watch",
-    "test:coverage": "jest --config jest.config.js tests/unit tests/routes --coverage --coverageReporters=text --coverageReporters=text-summary --coverageReporters=lcov --forceExit",
-    "test:coverage:c8": "c8 --reporter=text --reporter=lcov --all --include='routes/' --include='models/' --include='services/' --include='utils/' jest --config jest.config.js --forceExit --detectOpenHandles",
+    "test:coverage": "jest --config jest.config.js tests/unit tests/routes --coverage --coverageReporters=text --coverageReporters=text-summary --coverageReporters=lcov",
+    "test:coverage:c8": "c8 --reporter=text --reporter=lcov --all --include='routes/' --include='models/' --include='services/' --include='utils/' jest --config jest.config.js --detectOpenHandles",
     "test:e2e": "npx playwright test",
     "test:e2e:chrome": "npx playwright test --project=chromium-desktop",
     "test:e2e:mobile": "npx playwright test --project=mobile-chrome --project=mobile-safari",

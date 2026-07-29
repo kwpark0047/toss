@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo} from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { 
   MessageSquare, CheckCircle2, RefreshCw, Volume2, VolumeX, 
   Clock, User, Hash, AlertCircle, Phone, DollarSign, BarChart3, Search, Calendar, ChevronRight

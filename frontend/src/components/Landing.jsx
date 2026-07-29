@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Store, QrCode, Smartphone, ArrowRight, Zap, ShieldCheck, Star, Sparkles, TrendingUp } from 'lucide-react';
 
 const Landing = () => {

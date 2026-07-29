@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { storesAPI, tierSettingsAPI } from '../../api';
 import { Clock, Palette, Save, CheckCircle2, ChevronDown, ChevronUp, Sun, Moon, Store, Type, Layout, Brush, ToggleLeft, ToggleRight, CopyCheck, Award, Plus, Trash2, Edit3 } from 'lucide-react';
 import { toast } from 'react-toastify';

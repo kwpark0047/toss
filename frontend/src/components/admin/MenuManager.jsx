@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router';
 import { useMenuManager } from '../../hooks/useMenuManager';
 import { ArrowLeft, Plus, Sparkles, Folders, Store } from 'lucide-react';
 import { motion } from 'framer-motion';

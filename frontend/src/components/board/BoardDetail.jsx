@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router';
 import { boardAPI } from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {

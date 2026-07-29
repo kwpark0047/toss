@@ -4,7 +4,7 @@
  * 전자상거래법 §13, §17, §20 / 개인정보보호법 / 전자금융거래법 §30 준수
  */
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { toast } from 'sonner';
 import {
     Building2, FileText, Shield, CreditCard,

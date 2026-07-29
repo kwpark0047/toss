@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { boardAPI } from '../../api/board';
 import { ArrowLeft, RefreshCw, Handshake, Send, Inbox, Check, X, Store as StoreIcon, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';

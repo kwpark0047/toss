@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { storesAPI, planRequestsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { Crown, CheckCircle, XCircle, Clock, Sparkles, Store, TrendingUp, Shield, Target, MessageSquare, Send, ChevronDown, ChevronUp } from 'lucide-react';

@@ -8,7 +8,7 @@
  *
  * 인증 불필요 (QR 접속 고객 포함 누구나 열람 가능)
  */
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, FileText, Shield, RefreshCw } from 'lucide-react';
 import { legalAPI } from '@/api';

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { getSocket, reservationsAPI } from '../../api';
 import { CalendarCheck, Clock, Users, Phone, XCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'react-toastify';

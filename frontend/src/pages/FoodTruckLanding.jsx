@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import {
   MapPin, Search, Navigation, Truck, ArrowRight,
   Clock, Sparkles, AlertCircle, ShoppingBag, ShieldAlert, Home, Store,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { notificationTemplatesAPI } from '../../api/notifications';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Plus, Pencil, Trash2, X, ToggleLeft, ToggleRight, Save } from 'lucide-react';

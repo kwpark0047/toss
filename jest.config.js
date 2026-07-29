@@ -2,6 +2,7 @@ module.exports = {
   testEnvironment: 'node',
   clearMocks: true,
   setupFiles: ['./jest.setup.js'],
+  setupFilesAfterEnv: ['./tests/setupAfterEnv.js'],
   testPathIgnorePatterns: [
     '/node_modules/',
     '/frontend/src/test/',
@@ -66,6 +67,4 @@ module.exports = {
     './config/': { statements: 60, branches: 50, functions: 55, lines: 60 },
     global: { statements: 20, branches: 17, functions: 19, lines: 21 },
   },
-
-  globalTeardown: './tests/globalTeardown.js',
 };
