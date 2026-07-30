@@ -6,6 +6,8 @@ import { visualizer } from 'rollup-plugin-visualizer';
 import { VitePWA } from 'vite-plugin-pwa';
 import criticalCss from 'vite-plugin-critical-css';
 
+const isCI = !!process.env.CI;
+
 export default defineConfig({
   test: {
     globals: true,
@@ -30,7 +32,7 @@ export default defineConfig({
       gzipSize: true,
       brotliSize: true,
     }),
-    criticalCss({
+    isCI ? {} : criticalCss({
       include: ['/'],
       minify: true,
       height: 800,
