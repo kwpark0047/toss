@@ -158,6 +158,9 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/profile" element={<AdminPage><ValidStoreRoute><AdminSuspense><ProfilePage /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/tinkerbell" element={<AdminPage><AdminSuspense><TinkerBellManagerPage /></AdminSuspense></AdminPage>} />
     <Route path="/admin/stores/:storeId/tinkerbell" element={<AdminPage><ValidStoreRoute><AdminSuspense><TinkerBellManagerPage /></AdminSuspense></ValidStoreRoute></AdminPage>} />
+    <Route path="/admin/system-status" element={<AdminPage><AdminSuspense><SystemStatus /></AdminSuspense></AdminPage>} />
+    <Route path="/admin/bulk-sms" element={<AdminPage><AdminSuspense><BulkSMSManager /></AdminSuspense></AdminPage>} />
+    <Route path="/admin/community" element={<AdminPage><AdminSuspense><CommunityPage /></AdminSuspense></AdminPage>} />
     <Route path="/admin/stores/:storeId/plan" element={<AdminPage><ValidStoreRoute><AdminSuspense><PlanUpgrade /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/board" element={<AdminPage><ValidStoreRoute><AdminSuspense><BoardList /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/board/:postId" element={<AdminPage><ValidStoreRoute><AdminSuspense><BoardDetail /></AdminSuspense></ValidStoreRoute></AdminPage>} />
