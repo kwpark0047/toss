@@ -17,6 +17,7 @@
     "db:migrate:baseline": "npx prisma migrate resolve --applied 20260101000000_baseline",
     "db:drift": "npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script",
     "db:status": "npx prisma migrate status",
+    "validate:routes": "node scripts/validate-routes.js",
     "postinstall": "node -e \"if(!process.env.VERCEL && !process.env.CF_PAGES){require('child_process').execSync('prisma generate',{stdio:'inherit'})}\"",
     "seed": "node scripts/seed_production_direct.js",
     "test": "jest --config jest.config.js tests/unit tests/routes --coverage",
