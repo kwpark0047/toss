@@ -11,6 +11,7 @@ import { buildMenuUrl, buildQrUrl } from '../../utils/site';
 
 // 공용 컴포넌트 및 유틸 임포트
 import WizardTinkerbell, { Wing, speak } from './wizard/WizardTinkerbell';
+import TableLayoutCard, { CARD_W } from './wizard/TableLayoutCard';
 
 import BusinessTypePicker, { getBtypeLabel } from './wizard/BusinessTypePicker';
 import Step1InlineGuide from './wizard/Step1InlineGuide';
@@ -291,7 +292,7 @@ export default function StoreSetupWizard() {
     setSaving(true);
     try {
       const existX = layoutTables.map(t => t.x);
-      const safeX = Math.max(...existX, 0) + 130 + 20; // TableLayoutCard.CARD_W
+      const safeX = Math.max(...existX, 0) + CARD_W + 20;
       const res = await tablesAPI.create({
         store_id: createdStore.id, table_number: newTableName.trim(),
         capacity: newTableCap, x: Math.min(safeX, 500), y: 180,
