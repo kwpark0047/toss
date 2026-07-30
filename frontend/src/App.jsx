@@ -97,8 +97,39 @@ const AdminPage = memo(({ children }) => (
   </ProtectedRoute>
 ));
 
+// Role-based route guard — restricts access to users with specific roles
+const RoleBasedRoute = memo(({ children, allowedRoles = [] }) => {
+  const { user, loading } = useAuth();
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!loading) return;
+    const t = setTimeout(() => setTimedOut(true), 8000);
+    return () => clearTimeout(t);
+  }, [loading]);
+
+  if (loading && !timedOut) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-4">
+        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-slate-500 text-xs">로그인 정보 확인 중...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return <>{children}</>;
+});
+
 // Export for route groups
-export { AdminSuspense, ProtectedRoute, ValidStoreRoute, AdminPage };
+export { AdminSuspense, ProtectedRoute, ValidStoreRoute, AdminPage, RoleBasedRoute };
 
 const AppRoutes = memo(() => (
   <Routes>
@@ -163,7 +194,7 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/tinkerbell" element={<AdminPage><ValidStoreRoute><AdminSuspense><TinkerBellManagerPage /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/system-status" element={<AdminPage><AdminSuspense><SystemStatus /></AdminSuspense></AdminPage>} />
     <Route path="/admin/plan-requests" element={<AdminPage><AdminSuspense><PlanRequestsManage /></AdminSuspense></AdminPage>} />
-    <Route path="/admin/bulk-sms" element={<AdminPage><AdminSuspense><BulkSMSManager /></AdminSuspense></AdminPage>} />
+    <Route path="/admin/bulk-sms" element={<RoleBasedRoute allowedRoles={['super_admin']}><AdminSuspense><AdminLayout><BulkSMSManager /></AdminLayout></AdminSuspense></RoleBasedRoute>} />
     <Route path="/admin/community" element={<AdminPage><AdminSuspense><CommunityPage /></AdminSuspense></AdminPage>} />
     <Route path="/admin/stores/:storeId/plan" element={<AdminPage><ValidStoreRoute><AdminSuspense><PlanUpgrade /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/board" element={<AdminPage><ValidStoreRoute><AdminSuspense><BoardList /></AdminSuspense></ValidStoreRoute></AdminPage>} />
