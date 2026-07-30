@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import { lazy, Suspense, useState, useEffect, memo } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { logError } from "@/utils/errorUtils";
+import { logError } from "@/lib/errorUtils";
 
 // Lazy imports
 import {

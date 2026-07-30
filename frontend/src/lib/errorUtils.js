@@ -52,3 +52,8 @@ export function onQueryError(error) {
  * @returns {string} 사용자 표시용 오류 메시지
  */
 export const getApiErrorMessage = extractErrorMessage;
+
+/** @param {unknown} error */
+export const logError = (error) => {
+  console.error('[App]', extractErrorMessage(error), error);
+};
