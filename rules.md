@@ -90,7 +90,9 @@ locales/  (i18n: ko/en/ja/zh)
 ## 배포 시 특이사항
 - Render는 Prisma Migrate를 자동 실행하지 않음 → 수동 또는 `npm start` 스크립트에 포함
 - `008_add_status_enums` migration.sql에 partial index DROP/RECREATE 포함됨
-- Frontend 빌드: `npm run cloudflare-build` (wrangler.json 적용)
+- Frontend 빌드: `npm run build` (Vite)
+- `StoreSetupWizard`는 `TableLayoutCard`를 `./wizard/TableLayoutCard`에서 import 필요
+- `toss:build` = `granite build` (대체 빌드 시스템)
 - `.env` 필수값: `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `JWT_SECRET`, `TOSS_SECRET_KEY`, `DATA_GO_KR_SERVICE_KEY`, `KAKAO_REST_API_KEY`, `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `FIREBASE_*`, `SLACK_WEBHOOK_URL`, `LOG_LEVEL`
 
 ## 응급 대응

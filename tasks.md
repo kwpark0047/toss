@@ -29,13 +29,16 @@
 - [x] 인프라: Render(Backend) + Cloudflare Workers(Frontend) 배포 완료
 - [x] DB enum 마이그레이션 (OrderStatus/OrderPaymentStatus/PaymentTxStatus)
 - [x] Schema drift 복구 (store_link_requests.admin_note, store_customers.fcm_token)
+- [x] StoreSetupWizard TableLayoutCard import 누락 수정
 
 ## Pending
 
 ### High Priority
 - [ ] GitHub Secrets 설정 + CI 최초 실행
+- [x] StoreSetupWizard TableLayoutCard import 누락 → 메뉴 저장 후 ReferenceError 수정 (0eda95d)
 - [ ] Render 백엔드 CI 자동 배포 확인 (enum migration 후 재배포)
-- [ ] Google Fonts woff2 preload 404 수정 (critical-css 플러그인 이슈)
+- [x] `StoreSetupWizard` → `TableLayoutCard` import 누락 수정 (메뉴 저장 후 `ReferenceError` 수정)
+- [ ] Google Fonts woff2 preload 404 수정 (critical-css 플러그인 이슈, 빌드에 영향 없음 — fonts 정상 로딩)
 
 ### Medium Priority
 - [ ] 로컬 통합 테스트 환경: PostgreSQL Docker + `npm run test`
