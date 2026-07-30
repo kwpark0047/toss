@@ -8,6 +8,7 @@ const storeEnrichmentController = require('../controllers/storeEnrichmentControl
 const storeLinkController = require('../controllers/storeLinkController');
 const dynamicPricingController = require('../controllers/dynamicPricingController');
 const customerSegmentationController = require('../controllers/customerSegmentationController');
+const grantTemplateController = require('../controllers/grantTemplateController');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 
@@ -36,7 +37,12 @@ const { checkStorePermission } = require('../middleware/storeAuth');
  *       200:
  *         description: 정산 목록 반환
  */
-router.get('/stores/:storeId/settlements', authMiddleware, checkStorePermission('stats:read'), settlementController.getStoreSettlements);
+router.get(
+  '/stores/:storeId/settlements',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  settlementController.getStoreSettlements
+);
 
 /**
  * @swagger
@@ -65,7 +71,12 @@ router.get('/stores/:storeId/settlements', authMiddleware, checkStorePermission(
  *       200:
  *         description: 정산 생성 완료
  */
-router.post('/stores/:storeId/settlements/generate', authMiddleware, checkStorePermission('admin'), settlementController.generateSettlement);
+router.post(
+  '/stores/:storeId/settlements/generate',
+  authMiddleware,
+  checkStorePermission('admin'),
+  settlementController.generateSettlement
+);
 
 /**
  * @swagger
@@ -99,7 +110,12 @@ router.post('/stores/:storeId/settlements/generate', authMiddleware, checkStoreP
  *       200:
  *         description: 상태 변경 완료
  */
-router.patch('/stores/:storeId/settlements/:id/status', authMiddleware, checkStorePermission('admin'), settlementController.updateStatus);
+router.patch(
+  '/stores/:storeId/settlements/:id/status',
+  authMiddleware,
+  checkStorePermission('admin'),
+  settlementController.updateStatus
+);
 
 /**
  * @swagger
@@ -124,7 +140,12 @@ router.patch('/stores/:storeId/settlements/:id/status', authMiddleware, checkSto
  *       200:
  *         description: 세금계산서 발행 완료
  */
-router.post('/stores/:storeId/settlements/:id/tax-invoice', authMiddleware, checkStorePermission('settings:write'), settlementController.issueTaxInvoice);
+router.post(
+  '/stores/:storeId/settlements/:id/tax-invoice',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  settlementController.issueTaxInvoice
+);
 
 /**
  * @swagger
@@ -149,7 +170,12 @@ router.post('/stores/:storeId/settlements/:id/tax-invoice', authMiddleware, chec
  *       200:
  *         description: 정산 상세 반환
  */
-router.get('/stores/:storeId/settlements/:id', authMiddleware, checkStorePermission('stats:read'), settlementController.getSettlementDetails);
+router.get(
+  '/stores/:storeId/settlements/:id',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  settlementController.getSettlementDetails
+);
 
 /**
  * @swagger
@@ -169,7 +195,12 @@ router.get('/stores/:storeId/settlements/:id', authMiddleware, checkStorePermiss
  *       200:
  *         description: 영수증 설정 반환
  */
-router.get('/stores/:storeId/receipt-settings', authMiddleware, checkStorePermission('settings:read'), storeSettingsController.getReceiptSettings);
+router.get(
+  '/stores/:storeId/receipt-settings',
+  authMiddleware,
+  checkStorePermission('settings:read'),
+  storeSettingsController.getReceiptSettings
+);
 
 /**
  * @swagger
@@ -198,7 +229,12 @@ router.get('/stores/:storeId/receipt-settings', authMiddleware, checkStorePermis
  *       200:
  *         description: 영수증 설정 수정 완료
  */
-router.put('/stores/:storeId/receipt-settings', authMiddleware, checkStorePermission('settings:write'), storeSettingsController.updateReceiptSettings);
+router.put(
+  '/stores/:storeId/receipt-settings',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  storeSettingsController.updateReceiptSettings
+);
 
 /**
  * @swagger
@@ -218,7 +254,12 @@ router.put('/stores/:storeId/receipt-settings', authMiddleware, checkStorePermis
  *       200:
  *         description: 등급 설정 반환
  */
-router.get('/stores/:storeId/tier-settings', authMiddleware, checkStorePermission('settings:read'), storeSettingsController.getTierSettings);
+router.get(
+  '/stores/:storeId/tier-settings',
+  authMiddleware,
+  checkStorePermission('settings:read'),
+  storeSettingsController.getTierSettings
+);
 
 /**
  * @swagger
@@ -249,7 +290,12 @@ router.get('/stores/:storeId/tier-settings', authMiddleware, checkStorePermissio
  *       200:
  *         description: 등급 설정 저장 완료
  */
-router.post('/stores/:storeId/tier-settings', authMiddleware, checkStorePermission('settings:write'), storeSettingsController.upsertTierSetting);
+router.post(
+  '/stores/:storeId/tier-settings',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  storeSettingsController.upsertTierSetting
+);
 
 /**
  * @swagger
@@ -274,7 +320,12 @@ router.post('/stores/:storeId/tier-settings', authMiddleware, checkStorePermissi
  *       200:
  *         description: 등급 설정 삭제 완료
  */
-router.delete('/stores/:storeId/tier-settings/:tierName', authMiddleware, checkStorePermission('settings:write'), storeSettingsController.deleteTierSetting);
+router.delete(
+  '/stores/:storeId/tier-settings/:tierName',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  storeSettingsController.deleteTierSetting
+);
 
 /**
  * @swagger
@@ -303,7 +354,12 @@ router.delete('/stores/:storeId/tier-settings/:tierName', authMiddleware, checkS
  *       200:
  *         description: 수수료율 설정 완료
  */
-router.put('/stores/:storeId/commission', authMiddleware, checkStorePermission('admin'), storeSettingsController.updateCommission);
+router.put(
+  '/stores/:storeId/commission',
+  authMiddleware,
+  checkStorePermission('admin'),
+  storeSettingsController.updateCommission
+);
 
 /**
  * @swagger
@@ -374,9 +430,24 @@ router.post('/bulk-sms/send', authMiddleware, bulkSmsController.sendBulkSms);
 router.get('/platform/overview', authMiddleware, adminOnly, platformController.getOverview);
 router.get('/platform/stores', authMiddleware, adminOnly, platformController.getStores);
 router.get('/platform/trend', authMiddleware, adminOnly, platformController.getTrend);
-router.get('/platform/stores/:id/detail', authMiddleware, adminOnly, platformController.getStoreDetail);
-router.patch('/platform/stores/:id/active', authMiddleware, adminOnly, platformController.toggleActive);
-router.post('/platform/stores/:id/points', authMiddleware, adminOnly, platformController.grantPoints);
+router.get(
+  '/platform/stores/:id/detail',
+  authMiddleware,
+  adminOnly,
+  platformController.getStoreDetail
+);
+router.patch(
+  '/platform/stores/:id/active',
+  authMiddleware,
+  adminOnly,
+  platformController.toggleActive
+);
+router.post(
+  '/platform/stores/:id/points',
+  authMiddleware,
+  adminOnly,
+  platformController.grantPoints
+);
 
 // ── 매장 정보 보강 (super_admin) ──────────────────────────────────────────
 router.post('/enrich-stores', authMiddleware, adminOnly, storeEnrichmentController.enrichNaver);
@@ -385,8 +456,18 @@ router.post('/geocode-stores', authMiddleware, adminOnly, storeEnrichmentControl
 
 // ── 매장 연동 승인 요청 (super_admin) ──────────────────────────────────────
 router.get('/store-link-requests', authMiddleware, adminOnly, storeLinkController.listRequests);
-router.post('/store-link-requests/:id/approve', authMiddleware, adminOnly, storeLinkController.approveRequest);
-router.post('/store-link-requests/:id/reject', authMiddleware, adminOnly, storeLinkController.rejectRequest);
+router.post(
+  '/store-link-requests/:id/approve',
+  authMiddleware,
+  adminOnly,
+  storeLinkController.approveRequest
+);
+router.post(
+  '/store-link-requests/:id/reject',
+  authMiddleware,
+  adminOnly,
+  storeLinkController.rejectRequest
+);
 
 // ── AI 동적 가격 책정 ───────────────────────────────────────────────────────
 /**
@@ -407,7 +488,12 @@ router.post('/store-link-requests/:id/reject', authMiddleware, adminOnly, storeL
  *       200:
  *         description: 가격 규칙 목록 반환
  */
-router.get('/stores/:storeId/pricing/rules', authMiddleware, checkStorePermission('settings:read'), dynamicPricingController.getPricingRules);
+router.get(
+  '/stores/:storeId/pricing/rules',
+  authMiddleware,
+  checkStorePermission('settings:read'),
+  dynamicPricingController.getPricingRules
+);
 
 /**
  * @swagger
@@ -443,7 +529,12 @@ router.get('/stores/:storeId/pricing/rules', authMiddleware, checkStorePermissio
  *       201:
  *         description: 가격 규칙 생성됨
  */
-router.post('/stores/:storeId/pricing/rules', authMiddleware, checkStorePermission('settings:write'), dynamicPricingController.createPricingRule);
+router.post(
+  '/stores/:storeId/pricing/rules',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  dynamicPricingController.createPricingRule
+);
 
 /**
  * @swagger
@@ -468,7 +559,12 @@ router.post('/stores/:storeId/pricing/rules', authMiddleware, checkStorePermissi
  *       200:
  *         description: 가격 규칙 수정됨
  */
-router.patch('/stores/:storeId/pricing/rules/:ruleId', authMiddleware, checkStorePermission('settings:write'), dynamicPricingController.updatePricingRule);
+router.patch(
+  '/stores/:storeId/pricing/rules/:ruleId',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  dynamicPricingController.updatePricingRule
+);
 
 /**
  * @swagger
@@ -493,35 +589,141 @@ router.patch('/stores/:storeId/pricing/rules/:ruleId', authMiddleware, checkStor
  *       204:
  *         description: 가격 규칙 삭제됨
  */
-router.delete('/stores/:storeId/pricing/rules/:ruleId', authMiddleware, checkStorePermission('settings:write'), dynamicPricingController.deletePricingRule);
+router.delete(
+  '/stores/:storeId/pricing/rules/:ruleId',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  dynamicPricingController.deletePricingRule
+);
 
 // 가격 변경 이력
-router.get('/stores/:storeId/pricing/logs', authMiddleware, checkStorePermission('stats:read'), dynamicPricingController.getPriceLogs);
+router.get(
+  '/stores/:storeId/pricing/logs',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  dynamicPricingController.getPriceLogs
+);
 
 // 수동 가격 변경
-router.post('/stores/:storeId/pricing/manual', authMiddleware, checkStorePermission('settings:write'), dynamicPricingController.applyManualPriceChange);
+router.post(
+  '/stores/:storeId/pricing/manual',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  dynamicPricingController.applyManualPriceChange
+);
 
 // 최적화 작업
-router.post('/stores/:storeId/pricing/optimize', authMiddleware, checkStorePermission('settings:write'), dynamicPricingController.runPricingOptimization);
-router.get('/stores/:storeId/pricing/jobs', authMiddleware, checkStorePermission('stats:read'), dynamicPricingController.getOptimizationJobs);
+router.post(
+  '/stores/:storeId/pricing/optimize',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  dynamicPricingController.runPricingOptimization
+);
+router.get(
+  '/stores/:storeId/pricing/jobs',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  dynamicPricingController.getOptimizationJobs
+);
 
 // 경쟁사 가격 관리
-router.post('/stores/:storeId/pricing/competitors', authMiddleware, checkStorePermission('settings:write'), dynamicPricingController.upsertCompetitorPrice);
-router.get('/stores/:storeId/pricing/competitors', authMiddleware, checkStorePermission('stats:read'), dynamicPricingController.getCompetitorPrices);
+router.post(
+  '/stores/:storeId/pricing/competitors',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  dynamicPricingController.upsertCompetitorPrice
+);
+router.get(
+  '/stores/:storeId/pricing/competitors',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  dynamicPricingController.getCompetitorPrices
+);
 
 // 수요 예측
-router.get('/stores/:storeId/pricing/forecasts', authMiddleware, checkStorePermission('stats:read'), dynamicPricingController.getDemandForecasts);
+router.get(
+  '/stores/:storeId/pricing/forecasts',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  dynamicPricingController.getDemandForecasts
+);
+
+// ── 포인트/쿠폰 발급 템플릿 ─────────────────────────────────────
+router.get(
+  '/stores/:storeId/grant-templates',
+  authMiddleware,
+  checkStorePermission('settings:read'),
+  grantTemplateController.list
+);
+router.post(
+  '/stores/:storeId/grant-templates',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  grantTemplateController.create
+);
+router.patch('/grant-templates/:id', authMiddleware, adminOnly, grantTemplateController.update);
+router.delete('/grant-templates/:id', authMiddleware, adminOnly, grantTemplateController.delete);
 
 // ── 고객 세그멘테이션 및 개인화 ──────────────────────────────────
-router.get('/stores/:storeId/segments', authMiddleware, checkStorePermission('stats:read'), customerSegmentationController.getSegments);
-router.post('/stores/:storeId/segments', authMiddleware, checkStorePermission('settings:write'), customerSegmentationController.upsertSegment);
-router.delete('/stores/:storeId/segments/:segmentId', authMiddleware, checkStorePermission('settings:write'), customerSegmentationController.deleteSegment);
-router.get('/stores/:storeId/personalization', authMiddleware, checkStorePermission('stats:read'), customerSegmentationController.getPersonalization);
-router.put('/stores/:storeId/personalization', authMiddleware, checkStorePermission('settings:write'), customerSegmentationController.upsertPersonalization);
-router.get('/stores/:storeId/recommendations', authMiddleware, checkStorePermission('stats:read'), customerSegmentationController.getRecommendations);
-router.post('/stores/:storeId/recommendations', authMiddleware, checkStorePermission('settings:write'), customerSegmentationController.createRecommendation);
-router.get('/stores/:storeId/segments/:segmentId/recommendations', authMiddleware, checkStorePermission('stats:read'), customerSegmentationController.getRecommendationsBySegment);
-router.get('/stores/:storeId/segments/:segmentId/customers', authMiddleware, checkStorePermission('stats:read'), customerSegmentationController.getSegmentCustomers);
-router.get('/stores/:storeId/personalization-analytics', authMiddleware, checkStorePermission('stats:read'), customerSegmentationController.getAnalytics);
+router.get(
+  '/stores/:storeId/segments',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  customerSegmentationController.getSegments
+);
+router.post(
+  '/stores/:storeId/segments',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  customerSegmentationController.upsertSegment
+);
+router.delete(
+  '/stores/:storeId/segments/:segmentId',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  customerSegmentationController.deleteSegment
+);
+router.get(
+  '/stores/:storeId/personalization',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  customerSegmentationController.getPersonalization
+);
+router.put(
+  '/stores/:storeId/personalization',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  customerSegmentationController.upsertPersonalization
+);
+router.get(
+  '/stores/:storeId/recommendations',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  customerSegmentationController.getRecommendations
+);
+router.post(
+  '/stores/:storeId/recommendations',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  customerSegmentationController.createRecommendation
+);
+router.get(
+  '/stores/:storeId/segments/:segmentId/recommendations',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  customerSegmentationController.getRecommendationsBySegment
+);
+router.get(
+  '/stores/:storeId/segments/:segmentId/customers',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  customerSegmentationController.getSegmentCustomers
+);
+router.get(
+  '/stores/:storeId/personalization-analytics',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  customerSegmentationController.getAnalytics
+);
 
 module.exports = router;

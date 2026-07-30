@@ -1,29 +1,14 @@
 const prisma = require('../config/prisma');
 const { encryptPhone } = require('../utils/phoneEncryption');
+const { encryptToken } = require('../utils/tokenEncryption');
+const { sanitizeRawResponse } = require('../utils/sanitize');
 
-// raw_response에 포함된 민감 필드 목록 (저장 전 제거)
-const SENSITIVE_FIELDS = [
-  'card', 'secret', 'customerKey', 'customer_key',
-  'cardPassword', 'credential'
-];
-
-// raw_response에서 민감 필드를 재귀적으로 제거
-const sanitizeRawResponse = (data) => {
-  if (!data) return data;
-  const cleaned = JSON.parse(JSON.stringify(data));
-  const removeSensitive = (obj) => {
-    if (!obj || typeof obj !== 'object') return;
-    for (const key of Object.keys(obj)) {
-      if (SENSITIVE_FIELDS.some(f => key.toLowerCase().includes(f.toLowerCase()))) {
-        delete obj[key];
-      } else if (typeof obj[key] === 'object') {
-        removeSensitive(obj[key]);
-      }
-    }
-  };
-  removeSensitive(cleaned);
-  return cleaned;
-};
+function maskCardNumber(cardNumber) {
+  if (!cardNumber) return null;
+  const digits = String(cardNumber).replace(/\D/g, '');
+  const lastFour = digits.slice(-4);
+  return `****-****-****-${lastFour}`;
+}
 
 /**
  * 결제 모델 (Prisma 기반)
@@ -33,8 +18,13 @@ const Payment = {
   // 결제 생성
   create: async (data) => {
     const {
-      order_id, store_id, payment_key, order_name, amount,
-      status = 'READY', checkout_url
+      order_id,
+      store_id,
+      payment_key,
+      order_name,
+      amount,
+      status = 'READY',
+      checkout_url,
     } = data;
 
     return await prisma.payments.create({
@@ -50,22 +40,22 @@ const Payment = {
         payer_phone: data.payer_phone ? encryptPhone(data.payer_phone) : null,
         is_partial: data.is_partial || false,
         created_at: new Date(),
-        updated_at: new Date()
-      }
+        updated_at: new Date(),
+      },
     });
   },
 
   // ID로 결제 조회
   findById: async (id) => {
     return await prisma.payments.findUnique({
-      where: { id }
+      where: { id },
     });
   },
 
   // 결제 키로 조회
   findByPaymentKey: async (paymentKey) => {
     return await prisma.payments.findUnique({
-      where: { payment_key: paymentKey }
+      where: { payment_key: paymentKey },
     });
   },
 
@@ -73,7 +63,7 @@ const Payment = {
   findByOrderId: async (orderId) => {
     return await prisma.payments.findMany({
       where: { order_id: orderId },
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
     });
   },
 
@@ -86,11 +76,11 @@ const Payment = {
       where,
       include: {
         orders: {
-          select: { order_number: true }
-        }
+          select: { order_number: true },
+        },
       },
       orderBy: { created_at: 'desc' },
-      take: limit
+      take: limit,
     });
   },
 
@@ -100,8 +90,8 @@ const Payment = {
       where: { id },
       data: {
         payment_key: paymentKey,
-        updated_at: new Date()
-      }
+        updated_at: new Date(),
+      },
     });
   },
 
@@ -110,15 +100,12 @@ const Payment = {
     const result = await prisma.payments.updateMany({
       where: {
         order_id: orderId,
-        OR: [
-          { status: 'READY' },
-          { payment_key: null }
-        ]
+        OR: [{ status: 'READY' }, { payment_key: null }],
       },
       data: {
         payment_key: paymentKey,
-        updated_at: new Date()
-      }
+        updated_at: new Date(),
+      },
     });
 
     return result.count > 0;
@@ -127,9 +114,16 @@ const Payment = {
   // 결제 승인
   approve: async (paymentKey, data) => {
     const {
-      method, status, approved_at, receipt_url,
-      card_company, card_number, installment_months,
-      easy_pay_provider, raw_response
+      method,
+      status,
+      approved_at,
+      receipt_url,
+      card_company,
+      card_number,
+      installment_months,
+      easy_pay_provider,
+      raw_response,
+      toss_pay_token,
     } = data;
 
     return await prisma.payments.update({
@@ -140,14 +134,15 @@ const Payment = {
         approved_at: approved_at ? new Date(approved_at) : new Date(),
         receipt_url,
         card_company: card_company || null,
-        card_number: card_number || null,
+        card_number: maskCardNumber(card_number),
         installment_months: installment_months || 0,
         easy_pay_provider: easy_pay_provider || null,
-        payer_phone: data.payer_phone ? encryptPhone(data.payer_phone) : null,    // [추가] 승인 시 결제자 정보 업데이트
-        is_partial: data.is_partial || false,      // [추가] 부분 결제 여부 업데이트
+        payer_phone: data.payer_phone ? encryptPhone(data.payer_phone) : null,
+        is_partial: data.is_partial || false,
+        toss_pay_token: toss_pay_token ? encryptToken(toss_pay_token) : null,
         raw_response: raw_response ? JSON.stringify(sanitizeRawResponse(raw_response)) : null,
-        updated_at: new Date()
-      }
+        updated_at: new Date(),
+      },
     });
   },
 
@@ -159,8 +154,8 @@ const Payment = {
         status: 'CANCELED',
         cancelled_at: new Date(),
         cancel_reason: cancelReason,
-        updated_at: new Date()
-      }
+        updated_at: new Date(),
+      },
     });
   },
 
@@ -172,8 +167,8 @@ const Payment = {
         status: 'ABORTED',
         failure_code: failureCode,
         failure_message: failureMessage,
-        updated_at: new Date()
-      }
+        updated_at: new Date(),
+      },
     });
   },
 
@@ -181,20 +176,20 @@ const Payment = {
   getStats: async (storeId, startDate = null, endDate = null) => {
     const where = {
       store_id: storeId,
-      status: 'DONE'
+      status: 'DONE',
     };
 
     if (startDate && endDate) {
       where.approved_at = {
         gte: new Date(startDate),
-        lte: new Date(endDate)
+        lte: new Date(endDate),
       };
     } else {
       // 오늘 기준
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       where.approved_at = {
-        gte: today
+        gte: today,
       };
     }
 
@@ -203,8 +198,8 @@ const Payment = {
       where,
       _count: true,
       _sum: {
-        amount: true
-      }
+        amount: true,
+      },
     });
 
     // 결제 수단별 통계 (Prisma에서는 groupBy 사용)
@@ -213,20 +208,20 @@ const Payment = {
       where,
       _count: true,
       _sum: {
-        amount: true
-      }
+        amount: true,
+      },
     });
 
     return {
       total_count: aggregate._count,
       total_amount: aggregate._sum.amount || 0,
-      by_method: byMethod.map(m => ({
+      by_method: byMethod.map((m) => ({
         method: m.method,
         count: m._count,
-        total: m._sum.amount || 0
-      }))
+        total: m._sum.amount || 0,
+      })),
     };
-  }
+  },
 };
 
 module.exports = Payment;

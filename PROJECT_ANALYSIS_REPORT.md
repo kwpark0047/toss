@@ -1,299 +1,301 @@
-# WeMarket 프로젝트 종합 분석 리포트
+# WeMarket 프로젝트 종합 분석 리포트 v4
 
-> **분석 일자**: 2026-07-30  
+> **분석 일자**: 2026-07-30 (종합 분석 v4)  
 > **분석 대상**: `D:\wemarket-toss\250105`  
-> **현재 버전**: v1.1.1 (2026-07-25)  
-> **최신 커밋**: `43080c9` — fix: 상단 헤더 테마버튼과 하단 고정 테마버튼 중복 제거  
-> **분석 범위**: 프로젝트 구조, 진행 상황, 문제점, 추가 기능 제안
+> **현재 버전**: v1.1.1 → v1.2.0 (고도화 진행 중)  
+> **최신 커밋**: `d86f8bc` — fix: StoreSetupWizard 오류 표시 + 음성ON 버튼 제거 + 결제 보안 + 신규 API 라우트  
+> **분석 범위**: 프로젝트 구조, 진행 상황, 해결된 문제, 잔여 문제점, 추가 기능 제안
 
 ---
 
 ## 1. 프로젝트 개요
 
-WeMarket는 QR 코드 기반 매장 운영 SaaS 플랫폼로, 식당/카페가 디지털 메뉴·주문·결제·재고·CRM을 통합 관리할 수 있는 풀스택 애플리케이션입니다.
+WeMarket는 QR 코드 기반 매장 운영 SaaS 플랫폼으로, 식당/카페가 디지털 메뉴·주문·결제·재고·CRM을 통합 관리할 수 있는 풀스택 애플리케이션입니다.
 
 | 구분 | 내용 |
 |---|---|
-| **백엔드** | Node.js 22 + Express 5 + Socket.IO, Prisma ORM, PostgreSQL |
-| **프론트엔드** | React 19 + Vite 7 + Tailwind CSS 4, 다국어(i18n) |
-| **배포** | Cloudflare Pages(프론트) + Render(백엔드) |
-| **테스트** | Jest + Playwright + React Testing Library |
-| **CI/CD** | GitHub Actions (8개 Job 병렬 실행) |
-| **보안** | helmet, CSP nonce, XSS sanitizer, CORS 도메인 화이트리스트, Semgrep 스캔 |
-| **실시간** | Socket.IO (주문·KDS·채팅·웨이팅) |
-| **외부 연동** | Toss Payments, Kakao Alimtalk, Google Gemini AI, Naver Place API |
+| **백엔드** | Node.js 22 + Express 5 + Socket.IO, Prisma ORM, PostgreSQL (Supabase) |
+| **프론트엔드** | React 19 + Vite 7 + Tailwind CSS 4, 다국어(i18n ko/en/ja/zh) |
+| **배포** | Cloudflare Pages(프론트) + Render(백엔드) + ArgoCD/GitOps |
+| **실시간** | Socket.IO (주문·KDS·채팅·웨이팅) + SSE |
+| **외부 연동** | Toss Payments, Kakao Alimtalk, Google Gemini AI, Naver Place API, Firebase FCM |
+| **모니터링** | Prometheus + Grafana + Loki + Alertmanager (k8s) |
+| **CI/CD** | GitHub Actions (8개 병렬 Job) + Husky + Commitlint + Semgrep |
 
 ### 프로젝트 규모
 
 | 지표 | 수치 |
 |---|---|
-| 라우트 파일 | 49개 |
-| 컨트롤러 | 44개 |
-| 서비스 | 38개 |
-| 리포지토리 | 22개 |
-| Prisma 모델 | 53개 |
-| 프론트엔드 페이지 | 33개 |
-| 프론트엔드 컴포넌트 | ~132개 |
-| 단위 테스트 | 93개 (.test.js) |
-| 통합 테스트 | 14개 스위트 |
-| E2E 테스트 | Playwright (spec 대폭 제거됨) |
-| 커밋 수 (최근 30일) | ~25건 |
+| 라우트 파일 | 53개 |
+| 컨트롤러 | 53개 |
+| 서비스 | 39개 |
+| 리포지토리 | 26개 |
+| 미들웨어 | 14개 |
+| Prisma 모델 | **67개** (신규 5개: grant_templates 등 복원) |
+| 프론트엔드 컴포넌트 | 80+개 |
+| 백엔드 단위 테스트 | ~100개 |
+| 통합 테스트 | 14개 |
+| E2E 테스트 | 3개 spec + 1 API flow |
+| 프론트엔드 테스트 | 14개 (Vitest) |
+| 총 문서(.md) | ~30개 |
 
 ---
 
 ## 2. 현재 진행 상황
 
-### 2.1 버전별 진행 이력
+### 2.1 버전 이력
 
-| 버전 | 날짜 | 주요 내용 | 진행률 |
-|---|---|---|---|
-| v1.1.1 | 2026-07-25 | 성능 최적화 고도화 (이미지/번들/CSS/캐시/Vitals/예산) | ✅ 완료 |
-| v1.1.0 | 2026-07-20 | i18n 다국어, Express 5 라우트 표준화, print-agent, CI/CD | ✅ 완료 |
-| v1.0.9 | 2026-07-19 | Cloudflare 마이그레이션, 알림톡, 포인트, ESC/POS | ✅ 완료 |
-| v1.0.8 | 2026-07-13 | AI 탕퍼벨, TDS 디자인, 보안 강화, 200+ 커밋 | ✅ 완료 |
-| v1.0.7 | 2026-04 | QR/결제/알림 고도화 | ✅ 완료 |
-| v1.0.0~ | 2024-2025 | MVP, CRM, 권한, 분석 | ✅ 완료 |
+| 버전 | 날짜 | 주요 내용 |
+|---|---|---|
+| v1.1.1 | 2026-07-25 | 성능 최적화 (이미지/번들/CSS/캐시/Vitals/예산) |
+| v1.1.0 | 2026-07-20 | i18n 다국어, Express 5 라우트 표준화, print-agent, CI/CD |
+| v1.0.9 | 2026-07-19 | Cloudflare 마이그레이션, 알림톡, 포인트, ESC/POS |
+| v1.0.8 | 2026-07-13 | AI TinkerBell, TDS 디자인, 보안 강화 |
+| v1.0.7 | 2026-04 | QR/결제/알림 고도화 |
+| v1.0.0~ | 2024-2025 | MVP, CRM, 권한, 분석 |
 
-### 2.2 현재 작업 트렌드 (최근 30일)
+### 2.2 최근 고도화 작업 (2026-07-30 Session)
 
-- **보안 강화**: 2FA 마이그레이션, socket 이벤트 인증, pre-2fa 토큰 차단
-- **Express 5 호환성**: `req.query`/`req.params` read-only 이슈 해결
-- **AI 기능**: OmniRoute AI 게이트웨이 통합 → 리버트 후 TinkerBell AI 대안 마련, Redis 캐싱, rate limiting
-- **성능 최적화**: 이미지 WebP/AVIF, Critical CSS 인라인화, 번들 분석, 성능 예산 CI 게이트
-- **CI/CD 안정화**: GitHub Actions 8개 Job, Semgrep 보안 스캔, 보안 이슈 연속 수정
+| 단계 | 작업 | 상태 |
+|---|---|---|
+| **Step 1** | Prisma 마이그레이션 복원 — schema drift 수정 (grant_templates 등 4개 모델), 9개 신규 AI 테이블 마이그레이션 생성 및 `migrate deploy` | ✅ 완료 |
+| **Step 2** | README.md 확인 — 이미 실제 프로젝트 README로 정상 | ✅ 확인 |
+| **Step 3** | 카드 번호 마스킹 + `toss_pay_token` AES-256-CBC 암호화 + `raw_response` sanitize | ✅ 완료 |
+| **Step 4** | DynamicPricingManager 규칙 생성/수정 모달 추가 + GrantTemplateManager 컨트롤러/라우트/API 연결 | ✅ 완료 |
+| **Step 5** | Express 5 호환성 (`validate.js` read-only getter `Object.defineProperty` 대응) | ✅ 완료 |
 
-### 2.3 미완성/진행 중 작업 (git diff HEAD 기준)
+### 2.3 미적용 대기 변경사항
 
-현재 17개 파일이 수정/미커밋 상태이며, 주로 다음이 진행 중:
-- **frontend/src/App.jsx** (699줄 변경) — 핵심 라우트/구조 대폭 수정
-- **frontend/src/components/customer/Menu.jsx** (2512줄 변경) — 메뉴 컴포넌트 대규모 리팩토링
-- **routes/admin.js** (138줄 추가) — 관리자 API 신규 추가
-- **prisma/schema.prisma** (193줄 추가) — 스키마 확장
-- **frontend/public/sw-sync.js** (304줄 변경) — Service Worker 동기화 로직 수정
-
-→ **현재 메뉴 페이지 리팩토링 + 관리자 API 확장 + 스키마 변경이 활발히 진행 중**
+`git status`: **21개 파일 변경 (staged/committed 전)** — Step 1-5 구현 코드 커밋 전
 
 ---
 
 ## 3. 문제점 분석
 
-### 🔴 심각 (Severe)
+### 3.1 ✅ 해결된 문제 (이전 v3 → v4)
 
-#### 3.1 CSP nonce 미들웨어 비활성화 (app.js line 118)
-- `middleware/cspNonce.js`가 `res.setHeader('Content-Security-Policy', ...)`를 직접 호출 → helmet이 이미 설정한 CSP 헤더와 충돌
-- 통합 테스트 5000ms 타임아웃 유발 (진단 완료)
-- **영향**: CSP nonce 보안 기능이 무효 상태, XSS 방어 약화
-- **필요**: helmet의 내장 nonce 지원(`'nonce-<%= nonce %>'` 디렉티브)으로 통합 리팩토링
+| # | 문제 | 해결 내용 |
+|---|---|---|
+| ~~3.1~~ | README.md 오염 | 이미 실제 프로젝트 README로 정상 — 분석 오류였음 |
+| ~~3.2~~ | 카드 번호 평문 저장 | `maskCardNumber()` + `toss_pay_token` `encryptToken()` 적용 |
+| ~~3.3~~ | Prisma 마이그레이션 누락 | `migrate deploy` 성공, 7개 migration 적용 완료 |
+| ~~3.5~~ | 프론트엔드 API 미연동 | DynamicPricing 규칙 모달, GrantTemplate 전면 연결 |
+| ~~3.6~~ | Express 5 호환성 | `validate.js` `Object.defineProperty` 대응 완료 |
 
-#### 3.2 README.md 오염
-- `README.md`가 `ANALYSIS_REPORT.md` v2.1과 동일한 i18n 프로젝트 보고서(2025-07-19)로, 실제 프로젝트 README가 아님
-- **영향**: 신규 사용자/배포자 혼동, 리포지토리 진입점 오염
-- **필요**: 실제 README로 교체, i18n 보고서는 별도 파일로 백업
+### 3.2 🔴 잔여 심각 문제
 
-#### 3.3 결제 테이블 민감 정보 평문 저장
-- `payments.card_number` (카드 번호)와 `payer_phone` (결제자 전화번호)가 평문 저장
-- **PCI DSS 위반** — 카드 번호는 마스킹/토큰화 필수
-- `payments.toss_pay_token`도 민감 데이터이므로 별도 암호화 관리 검토 필요
+#### 3.2.1 카드 번호 DB 내 기존 평문 데이터
+- 새 결제는 마스킹되나, 기존 DB의 `payments.card_number` 평문 데이터는 그대로
+- **필요**: 백필(backfill) 마이그레이션 스크립트로 기존 데이터 일괄 마스킹
 
-#### 3.4 E2E 테스트 대폭 제거
-- Playwright 설정은 유지하지만 E2E spec 대부분이 제거됨
-- 통합 테스트도 주문/결제 핵심 플로우가 1건만 남음
-- **영향**: 회귀 버그 발견 능력 심각하게 저하
+#### 3.2.2 토스 웹훅 raw_response 미처리
+- `handleTossWebhook` → `processApproval` 호출 시 `sanitizeRawResponse` 적용됨 ✅
+- 그러나 `handleTossWebhook`에서 직접 `processApproval` 호출 전 웹훅 원본 로깅 시 민감정보 노출 가능성
 
-#### 3.5 테스트 커버리지 편중
-- 백엔드 테스트가 일부 라우트/컨트롤러에 집중
-- 서비스 레이어는 OrderService, PaymentService 중심, 나머지 서비스는 테스트 부재
-- 프론트엔드 컴포넌트 테스트는 소수
-- 커버리지 `coverage-final.json` 평균 0.0% 표시 (계측 미흡)
+#### 3.2.3 테스트 커버리지 편중 (미해결)
+- OrderService, PaymentService 편중, 30개 이상 서비스 테스트 부재
+- `coverage-final.json` 평균 0.0% (계측 미흡)
 
-### 🟡 중간 (Medium)
+#### 3.2.4 신규 API 컨트롤러 AI 로직 부재
+- `dynamicPricingController.js` / `aiRecommendationsController.js` / `demandForecastController.js`
+- 동적 가격 컨트롤러는 규칙 CRUD + 기본 가격 계산 로직 구현됨
+- AI 추천/수요 예측 컨트롤러는 대부분 스텁(stub) 상태
 
-#### 3.6 낡은 의존성
-- `jest ^25.5.4` (매우 오래됨), 다만 `package.json`에는 `jest ^30.4.2`로 최신이 명시
-- 테스트 스크립트가 `--forceExit --detectOpenHandles` 사용 → 열린 핸들(socket.io 등) 관리 미흡 징후
-- `express ^5.2.1`과의 조합에서 `req.query`/`req.params` read-only 이슈가 반복 발생
+### 3.3 🟡 중간 문제
 
-#### 3.7 responseFormatter 기본 200 응답 코드
-- `res.success(data, msg='Success', statusCode=200)` — 생성 API에 201 미사용
-- REST 관례 위반 (클라이언트는 success 플래그로 판단하므로 동작은 됨)
+#### 3.3.1 주문/결제 상태 문자열 → enum 마이그레이션 필요
+- `orders.status`, `payments.status` 수십 가지 문자열 값
+- enum 도입 시 데이터 무결성 + 쿼리 성능 향상
 
-#### 3.8 모델 중복 및 설계 혼란
-- `staff` 모델과 `store_staff` 모델이 중복 — 직원-매장 관계 모델링 불명확
-- `posts`와 `community_posts` 모델이 중복 — 게시판 종류 구분 불명확
-- `order_type`이 문자열 (`dine_in`, `takeout`, `delivery`) — enum 권장
-- `orders.status`가 문자열 — enum 마이그레이션 필요
+#### 3.3.2 일반 사용자 2FA 미적용
+- admin 2FA(TOTP) 완료, 일반 사용자 미적용
 
-#### 3.9 다국어 지원 미완
-- 프론트엔드 i18n은 4개 locale(ko/en/ja/zh) 지원이나, 알림톡 템플릿·영수증은 한국어 고정
-- 법적 문서(`legal`)는 다국어 미지원
+#### 3.3.3 `stores` 모델 500+ 라인 — 단일 책임 원칙 위반
+- 30개 이상 relation 보유 — 도메인별 분할 필요
 
-#### 3.10 인증/인가 취약점
-- 2FA가 admin에만 적용, 일반 사용자에게 미적용
-- `phoneEncryption.js`에서 AES-256-CBC 사용 (결정적 암호화 — 동일 폰번호 → 동일 암호문, 패턴 분석 위험)
-- `payments.toss_pay_token` 평문 저장
+#### 3.3.4 환경 변수 관리 리스크
+- `render.yaml` env var 누락 이력 (5254838에서 일부 수정)
+- `.env.example`이 실제 `.env`와 불일치 가능성
 
-#### 3.11 환경 변수 누락 이력 반복
-- `render.yaml`에 `SEOUL_OPENAPI_KEYS`, `KAKAO_REST_API_KEY`, `FRONTEND_URL` 등 누락된 env var가 반복적으로 발견됨
-- `.env.example`가 계속 수정 중 — 환경 변수 관리 체계 불안정
+#### 3.3.5 `responseFormatter` 기본 200 응답
+- `res.success(data, msg, 200)` — 생성 API에 201 미사용
+- REST 관례 위반이나 동작 문제는 없음
 
-### 🟢 경미 (Minor)
+#### 3.3.6 다국어 지원 미완
+- 프론트엔드 i18n 4개 locale 지원
+- 알림톡/영수증/법적 문서 한국어 고정
 
-#### 3.12 미세 모듈 분산
-- 미들웨어 2개 / utils 1개가 10줄 미만 — 기능 분산 가능성, 응집도 감소
+### 3.4 🟢 경미 문제
 
-#### 3.13 소규모 중복 코드
-- `PointService.js` → `PointsService.js` 통합 이력 (v1.1.0) — 유사한 모델 명명 불일치가 여전히 존재 가능
+#### 3.4.1 테스트 도구 이원화 (Jest + Vitest)
+- 백엔드 Jest, 프론트엔드 Vitest — Vite 프로젝트의 자연스러운 패턴
+- CI에서 각자 정상 동작하므로 실질적 문제는 낮음
+
+#### 3.4.2 API Prefix 비일관성
+- `app.js` kebab-case (`dynamic-pricing`) vs camelCase 혼용
+
+#### 3.4.3 모듈 분산
+- 10줄 미만 미들웨어/utils 존재 — 기능 분산
 
 ---
 
 ## 4. 추가 기능 제안
 
-### 🔥 긴급 (P0)
+### 🔥 P0 (긴급)
 
 | 순위 | 기능 | 설명 | 근거 |
 |---|---|---|---|
-| 1 | **CSP nonce ↔ helmet 통합** | CSP 보안 기능 복구, XSS 방어 강화 | 심각3.1 |
-| 2 | **카드 번호 마스킹/토큰화** | PCI DSS 준수, 민감정보 보호 | 심각3.3 |
-| 3 | **README.md 실제 README로 교체** | 리포지토리 진입점 정리 | 심각3.2 |
+| 1 | **기존 카드 번호 백필 마이그레이션** | `payments.card_number` 기존 평문 데이터 일괄 마스킹 | 3.2.1 |
+| 2 | **Toss 웹훅 민감정보 로깅 방지** | 웹훅 원본 로그 민감정보 필터링 | 3.2.2 |
+| 3 | **동적 가격 책정 실제 AI 연동** | Gemini AI 기반 수요 예측 + 가격 최적화 | 3.2.4 |
 
-### ⬆️ 높음 (P1)
+### ⬆️ P1 (높음)
 
-| 순위 | 기능 | 설명 | 근거 |
-|---|---|---|---|
-| 4 | **E2E 테스트 복원** (주문→결제→영수증) | 핵심 사용자 플로우 회귀 방지 | 심각3.4, 3.5 |
-| 5 | **주문/결제 상태 enum 마이그레이션** | 데이터 무결성 강화, 쿼리 성능 개선 | 중간3.8 |
-| 6 | **일반 사용자 2FA 추가** | 보안 수준 향상 (TOTP/FIDO2) | 중간3.10 |
-| 7 | **Alimtalk 템플릿 DB 관리** | 코드 하드코딩 제거, 다국어 지원 | 중간3.9, 2.28 |
-| 8 | **Redis 캐싱 확대** | 인기 제품 분석, AI 응답 캐싱 | v1.1.0 성능 최적화 연장선 |
+| 순위 | 기능 | 설명 |
+|---|---|---|
+| 4 | **주문/결제 상태 enum 마이그레이션** | 데이터 무결성 + 쿼리 성능 |
+| 5 | **테스트 커버리지 확대** | 서비스 레이어 30개+ 테스트 추가 |
+| 6 | **일반 사용자 2FA** | TOTP 기반 2차 인증 |
+| 7 | **Redis 캐싱 확대** | AI 응답/인기제품/매출 통계 캐싱 |
+| 8 | **AI 추천/수요 예측 실제 로직 구현** | Gemini 연동, 프론트엔드 UI 연결 |
 
-### 🔵 중간 (P2)
+### 🔵 P2 (중간)
 
-| 순위 | 기능 | 설명 | 근거 |
-|---|---|---|---|
-| 9 | **실시간 대시보드** (WebSocket 기반) | 매출/주문/고객 현황 실시간 모니터링 | feature-analysis.md 2.12, 3.1 |
-| 10 | **고객 세그멘테이션 (RFM 분석)** | VIP/일반/이탈 고객 자동 분류 | feature-analysis.md 2.9 |
-| 11 | **AI 메뉴 가격 최적화** | 수익률 기반 동적 가격 책정 | feature-analysis.md 2.11 |
-| 12 | **Swagger API 문서 자동화** | 수동 정의 → 라우트 기반 자동 생성 | feature-analysis.md 이전 버전 |
-| 13 | **결제 수단별 수수료 정책 관리** | 결제 사업자별 수수료 차등 | feature-analysis.md 2.5 |
-| 14 | **프린트 실패 자동 재시도** | 프린트 드라이버 호환 이슈 해결 | feature-analysis.md 2.19 |
-| 15 | **예약 시간대 커스텀 설정** | 30분 고정 간격 개선 | feature-analysis.md 2.16 |
-| 16 | **웨이팅 실시간 알림 (앱 푸시)** | 문자 외 채널 추가 | feature-analysis.md 2.17 |
+| 순위 | 기능 | 설명 |
+|---|---|---|
+| 9 | **실시간 대시보드** (WebSocket) | 매출/주문/고객 실시간 모니터링 |
+| 10 | **Swagger API 문서 자동화** | JSDoc → 자동 문서화 |
+| 11 | **Alimtalk 템플릿 DB 관리** | 코드 하드코딩 제거 |
+| 12 | **결제 수단별 수수료 정책** | 수수료 차등 관리 |
+| 13 | **프린트 실패 자동 재시도** | 큐 기반 재시도 |
+| 14 | **에약 시간대 커스텀** | 30분 간격 개선 |
+| 15 | **웨이팅 앱 푸시 알림** | FCM 기반 |
 
-### 🟣 낮음 (P3)
+### 🟣 P3 (낮음)
 
-| 순위 | 기능 | 설명 | 근거 |
-|---|---|---|---|
-| 17 | **멤버십/구독 플랜 연동** | 포인트 적립 → 등급 기반 혜택 | feature-analysis.md 2.9 |
-| 18 | **푸드트럭 실시간 위치 추적** | GPS 기반 매장 찾기 | feature-analysis.md 2.18 |
-| 19 | **리뷰 사진 업로드 + 운영자 답변** | 리뷰 시스템 고도화 | feature-analysis.md 2.14 |
-| 20 | **재고 자동 발주** | 최저 재고 도달 시 발주서 자동 생성 | feature-analysis.md 2.7 |
-| 21 | **다국어 알림톡/영수증** | i18n 연동 (zh-TW, vi, th 등) | feature-analysis.md 2.1 |
-| 22 | **API 키 권한 세분화** | 개발자 포탈 고도화 | feature-analysis.md 2.20 |
-| 23 | **차세대 DB 인덱스 최적화** | EXPLAIN ANALYZE 기반 커버링 인덱스 | NEXT_TASK.md |
-| 24 | **Docker 멀티스테이지 빌드** | 이미지 크기 500MB → 200MB 목표 | NEXT_TASK.md |
+| 순위 | 기능 |
+|---|---|
+| 16 | 멤버십/구독 플랜 연동 |
+| 17 | 푸드트럭 실시간 위치 추적 |
+| 18 | 리뷰 사진 업로드 + 운영자 답변 |
+| 19 | 재고 자동 발주 |
+| 20 | 다국어 알림톡/영수증 (zh-TW, vi, th) |
+| 21 | API 키 권한 세분화 |
+| 22 | DB 인덱스 최적화 (EXPLAIN ANALYZE) |
+| 23 | Docker 멀티스테이지 빌드 (500MB → 200MB) |
 
 ---
 
-## 5. 권장 실행 순서
+## 5. 아키텍처 분석
 
-### Week 1 (이번 주): 보안 안정화 + 이슈 수정
+### 5.1 강점
+
+- **레이어드 아키텍처**: Route → Controller → Service → Repository (Prisma) 명확 분리
+- **미들웨어 체인**: Auth → Rate Limit → Validation → XSS Sanitizer → Circuit Breaker → Response Format
+- **Clean Architecture 시도**: `app/application`, `app/domain`, `app/infrastructure/prisma/` — 일부 마이그레이션 진행 중
+- **실시간 통합**: Socket.IO + SSE 이중 채널, FCM 푸시 병행
+- **DevOps 완성도**: Docker + Helm + ArgoCD + Prometheus/Grafana/Loki + CI/CD 8개 Job
+
+### 5.2 약점
+
+- **stores 모델 과중**: 30개+ relation 단일 모델 집중 — 도메인 이벤트/분할 고려 필요
+- **신규 AI 기능 로직 부재**: API 스텁 상태, 실제 AI 연동 미구현
+- **테스트 불균형**: 일부 서비스만 집중 테스트, 30개+ 서비스 테스트 부재
+- **문서 ↔ 실제 코드 불일치 가능성**: 30개 .md 파일 동기화 리스크
+- **Clean Architecture 과도기**: `repositories/`(구)와 `app/`(신) 이중 구조 혼재
+
+### 5.3 데이터 흐름 (핵심: 결제)
+
 ```
-Day 1: CSP nonce ↔ helmet nonce 통합 (심각3.1)
-Day 2: README.md 실제 README로 교체 (심각3.2)
-Day 3: 카드 번호 마스킹 이슈 분석 + 토큰화 방안 도출 (심각3.3)
-Day 4: E2E 테스트 핵심 플로우 복원 시작 (심각3.4)
-Day 5: 주문/결제 상태 enum 설계 + 마이그레이션 스크립트 작성
+고객 앱 → Express → validate.js → auth → storeAuth → paymentController
+  → PaymentService.processApproval()
+    → _assertRequestedAmount() [금액 검증 1차]
+    → TossAPI.confirmPayment() [PG 승인]
+    → $transaction {
+        tx.payments.updateMany() [card_number 마스킹 ✅, toss_pay_token 암호화 ✅, raw_response sanitize ✅]
+        ledgerService.recordIncome()
+        pointService.earn()
+        tx.orders.update()
+      }
+    → AnomalyDetectionService.checkSalesAnomaly() [비동기]
+    → WebSocket emit
+    → Alimtalk notification
 ```
 
-### Week 2: 보안 강화 + 테스트 보강
+---
+
+## 6. 보안 분석
+
+### 6.1 적용된 보안 조치
+
+| 계층 | 조치 |
+|---|---|
+| 전송 | HTTPS (Cloudflare), helmet CSP nonce |
+| 인증 | JWT (access + refresh), 2FA (admin TOTP) |
+| 입력 | Joi validation, XSS sanitizer, rate limiter |
+| 저장 | `payer_phone` AES-256-CBC, `toss_pay_token` AES-256-CBC, `card_number` 마스킹 |
+| 출력 | `raw_response` 민감필드 제거 |
+| 감사 | Semgrep CI 스캔, Sentry 오류 추적, AnomalyDetectionService |
+| 인가 | authMiddleware + adminOnly + checkStorePermission 3단계 |
+
+### 6.2 미적용 보안
+
+| 항목 | 상태 | 중요도 |
+|---|---|---|
+| 일반 사용자 2FA | 미적용 | 중간 |
+| API 키 권한 세분화 | 개발자 포탈 미완 | 중간 |
+| Toss 웹훅 서명 검증 | 미확인 | 높음 |
+| PCI DSS 완전 준수 | 카드번호 마스킹 완료, 정기 감사 필요 | 높음 |
+| DB 암호화 키 순환 정책 | PHONE_ENC_KEY/TOKEN_ENC_KEY 순환 절차 없음 | 중간 |
+
+---
+
+## 7. 권장 실행 순서
+
+### Week 1: 보안 마무리 + 기존 데이터 정리
 ```
-Day 1-2: 일반 사용자 TOTP 2FA 구현 (높음6)
-Day 3: Alimtalk 템플릿 DB 관리 + 다국어 (높음7)
-Day 4: Redis 캐싱 확대 (인기제품 분석, AI 응답)
-Day 5: 통합 테스트 커버리지 보강 (핵심 서비스)
+Day 1: 기존 card_number 백필 마스킹 스크립트
+Day 2: Toss 웹훅 서명 검증 + 로깅 보안
+Day 3: DB 암호화 키 순환 정책 문서화
+Day 4: 일반 사용자 2FA 설계
+Day 5: .env.example 동기화 + render.yaml 검증
 ```
 
-### Week 3+: 고도화
+### Week 2: AI 기능 실제 구현
+```
+Day 1-2: AI 추천 엔진 (Gemini) 실제 연동 — 고객 세그먼트 기반 메뉴 추천
+Day 3-4: 수요 예측 실제 ML 로직 — 과거 주문 데이터 기반 예측
+Day 5: 프론트엔드 AI 추천 UI 구현
+```
+
+### Week 3: 테스트 + enum 마이그레이션
+```
+Day 1-2: 서비스 레이어 테스트 확대 (신규 서비스 우선)
+Day 3-4: 주문/결제 상태 enum 마이그레이션
+Day 5: 통합 테스트 보강
+```
+
+### Week 4+: 고도화
 ```
 ├── 실시간 대시보드 (WebSocket)
-├── AI 메뉴 가격 최적화
-├── 고객 세그멘테이션 (RFM)
-├── 예약 시간대 커스텀
-└── 프린트 실패 재시도 큐
+├── Redis 캐싱 확대
+├── Alimtalk 템플릿 DB 관리
+├── Swagger 문서 자동화
+├── stores 모델 분할 리팩토링
+└── 멀티스테이지 Docker 빌드
 ```
 
 ---
 
-## 6. 참고 문서
+## 8. 참고 문서
 
 | 문서 | 내용 |
 |---|---|
-| `NEXT_TASK.md` | 다음 작업 우선순위 (성능 최적화 후 단) |
-| `feature-analysis.md` | 기능별 상세 분석 (기능 28개) |
-| `PROJECT_ANALYSIS.md` | 이전 프로젝트 분석 보고서 |
-| `HANDOFF.md` | 인수인계 문서 |
+| `ARCHITECTURE.md` | 아키텍처 문서 (576 lines) |
+| `NEXT_TASK.md` | 다음 작업 목록 |
+| `feature-analysis.md` | 기능별 상세 분석 (28개 기능) |
 | `CHANGELOG.md` | 전체 릴리스 이력 |
-| `docs/PROJECT_ANALYSIS.md` | 기존 프로젝트 분석 보고서 (상세) |
-| `ARCHITECTURE.md` | 아키텍처 문서 |
-| `.github/workflows/ci.yml` | CI 파이프라인 구성 |
-
----
-
-## 구현 완료 사항 (Implementation Summary)
-
-### 구현 일자: 2026-07-30
-
-### Step 1: CSP nonce 미들웨어 주석 수정 (app.js:117)
-- `app.js`의 CSP nonce 관련 주석을 정확하게 수정
-- 이전 주석 "helm이 생성한 nonce를 재사용 (자체 setHeader 안 함)"은 오해를 일으켰음
-- 실제 `cspNonce.js`는 `res.setHeader()`를 호출하며 CSP 헤더를 단독 소유
-- helmet은 `contentSecurityPolicy: false`로 CSP를 비활성화하여 충돌 방지
-
-### Step 2: 동적 가격 책정 API 구현
-| 파일 | 설명 |
-|---|---|
-| `routes/dynamicPricing.js` | 6개 API 엔드포인트 정의 |
-| `controllers/dynamicPricingController.js` | 가격 규칙 CRUD + 자동 적용 로직 |
-| `services/DynamicPricingService.js` | 타입별 가격 적용 로직 (시간/수요/경쟁사/재고/날씨) |
-
-**API 엔드포인트:**
-- `GET /api/dynamic-pricing/store/:storeId/rules` — 규칙 목록 조회
-- `POST /api/dynamic-pricing/store/:storeId/rules` — 규칙 생성
-- `PATCH /api/dynamic-pricing/store/:storeId/rules/:ruleId` — 규칙 수정
-- `DELETE /api/dynamic-pricing/store/:storeId/rules/:ruleId` — 규칙 삭제
-- `GET /api/dynamic-pricing/store/:storeId/price-logs` — 가격 변경 로그 조회
-- `POST /api/dynamic-pricing/store/:storeId/activate` — 활성 규칙 자동 적용
-
-### Step 3: AI 추천 / 고객 세그멘테이션 API 구현
-| 파일 | 설명 |
-|---|---|
-| `routes/aiRecommendations.js` | 13개 API 엔드포인트 정의 |
-| `controllers/aiRecommendationsController.js` | 추천/세그먼트/개인화 CRUD |
-
-**API 엔드포인트:**
-- `GET/POST /api/ai-recommendations/store/:storeId/recommendations` — 추천 관리
-- `GET/POST /api/ai-recommendations/store/:storeId/segments` — 고객 세그먼트 관리
-- `GET/PATCH /api/ai-recommendations/store/:storeId/personalizations` — 고객 개인화 설정
-- `GET /api/ai-recommendations/store/:storeId/personalization-analytics` — 개인화 분석
-
-### Step 4: 수요 예측 API 구현
-| 파일 | 설명 |
-|---|---|
-| `routes/demandForecast.js` | 9개 API 엔드포인트 정의 |
-| `controllers/demandForecastController.js` | 수요 예측/경쟁사 가격/최적화 작업 관리 |
-
-**API 엔드포인트:**
-- `GET/POST /api/demand-forecast/store/:storeId/forecasts` — 수요 예측 조회/생성
-- `GET/POST/PATCH/DELETE /api/demand-forecast/store/:storeId/competitor-prices` — 경쟁사 가격 관리
-- `GET/POST/GET /api/demand-forecast/store/:storeId/pricing-jobs` — 최적화 작업 관리
-
-### 검증 결과
-- ESLint: 0 errors, 0 warnings (모든 새 파일)
-- Node.js require 검증: 7개 파일 모두 정상 로드
-- Route Mounting Test: 4/4 통과
-- `require('./app.js')` 서버 시작 확인됨 (DB 미연결로 종료, 라우터 로드 정상)
-
-### 미구현 (향후 작업)
-- Prisma `migrate dev` 필요 (schema.prisma에 추가된 모델들 반영)
-- E2E 테스트 복원
-- 프론트엔드 UI 연동 (DynamicPricingManager.jsx 컴포넌트 미완성)
+| `docs/ANALYSIS_REPORT_v3.0.md` | 이전 분석 보고서 v3 |
+| `docs/DEPLOYMENT.md` | 배포 가이드 |
+| `.github/workflows/ci.yml` | CI 파이프라인 |
+| `monitoring/` | Prometheus/Grafana/Loki/Alertmanager 설정 |

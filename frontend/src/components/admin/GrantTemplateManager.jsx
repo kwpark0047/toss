@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, Edit3, Trash2, Save, X, Loader2, Check } from 'lucide-react';
-import { adminAPI } from '../../api/admin';
+import { grantTemplateAPI } from '../../api/admin';
 
 export default function GrantTemplateManager({ storeId, onClose }) {
   const [templates, setTemplates] = useState([]);
@@ -15,7 +15,7 @@ export default function GrantTemplateManager({ storeId, onClose }) {
   const load = async () => {
     setLoading(true);
     try {
-      const r = await adminAPI.getGrantTemplates(storeId);
+      const r = await grantTemplateAPI.getGrantTemplates(storeId);
       setTemplates(r?.data || []);
     } catch { setTemplates([]); }
     finally { setLoading(false); }
@@ -45,10 +45,10 @@ export default function GrantTemplateManager({ storeId, onClose }) {
     setBusy(true);
     try {
       if (creating) {
-        await adminAPI.createGrantTemplate(form);
+        await grantTemplateAPI.createGrantTemplate(form);
         showMsg('템플릿이 생성되었습니다.');
       } else {
-        await adminAPI.updateGrantTemplate(editing, form);
+        await grantTemplateAPI.updateGrantTemplate(editing, form);
         showMsg('템플릿이 수정되었습니다.');
       }
       setCreating(false); setEditing(null);
@@ -61,7 +61,7 @@ export default function GrantTemplateManager({ storeId, onClose }) {
     if (!confirm('정말 삭제하시겠습니까?')) return;
     setBusy(true);
     try {
-      await adminAPI.deleteGrantTemplate(id);
+      await grantTemplateAPI.deleteGrantTemplate(id);
       showMsg('삭제되었습니다.');
       await load();
     } catch { showMsg('삭제 실패', false); }

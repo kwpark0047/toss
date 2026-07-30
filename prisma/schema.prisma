@@ -9,6 +9,30 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  ready
+  completed
+  cancelled
+}
+
+enum OrderPaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum PaymentTxStatus {
+  pending
+  READY
+  DONE
+  CANCELED
+  PARTIAL_CANCELED
+}
+
 model categories {
   id         Int        @id @default(autoincrement())
   store_id   Int
@@ -92,9 +116,9 @@ model orders {
   customer_phone     String?
   customer_fcm_token String?
   notes              String?
-  status             String?              @default("pending")
+  status             OrderStatus?         @default(pending)
   method             String?
-  payment_status     String?              @default("pending")
+  payment_status     OrderPaymentStatus?   @default(pending)
   total_amount       Int?                 @default(0)
   queue_number       Int?
   estimated_minutes  Int?
@@ -109,7 +133,7 @@ model orders {
   ready_at           DateTime?
   split_type         String?              @default("NONE")     // [추가] 분할 방식 (NONE, EQUAL: N분의 1, ITEM: 품목별)
   is_split_payment   Boolean?             @default(false)    // [추가] 분할 결제 여부
-  split_status       String?              @default("PENDING")  // [추가] 정산 상태 (PENDING, PARTIAL, COMPLETED)
+  split_status       String?              @default("PENDING")
   handled_by_staff_id Int?
   staff              staff?               @relation(fields: [handled_by_staff_id], references: [id], onUpdate: NoAction)
   ledger             ledger[]
@@ -132,7 +156,7 @@ model payments {
   id                    Int                  @id @default(autoincrement())
   order_id              Int
   store_id              Int
-  status                String               @default("pending")
+  status                PaymentTxStatus      @default(pending)
   amount                Int
   point_amount          Int?                 @default(0)
   cash_amount           Int?                 @default(0)
@@ -514,6 +538,10 @@ model stores {
   customer_personalizations customer_personalizations[]
   ai_recommendations      ai_recommendations[]
   personalization_analytics personalization_analytics[]
+  grant_templates         grant_templates[]
+  grant_change_logs       grant_change_logs[]
+  point_grant_history     point_grant_history[]
+  coupon_issue_history    coupon_issue_history[]
 
   @@index([user_id], map: "idx_stores_user_id")
 }
@@ -595,6 +623,9 @@ model users {
   chat_rooms                                                       chat_rooms[]
   social_accounts                                                  social_accounts[]
   admin_otps                                                       admin_otps[]
+  point_grant_history                                              point_grant_history[]
+  coupon_issue_history                                             coupon_issue_history[]
+  grant_change_logs                                                grant_change_logs[]
 
   @@index([email], map: "idx_users_email")
 }
@@ -807,6 +838,7 @@ model coupons {
   updated_at       DateTime?      @updatedAt
   stores           stores         @relation(fields: [store_id], references: [id], onDelete: Cascade)
   user_coupons     user_coupons[]
+  coupon_issue_history coupon_issue_history[]
 
   @@index([store_id], map: "idx_coupons_store")
 }
@@ -1230,6 +1262,86 @@ model demand_forecasts {
 
   @@unique([store_id, product_id, forecast_date], map: "uq_demand_forecast_store_product_date")
   @@index([store_id, forecast_date], map: "idx_demand_forecast_store_date")
+}
+
+// ── 슈퍼관리자 지급/발급 템플릿 ─────────────────────────────────────
+model grant_templates {
+  id         Int       @id @default(autoincrement())
+  store_id   Int?
+  title      String
+  reason     String
+  is_auto    Boolean   @default(false)
+  is_active  Boolean   @default(true)
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+  stores     stores?   @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  point_grant_history point_grant_history[]
+  coupon_issue_history coupon_issue_history[]
+
+  @@index([store_id], map: "idx_grant_templates_store")
+  @@index([is_auto], map: "idx_grant_templates_auto")
+}
+
+// ── 권한설정 변경 이력 ─────────────────────────────────────────────
+model grant_change_logs {
+  id           Int       @id @default(autoincrement())
+  store_id     Int
+  admin_id     Int
+  grant_type   String
+  changed_field String
+  old_value    String?
+  new_value    String?
+  created_at   DateTime? @default(now())
+  stores       stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  admin        users     @relation(fields: [admin_id], references: [id])
+
+  @@index([store_id], map: "idx_grant_change_logs_store")
+  @@index([created_at(sort: Desc)], map: "idx_grant_change_logs_time")
+}
+
+// ── 슈퍼관리자 포인트 지급 이력 ───────────────────────────────────
+model point_grant_history {
+  id            Int       @id @default(autoincrement())
+  store_id      Int
+  admin_id      Int
+  target_phone  String
+  amount        Int
+  balance_before Int?
+  balance_after Int?
+  reason        String?
+  batch_id      String?
+  template_id   Int?
+  created_at    DateTime? @default(now())
+  stores        stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  admin         users     @relation(fields: [admin_id], references: [id])
+  template      grant_templates? @relation(fields: [template_id], references: [id])
+
+  @@index([store_id], map: "idx_point_grant_history_store")
+  @@index([admin_id], map: "idx_point_grant_history_admin")
+  @@index([created_at(sort: Desc)], map: "idx_point_grant_history_time")
+  @@index([batch_id], map: "idx_point_grant_history_batch")
+}
+
+// ── 슈퍼관리자 쿠폰 발급 이력 ─────────────────────────────────────
+model coupon_issue_history {
+  id            Int       @id @default(autoincrement())
+  store_id      Int
+  admin_id      Int
+  coupon_id     Int
+  target_phone  String
+  user_coupon_id Int?
+  batch_id      String?
+  template_id   Int?
+  created_at    DateTime? @default(now())
+  stores        stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  admin         users     @relation(fields: [admin_id], references: [id])
+  coupons       coupons   @relation(fields: [coupon_id], references: [id])
+  template      grant_templates? @relation(fields: [template_id], references: [id])
+
+  @@index([store_id], map: "idx_coupon_issue_history_store")
+  @@index([admin_id], map: "idx_coupon_issue_history_admin")
+  @@index([created_at(sort: Desc)], map: "idx_coupon_issue_history_time")
+  @@index([batch_id], map: "idx_coupon_issue_history_batch")
 }
 
 model pricing_optimization_jobs {

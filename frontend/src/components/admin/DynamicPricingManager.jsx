@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, Plus, Edit, Trash2, History, Play, BarChart3,
   Clock, Zap, Package, Users, Calendar, RefreshCw, AlertCircle,
-  CheckCircle, XCircle, PauseCircle
+  CheckCircle, XCircle, PauseCircle, Save, X
 } from 'lucide-react';
 import { dynamicPricingAPI } from '@/api/admin';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -35,6 +35,10 @@ const DynamicPricingManager = ({ storeId, products = [] }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [manualPrice, setManualPrice] = useState('');
   const [manualReason, setManualReason] = useState('');
+  const [ruleForm, setRuleForm] = useState({
+    product_id: '', rule_name: '', rule_type: 'TIME_BASED',
+    config: '{}', min_price: '', max_price: '', base_price: ''
+  });
 
   // 가격 규칙 조회
   const { data: rulesData, isLoading: rulesLoading } = useQuery({
@@ -91,6 +95,24 @@ const DynamicPricingManager = ({ storeId, products = [] }) => {
     },
   });
 
+  const createRuleMutation = useMutation({
+    mutationFn: (data) => dynamicPricingAPI.createRule(storeId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['pricing-rules', storeId]);
+      setShowRuleModal(false);
+      setEditingRule(null);
+    },
+  });
+
+  const updateRuleMutation = useMutation({
+    mutationFn: ({ ruleId, data }) => dynamicPricingAPI.updateRule(storeId, ruleId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['pricing-rules', storeId]);
+      setShowRuleModal(false);
+      setEditingRule(null);
+    },
+  });
+
   const rules = rulesData?.items || rulesData || [];
   const logs = logsData?.items || logsData || [];
   const jobs = jobsData || [];
@@ -115,6 +137,44 @@ const DynamicPricingManager = ({ storeId, products = [] }) => {
       newPrice: parseInt(manualPrice),
       reason: manualReason,
     });
+  };
+
+  const openRuleModal = (rule = null) => {
+    if (rule) {
+      setRuleForm({
+        product_id: rule.product_id || '',
+        rule_name: rule.rule_name || '',
+        rule_type: rule.rule_type || 'TIME_BASED',
+        config: rule.config ? JSON.stringify(rule.config, null, 2) : '{}',
+        min_price: rule.min_price || '',
+        max_price: rule.max_price || '',
+        base_price: rule.base_price || '',
+      });
+    } else {
+      setRuleForm({
+        product_id: '', rule_name: '', rule_type: 'TIME_BASED',
+        config: '{}', min_price: '', max_price: '', base_price: ''
+      });
+    }
+    setEditingRule(rule);
+    setShowRuleModal(true);
+  };
+
+  const handleSaveRule = async () => {
+    const data = {
+      product_id: Number(ruleForm.product_id),
+      rule_name: ruleForm.rule_name,
+      rule_type: ruleForm.rule_type,
+      min_price: Number(ruleForm.min_price),
+      max_price: Number(ruleForm.max_price),
+      base_price: Number(ruleForm.base_price),
+      config: JSON.parse(ruleForm.config || '{}'),
+    };
+    if (editingRule) {
+      await updateRuleMutation.mutateAsync({ ruleId: editingRule.id, data });
+    } else {
+      await createRuleMutation.mutateAsync(data);
+    }
   };
 
   const getRuleTypeConfig = (type) => RULE_TYPES.find(r => r.value === type) || RULE_TYPES[0];
@@ -154,7 +214,7 @@ const DynamicPricingManager = ({ storeId, products = [] }) => {
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-bold">동적 가격 책정 규칙</h3>
             <button
-              onClick={() => setShowRuleModal(true)}
+              onClick={() => openRuleModal()}
               className="px-4 py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-colors flex items-center gap-2"
             >
               <Plus size={16} />
@@ -193,7 +253,7 @@ const DynamicPricingManager = ({ storeId, products = [] }) => {
                           {rule.is_active ? '활성' : '비활성'}
                         </span>
                         <button
-                          onClick={() => { setEditingRule(rule); setShowRuleModal(true); }}
+                          onClick={() => openRuleModal(rule)}
                           className="p-1 text-slate-600 hover:text-slate-900"
                         >
                           <Edit size={16} />
@@ -449,6 +509,102 @@ const DynamicPricingManager = ({ storeId, products = [] }) => {
                   className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 disabled:opacity-50"
                 >
                   적용
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 가격 규칙 생성/수정 모달 */}
+      <AnimatePresence>
+        {showRuleModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            onClick={() => setShowRuleModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">
+                  {editingRule ? '가격 규칙 수정' : '새 가격 규칙'}
+                </h3>
+                <button onClick={() => setShowRuleModal(false)} className="p-1 text-slate-400 hover:text-slate-600">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">규칙 이름</label>
+                  <input
+                    type="text" value={ruleForm.rule_name}
+                    onChange={(e) => setRuleForm(f => ({ ...f, rule_name: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="예: 점심 시간 할인"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">규칙 유형</label>
+                    <select value={ruleForm.rule_type}
+                      onChange={(e) => setRuleForm(f => ({ ...f, rule_type: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500">
+                      {RULE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">상품 ID</label>
+                    <input type="number" value={ruleForm.product_id}
+                      onChange={(e) => setRuleForm(f => ({ ...f, product_id: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">기준 가격</label>
+                    <input type="number" value={ruleForm.base_price}
+                      onChange={(e) => setRuleForm(f => ({ ...f, base_price: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">최소 가격</label>
+                    <input type="number" value={ruleForm.min_price}
+                      onChange={(e) => setRuleForm(f => ({ ...f, min_price: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">최대 가격</label>
+                    <input type="number" value={ruleForm.max_price}
+                      onChange={(e) => setRuleForm(f => ({ ...f, max_price: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">설정 (JSON)</label>
+                  <textarea value={ruleForm.config}
+                    onChange={(e) => setRuleForm(f => ({ ...f, config: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-sm"
+                    rows={3} placeholder='{"timeSlots":[{"startHour":11,"endHour":14,"multiplier":0.9}]}' />
+                </div>
+              </div>
+              <div className="flex gap-2 mt-6">
+                <button onClick={() => setShowRuleModal(false)}
+                  className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold">
+                  취소
+                </button>
+                <button onClick={handleSaveRule}
+                  disabled={createRuleMutation.isPending || updateRuleMutation.isPending}
+                  className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 disabled:opacity-50 flex items-center justify-center gap-2">
+                  <Save size={16} />
+                  저장
                 </button>
               </div>
             </motion.div>
