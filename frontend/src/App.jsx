@@ -25,8 +25,9 @@ import {
   LegalSettings, NotificationTemplatesManager, DeveloperConsole,
   QrCustomizer, PartnershipManager, StaffScheduler,
   FoodTruckOwnerDashboard, FoodTruckAnalyticsDashboard,
-  AlimtalkDeliveryConsole, CommunityPage,
-} from "@/routes/lazyImports";
+   AlimtalkDeliveryConsole, CommunityPage,
+   TinkerBellManagerPage,
+ } from "@/routes/lazyImports";
 
 import PWAInstallBanner from "@/components/common/PWAInstallBanner";
 import PWAUpdateNotification from "@/components/common/PWAUpdateNotification";
