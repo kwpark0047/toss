@@ -156,6 +156,7 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/community" element={<AdminPage><ValidStoreRoute><AdminSuspense><CommunityPage /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/kitchen" element={<AdminPage><ValidStoreRoute><AdminSuspense><KitchenDisplayPage /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/profile" element={<AdminPage><ValidStoreRoute><AdminSuspense><ProfilePage /></AdminSuspense></ValidStoreRoute></AdminPage>} />
+    <Route path="/admin/tinkerbell" element={<AdminPage><AdminSuspense><TinkerBellManagerPage /></AdminSuspense></AdminPage>} />
     <Route path="/admin/stores/:storeId/tinkerbell" element={<AdminPage><ValidStoreRoute><AdminSuspense><TinkerBellManagerPage /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/plan" element={<AdminPage><ValidStoreRoute><AdminSuspense><PlanUpgrade /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/board" element={<AdminPage><ValidStoreRoute><AdminSuspense><BoardList /></AdminSuspense></ValidStoreRoute></AdminPage>} />
