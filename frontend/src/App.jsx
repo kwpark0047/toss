@@ -170,6 +170,8 @@ const AppRoutes = memo(() => (
 
     {/* Food Truck & Other Pages */}
     <Route path="/foodtruck" element={<AdminSuspense><FoodTruckLanding /></AdminSuspense>} />
+    <Route path="/foodtruck/landing" element={<AdminSuspense><FoodTruckLanding /></AdminSuspense>} />
+    <Route path="/foodtruck/showcase" element={<AdminSuspense><FoodTruckDesignShowcase /></AdminSuspense>} />
     <Route path="/foodtruck/design" element={<AdminSuspense><FoodTruckDesignShowcase /></AdminSuspense>} />
     <Route path="/legal/:slug" element={<AdminSuspense><LegalPage /></AdminSuspense>} />
     <Route path="/store/:slug" element={<AdminSuspense><StoreDisplay /></AdminSuspense>} />
