@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Store, ChefHat, LayoutGrid, QrCode, Check, Plus, Trash2,
-  Volume2, VolumeX, Sparkles, ArrowRight, ArrowLeft, Loader2,
+  Sparkles, ArrowRight, ArrowLeft, Loader2,
   Clock, Phone, MapPin, PartyPopper, X
 } from 'lucide-react';
 import { storesAPI, categoriesAPI, productsAPI, tablesAPI, aiAPI } from '../../api';
@@ -42,6 +42,7 @@ export default function StoreSetupWizard() {
   const [saving, setSaving]           = useState(false);
   const [tbMsg, setTbMsg]             = useState('');
   const [tbHappy, setTbHappy]         = useState(false);
+  const [errorMsg, setErrorMsg]       = useState('');
   const voiceEnabledRef = useRef(true);
   
   useEffect(() => { voiceEnabledRef.current = voiceEnabled; }, [voiceEnabled]);
@@ -75,6 +76,7 @@ export default function StoreSetupWizard() {
   }, []);
 
   useEffect(() => {
+    setErrorMsg('');
     const scripts = {
       0: [
         '안녕하세요, 사장님! 저는 AI 도우미 팅커벨이에요! ✨ 함께 멋진 매장을 만들어볼까요?',
@@ -123,6 +125,7 @@ export default function StoreSetupWizard() {
   // ── Step 1: 매장 저장 + 기본 테이블 자동 생성
   const handleSaveStore = async () => {
     if (!storeForm.name.trim()) return;
+    setErrorMsg('');
     setSaving(true);
     try {
       const apiData = {
@@ -170,6 +173,7 @@ export default function StoreSetupWizard() {
       ]), 800, true);
       setTimeout(() => setStep(2), 1600);
     } catch (e) {
+      setErrorMsg('앗, 저장 중 오류가 발생했어요. 다시 시도해주세요!');
       sayWithDelay('앗, 저장 중 오류가 발생했어요. 다시 시도해주세요!', 100);
       console.error(e);
     } finally {
@@ -464,11 +468,6 @@ export default function StoreSetupWizard() {
           </div>
           <span className="text-white font-black text-sm">위마켓 매장 설정</span>
         </div>
-        <button onClick={() => setVoiceEnabled(v => !v)}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${voiceEnabled ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>
-          {voiceEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
-          {voiceEnabled ? '음성 ON' : '음성 OFF'}
-        </button>
       </div>
 
       <AnimatePresence mode="wait">
@@ -504,11 +503,6 @@ export default function StoreSetupWizard() {
                 <button onClick={() => { sessionStorage.setItem('wm_setup_skipped','1'); navigate('/admin'); }}
                   className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
                   건너뛰고 대시보드로 가기
-                </button>
-                <button onClick={() => setVoiceEnabled(v => !v)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${voiceEnabled ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>
-                  {voiceEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
-                  음성 {voiceEnabled ? 'ON' : 'OFF'}
                 </button>
               </div>
             </div>
@@ -603,7 +597,12 @@ export default function StoreSetupWizard() {
                         className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-all text-sm resize-none" />
                     </div>
                   </div>
-                  <div className="flex gap-3 mt-6">
+                  {errorMsg && (
+                    <div className="mt-4 px-4 py-3 bg-rose-500/15 border border-rose-500/30 rounded-2xl text-rose-300 text-sm font-bold text-center">
+                      {errorMsg}
+                    </div>
+                  )}
+                  <div className="flex gap-3 mt-4">
                     <button onClick={() => setStep(0)} className="px-5 py-3 bg-white/5 border border-white/10 text-slate-400 rounded-2xl font-bold text-sm hover:bg-white/10 transition-all flex items-center gap-1.5">
                       <ArrowLeft size={14} /> 이전
                     </button>
@@ -900,11 +899,9 @@ export default function StoreSetupWizard() {
 
             </AnimatePresence>
 
-            {step >= 2 && (
-              <div className="flex justify-end">
-                <WizardTinkerbell message={tbMsg} isHappy={tbHappy} voiceEnabled={voiceEnabled} />
-              </div>
-            )}
+            <div className="flex justify-end">
+              <WizardTinkerbell message={tbMsg} isHappy={tbHappy} voiceEnabled={voiceEnabled} />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

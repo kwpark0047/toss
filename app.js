@@ -114,7 +114,7 @@ app.use(require('cookie-parser')());
 // Security middleware - XSS protection
 // (xss-clean 제거됨 — strictSanitizer 가 body + query 를 모두 살균한다)
 app.use(strictSanitizer); // Strict sanitization for all inputs
-// CSP nonce: helmet이 생성한 nonce를 res.locals.cspNonce에 재사용 (자체 setHeader 안 함)
+// CSP nonce: cspNonceMiddleware가 CSP 헤더를 단독으로 설정(helmet CSP는 비활성화)
 app.use(cspNonceMiddleware());
 
 app.use(responseFormatter);
@@ -289,6 +289,9 @@ const routes = {
   news: require('./routes/news'),
   sse: require('./routes/sse'),
   printJobs: require('./routes/printJobs'),
+  dynamicPricing: require('./routes/dynamicPricing'),
+  aiRecommendations: require('./routes/aiRecommendations'),
+  demandForecast: require('./routes/demandForecast'),
   socialAuth: require('./routes/socialAuth'),
   adminAuth: require('./routes/adminAuth'),
 };
@@ -345,6 +348,8 @@ app.use(`${API_PREFIX}/crm`, routes.crm);
 app.use(`${API_PREFIX}/menu-optimization`, routes.menuOptimization);
 app.use(`${API_PREFIX}/staff-gamification`, routes.staffGamification);
 app.use(`${API_PREFIX}/ai-assistant`, routes.aiAssistant);
+app.use(`${API_PREFIX}/ai-recommendations`, routes.aiRecommendations);
+app.use(`${API_PREFIX}/demand-forecast`, routes.demandForecast);
 app.use(`${API_PREFIX}/ai-prompts`, routes.aiPrompts);
 app.use(`${API_PREFIX}/ai-usage`, routes.aiUsage);
 app.use(`${API_PREFIX}/export`, routes.export);
@@ -358,6 +363,7 @@ app.use(`${API_PREFIX}/alimtalk`, routes.alimtalk);
 app.use(`${API_PREFIX}/weather`, publicLimiter, routes.weather);
 app.use(`${API_PREFIX}/sse`, routes.sse);
 app.use(`${API_PREFIX}/print-jobs`, routes.printJobs);
+app.use(`${API_PREFIX}/dynamic-pricing`, routes.dynamicPricing);
 // [수정 M-2] routes/news 는 require 만 되고 마운트되지 않아 프론트의 /api/news 호출이
 // 전부 404 로 떨어지고 있었다. 뉴스 목록은 공개, 크롤링 트리거는 관리자 전용.
 app.use(`${API_PREFIX}/news`, publicLimiter, routes.news);

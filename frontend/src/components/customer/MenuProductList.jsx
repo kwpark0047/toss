@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Star, Plus, Timer, Sparkles } from 'lucide-react';
+import { ShoppingCart, Star, Plus, Timer, Sparkles, Flame } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import MenuItemImage from './MenuItemImage';
 import { formatPrice } from '../../utils/format';
@@ -18,7 +18,7 @@ export default function MenuProductList({
   return (
     <motion.div
       layout
-      className={`p-5 grid gap-6 ${theme.layoutMode === 'grid' ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-1'}`}
+      className={`p-5 grid gap-4 ${theme.layoutMode === 'grid' ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-1'}`}
     >
       <AnimatePresence mode="popLayout">
         {filteredProducts.length === 0 ? (
@@ -34,7 +34,6 @@ export default function MenuProductList({
           </motion.div>
         ) : (
           filteredProducts.map((p) => {
-            // 레이아웃 모드에 따른 카드 렌더링 분기
             if (theme.layoutMode === 'grid') {
               return (
                 <motion.div
@@ -43,25 +42,38 @@ export default function MenuProductList({
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   whileTap={{ scale: 0.98 }}
-                  className="bg-white/80 backdrop-blur-md rounded-[2rem] overflow-hidden border border-white/60 shadow-lg shadow-slate-200/50 group flex flex-col h-full"
+                  className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-md group flex flex-col h-full"
                 >
-                  <div className="aspect-square relative overflow-hidden bg-slate-100">
+                  <div className="aspect-[4/3] relative overflow-hidden bg-slate-100">
                     {p.image_url ? (
-                      <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                    ) : <div className="w-full h-full flex items-center justify-center text-slate-300"><Star size={32} /></div>}
-                    {p.is_best && <span className="absolute top-3 left-3 bg-orange-500 text-white text-[9px] font-black px-2 py-1 rounded-lg">BEST</span>}
+                      <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <Star size={32} />
+                      </div>
+                    )}
+                    {p.is_best && (
+                      <span className="absolute top-2 left-2 bg-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg flex items-center gap-0.5">
+                        <Flame size={10} fill="currentColor" /> 베스트
+                      </span>
+                    )}
+                    {p.is_new && (
+                      <span className="absolute top-2 right-2 bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg">
+                        NEW
+                      </span>
+                    )}
                   </div>
-                  <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div className="p-3 flex-1 flex flex-col justify-between">
                     <div>
                       <h3 className="font-black text-sm line-clamp-1 mb-1" style={{ color: theme.textColor }}>{translatedDescriptions[p.id + '_name'] || p.name}</h3>
                       <p className="text-[10px] opacity-50 line-clamp-2 leading-relaxed" style={{ color: theme.textColor }}>{translatedDescriptions[p.id] || p.description}</p>
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-2">
-                      <span className="font-black text-sm" style={{ color: theme.primaryColor }}>{formatPrice(p.price)}</span>
+                      <span className="font-black text-base" style={{ color: theme.primaryColor }}>{formatPrice(p.price)}</span>
                       {p.is_sold_out ? (
                         <span className="text-[9px] font-black text-rose-500">SOLD OUT</span>
                       ) : (
-                        <button onClick={() => addToCart(p)} className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-md shadow-orange-500/20" style={{ background: gradientBg }}>
+                        <button onClick={() => addToCart(p)} className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-md" style={{ background: gradientBg }}>
                           <Plus size={16} strokeWidth={3} />
                         </button>
                       )}
@@ -91,14 +103,16 @@ export default function MenuProductList({
                 <div className={`${isMagazine ? 'col-span-2 -m-5 mr-5 rounded-none' : 'relative shrink-0'}`}>
                   <MenuItemImage src={p.image_url} alt={p.name} isMagazine={isMagazine} />
                   {p.is_best && !isMagazine && (
-                    <span className="absolute -top-2 -left-2 bg-orange-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg uppercase tracking-tighter">BEST</span>
+                    <span className="absolute -top-2 -left-2 bg-orange-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg uppercase tracking-tighter flex items-center gap-0.5">
+                      <Flame size={10} fill="currentColor" /> BEST
+                    </span>
                   )}
                 </div>
 
                 {/* 내용 영역 */}
                 <div className={`${isMagazine ? 'col-span-3' : 'flex-1'} min-w-0 flex flex-col justify-center`}>
                   <div className="flex items-center gap-2">
-                    {p.is_best && isMagazine && <span className="text-[10px] font-black text-orange-500 uppercase">Featured Menu</span>}
+                    {p.is_best && isMagazine && <span className="text-[10px] font-black text-orange-500 uppercase flex items-center gap-0.5"><Flame size={10} fill="currentColor" /> Featured Menu</span>}
                     <h3 className={`${isMagazine ? 'text-2xl' : 'text-xl'} font-black tracking-tight group-hover:text-orange-600 transition-colors`} style={{ color: theme.textColor }}>
                       {translatedDescriptions[p.id + '_name'] || p.name}
                     </h3>

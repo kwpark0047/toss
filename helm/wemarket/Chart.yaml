@@ -1,0 +1,22 @@
+apiVersion: v2
+name: wemarket
+description: WeMarket SaaS QR Menu & Small Business Platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - saas
+  - qr-menu
+  - restaurant
+  - pos
+  - ai
+maintainers:
+  - name: WeMarket Team
+    email: engineering@wemarket.com
+sources:
+  - https://github.com/kwpark0047-iceu/250105
+home: https://wemarket.com
+icon: https://wemarket.com/logo.png
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/prerelease: "false"

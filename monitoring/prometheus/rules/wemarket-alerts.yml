@@ -1,0 +1,221 @@
+groups:
+  - name: wemarket.rules
+    interval: 30s
+    rules:
+      # ----------------------------------------------------------------------
+      # API Health & Availability
+      # ----------------------------------------------------------------------
+      - alert: WemarketAPIHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{job="wemarket-api",status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{job="wemarket-api"}[5m]))
+          > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "High error rate on WeMarket API"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+      - alert: WemarketAPIHighLatency
+        expr: |
+          histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job="wemarket-api"}[5m])) by (le))
+          > 3
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High P99 latency on WeMarket API"
+          description: "P99 latency is {{ $value }}s (threshold: 3s)"
+
+      - alert: WemarketAPIDown
+        expr: |
+          up{job="wemarket-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "WeMarket API is down"
+          description: "API has been down for more than 1 minute"
+
+  # ----------------------------------------------------------------------
+  # AI/ML Metrics
+  # ----------------------------------------------------------------------
+  - alert: WemarketAICostSpike
+    expr: |
+      rate(ai_cost_usd_total[1h]) > 10
+    for: 5m
+    labels:
+      severity: warning
+      team: ai
+    annotations:
+      summary: "AI cost spike detected"
+      description: "AI cost rate is ${{ $value }}/hour (threshold: $10/hour)"
+
+    # - alert: WemarketAIHighLatency
+    #   expr: |
+    #     histogram_quantile(0.99, sum(rate(ai_request_duration_seconds_bucket[5m])) by (le))
+    #     > 10
+    #   for: 5m
+    #   labels:
+    #     severity: warning
+    #     team: ai
+    #   annotations:
+    #     summary: "High AI inference latency"
+    #     description: "P99 AI latency is {{ $value }}s (threshold: 10s)"
+
+  # - alert: WemarketAIFallbackRateHigh
+  #   expr: |
+  #     sum(rate(ai_fallback_total[5m])) / sum(rate(ai_requests_total[5m])) > 0.2
+  #   for: 5m
+  #   labels:
+  #     severity: warning
+  #     team: ai
+  #   annotations:
+  #     summary: "High AI fallback rate"
+  #     description: "Fallback rate is {{ $value | humanizePercentage }} (threshold: 20%)"
+
+  # ----------------------------------------------------------------------
+  # Cache Health
+  # ----------------------------------------------------------------------
+  - alert: WemarketCacheMissRateHigh
+    expr: |
+      sum(rate(cache_misses_total[5m])) / (sum(rate(cache_hits_total[5m])) + sum(rate(cache_misses_total[5m])))
+      > 0.5
+    for: 10m
+    labels:
+      severity: warning
+      team: platform
+    annotations:
+      summary: "High cache miss rate"
+      description: "Cache miss rate is {{ $value | humanizePercentage }} (threshold: 50%)"
+
+  # ----------------------------------------------------------------------
+  # Database Health
+  # ----------------------------------------------------------------------
+  - alert: WemarketPostgresConnectionsHigh
+    expr: |
+      pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+    for: 5m
+    labels:
+      severity: warning
+      team: platform
+    annotations:
+      summary: "PostgreSQL connections near limit"
+      description: "Connection usage is {{ $value | humanizePercentage }} (threshold: 80%)"
+
+    # - alert: WemarketPostgresSlowQueries
+    #   expr: |
+    #     rate(pg_stat_statements_total_time_seconds_total[5m]) > 1
+    #   for: 5m
+    #   labels:
+    #     severity: info
+    #     team: platform
+    #   annotations:
+    #     summary: "Slow PostgreSQL queries detected"
+    #     description: "Average query time is {{ $value }}s"
+
+  # ----------------------------------------------------------------------
+  # Redis Health
+  # ----------------------------------------------------------------------
+  - alert: WemarketRedisMemoryHigh
+    expr: |
+      redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+    for: 5m
+    labels:
+      severity: warning
+      team: platform
+    annotations:
+      summary: "Redis memory usage high"
+      description: "Redis memory usage is {{ $value | humanizePercentage }} (threshold: 85%)"
+
+  # ----------------------------------------------------------------------
+  # Infrastructure
+  # ----------------------------------------------------------------------
+  - alert: WemarketHighCPUUsage
+    expr: |
+      (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 0.85
+    for: 10m
+    labels:
+      severity: warning
+      team: platform
+    annotations:
+      summary: "High CPU usage on {{ $labels.instance }}"
+      description: "CPU usage is {{ $value | humanizePercentage }} (threshold: 85%)"
+
+    # - alert: WemarketHighMemoryUsage
+    #   expr: |
+    #     (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.9
+    #   for: 10m
+    #   labels:
+    #     severity: warning
+    #     team: platform
+    #   annotations:
+    #     summary: "High memory usage on {{ $labels.instance }}"
+    #     description: "Memory usage is {{ $value | humanizePercentage }} (threshold: 90%)"
+
+    # - alert: WemarketDiskSpaceLow
+    #   expr: |
+    #     (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) < 0.15
+    #   for: 5m
+    #   labels:
+    #     severity: critical
+    #     team: platform
+    #   annotations:
+    #     summary: "Disk space low on {{ $labels.instance }}"
+    #     description: "Available disk space is {{ $value | humanizePercentage }} (threshold: 15%)"
+
+  # ----------------------------------------------------------------------
+  # Kubernetes
+  # ----------------------------------------------------------------------
+  - alert: WemarketPodRestartLoop
+    expr: |
+      rate(kube_pod_container_status_restarts_total[15m]) > 0.05
+    for: 5m
+    labels:
+      severity: warning
+      team: platform
+    annotations:
+      summary: "Pod {{ $labels.pod }} restarting frequently"
+      description: "Restart rate is {{ $value }} restarts/minute"
+
+    # - alert: WemarketDeploymentReplicasMismatch
+    #   expr: |
+    #     kube_deployment_spec_replicas != kube_deployment_status_replicas_available
+    #   for: 5m
+    #   labels:
+    #     severity: warning
+    #     team: platform
+    #   annotations:
+    #     summary: "Deployment {{ $labels.deployment }} replica mismatch"
+    #     description: "Desired: {{ kube_deployment_spec_replicas }}, Available: {{ kube_deployment_status_replicas_available }}"
+
+  # ----------------------------------------------------------------------
+  # Business Metrics
+  # ----------------------------------------------------------------------
+  - alert: WemarketOrderVolumeDrop
+    expr: |
+      rate(orders_created_total[15m]) < 0.1
+    for: 10m
+    labels:
+      severity: warning
+      team: business
+    annotations:
+      summary: "Order volume dropped significantly"
+      description: "Order rate is {{ $value }}/min (threshold: 0.1/min)"
+
+    # - alert: WemarketPaymentFailureRateHigh
+    #   expr: |
+    #     sum(rate(payments_failed_total[5m])) / sum(rate(payments_total[5m])) > 0.05
+    #   for: 5m
+    #   labels:
+    #     severity: critical
+    #     team: business
+    #   annotations:
+    #     summary: "High payment failure rate"
+    #     description: "Payment failure rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+

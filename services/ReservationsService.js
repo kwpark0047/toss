@@ -4,6 +4,16 @@ const { encryptPhone, decryptPhoneFields, phoneSearchCandidates } = require('../
 const { sendReservationNotification } = require('../utils/notifications');
 const logger = require('../utils/logger');
 
+function maskPhone(phone) {
+    if (!phone) return phone;
+    const digits = phone.replace(/[^0-9]/g, '');
+    if (digits.length < 4) return phone;
+    const prefix = digits.slice(0, 3);
+    const suffix = digits.slice(-4);
+    const masked = '*'.repeat(Math.max(digits.length - 7, 0));
+    return `${prefix}${masked ? '-' + masked : ''}-****-${suffix}`;
+}
+
 class ReservationsService {
     /**
      * 예약 등록

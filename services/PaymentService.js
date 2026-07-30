@@ -7,6 +7,7 @@ const ledgerService = require('./LedgerService');
 const alerting = require('../utils/alerting');
 const { AppError } = require('../utils/errorHandler');
 const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
+const { encryptPhone } = require('../utils/phoneEncryption');
 const crypto = require('crypto');
 
 /**
@@ -325,7 +326,7 @@ class PaymentService {
           method: 'CARD',
           status: 'READY',
           toss_transaction_id: merchantOrderId,
-          payer_phone: payer_phone || null,
+          payer_phone: payer_phone ? encryptPhone(payer_phone) : null,
           is_partial: true,
           created_at: new Date(),
           updated_at: new Date(),

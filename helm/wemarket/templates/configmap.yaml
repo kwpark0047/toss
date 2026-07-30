@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wemarket.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wemarket.labels" . | nindent 4 }}
+data:
+  PORT: "{{ .Values.service.targetPort }}"
+  {{- range $key, $value := .Values.app.env }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  {{- range $key, $value := .Values.app.config }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  # AI Configuration
+  OMNIROUTE_BASE_URL: "{{ .Values.ai.omniroute.baseUrl | default \"http://localhost:20128/v1\" }}"
+  OMNIROUTE_MODEL: "{{ .Values.ai.model | default \"gpt-4o-mini\" }}"
+  # Cache Configuration
+  CACHE_TTL_SECONDS: "{{ .Values.app.cache.ttl | default \"300\" }}"
+  # Rate Limiting
+  RATE_LIMIT_WINDOW_MS: "{{ .Values.app.rateLimit.windowMs | default \"60000\" }}"
+  RATE_LIMIT_MAX_REQUESTS: "{{ .Values.app.rateLimit.maxRequests | default \"60\" }}"
+  # Circuit Breaker
+  CB_THRESHOLD: "{{ .Values.app.circuitBreaker.threshold | default \"5\" }}"
+  CB_TIMEOUT: "{{ .Values.app.circuitBreaker.timeout | default \"30000\" }}"
+  # Feature Flags
+  FEATURE_AI_RECOMMENDATIONS: "{{ .Values.features.aiRecommendations | default \"true\" }}"
+  FEATURE_AI_TRANSLATION: "{{ .Values.features.aiTranslation | default \"true\" }}"
+  FEATURE_WAITING_AI: "{{ .Values.features.waitingAi | default \"true\" }}"

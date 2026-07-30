@@ -12,7 +12,7 @@ const INITIAL_BACKOFF_DELAY_MS = 2000; // 초기 대기 2초
 const BATCH_CHUNK_SIZE = 5; // 네트워크 폭주를 막기 위한 단일 전송 청크 한계치
 
 self.addEventListener('sync', (event) => {
-    if (event.tag === 'offline-order-sync' || event.tag === 'test-sync-event') {
+    if (event.tag === 'offline-order-sync' || event.tag === 'test-sync-event' || event.tag === 'offline-menu-sync' || event.tag === 'analytics-sync' || event.tag === 'pricing-opt-sync') {
         console.log('[K-SaaS PWA Sync] 백그라운드 동기화 이벤트 수신:', event.tag);
         event.waitUntil(syncOfflineOrdersWithBackoff());
     }

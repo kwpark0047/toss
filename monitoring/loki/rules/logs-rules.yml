@@ -1,0 +1,78 @@
+groups:
+  - name: wemarket.logs
+    interval: 30s
+    rules:
+      # Error log rate
+      - alert: WemarketLogErrorRateHigh
+        expr: |
+          sum(rate({job=~"wemarket.*"} |= "error" [5m]))
+          /
+          sum(rate({job=~"wemarket.*"} [5m]))
+          > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High error log rate"
+          description: "Error log rate is {{ $value | humanizePercentage }} (threshold: 10%)"
+
+      # Panic/crash detection
+      - alert: WemarketPanicDetected
+        expr: |
+          count_over_time({job=~"wemarket.*"} |= "panic" [5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Panic detected in application logs"
+          description: "Application panic detected in logs"
+
+      # OOM kills
+      - alert: WemarketOOMKillDetected
+        expr: |
+          count_over_time({job=~"wemarket.*"} |= "OOM" or |= "out of memory" [5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "OOM kill detected"
+          description: "Out of memory kill detected in application logs"
+
+      # Slow query logs
+      - alert: WemarketSlowQueryRateHigh
+        expr: |
+          sum(rate({job="wemarket-api"} |= "slow query" [5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High slow query rate"
+          description: "Slow query rate is {{ $value }}/min (threshold: 10/min)"
+
+      # Deadlock detection
+      - alert: WemarketDeadlockDetected
+        expr: |
+          count_over_time({job=~"wemarket.*"} |= "deadlock" [5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Deadlock detected"
+          description: "Database deadlock detected in logs"
+
+      # Authentication failures
+      - alert: WemarketAuthFailureRateHigh
+        expr: |
+          sum(rate({job=~"wemarket.*"} |= "unauthorized" or |= "invalid token" or |= "authentication failed" [5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Auth failure rate is {{ $value }}/min (threshold: 5/min)"

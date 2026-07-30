@@ -1,0 +1,39 @@
+global:
+  environment: production
+  domain: wemarket.com
+
+image:
+  repository: ghcr.io/kwpark0047-iceu/wemarket-api
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+app:
+  replicas: 3
+  env:
+    NODE_ENV: production
+    LOG_LEVEL: info
+    APP_VERSION: "1.0.0"
+  config:
+    CORS_ORIGIN: https://wemarket.com
+
+secrets:
+  existingSecret: wemarket-secrets
+
+postgresql:
+  enabled: false
+
+redis:
+  enabled: false
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: api.wemarket.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: wemarket-tls
+      hosts:
+        - api.wemarket.com

@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "app/generated/prisma"
 }
 
 datasource db {
@@ -283,6 +284,9 @@ model products {
   categories             categories?         @relation(fields: [category_id], references: [id], onUpdate: NoAction)
   shared_cart_items      shared_cart_items[]
   stock_history          stock_history[]
+  demand_forecasts       demand_forecasts[]
+  dynamic_pricing_rules   dynamic_pricing_rules[]
+  dynamic_price_logs      dynamic_price_logs[]
 
   @@index([store_id, category_id, is_active], map: "idx_products_store_category_active")
 }
@@ -501,6 +505,15 @@ model stores {
   store_favorites         store_favorites[]
   staff_schedules         staff_schedules[]
   food_trucks             food_trucks?
+  competitor_prices       competitor_prices[]
+  pricing_optimization_jobs pricing_optimization_jobs[]
+  demand_forecasts        demand_forecasts[]
+  dynamic_pricing_rules   dynamic_pricing_rules[]
+  dynamic_price_logs      dynamic_price_logs[]
+  customer_segments       customer_segments[]
+  customer_personalizations customer_personalizations[]
+  ai_recommendations      ai_recommendations[]
+  personalization_analytics personalization_analytics[]
 
   @@index([user_id], map: "idx_stores_user_id")
 }
@@ -1054,4 +1067,184 @@ model news {
 
   @@index([source])
   @@index([publishedAt(sort: Desc)])
+}
+
+// ============================================================
+// AI 기반 동적 가격 책정 엔진 (Dynamic Pricing Engine)
+// ============================================================
+
+model dynamic_pricing_rules {
+  id                 Int       @id @default(autoincrement())
+  store_id           Int
+  product_id         Int
+  rule_name          String
+  rule_type          String    // TIME_BASED | DEMAND_BASED | COMPETITOR_BASED | INVENTORY_BASED | WEATHER_BASED
+  priority           Int       @default(0)
+  is_active          Boolean   @default(true)
+  config             Json      // { timeSlots: [], demandThreshold: 0, competitorMargin: 0, inventoryThreshold: 0, weatherConditions: [] }
+  min_price          Int       // 최소 가격 (원)
+  max_price          Int       // 최대 가격 (원)
+  base_price         Int       // 기준 가격 (원)
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+  stores             stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  products           products  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id, product_id], map: "idx_dynamic_pricing_store_product")
+  @@index([is_active], map: "idx_dynamic_pricing_active")
+  price_logs           dynamic_price_logs[]
+}
+
+model dynamic_price_logs {
+  id                 Int       @id @default(autoincrement())
+  store_id           Int
+  product_id         Int
+  rule_id            Int?
+  old_price          Int
+  new_price          Int
+  trigger_type       String    // SCHEDULED | DEMAND_SPIKE | INVENTORY_LOW | WEATHER_CHANGE | COMPETITOR_CHANGE | MANUAL
+  trigger_data       Json?     // { demandScore: 0.8, inventoryLevel: 5, weather: "rainy", competitorPrice: 3500 }
+  ai_reasoning       String?   @db.Text // AI가 생성한 가격 변경 이유
+  confidence_score   Float?    // 0.0 ~ 1.0
+  applied            Boolean   @default(false)
+  applied_at         DateTime?
+  created_at         DateTime  @default(now())
+  stores             stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  products           products  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  rules              dynamic_pricing_rules? @relation(fields: [rule_id], references: [id], onDelete: SetNull)
+
+  @@index([store_id, product_id, created_at(sort: Desc)], map: "idx_dynamic_price_logs_store_product_time")
+  @@index([rule_id], map: "idx_dynamic_price_logs_rule")
+  @@index([applied], map: "idx_dynamic_price_logs_applied")
+}
+
+model competitor_prices {
+  id                 Int       @id @default(autoincrement())
+  store_id           Int
+  product_name       String
+  competitor_name    String
+  competitor_price   Int
+  competitor_url     String?
+  last_checked       DateTime  @default(now())
+  is_active          Boolean   @default(true)
+  stores             stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id, product_name], map: "idx_competitor_prices_store_product")
+  @@index([is_active], map: "idx_competitor_prices_active")
+}
+
+model customer_segments {
+  id                 Int       @id @default(autoincrement())
+  store_id           Int
+  segment_name       String
+  segment_type       String    // FREQUENT, NEW, VIP, PRICE_SENSITIVE, LIKE_NEW, etc.
+  segment_description String?
+  characteristics    Json      // { avg_order_value: 50000, frequency: 'weekly', preferences: ['coffee', 'pastries'] }
+  size              Int       // number of customers in segment
+  revenue_contribution Float    // percentage of total revenue
+  is_active         Boolean   @default(true)
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  stores            stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  personalization_analytics personalization_analytics[]
+  ai_recommendations      ai_recommendations[]
+  customer_personalizations customer_personalizations[]
+
+  @@index([store_id, segment_type], map: "idx_customer_segments_store_type")
+  @@index([is_active], map: "idx_customer_segments_active")
+}
+
+model customer_personalizations {
+  id                 Int       @id @default(autoincrement())
+  store_id           Int
+  customer_phone    String
+  segment_id        Int?
+  preferences       Json      // { favorite_categories: ['coffee', 'sandwich'], preferred_times: 'morning' }
+  custom_discount   Float    // percentage (e.g., 0.1 = 10% discount)
+  special_offers    Json      // array of special offers for this customer
+  last_order_date   DateTime?
+  lifetime_value     Int      // 총 spending
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  stores            stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  segments          customer_segments? @relation(fields: [segment_id], references: [id], onDelete: SetNull)
+
+  @@index([store_id, customer_phone], map: "idx_customer_personalizations_store_phone")
+  @@index([segment_id], map: "idx_customer_personalizations_segment")
+}
+
+model ai_recommendations {
+  id                 Int       @id @default(autoincrement())
+  store_id           Int
+  customer_phone    String?
+  segment_id        Int?
+  recommendation_type String    // PRODUCT, COUPON, TIME_SLOT, BUNDLE
+  title             String
+  description       String
+  target_product_ids Json      // array of product ids
+  discount_percent  Float?
+  valid_from        DateTime
+  valid_to          DateTime
+  click_through_rate Float   @default(0)
+  conversion_rate    Float   @default(0)
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  stores            stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  segments          customer_segments? @relation(fields: [segment_id], references: [id], onDelete: SetNull)
+
+  @@index([store_id, recommendation_type], map: "idx_ai_recommendations_store_type")
+  @@index([created_at(sort: Desc)], map: "idx_ai_recommendations_created")
+}
+
+model personalization_analytics {
+  id                 Int       @id @default(autoincrement())
+  store_id           Int
+  segment_id        Int?
+  date              DateTime
+  impressions        Int       @default(0)
+  click_throughs    Int       @default(0)
+  conversions        Int       @default(0)
+  revenue_from_segment Int     @default(0)
+  avg_order_value    Int
+  created_at        DateTime  @default(now())
+  stores            stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  segments          customer_segments? @relation(fields: [segment_id], references: [id], onDelete: SetNull)
+
+  @@unique([store_id, segment_id, date])
+  @@index([store_id, date(sort: Desc)], map: "idx_personalization_analytics_store_date")
+}
+
+model demand_forecasts {
+  id                 Int       @id @default(autoincrement())
+  store_id           Int
+  product_id         Int
+  forecast_date      DateTime
+  predicted_demand   Int       // 예측 주문 수량
+  confidence_score   Float     // 0.0 ~ 1.0
+  factors            Json      // { weather: "sunny", dayOfWeek: 5, holiday: false, events: [] }
+  model_version      String    // "v1.0-gemini"
+  created_at         DateTime  @default(now())
+  stores             stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  products           products  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@unique([store_id, product_id, forecast_date], map: "uq_demand_forecast_store_product_date")
+  @@index([store_id, forecast_date], map: "idx_demand_forecast_store_date")
+}
+
+model pricing_optimization_jobs {
+  id                 Int       @id @default(autoincrement())
+  store_id           Int
+  status             String    @default("PENDING") // PENDING | RUNNING | COMPLETED | FAILED
+  job_type           String    // FULL_OPTIMIZATION | INCREMENTAL_UPDATE | DEMAND_FORECAST | COMPETITOR_SYNC
+  started_at         DateTime?
+  completed_at       DateTime?
+  error_message      String?   @db.Text
+  result_summary     Json?     // { rulesUpdated: 10, pricesChanged: 5, forecastGenerated: 50 }
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+  stores             stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id, status], map: "idx_pricing_jobs_store_status")
+  @@index([created_at(sort: Desc)], map: "idx_pricing_jobs_created")
 }

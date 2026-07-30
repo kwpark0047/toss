@@ -6,6 +6,8 @@ const bulkSmsController = require('../controllers/bulkSmsController');
 const platformController = require('../controllers/platformController');
 const storeEnrichmentController = require('../controllers/storeEnrichmentController');
 const storeLinkController = require('../controllers/storeLinkController');
+const dynamicPricingController = require('../controllers/dynamicPricingController');
+const customerSegmentationController = require('../controllers/customerSegmentationController');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 
@@ -385,5 +387,141 @@ router.post('/geocode-stores', authMiddleware, adminOnly, storeEnrichmentControl
 router.get('/store-link-requests', authMiddleware, adminOnly, storeLinkController.listRequests);
 router.post('/store-link-requests/:id/approve', authMiddleware, adminOnly, storeLinkController.approveRequest);
 router.post('/store-link-requests/:id/reject', authMiddleware, adminOnly, storeLinkController.rejectRequest);
+
+// ── AI 동적 가격 책정 ───────────────────────────────────────────────────────
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/pricing/rules:
+ *   get:
+ *     tags: [Admin]
+ *     summary: 동적 가격 책정 규칙 목록 조회
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 가격 규칙 목록 반환
+ */
+router.get('/stores/:storeId/pricing/rules', authMiddleware, checkStorePermission('settings:read'), dynamicPricingController.getPricingRules);
+
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/pricing/rules:
+ *   post:
+ *     tags: [Admin]
+ *     summary: 동적 가격 책정 규칙 생성
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [productId, ruleName, ruleType, minPrice, maxPrice, basePrice]
+ *             properties:
+ *               productId: { type: integer }
+ *               ruleName: { type: string }
+ *               ruleType: { type: string, enum: [TIME_BASED, DEMAND_BASED, COMPETITOR_BASED, INVENTORY_BASED, WEATHER_BASED] }
+ *               priority: { type: integer, default: 0 }
+ *               config: { type: object }
+ *               minPrice: { type: integer }
+ *               maxPrice: { type: integer }
+ *               basePrice: { type: integer }
+ *     responses:
+ *       201:
+ *         description: 가격 규칙 생성됨
+ */
+router.post('/stores/:storeId/pricing/rules', authMiddleware, checkStorePermission('settings:write'), dynamicPricingController.createPricingRule);
+
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/pricing/rules/{ruleId}:
+ *   patch:
+ *     tags: [Admin]
+ *     summary: 동적 가격 책정 규칙 수정
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: ruleId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 가격 규칙 수정됨
+ */
+router.patch('/stores/:storeId/pricing/rules/:ruleId', authMiddleware, checkStorePermission('settings:write'), dynamicPricingController.updatePricingRule);
+
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/pricing/rules/{ruleId}:
+ *   delete:
+ *     tags: [Admin]
+ *     summary: 동적 가격 책정 규칙 삭제
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: ruleId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: 가격 규칙 삭제됨
+ */
+router.delete('/stores/:storeId/pricing/rules/:ruleId', authMiddleware, checkStorePermission('settings:write'), dynamicPricingController.deletePricingRule);
+
+// 가격 변경 이력
+router.get('/stores/:storeId/pricing/logs', authMiddleware, checkStorePermission('stats:read'), dynamicPricingController.getPriceLogs);
+
+// 수동 가격 변경
+router.post('/stores/:storeId/pricing/manual', authMiddleware, checkStorePermission('settings:write'), dynamicPricingController.applyManualPriceChange);
+
+// 최적화 작업
+router.post('/stores/:storeId/pricing/optimize', authMiddleware, checkStorePermission('settings:write'), dynamicPricingController.runPricingOptimization);
+router.get('/stores/:storeId/pricing/jobs', authMiddleware, checkStorePermission('stats:read'), dynamicPricingController.getOptimizationJobs);
+
+// 경쟁사 가격 관리
+router.post('/stores/:storeId/pricing/competitors', authMiddleware, checkStorePermission('settings:write'), dynamicPricingController.upsertCompetitorPrice);
+router.get('/stores/:storeId/pricing/competitors', authMiddleware, checkStorePermission('stats:read'), dynamicPricingController.getCompetitorPrices);
+
+// 수요 예측
+router.get('/stores/:storeId/pricing/forecasts', authMiddleware, checkStorePermission('stats:read'), dynamicPricingController.getDemandForecasts);
+
+// ── 고객 세그멘테이션 및 개인화 ──────────────────────────────────
+router.get('/stores/:storeId/segments', authMiddleware, checkStorePermission('stats:read'), customerSegmentationController.getSegments);
+router.post('/stores/:storeId/segments', authMiddleware, checkStorePermission('settings:write'), customerSegmentationController.upsertSegment);
+router.delete('/stores/:storeId/segments/:segmentId', authMiddleware, checkStorePermission('settings:write'), customerSegmentationController.deleteSegment);
+router.get('/stores/:storeId/personalization', authMiddleware, checkStorePermission('stats:read'), customerSegmentationController.getPersonalization);
+router.put('/stores/:storeId/personalization', authMiddleware, checkStorePermission('settings:write'), customerSegmentationController.upsertPersonalization);
+router.get('/stores/:storeId/recommendations', authMiddleware, checkStorePermission('stats:read'), customerSegmentationController.getRecommendations);
+router.post('/stores/:storeId/recommendations', authMiddleware, checkStorePermission('settings:write'), customerSegmentationController.createRecommendation);
+router.get('/stores/:storeId/segments/:segmentId/recommendations', authMiddleware, checkStorePermission('stats:read'), customerSegmentationController.getRecommendationsBySegment);
+router.get('/stores/:storeId/segments/:segmentId/customers', authMiddleware, checkStorePermission('stats:read'), customerSegmentationController.getSegmentCustomers);
+router.get('/stores/:storeId/personalization-analytics', authMiddleware, checkStorePermission('stats:read'), customerSegmentationController.getAnalytics);
 
 module.exports = router;

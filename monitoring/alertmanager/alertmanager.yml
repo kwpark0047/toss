@@ -1,0 +1,77 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@wemarket.com'
+  smtp_auth_username: 'alerts@wemarket.com'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+
+route:
+  group_by: ['alertname', 'severity', 'team']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'default'
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      continue: true
+    # Business alerts
+    - match:
+        team: business
+      receiver: 'business-alerts'
+    # Platform alerts
+    - match:
+        team: platform
+      receiver: 'platform-alerts'
+
+receivers:
+  - name: 'default'
+    email_configs:
+      - to: 'team@wemarket.com'
+        send_resolved: true
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#wemarket-alerts'
+        title: 'WeMarket Alert'
+        text: '{{ range .Alerts }}*{{ .Labels.alertname }}* ({{ .Labels.severity }})\n{{ .Annotations.summary }}\n{{ .Annotations.description }}\n{{ end }}'
+        send_resolved: true
+
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'oncall@wemarket.com'
+        send_resolved: true
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#wemarket-critical'
+        title: '🚨 CRITICAL: WeMarket Alert'
+        text: '{{ range .Alerts }}*{{ .Labels.alertname }}*\n{{ .Annotations.summary }}\n{{ .Annotations.description }}\nRunbook: https://runbooks.wemarket.com/{{ .Labels.alertname }}\n{{ end }}'
+        send_resolved: true
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_KEY}'
+        severity: critical
+        description: '{{ .GroupLabels.alertname }}'
+
+  - name: 'business-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#wemarket-business'
+        title: '📊 Business Alert'
+        text: '{{ range .Alerts }}*{{ .Labels.alertname }}*\n{{ .Annotations.summary }}\n{{ .Annotations.description }}\n{{ end }}'
+        send_resolved: true
+
+  - name: 'platform-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#wemarket-platform'
+        title: '⚙️ Platform Alert'
+        text: '{{ range .Alerts }}*{{ .Labels.alertname }}*\n{{ .Annotations.summary }}\n{{ .Annotations.description }}\n{{ end }}'
+        send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'team']

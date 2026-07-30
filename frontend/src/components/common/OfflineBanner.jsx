@@ -1,15 +1,25 @@
 import { WifiOff, Wifi, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useOnlineStatus, useConnectionInfo } from '@/hooks/usePWA';
 import { useState, useEffect, useRef } from 'react';
+import { getSyncStats } from '@/lib/offlineQueue';
 
 export default function OfflineBanner() {
   const { isOnline, isVerified } = useOnlineStatus();
   const connInfo = useConnectionInfo();
-  const [phase, setPhase] = useState('hidden'); // hidden | offline | restoring | restored
+  const [phase, setPhase] = useState('hidden');
   const [retrying, setRetrying] = useState(false);
   const [restoreProgress, setRestoreProgress] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
   const timerRef = useRef(null);
   const progressRef = useRef(null);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const stats = await getSyncStats();
+      setPendingCount(stats.pending);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!isOnline) {
@@ -20,9 +30,7 @@ export default function OfflineBanner() {
     }
 
     if (phase === 'offline') {
-      // Transition: offline → restoring → restored → hidden
       setPhase('restoring');
-      // Animate progress bar 0 → 100 over 1.5 s
       let pct = 0;
       progressRef.current = setInterval(() => {
         pct = Math.min(pct + 4, 100);
@@ -50,11 +58,12 @@ export default function OfflineBanner() {
     finally { setRetrying(false); }
   }
 
-  if (phase === 'hidden') return null;
+  if (phase === 'hidden' && pendingCount === 0) return null;
 
   const isOffline    = phase === 'offline';
   const isRestoring  = phase === 'restoring';
   const isRestored   = phase === 'restored';
+  const hasPending = pendingCount > 0;
 
   return (
     <div
@@ -65,14 +74,11 @@ export default function OfflineBanner() {
         ${phase === 'hidden' ? '-translate-y-full' : 'translate-y-0'}
       `}
     >
-      {/* Main banner */}
       <div className={`
         flex items-center gap-3 px-4 py-2.5 text-white text-sm font-semibold
         transition-colors duration-500
         ${isRestored ? 'bg-emerald-600' : isRestoring ? 'bg-emerald-700' : 'bg-red-600'}
       `}>
-
-        {/* Icon */}
         <div className="flex-shrink-0">
           {isRestored || isRestoring ? (
             <Wifi size={16} className={isRestoring ? 'animate-pulse' : ''} />
@@ -81,7 +87,6 @@ export default function OfflineBanner() {
           )}
         </div>
 
-        {/* Message */}
         <div className="flex-1 min-w-0">
           {isRestored && <span>인터넷 연결이 복구되었습니다</span>}
           {isRestoring && <span>연결 복구 중...</span>}
@@ -100,7 +105,12 @@ export default function OfflineBanner() {
           )}
         </div>
 
-        {/* Retry button (offline only) */}
+        {hasPending && (
+          <span className="flex-shrink-0 px-2 py-0.5 bg-white/20 rounded-full text-[10px] font-black">
+            동기화 대기 {pendingCount}건
+          </span>
+        )}
+
         {isOffline && (
           <button
             onClick={handleRetry}
@@ -113,7 +123,6 @@ export default function OfflineBanner() {
         )}
       </div>
 
-      {/* Progress bar (restoring phase) */}
       {isRestoring && (
         <div className="h-0.5 bg-emerald-800">
           <div
@@ -123,7 +132,6 @@ export default function OfflineBanner() {
         </div>
       )}
 
-      {/* Degraded warning: navigator.onLine but API unreachable */}
       {isOnline && !isVerified && phase !== 'offline' && (
         <div className="flex items-center gap-2 px-4 py-1.5 bg-amber-500 text-white text-xs font-semibold">
           <AlertTriangle size={13} />

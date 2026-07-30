@@ -57,14 +57,14 @@ module.exports = {
   // 주의: 경로별 임계값을 지정하면 해당 경로 파일은 "global" 집계에서 제외된다.
   //       (과거 global 이 13% 로 표시되던 원인) 그래서 경로별로 명시 관리한다.
   coverageThreshold: {
-    './routes/': { statements: 6, branches: 10, functions: 3, lines: 6 },
-    './controllers/': { statements: 14, branches: 10, functions: 19, lines: 15 },
-    './services/': { statements: 35, branches: 26, functions: 34, lines: 36 },
-    './middleware/': { statements: 53, branches: 43, functions: 38, lines: 53 },
-    './utils/': { statements: 31, branches: 27, functions: 23, lines: 31 },
-    './repositories/': { statements: 4, branches: 1, functions: 1, lines: 5 },
-    './app/': { statements: 12, branches: 0, functions: 7, lines: 13 },
-    './config/': { statements: 60, branches: 50, functions: 55, lines: 60 },
-    global: { statements: 20, branches: 17, functions: 19, lines: 21 },
+    './routes/': { statements: 7, branches: 13, functions: 5, lines: 7 },
+    './controllers/': { statements: 16, branches: 12, functions: 21, lines: 17 },
+    './services/': { statements: 37, branches: 28, functions: 36, lines: 39 },
+    './middleware/': { statements: 56, branches: 46, functions: 41, lines: 56 },
+    './utils/': { statements: 33, branches: 30, functions: 25, lines: 33 },
+    './repositories/': { statements: 5, branches: 3, functions: 2, lines: 6 },
+    './app/': { statements: 14, branches: 1, functions: 9, lines: 15 },
+    './config/': { statements: 62, branches: 52, functions: 57, lines: 62 },
+    global: { statements: 23, branches: 20, functions: 22, lines: 24 },
   },
 };

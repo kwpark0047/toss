@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: wemarket
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: wemarket
+    app.kubernetes.io/part-of: wemarket-platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: wemarket
+  source:
+    repoURL: https://github.com/kwpark0047-iceu/250105
+    targetRevision: main
+    path: helm/wemarket
+    helm:
+      valueFiles:
+        - values-prod.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: wemarket-prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+    - group: ""
+      kind: Secret
+      jsonPointers:
+        - /data
+    - group: ""
+      kind: ConfigMap
+      jsonPointers:
+        - /data
+  info:
+    - name: Repository
+      value: https://github.com/kwpark0047-iceu/250105
+    - name: Helm Chart
+      value: helm/wemarket
+    - name: Environment
+      value: production

@@ -1,0 +1,348 @@
+# ==============================================================================
+# WeMarket Helm Chart - Default Values
+# ==============================================================================
+# Override from repository root with: helm install wemarket ./helm/wemarket -f helm/wemarket/values-prod.yaml
+# ==============================================================================
+
+# -- Global settings
+global:
+  imageRegistry: ghcr.io
+  imagePullSecrets:
+    - name: ghcr-secret
+  # Domain for ingress
+  domain: wemarket.com
+  # Environment: production, staging, development
+  environment: production
+
+# -- Application image
+image:
+  repository: ghcr.io/kwpark0047-iceu/wemarket-api
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  automount: false
+  annotations: {}
+  name: ""
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# -- Application configuration
+app:
+  replicas: 3
+  # Resource limits
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  # Environment variables
+  env:
+    NODE_ENV: production
+    LOG_LEVEL: info
+    APP_VERSION: "1.0.0"
+    # DATABASE_URL: set via secret
+    # REDIS_URL: set via secret
+    # JWT_SECRET: set via secret
+    # Other secrets via secret references
+  # ConfigMap for non-sensitive config
+  config:
+    CORS_ORIGIN: "https://wemarket.com"
+    RATE_LIMIT_WINDOW_MS: "60000"
+    RATE_LIMIT_MAX: "100"
+  logLevel: info
+  cache:
+    ttl: "300"
+  rateLimit:
+    windowMs: "60000"
+    maxRequests: "60"
+  circuitBreaker:
+    threshold: "5"
+    timeout: "30000"
+  # Health check endpoints
+  healthCheck:
+    livenessPath: /api/health
+    readinessPath: /api/health/deep
+    startupPath: /api/health
+
+# -- Service configuration
+service:
+  type: ClusterIP
+  port: 3000
+  targetPort: 3000
+
+# -- Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+  hosts:
+    - host: api.wemarket.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: wemarket-tls
+      hosts:
+        - api.wemarket.com
+
+# -- Pod security and runtime
+podSecurity:
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# -- Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 4
+          periodSeconds: 15
+      selectPolicy: Max
+
+# -- Pod disruption budget
+pdb:
+  enabled: true
+  minAvailable: 2
+
+# -- Secrets (referenced, not stored in values)
+secrets:
+  # Create these secrets manually or via external-secrets operator
+  existingSecret: wemarket-secrets
+  keys:
+    DATABASE_URL: DATABASE_URL
+    REDIS_URL: REDIS_URL
+    JWT_SECRET: JWT_SECRET
+    JWT_REFRESH_SECRET: JWT_REFRESH_SECRET
+    PHONE_ENC_KEY: PHONE_ENC_KEY
+    GEMINI_API_KEY: GEMINI_API_KEY
+    OMNIROUTE_API_KEY: OMNIROUTE_API_KEY
+    TOSS_SECRET_KEY: TOSS_SECRET_KEY
+    FIREBASE_SERVICE_ACCOUNT: FIREBASE_SERVICE_ACCOUNT
+
+ai:
+  omniroute:
+    baseUrl: http://localhost:20128/v1
+  model: gpt-4o-mini
+
+features:
+  aiRecommendations: "true"
+  aiTranslation: "true"
+  waitingAi: "true"
+
+# -- ServiceMonitor for Prometheus
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    release: prometheus
+
+# -- PodMonitor for custom metrics
+podMonitor:
+  enabled: true
+  interval: 30s
+
+# -- Network policies
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+    - from:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 3000
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+
+# -- Frontend deployment
+frontend:
+  enabled: true
+  image:
+    repository: ghcr.io/kwpark0047-iceu/wemarket-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
+  ingress:
+    enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: wemarket.com
+        paths:
+          - path: /
+            pathType: Prefix
+      - host: www.wemarket.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: wemarket-frontend-tls
+        hosts:
+          - wemarket.com
+          - www.wemarket.com
+
+# -- PostgreSQL (if deploying in-cluster)
+postgresql:
+  enabled: false
+  # Use external managed PostgreSQL (Supabase) in production
+  # Set enabled: true for development/staging
+  auth:
+    username: wemarket
+    password: changeme
+    database: wemarket
+  primary:
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+  persistence:
+    enabled: true
+    size: 20Gi
+
+# -- Redis (if deploying in-cluster)
+redis:
+  enabled: false
+  # Use external managed Redis in production
+  auth:
+    enabled: true
+    password: changeme
+  master:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+  persistence:
+    enabled: true
+    size: 5Gi
+
+# -- Prometheus ServiceMonitor
+prometheus:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+
+# -- Grafana dashboards
+grafana:
+  enabled: true
+  dashboards:
+    - name: wemarket-overview
+      file: wemarket-overview.json
+    - name: wemarket-ai-metrics
+      file: wemarket-ai-metrics.json
+    - name: wemarket-business-metrics
+      file: wemarket-business-metrics.json
+
+# -- Loki log aggregation
+loki:
+  enabled: true
+  promtail:
+    enabled: true
+
+# -- Backup configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: 7d
+  storage:
+    s3:
+      bucket: wemarket-backups
+      region: ap-southeast-1
+    # Or use PVC for local storage
+    # pvc:
+    #   enabled: true
+    #   size: 50Gi
+
+# -- External DNS
+externalDNS:
+  enabled: true
+  provider: cloudflare
+  domainFilters:
+    - wemarket.com
+
+# -- Cert Manager
+certManager:
+  enabled: true
+  email: security@wemarket.com
+  clusterIssuer: letsencrypt-prod

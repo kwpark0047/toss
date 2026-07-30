@@ -1,0 +1,133 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    timeout: 10s
+    batchwait: 1s
+    batchsize: 102400
+
+scrape_configs:
+  # Kubernetes pod logs
+  - job_name: kubernetes-pods
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - wemarket-prod
+            - wemarket-staging
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_node_name]
+        action: replace
+        target_label: node_name
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: pod
+      - source_labels: [__meta_kubernetes_pod_container_name]
+        action: replace
+        target_label: container
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+        action: replace
+        target_label: app
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+        action: replace
+        target_label: component
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+
+  # Application logs from /app/logs
+  - job_name: wemarket-app-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: wemarket-app
+          __path__: /app/logs/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            traceId: traceId
+            spanId: spanId
+            service: service
+            storeId: storeId
+            orderId: orderId
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+      - labels:
+          level:
+          service:
+          storeId:
+          orderId:
+      - output:
+          source: message
+
+  # Nginx access logs
+  - job_name: nginx-access
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx-access
+          __path__: /var/log/nginx/access.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] "(?P<request>[^"]+)" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
+      - labels:
+          status:
+      - timestamp:
+          source: time_local
+          format: '02/Jan/2006:15:04:05 -0700'
+
+  # Nginx error logs
+  - job_name: nginx-error
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx-error
+          __path__: /var/log/nginx/error.log
+
+  # Systemd journal (if running on host)
+  - job_name: systemd-journal
+    journal:
+      max_age: 12h
+      path: /var/log/journal
+    relabel_configs:
+      - source_labels: [__journal__systemd_unit]
+        action: replace
+        target_label: unit
+      - source_labels: [__journal__hostname]
+        action: replace
+        target_label: hostname
+
+  # Cadvisor logs (if available)
+  - job_name: cadvisor
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: cadvisor
+          __path__: /var/log/cadvisor/*.log
+
+  # Node exporter logs
+  - job_name: node-exporter
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: node-exporter
+          __path__: /var/log/node-exporter/*.log

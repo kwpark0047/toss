@@ -5,7 +5,8 @@ import { storesAPI, categoriesAPI, productsAPI, tablesAPI, ordersAPI, cartAPI, p
 import {
   ShoppingCart, Plus, Minus, X, CreditCard, Banknote, Building2,
   Clock, CheckCircle, ChevronLeft, ChevronRight, MapPin, Phone, Timer,
-  Star, Wand2, Search, Sparkles, BellRing, Users, Calendar
+  Star, Wand2, Search, Sparkles, BellRing, Users, Calendar,
+  TrendingUp, Package, Truck
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -21,6 +22,8 @@ import MenuStoryModal from "./MenuStoryModal";
 import FloatingCallButton from "./FloatingCallButton";
 import { formatPrice } from "../../utils/format";
 import { requestTossCheckout } from "../../utils/tossCheckout";
+import { useOfflineSync } from "../../hooks/useOfflineSync";
+import { enqueueOperation } from "../../lib/offlineQueue";
 
 // 모듈화된 하위 컴포넌트들 임포트
 import MenuSkeleton from "./MenuSkeleton";
@@ -60,7 +63,20 @@ const Menu = () => {
   const [showCart, setShowCart] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [orderForm, setOrderForm] = useState({ customer_name: "", customer_phone: "", notes: "", payment_method: "card" });
+
+  // 온라인/오프라인 상태 감지
+  useEffect(() => {
+    const goOnline = () => { setIsOnline(true); processQueue(); };
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, [processQueue]);
   const [orderSuccess, setOrderSuccess] = useState(null);
   const [orderStep, setOrderStep] = useState("cart");
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
@@ -89,6 +105,46 @@ const Menu = () => {
     { label: "기분 좋음", value: "happy", icon: "🥰" }
   ];
 
+  // 카테고리 이모지 매핑 (m.fooddream.kr 스타일)
+  const categoryEmojis = {
+    "간편식": "🍱",
+    "튀김류": "🍤",
+    "포장부자재": "📦",
+    "각종튀김": "🍤",
+    "메인요리": "🍽️",
+    "사이드": "🥗",
+    "디저트": "🍰",
+    "음료": "🥤",
+    "커피": "☕",
+    "간식": "🍪",
+    "도시락": "🥡",
+    "분식": "🍢",
+    "한식": "🇰🇷",
+    "중식": "🇨🇳",
+    "일식": "🇯🇵",
+    "양식": "🇫🇷",
+    "버거": "🍔",
+    "피자": "🍕",
+    "치킨": "🍗",
+    "샐러드": "🥗",
+    "국/탕": "🍲",
+    "김치찌개": "🥘",
+    "비빔밥": "🍚",
+    "떡볶이": "🍡",
+    "오뎅": "🐟",
+    "튀김": "🍳"
+  };
+
+  // 배너 슬라이더 상태
+  const [currentBanner, setCurrentBanner] = useState(0);
+  const bannerImages = store?.theme?.banners || [];
+  const autoBanners = [
+    { id: 1, title: "🔥 오늘의 특가", subtitle: "최대 30% 할인", bg: "from-orange-400 to-pink-500" },
+    { id: 2, title: "🚚 무료 배달", subtitle: "3만원 이상 주문 시", bg: "from-blue-400 to-indigo-500" },
+    { id: 3, title: "🎁 포인트 적립", subtitle: "결제금액의 5% 적립", bg: "from-purple-400 to-pink-500" }
+  ];
+  const banners = bannerImages.length > 0 ? bannerImages : autoBanners;
+
   // 다국어 번역 관련 상태
   const [translatedDescriptions, setTranslatedDescriptions] = useState({}); // { productId: translatedText }
 
@@ -111,6 +167,16 @@ const Menu = () => {
       return defaultTheme;
     }
   }, [store?.theme]);
+
+  const effectiveStoreId = storeIdParam || (store?.id ? String(store.id) : null);
+  const { queueOperation, processQueue, pendingCount, syncStatus } = useOfflineSync(effectiveStoreId);
+
+  // 오프라인 주문 대기열 처리 (네트워크 복구 시 자동 동기화)
+  useEffect(() => {
+    if (isOnline && pendingCount > 0) {
+      processQueue();
+    }
+  }, [isOnline, pendingCount, processQueue]);
 
   // 페이지 배경 및 그라디언트 스타일 계산 메모이제이션
   const styles = useMemo(() => {
@@ -275,6 +341,32 @@ const Menu = () => {
   const handleOrder = async () => {
     if (cart.length === 0) return;
 
+    // 오프라인일 경우 IndexedDB에 주문을 버퍼링
+    if (!isOnline) {
+      const orderData = {
+        store_id: store.id,
+        table_id: table?.id || null,
+        customer_name: orderForm.customer_name || null,
+        customer_phone: orderForm.customer_phone || null,
+        notes: orderForm.notes || null,
+        payment_method: orderForm.payment_method,
+        items: cart,
+        total_amount: getTotalAmount(),
+        timestamp: Date.now(),
+        offline: true,
+      };
+      await queueOperation({ operation: 'CREATE_ORDER', data: orderData });
+      setCart([]);
+      if (table?.id) {
+        cartAPI.clearCart(table.id);
+        ordersAPI.getSocket().emit('update-shared-cart', { tableId: table.id, action: 'clear' });
+      }
+      setShowCart(false);
+      setOrderStep("cart");
+      alert('오프라인模式下 주문이 접수되었습니다. 연결 복구 시 자동으로 전송됩니다.');
+      return;
+    }
+
     setLoading(true);
     try {
       const orderData = {
@@ -303,8 +395,29 @@ const Menu = () => {
         Notification.requestPermission();
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.error || "주문 처리 중 오류가 발생했습니다.";
-      alert(errorMsg);
+      // 서버 오류 시 오프라인 버퍼에 저장
+      const orderData = {
+        store_id: store.id,
+        table_id: table?.id || null,
+        customer_name: orderForm.customer_name || null,
+        customer_phone: orderForm.customer_phone || null,
+        notes: orderForm.notes || null,
+        payment_method: orderForm.payment_method,
+        items: cart,
+        total_amount: getTotalAmount(),
+        timestamp: Date.now(),
+        offline: true,
+        error: err.response?.data?.error || '네트워크 오류',
+      };
+      await queueOperation({ operation: 'CREATE_ORDER', data: orderData });
+      alert('네트워크 오류로 주문이 보관되었습니다. 연결 복구 시 자동으로 전송됩니다.');
+      setCart([]);
+      if (table?.id) {
+        cartAPI.clearCart(table.id);
+        ordersAPI.getSocket().emit('update-shared-cart', { tableId: table.id, action: 'clear' });
+      }
+      setShowCart(false);
+      setOrderStep("cart");
     } finally {
       setLoading(false);
     }
@@ -455,9 +568,22 @@ const Menu = () => {
     autoTranslateMenu();
   }, [i18n.language, store?.id]);
 
+  // 배너 자동 슬라이드
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentBanner((prev) => (prev + 1) % banners.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [banners.length]);
+
   const filteredProducts = useMemo(() => {
     return selectedCategory ? products.filter((p) => p.category_id === selectedCategory) : products;
   }, [selectedCategory, products]);
+
+  // 베스트/신상품 분리
+  const bestProducts = useMemo(() => products.filter((p) => p.is_best), [products]);
+  const newProducts = useMemo(() => products.filter((p) => p.is_new), [products]);
 
   const { themeStyles, gradientBg, pageBg } = styles;
 
@@ -748,62 +874,140 @@ const Menu = () => {
           )}
         </AnimatePresence>
 
-        {/* 카테고리 칩 */}
-        <div className="flex overflow-x-auto px-5 pb-5 gap-3 scrollbar-hide">
-          <motion.button
-            layout
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedCategory(null)}
-            className="relative px-6 py-2.5 rounded-2xl text-sm whitespace-nowrap font-bold transition-all border shadow-sm"
-            style={selectedCategory === null ? { background: gradientBg, color: "white", borderColor: "transparent" } : { backgroundColor: "white", color: theme.textColor, borderColor: theme.backgroundColor }}
-          >
-            {selectedCategory === null && (
-              <motion.div layoutId="activeCat" className="absolute inset-0 rounded-2xl bg-white/10" />
-            )}
-            {t('menu.all')}
-          </motion.button>
-          {categories.map((c) => (
+        {/* 카테고리 칩 - m.fooddream.kr 스타일 (이모지 + 가로 스크롤) */}
+        <div className="px-5 pb-4">
+          <div className="flex overflow-x-auto gap-3 scrollbar-hide pb-1">
             <motion.button
               layout
-              key={c.id}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setSelectedCategory(c.id)}
-              className="relative px-6 py-2.5 rounded-2xl text-sm whitespace-nowrap font-bold transition-all border shadow-sm"
-              style={selectedCategory === c.id ? { backgroundColor: theme.primaryColor, color: "white", borderColor: "transparent" } : { backgroundColor: "white", color: theme.secondaryColor, borderColor: theme.backgroundColor }}
+              onClick={() => setSelectedCategory(null)}
+              className="relative px-5 py-3 rounded-2xl text-sm whitespace-nowrap font-bold transition-all border shadow-sm flex-shrink-0"
+              style={selectedCategory === null ? { background: gradientBg, color: "white", borderColor: "transparent" } : { backgroundColor: "white", color: theme.textColor, borderColor: theme.backgroundColor }}
             >
-              {selectedCategory === c.id && (
+              {selectedCategory === null && (
                 <motion.div layoutId="activeCat" className="absolute inset-0 rounded-2xl bg-white/10" />
               )}
-              {c.name}
+              <span className="relative z-10 flex items-center gap-1.5">
+                <span>📋</span> 전체
+              </span>
             </motion.button>
-          ))}
+            {categories.map((c) => {
+              const emoji = categoryEmojis[c.name] || "📂";
+              return (
+                <motion.button
+                  layout
+                  key={c.id}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelectedCategory(c.id)}
+                  className="relative px-5 py-3 rounded-2xl text-sm whitespace-nowrap font-bold transition-all border shadow-sm flex-shrink-0"
+                  style={selectedCategory === c.id ? { backgroundColor: theme.primaryColor, color: "white", borderColor: "transparent" } : { backgroundColor: "white", color: theme.secondaryColor, borderColor: theme.backgroundColor }}
+                >
+                  {selectedCategory === c.id && (
+                    <motion.div layoutId="activeCat" className="absolute inset-0 rounded-2xl bg-white/10" />
+                  )}
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    <span>{emoji}</span> {c.name}
+                  </span>
+                </motion.button>
+              );
+            })}
+          </div>
         </div>
       </motion.header>
 
-      {/* 메인 배너 이미지 영역 */}
-      <AnimatePresence>
-        {theme.bannerImageUrl && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full aspect-[21/9] relative overflow-hidden mb-6"
-          >
-            <img
-              src={theme.bannerImageUrl}
-              alt="Store Banner"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-            <div className="absolute bottom-4 left-6">
-              <p className="text-white text-xs font-black uppercase tracking-[0.2em] opacity-80 mb-1">Welcome to</p>
-              <h2 className="text-white text-2xl font-black tracking-tight">{store?.name}</h2>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+       {/* 메인 배너 슬라이더 - m.fooddream.kr 스타일 */}
+       <div className="px-5 pb-6">
+         <div className="relative w-full aspect-[21/9] rounded-3xl overflow-hidden shadow-2xl shadow-slate-200/50">
+           <AnimatePresence>
+             {banners.map((banner, idx) => {
+               if (idx !== currentBanner) return null;
+               const isCustom = typeof banner === 'string' || banner?.image_url;
+               const bgClass = banner?.bg || (isCustom ? '' : 'from-orange-400 to-pink-500');
+               const title = banner?.title || '특별한 혜택';
+               const subtitle = banner?.subtitle || '지금 주문해보세요';
+               
+               return (
+                 <motion.div
+                   key={banner.id || idx}
+                   initial={{ opacity: 0, x: 100 }}
+                   animate={{ opacity: 1, x: 0 }}
+                   exit={{ opacity: 0, x: -100 }}
+                   transition={{ duration: 0.5 }}
+                   className={`absolute inset-0 flex items-center justify-between p-6 ${isCustom ? '' : `bg-gradient-to-r ${bgClass}`}`}
+                 >
+                   {isCustom ? (
+                     <img src={typeof banner === 'string' ? banner : banner.image_url} alt={banner.title || '배너'} className="w-full h-full object-cover" />
+                   ) : (
+                     <>
+                       <div className="text-white max-w-[60%]">
+                         <p className="text-xs font-black uppercase tracking-[0.2em] opacity-80 mb-1">Welcome to</p>
+                         <h2 className="text-2xl font-black tracking-tight mb-1">{store?.name}</h2>
+                         <p className="text-sm font-bold opacity-90">{title}</p>
+                         <p className="text-xs opacity-75 mt-1">{subtitle}</p>
+                       </div>
+                       <div className="text-right">
+                         <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center text-3xl">
+                           {idx === 0 ? '🔥' : idx === 1 ? '🚚' : '🎁'}
+                         </div>
+                       </div>
+                     </>
+                   )}
+                 </motion.div>
+               );
+             })}
+           </AnimatePresence>
+           
+           {/* 배너 인디케이터 */}
+           <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+             {banners.map((_, idx) => (
+               <button
+                 key={idx}
+                 onClick={() => setCurrentBanner(idx)}
+                 className={`w-2 h-2 rounded-full transition-all ${idx === currentBanner ? 'w-6 bg-white' : 'bg-white/30'}`}
+               />
+             ))}
+           </div>
+         </div>
+       </div>
 
-      {/* 메뉴 리스트 - 외부 모듈 컴포넌트로 위임 */}
-      <MenuProductList
+       {/* 업종별 인기상품 섹션 - m.fooddream.kr 스타일 */}
+       {bestProducts.length > 0 && (
+         <div className="px-5 pb-6">
+           <div className="flex items-center gap-2 mb-4">
+             <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primaryColor + "15" }}>
+               <TrendingUp size={18} style={{ color: theme.primaryColor }} />
+             </div>
+             <h3 className="font-black text-lg" style={{ color: theme.textColor }}>베스트 메뉴</h3>
+           </div>
+           <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+             {bestProducts.slice(0, 5).map((p) => (
+               <motion.div
+                 key={p.id}
+                 whileTap={{ scale: 0.98 }}
+                 className="min-w-[140px] bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden"
+               >
+                 <div className="aspect-square relative">
+                   {p.image_url ? (
+                     <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                   ) : (
+                     <div className="w-full h-full flex items-center justify-center bg-slate-50">
+                       <Star size={24} className="text-slate-300" />
+                     </div>
+                   )}
+                   <span className="absolute top-2 left-2 bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded">BEST</span>
+                 </div>
+                 <div className="p-2">
+                   <p className="font-bold text-xs line-clamp-1" style={{ color: theme.textColor }}>{p.name}</p>
+                   <p className="text-xs font-black mt-1" style={{ color: theme.primaryColor }}>{formatPrice(p.price)}</p>
+                 </div>
+               </motion.div>
+             ))}
+           </div>
+         </div>
+       )}
+
+       {/* 메뉴 리스트 - 외부 모듈 컴포넌트로 위임 */}
+       <MenuProductList
         filteredProducts={filteredProducts}
         theme={theme}
         translatedDescriptions={translatedDescriptions}

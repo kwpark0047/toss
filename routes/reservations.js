@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
+const { requireReservationCustomerCapability } = require('../middleware/orderCapability');
 const reservationsController = require('../controllers/reservationsController');
 
 /**
@@ -117,7 +118,7 @@ router.patch('/:id/status', authMiddleware, reservationsController.updateStatus)
  *       200:
  *         description: 예약 목록
  */
-router.get('/my/:phone', reservationsController.getMyReservations);
+router.get('/my', requireReservationCustomerCapability, reservationsController.getMyReservations);
 
 /**
  * @swagger
@@ -135,6 +136,6 @@ router.get('/my/:phone', reservationsController.getMyReservations);
  *       200:
  *         description: 예약 취소 완료
  */
-router.patch('/:id/cancel', reservationsController.cancelReservation);
+router.patch('/:id/cancel', requireReservationCustomerCapability, reservationsController.cancelReservation);
 
 module.exports = router;

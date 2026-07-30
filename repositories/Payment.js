@@ -1,4 +1,29 @@
 const prisma = require('../config/prisma');
+const { encryptPhone } = require('../utils/phoneEncryption');
+
+// raw_response에 포함된 민감 필드 목록 (저장 전 제거)
+const SENSITIVE_FIELDS = [
+  'card', 'secret', 'customerKey', 'customer_key',
+  'cardPassword', 'credential'
+];
+
+// raw_response에서 민감 필드를 재귀적으로 제거
+const sanitizeRawResponse = (data) => {
+  if (!data) return data;
+  const cleaned = JSON.parse(JSON.stringify(data));
+  const removeSensitive = (obj) => {
+    if (!obj || typeof obj !== 'object') return;
+    for (const key of Object.keys(obj)) {
+      if (SENSITIVE_FIELDS.some(f => key.toLowerCase().includes(f.toLowerCase()))) {
+        delete obj[key];
+      } else if (typeof obj[key] === 'object') {
+        removeSensitive(obj[key]);
+      }
+    }
+  };
+  removeSensitive(cleaned);
+  return cleaned;
+};
 
 /**
  * 결제 모델 (Prisma 기반)
@@ -22,8 +47,8 @@ const Payment = {
         status,
         method: 'READY',
         checkout_url: checkout_url || null,
-        payer_phone: data.payer_phone || null, // [추가] 결제자 정보
-        is_partial: data.is_partial || false,   // [추가] 부분 결제 여부
+        payer_phone: data.payer_phone ? encryptPhone(data.payer_phone) : null,
+        is_partial: data.is_partial || false,
         created_at: new Date(),
         updated_at: new Date()
       }
@@ -118,9 +143,9 @@ const Payment = {
         card_number: card_number || null,
         installment_months: installment_months || 0,
         easy_pay_provider: easy_pay_provider || null,
-        payer_phone: data.payer_phone || null,    // [추가] 승인 시 결제자 정보 업데이트
+        payer_phone: data.payer_phone ? encryptPhone(data.payer_phone) : null,    // [추가] 승인 시 결제자 정보 업데이트
         is_partial: data.is_partial || false,      // [추가] 부분 결제 여부 업데이트
-        raw_response: raw_response ? JSON.stringify(raw_response) : null,
+        raw_response: raw_response ? JSON.stringify(sanitizeRawResponse(raw_response)) : null,
         updated_at: new Date()
       }
     });

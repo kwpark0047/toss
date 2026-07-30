@@ -57,6 +57,56 @@ export const bulkSmsAPI = {
   sendBulkSms: (data) => api.post('/admin/bulk-sms/send', data),
 };
 
+export const dynamicPricingAPI = {
+  // 가격 규칙 CRUD
+  getRules: (storeId, params = {}) => api.get(`/admin/stores/${storeId}/pricing/rules`, { params }),
+  createRule: (storeId, data) => api.post(`/admin/stores/${storeId}/pricing/rules`, data),
+  updateRule: (storeId, ruleId, data) => api.patch(`/admin/stores/${storeId}/pricing/rules/${ruleId}`, data),
+  deleteRule: (storeId, ruleId) => api.delete(`/admin/stores/${storeId}/pricing/rules/${ruleId}`),
+
+  // 가격 변경 이력
+  getPriceLogs: (storeId, params = {}) => api.get(`/admin/stores/${storeId}/pricing/logs`, { params }),
+
+  // 수동 가격 변경
+  applyManualPrice: (storeId, data) => api.post(`/admin/stores/${storeId}/pricing/manual`, data),
+
+  // 최적화 작업
+  runOptimization: (storeId, data) => api.post(`/admin/stores/${storeId}/pricing/optimize`, data),
+  getJobs: (storeId, params = {}) => api.get(`/admin/stores/${storeId}/pricing/jobs`, { params }),
+
+  // 경쟁사 가격
+  upsertCompetitor: (storeId, data) => api.post(`/admin/stores/${storeId}/pricing/competitors`, data),
+  getCompetitors: (storeId, params = {}) => api.get(`/admin/stores/${storeId}/pricing/competitors`, { params }),
+
+  // 수요 예측
+  getForecasts: (storeId, params = {}) => api.get(`/admin/stores/${storeId}/pricing/forecasts`, { params }),
+};
+
+export const customerSegmentationAPI = {
+  // 세그멘트
+  getSegments: (storeId, params = {}) => api.get(`/admin/stores/${storeId}/segments`, { params }),
+  createSegment: (storeId, data) => api.post(`/admin/stores/${storeId}/segments`, data),
+  updateSegment: (storeId, segmentId, data) => api.post(`/admin/stores/${storeId}/segments`, { ...data, id: segmentId }),
+  deleteSegment: (storeId, segmentId) => api.delete(`/admin/stores/${storeId}/segments/${segmentId}`),
+
+  // 고객 개인화
+  getPersonalization: (storeId, customerPhone) =>
+    api.get(`/admin/stores/${storeId}/personalization`, { params: { customerPhone } }),
+  upsertPersonalization: (storeId, data) => api.put(`/admin/stores/${storeId}/personalization`, data),
+
+  // AI 추천
+  getRecommendations: (storeId, params = {}) => api.get(`/admin/stores/${storeId}/recommendations`, { params }),
+  createRecommendation: (storeId, data) => api.post(`/admin/stores/${storeId}/recommendations`, data),
+  getRecommendationsBySegment: (storeId, segmentId) =>
+    api.get(`/admin/stores/${storeId}/segments/${segmentId}/recommendations`),
+  getSegmentCustomers: (storeId, segmentId, params = {}) =>
+    api.get(`/admin/stores/${storeId}/segments/${segmentId}/customers`, { params }),
+
+  // 분석
+  getPersonalizationAnalytics: (storeId, params = {}) =>
+    api.get(`/admin/stores/${storeId}/personalization-analytics`, { params }),
+};
+
 export const exportAPI = {
   _download: async (url, fileName) => {
     const { API_URL } = await import('./client');

@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: wemarket
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: wemarket
+    app.kubernetes.io/part-of: wemarket-platform
+spec:
+  description: WeMarket SaaS QR Menu Platform
+  sourceRepos:
+    - https://github.com/kwpark0047-iceu/250105
+  destinations:
+    - namespace: wemarket-prod
+      server: https://kubernetes.default.svc
+    - namespace: wemarket-staging
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: networking.k8s.io
+      kind: IngressClass
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Secret
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: apps
+      kind: DaemonSet
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+    - group: batch
+      kind: CronJob
+    - group: batch
+      kind: Job
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: policy
+      kind: PodDisruptionBudget
+  orphanedResources:
+    warn: true
+  signatureKeys: []
