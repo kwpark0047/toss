@@ -1,6 +1,22 @@
 import { Routes, Route, Navigate } from "react-router";
 import { AdminSuspense } from "./AppRoutes";
 import { ProtectedRoute, AdminPage, ValidStoreRoute } from "./AppRoutes";
+import {
+  Index, AuthPage, Register, StoreSearchPage,
+  MenuDemo, BusinessDemo, MenuPage, PaymentSuccess, PaymentFail,
+  KioskPage, QrResolvePage, FeaturesPage, PricingPage, GuidesPage,
+  NewsPage, ContactPage, TinkerBellManagerPage, PlanUpgrade, ProfilePage,
+  BoardList, BoardDetail, BoardWrite,
+  AlimtalkDeliveryConsole, AnalyticsDashboard, BulkSMSManager, BusinessSettings, CampaignDashboard,
+  CommunityPage, CustomerManager, DeveloperConsole, FoodTruckAnalyticsDashboard, FoodTruckDesignShowcase,
+  FoodTruckLanding, FoodTruckOwnerDashboard, InventoryManager, KitchenDisplayPage,
+  LegalPage, LegalSettings, MasterDashboard, MenuBuilder, MenuManager,
+  MultiStoreSupervisorDashboard, NotificationTemplatesManager, OrderManager, PartnershipManager,
+  QrCustomizer, ReceiptSettings, ReservationManager, ReviewManager,
+  SalesStats, SettlementManager, StaffManager, StaffScheduler,
+  StoreDisplay, StoreEnrichment, StoreForm, StoreSettings, StoreSetupWizard,
+  SystemStatus, TableManager
+} from "@/routes/lazyImports";
 
 // Public routes
 export const PublicRoutes = () => (
