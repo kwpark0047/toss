@@ -79,3 +79,6 @@ export const MultiStoreSupervisorDashboard = lazy(
 export const AlimtalkDeliveryConsole = lazy(
   () => import('../components/admin/AlimtalkDeliveryConsole')
 );
+export const PlanRequestsManage = lazy(
+  () => import('../pages/PlanRequestsManage')
+);

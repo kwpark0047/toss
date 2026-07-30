@@ -25,9 +25,9 @@ import {
   LegalSettings, NotificationTemplatesManager, DeveloperConsole,
   QrCustomizer, PartnershipManager, StaffScheduler,
   FoodTruckOwnerDashboard, FoodTruckAnalyticsDashboard,
-   AlimtalkDeliveryConsole, CommunityPage,
-   TinkerBellManagerPage,
- } from "@/routes/lazyImports";
+    AlimtalkDeliveryConsole, CommunityPage,
+    TinkerBellManagerPage, PlanRequestsManage,
+  } from "@/routes/lazyImports";
 
 import PWAInstallBanner from "@/components/common/PWAInstallBanner";
 import PWAUpdateNotification from "@/components/common/PWAUpdateNotification";
@@ -162,6 +162,7 @@ const AppRoutes = memo(() => (
     <Route path="/admin/tinkerbell" element={<AdminPage><AdminSuspense><TinkerBellManagerPage /></AdminSuspense></AdminPage>} />
     <Route path="/admin/stores/:storeId/tinkerbell" element={<AdminPage><ValidStoreRoute><AdminSuspense><TinkerBellManagerPage /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/system-status" element={<AdminPage><AdminSuspense><SystemStatus /></AdminSuspense></AdminPage>} />
+    <Route path="/admin/plan-requests" element={<AdminPage><AdminSuspense><PlanRequestsManage /></AdminSuspense></AdminPage>} />
     <Route path="/admin/bulk-sms" element={<AdminPage><AdminSuspense><BulkSMSManager /></AdminSuspense></AdminPage>} />
     <Route path="/admin/community" element={<AdminPage><AdminSuspense><CommunityPage /></AdminSuspense></AdminPage>} />
     <Route path="/admin/stores/:storeId/plan" element={<AdminPage><ValidStoreRoute><AdminSuspense><PlanUpgrade /></AdminSuspense></ValidStoreRoute></AdminPage>} />
