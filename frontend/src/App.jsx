@@ -123,6 +123,9 @@ const AppRoutes = memo(() => (
 
     {/* Admin Routes */}
     <Route path="/admin" element={<AdminPage><AdminSuspense><MasterDashboard /></AdminSuspense></AdminPage>} />
+    <Route path="/admin/profile" element={<Navigate to="/admin" replace />} />
+    <Route path="/board" element={<Navigate to="/admin" replace />} />
+    <Route path="/stores" element={<Navigate to="/admin" replace />} />
     <Route path="/admin/supervisor" element={<AdminPage><AdminSuspense><MultiStoreSupervisorDashboard /></AdminSuspense></AdminPage>} />
     <Route path="/admin/setup" element={<ProtectedRoute><AdminSuspense><StoreSetupWizard /></AdminSuspense></ProtectedRoute>} />
     <Route path="/admin/stores/new" element={<AdminPage><AdminSuspense><StoreForm /></AdminSuspense></AdminPage>} />
@@ -173,7 +176,7 @@ const AppRoutes = memo(() => (
     <Route path="/foodtruck/landing" element={<AdminSuspense><FoodTruckLanding /></AdminSuspense>} />
     <Route path="/foodtruck/showcase" element={<AdminSuspense><FoodTruckDesignShowcase /></AdminSuspense>} />
     <Route path="/foodtruck/design" element={<AdminSuspense><FoodTruckDesignShowcase /></AdminSuspense>} />
-    <Route path="/legal/:slug" element={<AdminSuspense><LegalPage /></AdminSuspense>} />
+    <Route path="/legal/:storeId/:type" element={<AdminSuspense><LegalPage /></AdminSuspense>} />
     <Route path="/store/:slug" element={<AdminSuspense><StoreDisplay /></AdminSuspense>} />
 
     {/* 404 */}
