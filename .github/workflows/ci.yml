@@ -231,3 +231,26 @@ jobs:
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
+
+  bundle-size-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [lint-and-test, backend-unit-tests, frontend-test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+      - run: npm ci
+      - run: npm run cloudflare-build
+      - name: Check bundle size
+        run: |
+          SIZE=$(du -sb frontend/dist/assets/index-*.js | cut -f1)
+          echo "Bundle size: $SIZE bytes"
+          if [ "$SIZE" -gt 600000 ]; then
+            echo "❌ Bundle size exceeds 600KB limit"
+            exit 1
+          else
+            echo "✅ Bundle size within limits"
+          fi
