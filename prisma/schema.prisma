@@ -1,12 +1,14 @@
 generator client {
   provider = "prisma-client-js"
   output   = "app/generated/prisma"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  schemas   = ["public", "auth"]
 }
 
 enum OrderStatus {
@@ -16,6 +18,7 @@ enum OrderStatus {
   ready
   completed
   cancelled
+  @@schema("public")
 }
 
 enum OrderPaymentStatus {
@@ -23,6 +26,7 @@ enum OrderPaymentStatus {
   paid
   failed
   refunded
+  @@schema("public")
 }
 
 enum PaymentTxStatus {
@@ -31,6 +35,7 @@ enum PaymentTxStatus {
   DONE
   CANCELED
   PARTIAL_CANCELED
+  @@schema("public")
 }
 
 model categories {
@@ -43,6 +48,7 @@ model categories {
   products   products[]
 
   @@index([store_id, sort_order], map: "idx_categories_store_sort")
+  @@schema("public")
 }
 
 model comments {
@@ -58,6 +64,7 @@ model comments {
 
   @@index([parent_id], map: "idx_comments_parent")
   @@index([post_id], map: "idx_comments_post")
+  @@schema("public")
 }
 
 model ledger {
@@ -76,6 +83,7 @@ model ledger {
   stores      stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([store_id], map: "idx_ledger_store")
+  @@schema("public")
 }
 
 model metrics {
@@ -87,6 +95,7 @@ model metrics {
   store_id      Int?
   user_id       Int?
   timestamp     DateTime? @default(now())
+  @@schema("public")
 }
 
 model order_items {
@@ -105,6 +114,7 @@ model order_items {
 
   @@index([order_id], map: "idx_order_items_order_id")
   @@index([product_id], map: "idx_order_items_product_id")
+  @@schema("public")
 }
 
 model orders {
@@ -150,6 +160,7 @@ model orders {
   @@index([store_id, status, created_at], map: "idx_orders_store_status_date")
   @@index([customer_phone], map: "idx_orders_customer_phone")
   @@index([table_id], map: "idx_orders_table_id")
+  @@schema("public")
 }
 
 model payments {
@@ -198,6 +209,7 @@ model payments {
   @@index([order_id], map: "idx_payments_order_id")
   @@index([status], map: "idx_payments_status")
   @@index([store_id, status, created_at], map: "idx_payments_store_status_date")
+  @@schema("public")
 }
 
 model plan_requests {
@@ -218,6 +230,7 @@ model plan_requests {
 
   @@index([status], map: "idx_plan_requests_status")
   @@index([store_id], map: "idx_plan_requests_store")
+  @@schema("public")
 }
 
 model point_transactions {
@@ -240,6 +253,7 @@ model point_transactions {
 
   @@index([store_id], map: "idx_point_transactions_store")
   @@index([user_point_id], map: "idx_point_transactions_user")
+  @@schema("public")
 }
 
 model posts {
@@ -263,6 +277,7 @@ model posts {
   @@index([is_pinned], map: "idx_posts_pinned")
   @@index([author_id], map: "idx_posts_author")
   @@index([board_type], map: "idx_posts_board_type")
+  @@schema("public")
 }
 
 model post_likes {
@@ -275,6 +290,7 @@ model post_likes {
 
   @@unique([post_id, user_id])
   @@index([post_id], map: "idx_post_likes_post")
+  @@schema("public")
 }
 
 model products {
@@ -313,6 +329,7 @@ model products {
   dynamic_price_logs      dynamic_price_logs[]
 
   @@index([store_id, category_id, is_active], map: "idx_products_store_category_active")
+  @@schema("public")
 }
 
 model stock_history {
@@ -330,6 +347,7 @@ model stock_history {
 
   @@index([product_id], map: "idx_stock_history_product")
   @@index([store_id, created_at(sort: Desc)], map: "idx_stock_history_store_time")
+  @@schema("public")
 }
 
 model settlements {
@@ -355,6 +373,7 @@ model settlements {
   stores                      stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([store_id], map: "idx_settlements_store")
+  @@schema("public")
 }
 
 model staff {
@@ -372,6 +391,7 @@ model staff {
   staff_schedules  staff_schedules[]
 
   @@unique([store_id, user_id], map: "uk_staff_store_user")
+  @@schema("public")
 }
 
 model staff_attendance {
@@ -388,6 +408,7 @@ model staff_attendance {
 
   @@index([staff_id, clock_in], map: "idx_attendance_staff_time")
   @@index([store_id, clock_in], map: "idx_attendance_store_time")
+  @@schema("public")
 }
 
 model staff_account_requests {
@@ -408,6 +429,7 @@ model staff_account_requests {
 
   @@index([status], map: "idx_staff_requests_status")
   @@index([store_id], map: "idx_staff_requests_store")
+  @@schema("public")
 }
 
 model store_accounts {
@@ -422,6 +444,7 @@ model store_accounts {
   created_at      DateTime? @default(now())
   updated_at      DateTime? @default(now())
   stores          stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@schema("public")
 }
 
 model store_point_settings {
@@ -436,6 +459,7 @@ model store_point_settings {
   created_at      DateTime? @default(now())
   updated_at      DateTime? @default(now())
   stores          stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@schema("public")
 }
 
 model store_receipt_settings {
@@ -451,6 +475,7 @@ model store_receipt_settings {
   show_points        Boolean?  @default(true)
   updated_at         DateTime? @default(now())
   stores             stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@schema("public")
 }
 
 model stores {
@@ -493,6 +518,8 @@ model stores {
   vat_rate                 Float?                   @default(0.10)      // 부가세율 (법정 10%)
   // ── 활성 결제수단 (JSON 배열) ─────────────────────
   enabled_payment_methods  String?                  @default("[\"cash\",\"store_card\",\"transfer\"]")
+  @@index([is_active], map: "idx_stores_is_active")
+  @@index([business_type], map: "idx_stores_business_type")
   campaign_settings      campaign_settings[]
   categories             categories[]
   chat_rooms             chat_rooms[]
@@ -544,6 +571,7 @@ model stores {
   coupon_issue_history    coupon_issue_history[]
 
   @@index([user_id], map: "idx_stores_user_id")
+  @@schema("public")
 }
 
 model notifications {
@@ -561,6 +589,7 @@ model notifications {
 
   @@index([store_id, is_read], map: "idx_notifications_store_read")
   @@index([store_id, created_at(sort: Desc)], map: "idx_notifications_store_time")
+  @@schema("public")
 }
 
 model tables {
@@ -578,6 +607,7 @@ model tables {
   orders            orders[]
   shared_cart_items shared_cart_items[]
   stores            stores              @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@schema("public")
 }
 
 model user_points {
@@ -595,6 +625,7 @@ model user_points {
 
   @@index([phone], map: "idx_user_points_phone")
   @@index([toss_user_key], map: "idx_user_points_toss_key")
+  @@schema("public")
 }
 
 model users {
@@ -628,6 +659,7 @@ model users {
   grant_change_logs                                                grant_change_logs[]
 
   @@index([email], map: "idx_users_email")
+  @@schema("public")
 }
 
 model community_posts {
@@ -651,6 +683,7 @@ model community_posts {
   @@index([district])
   @@index([type])
   @@index([created_at(sort: Desc)])
+  @@schema("public")
 }
 
 model community_post_likes {
@@ -663,6 +696,7 @@ model community_post_likes {
 
   @@unique([post_id, user_id])
   @@index([post_id])
+  @@schema("public")
 }
 
 model store_partnerships {
@@ -680,6 +714,7 @@ model store_partnerships {
   @@index([requester_id])
   @@index([target_id])
   @@index([status])
+  @@schema("public")
 }
 
 model phone_otps {
@@ -692,6 +727,7 @@ model phone_otps {
   created_at DateTime @default(now())
 
   @@index([phone], map: "idx_phone_otps_phone")
+  @@schema("public")
 }
 
 model chat_rooms {
@@ -712,6 +748,7 @@ model chat_rooms {
   @@index([store_id], map: "idx_chat_rooms_store")
   @@index([user_id], map: "idx_chat_rooms_user")
   @@index([type])
+  @@schema("public")
 }
 
 model chat_messages {
@@ -726,6 +763,7 @@ model chat_messages {
   rooms        chat_rooms @relation(fields: [room_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([room_id], map: "idx_chat_messages_room")
+  @@schema("public")
 }
 
 model shared_cart_items {
@@ -740,6 +778,7 @@ model shared_cart_items {
   tables     tables   @relation(fields: [table_id], references: [id], onDelete: Cascade)
 
   @@index([table_id], map: "idx_shared_cart_table")
+  @@schema("public")
 }
 
 model waiting_list {
@@ -757,6 +796,7 @@ model waiting_list {
 
   @@index([store_id], map: "idx_waiting_list_store")
   @@index([customer_phone], map: "idx_waiting_list_phone")
+  @@schema("public")
 }
 
 model reviews {
@@ -779,6 +819,7 @@ model reviews {
 
   @@index([store_id], map: "idx_reviews_store")
   @@index([created_at], map: "idx_reviews_created")
+  @@schema("public")
 }
 
 model review_likes {
@@ -789,6 +830,7 @@ model review_likes {
   reviews    reviews   @relation(fields: [review_id], references: [id], onDelete: Cascade)
 
   @@index([review_id], map: "idx_review_likes_id")
+  @@schema("public")
 }
 
 model store_customers {
@@ -809,6 +851,7 @@ model store_customers {
   @@unique([store_id, customer_phone], name: "uk_store_customer")
   @@index([store_id], map: "idx_store_customers_store")
   @@index([customer_phone], map: "idx_store_customers_phone")
+  @@schema("public")
 }
 
 model store_tier_settings {
@@ -823,6 +866,7 @@ model store_tier_settings {
 
   @@unique([store_id, tier_name], name: "uk_store_tier")
   @@index([store_id], map: "idx_tier_settings_store")
+  @@schema("public")
 }
 
 model coupons {
@@ -841,6 +885,7 @@ model coupons {
   coupon_issue_history coupon_issue_history[]
 
   @@index([store_id], map: "idx_coupons_store")
+  @@schema("public")
 }
 
 model user_coupons {
@@ -855,6 +900,7 @@ model user_coupons {
   coupons        coupons   @relation(fields: [coupon_id], references: [id], onDelete: Cascade)
 
   @@index([customer_phone], map: "idx_user_coupons_phone")
+  @@schema("public")
 }
 
 model campaign_settings {
@@ -869,6 +915,7 @@ model campaign_settings {
   stores       stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
 
   @@index([store_id], map: "idx_campaigns_store")
+  @@schema("public")
 }
 
 model reservations {
@@ -887,6 +934,7 @@ model reservations {
   @@index([store_id], map: "idx_reservations_store")
   @@index([customer_phone], map: "idx_reservations_phone")
   @@index([reservation_time], map: "idx_reservations_time")
+  @@schema("public")
 }
 
 model option_templates {
@@ -899,6 +947,7 @@ model option_templates {
   stores      stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
 
   @@index([store_id], map: "idx_option_templates_store")
+  @@schema("public")
 }
 
 model api_keys {
@@ -914,6 +963,7 @@ model api_keys {
   stores       stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
 
   @@index([store_id], map: "idx_api_keys_store")
+  @@schema("public")
 }
 
 model webhook_endpoints {
@@ -928,6 +978,7 @@ model webhook_endpoints {
   deliveries webhook_deliveries[]
 
   @@index([store_id], map: "idx_webhook_endpoints_store")
+  @@schema("public")
 }
 
 model notification_templates {
@@ -945,6 +996,7 @@ model notification_templates {
 
   @@index([store_id, type], map: "idx_nt_store_type")
   @@index([store_id, is_active], map: "idx_nt_store_active")
+  @@schema("public")
 }
 
 model webhook_deliveries {
@@ -963,6 +1015,7 @@ model webhook_deliveries {
 
   @@index([endpoint_id], map: "idx_webhook_deliveries_endpoint")
   @@index([status, next_retry_at], map: "idx_webhook_deliveries_retry")
+  @@schema("public")
 }
 
 // ESC/POS 주방 프린트 잡 큐 (온프레미스 브리지가 claim→인쇄→ack)
@@ -982,6 +1035,7 @@ model print_jobs {
   orders      orders?   @relation(fields: [order_id], references: [id], onDelete: SetNull)
 
   @@index([store_id, status, created_at], map: "idx_print_jobs_claim")
+  @@schema("public")
 }
 
 // 매장 연동 승인 요청 — 사업자가 공공데이터 매장(super_admin 소유)과 상호·주소가
@@ -1001,6 +1055,7 @@ model store_link_requests {
   @@index([status])
   @@index([user_id])
   @@index([reviewed_by])
+  @@schema("public")
 }
 
 // 고객 찜한 매장 — 전화번호 기반 (비회원도 찜 가능)
@@ -1013,6 +1068,7 @@ model store_favorites {
 
   @@unique([customer_phone, store_id])
   @@index([customer_phone])
+  @@schema("public")
 }
 
 // 직원 근무표 — 시프트 관리
@@ -1032,6 +1088,7 @@ model staff_schedules {
 
   @@index([store_id, date])
   @@index([staff_id, date])
+  @@schema("public")
 }
 
 model food_trucks {
@@ -1048,6 +1105,7 @@ model food_trucks {
   stores                stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
 
   @@index([store_id, is_active_session], map: "idx_food_trucks_store_active")
+  @@schema("public")
 }
 
 model social_accounts {
@@ -1068,6 +1126,7 @@ model social_accounts {
   @@unique([provider, provider_id])
   @@index([user_id])
   @@index([provider])
+  @@schema("public")
 }
 
 // 관리자 2FA OTP — SMS OTP 기반 2차 인증
@@ -1084,6 +1143,7 @@ model admin_otps {
 
   @@index([user_id, purpose])
   @@index([user_id, created_at(sort: Desc)])
+  @@schema("public")
 }
 
 model news {
@@ -1099,6 +1159,7 @@ model news {
 
   @@index([source])
   @@index([publishedAt(sort: Desc)])
+  @@schema("public")
 }
 
 // ============================================================
@@ -1125,6 +1186,7 @@ model dynamic_pricing_rules {
   @@index([store_id, product_id], map: "idx_dynamic_pricing_store_product")
   @@index([is_active], map: "idx_dynamic_pricing_active")
   price_logs           dynamic_price_logs[]
+  @@schema("public")
 }
 
 model dynamic_price_logs {
@@ -1148,6 +1210,7 @@ model dynamic_price_logs {
   @@index([store_id, product_id, created_at(sort: Desc)], map: "idx_dynamic_price_logs_store_product_time")
   @@index([rule_id], map: "idx_dynamic_price_logs_rule")
   @@index([applied], map: "idx_dynamic_price_logs_applied")
+  @@schema("public")
 }
 
 model competitor_prices {
@@ -1163,6 +1226,7 @@ model competitor_prices {
 
   @@index([store_id, product_name], map: "idx_competitor_prices_store_product")
   @@index([is_active], map: "idx_competitor_prices_active")
+  @@schema("public")
 }
 
 model customer_segments {
@@ -1185,6 +1249,7 @@ model customer_segments {
 
   @@index([store_id, segment_type], map: "idx_customer_segments_store_type")
   @@index([is_active], map: "idx_customer_segments_active")
+  @@schema("public")
 }
 
 model customer_personalizations {
@@ -1204,6 +1269,7 @@ model customer_personalizations {
 
   @@index([store_id, customer_phone], map: "idx_customer_personalizations_store_phone")
   @@index([segment_id], map: "idx_customer_personalizations_segment")
+  @@schema("public")
 }
 
 model ai_recommendations {
@@ -1227,6 +1293,7 @@ model ai_recommendations {
 
   @@index([store_id, recommendation_type], map: "idx_ai_recommendations_store_type")
   @@index([created_at(sort: Desc)], map: "idx_ai_recommendations_created")
+  @@schema("public")
 }
 
 model personalization_analytics {
@@ -1245,6 +1312,7 @@ model personalization_analytics {
 
   @@unique([store_id, segment_id, date])
   @@index([store_id, date(sort: Desc)], map: "idx_personalization_analytics_store_date")
+  @@schema("public")
 }
 
 model demand_forecasts {
@@ -1262,6 +1330,7 @@ model demand_forecasts {
 
   @@unique([store_id, product_id, forecast_date], map: "uq_demand_forecast_store_product_date")
   @@index([store_id, forecast_date], map: "idx_demand_forecast_store_date")
+  @@schema("public")
 }
 
 // ── 슈퍼관리자 지급/발급 템플릿 ─────────────────────────────────────
@@ -1280,6 +1349,7 @@ model grant_templates {
 
   @@index([store_id], map: "idx_grant_templates_store")
   @@index([is_auto], map: "idx_grant_templates_auto")
+  @@schema("public")
 }
 
 // ── 권한설정 변경 이력 ─────────────────────────────────────────────
@@ -1297,6 +1367,7 @@ model grant_change_logs {
 
   @@index([store_id], map: "idx_grant_change_logs_store")
   @@index([created_at(sort: Desc)], map: "idx_grant_change_logs_time")
+  @@schema("public")
 }
 
 // ── 슈퍼관리자 포인트 지급 이력 ───────────────────────────────────
@@ -1320,6 +1391,7 @@ model point_grant_history {
   @@index([admin_id], map: "idx_point_grant_history_admin")
   @@index([created_at(sort: Desc)], map: "idx_point_grant_history_time")
   @@index([batch_id], map: "idx_point_grant_history_batch")
+  @@schema("public")
 }
 
 // ── 슈퍼관리자 쿠폰 발급 이력 ─────────────────────────────────────
@@ -1342,6 +1414,7 @@ model coupon_issue_history {
   @@index([admin_id], map: "idx_coupon_issue_history_admin")
   @@index([created_at(sort: Desc)], map: "idx_coupon_issue_history_time")
   @@index([batch_id], map: "idx_coupon_issue_history_batch")
+  @@schema("public")
 }
 
 model pricing_optimization_jobs {
@@ -1359,4 +1432,5 @@ model pricing_optimization_jobs {
 
   @@index([store_id, status], map: "idx_pricing_jobs_store_status")
   @@index([created_at(sort: Desc)], map: "idx_pricing_jobs_created")
+  @@schema("public")
 }
