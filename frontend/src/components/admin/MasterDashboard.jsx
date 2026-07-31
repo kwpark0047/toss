@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { storesAPI, ordersAPI, analyticsAPI, reviewsAPI, exportAPI, getSocket } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStore } from '../../contexts/StoreContext';
+import { useSEO } from '../../lib/useSEO';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { formatPrice, formatTime } from '../../utils/format';
 import { format } from 'date-fns';
@@ -445,6 +446,11 @@ const MasterDashboard = () => {
     const { stores, selectedStore, loading: storesLoading, changeStore, refetch: refetchStores } = useStore();
     const navigate  = useNavigate();
     const { notifications, markAsRead, soundEnabled, _setSoundEnabled } = useNotifications();
+
+    useSEO({
+        title: selectedStore ? `${selectedStore.name} | 위마켓 매장 관리` : '위마켓 매장 관리',
+        description: selectedStore ? `${selectedStore.name}의 매출, 주문, 고객 정보를 관리하세요.` : '위마켓 스마트 매장 관리',
+    });
 
     // 실시간으로 수신된 읽지 않은 직원 호출 알림만 집계/정량화 가동
     const activeCalls = useMemo(() => {
