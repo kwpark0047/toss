@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
+import { StoreProvider } from "@/contexts/StoreContext";
 import { lazy, Suspense, useState, useEffect, memo } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -244,8 +245,10 @@ const App = () => {
               />
               {!isOnline && <OfflineBanner />}
               <PWAInstallBanner />
-              <PWAUpdateNotification />
-              <AppRoutes />
+               <PWAUpdateNotification />
+               <StoreProvider>
+                 <AppRoutes />
+               </StoreProvider>
             </TooltipProvider>
           </AuthProvider>
         </ThemeProvider>
