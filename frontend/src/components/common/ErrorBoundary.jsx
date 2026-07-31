@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import * as Sentry from "@sentry/react";
 
 /**
  * ErrorFallback — 에러 발생 시 표시되는 UI
@@ -61,6 +62,10 @@ export class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
+    // Sentry로 에러 전송
+    if (!import.meta.env.DEV) {
+      Sentry.captureException(error, { contexts: errorInfo });
+    }
     if (typeof this.props.onError === 'function') {
       this.props.onError(error, errorInfo);
     }
