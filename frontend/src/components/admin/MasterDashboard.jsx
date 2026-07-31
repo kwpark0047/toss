@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { storesAPI, ordersAPI, analyticsAPI, reviewsAPI, exportAPI, getSocket } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useStore } from '../../contexts/StoreContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { formatPrice, formatTime } from '../../utils/format';
 import { format } from 'date-fns';
@@ -440,7 +441,8 @@ const StatusBadge = ({ status }) => {
 };
 
 const MasterDashboard = () => {
-    const { user, consumeStoresCache } = useAuth();
+    const { user } = useAuth();
+    const { stores, selectedStore, loading: storesLoading, changeStore, refetch: refetchStores } = useStore();
     const navigate  = useNavigate();
     const { notifications, markAsRead, soundEnabled, _setSoundEnabled } = useNotifications();
 
@@ -449,8 +451,6 @@ const MasterDashboard = () => {
         return notifications.filter(n => n.type === 'MANAGER_CALL' && !n.is_read);
     }, [notifications]);
 
-    const [stores,          setStores]          = useState([]);
-    const [selectedStore,   setSelectedStore]   = useState(null);
     const [stats,           setStats]           = useState(null);
     const [recentOrders,    setRecentOrders]    = useState([]);
     const [loading,         setLoading]         = useState(true);
@@ -467,33 +467,12 @@ const MasterDashboard = () => {
     // AI 결제량 변동성 실시간 위기경보 상태
     const [anomalyAlert, setAnomalyAlert] = useState(null);
 
-    /* ─── 매장 로딩 ─── */
-    const fetchStores = useCallback(async () => {
-        try {
-            const cached = consumeStoresCache?.();
-            let list;
-            if (cached && cached.length > 0) {
-                list = cached;
-                setStores(list);
-                setSelectedStore(list[0]);
-                setLoading(false);
-                storesAPI.getMy()
-                    .then(r => {
-                        const f = Array.isArray(r) ? r : (Array.isArray(r?.data) ? r.data : []);
-                        if (f.length > 0) { setStores(f); setSelectedStore(s => s ?? f[0]); }
-                    }).catch(() => {});
-                return;
-            }
-            const res = user?.role === 'super_admin' ? await storesAPI.getAll({ limit: 50 }) : await storesAPI.getMy();
-            list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
-            setStores(list);
-            if (list.length > 0) setSelectedStore(list[0]);
-        } catch (e) {
-            console.error('매장 로딩 실패:', e);
-        } finally {
+    /* ─── 매장 로딩 (StoreContext에서 관리) ─── */
+    useEffect(() => {
+        if (!storesLoading) {
             setLoading(false);
         }
-    }, [user?.role, consumeStoresCache]);
+    }, [storesLoading]);
 
     /* ─── 단일 매장 데이터 ─── */
     const fetchStoreData = useCallback(async (storeId, silent = false) => {
@@ -536,7 +515,11 @@ const MasterDashboard = () => {
     }, [timeRange]);
 
     /* ─── 이펙트 ─── */
-    useEffect(() => { fetchStores(); }, [fetchStores]);
+    useEffect(() => {
+        if (user && !stores?.length && !storesLoading) {
+            refetchStores();
+        }
+    }, [user, stores, storesLoading, refetchStores]);
 
     useEffect(() => {
         if (isMultiView) fetchMultiStoreData();
@@ -670,7 +653,7 @@ const MasterDashboard = () => {
                         {!isMultiView && stores.length > 1 && (
                             <select aria-label="매장 선택"
                                 value={selectedStore?.id || ''}
-                                onChange={e => setSelectedStore(stores.find(s => s.id === parseInt(e.target.value)))}
+                                onChange={e => changeStore(parseInt(e.target.value))}
                                 className="text-[10px] font-bold bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-slate-300 outline-none max-w-[100px]"
                             >
                                 {stores.map(s => <option key={s.id} value={s.id} className="bg-slate-900">{s.name}</option>)}
