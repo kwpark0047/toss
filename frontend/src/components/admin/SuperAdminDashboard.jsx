@@ -63,14 +63,19 @@ export default function SuperAdminDashboard() {
     try {
       const r = await adminAPI.platformStores({ page, search: query, region, business_type: bizType, status, limit: 20 });
       const d = r?.data || r;
-      // 중복 데이터 제거 (id 기준)
-      const uniqueStores = (d.stores || []).filter(
-        (store, index, self) => index === self.findIndex(s => s.id === store.id)
-      );
+      // 중복 데이터 제거 (id 기준) - Map으로 O(n) 처리
+      const storeMap = new Map();
+      (d.stores || []).forEach(store => {
+        if (!storeMap.has(store.id)) storeMap.set(store.id, store);
+      });
+      const uniqueStores = Array.from(storeMap.values());
       setRows(uniqueStores);
       setTotalPages(d.totalPages || 1);
       setTotal(d.total || 0);
-    } catch { setRows([]); }
+    } catch (err) {
+      console.error('[SuperAdminDashboard] Failed to fetch stores:', err);
+      setRows([]);
+    }
     finally { setLoading(false); }
   }, [page, query, region, bizType, status]);
 

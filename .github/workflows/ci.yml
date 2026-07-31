@@ -24,6 +24,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Prisma Schema Validation
+        run: |
+          npx prisma generate
+          npx prisma validate
+
       - name: Unit & Integration Tests
         run: npm run test:coverage
 
