@@ -63,7 +63,11 @@ export default function SuperAdminDashboard() {
     try {
       const r = await adminAPI.platformStores({ page, search: query, region, business_type: bizType, status, limit: 20 });
       const d = r?.data || r;
-      setRows(d.stores || []);
+      // 중복 데이터 제거 (id 기준)
+      const uniqueStores = (d.stores || []).filter(
+        (store, index, self) => index === self.findIndex(s => s.id === store.id)
+      );
+      setRows(uniqueStores);
       setTotalPages(d.totalPages || 1);
       setTotal(d.total || 0);
     } catch { setRows([]); }
