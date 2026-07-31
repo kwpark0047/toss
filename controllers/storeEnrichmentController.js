@@ -5,6 +5,40 @@ const naverLocal = require('../services/naverLocalService');
 const seoulData = require('../services/seoulDataService');
 const geocodeSvc = require('../services/geocodeService');
 
+// 보강 공급자 설정 상태 조회 — 미설정 공급자는 프론트에서 비활성화 표시
+exports.enrichmentStatus = catchAsync(async (req, res) => {
+  const naverEnv = [
+    { key: 'NAVER_CLIENT_ID', set: !!process.env.NAVER_CLIENT_ID },
+    { key: 'NAVER_CLIENT_SECRET', set: !!process.env.NAVER_CLIENT_SECRET },
+  ];
+  const seoulKeys = (process.env.SEOUL_OPENAPI_KEYS || '')
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean);
+
+  res.success({
+    providers: {
+      naver: {
+        configured: naverEnv.every((e) => e.set),
+        missing: naverEnv.filter((e) => !e.set).map((e) => e.key),
+        capabilities: ['좌표', '전화번호', '업종'],
+      },
+      seoul: {
+        configured: seoulKeys.length > 0,
+        keyCount: seoulKeys.length,
+        missing: seoulKeys.length ? [] : ['SEOUL_OPENAPI_KEYS'],
+        capabilities: ['전화번호', '업종'],
+      },
+      geocoding: {
+        configured: geocodeSvc.isConfigured(),
+        availableProviders: geocodeSvc.provider() ? [geocodeSvc.provider()] : [],
+        missing: geocodeSvc.provider() ? [] : ['KAKAO_REST_API_KEY'],
+        capabilities: ['위도', '경도'],
+      },
+    },
+  });
+});
+
 exports.enrichNaver = catchAsync(async (req, res) => {
   if (!naverLocal.isConfigured()) {
     return res.status(503).json({ success: false, error: 'NAVER_CLIENT_SECRET 미설정' });
@@ -15,21 +49,26 @@ exports.enrichNaver = catchAsync(async (req, res) => {
   const stores = await prisma.stores.findMany({
     where: {
       id: { gt: afterId },
-      OR: [
-        { latitude: null },
-        { phone: null },
-        { business_type: null },
-      ],
+      OR: [{ latitude: null }, { phone: null }, { business_type: null }],
     },
     orderBy: { id: 'asc' },
     take: limit,
   });
 
   if (!stores.length) {
-    return res.success({ processed: 0, matched: 0, updated: 0, results: [], nextCursor: 0, done: true });
+    return res.success({
+      processed: 0,
+      matched: 0,
+      updated: 0,
+      results: [],
+      nextCursor: 0,
+      done: true,
+    });
   }
 
-  let processed = 0, matched = 0, updated = 0;
+  let processed = 0,
+    matched = 0,
+    updated = 0;
   const results = [];
 
   for (const store of stores) {
@@ -54,16 +93,15 @@ exports.enrichNaver = catchAsync(async (req, res) => {
   const remaining = await prisma.stores.count({
     where: {
       id: { gt: lastId },
-      OR: [
-        { latitude: null },
-        { phone: null },
-        { business_type: null },
-      ],
+      OR: [{ latitude: null }, { phone: null }, { business_type: null }],
     },
   });
 
   res.success({
-    processed, matched, updated, results,
+    processed,
+    matched,
+    updated,
+    results,
     nextCursor: lastId,
     done: remaining === 0,
   });
@@ -88,13 +126,26 @@ exports.enrichSeoul = catchAsync(async (req, res) => {
 
   const stores = await prisma.stores.findMany({
     where: { address: { contains: '서울', mode: 'insensitive' } },
-    select: { id: true, name: true, address: true, phone: true, business_type: true, latitude: true, longitude: true },
+    select: {
+      id: true,
+      name: true,
+      address: true,
+      phone: true,
+      business_type: true,
+      latitude: true,
+      longitude: true,
+    },
   });
 
   if (!stores.length || !rows.length) {
     return res.success({
-      processed: rows.length, matched: 0, updated: 0, nameFixed: 0,
-      samples: [], nextStart: end + 1, done: end >= total,
+      processed: rows.length,
+      matched: 0,
+      updated: 0,
+      nameFixed: 0,
+      samples: [],
+      nextStart: end + 1,
+      done: end >= total,
     });
   }
 
@@ -107,7 +158,10 @@ exports.enrichSeoul = catchAsync(async (req, res) => {
     }
   }
 
-  let processed = 0, matched = 0, updated = 0, nameFixed = 0;
+  let processed = 0,
+    matched = 0,
+    updated = 0,
+    nameFixed = 0;
   const samples = [];
 
   for (const row of rows) {
@@ -116,7 +170,7 @@ exports.enrichSeoul = catchAsync(async (req, res) => {
     const key = seoulData.addrCore(seoulItem.address);
     if (!key || !storeIndex[key]) continue;
 
-    const candidate = storeIndex[key].find(s => {
+    const candidate = storeIndex[key].find((s) => {
       const sn = seoulData.normName(s.name);
       const rn = seoulData.normName(seoulItem.name);
       return sn && rn && (sn === rn || sn.includes(rn) || rn.includes(sn));
@@ -126,14 +180,18 @@ exports.enrichSeoul = catchAsync(async (req, res) => {
     matched++;
     const patch = {};
     if (!candidate.phone && seoulItem.phone) patch.phone = seoulItem.phone;
-    if (!candidate.business_type && seoulItem.businessType) patch.business_type = seoulItem.businessType;
+    if (!candidate.business_type && seoulItem.businessType)
+      patch.business_type = seoulItem.businessType;
 
     const patch2 = {};
     if (patch.phone || patch.business_type) {
       Object.assign(patch2, patch);
     }
 
-    if (seoulItem.name && seoulData.normName(candidate.name) !== seoulData.normName(seoulItem.name)) {
+    if (
+      seoulItem.name &&
+      seoulData.normName(candidate.name) !== seoulData.normName(seoulItem.name)
+    ) {
       const origName = candidate.name;
       const wantName = seoulItem.name;
       const simpler = wantName.length < origName.length && origName.includes(wantName.slice(0, -2));
@@ -152,7 +210,11 @@ exports.enrichSeoul = catchAsync(async (req, res) => {
   }
 
   res.success({
-    processed: rows.length, matched, updated, nameFixed, samples,
+    processed: rows.length,
+    matched,
+    updated,
+    nameFixed,
+    samples,
     nextStart: end + 1,
     done: end >= total,
   });
@@ -160,7 +222,9 @@ exports.enrichSeoul = catchAsync(async (req, res) => {
 
 exports.geocodeStores = catchAsync(async (req, res) => {
   if (!geocodeSvc.isConfigured()) {
-    return res.status(503).json({ success: false, error: '지오코딩 키(KAKAO_REST_API_KEY) 미설정' });
+    return res
+      .status(503)
+      .json({ success: false, error: '지오코딩 키(KAKAO_REST_API_KEY) 미설정' });
   }
   const limit = Math.min(100, Math.max(1, parseInt(req.body.limit, 10) || 20));
   const afterId = parseInt(req.body.afterId, 10) || 0;
@@ -169,10 +233,7 @@ exports.geocodeStores = catchAsync(async (req, res) => {
     where: {
       id: { gt: afterId },
       address: { not: null },
-      OR: [
-        { latitude: null },
-        { longitude: null },
-      ],
+      OR: [{ latitude: null }, { longitude: null }],
     },
     orderBy: { id: 'asc' },
     take: limit,
@@ -180,12 +241,19 @@ exports.geocodeStores = catchAsync(async (req, res) => {
 
   if (!stores.length) {
     return res.success({
-      processed: 0, geocoded: 0, failed: 0, provider: geocodeSvc.provider(),
-      samples: [], nextCursor: 0, done: true,
+      processed: 0,
+      geocoded: 0,
+      failed: 0,
+      provider: geocodeSvc.provider(),
+      samples: [],
+      nextCursor: 0,
+      done: true,
     });
   }
 
-  let processed = 0, geocoded = 0, failed = 0;
+  let processed = 0,
+    geocoded = 0,
+    failed = 0;
   const samples = [];
 
   for (const store of stores) {
@@ -218,7 +286,11 @@ exports.geocodeStores = catchAsync(async (req, res) => {
   });
 
   res.success({
-    processed, geocoded, failed, provider: geocodeSvc.provider(), samples,
+    processed,
+    geocoded,
+    failed,
+    provider: geocodeSvc.provider(),
+    samples,
     nextCursor: lastId,
     done: remaining === 0,
   });

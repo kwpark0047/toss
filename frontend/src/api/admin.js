@@ -15,6 +15,8 @@ export const adminAPI = {
   // 매장 정보 보강 (네이버 지역검색 API) — super_admin 전용, 커서 기반 배치
   enrichStores: ({ limit = 10, afterId = 0 } = {}) =>
     api.post('/admin/enrich-stores', { limit, afterId }),
+  // 보강 공급자 설정 상태 (미설정 공급자 비활성화 UI)
+  enrichmentStatus: () => api.get('/admin/enrichment-status'),
   // 서울 열린데이터(일반음식점 LOCALDATA) 보강 — 커서(start) 기반 배치
   enrichSeoul: ({ start = 1, size = 300, dryRun = false } = {}) =>
     api.post('/admin/enrich-seoul', { start, size, dryRun }),

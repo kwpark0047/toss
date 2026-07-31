@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { adminAPI } from '../../api/admin';
 import { useAuth } from '../../contexts/AuthContext';
 import { MapPinned, Play, Square, Loader2, AlertCircle } from 'lucide-react';
@@ -16,6 +16,22 @@ export default function StoreEnrichment() {
   const [logs, setLogs] = useState([]);
   const [error, setError] = useState('');
   const stopRef = useRef(false);
+
+  // 보강 공급자 설정 상태 (미설정 공급자는 버튼 비활성화 + 누락 환경변수 안내)
+  const [providerStatus, setProviderStatus] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    adminAPI.enrichmentStatus()
+      .then(res => { if (!cancelled) setProviderStatus(res?.data?.providers || res?.providers || null); })
+      .catch(() => { if (!cancelled) setProviderStatus(null); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const naverConfigured = providerStatus?.naver?.configured !== false;
+  const seoulConfigured = providerStatus?.seoul?.configured !== false;
+  const geocodeConfigured = providerStatus?.geocoding?.configured !== false;
+  const geocodeProvider = providerStatus?.geocoding?.availableProviders?.[0];
 
   const addLog = (msg, type = 'info') => setLogs(l => [{ msg, type, t: Date.now() }, ...l].slice(0, 100));
 
@@ -166,16 +182,16 @@ export default function StoreEnrichment() {
       <div className="flex flex-col sm:flex-row gap-2 mt-5">
         {!running ? (
           <>
-            <button type="button" onClick={runLoop}
-              className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-600 text-white font-black shadow-lg shadow-orange-500/20 hover:brightness-105 active:scale-95 transition-all">
+            <button type="button" onClick={runLoop} disabled={!naverConfigured}
+              className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-600 text-white font-black shadow-lg shadow-orange-500/20 hover:brightness-105 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100">
               <Play size={18} aria-hidden="true" /> 네이버 보강 시작
             </button>
-            <button type="button" onClick={runSeoul}
-              className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-white/5 border border-white/15 text-white font-black hover:bg-white/10 active:scale-95 transition-all">
+            <button type="button" onClick={runSeoul} disabled={!seoulConfigured}
+              className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-white/5 border border-white/15 text-white font-black hover:bg-white/10 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/5">
               <Play size={18} aria-hidden="true" /> 서울 데이터 보강
             </button>
-            <button type="button" onClick={runGeocode}
-              className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-black hover:bg-emerald-500/25 active:scale-95 transition-all">
+            <button type="button" onClick={runGeocode} disabled={!geocodeConfigured}
+              className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-black hover:bg-emerald-500/25 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-500/15">
               <MapPinned size={18} aria-hidden="true" /> 주소→좌표 지오코딩
             </button>
           </>
@@ -186,6 +202,39 @@ export default function StoreEnrichment() {
           </button>
         )}
       </div>
+
+      {/* 공급자 설정 상태 */}
+      {providerStatus && (
+        <div className="mt-4 bg-white/5 border border-white/10 rounded-2xl p-3.5 text-[11px] space-y-1.5">
+          <p className="text-slate-400 font-black uppercase tracking-wider text-[10px]">공급자 설정 상태</p>
+          <div className="flex items-center gap-2">
+            <span className={`w-1.5 h-1.5 rounded-full ${naverConfigured ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+            <span className="font-bold text-slate-300">네이버</span>
+            {providerStatus.naver?.missing?.length > 0
+              ? providerStatus.naver.missing.map(key => (
+                  <span key={key}>
+                    <span className="text-rose-300 font-mono">{key}</span>
+                    <span className="text-rose-300/70"> 미설정</span>
+                  </span>
+                ))
+              : <span className="text-slate-500">설정됨</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`w-1.5 h-1.5 rounded-full ${seoulConfigured ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+            <span className="font-bold text-slate-300">서울 열린데이터</span>
+            {providerStatus.seoul?.configured
+              ? <span className="text-slate-500">키 {providerStatus.seoul.keyCount}개 설정됨</span>
+              : <span className="text-rose-300 font-mono">SEOUL_OPENAPI_KEYS 미설정</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`w-1.5 h-1.5 rounded-full ${geocodeConfigured ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+            <span className="font-bold text-slate-300">주소→좌표</span>
+            {geocodeConfigured
+              ? <span className="text-slate-500">사용: {geocodeProvider}</span>
+              : <span className="text-rose-300 font-mono">지오코딩 키 미설정</span>}
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="mt-4 flex items-start gap-2 bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 text-sm text-rose-300">

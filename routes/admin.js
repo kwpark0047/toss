@@ -450,6 +450,12 @@ router.post(
 );
 
 // ── 매장 정보 보강 (super_admin) ──────────────────────────────────────────
+router.get(
+  '/enrichment-status',
+  authMiddleware,
+  adminOnly,
+  storeEnrichmentController.enrichmentStatus
+);
 router.post('/enrich-stores', authMiddleware, adminOnly, storeEnrichmentController.enrichNaver);
 router.post('/enrich-seoul', authMiddleware, adminOnly, storeEnrichmentController.enrichSeoul);
 router.post('/geocode-stores', authMiddleware, adminOnly, storeEnrichmentController.geocodeStores);
