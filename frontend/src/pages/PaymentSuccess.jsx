@@ -68,14 +68,38 @@ export default function PaymentSuccess() {
       return;
     }
 
+    // 위조 콜백 차단: 결제 시작 시 저장한 pending 세션이 일치해야만 승인을 진행한다.
+    const pendingRaw = sessionStorage.getItem(`wm_pending_payment:${paymentId}`);
+    if (!pendingRaw) {
+      setStatus('error');
+      setErrorMsg('결제 세션 정보가 없습니다. 결제를 다시 시도해 주세요.');
+      return;
+    }
+
+    let pending = null;
+    try {
+      pending = JSON.parse(pendingRaw);
+    } catch {
+      setStatus('error');
+      setErrorMsg('결제 세션 정보가 올바르지 않습니다. 결제를 다시 시도해 주세요.');
+      return;
+    }
+
     const capturePayment = async () => {
       try {
-        const data = await paymentsAPI.confirm(paymentId, {
-          paymentKey,
-          orderId,
-          amount: Number(amount),
-          customerKey: tossUserKey || undefined,
-        });
+        const data = await paymentsAPI.confirm(
+          paymentId,
+          {
+            paymentKey,
+            orderId,
+            amount: Number(amount),
+            customerKey: tossUserKey || undefined,
+          },
+          pending.capability || undefined
+        );
+
+        // 승인 후 pending 세션 정리 (재사용/위조 방지)
+        sessionStorage.removeItem(`wm_pending_payment:${paymentId}`);
 
         if (data && data.success) {
           setPaymentResult(data);

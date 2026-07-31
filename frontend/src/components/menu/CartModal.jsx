@@ -14,9 +14,10 @@ const getPaymentGroups = (t) => [
     label: t('cart_modal.easy_payment'),
     description: t('cart_modal.easy_payment_desc'),
     methods: [
-      { id: 'toss',     label: '토스페이',     icon: Smartphone, desc: t('cart_modal.toss_pay_desc'),   brandColor: '#0064FF', bgClass: 'bg-blue-500' },
-      { id: 'kakao',    label: '카카오페이',   icon: Smartphone, desc: t('cart_modal.kakao_pay_desc'),  brandColor: '#FEE500', bgClass: 'bg-yellow-300', textColor: '#000000' },
-      { id: 'naver',    label: '네이버페이',   icon: Smartphone, desc: t('cart_modal.naver_pay_desc'),  brandColor: '#03C75A', bgClass: 'bg-green-500' },
+      { id: 'toss',     label: '토스페이',     icon: Smartphone, desc: t('cart_modal.toss_pay_desc'),   brandColor: '#0064FF', bgClass: 'bg-blue-500', available: true },
+      // 카카오/네이버페이는 아직 PG 가맹 미완료 — 선택 불가 처리 (현재 이용 불가 라벨 노출)
+      { id: 'kakao',    label: '카카오페이',   icon: Smartphone, desc: t('cart_modal.kakao_pay_desc'),  brandColor: '#FEE500', bgClass: 'bg-yellow-300', textColor: '#000000', available: false },
+      { id: 'naver',    label: '네이버페이',   icon: Smartphone, desc: t('cart_modal.naver_pay_desc'),  brandColor: '#03C75A', bgClass: 'bg-green-500', available: false },
     ],
   },
   {
@@ -24,9 +25,9 @@ const getPaymentGroups = (t) => [
     label: t('cart_modal.standard_payment'),
     description: t('cart_modal.standard_payment_desc'),
     methods: [
-      { id: 'cash',     label: '현금',         icon: Banknote,   desc: t('cart_modal.cash_desc'),       brandColor: '#16A34A', bgClass: 'bg-emerald-500' },
-      { id: 'card',     label: '신용카드',     icon: CreditCard, desc: t('cart_modal.card_desc'),       brandColor: '#0EA5E9', bgClass: 'bg-sky-500' },
-      { id: 'transfer', label: '계좌이체',     icon: Building2,  desc: t('cart_modal.transfer_desc'),   brandColor: '#475569', bgClass: 'bg-slate-600' },
+      { id: 'cash',     label: '현금',         icon: Banknote,   desc: t('cart_modal.cash_desc'),       brandColor: '#16A34A', bgClass: 'bg-emerald-500', available: true },
+      { id: 'card',     label: '신용카드',     icon: CreditCard, desc: t('cart_modal.card_desc'),       brandColor: '#0EA5E9', bgClass: 'bg-sky-500', available: true },
+      { id: 'transfer', label: '계좌이체',     icon: Building2,  desc: t('cart_modal.transfer_desc'),   brandColor: '#475569', bgClass: 'bg-slate-600', available: true },
     ],
   },
 ];
@@ -257,20 +258,29 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                       <div className="grid grid-cols-3 gap-1.5">
                         {group.methods.map((method) => {
                           const isSelected = paymentMethod === method.id;
+                          const isUnavailable = method.available === false;
                           const Icon = method.icon;
+                          const accessibleLabel = isUnavailable
+                            ? `${method.label} (현재 이용 불가)`
+                            : method.label;
                           return (
                             <motion.button
                               key={method.id}
                               layout
                               layoutId={`payment-card-${method.id}`}
+                              disabled={isUnavailable}
+                              aria-label={accessibleLabel}
                               onClick={() => {
+                                if (isUnavailable) return;
                                 vibrateClick();
                                 onPaymentMethodChange(method.id);
                               }}
                               className={`relative flex flex-col items-start gap-1.5 p-2.5 rounded-xl border-2 text-left transition-all ${
-                                isSelected
-                                  ? 'border-grey-900 dark:border-white/40 bg-grey-50 dark:bg-white/10 shadow-sm'
-                                  : 'border-transparent bg-grey-50/50 dark:bg-white/5 hover:bg-grey-100/70 dark:hover:bg-white/10'
+                                isUnavailable
+                                  ? 'border-transparent bg-grey-50/40 dark:bg-white/5 opacity-60 cursor-not-allowed'
+                                  : isSelected
+                                    ? 'border-grey-900 dark:border-white/40 bg-grey-50 dark:bg-white/10 shadow-sm'
+                                    : 'border-transparent bg-grey-50/50 dark:bg-white/5 hover:bg-grey-100/70 dark:hover:bg-white/10'
                               }`}
                             >
                               {isSelected && (
@@ -313,6 +323,11 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                                     </motion.span>
                                   )}
                                 </div>
+                                {isUnavailable && (
+                                  <span className="block text-[9px] font-bold text-grey-400 mt-0.5">
+                                    현재 준비 중입니다
+                                  </span>
+                                )}
                               </div>
                             </motion.button>
                           );

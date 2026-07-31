@@ -36,7 +36,12 @@ export const ordersAPI = {
 export const paymentsAPI = {
   create: (data) => api.post('/payments', data),
   getById: (id) => api.get('/payments/' + id),
-  confirm: (id, data) => api.post('/payments/' + id + '/confirm', data),
+  confirm: (id, data, capability) =>
+    api.post(
+      '/payments/' + id + '/confirm',
+      data,
+      capability ? { headers: { 'x-order-capability': capability } } : undefined
+    ),
   cancel: (id, data) => api.post('/payments/' + id + '/cancel', data),
   cancelByOrder: (orderId, data) => api.post('/payments/order/' + orderId + '/cancel', data),
   partialCancel: (orderId, cancelAmount, cancelReason) =>

@@ -14,9 +14,36 @@ async function loadTossPayments() {
   return window.TossPayments;
 }
 
-export async function requestTossCheckout({ paymentId, amount, orderId, orderName, phone }) {
+export async function requestTossCheckout({
+  paymentId,
+  amount,
+  orderId,
+  orderName,
+  phone,
+  capability,
+  internalOrderId,
+}) {
   const TossPayments = await loadTossPayments();
   if (!TossPayments) throw new Error('Toss Payments SDK를 활성화할 수 없습니다.');
+
+  // 결제 시작 시 pending 세션을 저장한다.
+  // PaymentSuccess가 최종 승인(Capture) 전에 이 레코드를 검증해
+  // 위조된 콜백 URL로 서버 승인이 트리거되는 것을 차단한다.
+  try {
+    sessionStorage.setItem(
+      `wm_pending_payment:${paymentId}`,
+      JSON.stringify({
+        paymentId: String(paymentId),
+        orderId: internalOrderId || null,
+        providerOrderId: orderId,
+        amount,
+        capability: capability || null,
+        createdAt: Date.now(),
+      })
+    );
+  } catch {
+    // sessionStorage 미지원 환경 — 보안 검증을 우회하지 않도록 예외 전파
+  }
 
   const metadata = new URLSearchParams({ payment_id: String(paymentId) });
   await TossPayments(TOSS_CLIENT_KEY).requestPayment('카드', {
