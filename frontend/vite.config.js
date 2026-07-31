@@ -165,20 +165,22 @@ export default defineConfig({
 
   build: {
     outDir: 'dist',
+    cssCodeSplit: true,
     rollupOptions: {
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router'],
           'vendor-icons': ['lucide-react'],
           'vendor-utils': ['axios', 'socket.io-client'],
-          // framer-motion 은 랜딩/메뉴(초기 경로)에서 실제로 쓰이므로 초기 청크에 둔다.
+          // [M-5] framer-motion은 admin/대시보드 전용 → lazy chunk로 분리
           'vendor-motion': ['framer-motion'],
-          // [M-5] recharts/xlsx 는 대시보드·일괄등록 전용으로 이미 라우트 분할되어 있다.
-          //   별도 manualChunk 로 강제하면 entry 가 해당 모듈까지 끌어와 초기 로드가
-          //   무거워지므로(modulepreload 주입), 여기서는 제외하고 Rollup 자동 분할에 맡긴다.
+          // [M-5] firebase는 인증/푸시 전용 → 별도 chunk
+          'vendor-firebase': ['firebase/app', 'firebase/messaging', 'firebase/analytics'],
+          // [M-5] recharts/xlsx는 대시보드·일괄등록 전용 → 라우트 분할로 처리
+          //   별도 manualChunk로 강제하면 entry가 해당 모듈까지 끌어와 초기 로드가 무겁게 됨
         },
       },
     },
-    chunkSizeWarningLimit: 500,
+    chunkSizeWarningLimit: 400,
   },
 });
