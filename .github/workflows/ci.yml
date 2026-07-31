@@ -246,11 +246,4 @@ jobs:
       - run: npm run cloudflare-build
       - name: Check bundle size
         run: |
-          SIZE=$(du -sb frontend/dist/assets/index-*.js | cut -f1)
-          echo "Bundle size: $SIZE bytes"
-          if [ "$SIZE" -gt 600000 ]; then
-            echo "❌ Bundle size exceeds 600KB limit"
-            exit 1
-          else
-            echo "✅ Bundle size within limits"
-          fi
+          npm run bundle:check
