@@ -74,7 +74,6 @@ fi
   # Percentage
   PERCENT=$((MAIN_SIZE * 100 / (LIMIT_KB * 1024)))
   echo "   Progress: ${PERCENT}% of limit"
-fi
 
 echo ""
 echo "=== Report Complete ==="

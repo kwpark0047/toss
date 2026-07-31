@@ -97,7 +97,7 @@ describe('MenuProductList', () => {
   });
 
   it('품절 상품 → 담기 버튼 비활성화', () => {
-    const products = [{ id: 1, name: '품절상품', price: 5000, image_url: null, is_sold_out: true }];
+    const products = [{ id: 1, name: '아메리카노', price: 5000, image_url: null, is_sold_out: true }];
 
     render(h(MenuProductList, {
       filteredProducts: products,
@@ -109,7 +109,7 @@ describe('MenuProductList', () => {
       gradientBg,
     }), { wrapper: createWrapper() });
 
-    expect(screen.getByText(/SOLD OUT|품절/)).toBeInTheDocument();
+    expect(screen.getByText('SOLD OUT')).toBeInTheDocument();
   });
 
   it('정상 상품 → 담기 버튼 클릭 시 addToCart 호출', () => {
@@ -133,7 +133,7 @@ describe('MenuProductList', () => {
 
   it('번역된 설명 표시', () => {
     const products = [{ id: 1, name: '커피', price: 3000, image_url: null, description: '원두 커피' }];
-    const translations = { 1: '번역된 설명', 1 + '_name': 'Translated Coffee' };
+    const translations = { 1: '번역된 설명', [`1_name`]: 'Translated Coffee' };
 
     render(h(MenuProductList, {
       filteredProducts: products,
