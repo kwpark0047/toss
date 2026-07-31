@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/static-components */
 import { motion } from 'framer-motion';
+import { Link } from 'react-router';
 import { Store, Coffee, Utensils, Cake, Pizza, ShoppingBag, MapPin, Star, BellRing, Heart, Navigation, MessageCircle } from 'lucide-react';
 import { bizLabel } from '../utils/businessType';
 
@@ -68,14 +69,11 @@ export default function StoreCard({
   const TypeIcon = getTypeIcon(store.business_type);
   const openStatus = getStoreOpenStatus(store.open_time, store.close_time);
 
-  const navigate = (path) => { window.location.href = path; };
-
   // ── 리스트 뷰 ──
   if (viewType === 'list') {
     return (
       <motion.div
         layout
-        onClick={() => navigate("/menu?store=" + store.id)}
         className="group relative bg-white/5 backdrop-blur-xl rounded-[2.5rem] border border-white/5 p-6 flex flex-col sm:flex-row gap-8 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer overflow-hidden"
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -mr-16 -mt-16 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -93,23 +91,25 @@ export default function StoreCard({
           <div>
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-black text-2xl text-white group-hover:text-orange-400 transition-colors truncate">{store.name}</h3>
-                  <span className="px-3 py-1 bg-white/5 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest">{bizLabel(store.business_type)}</span>
-                </div>
-                <p className="text-slate-400 font-medium flex items-center gap-2 mb-2 leading-relaxed">
-                  <MapPin className="w-4 h-4 text-orange-500" />
-                  {store.address || '주소 정보가 없습니다'}
-                </p>
-                {/* 영업시간 표시 */}
-                {openStatus.hoursText && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${openStatus.isOpen ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/15 text-red-400 border border-red-500/30'}`}>
-                      {openStatus.isOpen ? '영업중' : '마감'}
-                    </span>
-                    <span className="text-[11px] font-bold text-slate-500">{openStatus.hoursText}</span>
+                <Link to={`/menu/${store.id}`} aria-label={`${store.name} 메뉴 보기`} className="block">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="font-black text-2xl text-white group-hover:text-orange-400 transition-colors truncate">{store.name}</h3>
+                    <span className="px-3 py-1 bg-white/5 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest">{bizLabel(store.business_type)}</span>
                   </div>
-                )}
+                  <p className="text-slate-400 font-medium flex items-center gap-2 mb-2 leading-relaxed">
+                    <MapPin className="w-4 h-4 text-orange-500" />
+                    {store.address || '주소 정보가 없습니다'}
+                  </p>
+                  {/* 영업시간 표시 */}
+                  {openStatus.hoursText && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${openStatus.isOpen ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/15 text-red-400 border border-red-500/30'}`}>
+                        {openStatus.isOpen ? '영업중' : '마감'}
+                      </span>
+                      <span className="text-[11px] font-bold text-slate-500">{openStatus.hoursText}</span>
+                    </div>
+                  )}
+                </Link>
               </div>
 
               <div className="flex flex-col items-end gap-2 flex-shrink-0">
@@ -140,9 +140,12 @@ export default function StoreCard({
               >
                 대기 등록
               </button>
-              <button className="px-8 py-3 bg-gradient-to-r from-orange-500 to-rose-600 text-white text-xs font-black rounded-2xl shadow-xl shadow-orange-500/20 hover:scale-105 transition-all active:scale-95">
+              <Link
+                to={`/menu/${store.id}`}
+                className="px-8 py-3 bg-gradient-to-r from-orange-500 to-rose-600 text-white text-xs font-black rounded-2xl shadow-xl shadow-orange-500/20 hover:scale-105 transition-all active:scale-95 inline-flex items-center"
+              >
                 메뉴 확인
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -154,78 +157,91 @@ export default function StoreCard({
   return (
     <motion.div
       layout
-      onClick={() => navigate("/menu?store=" + store.id)}
       className="group relative bg-white/5 backdrop-blur-xl rounded-[3rem] border border-white/5 hover:border-white/15 transition-all cursor-pointer flex flex-col h-full overflow-hidden"
     >
-      <div className="h-52 bg-slate-900 flex items-center justify-center relative overflow-hidden">
-        <TypeIcon className="w-20 h-20 text-slate-800 group-hover:text-orange-500/30 group-hover:scale-110 transition-all duration-700 ease-out" />
+      <Link
+        to={`/menu/${store.id}`}
+        aria-label={`${store.name} 메뉴 보기`}
+        className="flex-1 flex flex-col"
+      >
+        <div className="h-52 bg-slate-900 flex items-center justify-center relative overflow-hidden">
+          <TypeIcon className="w-20 h-20 text-slate-800 group-hover:text-orange-500/30 group-hover:scale-110 transition-all duration-700 ease-out" />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
 
-        <div className="absolute inset-0 p-6 flex flex-col justify-between">
-          <div className="flex justify-between items-start">
-            <span className="px-4 py-1.5 bg-slate-950/80 backdrop-blur-xl border border-white/10 text-[10px] font-black text-orange-500 rounded-xl uppercase tracking-widest">
-              {bizLabel(store.business_type)}
-            </span>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => onToggleFavorite?.(store.id, e)}
-              className={`w-10 h-10 backdrop-blur-xl border rounded-2xl flex items-center justify-center shadow-2xl transition-colors ${isFavorite ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-slate-950/80 border-white/10 text-rose-500'}`}
-            >
-              <Heart size={20} className={isFavorite ? 'fill-rose-400' : ''} />
-            </motion.button>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {waitingCount > 0 && (
-              <span className="px-4 py-2 bg-orange-600 text-[10px] font-black text-white rounded-xl shadow-2xl shadow-orange-500/30 flex items-center gap-2 animate-pulse">
-                <BellRing size={12} /> 실시간 대기 {waitingCount}팀
+          <div className="absolute inset-0 p-6 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <span className="px-4 py-1.5 bg-slate-950/80 backdrop-blur-xl border border-white/10 text-[10px] font-black text-orange-500 rounded-xl uppercase tracking-widest">
+                {bizLabel(store.business_type)}
               </span>
-            )}
+              <span
+                role="button"
+                aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+                tabIndex={0}
+                onClick={(e) => onToggleFavorite?.(store.id, e)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onToggleFavorite?.(store.id, e);
+                  }
+                }}
+                className={`w-10 h-10 backdrop-blur-xl border rounded-2xl flex items-center justify-center shadow-2xl transition-colors ${isFavorite ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-slate-950/80 border-white/10 text-rose-500'}`}
+              >
+                <Heart size={20} className={isFavorite ? 'fill-rose-400' : ''} />
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {waitingCount > 0 && (
+                <span className="px-4 py-2 bg-orange-600 text-[10px] font-black text-white rounded-xl shadow-2xl shadow-orange-500/30 flex items-center gap-2 animate-pulse">
+                  <BellRing size={12} /> 실시간 대기 {waitingCount}팀
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="p-8 flex-1 flex flex-col">
-        <div className="flex items-start justify-between gap-4 mb-3">
-          <h3 className="font-black text-xl text-white group-hover:text-orange-400 transition-colors truncate leading-tight">{store.name}</h3>
-          <div className="flex items-center gap-2 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20 flex-shrink-0">
-            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-            <span className="font-black text-white text-xs">{rating}</span>
+        <div className="p-8 flex-1 flex flex-col">
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <h3 className="font-black text-xl text-white group-hover:text-orange-400 transition-colors truncate leading-tight">{store.name}</h3>
+            <div className="flex items-center gap-2 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20 flex-shrink-0">
+              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+              <span className="font-black text-white text-xs">{rating}</span>
+            </div>
           </div>
+
+          <p className="text-sm text-slate-400 font-medium line-clamp-2 mb-3 leading-relaxed flex-1">
+            {store.description || store.address || '매장 정보가 아직 등록되지 않았습니다.'}
+          </p>
+
+          {/* 영업시간 표시 */}
+          {openStatus.hoursText && (
+            <div className="flex items-center gap-2 mb-4">
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${openStatus.isOpen ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/15 text-red-400 border border-red-500/30'}`}>
+                {openStatus.isOpen ? '영업중' : '마감'}
+              </span>
+              <span className="text-[11px] font-bold text-slate-500">{openStatus.hoursText}</span>
+            </div>
+          )}
         </div>
+      </Link>
 
-        <p className="text-sm text-slate-400 font-medium line-clamp-2 mb-3 leading-relaxed flex-1">
-          {store.description || store.address || '매장 정보가 아직 등록되지 않았습니다.'}
-        </p>
-
-        {/* 영업시간 표시 */}
-        {openStatus.hoursText && (
-          <div className="flex items-center gap-2 mb-4">
-            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${openStatus.isOpen ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/15 text-red-400 border border-red-500/30'}`}>
-              {openStatus.isOpen ? '영업중' : '마감'}
-            </span>
-            <span className="text-[11px] font-bold text-slate-500">{openStatus.hoursText}</span>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between pt-4 border-t border-white/5">
-          <div className="flex items-center gap-2 text-slate-500">
-            <MessageCircle size={16} />
-            <span className="text-xs font-black uppercase tracking-widest">리뷰 {reviewCount}건</span>
-          </div>
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onWaitClick?.(store);
-            }}
-            className="bg-white/5 text-white px-6 py-3 rounded-2xl text-[11px] font-black border border-white/10 hover:bg-orange-600 hover:border-orange-500 transition-all hover:scale-105 active:scale-95"
-          >
-            대기 신청
-          </button>
+      <div className="px-8 pb-8 flex items-center justify-between pt-4 border-t border-white/5">
+        <div className="flex items-center gap-2 text-slate-500">
+          <MessageCircle size={16} />
+          <span className="text-xs font-black uppercase tracking-widest">리뷰 {reviewCount}건</span>
         </div>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onWaitClick?.(store);
+          }}
+          className="bg-white/5 text-white px-6 py-3 rounded-2xl text-[11px] font-black border border-white/10 hover:bg-orange-600 hover:border-orange-500 transition-all hover:scale-105 active:scale-95"
+        >
+          대기 신청
+        </button>
       </div>
     </motion.div>
   );

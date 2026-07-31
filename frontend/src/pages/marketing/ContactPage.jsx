@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
+import { AnimatePresence } from 'framer-motion';
 import { 
   Store, Menu, X, Mail, Phone, MapPin, CheckCircle2, Send,
   ArrowRight, ShieldCheck, Heart, Sparkles, Building2, HelpCircle
@@ -39,7 +40,7 @@ export default function ContactPage() {
       alert('필수 기입 필드를 채워주세요.');
       return;
     }
-    // 접수 처리 시뮬레이션
+    // 온라인 접수 시스템이 없으므로 성공을 가장하지 않고 이메일 안내로 전환한다.
     setSubmitted(true);
   };
 
@@ -174,8 +175,9 @@ export default function ContactPage() {
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">성명 (필수)</label>
+                      <label htmlFor="contact-name" className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">성명 (필수)</label>
                       <input 
+                        id="contact-name"
                         type="text" 
                         name="name"
                         required
@@ -200,8 +202,9 @@ export default function ContactPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">연락처 (필수)</label>
+                      <label htmlFor="contact-phone" className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">연락처 (필수)</label>
                       <input 
+                        id="contact-phone"
                         type="tel" 
                         name="phone"
                         required
@@ -212,8 +215,9 @@ export default function ContactPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">이메일 주소 (필수)</label>
+                      <label htmlFor="contact-email" className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">이메일 주소 (필수)</label>
                       <input 
+                        id="contact-email"
                         type="email" 
                         name="email"
                         required
@@ -241,8 +245,9 @@ export default function ContactPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">문의 내용 (필수)</label>
+                    <label htmlFor="contact-message" className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">문의 내용 (필수)</label>
                     <textarea 
+                      id="contact-message"
                       name="message"
                       required
                       rows={5}
@@ -258,22 +263,33 @@ export default function ContactPage() {
                     className="w-full py-4 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 active:scale-95 flex items-center justify-center gap-2 transition-all"
                   >
                     <Send className="size-4" />
-                    <span>상담 신청 제출하기</span>
+                    <span>이메일 문의 안내 보기</span>
                   </button>
                 </form>
               ) : (
-                /* 제출 성공 화면 */
-                <div className="py-20 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-200">
-                  <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-500 flex items-center justify-center mb-6">
-                    <CheckCircle2 className="size-8" />
+                /* 접수 안내 — 온라인 접수 시스템이 없으므로 성공을 가장하지 않는다 */
+                <div
+                  role="alert"
+                  className="py-20 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-200"
+                >
+                  <div className="w-16 h-16 rounded-full bg-orange-50 border border-orange-200 text-orange-500 flex items-center justify-center mb-6">
+                    <Mail className="size-8" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-900 mb-3">상담 신청 접수 완료!</h3>
+                  <h3 className="text-xl font-black text-slate-900 mb-3">이메일로 문의해 주세요</h3>
                   <p className="text-slate-500 text-xs leading-relaxed max-w-sm mb-8">
-                    성공적으로 신청서가 접수되었습니다. 기입해 주신 이메일 및 전화번호로 24시간 이내에 담당 상담사가 연락드리겠습니다.
+                    온라인으로 접수되지 않았습니다. 신속한 답변을 원하시면 아래 이메일로
+                    문의 내용을 보내주세요. 영업일 기준 24시간 이내에 담당자가 회신드립니다.
                   </p>
+                  <a
+                    href={`mailto:support@wemarket.co.kr?subject=${encodeURIComponent(`[문의] ${formData.storeName || formData.name}`)}&body=${encodeURIComponent(`성명: ${formData.name}\n상호: ${formData.storeName}\n연락처: ${formData.phone}\n문의 유형: ${formData.category}\n\n${formData.message}`)}`}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 transition-all"
+                  >
+                    <Mail className="size-4" />
+                    이메일로 문의하기
+                  </a>
                   <button 
                     onClick={() => { setSubmitted(false); setFormData({ name: '', storeName: '', phone: '', email: '', category: 'GENERAL', message: '' }); }}
-                    className="px-6 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 text-xs font-bold rounded-xl transition-all"
+                    className="mt-6 px-6 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 text-xs font-bold rounded-xl transition-all"
                   >
                     새로운 문의 작성하기
                   </button>
