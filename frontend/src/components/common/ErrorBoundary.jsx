@@ -62,9 +62,15 @@ export class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Sentry로 에러 전송
+    if (import.meta.env.DEV) {
+      console.error('[ErrorBoundary]', error.message, errorInfo?.componentStack?.substring(0, 300));
+    }
+
     if (!import.meta.env.DEV) {
-      Sentry.captureException(error, { contexts: errorInfo });
+      Sentry.captureException(error, {
+        contexts: errorInfo,
+        tags: { boundary: this.props.name || 'Unknown' },
+      });
     }
     if (typeof this.props.onError === 'function') {
       this.props.onError(error, errorInfo);
@@ -74,6 +80,12 @@ export class ErrorBoundary extends Component {
   handleReset = () => {
     this.setState({ hasError: false, error: null });
   };
+
+  componentDidUpdate(prevProps) {
+    if (this.state.hasError && prevProps.resetKeys !== this.props.resetKeys) {
+      this.handleReset();
+    }
+  }
 
   render() {
     if (this.state.hasError) {
