@@ -38,6 +38,10 @@
     "test:e2e:report": "npx playwright show-report playwright-report",
     "lint": "eslint .",
     "lint:backend": "eslint .",
+    "lhci:collect": "lhci collect",
+    "lhci:assert": "lhci assert",
+    "lhci:server": "lhci server",
+    "lhci:upload": "lhci upload",
     "security:scan": "semgrep --config p/javascript --config p/nodejs --config p/secrets --config p/owasp-top-ten --exclude node_modules --exclude dist --exclude frontend/dist --exclude tests routes services middleware controllers utils models config app.js index.js",
     "security:scan:frontend": "semgrep --config p/react --config p/secrets --exclude node_modules --exclude dist frontend/src",
     "prepare": "husky"
