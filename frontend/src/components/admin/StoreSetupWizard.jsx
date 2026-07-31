@@ -7,6 +7,7 @@ import {
   Clock, Phone, MapPin, PartyPopper, X
 } from 'lucide-react';
 import { storesAPI, categoriesAPI, productsAPI, tablesAPI, aiAPI } from '../../api';
+import { useStore } from '../../contexts/StoreContext';
 import { buildMenuUrl, buildQrUrl } from '../../utils/site';
 
 // 공용 컴포넌트 및 유틸 임포트
@@ -36,9 +37,10 @@ const STEPS = [
 ];
 
 export default function StoreSetupWizard() {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
+    const { refetch: refetchStores } = useStore();
 
-  const [step, setStep]               = useState(0);
+    const [step, setStep]               = useState(0);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [saving, setSaving]           = useState(false);
   const [tbMsg, setTbMsg]             = useState('');
@@ -147,7 +149,11 @@ export default function StoreSetupWizard() {
         return;
       }
 
-      setCreatedStore(store);
+       setCreatedStore(store);
+
+      // StoreContext의 매장 목록 새로고침
+      refetchStores();
+
 
       const catRes = await categoriesAPI.create({ store_id: store.id, name: '기본 메뉴' });
       setCreatedCategory(catRes?.data || catRes);
