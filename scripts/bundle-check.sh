@@ -41,19 +41,31 @@ done
 echo "─────────────────────────────────"
 
 # Check main bundle against limit
-MAIN_BUNDLE=$(ls -S "$DIST_DIR"/assets/index-*.js 2>/dev/null | head -1)
+# index.html의 <script type="module"> 엔트리 스크립트를 기준으로 main 번들을 측정한다.
+# (lazy chunk가 더 클 수 있으므로 단순 "가장 큰 index-*.js"로는 오판 가능)
+ENTRY_JS=$(grep -oP '<script type="module"[^>]*src="[^"]*"' "$DIST_DIR/index.html" | grep -oP 'src="\K[^"]*')
+MAIN_BUNDLE=""
+if [ -n "$ENTRY_JS" ]; then
+  MAIN_BUNDLE="${DIST_DIR}/${ENTRY_JS#/}"
+fi
+
 if [ -n "$MAIN_BUNDLE" ] && [ -f "$MAIN_BUNDLE" ]; then
   MAIN_SIZE=$(du -b "$MAIN_BUNDLE" | cut -f1)
   MAIN_KB=$((MAIN_SIZE / 1024))
   LIMIT_KB=600
 
   echo ""
-  echo "🎯 Main bundle: ${MAIN_KB}KB (limit: ${LIMIT_KB}KB)"
+  echo "🎯 Main bundle: ${MAIN_KB}KB (${MAIN_BUNDLE#$DIST_DIR/}, limit: ${LIMIT_KB}KB)"
+else
+  echo ""
+  echo "❌ Main bundle (entry script) not found in $DIST_DIR/index.html"
+  exit 1
+fi
 
   if [ "$MAIN_SIZE" -gt $((LIMIT_KB * 1024)) ]; then
     echo "❌ Main bundle exceeds ${LIMIT_KB}KB limit by $(( (MAIN_KB - LIMIT_KB) ))KB"
     exit 1
-  elif [ "$MAIN_SIZE" -gt $((LIMIT_KB * 90 / 10)) ]; then
+  elif [ "$MAIN_SIZE" -gt $((LIMIT_KB * 1024 * 90 / 100)) ]; then
     echo "⚠️  Main bundle is approaching limit (${MAIN_KB}KB / ${LIMIT_KB}KB)"
   else
     echo "✅ Main bundle within limits"

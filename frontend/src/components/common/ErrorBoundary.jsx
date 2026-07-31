@@ -1,5 +1,5 @@
 import { Component } from 'react';
-import * as Sentry from "@sentry/react";
+import { captureException } from '@/lib/sentry';
 
 /**
  * ErrorFallback — 에러 발생 시 표시되는 UI
@@ -67,7 +67,7 @@ export class ErrorBoundary extends Component {
     }
 
     if (!import.meta.env.DEV) {
-      Sentry.captureException(error, {
+      captureException(error, {
         contexts: errorInfo,
         tags: { boundary: this.props.name || 'Unknown' },
       });

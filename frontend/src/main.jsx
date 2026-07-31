@@ -1,30 +1,14 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import * as Sentry from "@sentry/react";
-import { BrowserTracing } from "@sentry/tracing";
 import './index.css'
 import App from './App.jsx'
 import './i18n';
 import { wakeupServer } from './api/wakeup.js';
 import { initWebVitals } from './utils/webVitals';
+import { initSentry } from './lib/sentry.js';
 
-// Sentry 에러 추적 (운영 환경에서만 활성화)
-if (!import.meta.env.DEV) {
-  Sentry.init({
-    dsn: "https://your-sentry-dsn@sentry.io/YOUR_PROJECT_ID",
-    integrations: [new BrowserTracing()],
-    tracesSampleRate: 1.0,
-    environment: import.meta.env.MODE,
-    beforeSend(event) {
-      // 민감한 정보 필터링
-      if (event.request?.headers) {
-        delete event.request.headers.authorization;
-        delete event.request.headers.cookie;
-      }
-      return event;
-    }
-  });
-}
+// Sentry 에러 추적 (운영 환경에서만 지연 로드 — main chunk에서 제외)
+initSentry();
 
 // Render 콜드스타트 대비: 앱 로드 즉시 서버 웨이크업 (논블로킹)
 if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {

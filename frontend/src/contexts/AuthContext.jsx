@@ -1,10 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import * as Sentry from '@sentry/react';
 import { authAPI } from '../api/auth';
 import { storesAPI } from '../api/stores';
 import { API_URL } from '../api/client';
 import api from '../api/client';
+import { syncSentryUser } from '../lib/sentry';
 
 const AuthContext = createContext(null);
 
@@ -185,18 +185,9 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  // Sentry에 사용자 컨텍스트 동기화 (운영 환경에서만 의미 있음 — SDK가 dev에서는 no-op)
+  // Sentry에 사용자 컨텍스트 동기화 (운영 환경에서만 의미 있음 — 지연 로드)
   useEffect(() => {
-    if (!user) {
-      Sentry.setUser(null);
-      return;
-    }
-    Sentry.setUser({
-      id: String(user.id ?? ''),
-      username: user.name ?? undefined,
-      role: user.role ?? undefined,
-    });
-    Sentry.setTag('user_role', user.role ?? 'anonymous');
+    syncSentryUser(user);
   }, [user]);
 
   // MasterDashboard가 캐시를 소비하는 함수 (한 번만 사용 가능)
