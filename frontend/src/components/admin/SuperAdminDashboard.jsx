@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { adminAPI } from '../../api/admin';
 import { bizLabel } from '../../utils/businessType';
+import { useSEO } from '../../lib/useSEO';
 import MiniBarChart from './MiniBarChart';
 import StoreDetailModal from './StoreDetailModal';
 
@@ -19,6 +20,7 @@ const num = (n) => Number(n || 0).toLocaleString('ko-KR');
  */
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
+  useSEO({ title: '플랫폼 관리 | 위마켓', description: '위마켓 플랫폼의 매장, 고객, 주문을 관리합니다.' });
   const [overview, setOverview] = useState(null);
   const [rows, setRows] = useState([]);
   const [page, setPage] = useState(1);

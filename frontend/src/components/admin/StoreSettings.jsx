@@ -3,6 +3,7 @@ import { useParams } from 'react-router';
 import { storesAPI, tierSettingsAPI } from '../../api';
 import { Clock, Palette, Save, CheckCircle2, ChevronDown, ChevronUp, Sun, Moon, Store, Type, Layout, Brush, ToggleLeft, ToggleRight, CopyCheck, Award, Plus, Trash2, Edit3 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useSEO } from '../../lib/useSEO';
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
 const DAYS = [
@@ -109,7 +110,8 @@ function ColorField({ label, value, onChange }) {
 
 // ── 메인 컴포넌트 ──────────────────────────────────────────────────────────────
 export default function StoreSettings() {
-  const { storeId } = useParams();
+    useSEO({ title: '매장 설정 | 위마켓', description: '매장 정보, 테마, 결제 설정을 관리합니다.' });
+    const { storeId } = useParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 

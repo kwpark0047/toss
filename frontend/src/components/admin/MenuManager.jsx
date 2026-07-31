@@ -3,6 +3,7 @@ import { useMenuManager } from '../../hooks/useMenuManager';
 import { ArrowLeft, Plus, Sparkles, Folders, Store } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { lazy, Suspense } from 'react';
+import { useSEO } from '../../lib/useSEO';
 import Skeleton from '../common/Skeleton';
 import { CategoryModal } from './CategoryModal';
 import { CategoryList } from './menu/CategoryList';
@@ -15,7 +16,8 @@ const OptionTemplateModal = lazy(() => import('./OptionTemplateModal'));
 const ProductModal = lazy(() => import('./ProductModal'));
 
 const MenuManager = () => {
-  const { storeId } = useParams();
+    useSEO({ title: '메뉴 관리 | 위마켓', description: '매장 메뉴를 관리합니다.' });
+    const { storeId } = useParams();
   const navigate = useNavigate();
   
   const {

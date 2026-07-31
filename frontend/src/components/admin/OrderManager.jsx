@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router';
 import { ordersAPI, storesAPI, paymentsAPI, staffAPI } from '../../api';
 import { ArrowLeft, Clock, CheckCircle, XCircle, ChefHat, Package, RefreshCw, Search, Calendar, Bell, Volume2, VolumeX, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSEO } from '../../lib/useSEO';
 import notificationSound from '../../utils/notificationSound';
 import { onNewOrder, onOrderUpdated } from '../../utils/socket';
 import { formatTime, formatDateTime } from '../../utils/format';
@@ -34,7 +35,8 @@ const STATUS_TABS = [
 ];
 
 const OrderManager = () => {
-  const { storeId } = useParams();
+    useSEO({ title: '주문 관리 | 위마켓', description: '주문 내역 및 상태를 관리합니다.' });
+    const { storeId } = useParams();
   const [store, setStore] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);

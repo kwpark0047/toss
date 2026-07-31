@@ -3,6 +3,7 @@ import {
     Activity, Database, Zap, Shield, RefreshCw, AlertTriangle,
     CheckCircle2, XCircle, Clock, TrendingUp, Server, Cpu, BarChart3
 } from 'lucide-react';
+import { useSEO } from '../../lib/useSEO';
 import api from '../../api';
 
 /**
@@ -79,6 +80,7 @@ const MetricCard = ({ icon: Icon, label, value, sub, color = '#6B7280', alert })
 );
 
 export default function SystemStatus() {
+    useSEO({ title: '시스템 상태 | 위마켓', description: '위마켓 시스템 상태 및 서비스 모니터링' });
     const [health, setHealth]     = useState(null);
     const [sla, setSla]           = useState(null);
     const [circuits, setCircuits] = useState([]);
