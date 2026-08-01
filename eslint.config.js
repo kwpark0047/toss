@@ -14,6 +14,8 @@ module.exports = [
       'dist/',
       'commitlint.config.js',
       'scripts/',
+      // Prisma 클라이언트 생성물 — 소스는 prisma/schema.prisma 에서 관리
+      'prisma/app/generated/**',
       // TypeScript 컴파일 출력물 — 소스는 .ts 파일에서 관리
       'services/KdsService.js',
       'utils/kstTime.js',
@@ -38,7 +40,10 @@ module.exports = [
     rules: {
       ...js.configs.recommended.rules,
 
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
       'no-console': 'off',
       'no-constant-condition': ['error', { checkLoops: false }],
       'no-empty': ['error', { allowEmptyCatch: true }],
@@ -49,8 +54,8 @@ module.exports = [
 
       'prefer-const': 'error',
       'no-var': 'error',
-      'eqeqeq': ['error', 'always', { null: 'ignore' }],
-      'curly': ['error', 'multi-line'],
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
+      curly: ['error', 'multi-line'],
       'no-throw-literal': 'error',
       'prefer-promise-reject-errors': 'off',
 
@@ -66,7 +71,13 @@ module.exports = [
   },
   {
     // 유닛/통합 테스트 (Jest, Node 환경). node:crypto를 require로 사용.
-    files: ['**/*.test.js', 'tests/unit/**/*.js', 'tests/integration/**/*.js', 'tests/scripts/**/*.js', 'jest.setup.js'],
+    files: [
+      '**/*.test.js',
+      'tests/unit/**/*.js',
+      'tests/integration/**/*.js',
+      'tests/scripts/**/*.js',
+      'jest.setup.js',
+    ],
     languageOptions: {
       globals: {
         ...globals.jest,
