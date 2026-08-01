@@ -19,8 +19,8 @@ RUN npx prisma generate
 # Stage 2: Production runtime
 FROM node:22-alpine AS production
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && adduser -u 1001 -S -G nodejs -s /bin/sh
+# Use the node user/group bundled with the official node image
+# (newer Alpine adduser/addgroup changed -S handling; the built-in node user avoids that)
 
 WORKDIR /app
 
@@ -53,10 +53,10 @@ COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/clie
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Change ownership to non-root user
-RUN chown -R nodejs:nodejs /app
+RUN chown -R node:node /app
 
 # Switch to non-root user
-USER nodejs
+USER node
 
 # Expose port
 EXPOSE 3000

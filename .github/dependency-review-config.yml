@@ -1,0 +1,4 @@
+# Dependency Review configuration
+# Ref: https://github.com/actions/dependency-review-action/blob/main/README.md
+
+fail-on-severity: high
