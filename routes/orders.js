@@ -17,20 +17,27 @@ const checkOrderPermission = checkResourcePermission(
   'orders:manage'
 );
 
-// 주문 capability 검증: super_admin/staff는 checkStorePermissionForObject로 우회,
-// 나머지는 x-order-capability 헤더의 orderId 일치를 요구한다.
+// 주문 capability 검증: 유효한 x-order-capability(고객 경로)가 있으면 우선 통과,
+// super_admin/staff는 checkStorePermissionForObject로, 그 외 인증 사용자는
+// 주문 소유권(checkResourcePermission)으로 접근을 허용한다.
 const requireOrderCapability = (req, res, next) => {
+  const orderId = parseInt(req.params.id || req.params.orderId);
+  const capability = verifyOrderCapability(req.get('x-order-capability'));
+  if (capability && capability.orderId === orderId) {
+    req.orderCapability = capability;
+    return next();
+  }
+
   if (req.user?.role === 'super_admin' || req.user?.role === 'staff') {
     const middleware = checkStorePermissionForObject();
     return middleware(req, res, next);
   }
-  const capability = verifyOrderCapability(req.get('x-order-capability'));
-  const orderId = parseInt(req.params.id || req.params.orderId);
-  if (!capability || capability.orderId !== orderId) {
-    return res.status(403).json({ error: '주문 결제 권한이 없거나 만료되었습니다.' });
+
+  if (req.user) {
+    return checkOrderPermission(req, res, next);
   }
-  req.orderCapability = capability;
-  next();
+
+  return res.status(403).json({ error: '주문 결제 권한이 없거나 만료되었습니다.' });
 };
 
 /**
@@ -102,6 +109,7 @@ router.post(
  */
 router.post(
   '/:orderId/customer-token',
+  authMiddleware.optionalAuth,
   requireOrderCapability,
   orderController.registerCustomerToken
 );
