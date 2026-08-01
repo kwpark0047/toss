@@ -1,6 +1,5 @@
-const { db } = require('@/app/lib/db');
-const { apiLogger, syncLogger } = require('@/app/lib/logger');
-const { Prisma } = require('@prisma/client');
+const prisma = require('../config/prisma');
+const logger = require('../utils/logger');
 
 /**
  * 고객 세그멘트 목록 조회
@@ -14,14 +13,14 @@ async function getSegments(req, res) {
     if (segmentType) where.segment_type = segmentType;
     if (isActive !== undefined) where.is_active = isActive === 'true';
 
-    const segments = await db.customer_segments.findMany({
+    const segments = await prisma.customer_segments.findMany({
       where,
       orderBy: { size: 'desc' },
     });
 
     return res.json(segments);
   } catch (error) {
-    apiLogger.error({ error: error.message, storeId: req.params.storeId }, '세그멘트 조회 실패');
+    logger.error({ error: error.message, storeId: req.params.storeId }, '세그멘트 조회 실패');
     return res.status(500).json({ error: '세그멘트 조회 실패' });
   }
 }
@@ -35,7 +34,7 @@ async function upsertSegment(req, res) {
     const { id, segmentName, segmentType, description, characteristics } = req.body;
 
     if (id) {
-      const segment = await db.customer_segments.update({
+      const segment = await prisma.customer_segments.update({
         where: { id, store_id: parseInt(storeId) },
         data: {
           segment_name: segmentName,
@@ -47,7 +46,7 @@ async function upsertSegment(req, res) {
       return res.json(segment);
     }
 
-    const segment = await db.customer_segments.create({
+    const segment = await prisma.customer_segments.create({
       data: {
         store_id: parseInt(storeId),
         segment_name: segmentName,
@@ -61,7 +60,7 @@ async function upsertSegment(req, res) {
 
     return res.status(201).json(segment);
   } catch (error) {
-    apiLogger.error({ error: error.message, storeId: req.params.storeId }, '세그멘트 저장 실패');
+    logger.error({ error: error.message, storeId: req.params.storeId }, '세그멘트 저장 실패');
     return res.status(500).json({ error: '세그멘트 저장 실패' });
   }
 }
@@ -73,13 +72,13 @@ async function deleteSegment(req, res) {
   try {
     const { storeId, segmentId } = req.params;
 
-    await db.customer_segments.delete({
+    await prisma.customer_segments.delete({
       where: { id: parseInt(segmentId), store_id: parseInt(storeId) },
     });
 
     return res.status(204).send();
   } catch (error) {
-    apiLogger.error({ error: error.message }, '세그멘트 삭제 실패');
+    logger.error({ error: error.message }, '세그멘트 삭제 실패');
     return res.status(500).json({ error: '세그멘트 삭제 실패' });
   }
 }
@@ -96,7 +95,7 @@ async function getPersonalization(req, res) {
       return res.status(400).json({ error: 'customerPhone 파라미터가 필요합니다' });
     }
 
-    const personalization = await db.customer_personalizations.findUnique({
+    const personalization = await prisma.customer_personalizations.findUnique({
       where: {
         store_id_customer_phone: {
           store_id: parseInt(storeId),
@@ -116,7 +115,7 @@ async function getPersonalization(req, res) {
 
     return res.json(personalization);
   } catch (error) {
-    apiLogger.error({ error: error.message }, '개인화 데이터 조회 실패');
+    logger.error({ error: error.message }, '개인화 데이터 조회 실패');
     return res.status(500).json({ error: '개인화 데이터 조회 실패' });
   }
 }
@@ -129,7 +128,7 @@ async function upsertPersonalization(req, res) {
     const { storeId } = req.params;
     const { customerPhone, segmentId, preferences, customDiscount, specialOffers } = req.body;
 
-    const personalization = await db.customer_personalizations.upsert({
+    const personalization = await prisma.customer_personalizations.upsert({
       where: {
         store_id_customer_phone: {
           store_id: parseInt(storeId),
@@ -159,7 +158,7 @@ async function upsertPersonalization(req, res) {
 
     return res.json(personalization);
   } catch (error) {
-    apiLogger.error({ error: error.message }, '개인화 데이터 저장 실패');
+    logger.error({ error: error.message }, '개인화 데이터 저장 실패');
     return res.status(500).json({ error: '개인화 데이터 저장 실패' });
   }
 }
@@ -177,7 +176,7 @@ async function getRecommendations(req, res) {
     if (recommendationType) where.recommendation_type = recommendationType;
     if (segmentId) where.segment_id = parseInt(segmentId);
 
-    const recommendations = await db.ai_recommendations.findMany({
+    const recommendations = await prisma.ai_recommendations.findMany({
       where,
       include: {
         segments: { select: { id: true, segment_name: true } },
@@ -188,7 +187,7 @@ async function getRecommendations(req, res) {
 
     return res.json(recommendations);
   } catch (error) {
-    apiLogger.error({ error: error.message }, '추천 목록 조회 실패');
+    logger.error({ error: error.message }, '추천 목록 조회 실패');
     return res.status(500).json({ error: '추천 목록 조회 실패' });
   }
 }
@@ -211,7 +210,7 @@ async function createRecommendation(req, res) {
       validTo,
     } = req.body;
 
-    const recommendation = await db.ai_recommendations.create({
+    const recommendation = await prisma.ai_recommendations.create({
       data: {
         store_id: parseInt(storeId),
         customer_phone: customerPhone || null,
@@ -226,10 +225,10 @@ async function createRecommendation(req, res) {
       },
     });
 
-    apiLogger.info({ recommendationId: recommendation.id, storeId }, 'AI 추천 생성됨');
+    logger.info({ recommendationId: recommendation.id, storeId }, 'AI 추천 생성됨');
     return res.status(201).json(recommendation);
   } catch (error) {
-    apiLogger.error({ error: error.message }, 'AI 추천 생성 실패');
+    logger.error({ error: error.message }, 'AI 추천 생성 실패');
     return res.status(500).json({ error: 'AI 추천 생성 실패' });
   }
 }
@@ -241,7 +240,7 @@ async function getRecommendationsBySegment(req, res) {
   try {
     const { storeId, segmentId } = req.params;
 
-    const segment = await db.customer_segments.findUnique({
+    const segment = await prisma.customer_segments.findUnique({
       where: { id: parseInt(segmentId), store_id: parseInt(storeId) },
     });
 
@@ -249,7 +248,7 @@ async function getRecommendationsBySegment(req, res) {
       return res.status(404).json({ error: '세그멘트를 찾을 수 없습니다' });
     }
 
-    const recommendations = await db.ai_recommendations.findMany({
+    const recommendations = await prisma.ai_recommendations.findMany({
       where: {
         store_id: parseInt(storeId),
         segment_id: parseInt(segmentId),
@@ -264,7 +263,7 @@ async function getRecommendationsBySegment(req, res) {
 
     return res.json({ segment, recommendations });
   } catch (error) {
-    apiLogger.error({ error: error.message }, '세그멘트별 추천 조회 실패');
+    logger.error({ error: error.message }, '세그멘트별 추천 조회 실패');
     return res.status(500).json({ error: '세그멘트별 추천 조회 실패' });
   }
 }
@@ -277,7 +276,7 @@ async function getSegmentCustomers(req, res) {
     const { storeId, segmentId } = req.params;
     const { limit = 50, offset = 0 } = req.query;
 
-    const customers = await db.customer_personalizations.findMany({
+    const customers = await prisma.customer_personalizations.findMany({
       where: {
         store_id: parseInt(storeId),
         segment_id: parseInt(segmentId),
@@ -290,7 +289,7 @@ async function getSegmentCustomers(req, res) {
       skip: parseInt(offset),
     });
 
-    const total = await db.customer_personalizations.count({
+    const total = await prisma.customer_personalizations.count({
       where: {
         store_id: parseInt(storeId),
         segment_id: parseInt(segmentId),
@@ -299,7 +298,7 @@ async function getSegmentCustomers(req, res) {
 
     return res.json({ items: customers, total });
   } catch (error) {
-    apiLogger.error({ error: error.message }, '세그멘트 고객 목록 조회 실패');
+    logger.error({ error: error.message }, '세그멘트 고객 목록 조회 실패');
     return res.status(500).json({ error: '세그멘트 고객 목록 조회 실패' });
   }
 }
@@ -318,7 +317,7 @@ async function getAnalytics(req, res) {
     const since = new Date(Date.now() - parseInt(days) * 24 * 60 * 60 * 1000);
     where.date = { gte: since };
 
-    const analytics = await db.personalization_analytics.findMany({
+    const analytics = await prisma.personalization_analytics.findMany({
       where,
       orderBy: { date: 'desc' },
       take: parseInt(days),
@@ -330,8 +329,8 @@ async function getAnalytics(req, res) {
     const totalConversions = analytics.reduce((sum, a) => sum + a.conversions, 0);
     const totalRevenue = analytics.reduce((sum, a) => sum + a.revenue_from_segment, 0);
 
-    const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(2) : 0;
-    const cvr = totalImpressions > 0 ? (totalConversions / totalImpressions * 100).toFixed(2) : 0;
+    const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : 0;
+    const cvr = totalImpressions > 0 ? ((totalConversions / totalImpressions) * 100).toFixed(2) : 0;
     const aov = totalConversions > 0 ? Math.round(totalRevenue / totalConversions) : 0;
 
     return res.json({
@@ -339,7 +338,7 @@ async function getAnalytics(req, res) {
       summary: { totalImpressions, totalClicks, totalConversions, totalRevenue, ctr, cvr, aov },
     });
   } catch (error) {
-    apiLogger.error({ error: error.message }, '개인화 분석 조회 실패');
+    logger.error({ error: error.message }, '개인화 분석 조회 실패');
     return res.status(500).json({ error: '개인화 분석 조회 실패' });
   }
 }

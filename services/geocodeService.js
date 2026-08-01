@@ -6,22 +6,40 @@ const axios = require('axios');
  *   KAKAO_REST_API_KEY               (카카오 developers REST 키)
  *   NCP_GEOCODE_KEY_ID / NCP_GEOCODE_KEY  (네이버 클라우드 플랫폼 Maps)
  */
-const KAKAO_KEY = process.env.KAKAO_REST_API_KEY || '';
-const NCP_ID = process.env.NCP_GEOCODE_KEY_ID || '';
-const NCP_KEY = process.env.NCP_GEOCODE_KEY || '';
+const env = () => ({
+  KAKAO: process.env.KAKAO_REST_API_KEY || '',
+  NCP_ID: process.env.NCP_GEOCODE_KEY_ID || '',
+  NCP_KEY: process.env.NCP_GEOCODE_KEY || '',
+});
 
 function provider() {
-  if (KAKAO_KEY) return 'kakao';
+  const { KAKAO } = env();
+  if (KAKAO) return 'kakao';
+  const { NCP_ID, NCP_KEY } = env();
   if (NCP_ID && NCP_KEY) return 'ncp';
   return null;
 }
-function isConfigured() { return provider() !== null; }
+function isConfigured() {
+  return provider() !== null;
+}
+
+/** 설정 진단 — 카카오/NCP 키 상태와 NCP 불완전 여부를 반환한다 */
+function configStatus() {
+  const { KAKAO, NCP_ID, NCP_KEY } = env();
+  return {
+    configured: isConfigured(),
+    kakaoConfigured: Boolean(KAKAO),
+    ncpConfigured: Boolean(NCP_ID && NCP_KEY),
+    ncpIncomplete: Boolean(NCP_ID) !== Boolean(NCP_KEY), // 한쪽만 설정된 상태
+    availableProviders: provider() ? [provider()] : [],
+  };
+}
 
 // 지오코딩 정확도를 위해 주소 정제: 괄호(법정동/층) 먼저 제거 → 쉼표 이후(호/층) 제거
 function cleanAddress(addr = '') {
   return String(addr)
-    .replace(/\([^)]*\)/g, ' ')  // "(교남동,지상1층)" 등 괄호 먼저 제거(내부 쉼표 보호)
-    .split(',')[0]               // "…30, 1층,2층" → "…30"
+    .replace(/\([^)]*\)/g, ' ') // "(교남동,지상1층)" 등 괄호 먼저 제거(내부 쉼표 보호)
+    .split(',')[0] // "…30, 1층,2층" → "…30"
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -29,23 +47,38 @@ function cleanAddress(addr = '') {
 const inSeoulish = (lat, lng) => lat > 33 && lat < 39 && lng > 124 && lng < 132; // 한국 대략 범위
 
 async function kakaoGeocode(query) {
-  const headers = { Authorization: `KakaoAK ${KAKAO_KEY}` };
+  const { KAKAO } = env();
+  const headers = { Authorization: `KakaoAK ${KAKAO}` };
   // 1) 주소 검색
   try {
-    const r = await axios.get('https://dapi.kakao.com/v2/local/search/address.json',
-      { params: { query, size: 1 }, headers, timeout: 8000 });
+    const r = await axios.get('https://dapi.kakao.com/v2/local/search/address.json', {
+      params: { query, size: 1 },
+      headers,
+      timeout: 8000,
+    });
     const doc = r.data?.documents?.[0];
     if (doc) return { lat: parseFloat(doc.y), lng: parseFloat(doc.x) };
-  } catch { /* 주소 검색 실패 시 키워드 폴백 */ }
+  } catch {
+    /* 주소 검색 실패 시 키워드 폴백 */
+  }
   // 2) 키워드 검색(건물명 포함 주소 대응)
-  const r2 = await axios.get('https://dapi.kakao.com/v2/local/search/keyword.json',
-    { params: { query, size: 1 }, headers, timeout: 8000 });
-  const doc2 = r2.data?.documents?.[0];
-  if (doc2) return { lat: parseFloat(doc2.y), lng: parseFloat(doc2.x) };
+  try {
+    const r2 = await axios.get('https://dapi.kakao.com/v2/local/search/keyword.json', {
+      params: { query, size: 1 },
+      headers,
+      timeout: 8000,
+    });
+    const doc2 = r2.data?.documents?.[0];
+    if (doc2) return { lat: parseFloat(doc2.y), lng: parseFloat(doc2.x) };
+  } catch {
+    /* 키워드 검색도 실패 시 null (→ NCP 폴백) */
+  }
   return null;
 }
 
 async function ncpGeocode(query) {
+  const { NCP_ID, NCP_KEY } = env();
+  if (!NCP_ID || !NCP_KEY) return null;
   const r = await axios.get('https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode', {
     params: { query },
     headers: { 'X-NCP-APIGW-API-KEY-ID': NCP_ID, 'X-NCP-APIGW-API-KEY': NCP_KEY },
@@ -59,18 +92,30 @@ async function ncpGeocode(query) {
 // 도로명 주소 여부(로/길 + 번호). 카카오는 도로명만 신뢰성 있게 지오코딩됨.
 const isRoadAddress = (q = '') => /(로|길)\s*\d/.test(q);
 
-/** 주소 문자열 → {lat, lng} | null. 도로명 주소만 처리(지번은 오매칭 방지 위해 skip) */
+/** 주소 문자열 → {lat, lng, provider} | null. 도로명 주소만 처리(지번은 오매칭 방지 위해 skip) */
 async function geocode(address) {
   const q = cleanAddress(address);
   if (!q || !isRoadAddress(q)) return null; // 지번/불명확 주소는 건너뜀
-  const p = provider();
+  const e = env();
   let g = null;
-  if (p === 'kakao') g = await kakaoGeocode(q);
-  else if (p === 'ncp') g = await ncpGeocode(q);
-  if (g && isFinite(g.lat) && isFinite(g.lng) && inSeoulish(g.lat, g.lng)) {
-    return { lat: Math.round(g.lat * 1e6) / 1e6, lng: Math.round(g.lng * 1e6) / 1e6 };
+  let usedProvider = null;
+  // 카카오 1순위 → 실패 시 NCP 폴백 (도로명 주소만 사용)
+  if (e.KAKAO) {
+    g = await kakaoGeocode(q);
+    if (g) usedProvider = 'kakao';
+  }
+  if (!g && e.NCP_ID && e.NCP_KEY) {
+    g = await ncpGeocode(q);
+    if (g) usedProvider = 'ncp';
+  }
+  if (g && usedProvider && isFinite(g.lat) && isFinite(g.lng) && inSeoulish(g.lat, g.lng)) {
+    return {
+      lat: Math.round(g.lat * 1e6) / 1e6,
+      lng: Math.round(g.lng * 1e6) / 1e6,
+      provider: usedProvider,
+    };
   }
   return null;
 }
 
-module.exports = { isConfigured, provider, geocode, cleanAddress };
+module.exports = { isConfigured, configStatus, provider, geocode, cleanAddress };

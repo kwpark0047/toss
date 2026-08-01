@@ -12,35 +12,59 @@ const logger = require('../utils/logger');
  * 요청 한도: 지역검색 25,000 회/일 — 배치는 소량·지연으로 준수한다.
  */
 // 자격증명은 환경변수로만 주입(하드코딩 금지). 둘 다 설정돼야 isConfigured()가 true.
-const CLIENT_ID = process.env.NAVER_CLIENT_ID || '';
-const CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET || '';
+// 테스트가 환경변수를 동적으로 바꿀 수 있도록 조회 시점에 읽는다.
+const env = () => ({
+  CLIENT_ID: process.env.NAVER_CLIENT_ID || '',
+  CLIENT_SECRET: process.env.NAVER_CLIENT_SECRET || '',
+});
 const ENDPOINT = 'https://openapi.naver.com/v1/search/local';
 
 const stripTags = (s = '') => s.replace(/<[^>]+>/g, '').trim();
 
 // 이름 정규화(공백·괄호영문·특수문자 제거)로 매칭 비교
 const normalize = (s = '') =>
-  stripTags(s).toLowerCase().replace(/\([^)]*\)/g, '').replace(/[\s·.,'"-]/g, '');
+  stripTags(s)
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, '')
+    .replace(/[\s·.,'"-]/g, '');
 
 // 주소에서 시/구/동 등 지역 토큰 추출 (검색 정확도 향상용)
 function regionHint(address = '') {
-  const m = address.match(/([가-힣]+(시|도))?\s*([가-힣]+(시|군|구))?\s*([가-힣]+(동|읍|면|가|로|길))?/);
+  const m = address.match(
+    /([가-힣]+(시|도))?\s*([가-힣]+(시|군|구))?\s*([가-힣]+(동|읍|면|가|로|길))?/
+  );
   return m ? m[0].trim() : '';
 }
 
 function isConfigured() {
+  const { CLIENT_ID, CLIENT_SECRET } = env();
   return Boolean(CLIENT_ID && CLIENT_SECRET);
+}
+
+/** 설정 진단 — 누락 환경변수를 반환한다 (프론트 비활성화 UI/테스트용) */
+function configStatus() {
+  const { CLIENT_ID, CLIENT_SECRET } = env();
+  const checks = [
+    { key: 'NAVER_CLIENT_ID', set: Boolean(CLIENT_ID) },
+    { key: 'NAVER_CLIENT_SECRET', set: Boolean(CLIENT_SECRET) },
+  ];
+  return {
+    configured: checks.every((c) => c.set),
+    missing: checks.filter((c) => !c.set).map((c) => c.key),
+  };
 }
 
 /** 지역검색 호출 → items 배열(정규화 필드 포함) 반환 */
 async function searchLocal(query) {
-  if (!isConfigured()) throw new Error('NAVER_CLIENT_SECRET 미설정 — 네이버 API 키를 환경변수에 설정하세요.');
+  if (!isConfigured())
+    throw new Error('NAVER_CLIENT_SECRET 미설정 — 네이버 API 키를 환경변수에 설정하세요.');
+  const { CLIENT_ID, CLIENT_SECRET } = env();
   const res = await axios.get(ENDPOINT, {
     params: { query, display: 5, sort: 'random' },
     headers: { 'X-Naver-Client-Id': CLIENT_ID, 'X-Naver-Client-Secret': CLIENT_SECRET },
     timeout: 8000,
   });
-  return (res.data?.items || []).map(it => ({
+  return (res.data?.items || []).map((it) => ({
     name: stripTags(it.title),
     category: it.category || '',
     telephone: it.telephone || '',
@@ -67,7 +91,7 @@ async function enrichStore(store) {
 
   // 상호명 정규화 비교로 최적 후보 선택
   const target = normalize(name);
-  const best = items.find(it => {
+  const best = items.find((it) => {
     const n = normalize(it.name);
     return n && (n === target || n.includes(target) || target.includes(n));
   });
@@ -78,9 +102,10 @@ async function enrichStore(store) {
   if (store.latitude == null && best.latitude != null) patch.latitude = best.latitude;
   if (store.longitude == null && best.longitude != null) patch.longitude = best.longitude;
   if (!store.phone && best.telephone) patch.phone = best.telephone;
-  if (!store.business_type && best.category) patch.business_type = best.category.split('>').pop().trim();
+  if (!store.business_type && best.category)
+    patch.business_type = best.category.split('>').pop().trim();
   if (Object.keys(patch).length === 0) return null;
   return { patch, matched: best };
 }
 
-module.exports = { isConfigured, searchLocal, enrichStore, normalize, regionHint };
+module.exports = { isConfigured, configStatus, searchLocal, enrichStore, normalize, regionHint };

@@ -2,10 +2,36 @@ const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
 const authMiddleware = require('../middleware/auth');
-const { checkStorePermission } = require('../middleware/storeAuth');
+const { checkStorePermission, checkStorePermissionForObject } = require('../middleware/storeAuth');
 const validate = require('../middleware/validate');
 const idempotency = require('../middleware/idempotency');
 const { order: schema } = require('../utils/validationSchemas');
+const { verifyOrderCapability } = require('../utils/orderCapability');
+const prisma = require('../config/prisma');
+const { checkResourcePermission } = require('../middleware/storeAuth');
+
+const checkOrderPermission = checkResourcePermission(
+  prisma.orders,
+  'id',
+  'store_id',
+  'orders:manage'
+);
+
+// 주문 capability 검증: super_admin/staff는 checkStorePermissionForObject로 우회,
+// 나머지는 x-order-capability 헤더의 orderId 일치를 요구한다.
+const requireOrderCapability = (req, res, next) => {
+  if (req.user?.role === 'super_admin' || req.user?.role === 'staff') {
+    const middleware = checkStorePermissionForObject();
+    return middleware(req, res, next);
+  }
+  const capability = verifyOrderCapability(req.get('x-order-capability'));
+  const orderId = parseInt(req.params.id || req.params.orderId);
+  if (!capability || capability.orderId !== orderId) {
+    return res.status(403).json({ error: '주문 결제 권한이 없거나 만료되었습니다.' });
+  }
+  req.orderCapability = capability;
+  next();
+};
 
 /**
  * @swagger
@@ -74,7 +100,11 @@ router.post(
  *       200:
  *         description: 토큰 등록 완료
  */
-router.post('/:orderId/customer-token', orderController.registerCustomerToken);
+router.post(
+  '/:orderId/customer-token',
+  requireOrderCapability,
+  orderController.registerCustomerToken
+);
 
 /**
  * @swagger
@@ -195,7 +225,12 @@ router.get(
  *       404:
  *         description: 주문을 찾을 수 없음
  */
-router.get('/:id', orderController.getOrderDetails);
+router.get(
+  '/:id',
+  authMiddleware.optionalAuth,
+  requireOrderCapability,
+  orderController.getOrderDetails
+);
 
 /**
  * @swagger
@@ -223,7 +258,7 @@ router.get('/:id', orderController.getOrderDetails);
  *       200:
  *         description: 상태 변경 완료
  */
-router.put('/:id/status', authMiddleware, orderController.updateStatus);
+router.put('/:id/status', authMiddleware, checkOrderPermission, orderController.updateStatus);
 
 /**
  * @swagger

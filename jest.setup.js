@@ -3,6 +3,12 @@ if (typeof ReadableStream === 'undefined') {
   const { ReadableStream: RS } = require('stream/web');
   global.ReadableStream = RS;
 }
+
+// 테스트 환경에서 Toss 웹훅 서명 검증 회귀 테스트가 유효 서명을 만들 수 있도록
+// 시크릿을 고정한다. (실제 값은 프로덕션 .env에만 존재)
+if (process.env.NODE_ENV === 'test' && !process.env.TOSS_SECRET_KEY) {
+  process.env.TOSS_SECRET_KEY = 'test_sk_123';
+}
 if (typeof Blob === 'undefined') {
   const { Blob: B } = require('buffer');
   global.Blob = B;

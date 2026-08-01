@@ -4,6 +4,7 @@ const authMiddleware = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const { validateBody, validateId } = require('../middleware/validator');
 const pointsController = require('../controllers/pointsController');
+const { verifyOrderCapability } = require('../utils/orderCapability');
 
 /**
  * @swagger
@@ -50,7 +51,22 @@ router.get('/history', authMiddleware, pointsController.getHistory);
  *       200:
  *         description: 월렛 정보 조회
  */
-router.get('/wallet-lookup', pointsController.walletLookup);
+router.get(
+  '/wallet-lookup',
+  (req, res, next) => {
+    const capability = verifyOrderCapability(req.get('x-order-capability'));
+    if (!capability) {
+      return res.status(403).json({ error: '주문 결제 권한이 없거나 만료되었습니다.' });
+    }
+    const queryStoreId = parseInt(req.query.store_id);
+    if (!queryStoreId || capability.storeId !== queryStoreId) {
+      return res.status(403).json({ error: '주문 결제 권한이 없거나 만료되었습니다.' });
+    }
+    req.orderCapability = capability;
+    next();
+  },
+  pointsController.walletLookup
+);
 
 /**
  * @swagger
@@ -73,7 +89,11 @@ router.get('/wallet-lookup', pointsController.walletLookup);
  *       200:
  *         description: 예상 적립 포인트 금액
  */
-router.get('/calculate-earn', validateId(['store_id', 'amount']), pointsController.calculateEarnPoints);
+router.get(
+  '/calculate-earn',
+  validateId(['store_id', 'amount']),
+  pointsController.calculateEarnPoints
+);
 
 /**
  * @swagger
@@ -98,7 +118,12 @@ router.get('/calculate-earn', validateId(['store_id', 'amount']), pointsControll
  *       200:
  *         description: 사용 가능 포인트 금액
  */
-router.get('/calculate-usable', authMiddleware, validateId(['store_id', 'amount']), pointsController.calculateUsablePoints);
+router.get(
+  '/calculate-usable',
+  authMiddleware,
+  validateId(['store_id', 'amount']),
+  pointsController.calculateUsablePoints
+);
 
 /**
  * @swagger
@@ -149,7 +174,12 @@ router.get('/settings/:storeId', pointsController.getStoreSettings);
  *       200:
  *         description: 설정 업데이트 완료
  */
-router.put('/settings/:storeId', authMiddleware, checkStorePermission('store:update'), pointsController.updateStoreSettings);
+router.put(
+  '/settings/:storeId',
+  authMiddleware,
+  checkStorePermission('store:update'),
+  pointsController.updateStoreSettings
+);
 
 /**
  * @swagger
@@ -177,7 +207,12 @@ router.put('/settings/:storeId', authMiddleware, checkStorePermission('store:upd
  *       200:
  *         description: 포인트 적립 완료
  */
-router.post('/admin/earn', authMiddleware, validateBody(['store_id', 'amount']), pointsController.adminEarn);
+router.post(
+  '/admin/earn',
+  authMiddleware,
+  validateBody(['store_id', 'amount']),
+  pointsController.adminEarn
+);
 
 /**
  * @swagger

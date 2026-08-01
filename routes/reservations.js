@@ -1,8 +1,37 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
-const { requireReservationCustomerCapability } = require('../middleware/orderCapability');
+const { verifyReservationCapability } = require('../utils/orderCapability');
 const reservationsController = require('../controllers/reservationsController');
+const prisma = require('../config/prisma');
+const { checkResourcePermission } = require('../middleware/storeAuth');
+
+const checkReservationPermission = checkResourcePermission(
+  prisma.reservations,
+  'id',
+  'store_id',
+  'orders:manage'
+);
+
+// reservation capability 검증 + route id 일치 확인
+const requireReservationCapability = (req, res, next) => {
+  const capability = verifyReservationCapability(req.get('x-reservation-capability'));
+  if (!capability) {
+    return res.status(403).json({ error: '예약 조회 권한이 없거나 만료되었습니다.' });
+  }
+  const routeId = req.params.id ? parseInt(req.params.id) : null;
+  if (routeId && capability.id !== routeId) {
+    return res.status(403).json({ error: '예약 조회 권한이 없거나 만료되었습니다.' });
+  }
+  if (req.path.startsWith('/my')) {
+    const phoneFromPath = req.params.phone;
+    if (!phoneFromPath || capability.customer_phone !== phoneFromPath) {
+      return res.status(403).json({ error: '예약 조회 권한이 없거나 만료되었습니다.' });
+    }
+  }
+  req.capability = capability;
+  next();
+};
 
 /**
  * @swagger
@@ -100,7 +129,12 @@ router.get('/store/:storeId', authMiddleware, reservationsController.getStoreRes
  *       200:
  *         description: 상태 변경 완료
  */
-router.patch('/:id/status', authMiddleware, reservationsController.updateStatus);
+router.patch(
+  '/:id/status',
+  authMiddleware,
+  checkReservationPermission,
+  reservationsController.updateStatus
+);
 
 /**
  * @swagger
@@ -118,7 +152,7 @@ router.patch('/:id/status', authMiddleware, reservationsController.updateStatus)
  *       200:
  *         description: 예약 목록
  */
-router.get('/my', requireReservationCustomerCapability, reservationsController.getMyReservations);
+router.get('/my/:phone', requireReservationCapability, reservationsController.getMyReservations);
 
 /**
  * @swagger
@@ -136,6 +170,6 @@ router.get('/my', requireReservationCustomerCapability, reservationsController.g
  *       200:
  *         description: 예약 취소 완료
  */
-router.patch('/:id/cancel', requireReservationCustomerCapability, reservationsController.cancelReservation);
+router.patch('/:id/cancel', requireReservationCapability, reservationsController.cancelReservation);
 
 module.exports = router;

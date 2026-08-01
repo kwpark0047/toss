@@ -20,8 +20,11 @@ class LedgerService {
    */
   async recordIncome({ storeId, orderId, paymentId, amount, method, description }, tx) {
     const db = tx || prisma;
-    return db.ledger.create({
-      data: {
+    const eventKey = `payment:${paymentId}:income`;
+    return db.ledger.upsert({
+      where: { event_key: eventKey },
+      create: {
+        event_key: eventKey,
         store_id: storeId,
         order_id: orderId,
         payment_id: paymentId,
@@ -29,8 +32,9 @@ class LedgerService {
         category: 'SALE',
         amount,
         method,
-        description
-      }
+        description,
+      },
+      update: {},
     });
   }
 
@@ -46,10 +50,13 @@ class LedgerService {
    * @param {import('@prisma/client').PrismaTransactionClient} [tx] - 트랜잭션 클라이언트
    * @returns {Promise<object>}
    */
-  async recordRefund({ storeId, orderId, paymentId, amount, method, description }, tx) {
+  async recordRefund({ storeId, orderId, paymentId, amount, method, description, eventKey }, tx) {
     const db = tx || prisma;
-    return db.ledger.create({
-      data: {
+    const event_key = eventKey || `payment:${paymentId}:refund`;
+    return db.ledger.upsert({
+      where: { event_key },
+      create: {
+        event_key,
         store_id: storeId,
         order_id: orderId,
         payment_id: paymentId,
@@ -57,8 +64,9 @@ class LedgerService {
         category: 'CANCEL',
         amount,
         method,
-        description
-      }
+        description,
+      },
+      update: {},
     });
   }
 }

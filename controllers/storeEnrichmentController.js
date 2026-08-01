@@ -6,38 +6,30 @@ const seoulData = require('../services/seoulDataService');
 const geocodeSvc = require('../services/geocodeService');
 
 // 보강 공급자 설정 상태 조회 — 미설정 공급자는 프론트에서 비활성화 표시
-exports.enrichmentStatus = catchAsync(async (req, res) => {
-  const naverEnv = [
-    { key: 'NAVER_CLIENT_ID', set: !!process.env.NAVER_CLIENT_ID },
-    { key: 'NAVER_CLIENT_SECRET', set: !!process.env.NAVER_CLIENT_SECRET },
-  ];
-  const seoulKeys = (process.env.SEOUL_OPENAPI_KEYS || '')
-    .split(',')
-    .map((k) => k.trim())
-    .filter(Boolean);
+exports.getStatus = catchAsync(async (req, res) => {
+  const naver = naverLocal.configStatus();
+  const seoul = seoulData.configStatus();
+  const geocoding = geocodeSvc.configStatus();
 
   res.success({
+    partialExecution: true,
     providers: {
       naver: {
-        configured: naverEnv.every((e) => e.set),
-        missing: naverEnv.filter((e) => !e.set).map((e) => e.key),
+        ...naver,
         capabilities: ['좌표', '전화번호', '업종'],
       },
       seoul: {
-        configured: seoulKeys.length > 0,
-        keyCount: seoulKeys.length,
-        missing: seoulKeys.length ? [] : ['SEOUL_OPENAPI_KEYS'],
+        ...seoul,
         capabilities: ['전화번호', '업종'],
       },
       geocoding: {
-        configured: geocodeSvc.isConfigured(),
-        availableProviders: geocodeSvc.provider() ? [geocodeSvc.provider()] : [],
-        missing: geocodeSvc.provider() ? [] : ['KAKAO_REST_API_KEY'],
+        ...geocoding,
         capabilities: ['위도', '경도'],
       },
     },
   });
 });
+exports.enrichmentStatus = exports.getStatus;
 
 exports.enrichNaver = catchAsync(async (req, res) => {
   if (!naverLocal.isConfigured()) {

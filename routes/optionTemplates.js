@@ -3,6 +3,15 @@ const router = express.Router();
 const optionTemplatesController = require('../controllers/optionTemplatesController');
 const authMiddleware = require('../middleware/auth');
 const catchAsync = require('../utils/catchAsync');
+const prisma = require('../config/prisma');
+const { checkResourcePermission, checkStorePermission } = require('../middleware/storeAuth');
+
+const checkOptionPermission = checkResourcePermission(
+  prisma.option_templates,
+  'id',
+  'store_id',
+  'items:manage'
+);
 
 /**
  * @swagger
@@ -29,7 +38,12 @@ const catchAsync = require('../utils/catchAsync');
  *       200:
  *         description: 옵션 템플릿 목록
  */
-router.get('/store/:storeId', authMiddleware, catchAsync(optionTemplatesController.getTemplates));
+router.get(
+  '/store/:storeId',
+  authMiddleware,
+  checkStorePermission('order:read'),
+  catchAsync(optionTemplatesController.getTemplates)
+);
 
 /**
  * @swagger
@@ -75,7 +89,12 @@ router.post('/', authMiddleware, catchAsync(optionTemplatesController.createTemp
  *       200:
  *         description: 템플릿 수정 완료
  */
-router.put('/:id', authMiddleware, catchAsync(optionTemplatesController.updateTemplate));
+router.put(
+  '/:id',
+  authMiddleware,
+  checkOptionPermission,
+  catchAsync(optionTemplatesController.updateTemplate)
+);
 
 /**
  * @swagger
@@ -95,6 +114,11 @@ router.put('/:id', authMiddleware, catchAsync(optionTemplatesController.updateTe
  *       200:
  *         description: 템플릿 삭제 완료
  */
-router.delete('/:id', authMiddleware, catchAsync(optionTemplatesController.deleteTemplate));
+router.delete(
+  '/:id',
+  authMiddleware,
+  checkOptionPermission,
+  catchAsync(optionTemplatesController.deleteTemplate)
+);
 
 module.exports = router;
