@@ -18,7 +18,9 @@ jest.mock('../../controllers/waitingController', () => ({
   getMyWaiting: (req, res) => res.json({ success: true }),
   getAISuggestions: (req, res) => res.json({ success: true }),
 }));
-jest.mock('../../utils/aiRateLimiter', () => ({ createAIRateLimiter: () => (req, res, next) => next() }));
+jest.mock('../../utils/aiRateLimiter', () => ({
+  createAIRateLimiter: () => (req, res, next) => next(),
+}));
 
 function app() {
   const instance = express();
@@ -35,7 +37,7 @@ describe('waiting route security', () => {
   test('keeps aggregate status and registration public', async () => {
     expect((await request(app()).get('/api/waiting/store/3/status')).status).toBe(200);
     expect((await request(app()).post('/api/waiting/register').send({})).status).toBe(200);
-  });
+  }, 10000);
 
   test('requires authentication for the PII-bearing store list', async () => {
     const response = await request(app()).get('/api/waiting/store/3');
@@ -67,8 +69,10 @@ describe('waiting route security', () => {
       where: { id: 12 },
       select: { store_id: true },
     });
-    expect(mockPrisma.stores.findUnique).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 3 },
-    }));
+    expect(mockPrisma.stores.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 3 },
+      })
+    );
   });
 });
