@@ -6,23 +6,20 @@
 const fs = require('fs');
 const path = require('path');
 
-const FRONTEND_SRC = path.join(__dirname, '..', 'frontend', 'src');
+const FRONTEND_SRC = path.join(__dirname, '..', '..', 'frontend', 'src');
 
 describe('Route Validation', () => {
   // Get all routes defined in App.jsx
   const getRoutes = () => {
-    const appContent = fs.readFileSync(
-      path.join(FRONTEND_SRC, 'App.jsx'),
-      'utf-8'
-    );
-    return new Set([...appContent.matchAll(/path="([^"]+)"/g)].map(m => m[1]));
+    const appContent = fs.readFileSync(path.join(FRONTEND_SRC, 'App.jsx'), 'utf-8');
+    return new Set([...appContent.matchAll(/path="([^"]+)"/g)].map((m) => m[1]));
   };
 
   // Get all sidebar links from AdminLayout.jsx
   const getSidebarLinks = () => {
     const adminLayoutPath = path.join(FRONTEND_SRC, 'components', 'admin', 'AdminLayout.jsx');
     const content = fs.readFileSync(adminLayoutPath, 'utf-8');
-    return new Set([...content.matchAll(/path:\s*['"]([^'"]+)['"]/g)].map(m => m[1]));
+    return new Set([...content.matchAll(/path:\s*['"]([^'"]+)['"]/g)].map((m) => m[1]));
   };
 
   // Get all marketing links from landing pages
@@ -51,9 +48,9 @@ describe('Route Validation', () => {
   const matchesRoute = (link, routes) => {
     if (routes.has(link)) return true;
 
-    const linkParts = link.split('/').filter(p => p);
+    const linkParts = link.split('/').filter((p) => p);
     for (const route of routes) {
-      const routeParts = route.split('/').filter(p => p);
+      const routeParts = route.split('/').filter((p) => p);
       if (linkParts.length !== routeParts.length) continue;
 
       let match = true;
@@ -74,12 +71,12 @@ describe('Route Validation', () => {
   const marketingLinks = getMarketingLinks();
 
   test('All sidebar links have matching routes', () => {
-    const mismatches = [...sidebarLinks].filter(link => !matchesRoute(link, routes));
+    const mismatches = [...sidebarLinks].filter((link) => !matchesRoute(link, routes));
     expect(mismatches).toEqual([]);
   }, 10000);
 
   test('All marketing links have matching routes', () => {
-    const mismatches = [...marketingLinks].filter(link => !matchesRoute(link, routes));
+    const mismatches = [...marketingLinks].filter((link) => !matchesRoute(link, routes));
     expect(mismatches).toEqual([]);
   }, 10000);
 
@@ -132,34 +129,33 @@ describe('Route Validation', () => {
   });
 
   test('Google Fonts uses v1 format (no woff2 404)', () => {
-    const indexHtml = fs.readFileSync(
-      path.join(FRONTEND_SRC, '..', 'index.html'),
-      'utf-8'
-    );
+    const indexHtml = fs.readFileSync(path.join(FRONTEND_SRC, '..', 'index.html'), 'utf-8');
     expect(indexHtml).toContain('fonts.googleapis.com/css?');
     expect(indexHtml).not.toContain('fonts.googleapis.com/css2?');
   });
 
   test('All components used in App.jsx routes are imported', () => {
-    const appContent = fs.readFileSync(
-      path.join(FRONTEND_SRC, 'App.jsx'),
-      'utf-8'
-    );
+    const appContent = fs.readFileSync(path.join(FRONTEND_SRC, 'App.jsx'), 'utf-8');
 
     // Get all imports from lazyImports
     const importMatch = appContent.match(/import\s*\{([^}]+)\}\s*from\s*"@\/routes\/lazyImports"/);
-    const importedNames = new Set(
-      importMatch[1].split(',').map(name => name.trim())
-    );
+    const importedNames = new Set(importMatch[1].split(',').map((name) => name.trim()));
 
     // Get all component names used in Route elements
     const usedComponents = new Set(
-      [...appContent.matchAll(/element=\{.*?<([A-Z][a-zA-Z]*)</g)].map(m => m[1])
+      [...appContent.matchAll(/element=\{.*?<([A-Z][a-zA-Z]*)</g)].map((m) => m[1])
     );
 
     // Remove non-lazyImports components
-    const exclude = new Set(['AdminPage', 'ValidStoreRoute', 'AdminSuspense', 'ProtectedRoute', 'Navigate', 'RoleBasedRoute']);
-    const componentsToCheck = [...usedComponents].filter(c => !exclude.has(c));
+    const exclude = new Set([
+      'AdminPage',
+      'ValidStoreRoute',
+      'AdminSuspense',
+      'ProtectedRoute',
+      'Navigate',
+      'RoleBasedRoute',
+    ]);
+    const componentsToCheck = [...usedComponents].filter((c) => !exclude.has(c));
 
     // Check that all used components are imported from lazyImports
     for (const comp of componentsToCheck) {

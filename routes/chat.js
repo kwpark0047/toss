@@ -35,16 +35,19 @@ const { authMiddleware, adminOnly } = require('../middleware/auth');
  *       200:
  *         description: 채팅방 데이터 반환
  */
-router.post('/rooms/access', catchAsync(async (req, res) => {
+router.post(
+  '/rooms/access',
+  catchAsync(async (req, res) => {
     const { store_id, customer_phone, customer_id } = req.body;
     const room = await Chat.accessRoom({
-        store_id,
-        customer_phone,
-        customer_id,
-        type: 'STORE_CUSTOMER'
+      store_id,
+      customer_phone,
+      customer_id,
+      type: 'STORE_CUSTOMER',
     });
     res.json({ success: true, data: room });
-}));
+  })
+);
 
 /**
  * @swagger
@@ -67,19 +70,28 @@ router.post('/rooms/access', catchAsync(async (req, res) => {
  *       200:
  *         description: 채팅방 데이터 반환
  */
-router.post('/rooms/admin/access', authMiddleware, catchAsync(async (req, res) => {
+router.post(
+  '/rooms/admin/access',
+  authMiddleware,
+  catchAsync(async (req, res) => {
     const { user_id } = req.body;
     const currentUserId = req.user.id;
     const currentUserRole = req.user.role;
 
-    const targetUserId = currentUserRole === 'super_admin' ? (user_id ? parseInt(user_id) : currentUserId) : currentUserId;
+    const targetUserId =
+      currentUserRole === 'super_admin'
+        ? user_id
+          ? parseInt(user_id)
+          : currentUserId
+        : currentUserId;
 
     const room = await Chat.accessRoom({
-        user_id: targetUserId,
-        type: 'ADMIN_SUPPORT'
+      user_id: targetUserId,
+      type: 'ADMIN_SUPPORT',
     });
     res.json({ success: true, data: room });
-}));
+  })
+);
 
 /**
  * @swagger
@@ -93,10 +105,15 @@ router.post('/rooms/admin/access', authMiddleware, catchAsync(async (req, res) =
  *       200:
  *         description: 채팅방 목록 반환
  */
-router.get('/rooms/admin', authMiddleware, adminOnly, catchAsync(async (req, res) => {
+router.get(
+  '/rooms/admin',
+  authMiddleware,
+  adminOnly,
+  catchAsync(async (req, res) => {
     const rooms = await Chat.getAdminRooms();
     res.json({ success: true, data: rooms });
-}));
+  })
+);
 
 /**
  * @swagger
@@ -116,11 +133,15 @@ router.get('/rooms/admin', authMiddleware, adminOnly, catchAsync(async (req, res
  *       200:
  *         description: 메시지 목록 반환
  */
-router.get('/rooms/:roomId/messages', authMiddleware, catchAsync(async (req, res) => {
+router.get(
+  '/rooms/:roomId/messages',
+  authMiddleware,
+  catchAsync(async (req, res) => {
     const { roomId } = req.params;
     const messages = await Chat.getMessages(roomId);
     res.json({ success: true, data: messages });
-}));
+  })
+);
 
 /**
  * @swagger
@@ -149,13 +170,18 @@ router.get('/rooms/:roomId/messages', authMiddleware, catchAsync(async (req, res
  *       200:
  *         description: 읽음 처리 완료
  */
-router.patch('/rooms/:roomId/read', authMiddleware, catchAsync(async (req, res) => {
+router.patch(
+  '/rooms/:roomId/read',
+  authMiddleware,
+  catchAsync(async (req, res) => {
     const { roomId } = req.params;
-    const { sender_type_not } = req.body; 
+    const auth = await Chat.authorizeRoom(roomId, req);
+    if (!auth) return res.status(403).json({ error: '접근 권한이 없습니다' });
 
-    await Chat.markAsRead(roomId, sender_type_not);
+    await Chat.markAsRead(roomId, auth.senderType);
     res.json({ success: true });
-}));
+  })
+);
 
 /**
  * @swagger
@@ -186,19 +212,23 @@ router.patch('/rooms/:roomId/read', authMiddleware, catchAsync(async (req, res) 
  *       200:
  *         description: 메시지 전송 완료
  */
-router.post('/messages', authMiddleware, catchAsync(async (req, res) => {
+router.post(
+  '/messages',
+  authMiddleware,
+  catchAsync(async (req, res) => {
     const { room_id, content, sender_type, message_type } = req.body;
     const sender_id = req.user.id;
 
     const message = await Chat.sendMessage({
-        room_id,
-        sender_id,
-        sender_type,
-        content,
-        message_type
+      room_id,
+      sender_id,
+      sender_type,
+      content,
+      message_type,
     });
 
     res.json({ success: true, data: message });
-}));
+  })
+);
 
 module.exports = router;

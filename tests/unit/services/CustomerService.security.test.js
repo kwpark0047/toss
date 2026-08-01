@@ -2,6 +2,7 @@ jest.mock('../../../config/prisma', () => ({
   orders: { findUnique: jest.fn() },
   store_customers: { findFirst: jest.fn() },
   notifications: { create: jest.fn() },
+  point_transactions: { findFirst: jest.fn() },
   $transaction: jest.fn(),
 }));
 jest.mock('../../../repositories/Point', () => ({ calculateEarnPoints: jest.fn() }));
@@ -59,36 +60,41 @@ describe('CustomerService loyalty security', () => {
     );
 
     expect(Point.calculateEarnPoints).toHaveBeenCalledWith(5000, 3, { phone: '01012345678' });
-    expect(tx.store_customers.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      create: expect.objectContaining({ total_spent: 5000 }),
-      update: expect.objectContaining({ total_spent: { increment: 5000 } }),
-    }));
-    expect(tx.point_transactions.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        order_id: 10,
-        amount: 50,
-        balance_after: 150,
-        reference_id: 'order:10:loyalty-earn',
-      }),
-    }));
+    expect(tx.store_customers.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ total_spent: 5000 }),
+        update: expect.objectContaining({ total_spent: { increment: 5000 } }),
+      })
+    );
+    expect(tx.point_transactions.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          order_id: 10,
+          amount: 50,
+          balance_after: 150,
+          reference_id: 'order:10:loyalty-earn',
+        }),
+      })
+    );
     expect(result.points_earned).toBe(50);
   });
 
   test('requires a matching order capability', async () => {
     const service = new CustomerService();
-    await expect(service.phoneJoin(
-      { phone: '01012345678', store_id: 3, order_id: 10 },
-      { orderId: 11, storeId: 3 }
-    )).rejects.toMatchObject({ status: 403 });
+    await expect(
+      service.phoneJoin(
+        { phone: '01012345678', store_id: 3, order_id: 10 },
+        { orderId: 11, storeId: 3 }
+      )
+    ).rejects.toMatchObject({ status: 403 });
     expect(prisma.orders.findUnique).not.toHaveBeenCalled();
   });
 
   test('requires an order instead of accepting arbitrary loyalty activity', async () => {
     const service = new CustomerService();
-    await expect(service.phoneJoin(
-      { phone: '01012345678', store_id: 3, total_amount: 5000 },
-      null
-    )).rejects.toMatchObject({ status: 400 });
+    await expect(
+      service.phoneJoin({ phone: '01012345678', store_id: 3, total_amount: 5000 }, null)
+    ).rejects.toMatchObject({ status: 400 });
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 

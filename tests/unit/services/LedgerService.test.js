@@ -1,5 +1,5 @@
 jest.mock('../../../config/prisma', () => ({
-  ledger: { upsert: jest.fn() },
+  ledger: { create: jest.fn() },
 }));
 
 const prisma = require('../../../config/prisma');
@@ -20,7 +20,7 @@ describe('LedgerService', () => {
       description: 'sale',
     });
 
-    expect(prisma.ledger.upsert).toHaveBeenCalledWith(
+    expect(prisma.ledger.create).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { event_key: 'payment:3:income' },
         create: expect.objectContaining({ event_key: 'payment:3:income' }),
@@ -42,7 +42,7 @@ describe('LedgerService', () => {
       eventKey: 'refund:9',
     });
 
-    expect(prisma.ledger.upsert).toHaveBeenCalledWith(
+    expect(prisma.ledger.create).toHaveBeenCalledWith(
       expect.objectContaining({ where: { event_key: 'refund:9' } })
     );
   });

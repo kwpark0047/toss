@@ -15,13 +15,15 @@ function provider() {
   if (NCP_ID && NCP_KEY) return 'ncp';
   return null;
 }
-function isConfigured() { return provider() !== null; }
+function isConfigured() {
+  return provider() !== null;
+}
 
 // 지오코딩 정확도를 위해 주소 정제: 괄호(법정동/층) 먼저 제거 → 쉼표 이후(호/층) 제거
 function cleanAddress(addr = '') {
   return String(addr)
-    .replace(/\([^)]*\)/g, ' ')  // "(교남동,지상1층)" 등 괄호 먼저 제거(내부 쉼표 보호)
-    .split(',')[0]               // "…30, 1층,2층" → "…30"
+    .replace(/\([^)]*\)/g, ' ') // "(교남동,지상1층)" 등 괄호 먼저 제거(내부 쉼표 보호)
+    .split(',')[0] // "…30, 1층,2층" → "…30"
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -32,14 +34,22 @@ async function kakaoGeocode(query) {
   const headers = { Authorization: `KakaoAK ${KAKAO_KEY}` };
   // 1) 주소 검색
   try {
-    const r = await axios.get('https://dapi.kakao.com/v2/local/search/address.json',
-      { params: { query, size: 1 }, headers, timeout: 8000 });
+    const r = await axios.get('https://dapi.kakao.com/v2/local/search/address.json', {
+      params: { query, size: 1 },
+      headers,
+      timeout: 8000,
+    });
     const doc = r.data?.documents?.[0];
     if (doc) return { lat: parseFloat(doc.y), lng: parseFloat(doc.x) };
-  } catch { /* 주소 검색 실패 시 키워드 폴백 */ }
+  } catch {
+    /* 주소 검색 실패 시 키워드 폴백 */
+  }
   // 2) 키워드 검색(건물명 포함 주소 대응)
-  const r2 = await axios.get('https://dapi.kakao.com/v2/local/search/keyword.json',
-    { params: { query, size: 1 }, headers, timeout: 8000 });
+  const r2 = await axios.get('https://dapi.kakao.com/v2/local/search/keyword.json', {
+    params: { query, size: 1 },
+    headers,
+    timeout: 8000,
+  });
   const doc2 = r2.data?.documents?.[0];
   if (doc2) return { lat: parseFloat(doc2.y), lng: parseFloat(doc2.x) };
   return null;
@@ -68,7 +78,7 @@ async function geocode(address) {
   if (p === 'kakao') g = await kakaoGeocode(q);
   else if (p === 'ncp') g = await ncpGeocode(q);
   if (g && isFinite(g.lat) && isFinite(g.lng) && inSeoulish(g.lat, g.lng)) {
-    return { lat: Math.round(g.lat * 1e6) / 1e6, lng: Math.round(g.lng * 1e6) / 1e6 };
+    return { lat: Math.round(g.lat * 1e6) / 1e6, lng: Math.round(g.lng * 1e6) / 1e6, provider: p };
   }
   return null;
 }
