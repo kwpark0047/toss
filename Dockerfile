@@ -49,8 +49,8 @@ COPY --from=builder /app/app.js ./app.js
 COPY --from=builder /app/index.js ./index.js
 COPY --from=builder /app/.env.example ./.env.example
 
-# Copy Prisma client from builder (generated to app/generated/prisma)
-COPY --from=builder /app/app/generated ./app/generated
+# Copy Prisma client from builder (custom output is relative to schema dir: prisma/app/generated)
+COPY --from=builder /app/prisma/app/generated ./prisma/app/generated
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # Change ownership to non-root user
