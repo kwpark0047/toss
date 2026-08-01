@@ -108,6 +108,168 @@ const DynamicPricingController = {
         }
     },
 
+    applyManualPriceChange: async (req, res, next) => {
+        try {
+            const { storeId } = req.params;
+            const { productId, newPrice, reason } = req.body;
+
+            if (!productId || newPrice === undefined) {
+                throw new AppError('productId, newPrice는 필수입니다.', 400);
+            }
+
+            const product = await prisma.products.findFirst({
+                where: { id: Number(productId), store_id: Number(storeId) }
+            });
+            if (!product) {
+                throw new AppError('상품을 찾을 수 없습니다.', 404);
+            }
+
+            const priceLog = await prisma.dynamic_price_logs.create({
+                data: {
+                    store_id: Number(storeId),
+                    product_id: Number(product.id),
+                    old_price: product.price,
+                    new_price: Number(newPrice),
+                    trigger_type: 'MANUAL',
+                    trigger_data: reason ? { reason } : undefined,
+                    confidence_score: 1.0,
+                    applied: true,
+                    applied_at: new Date()
+                }
+            });
+
+            await prisma.products.update({
+                where: { id: Number(product.id) },
+                data: { price: Number(newPrice) }
+            });
+
+            res.success({ log_id: priceLog.id, product_id: product.id, old_price: product.price, new_price: Number(newPrice) }, '수동 가격 변경 완료');
+        } catch (err) {
+            next(err);
+        }
+    },
+
+    runPricingOptimization: async (req, res, next) => {
+        try {
+            const { storeId } = req.params;
+            const { jobType = 'FULL_OPTIMIZATION' } = req.body;
+
+            const validJobTypes = ['FULL_OPTIMIZATION', 'INCREMENTAL_UPDATE', 'DEMAND_FORECAST', 'COMPETITOR_SYNC'];
+            if (!validJobTypes.includes(jobType)) {
+                throw new AppError(`jobType은 ${validJobTypes.join(', ')} 중 하나여야 합니다.`, 400);
+            }
+
+            const job = await prisma.pricing_optimization_jobs.create({
+                data: {
+                    store_id: Number(storeId),
+                    job_type: jobType,
+                    status: 'PENDING'
+                }
+            });
+
+            res.success(job, '가격 최적화 작업이 등록되었습니다.', 201);
+        } catch (err) {
+            next(err);
+        }
+    },
+
+    getOptimizationJobs: async (req, res, next) => {
+        try {
+            const { storeId } = req.params;
+            const { limit = 50 } = req.query;
+
+            const jobs = await prisma.pricing_optimization_jobs.findMany({
+                where: { store_id: Number(storeId) },
+                orderBy: { created_at: 'desc' },
+                take: Number(limit)
+            });
+
+            res.success(jobs, '최적화 작업 목록 조회 완료');
+        } catch (err) {
+            next(err);
+        }
+    },
+
+    upsertCompetitorPrice: async (req, res, next) => {
+        try {
+            const { storeId } = req.params;
+            const { id, productName, competitorName, competitorPrice, competitorUrl } = req.body;
+
+            if (!productName || !competitorName || competitorPrice === undefined) {
+                throw new AppError('productName, competitorName, competitorPrice는 필수입니다.', 400);
+            }
+
+            const data = {
+                product_name: productName,
+                competitor_name: competitorName,
+                competitor_price: Number(competitorPrice),
+                competitor_url: competitorUrl || null,
+                last_checked: new Date()
+            };
+
+            let result;
+            if (id) {
+                result = await prisma.competitor_prices.update({
+                    where: { id: Number(id), store_id: Number(storeId) },
+                    data
+                });
+            } else {
+                result = await prisma.competitor_prices.create({
+                    data: { store_id: Number(storeId), ...data }
+                });
+            }
+
+            res.success(result, '경쟁사 가격 저장 완료', id ? 200 : 201);
+        } catch (err) {
+            next(err);
+        }
+    },
+
+    getCompetitorPrices: async (req, res, next) => {
+        try {
+            const { storeId } = req.params;
+            const { productName, isActive } = req.query;
+
+            const where = { store_id: Number(storeId) };
+            if (productName) where.product_name = { contains: productName };
+            if (isActive !== undefined) where.is_active = isActive === 'true';
+
+            const competitors = await prisma.competitor_prices.findMany({
+                where,
+                orderBy: { last_checked: 'desc' }
+            });
+
+            res.success(competitors, '경쟁사 가격 목록 조회 완료');
+        } catch (err) {
+            next(err);
+        }
+    },
+
+    getDemandForecasts: async (req, res, next) => {
+        try {
+            const { storeId } = req.params;
+            const { productId, days = 7 } = req.query;
+
+            const since = new Date(Date.now() - Number(days) * 86400000);
+            const where = {
+                store_id: Number(storeId),
+                forecast_date: { gte: since }
+            };
+            if (productId) where.product_id = Number(productId);
+
+            const forecasts = await prisma.demand_forecasts.findMany({
+                where,
+                include: { products: { select: { id: true, name: true } } },
+                orderBy: { forecast_date: 'asc' },
+                take: Number(days) * 5
+            });
+
+            res.success(forecasts, '수요 예측 목록 조회 완료');
+        } catch (err) {
+            next(err);
+        }
+    },
+
     activatePricingRules: async (req, res, next) => {
         try {
             const { storeId } = req.params;
