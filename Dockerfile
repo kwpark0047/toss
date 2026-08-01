@@ -8,7 +8,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies (including devDependencies for build)
-RUN npm ci --only=production && npm ci --include=dev
+# --ignore-scripts: prisma generate runs after source copy (prisma is a devDependency)
+RUN npm ci --ignore-scripts
 
 # Copy source code
 COPY . .
@@ -28,7 +29,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production
+RUN npm ci --only=production --ignore-scripts
 
 # Copy built application from builder stage
 COPY --from=builder /app/app ./app
