@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
       DIRECT_URL: postgresql://test:test@localhost:5432/wemarket_test
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +59,8 @@ jobs:
       DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
       NODE_ENV: test
       SMS_ENV: dev
+      JWT_SECRET: test-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
     steps:
       - uses: actions/checkout@v4
 
@@ -73,7 +76,7 @@ jobs:
         run: npx prisma generate
 
       - name: Run backend unit tests
-        run: npx jest tests/unit/ --no-cache --forceExit
+        run: npx jest --config jest.config.js tests/unit/ --no-cache --forceExit
 
   backend-integration-tests:
     runs-on: ubuntu-latest
@@ -97,6 +100,8 @@ jobs:
       DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
       NODE_ENV: test
       SMS_ENV: dev
+      JWT_SECRET: test-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
     steps:
       - uses: actions/checkout@v4
 
@@ -112,7 +117,7 @@ jobs:
         run: npx prisma generate
 
       - name: Run integration tests
-        run: npx jest tests/integration/ --no-cache --forceExit
+        run: npx jest --config jest.config.js tests/integration/ --no-cache --forceExit
 
   print-agent-test:
     runs-on: ubuntu-latest
