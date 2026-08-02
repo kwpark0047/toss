@@ -19,8 +19,8 @@ RUN npm run build
 # Stage 2: Production runtime (using nginx for static file serving)
 FROM nginx:1.27-alpine AS production
 
-# Create non-root user
-RUN addgroup -g 1001 -S nginx && adduser -u 1001 -S -G nginx
+# The official nginx image already provides the nginx user/group,
+# so no addgroup/adduser is needed (re-creating it fails with exit 1).
 
 # Copy built files
 COPY --from=builder /app/dist /usr/share/nginx/html
