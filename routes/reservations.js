@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
+const { checkStorePermissionForObject } = require('../middleware/storeAuth');
 const { requireReservationCustomerCapability } = require('../middleware/orderCapability');
 const reservationsController = require('../controllers/reservationsController');
 
@@ -100,7 +101,12 @@ router.get('/store/:storeId', authMiddleware, reservationsController.getStoreRes
  *       200:
  *         description: 상태 변경 완료
  */
-router.patch('/:id/status', authMiddleware, reservationsController.updateStatus);
+router.patch(
+  '/:id/status',
+  authMiddleware,
+  checkStorePermissionForObject('reservations'),
+  reservationsController.updateStatus
+);
 
 /**
  * @swagger
@@ -122,6 +128,28 @@ router.get('/my', requireReservationCustomerCapability, reservationsController.g
 
 /**
  * @swagger
+ * /api/reservations/my/{phone}:
+ *   get:
+ *     tags: [Reservations]
+ *     summary: 내 예약 상태 조회 (전화번호 기반)
+ *     parameters:
+ *       - in: path
+ *         name: phone
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: 예약 목록
+ */
+router.get(
+  '/my/:phone',
+  requireReservationCustomerCapability,
+  reservationsController.getMyReservations
+);
+
+/**
+ * @swagger
  * /api/reservations/{id}/cancel:
  *   patch:
  *     tags: [Reservations]
@@ -136,6 +164,10 @@ router.get('/my', requireReservationCustomerCapability, reservationsController.g
  *       200:
  *         description: 예약 취소 완료
  */
-router.patch('/:id/cancel', requireReservationCustomerCapability, reservationsController.cancelReservation);
+router.patch(
+  '/:id/cancel',
+  requireReservationCustomerCapability,
+  reservationsController.cancelReservation
+);
 
 module.exports = router;

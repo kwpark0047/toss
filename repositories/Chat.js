@@ -141,15 +141,17 @@ const Chat = {
 
   // [채팅방 권한 검증] - 사용자가 해당 방의 멤버인지 확인하고 sender_type 반환
   authorizeRoom: async (roomId, req) => {
+    const userId = req.user?.id;
+    if (!userId) return null;
     const room = await prisma.chat_rooms.findUnique({
       where: { id: parseInt(roomId) },
       include: { users: { select: { id: true, sender_type: true } } },
     });
     if (!room) return null;
     const users = room.users || [];
-    const user = users.find((u) => u.id === req.user.id);
+    const user = users.find((u) => u.id === userId);
     if (!user) return null;
-    return { senderType: user.sender_type, room: { id: room.id } };
+    return { senderType: user.sender_type, senderId: userId, room: { id: room.id } };
   },
 };
 

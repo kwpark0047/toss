@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
 const authMiddleware = require('../middleware/auth');
-const { checkStorePermission } = require('../middleware/storeAuth');
+const { optionalAuth } = require('../middleware/auth');
+const { checkStorePermission, checkStorePermissionForObject } = require('../middleware/storeAuth');
+const { requireOrderCapabilityOrAuth } = require('../middleware/orderCapability');
 const validate = require('../middleware/validate');
 const idempotency = require('../middleware/idempotency');
 const { order: schema } = require('../utils/validationSchemas');
@@ -74,7 +76,13 @@ router.post(
  *       200:
  *         description: 토큰 등록 완료
  */
-router.post('/:orderId/customer-token', orderController.registerCustomerToken);
+router.post(
+  '/:orderId/customer-token',
+  optionalAuth,
+  requireOrderCapabilityOrAuth,
+  checkStorePermissionForObject('orders'),
+  orderController.registerCustomerToken
+);
 
 /**
  * @swagger
@@ -195,7 +203,13 @@ router.get(
  *       404:
  *         description: 주문을 찾을 수 없음
  */
-router.get('/:id', orderController.getOrderDetails);
+router.get(
+  '/:id',
+  optionalAuth,
+  requireOrderCapabilityOrAuth,
+  checkStorePermissionForObject('orders'),
+  orderController.getOrderDetails
+);
 
 /**
  * @swagger
@@ -223,7 +237,12 @@ router.get('/:id', orderController.getOrderDetails);
  *       200:
  *         description: 상태 변경 완료
  */
-router.put('/:id/status', authMiddleware, orderController.updateStatus);
+router.put(
+  '/:id/status',
+  authMiddleware,
+  checkStorePermissionForObject('orders'),
+  orderController.updateStatus
+);
 
 /**
  * @swagger
@@ -242,7 +261,12 @@ router.put('/:id/status', authMiddleware, orderController.updateStatus);
  *       200:
  *         description: 주문 취소 완료
  */
-router.post('/:id/cancel', authMiddleware, orderController.cancelOrder);
+router.post(
+  '/:id/cancel',
+  authMiddleware,
+  checkStorePermissionForObject('orders'),
+  orderController.cancelOrder
+);
 
 /**
  * @swagger
@@ -261,6 +285,11 @@ router.post('/:id/cancel', authMiddleware, orderController.cancelOrder);
  *       200:
  *         description: 주문 삭제 완료
  */
-router.delete('/:id', authMiddleware, orderController.deleteOrder);
+router.delete(
+  '/:id',
+  authMiddleware,
+  checkStorePermissionForObject('orders'),
+  orderController.deleteOrder
+);
 
 module.exports = router;

@@ -107,7 +107,7 @@ class WaitingService {
         called_at: status === 'called' ? new Date() : undefined,
       },
     });
-    const result = decryptPhoneFields(entry);
+    const result = decryptPhoneFields(updated);
 
     try {
       const store = await prisma.stores.findUnique({
@@ -119,7 +119,7 @@ class WaitingService {
 
       if (status === 'called') {
         alimtalkService
-          .sendWaitingCall(phone, storeName, entry.queue_number)
+          .sendWaitingCall(phone, storeName, updated.queue_number)
           .catch((e) => logger.warn(`[Waiting] 호출 알림톡 실패: ${e.message}`));
       } else if (status === 'cancelled') {
         alimtalkService

@@ -274,10 +274,46 @@ const Product = {
     return await prisma.products.findMany(query);
   },
 
+  // [주문 생성 시 조건부 재고 예약]
+  // 재고가 충분할 때만 원자적으로 차감하고, 성공 시 stock_history(ORDER)를 남긴다.
+  reserveStock: async (productId, storeId, qty, orderId) => {
+    const pid = parseInt(productId);
+    const sid = parseInt(storeId);
+    const reserveQty = parseInt(qty);
+
+    const updated = await prisma.products.updateMany({
+      where: {
+        id: pid,
+        store_id: sid,
+        is_active: true,
+        is_sold_out: false,
+        stock_quantity: { gte: reserveQty },
+      },
+      data: { stock_quantity: { decrement: reserveQty } },
+    });
+
+    if (updated.count === 0) return null;
+
+    const product = await prisma.products.findUnique({ where: { id: pid } });
+    await prisma.stock_history.create({
+      data: {
+        product_id: pid,
+        store_id: sid,
+        change: -reserveQty,
+        qty_after: product.stock_quantity,
+        reason: 'ORDER',
+        order_id: parseInt(orderId),
+      },
+    });
+
+    return product;
+  },
+
   // [주문 취소 시 재고 복구]
+  // ORDER(-)와 CANCEL(+) 이력을 합산해 이미 복구된 예약은 건너뛴다 (멱등성).
   restoreOrderStock: async (orderId) => {
     const history = await prisma.stock_history.findMany({
-      where: { order_id: orderId, change: { lt: 0 } },
+      where: { order_id: orderId },
       include: { products: true },
     });
 
@@ -294,6 +330,7 @@ const Product = {
 
     const results = [];
     for (const { product_id, store_id, totalChange } of Object.values(productGroups)) {
+      if (totalChange === 0) continue; // 이미 CANCEL 이력으로 복구됨
       const restoreQty = Math.abs(totalChange);
       await prisma.products.update({
         where: { id: product_id },

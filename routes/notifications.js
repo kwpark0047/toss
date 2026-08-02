@@ -3,15 +3,16 @@ const router = express.Router();
 const { AppError } = require('../utils/errorHandler');
 const logger = require('../utils/logger');
 const authMiddleware = require('../middleware/auth');
+const { checkStorePermissionForObject } = require('../middleware/storeAuth');
 const {
-    getNotifications,
-    getUnreadCount,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-    clearNotifications,
-    createSystemNotification,
-    registerToken
+  getNotifications,
+  getUnreadCount,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+  clearNotifications,
+  createSystemNotification,
+  registerToken,
 } = require('../controllers/notificationsController');
 
 /**
@@ -183,7 +184,12 @@ router.post('/system', authMiddleware, createSystemNotification);
  *       200:
  *         description: 읽음 처리 완료
  */
-router.patch('/:id/read', authMiddleware, markAsRead);
+router.patch(
+  '/:id/read',
+  authMiddleware,
+  checkStorePermissionForObject('notifications'),
+  markAsRead
+);
 
 /**
  * @swagger
@@ -203,7 +209,11 @@ router.patch('/:id/read', authMiddleware, markAsRead);
  *       200:
  *         description: 삭제 완료
  */
-router.delete('/:id', authMiddleware, deleteNotification);
+router.delete(
+  '/:id',
+  authMiddleware,
+  checkStorePermissionForObject('notifications'),
+  deleteNotification
+);
 
 module.exports = router;
-

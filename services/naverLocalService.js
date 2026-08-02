@@ -20,11 +20,16 @@ const stripTags = (s = '') => s.replace(/<[^>]+>/g, '').trim();
 
 // 이름 정규화(공백·괄호영문·특수문자 제거)로 매칭 비교
 const normalize = (s = '') =>
-  stripTags(s).toLowerCase().replace(/\([^)]*\)/g, '').replace(/[\s·.,'"-]/g, '');
+  stripTags(s)
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, '')
+    .replace(/[\s·.,'"-]/g, '');
 
 // 주소에서 시/구/동 등 지역 토큰 추출 (검색 정확도 향상용)
 function regionHint(address = '') {
-  const m = address.match(/([가-힣]+(시|도))?\s*([가-힣]+(시|군|구))?\s*([가-힣]+(동|읍|면|가|로|길))?/);
+  const m = address.match(
+    /([가-힣]+(시|도))?\s*([가-힣]+(시|군|구))?\s*([가-힣]+(동|읍|면|가|로|길))?/
+  );
   return m ? m[0].trim() : '';
 }
 
@@ -32,15 +37,26 @@ function isConfigured() {
   return Boolean(CLIENT_ID && CLIENT_SECRET);
 }
 
+// 현재 환경변수 기준 설정 상태 진단 (관리자 상태 조회용)
+function configStatus() {
+  const id = process.env.NAVER_CLIENT_ID || '';
+  const secret = process.env.NAVER_CLIENT_SECRET || '';
+  const missing = [];
+  if (!id) missing.push('NAVER_CLIENT_ID');
+  if (!secret) missing.push('NAVER_CLIENT_SECRET');
+  return { configured: missing.length === 0, missing };
+}
+
 /** 지역검색 호출 → items 배열(정규화 필드 포함) 반환 */
 async function searchLocal(query) {
-  if (!isConfigured()) throw new Error('NAVER_CLIENT_SECRET 미설정 — 네이버 API 키를 환경변수에 설정하세요.');
+  if (!isConfigured())
+    throw new Error('NAVER_CLIENT_SECRET 미설정 — 네이버 API 키를 환경변수에 설정하세요.');
   const res = await axios.get(ENDPOINT, {
     params: { query, display: 5, sort: 'random' },
     headers: { 'X-Naver-Client-Id': CLIENT_ID, 'X-Naver-Client-Secret': CLIENT_SECRET },
     timeout: 8000,
   });
-  return (res.data?.items || []).map(it => ({
+  return (res.data?.items || []).map((it) => ({
     name: stripTags(it.title),
     category: it.category || '',
     telephone: it.telephone || '',
@@ -67,7 +83,7 @@ async function enrichStore(store) {
 
   // 상호명 정규화 비교로 최적 후보 선택
   const target = normalize(name);
-  const best = items.find(it => {
+  const best = items.find((it) => {
     const n = normalize(it.name);
     return n && (n === target || n.includes(target) || target.includes(n));
   });
@@ -78,9 +94,10 @@ async function enrichStore(store) {
   if (store.latitude == null && best.latitude != null) patch.latitude = best.latitude;
   if (store.longitude == null && best.longitude != null) patch.longitude = best.longitude;
   if (!store.phone && best.telephone) patch.phone = best.telephone;
-  if (!store.business_type && best.category) patch.business_type = best.category.split('>').pop().trim();
+  if (!store.business_type && best.category)
+    patch.business_type = best.category.split('>').pop().trim();
   if (Object.keys(patch).length === 0) return null;
   return { patch, matched: best };
 }
 
-module.exports = { isConfigured, searchLocal, enrichStore, normalize, regionHint };
+module.exports = { isConfigured, configStatus, searchLocal, enrichStore, normalize, regionHint };

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
-const { checkStorePermission } = require('../middleware/storeAuth');
+const { checkStorePermission, checkStorePermissionForObject } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const staffController = require('../controllers/staffController');
 
@@ -104,7 +104,12 @@ router.post('/', authMiddleware, catchAsync(staffController.createStaff));
  *       200:
  *         description: 근태 기록 목록
  */
-router.get('/store/:storeId/attendance', authMiddleware, checkStorePermission('order:read'), catchAsync(staffController.getAttendance));
+router.get(
+  '/store/:storeId/attendance',
+  authMiddleware,
+  checkStorePermission('order:read'),
+  catchAsync(staffController.getAttendance)
+);
 
 /**
  * @swagger
@@ -170,7 +175,12 @@ router.post('/:id/clock-out', authMiddleware, catchAsync(staffController.clockOu
  *       200:
  *         description: 수정 완료
  */
-router.put('/:id', authMiddleware, catchAsync(staffController.updateStaffRole));
+router.put(
+  '/:id',
+  authMiddleware,
+  checkStorePermissionForObject('staff'),
+  catchAsync(staffController.updateStaffRole)
+);
 
 /**
  * @swagger
@@ -331,6 +341,10 @@ router.put('/:storeId/schedules/:id', authMiddleware, catchAsync(staffController
  *       200:
  *         description: 삭제 완료
  */
-router.delete('/:storeId/schedules/:id', authMiddleware, catchAsync(staffController.deleteSchedule));
+router.delete(
+  '/:storeId/schedules/:id',
+  authMiddleware,
+  catchAsync(staffController.deleteSchedule)
+);
 
 module.exports = router;

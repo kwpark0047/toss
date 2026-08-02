@@ -3,6 +3,7 @@ const router = express.Router();
 const Chat = require('../repositories/Chat');
 const catchAsync = require('../utils/catchAsync');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
+const { verifyOrderCapability } = require('../utils/orderCapability');
 
 /**
  * @swagger
@@ -38,12 +39,14 @@ const { authMiddleware, adminOnly } = require('../middleware/auth');
 router.post(
   '/rooms/access',
   catchAsync(async (req, res) => {
-    const { store_id, customer_phone, customer_id } = req.body;
-    const room = await Chat.accessRoom({
-      store_id,
-      customer_phone,
-      customer_id,
-      type: 'STORE_CUSTOMER',
+    const capability = verifyOrderCapability(req.get('x-order-capability'));
+    if (!capability) {
+      return res.status(403).json({ error: '주문 결제 권한이 없거나 만료되었습니다.' });
+    }
+
+    const room = await Chat.accessCustomerRoom({
+      orderId: capability.orderId,
+      storeId: capability.storeId,
     });
     res.json({ success: true, data: room });
   })
@@ -135,9 +138,11 @@ router.get(
  */
 router.get(
   '/rooms/:roomId/messages',
-  authMiddleware,
   catchAsync(async (req, res) => {
     const { roomId } = req.params;
+    const auth = await Chat.authorizeRoom(roomId, req);
+    if (!auth) return res.status(403).json({ error: '접근 권한이 없습니다' });
+
     const messages = await Chat.getMessages(roomId);
     res.json({ success: true, data: messages });
   })
@@ -172,7 +177,6 @@ router.get(
  */
 router.patch(
   '/rooms/:roomId/read',
-  authMiddleware,
   catchAsync(async (req, res) => {
     const { roomId } = req.params;
     const auth = await Chat.authorizeRoom(roomId, req);
@@ -216,13 +220,15 @@ router.post(
   '/messages',
   authMiddleware,
   catchAsync(async (req, res) => {
-    const { room_id, content, sender_type, message_type } = req.body;
-    const sender_id = req.user.id;
+    const { room_id, content, message_type } = req.body;
+
+    const auth = await Chat.authorizeRoom(room_id, req);
+    if (!auth) return res.status(403).json({ error: '접근 권한이 없습니다' });
 
     const message = await Chat.sendMessage({
       room_id,
-      sender_id,
-      sender_type,
+      sender_id: auth.senderId,
+      sender_type: auth.senderType,
       content,
       message_type,
     });

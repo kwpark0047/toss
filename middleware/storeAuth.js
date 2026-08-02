@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
+const { AppError } = require('../utils/errorHandler');
 
 const rolePermissions = {
   owner: [
@@ -100,7 +101,160 @@ const checkStorePermission = (requiredPermission) => {
   };
 };
 
+/**
+ * 객체 뮤테이션에 대한 테넌트 권한 검증 미들웨어.
+ * 요청된 리소스의 store_id 를 DB에서 조회한 뒤 소유자/직원 권한을 확인한다.
+ * - super_admin 은 항상 통과
+ * - 검증된 주문/예약 capability 보유자는 통과 (req.orderCapability / req.capability)
+ * - store_id 가 null 인 전역/시스템 대상은 통과 (알림 등)
+ */
+const checkStorePermissionForObject = (model) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: '인증이 필요합니다' });
+      }
+
+      if (req.user.role === 'super_admin' || req.orderCapability || req.capability) {
+        return next();
+      }
+
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id) || id <= 0) {
+        return next(new AppError(400, '유효하지 않은 ID입니다.'));
+      }
+
+      const object = await prisma[model].findUnique({
+        where: { id },
+        select: { store_id: true },
+      });
+
+      if (!object) {
+        return next(new AppError(404, '대상을 찾을 수 없습니다.'));
+      }
+      if (object.store_id == null) {
+        return next();
+      }
+
+      const role = await getStoreRole(req.user.id, object.store_id);
+      if (!role) {
+        return res
+          .status(403)
+          .json({ error: '해당 매장에 대한 권한이 없거나 존재하지 않는 매장입니다' });
+      }
+
+      req.storeId = object.store_id;
+      req.storeRole = role;
+      next();
+    } catch (error) {
+      logger.error(error);
+      res.status(500).json({ error: '권한 검증 중 서버 오류가 발생했습니다' });
+    }
+  };
+};
+
+/**
+ * 객체 뮤테이션에 대한 테넌트 권한 검증 미들웨어 (배치 조회 버전).
+ * 테이블처럼 단건 대상을 findMany 로 조회하는 리포지토리와 함께 사용한다.
+ */
+const checkStorePermissionForObjectBatch = (model) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: '인증이 필요합니다' });
+      }
+
+      if (req.user.role === 'super_admin') {
+        return next();
+      }
+
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id) || id <= 0) {
+        return next(new AppError(400, '유효하지 않은 ID입니다.'));
+      }
+
+      const rows = await prisma[model].findMany({
+        where: { id: { in: [id] } },
+        select: { id: true, store_id: true },
+      });
+
+      if (!rows.length) {
+        return next(new AppError(404, '대상을 찾을 수 없습니다.'));
+      }
+
+      const role = await getStoreRole(req.user.id, rows[0].store_id);
+      if (!role) {
+        return res
+          .status(403)
+          .json({ error: '해당 매장에 대한 권한이 없거나 존재하지 않는 매장입니다' });
+      }
+
+      req.storeId = rows[0].store_id;
+      req.storeRole = role;
+      next();
+    } catch (error) {
+      logger.error(error);
+      res.status(500).json({ error: '권한 검증 중 서버 오류가 발생했습니다' });
+    }
+  };
+};
+
+/**
+ * 일괄 뮤테이션 대상이 모두 동일한 매장에 속하는지 검증하고 권한을 확인한다.
+ * (예: 카테고리 정렬 순서 일괄 수정)
+ */
+const checkUniformStoreMutation = (model) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: '인증이 필요합니다' });
+      }
+
+      const items = req.body.orders || req.body.items || [];
+      const ids = items
+        .map((item) => Number(item && item.id))
+        .filter((n) => Number.isInteger(n) && n > 0);
+
+      if (!ids.length) {
+        return next(new AppError(400, '유효한 대상이 없습니다.'));
+      }
+
+      const rows = await prisma[model].findMany({
+        where: { id: { in: ids } },
+        select: { id: true, store_id: true },
+      });
+
+      const storeIds = [...new Set(rows.map((row) => row.store_id))];
+      if (storeIds.length !== 1) {
+        return res.status(400).json({ error: '모든 대상은 동일한 매장에 속해야 합니다.' });
+      }
+
+      if (req.user.role === 'super_admin') {
+        req.storeId = storeIds[0];
+        return next();
+      }
+
+      const role = await getStoreRole(req.user.id, storeIds[0]);
+      if (!role) {
+        return res
+          .status(403)
+          .json({ error: '해당 매장에 대한 권한이 없거나 존재하지 않는 매장입니다' });
+      }
+
+      req.storeId = storeIds[0];
+      req.storeRole = role;
+      next();
+    } catch (error) {
+      logger.error(error);
+      res.status(500).json({ error: '권한 검증 중 서버 오류가 발생했습니다' });
+    }
+  };
+};
+
 module.exports = {
   getStoreRole,
   checkStorePermission,
+  checkStorePermissionForObject,
+  checkStorePermissionForObjectBatch,
+  checkUniformStoreMutation,
 };

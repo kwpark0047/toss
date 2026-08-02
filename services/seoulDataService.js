@@ -8,11 +8,33 @@ const axios = require('axios');
  * env: SEOUL_OPENAPI_KEYS (콤마 구분 다중 키)
  */
 const SERVICE = 'LOCALDATA_072404'; // 일반음식점
-const KEYS = (process.env.SEOUL_OPENAPI_KEYS || '').split(',').map(k => k.trim()).filter(Boolean);
+const KEYS = (process.env.SEOUL_OPENAPI_KEYS || '')
+  .split(',')
+  .map((k) => k.trim())
+  .filter(Boolean);
 let keyIdx = 0;
-const nextKey = () => { const k = KEYS[keyIdx % KEYS.length]; keyIdx++; return k; };
+const nextKey = () => {
+  const k = KEYS[keyIdx % KEYS.length];
+  keyIdx++;
+  return k;
+};
 
-function isConfigured() { return KEYS.length > 0; }
+function isConfigured() {
+  return KEYS.length > 0;
+}
+
+// 현재 환경변수 기준 설정 상태 진단 (관리자 상태 조회용)
+function configStatus() {
+  const keys = (process.env.SEOUL_OPENAPI_KEYS || '')
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean);
+  return {
+    configured: keys.length > 0,
+    keyCount: keys.length,
+    missing: keys.length ? [] : ['SEOUL_OPENAPI_KEYS'],
+  };
+}
 
 // 페이지 조회 (start~end, 1-base). 최대 1000행/요청.
 async function fetchPage(start, end) {
@@ -33,7 +55,10 @@ const clean = (s = '') => String(s).replace(/\s+/g, ' ').trim();
 
 // 이름 정규화(비교용): 괄호영문·공백·특수문자 제거
 function normName(s = '') {
-  return clean(s).toLowerCase().replace(/\([^)]*\)/g, '').replace(/[\s·.,'"\-()]/g, '');
+  return clean(s)
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, '')
+    .replace(/[\s·.,'"\-()]/g, '');
 }
 
 // 주소에서 매칭 코어 추출: "동/가 + 지번" 또는 "로/길 + 건물번호"
@@ -72,4 +97,14 @@ function mapRow(row) {
   };
 }
 
-module.exports = { isConfigured, fetchPage, mapRow, normName, addrCore, dongOf, hasCorruptName, keyCount: () => KEYS.length };
+module.exports = {
+  isConfigured,
+  configStatus,
+  fetchPage,
+  mapRow,
+  normName,
+  addrCore,
+  dongOf,
+  hasCorruptName,
+  keyCount: () => KEYS.length,
+};

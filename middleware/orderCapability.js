@@ -42,6 +42,24 @@ function requireReservationCustomerCapability(req, res, next) {
   next();
 }
 
+function requireOrderCapabilityOrAuth(req, res, next) {
+  if (req.user) return next();
+
+  const capability = verifyOrderCapability(req.get('x-order-capability'));
+  const requestedOrderId = Number(req.params.id || req.params.orderId || req.body?.order_id);
+
+  if (
+    !capability ||
+    !Number.isInteger(requestedOrderId) ||
+    capability.orderId !== requestedOrderId
+  ) {
+    return res.status(403).json({ error: '주문 조회 권한이 없거나 만료되었습니다.' });
+  }
+
+  req.orderCapability = capability;
+  next();
+}
+
 function requireWalletCapability(req, res, next) {
   const token = req.get('x-wallet-capability') || req.get('x-order-capability');
   const capability = verifyWalletCapability(token);
@@ -62,4 +80,5 @@ function requireWalletCapability(req, res, next) {
 
 module.exports = orderCapability;
 module.exports.requireReservationCustomerCapability = requireReservationCustomerCapability;
+module.exports.requireOrderCapabilityOrAuth = requireOrderCapabilityOrAuth;
 module.exports.requireWalletCapability = requireWalletCapability;

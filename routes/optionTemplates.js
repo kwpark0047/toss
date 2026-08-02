@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const optionTemplatesController = require('../controllers/optionTemplatesController');
 const authMiddleware = require('../middleware/auth');
+const { checkStorePermission, checkStorePermissionForObject } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 
 /**
@@ -29,7 +30,12 @@ const catchAsync = require('../utils/catchAsync');
  *       200:
  *         description: 옵션 템플릿 목록
  */
-router.get('/store/:storeId', authMiddleware, catchAsync(optionTemplatesController.getTemplates));
+router.get(
+  '/store/:storeId',
+  authMiddleware,
+  checkStorePermission('items:manage'),
+  catchAsync(optionTemplatesController.getTemplates)
+);
 
 /**
  * @swagger
@@ -75,7 +81,12 @@ router.post('/', authMiddleware, catchAsync(optionTemplatesController.createTemp
  *       200:
  *         description: 템플릿 수정 완료
  */
-router.put('/:id', authMiddleware, catchAsync(optionTemplatesController.updateTemplate));
+router.put(
+  '/:id',
+  authMiddleware,
+  checkStorePermissionForObject('option_templates'),
+  catchAsync(optionTemplatesController.updateTemplate)
+);
 
 /**
  * @swagger
@@ -95,6 +106,11 @@ router.put('/:id', authMiddleware, catchAsync(optionTemplatesController.updateTe
  *       200:
  *         description: 템플릿 삭제 완료
  */
-router.delete('/:id', authMiddleware, catchAsync(optionTemplatesController.deleteTemplate));
+router.delete(
+  '/:id',
+  authMiddleware,
+  checkStorePermissionForObject('option_templates'),
+  catchAsync(optionTemplatesController.deleteTemplate)
+);
 
 module.exports = router;

@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const waitingController = require('../controllers/waitingController');
+const authMiddleware = require('../middleware/auth');
+const { checkStorePermission, checkStorePermissionForObject } = require('../middleware/storeAuth');
 const { createAIRateLimiter } = require('../utils/aiRateLimiter');
 
 /**
@@ -37,7 +39,12 @@ router.get('/store/:storeId/status', waitingController.getStoreStatus);
  *       200:
  *         description: 대기 중인 고객 목록
  */
-router.get('/store/:storeId', waitingController.getStoreWaitingList);
+router.get(
+  '/store/:storeId',
+  authMiddleware,
+  checkStorePermission('order:read'),
+  waitingController.getStoreWaitingList
+);
 
 /**
  * @swagger
@@ -91,7 +98,12 @@ router.post('/register', waitingController.register);
  *       200:
  *         description: 상태 변경 완료
  */
-router.patch('/:id/status', waitingController.updateStatus);
+router.patch(
+  '/:id/status',
+  authMiddleware,
+  checkStorePermissionForObject('waiting_list'),
+  waitingController.updateStatus
+);
 
 /**
  * @swagger
@@ -139,7 +151,8 @@ router.get('/my/:phone', waitingController.getMyWaiting);
  *       200:
  *         description: AI 추천 메뉴 3개
  */
-router.get('/store/:storeId/ai-suggestions',
+router.get(
+  '/store/:storeId/ai-suggestions',
   createAIRateLimiter('getAISuggestions'),
   waitingController.getAISuggestions
 );

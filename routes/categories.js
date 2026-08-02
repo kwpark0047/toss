@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
+const {
+  checkStorePermissionForObject,
+  checkUniformStoreMutation,
+} = require('../middleware/storeAuth');
 const categoriesController = require('../controllers/categoriesController');
 
 /**
@@ -56,7 +60,12 @@ router.get('/store/:storeId', categoriesController.getStoreCategories);
  *       200:
  *         description: 정렬 순서 업데이트 완료
  */
-router.put('/sort', authMiddleware, categoriesController.updateSortOrders);
+router.put(
+  '/sort',
+  authMiddleware,
+  checkUniformStoreMutation('categories'),
+  categoriesController.updateSortOrders
+);
 
 /**
  * @swagger
@@ -111,7 +120,12 @@ router.post('/', authMiddleware, categoriesController.createCategory);
  *       200:
  *         description: 카테고리 수정 완료
  */
-router.put('/:id', authMiddleware, categoriesController.updateCategory);
+router.put(
+  '/:id',
+  authMiddleware,
+  checkStorePermissionForObject('categories'),
+  categoriesController.updateCategory
+);
 
 /**
  * @swagger
@@ -131,7 +145,12 @@ router.put('/:id', authMiddleware, categoriesController.updateCategory);
  *       200:
  *         description: 카테고리 삭제 완료
  */
-router.delete('/:id', authMiddleware, categoriesController.deleteCategory);
+router.delete(
+  '/:id',
+  authMiddleware,
+  checkStorePermissionForObject('categories'),
+  categoriesController.deleteCategory
+);
 
 /**
  * @swagger

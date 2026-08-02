@@ -74,16 +74,22 @@ const Coupon = {
 
   /**
    * [쿠폰 사용 처리]
+   * 미사용(UNUSED)·미만료 쿠폰만 조건부 updateMany로 원자적으로 소비한다.
+   * 다른 주문이 먼저 소비한 경우(count 0) null을 반환한다.
    */
   useCoupon: async (userCouponId, _orderId) => {
-    const coupon = await prisma.user_coupons.findUnique({
-      where: { id: parseInt(userCouponId) },
-      select: { status: true },
+    const now = new Date();
+    const result = await prisma.user_coupons.updateMany({
+      where: {
+        id: parseInt(userCouponId),
+        status: 'UNUSED',
+        expires_at: { gte: now },
+      },
+      data: { status: 'USED', used_at: now },
     });
-    if (!coupon || coupon.status !== 'AVAILABLE') return null;
-    return await prisma.user_coupons.update({
+    if (result.count === 0) return null;
+    return await prisma.user_coupons.findUnique({
       where: { id: parseInt(userCouponId) },
-      data: { status: 'USED', used_at: new Date() },
     });
   },
 };
