@@ -52,9 +52,13 @@ jobs:
       run: |
         cd frontend
         nohup npm run dev > frontend.log 2>&1 &
-        sleep 30
+        FRONTEND_PID=$!
+        echo "Frontend PID: $FRONTEND_PID"
+        sleep 40
+        echo "=== Frontend log ==="
         cat frontend.log
-        curl -f http://localhost:5173 || exit 1
+        echo "=== Testing frontend ==="
+        curl -f http://localhost:5173 || (echo "Frontend not responding"; ps aux | grep vite; exit 1)
       env:
         NODE_ENV: test
         CI: true
