@@ -119,6 +119,9 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      - name: Sync database schema
+        run: npx prisma db push --skip-generate
+
       - name: Run integration tests
         run: npx jest --config jest.config.js tests/integration/ --no-cache --forceExit
 
