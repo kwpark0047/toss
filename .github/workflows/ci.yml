@@ -101,6 +101,7 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+      DIRECT_URL: postgresql://test:test@localhost:5432/wemarket_test?schema=public
       NODE_ENV: test
       SMS_ENV: dev
       JWT_SECRET: test-secret
