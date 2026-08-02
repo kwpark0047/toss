@@ -44,6 +44,7 @@ jobs:
       env:
         NODE_ENV: test
         DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+        DIRECT_URL: postgresql://test:test@localhost:5432/wemarket_test
         JWT_SECRET: test-secret
         JWT_REFRESH_SECRET: test-refresh-secret
     - name: Install Playwright Browsers
