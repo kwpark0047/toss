@@ -20,9 +20,10 @@ test.describe('주문 플로우 - 데모 스토어', () => {
     await expect(scanButton).toBeVisible();
     await scanButton.click();
 
-    // 4. 메뉴 스크린 전환 대기 후 첫 번째 "담기" 버튼 클릭
-    //    (MenuItemCard aria-label: "{name} 담기" — screen==='menu'에서만 렌더)
-    const addButton = page.getByRole('button', { name: /담기$/ }).first();
+    // 4. 메뉴 스크린 전환 대기 후 옵션이 없는 메뉴("에스프레소 더블") "담기" 버튼 클릭
+    //    (MenuItemCard aria-label: "{name} 담기" — screen==='menu'에서만 렌더.
+    //     옵션이 있는 메뉴는 옵션 모달이 떠 장바구니에 담기지 않으므로 옵션 없는 메뉴를 사용)
+    const addButton = page.getByRole('button', { name: /에스프레소 더블 담기/ });
     await expect(addButton).toBeVisible({ timeout: 15_000 });
     await addButton.click();
 
