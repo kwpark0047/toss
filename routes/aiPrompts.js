@@ -23,7 +23,7 @@ const { checkStorePermission } = require('../middleware/storeAuth');
  *       200:
  *         description: 프롬프트 템플릿 목록
  */
-router.get(authMiddleware, adminOnly, async (req, res) => {
+router.get('/', authMiddleware, adminOnly, async (req, res) => {
   try {
     const includeInactive = req.query.includeInactive === 'true';
     const prompts = await aiPromptService.listPrompts(includeInactive);
@@ -56,7 +56,7 @@ router.get(authMiddleware, adminOnly, async (req, res) => {
  *       201:
  *         description: 생성된 프롬프트 템플릿
  */
-router.post(authMiddleware, adminOnly, async (req, res) => {
+router.post('/', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { name, prompt, description } = req.body;
     if (!name || !prompt) {
@@ -96,7 +96,7 @@ router.post(authMiddleware, adminOnly, async (req, res) => {
  *       200:
  *         description: 업데이트된 프롬프트 템플릿
  */
-router.put(authMiddleware, adminOnly, async (req, res) => {
+router.put('/:name', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { prompt, description } = req.body;
     if (!prompt) {
@@ -126,7 +126,7 @@ router.put(authMiddleware, adminOnly, async (req, res) => {
  *       200:
  *         description: 비활성화 완료
  */
-router.delete(authMiddleware, adminOnly, async (req, res) => {
+router.delete('/:name', authMiddleware, adminOnly, async (req, res) => {
   try {
     await aiPromptService.deactivatePrompt(req.params.name);
     res.json({ success: true, message: '프롬프트가 비활성화되었습니다.' });
