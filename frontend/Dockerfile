@@ -22,6 +22,9 @@ FROM nginx:1.27-alpine AS production
 # The official nginx image already provides the nginx user/group,
 # so no addgroup/adduser is needed (re-creating it fails with exit 1).
 
+# Upgrade base image packages to get security fixes
+RUN apk upgrade --no-cache
+
 # Copy built files
 COPY --from=builder /app/dist /usr/share/nginx/html
 
