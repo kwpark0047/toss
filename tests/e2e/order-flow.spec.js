@@ -20,28 +20,33 @@ test.describe('주문 플로우 - 데모 스토어', () => {
     await expect(scanButton).toBeVisible();
     await scanButton.click();
 
-    // 4. 메뉴 스크린 전환 대기 후 옵션이 없는 메뉴("에스프레소 더블") "담기" 버튼 클릭
-    //    (MenuItemCard aria-label: "{name} 담기" — screen==='menu'에서만 렌더.
-    //     옵션이 있는 메뉴는 옵션 모달이 떠 장바구니에 담기지 않으므로 옵션 없는 메뉴를 사용)
+    // 4. 메뉴 스크린 전환 대기 (첫 방문 시 lazy 청크 컴파일 지연 대비)
+    //    "지금 인기 메뉴" 헤딩은 screen==='menu'에서만 렌더됨
+    await expect(
+      page.getByRole('heading', { name: /지금 인기 메뉴/ })
+    ).toBeVisible({ timeout: 30_000 });
+
+    // 5. 옵션이 없는 메뉴("에스프레소 더블") "담기" 버튼 클릭
+    //    (MenuItemCard aria-label: "{name} 담기" — 옵션이 있는 메뉴는 옵션 모달이 떠 장바구니에 담기지 않음)
     const addButton = page.getByRole('button', { name: /에스프레소 더블 담기/ });
-    await expect(addButton).toBeVisible({ timeout: 15_000 });
+    await expect(addButton).toBeVisible({ timeout: 10_000 });
     await addButton.click();
 
-    // 5. 장바구니 버튼(하단) 노출 확인 → 클릭
+    // 6. 장바구니 버튼(하단) 노출 확인 → 클릭
     const cartButton = page.getByText('장바구니 보기');
     await expect(cartButton).toBeVisible({ timeout: 10_000 });
     await cartButton.click();
 
-    // 6. 장바구니 모달에 담긴 아이템 확인
-    await expect(page.getByText(/장바구니|cart_modal/)).toBeVisible();
+    // 7. 장바구니 모달에 담긴 아이템 확인 (모달 제목 <h2> "장바구니" 기준)
+    await expect(page.getByRole('heading', { name: '장바구니' })).toBeVisible();
 
-    // 7. 결제수단 선택 (신용카드)
+    // 8. 결제수단 선택 (신용카드)
     const cardMethod = page.getByRole('button', { name: /신용카드/ });
     await expect(cardMethod).toBeVisible();
     await cardMethod.click();
 
-    // 8. 주문 버튼이 결제수단 반영되어 활성화되는지 확인
-    //    (버튼 라벨: "신용카드로 주문하기" 형태)
+    // 9. 주문 버튼이 결제수단 반영되어 활성화되는지 확인
+    //    (버튼 라벨: "신용카드으로 주문하기" 형태)
     const orderButton = page.getByRole('button', { name: /주문하기/ });
     await expect(orderButton).toBeVisible();
     await expect(orderButton).toBeEnabled();
