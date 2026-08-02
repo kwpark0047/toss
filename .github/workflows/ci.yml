@@ -7,37 +7,37 @@ on:
     branches: [main, master]
 
 jobs:
-   lint-and-test:
-     runs-on: ubuntu-latest
-     timeout-minutes: 15
-     env:
-       DIRECT_URL: postgresql://test:test@localhost:5432/wemarket_test
-     steps:
-       - uses: actions/checkout@v4
+  lint-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DIRECT_URL: postgresql://test:test@localhost:5432/wemarket_test
+    steps:
+      - uses: actions/checkout@v4
 
-       - uses: actions/setup-node@v4
-         with:
-           node-version: 22.22.0
-           cache: npm
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
 
-       - name: Install dependencies
-         run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-       - name: Lint
-         run: npm run lint
+      - name: Lint
+        run: npm run lint
 
-       - name: Prisma Schema Validation
-         run: |
-           npx prisma generate
-           npx prisma validate
+      - name: Prisma Schema Validation
+        run: |
+          npx prisma generate
+          npx prisma validate
 
-       - name: Unit & Integration Tests
-         run: npm run test:coverage
+      - name: Unit & Integration Tests
+        run: npm run test:coverage
 
-       - name: Route Validation
-         run: npm run validate:routes
+      - name: Route Validation
+        run: npm run validate:routes
 
-   backend-unit-tests:
+  backend-unit-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -160,21 +160,21 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           workingDirectory: frontend
 
-   security-scan:
-     runs-on: ubuntu-latest
-     timeout-minutes: 10
-     steps:
-       - uses: actions/checkout@v4
-       - name: Install Semgrep
-         run: |
-           pipx install semgrep
-           echo "$HOME/.local/bin" >> $GITHUB_PATH
-       - name: Verify Semgrep installation
-         run: semgrep --version
-       - name: Run Semgrep (backend)
-         run: npm run security:scan
-       - name: Run Semgrep (frontend)
-         run: npm run security:scan:frontend
+  security-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Semgrep
+        run: |
+          pipx install semgrep
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Verify Semgrep installation
+        run: semgrep --version
+      - name: Run Semgrep (backend)
+        run: npm run security:scan
+      - name: Run Semgrep (frontend)
+        run: npm run security:scan:frontend
 
   frontend-test:
     runs-on: ubuntu-latest
