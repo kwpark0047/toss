@@ -1,0 +1,9 @@
+name = "toss"
+main = "worker.js"
+compatibility_date = "2025-08-01"
+
+# Vite PWA SPA 배포 — 빌드 산출물 dist/ 를 Cloudflare Workers Static Assets 으로 제공
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"

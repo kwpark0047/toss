@@ -166,6 +166,9 @@ jobs:
       - name: Deploy to Render (backend)
         run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
 
+      - name: Build frontend
+        run: npm run cloudflare-build
+
       - name: Deploy to Cloudflare Workers (frontend)
         uses: cloudflare/wrangler-action@v3
         with:
