@@ -48,6 +48,16 @@ jobs:
         DIRECT_URL: postgresql://test:test@localhost:5432/wemarket_test
         JWT_SECRET: test-secret
         JWT_REFRESH_SECRET: test-refresh-secret
+    - name: Start frontend dev server
+      run: |
+        cd frontend
+        nohup npm run dev > frontend.log 2>&1 &
+        sleep 30
+        cat frontend.log
+        curl -f http://localhost:5173 || exit 1
+      env:
+        NODE_ENV: test
+        CI: true
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
     - name: Run Playwright tests
