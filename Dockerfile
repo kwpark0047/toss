@@ -31,6 +31,10 @@ COPY package*.json ./
 # Install only production dependencies
 RUN npm ci --only=production --ignore-scripts
 
+# Remove the npm CLI (not needed at runtime) to drop the base image's bundled
+# vulnerable deps (tar, brace-expansion, picomatch, sigstore) from the image
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+
 # Copy built application from builder stage
 COPY --from=builder /app/app ./app
 COPY --from=builder /app/controllers ./controllers
