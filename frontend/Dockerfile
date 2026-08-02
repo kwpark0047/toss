@@ -13,8 +13,8 @@ RUN npm install --legacy-peer-deps
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application (CI=true skips the puppeteer-based critical-CSS step)
+RUN CI=true npm run build
 
 # Stage 2: Production runtime (using nginx for static file serving)
 FROM nginx:1.27-alpine AS production
