@@ -27,6 +27,9 @@ httpServer.listen(PORT, async () => {
   // Open Commerce Hub 웹훅 재시도 스케줄러
   require('./services/webhookDispatcher').startRetryScheduler();
 
+  // 결제 대사 스케줄러 (매시간 정각)
+  require('./services/PaymentReconciliationService').startScheduler();
+
   // 네이버 뉴스 자동 수집 스케줄러 (매일 07:00 KST)
   // Heroku/Render는 UTC 기준이므로 KST 07:00 = UTC 22:00 (전날)
   const { collectAndPost } = require('./services/newsCollectorService');
