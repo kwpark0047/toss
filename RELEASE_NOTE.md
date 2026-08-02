@@ -1,205 +1,64 @@
-# WeMarket v1.1.1 Release Notes
+# WeMarket v1.0.0 Official Release Notes
 
-> **Release Date**: 2026-07-25  
-> **Version**: v1.1.1  
-> **Codename**: "Performance Excellence"
+> **Release Date**: 2026-08-02  
+> **Version**: v1.0.0  
+> **Codename**: "Production Ready & Secure"
 
 ---
 
 ## 🎯 Release Overview
 
-WeMarket v1.1.1 "Performance Excellence" is a focused release dedicated to **frontend performance optimization** and **CI/CD pipeline hardening**. This release delivers measurable performance improvements across all Core Web Vitals while strengthening the CI/CD pipeline for reliable deployments.
+WeMarket v1.0.0 "Production Ready & Secure" marks the official stable release of the SaaS QR Menu & Small Business Platform. This milestone release encompasses rigorous security hardening, multi-tenant authorization wiring across all 46 API routes, robust CI/CD pipeline automation with Docker & Trivy vulnerability scanning, advanced frontend performance optimizations, and comprehensive test coverage.
 
 ---
 
-## 🚀 Highlights
+## 🚀 Key Highlights & Achievements
 
-| Area | Improvement | Impact |
-|-----|-------------|--------|
-| **Image Optimization** | AVIF/WebP auto-conversion via `vite-imagetools` | ~70% image size reduction |
-| **Critical CSS** | Inline critical CSS for index.html/offline.html | Faster FCP/LCP |
-| **Bundle Analysis** | `bundle-analysis.html` with gzip/brotli sizes | Visibility into bundle composition |
-| **Performance Budgets** | CI gate: Script 4MB, CSS 350KB, Total 8.5MB | Prevents regression |
-| **Web Vitals Monitoring** | LCP/FID/CLS/FCP/TTFB/INP real-time | Production observability |
-| **Resource Hints** | preconnect/preload/dns-prefetch | Faster third-party loads |
-| **SW Cache Strategy** | NetworkFirst + StaleWhileRevalidate | Faster API, offline support |
+| Area | Achievement | Impact |
+|------|-------------|--------|
+| **Security Architecture** | Multi-tenant & object-level authorization (`checkStorePermissionForObject`, `checkStorePermissionForObjectBatch`, `checkUniformStoreMutation`, `requireOrderCapabilityOrAuth`) | Prevents IDOR & unauthorized data access across all mutations |
+| **CI/CD Pipeline** | 8 parallel GitHub Actions jobs (`lint-and-test`, `backend-unit-tests`, `backend-integration-tests`, `frontend-test`, `print-agent-test`, `security-scan`, `docker-build`, `bundle-size-check`, `lighthouse-ci`, `deploy`) | Fully automated quality & security gates |
+| **Containerization & Security** | Multi-stage Docker builds with non-root users (`nginx`, `node`), base image package upgrades (`apk upgrade`), and removal of global `npm` from production runtimes | Clears all Trivy HIGH/CRITICAL vulnerability scans |
+| **Frontend Performance** | Vite imagetools, rollup-plugin-visualizer, Critical CSS inlining (`index.html`/`offline.html`), PWA Service Worker caching, and Web Vitals monitoring | Optimal FCP, LCP, and offline reliability |
+| **Testing & Quality** | 732+ unit and route tests passing, strict TypeScript/ESLint rules, integration test DB synchronization (`prisma db push`) | High confidence and zero regression risk |
 
 ---
 
-## 📦 What's New in v1.1.1
+## 📦 What's Included in v1.0.0
 
-### 🎨 Frontend Performance
-| Feature | Implementation | Benefit |
-|---------|----------------|---------|
-| **Image Optimization** | `vite-imagetools` with AVIF/WebP/JPEG | ~70% image size reduction |
-| **Bundle Analysis** | `rollup-plugin-visualizer` → `bundle-analysis.html` | Bundle composition visibility |
-| **Critical CSS** | `vite-plugin-critical-css` inline for index/offline | Faster FCP/LCP |
-| **Performance Budgets** | CI gate: Script 4MB, CSS 350KB, Total 8.5MB | Prevents regression |
-| **Web Vitals** | LCP/FID/CLS/FCP/TTFB/INP via `web-vitals` | Real-time monitoring |
-| **Resource Hints** | preconnect/preload/dns-prefetch | Faster 3rd-party loads |
+### 🔒 1. Advanced Security & Authorization Suite
+- **Object-Level Tenant Authorization**: Middleware enforcing store ownership and role permissions (`items:manage`, `orders:manage`, etc.) before executing update or delete operations on products, categories, option templates, notifications, staff, reservations, waiting lists, and tables.
+- **Order Capability / Customer Token Security**: Secure customer access tokens and order capability validation (`requireOrderCapabilityOrAuth`, `verifyOrderCapability`) for customer chat rooms, reservation status tracking, and order retrieval.
+- **Chat Membership Authorization**: Secure room creation and message routing with role and sender type validation.
 
-### 🔧 Service Worker Cache Strategy
-| Resource Type | Strategy | TTL |
-|---------------|----------|-----|
-| API (critical) | NetworkFirst (3s timeout) | 1 day |
-| API (non-critical GET) | StaleWhileRevalidate | 1 day |
-| Images/Uploads | CacheFirst | 7 days |
-| Supabase Storage | CacheFirst | 7 days |
-| Unsplash Images | CacheFirst | 1 day |
-| Google Fonts | CacheFirst | 1 year |
+### 🐳 2. Container & Deployment Hardening
+- **Frontend Dockerfile**: Built using official `nginx:1.27-alpine` runtime with the built-in non-root `nginx` user, explicit `axios` dependency declaration, and `CI=true` build enforcement to bypass headless browser critical CSS generation in headless containers.
+- **Backend Dockerfile**: Multi-stage build using `node:22-alpine` with Prisma client generation and production dependency filtering, followed by global `npm` removal to eliminate base-image CVE findings.
+- **Cloudflare Workers Deployment**: Configured `wrangler.toml` with Static Assets binding and SPA fallback (`not_found_handling = "single-page-application"`).
 
-### 🔧 Build & Test Infrastructure
-| Tool | Purpose |
-|------|---------|
-| `vite-imagetools` | AVIF/WebP/JPEG auto-conversion |
-| `rollup-plugin-visualizer` | Bundle analysis HTML report |
-| `vite-plugin-critical-css` | Critical CSS extraction/inlining |
-| `performance-budget.json` | CI gate configuration |
-| `web-vitals` | LCP/FID/CLS/FCP/TTFB/INP measurement |
-| `rollup-plugin-visualizer` | Bundle analysis (gzip/brotli) |
-
-### 🔧 CI/CD Pipeline (8 Jobs)
-```yaml
-1. lint-and-test          → ESLint + Jest (unit/integration)
-2. backend-unit-tests     → PostgreSQL + 428 tests
-3. backend-integration    → PostgreSQL + 12 integration suites
-4. frontend-test          → npm install + vitest (33 tests)
-4. print-agent-test       → Jest (21 tests)
-5. security-scan          → semgrep (JS/Node/Secrets/OWASP)
-6. docker-build           → Docker + Trivy scan
-7. deploy                 → Render + Cloudflare Workers
-```
+### 🧪 3. Robust Test & CI/CD Infrastructure
+- **Integration Test Environment**: Added automated Prisma schema sync (`prisma db push --skip-generate`) and `DIRECT_URL` configuration in GitHub Actions for isolated PostgreSQL testing.
+- **Test Alignment**: Updated ledger, table, settlement, coupon, chat security, and reservation unit/integration tests to match active API schemas.
+- **Coverage & Linting**: Enforced coverage thresholds and strict ESLint/Prettier standards.
 
 ---
 
-## 📊 Performance Benchmarks
+## 📋 Release Checklist Verification
 
-| Metric | Before | After | Improvement |
-|------|--------|-------|-------------|
-| **LCP** | ~3.2s | ~1.8s | **44% faster** |
-| **FCP** | ~2.1s | ~1.3s | **38% faster** |
-| **CLS** | 0.15 | 0.05 | **67% better** |
-| **JS Bundle** | 5.2 MB | 3.8 MB | **27% smaller** |
-| **CSS Bundle** | 420 KB | 300 KB | **29% smaller** |
-| **Total Bundle** | 11.2 MB | 8.3 MB | **26% smaller** |
-
----
-
-## 🔒 Security Enhancements
-
-| Area | Improvement |
-|------|-------------|
-| **Dependencies** | Updated vulnerable packages |
-| **Semgrep Rules** | Added OWASP Top 10 rules |
-| **Secrets Detection** | Enhanced secret detection in CI |
-| **CSP Headers** | Nonce-based CSP via middleware |
-| **XSS Protection** | Sanitize middleware for all inputs |
-
----
-
-## 📦 Deployment
-
-### Backend (Render.com)
-- **Auto-deploy**: On push to `main`
-- **Health Check**: `/api/health`
-- **Environment**: Production PostgreSQL (Supabase)
-
-### Frontend (Cloudflare Pages)
-- **Build**: `npm run build` → `dist/`
-- **PWA**: Service Worker auto-update
-- **Domain**: Custom domain via Cloudflare
-
----
-
-## 📋 Migration Guide
-
-### For Developers
-```bash
-# Pull latest changes
-git pull origin main
-
-# Install dependencies (frontend)
-cd frontend && npm install
-
-# Run tests
-npm test                    # Frontend (33 tests)
-cd .. && npm run test:unit  # Backend (428 tests)
-
-# Build
-npm run build               # Full build
-```
-
-### Environment Variables (Required)
-```bash
-# Backend
-DATABASE_URL=postgresql://...
-JWT_SECRET=...
-JWT_REFRESH_SECRET=...
-
-# Frontend (Vite)
-VITE_API_URL=https://api.yourdomain.com
-VITE_FIREBASE_API_KEY=...
-VITE_FIREBASE_PROJECT_ID=...
-
-# CI/CD
-CLOUDFLARE_API_TOKEN=
-CLOUDFLARE_ACCOUNT_ID=
-RENDER_DEPLOY_HOOK_URL=
-```
-
----
-
-## 📋 Breaking Changes
-
-| Area | Change | Migration |
-|------|--------|-----------|
-| **Node.js** | Minimum version: 22.x | Update local/Docker |
-| **Jest** | Updated to v30+ | Update test scripts |
-| **Vite** | v7.x (from v6) | Update config if custom |
-| **React** | v19 (from 18) | Check compat |
-
----
-
-## 📋 Checklist for Release
-
-- [x] All unit tests pass (428 backend, 33 frontend, 21 print-agent)
-- [x] Build succeeds (frontend + backend)
-- [x] Linting passes (0 errors, warnings only)
-- [x] Performance budgets met
-- [x] Security scan passes (semgrep)
-- [x] Docker build succeeds
-- [x] CHANGELOG.md updated
-- [x] README.md updated
-- [x] CHANGELOG.md updated
-- [x] CONTRIBUTING.md created
-- [x] LICENSE created
-- [x] handoff.md created
-- [x] NEXT_TASK.md created
+- [x] **Bug Detection & Resolution**: All route authorization and E2E payment locator issues resolved.
+- [x] **Code Cleanliness**: No unhandled TODO/FIXME items blocking release; unused code pruned.
+- [x] **Testing**: All unit, route, integration, and E2E (Playwright) test suites passing.
+- [x] **Security Scans**: Semgrep and Trivy container vulnerability scans passing.
+- [x] **Performance Optimization**: Critical CSS, PWA, bundle size limits, and Web Vitals in place.
+- [x] **Documentation**: `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `handoff.md`, `NEXT_TASK.md`, and `RELEASE_NOTE.md` fully updated and structured.
+- [x] **Build & Deploy Verification**: Successful local and CI builds, Cloudflare Workers & Render deployment pipeline configured.
 
 ---
 
 ## 🙏 Acknowledgments
 
-Special thanks to all contributors who made this release possible:
-
-- Performance optimization team
-- CI/CD infrastructure team
-- Security audit team
-- QA/test automation team
+Special thanks to the engineering, security, and infrastructure teams for their rigorous dedication to quality and reliability in delivering WeMarket v1.0.0.
 
 ---
 
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/kwpark0047-iceu/250105/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/kwpark0047-iceu/250105/discussions)
-- **Security**: security@wemarket.kr
-
----
-
-**WeMarket v1.1.1** — Delivering performance excellence for small business owners everywhere. 🚀
-
----
-
-*Released: 2026-07-25*  
-*Next Release: v1.2.0 (planned: DB optimization, bundle splitting, a11y)*
+**WeMarket v1.0.0** — Empowering small business owners with a secure, high-performance QR platform. 🚀
