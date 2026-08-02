@@ -290,16 +290,15 @@ class OrderService {
     for (const item of items) {
       if (!item.product_id) continue;
       const result = await prisma.$transaction(async (tx) => {
-        const product = await tx.products.findUnique({
-          where: { id: item.product_id },
-          select: {
-            id: true,
-            name: true,
-            store_id: true,
-            stock_quantity: true,
-            low_stock_threshold: true,
-          },
-        });
+        // Row-level lock (FOR UPDATE) to prevent race conditions & deadlocks during concurrency/flash sales
+        const lockedRows = await tx.$queryRaw`
+          SELECT id, name, store_id, stock_quantity, low_stock_threshold 
+          FROM products 
+          WHERE id = ${item.product_id} 
+          FOR UPDATE
+        `;
+        const product = lockedRows && lockedRows[0] ? lockedRows[0] : null;
+
         if (!product || product.stock_quantity === null) return null;
         if (product.stock_quantity < item.quantity) {
           await tx.products.update({ where: { id: item.product_id }, data: { is_sold_out: true } });

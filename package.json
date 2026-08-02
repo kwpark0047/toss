@@ -66,6 +66,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@sentry/node": "^10.67.0",
+    "@socket.io/redis-adapter": "^8.3.0",
     "@supabase/supabase-js": "^2.90.1",
     "awilix": "^13.0.5",
     "axios": "^1.16.0",

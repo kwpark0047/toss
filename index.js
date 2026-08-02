@@ -1,57 +1,88 @@
 require('dotenv').config();
 const { httpServer, io } = require('./app');
-const logger   = require('./utils/logger');
+const logger = require('./utils/logger');
 const alerting = require('./utils/alerting');
-const prisma   = require('./config/prisma');
-const cron     = require('node-cron');
+const prisma = require('./config/prisma');
+const cron = require('node-cron');
 const { startKeepAlive } = require('./utils/keepAlive');
 
 const PORT = process.env.PORT || 3000;
 
-httpServer.listen(PORT, () => {
-    logger.info(`[서버] WeMarket API 서버 실행 중: http://localhost:${PORT}`);
-    logger.info(`[환경] NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-    logger.info(`[버전] v${require('./package.json').version}`);
+httpServer.listen(PORT, async () => {
+  logger.info(`[서버] WeMarket API 서버 실행 중: http://localhost:${PORT}`);
+  logger.info(`[환경] NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`[버전] v${require('./package.json').version}`);
 
-    // 주간 매출 리포트 스케줄러 (매주 월요일 09:00 KST)
-    require('./services/weeklyReportService').start();
+  // Socket.IO Redis Adapter setup for horizontal scaling
+  try {
+    const { setupSocketRedisAdapter } = require('./socket/adapter');
+    await setupSocketRedisAdapter(io);
+  } catch (err) {
+    logger.warn({ error: err.message }, '[서버] Socket.IO Redis Adapter 초기화 실패');
+  }
 
-    // Open Commerce Hub 웹훅 재시도 스케줄러
-    require('./services/webhookDispatcher').startRetryScheduler();
+  // 주간 매출 리포트 스케줄러 (매주 월요일 09:00 KST)
+  require('./services/weeklyReportService').start();
 
-    // 네이버 뉴스 자동 수집 스케줄러 (매일 07:00 KST)
-    // Heroku/Render는 UTC 기준이므로 KST 07:00 = UTC 22:00 (전날)
-    const { collectAndPost } = require('./services/newsCollectorService');
-    cron.schedule('0 7 * * *', async () => {
-        logger.info('[뉴스수집] 스케줄러 시작 — 매일 07:00 KST 뉴스 수집');
-        try {
-            const count = await collectAndPost();
-            logger.info(`[뉴스수집] 스케줄러 완료 — ${count}건 등록`);
-        } catch (err) {
-            logger.error({ error: err.message }, '[뉴스수집] 스케줄러 오류');
-        }
-    }, { timezone: 'Asia/Seoul' });
-    logger.info('[뉴스수집] 스케줄러 등록 완료 (매일 07:00 KST)');
+  // Open Commerce Hub 웹훅 재시도 스케줄러
+  require('./services/webhookDispatcher').startRetryScheduler();
 
-    const archiveLogs = require('./scripts/archiveLogs');
-    cron.schedule('0 4 1 * *', async () => {
-        logger.info('[아카이빙] 월간 데이터 정리 시작');
-        await archiveLogs();
-    }, { timezone: 'Asia/Seoul' });
-    logger.info('[아카이빙] 스케줄러 등록 완료 (매월 1일 04:00 KST)');
+  // 네이버 뉴스 자동 수집 스케줄러 (매일 07:00 KST)
+  // Heroku/Render는 UTC 기준이므로 KST 07:00 = UTC 22:00 (전날)
+  const { collectAndPost } = require('./services/newsCollectorService');
+  cron.schedule(
+    '0 7 * * *',
+    async () => {
+      logger.info('[뉴스수집] 스케줄러 시작 — 매일 07:00 KST 뉴스 수집');
+      try {
+        const count = await collectAndPost();
+        logger.info(`[뉴스수집] 스케줄러 완료 — ${count}건 등록`);
+      } catch (err) {
+        logger.error({ error: err.message }, '[뉴스수집] 스케줄러 오류');
+      }
+    },
+    { timezone: 'Asia/Seoul' }
+  );
+  logger.info('[뉴스수집] 스케줄러 등록 완료 (매일 07:00 KST)');
 
-    // 매장 연동 요청 알림 기본 템플릿 등록
-    initStoreLinkTemplates();
+  const archiveLogs = require('./scripts/archiveLogs');
+  cron.schedule(
+    '0 4 1 * *',
+    async () => {
+      logger.info('[아카이빙] 월간 데이터 정리 시작');
+      await archiveLogs();
+    },
+    { timezone: 'Asia/Seoul' }
+  );
+  logger.info('[아카이빙] 스케줄러 등록 완료 (매월 1일 04:00 KST)');
 
-    // Render Free Tier 슬립 방지 자가 핑 데몬 가동 (인프라 레이턴시 원천 차단)
-    startKeepAlive();
+  // 매장 연동 요청 알림 기본 템플릿 등록
+  initStoreLinkTemplates();
+
+  // Render Free Tier 슬립 방지 자가 핑 데몬 가동 (인프라 레이턴시 원천 차단)
+  startKeepAlive();
 });
 
 // ── 매장 연동 요청 알림 기본 템플릿 ──────────────────────────────────────────
 const STORE_LINK_TEMPLATES = [
-  { type: 'STORE_LINK_CREATED', title: '매장 연동 요청 도착', message: '{{userName}}님이 "{{storeName}}" 매장 연동을 요청했습니다.', variables: ['userName', 'storeName'] },
-  { type: 'STORE_LINK_APPROVED', title: '매장 연동 승인 완료', message: '"{{storeName}}" 매장 연동이 승인되었습니다. 이제 내 매장에서 관리할 수 있습니다.', variables: ['storeName'] },
-  { type: 'STORE_LINK_REJECTED', title: '매장 연동 거절', message: '"{{storeName}}" 매장 연동 요청이 거절되었습니다. 사유: {{adminNote}}', variables: ['storeName', 'adminNote'] },
+  {
+    type: 'STORE_LINK_CREATED',
+    title: '매장 연동 요청 도착',
+    message: '{{userName}}님이 "{{storeName}}" 매장 연동을 요청했습니다.',
+    variables: ['userName', 'storeName'],
+  },
+  {
+    type: 'STORE_LINK_APPROVED',
+    title: '매장 연동 승인 완료',
+    message: '"{{storeName}}" 매장 연동이 승인되었습니다. 이제 내 매장에서 관리할 수 있습니다.',
+    variables: ['storeName'],
+  },
+  {
+    type: 'STORE_LINK_REJECTED',
+    title: '매장 연동 거절',
+    message: '"{{storeName}}" 매장 연동 요청이 거절되었습니다. 사유: {{adminNote}}',
+    variables: ['storeName', 'adminNote'],
+  },
 ];
 
 async function initStoreLinkTemplates() {
@@ -62,7 +93,14 @@ async function initStoreLinkTemplates() {
       });
       if (!existing) {
         await prisma.notification_templates.create({
-          data: { type: tpl.type, title: tpl.title, message: tpl.message, variables: JSON.stringify(tpl.variables), channel: 'all', is_active: true },
+          data: {
+            type: tpl.type,
+            title: tpl.title,
+            message: tpl.message,
+            variables: JSON.stringify(tpl.variables),
+            channel: 'all',
+            is_active: true,
+          },
         });
         logger.info(`[알림템플릿] ${tpl.type} 기본 템플릿 등록 완료`);
       }
@@ -79,43 +117,43 @@ async function initStoreLinkTemplates() {
 let isShuttingDown = false;
 
 const shutdown = async (signal) => {
-    if (isShuttingDown) return;
-    isShuttingDown = true;
+  if (isShuttingDown) return;
+  isShuttingDown = true;
 
-    logger.warn(`[Shutdown] ${signal} 수신 — Graceful Shutdown 시작`);
-    await alerting.send({
-        level: 'warn',
-        title: `서버 종료 시작 (${signal})`,
-        message: 'Graceful Shutdown — 30초 이내 재시작 예정',
-    });
+  logger.warn(`[Shutdown] ${signal} 수신 — Graceful Shutdown 시작`);
+  await alerting.send({
+    level: 'warn',
+    title: `서버 종료 시작 (${signal})`,
+    message: 'Graceful Shutdown — 30초 이내 재시작 예정',
+  });
 
-    // 1. 신규 연결 차단
-    httpServer.close(async () => {
-        logger.info('[Shutdown] HTTP 서버 닫힘');
-    });
+  // 1. 신규 연결 차단
+  httpServer.close(async () => {
+    logger.info('[Shutdown] HTTP 서버 닫힘');
+  });
 
-    // 2. Socket.io 연결 종료
-    io.close(() => {
-        logger.info('[Shutdown] Socket.IO 닫힘');
-    });
+  // 2. Socket.io 연결 종료
+  io.close(() => {
+    logger.info('[Shutdown] Socket.IO 닫힘');
+  });
 
-    // 3. Prisma 연결 해제
-    try {
-        await prisma.$disconnect();
-        logger.info('[Shutdown] Prisma 연결 해제');
-    } catch (e) {
-        logger.error('[Shutdown] Prisma 해제 실패', e.message);
-    }
+  // 3. Prisma 연결 해제
+  try {
+    await prisma.$disconnect();
+    logger.info('[Shutdown] Prisma 연결 해제');
+  } catch (e) {
+    logger.error('[Shutdown] Prisma 해제 실패', e.message);
+  }
 
-    // 4. 최대 30초 대기 후 강제 종료
-    const forceExit = setTimeout(() => {
-        logger.error('[Shutdown] 강제 종료 (타임아웃 30초)');
-        process.exit(1);
-    }, 30_000);
-    forceExit.unref(); // 타이머가 프로세스 종료를 막지 않도록
+  // 4. 최대 30초 대기 후 강제 종료
+  const forceExit = setTimeout(() => {
+    logger.error('[Shutdown] 강제 종료 (타임아웃 30초)');
+    process.exit(1);
+  }, 30_000);
+  forceExit.unref(); // 타이머가 프로세스 종료를 막지 않도록
 
-    process.exit(0);
+  process.exit(0);
 };
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT',  () => shutdown('SIGINT'));
+process.on('SIGINT', () => shutdown('SIGINT'));
