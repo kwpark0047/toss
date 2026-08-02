@@ -6,7 +6,9 @@ const { test, expect } = require('@playwright/test');
 // 영수증 페이지(/payment/success)는 정적 라우트이므로 별도 검증
 
 test.describe('주문 플로우 - 데모 스토어', () => {
-  test('랜딩 → 스캔 → 메뉴 담기 → 장바구니 모달 → 결제수단 선택 → 주문 버튼 활성화', async ({ page }) => {
+  test('랜딩 → 스캔 → 메뉴 담기 → 장바구니 모달 → 결제수단 선택 → 주문 버튼 활성화', async ({
+    page,
+  }) => {
     // 1. 랜딩 페이지 진입
     await page.goto('/');
     await expect(page).toHaveURL(/\/(|$|\?)/);
@@ -22,9 +24,9 @@ test.describe('주문 플로우 - 데모 스토어', () => {
 
     // 4. 메뉴 스크린 전환 대기 (첫 방문 시 lazy 청크 컴파일 지연 대비)
     //    "지금 인기 메뉴" 헤딩은 screen==='menu'에서만 렌더됨
-    await expect(
-      page.getByRole('heading', { name: /지금 인기 메뉴/ })
-    ).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: /지금 인기 메뉴/ })).toBeVisible({
+      timeout: 30_000,
+    });
 
     // 5. 옵션이 없는 메뉴("에스프레소 더블") "담기" 버튼 클릭
     //    (MenuItemCard aria-label: "{name} 담기" — 옵션이 있는 메뉴는 옵션 모달이 떠 장바구니에 담기지 않음)
@@ -41,7 +43,9 @@ test.describe('주문 플로우 - 데모 스토어', () => {
     await expect(page.getByRole('heading', { name: '장바구니' })).toBeVisible();
 
     // 8. 결제수단 선택 (신용카드)
-    const cardMethod = page.getByRole('button', { name: /신용카드/ });
+    //    (결제수단 버튼 aria-label 은 정확히 "신용카드". 기본 결제수단이 card 라
+    //    주문 버튼 라벨에도 "신용카드으로 주문하기" 가 포함되므로 exact 매칭 사용)
+    const cardMethod = page.getByRole('button', { name: '신용카드', exact: true });
     await expect(cardMethod).toBeVisible();
     await cardMethod.click();
 
@@ -55,8 +59,8 @@ test.describe('주문 플로우 - 데모 스토어', () => {
   test('영수증 페이지 라우팅 확인 (/payment/success)', async ({ page }) => {
     await page.goto('/payment/success');
     // 쿼리 파라미터 없이 진입 시 결제 정보 누락 안내가 렌더됨 (라우팅 정상 동작 증명)
-    await expect(
-      page.getByText(/결제|주문|오류|payment/i).first()
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/결제|주문|오류|payment/i).first()).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });
