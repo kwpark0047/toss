@@ -8,6 +8,20 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: wemarket_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
@@ -18,10 +32,26 @@ jobs:
       run: npm ci
     - name: Install frontend dependencies
       run: cd frontend && npm ci
+    - name: Generate Prisma client
+      run: npx prisma generate
+    - name: Start backend server
+      run: |
+        cd /home/runner/work/250105/250105
+        npm run db:push || true
+        nohup node index.js > backend.log 2>&1 &
+        sleep 10
+        curl -f http://localhost:3000/api/health || exit 1
+      env:
+        NODE_ENV: test
+        DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+        JWT_SECRET: test-secret
+        JWT_REFRESH_SECRET: test-refresh-secret
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
     - name: Run Playwright tests
       run: npx playwright test
+      env:
+        PLAYWRIGHT_API_URL: http://localhost:3000
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
