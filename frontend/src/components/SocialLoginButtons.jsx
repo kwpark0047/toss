@@ -21,7 +21,6 @@ const SocialLoginButtons = ({ onSuccess, loading }) => {
   const GOOGLE_KEY = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const hasAnyProvider = KAKAO_KEY || NAVER_KEY || GOOGLE_KEY;
-  if (!hasAnyProvider) return null;
 
   const handleKakao = useCallback(async () => {
     try {
@@ -110,6 +109,8 @@ const SocialLoginButtons = ({ onSuccess, loading }) => {
       setError('Google SDK를 불러오지 못했습니다.');
     }
   }, [GOOGLE_KEY, onSuccess]);
+
+  if (!hasAnyProvider) return null;
 
   return (
     <div className="mt-8">
