@@ -324,6 +324,7 @@ app.use(`${API_PREFIX}/stores`, publicLimiter, routes.stores);
 app.use(`${API_PREFIX}/stores`, publicLimiter, routes.storeInfoEnhancement);
 app.use(`${API_PREFIX}/products`, publicLimiter, routes.products);
 app.use(`${API_PREFIX}/orders`, orderLimiter, routes.orders);
+app.use(`${API_PREFIX}/inventory`, publicLimiter, routes.inventory);
 app.use(`${API_PREFIX}/tables`, publicLimiter, routes.tables);
 app.use(`${API_PREFIX}/payments`, paymentLimiter, routes.payments);
 app.use(`${API_PREFIX}/notifications`, routes.notifications);
