@@ -20,6 +20,19 @@ class CircuitBreaker {
     this.failureCount = 0;
     this.successCount = 0;
     this.nextAttempt = Date.now();
+    this.lastFailureAt = null;
+  }
+
+  // health.js / /api/health/circuits가 사용하는 통계 스냅샷
+  get stats() {
+    return {
+      name: this.name || this.options?.name || 'unknown',
+      state: this.state,
+      failureCount: this.failureCount,
+      successCount: this.successCount,
+      lastFailureAt: this.lastFailureAt,
+      nextAttemptAt: this.nextAttempt,
+    };
   }
 
   async call(fnOrArgs, ...extraArgs) {
@@ -89,6 +102,7 @@ class CircuitBreaker {
 
   onFailure(err, ...args) {
     this.failureCount++;
+    this.lastFailureAt = new Date().toISOString();
     if (logger.error)
       logger.error(
         { error: err.message, failureCount: this.failureCount },
@@ -112,4 +126,15 @@ class CircuitBreaker {
   }
 }
 
-module.exports = { CircuitBreaker };
+// 싱글턴 인스턴스 레지스트리 — 이름 기반으로 동일 인스턴스를 재사용한다
+// (toss.js: cb.get('toss-api', {...}) / health.js: cb.get('toss-api'), cb.allStats())
+const registry = new Map();
+
+const get = (name, options) => {
+  if (!registry.has(name)) registry.set(name, new CircuitBreaker(name, options));
+  return registry.get(name);
+};
+
+const allStats = () => [...registry.values()].map((cb) => cb.stats);
+
+module.exports = { get, allStats, CircuitBreaker };
