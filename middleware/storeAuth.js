@@ -121,7 +121,7 @@ const checkStorePermissionForObject = (model) => {
 
       const id = Number(req.params.id);
       if (!Number.isInteger(id) || id <= 0) {
-        return next(new AppError(400, '유효하지 않은 ID입니다.'));
+        return next(new AppError('유효하지 않은 ID입니다.', 400));
       }
 
       const object = await prisma[model].findUnique({
@@ -130,7 +130,7 @@ const checkStorePermissionForObject = (model) => {
       });
 
       if (!object) {
-        return next(new AppError(404, '대상을 찾을 수 없습니다.'));
+        return next(new AppError('대상을 찾을 수 없습니다.', 404));
       }
       if (object.store_id == null) {
         return next();
@@ -170,7 +170,7 @@ const checkStorePermissionForObjectBatch = (model) => {
 
       const id = Number(req.params.id);
       if (!Number.isInteger(id) || id <= 0) {
-        return next(new AppError(400, '유효하지 않은 ID입니다.'));
+        return next(new AppError('유효하지 않은 ID입니다.', 400));
       }
 
       const rows = await prisma[model].findMany({
@@ -179,7 +179,7 @@ const checkStorePermissionForObjectBatch = (model) => {
       });
 
       if (!rows.length) {
-        return next(new AppError(404, '대상을 찾을 수 없습니다.'));
+        return next(new AppError('대상을 찾을 수 없습니다.', 404));
       }
 
       const role = await getStoreRole(req.user.id, rows[0].store_id);
@@ -216,7 +216,7 @@ const checkUniformStoreMutation = (model) => {
         .filter((n) => Number.isInteger(n) && n > 0);
 
       if (!ids.length) {
-        return next(new AppError(400, '유효한 대상이 없습니다.'));
+        return next(new AppError('유효한 대상이 없습니다.', 400));
       }
 
       const rows = await prisma[model].findMany({

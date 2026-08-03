@@ -9,6 +9,12 @@ if (typeof ReadableStream === 'undefined') {
 if (process.env.NODE_ENV === 'test' && !process.env.TOSS_SECRET_KEY) {
   process.env.TOSS_SECRET_KEY = 'test_sk_123';
 }
+
+// 주문/예약 capability JWT 테스트가 dotenv 로딩 순서(프로세스 오염)에 의존하지 않도록
+// 테스트 전용 시크릿을 고정한다. (실제 값은 프로덕션 .env에만 존재)
+if (process.env.NODE_ENV === 'test' && !process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = 'test_jwt_secret';
+}
 if (typeof Blob === 'undefined') {
   const { Blob: B } = require('buffer');
   global.Blob = B;

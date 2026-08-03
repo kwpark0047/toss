@@ -1,49 +1,64 @@
 jest.mock('../../../config/prisma', () => ({
   chat_rooms: { findUnique: jest.fn() },
+  orders: { findUnique: jest.fn() },
+}));
+jest.mock('../../../middleware/storeAuth', () => ({ getStoreRole: jest.fn() }));
+jest.mock('../../../utils/phoneEncryption', () => ({
+  phoneSearchCandidates: jest.fn((phone) => [phone, `enc_${phone}`]),
 }));
 
 const prisma = require('../../../config/prisma');
+const { getStoreRole } = require('../../../middleware/storeAuth');
 const Chat = require('../../../repositories/Chat');
 
 describe('Chat repository membership', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  test('방 멤버가 아닌 사용자는 거부한다', async () => {
     prisma.chat_rooms.findUnique.mockResolvedValue({
       id: 8,
       type: 'STORE_CUSTOMER',
-      users: [{ id: 5, sender_type: 'owner' }],
+      store_id: 3,
+      customer_id: null,
+      customer_phone: 'enc_01012345678',
+      is_active: true,
     });
+  });
 
-    const membership = await Chat.authorizeRoom(8, { user: { id: 77, role: 'owner' } });
+  test('denies an authenticated user without store or customer membership', async () => {
+    getStoreRole.mockResolvedValue(null);
+    const membership = await Chat.authorizeRoom(8, {
+      user: { id: 77, role: 'owner' },
+    });
 
     expect(membership).toBeNull();
   });
 
-  test('방 멤버의 실제 sender_type을 반환한다', async () => {
-    prisma.chat_rooms.findUnique.mockResolvedValue({
-      id: 8,
-      type: 'STORE_CUSTOMER',
-      users: [{ id: 7, sender_type: 'manager' }],
+  test('derives a store sender type from the actual store role', async () => {
+    getStoreRole.mockResolvedValue('manager');
+    const membership = await Chat.authorizeRoom(8, {
+      user: { id: 7, role: 'owner' },
     });
-
-    const membership = await Chat.authorizeRoom(8, { user: { id: 7, role: 'owner' } });
 
     expect(membership).toEqual(
       expect.objectContaining({
+        senderId: 7,
         senderType: 'manager',
-        room: { id: 8 },
       })
     );
+    expect(getStoreRole).toHaveBeenCalledWith(7, 3);
   });
 
-  test('존재하지 않는 방은 거부한다', async () => {
-    prisma.chat_rooms.findUnique.mockResolvedValue(null);
+  test('accepts only an order capability bound to the room store and customer', async () => {
+    prisma.orders.findUnique.mockResolvedValue({ store_id: 3, customer_phone: '01012345678' });
 
-    const membership = await Chat.authorizeRoom(999, { user: { id: 7 } });
+    const allowed = await Chat.authorizeRoom(8, {
+      capability: { orderId: 10, storeId: 3 },
+    });
+    const denied = await Chat.authorizeRoom(8, {
+      capability: { orderId: 10, storeId: 999 },
+    });
 
-    expect(membership).toBeNull();
+    expect(allowed).toEqual(expect.objectContaining({ senderId: null, senderType: 'customer' }));
+    expect(denied).toBeNull();
   });
 });
