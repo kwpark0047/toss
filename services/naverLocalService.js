@@ -12,11 +12,8 @@ const logger = require('../utils/logger');
  * 요청 한도: 지역검색 25,000 회/일 — 배치는 소량·지연으로 준수한다.
  */
 // 자격증명은 환경변수로만 주입(하드코딩 금지). 둘 다 설정돼야 isConfigured()가 true.
-// 테스트가 환경변수를 동적으로 바꿀 수 있도록 조회 시점에 읽는다.
-const env = () => ({
-  CLIENT_ID: process.env.NAVER_CLIENT_ID || '',
-  CLIENT_SECRET: process.env.NAVER_CLIENT_SECRET || '',
-});
+const CLIENT_ID = process.env.NAVER_CLIENT_ID || '';
+const CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET || '';
 const ENDPOINT = 'https://openapi.naver.com/v1/search/local';
 
 const stripTags = (s = '') => s.replace(/<[^>]+>/g, '').trim();
@@ -37,28 +34,23 @@ function regionHint(address = '') {
 }
 
 function isConfigured() {
-  const { CLIENT_ID, CLIENT_SECRET } = env();
   return Boolean(CLIENT_ID && CLIENT_SECRET);
 }
 
-/** 설정 진단 — 누락 환경변수를 반환한다 (프론트 비활성화 UI/테스트용) */
+// 현재 환경변수 기준 설정 상태 진단 (관리자 상태 조회용)
 function configStatus() {
-  const { CLIENT_ID, CLIENT_SECRET } = env();
-  const checks = [
-    { key: 'NAVER_CLIENT_ID', set: Boolean(CLIENT_ID) },
-    { key: 'NAVER_CLIENT_SECRET', set: Boolean(CLIENT_SECRET) },
-  ];
-  return {
-    configured: checks.every((c) => c.set),
-    missing: checks.filter((c) => !c.set).map((c) => c.key),
-  };
+  const id = process.env.NAVER_CLIENT_ID || '';
+  const secret = process.env.NAVER_CLIENT_SECRET || '';
+  const missing = [];
+  if (!id) missing.push('NAVER_CLIENT_ID');
+  if (!secret) missing.push('NAVER_CLIENT_SECRET');
+  return { configured: missing.length === 0, missing };
 }
 
 /** 지역검색 호출 → items 배열(정규화 필드 포함) 반환 */
 async function searchLocal(query) {
   if (!isConfigured())
     throw new Error('NAVER_CLIENT_SECRET 미설정 — 네이버 API 키를 환경변수에 설정하세요.');
-  const { CLIENT_ID, CLIENT_SECRET } = env();
   const res = await axios.get(ENDPOINT, {
     params: { query, display: 5, sort: 'random' },
     headers: { 'X-Naver-Client-Id': CLIENT_ID, 'X-Naver-Client-Secret': CLIENT_SECRET },

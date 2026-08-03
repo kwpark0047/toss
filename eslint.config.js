@@ -5,16 +5,17 @@ const prettier = require('eslint-config-prettier');
 module.exports = [
   {
     ignores: [
-      'node_modules/',
+      'node_modules/**',
       // 프론트엔드는 자체 eslint(frontend/eslint.config.js)로 린트 (브라우저 환경)
-      'frontend/',
-      'public/',
+      'frontend/**',
+      'print-agent/**',
+      'public/**',
       '*.json',
-      'coverage/',
-      'dist/',
+      'coverage/**',
+      'dist/**',
       'commitlint.config.js',
-      'scripts/',
-      // Prisma 클라이언트 생성물 — 소스는 prisma/schema.prisma 에서 관리
+      'scripts/**',
+      // Prisma 생성 클라이언트 — 빌드 산출물
       'prisma/app/generated/**',
       // TypeScript 컴파일 출력물 — 소스는 .ts 파일에서 관리
       'services/KdsService.js',

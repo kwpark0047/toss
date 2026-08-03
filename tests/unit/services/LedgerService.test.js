@@ -1,5 +1,5 @@
 jest.mock('../../../config/prisma', () => ({
-  ledger: { upsert: jest.fn() },
+  ledger: { create: jest.fn() },
 }));
 
 const prisma = require('../../../config/prisma');
@@ -8,10 +8,10 @@ const ledgerService = require('../../../services/LedgerService');
 describe('LedgerService', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  test('uses a stable event key for idempotent payment income', async () => {
-    prisma.ledger.upsert.mockResolvedValue({ id: 1 });
+  test('결제 수익을 장부에 기록한다', async () => {
+    prisma.ledger.create.mockResolvedValue({ id: 1 });
 
-    await ledgerService.recordIncome({
+    const result = await ledgerService.recordIncome({
       storeId: 1,
       orderId: 2,
       paymentId: 3,
@@ -20,17 +20,24 @@ describe('LedgerService', () => {
       description: 'sale',
     });
 
-    expect(prisma.ledger.upsert).toHaveBeenCalledWith(
+    expect(prisma.ledger.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { event_key: 'payment:3:income' },
-        create: expect.objectContaining({ event_key: 'payment:3:income' }),
-        update: {},
+        data: expect.objectContaining({
+          store_id: 1,
+          order_id: 2,
+          payment_id: 3,
+          type: 'INCOME',
+          category: 'SALE',
+          amount: 1000,
+          method: 'CARD',
+        }),
       })
     );
+    expect(result).toEqual({ id: 1 });
   });
 
-  test('accepts a refund event key so separate partial refunds remain distinct', async () => {
-    prisma.ledger.upsert.mockResolvedValue({ id: 2 });
+  test('환불을 장부에 기록한다', async () => {
+    prisma.ledger.create.mockResolvedValue({ id: 2 });
 
     await ledgerService.recordRefund({
       storeId: 1,
@@ -39,11 +46,16 @@ describe('LedgerService', () => {
       amount: -500,
       method: 'CARD',
       description: 'partial refund',
-      eventKey: 'refund:9',
     });
 
-    expect(prisma.ledger.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { event_key: 'refund:9' } })
+    expect(prisma.ledger.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: 'REFUND',
+          category: 'CANCEL',
+          amount: -500,
+        }),
+      })
     );
   });
 });

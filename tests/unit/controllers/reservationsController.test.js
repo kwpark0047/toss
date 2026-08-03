@@ -63,6 +63,7 @@ describe('reservationsController', () => {
   describe('getMyReservations', () => {
     test('내 예약을 조회한다', async () => {
       req.params.phone = '01012345678';
+      req.capability = { customer_phone: '01012345678' };
       mockService.getMyReservations.mockResolvedValue([{ id: 1 }]);
       await reservationsController.getMyReservations(req, res);
       expect(res.json).toHaveBeenCalled();
@@ -73,6 +74,7 @@ describe('reservationsController', () => {
     test('예약을 취소한다', async () => {
       req.params.id = '1';
       req.body = { phone: '01012345678' };
+      req.capability = { customer_phone: '01012345678' };
       mockService.cancelReservation.mockResolvedValue({ id: 1, status: 'cancelled' });
       await reservationsController.cancelReservation(req, res);
       expect(res.json).toHaveBeenCalled();

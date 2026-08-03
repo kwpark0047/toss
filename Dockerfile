@@ -8,7 +8,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies (including devDependencies for build)
-RUN npm ci --only=production && npm ci --include=dev
+# --ignore-scripts: prisma generate runs after source copy (prisma is a devDependency)
+RUN npm ci --ignore-scripts
 
 # Copy source code
 COPY . .
@@ -19,8 +20,8 @@ RUN npx prisma generate
 # Stage 2: Production runtime
 FROM node:22-alpine AS production
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && adduser -u 1001 -S -G nodejs -s /bin/sh
+# Use the node user/group bundled with the official node image
+# (newer Alpine adduser/addgroup changed -S handling; the built-in node user avoids that)
 
 WORKDIR /app
 
@@ -28,7 +29,11 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production
+RUN npm ci --only=production --ignore-scripts
+
+# Remove the npm CLI (not needed at runtime) to drop the base image's bundled
+# vulnerable deps (tar, brace-expansion, picomatch, sigstore) from the image
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 # Copy built application from builder stage
 COPY --from=builder /app/app ./app
@@ -48,15 +53,15 @@ COPY --from=builder /app/app.js ./app.js
 COPY --from=builder /app/index.js ./index.js
 COPY --from=builder /app/.env.example ./.env.example
 
-# Copy Prisma client from builder (generated)
-COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+# Copy Prisma client from builder (custom output is relative to schema dir: prisma/app/generated)
+COPY --from=builder /app/prisma/app/generated ./prisma/app/generated
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # Change ownership to non-root user
-RUN chown -R nodejs:nodejs /app
+RUN chown -R node:node /app
 
 # Switch to non-root user
-USER nodejs
+USER node
 
 # Expose port
 EXPOSE 3000

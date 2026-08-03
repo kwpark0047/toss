@@ -177,8 +177,16 @@ const schemas = {
   order: {
     create: Joi.object({
       store_id: Joi.number().integer().positive().required(),
+      user_coupon_id: Joi.number().integer().positive().allow(null).optional(),
       table_id: Joi.alternatives()
-        .try(Joi.number().integer().positive(), Joi.string().invalid('0', '0.0'))
+        .try(
+          Joi.number().integer().positive(),
+          Joi.string().custom((val, helpers) => {
+            const num = Number(val);
+            if (!isNaN(num) && num <= 0) return helpers.error('any.invalid');
+            return val;
+          })
+        )
         .allow(null)
         .optional(),
       table_number: Joi.string().allow('', null).optional(),
@@ -199,7 +207,6 @@ const schemas = {
         )
         .min(1)
         .required(),
-      user_coupon_id: Joi.number().integer().positive().allow(null).optional(),
       phone: Joi.string().allow('', null),
       customer_name: Joi.string().allow('', null),
       toss_user_key: Joi.string().allow('', null),

@@ -287,3 +287,5 @@ exports.geocodeStores = catchAsync(async (req, res) => {
     done: remaining === 0,
   });
 });
+
+exports.getStatus = exports.enrichmentStatus;

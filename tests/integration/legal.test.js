@@ -36,13 +36,27 @@ jest.mock('../../middleware/auth', () => {
 jest.mock('../../middleware/storeAuth', () => {
   return {
     checkStorePermission: (permission) => (req, res, next) => {
-      req.storeId = req.params.storeId ? parseInt(req.params.storeId) : 1;
+      req.storeId = req.params && req.params.storeId ? parseInt(req.params.storeId) : 1;
+      req.storeRole = 'owner';
+      next();
+    },
+    checkStorePermissionForObject: () => (req, res, next) => {
+      req.storeId = req.params && req.params.storeId ? parseInt(req.params.storeId) : 1;
+      req.storeRole = 'owner';
+      next();
+    },
+    checkStorePermissionForObjectBatch: () => (req, res, next) => {
+      req.storeId = req.params && req.params.storeId ? parseInt(req.params.storeId) : 1;
+      req.storeRole = 'owner';
+      next();
+    },
+    checkUniformStoreMutation: () => (req, res, next) => {
+      req.storeId = req.params && req.params.storeId ? parseInt(req.params.storeId) : 1;
       req.storeRole = 'owner';
       next();
     },
     getStoreRole: jest.fn(() => 'owner'),
     checkResourcePermission: () => (req, res, next) => next(),
-    checkStorePermissionForObject: () => (req, res, next) => next(),
   };
 });
 

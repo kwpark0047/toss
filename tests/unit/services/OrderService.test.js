@@ -383,16 +383,23 @@ describe('OrderService', () => {
       prisma.tables.findUnique.mockResolvedValue({ table_number: '1' });
       prisma.$transaction.mockImplementation(async (fn) =>
         fn({
+          $queryRaw: jest.fn().mockResolvedValue([
+            {
+              id: 100,
+              name: '아메리카노',
+              store_id: 1,
+              stock_quantity: 50,
+              low_stock_threshold: 5,
+            },
+          ]),
           products: {
-            findUnique: jest
-              .fn()
-              .mockResolvedValue({
-                id: 100,
-                name: '아메리카노',
-                store_id: 1,
-                stock_quantity: 50,
-                low_stock_threshold: 5,
-              }),
+            findUnique: jest.fn().mockResolvedValue({
+              id: 100,
+              name: '아메리카노',
+              store_id: 1,
+              stock_quantity: 50,
+              low_stock_threshold: 5,
+            }),
             update: jest.fn().mockResolvedValue({}),
           },
           stock_history: {

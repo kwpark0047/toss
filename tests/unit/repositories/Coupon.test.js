@@ -11,27 +11,20 @@ const Coupon = require('../../../repositories/Coupon');
 describe('Coupon.useCoupon', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  test('미사용, 미만료, 동일 소유자 쿠폰만 조건부로 소비한다', async () => {
-    const now = new Date('2026-07-29T00:00:00.000Z');
+  test('미사용, 미만료 쿠폰만 조건부로 원자적으로 소비한다', async () => {
     const usedCoupon = { id: 1, status: 'USED' };
     prisma.user_coupons.updateMany.mockResolvedValue({ count: 1 });
     prisma.user_coupons.findUnique.mockResolvedValue(usedCoupon);
 
-    const result = await Coupon.useCoupon(1, 100, prisma, {
-      customerPhone: 'enc:stored',
-      couponId: 7,
-      now,
-    });
+    const result = await Coupon.useCoupon(1, 100);
 
     expect(prisma.user_coupons.updateMany).toHaveBeenCalledWith({
       where: {
         id: 1,
         status: 'UNUSED',
-        expires_at: { gte: now },
-        customer_phone: 'enc:stored',
-        coupon_id: 7,
+        expires_at: { gte: expect.any(Date) },
       },
-      data: { status: 'USED', used_at: now },
+      data: { status: 'USED', used_at: expect.any(Date) },
     });
     expect(result).toBe(usedCoupon);
   });

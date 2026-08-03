@@ -1,12 +1,16 @@
 const request = require('supertest');
 const { app } = require('../../app');
 
-jest.mock('../../config/database', () => ({
-  prepare: jest.fn(() => ({
-    get: jest.fn(() => ({ id: 'test-order-id', store_id: 'test-store-id' })),
-    run: jest.fn(),
-  })),
-}), { virtual: true });
+jest.mock(
+  '../../config/database',
+  () => ({
+    prepare: jest.fn(() => ({
+      get: jest.fn(() => ({ id: 'test-order-id', store_id: 'test-store-id' })),
+      run: jest.fn(),
+    })),
+  }),
+  { virtual: true }
+);
 
 jest.mock('../../repositories/Payment', () => ({
   create: jest.fn((data) => ({ id: 'new-payment-id', ...data })),
@@ -26,20 +30,25 @@ jest.mock('../../repositories/Point', () => ({
   cancel: jest.fn(),
 }));
 
-describe('Payments API', () => {
+jest.mock('../../services/PaymentService', () =>
+  jest.fn().mockImplementation(() => ({
+    processDirectPayment: jest.fn(async (data) => ({ id: 'new-payment-id', ...data })),
+    processApproval: jest.fn(async () => ({ id: 'new-payment-id' })),
+    preparePayment: jest.fn(async (data) => ({ ...data })),
+  }))
+);
 
+describe('Payments API', () => {
   const baseUrl = '/api/payments';
 
   describe('POST /', () => {
     it('should create a payment', async () => {
       // This is a placeholder test. The actual implementation will be more complex.
-      const response = await request(app)
-        .post(baseUrl)
-        .send({
-          store_id: 'test-store-id',
-          payment_method: 'cash',
-          total_amount: 10000,
-        });
+      const response = await request(app).post(baseUrl).send({
+        store_id: 'test-store-id',
+        payment_method: 'cash',
+        total_amount: 10000,
+      });
       // Since the model is mocked, we can't assert a specific status code without more setup.
       // For now, we just check that the endpoint doesn't crash.
       expect(response.status).not.toBe(500);

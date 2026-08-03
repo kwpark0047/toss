@@ -8,27 +8,27 @@ const axios = require('axios');
  * env: SEOUL_OPENAPI_KEYS (콤마 구분 다중 키)
  */
 const SERVICE = 'LOCALDATA_072404'; // 일반음식점
-// 테스트가 환경변수를 동적으로 바꿀 수 있도록 조회 시점에 읽는다.
-const KEYS = () =>
-  (process.env.SEOUL_OPENAPI_KEYS || '')
-    .split(',')
-    .map((k) => k.trim())
-    .filter(Boolean);
+const KEYS = (process.env.SEOUL_OPENAPI_KEYS || '')
+  .split(',')
+  .map((k) => k.trim())
+  .filter(Boolean);
 let keyIdx = 0;
 const nextKey = () => {
-  const keys = KEYS();
-  const k = keys[keyIdx % keys.length];
+  const k = KEYS[keyIdx % KEYS.length];
   keyIdx++;
   return k;
 };
 
 function isConfigured() {
-  return KEYS().length > 0;
+  return KEYS.length > 0;
 }
 
-/** 설정 진단 — 키 개수와 누락 여부를 반환한다 */
+// 현재 환경변수 기준 설정 상태 진단 (관리자 상태 조회용)
 function configStatus() {
-  const keys = KEYS();
+  const keys = (process.env.SEOUL_OPENAPI_KEYS || '')
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean);
   return {
     configured: keys.length > 0,
     keyCount: keys.length,
@@ -106,5 +106,5 @@ module.exports = {
   addrCore,
   dongOf,
   hasCorruptName,
-  keyCount: () => KEYS().length,
+  keyCount: () => KEYS.length,
 };

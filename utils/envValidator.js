@@ -45,49 +45,57 @@ const vars = [
   { key: 'BYPASS_OTP', level: levels.OPTIONAL, desc: '개발용 OTP 우회' },
 ];
 
-const missingCritical = [];
-const missingRequired = [];
-const missingOptional = [];
-
-vars.forEach(({ key, level, desc }) => {
-  const val = process.env[key];
-  if (
-    !val ||
-    val.startsWith('YOUR_') ||
-    val === 'change-me-to-a-long-random-string' ||
-    val === 'change-me-to-another-long-random-string'
-  ) {
-    switch (level) {
-      case levels.CRITICAL:
-        missingCritical.push({ key, desc });
-        break;
-      case levels.REQUIRED:
-        missingRequired.push({ key, desc });
-        break;
-      case levels.OPTIONAL:
-        missingOptional.push({ key, desc });
-        break;
-    }
-  }
-});
-
 /**
  * checkEnv - 서버 시작 전 환경변수 검사 실행
  * @returns {{ ok: boolean, warnings: string[] }}
  */
 function checkEnv() {
+  const missingCritical = [];
+  const missingRequired = [];
+  const missingOptional = [];
+
+  vars.forEach(({ key, level, desc }) => {
+    const val = process.env[key];
+    if (
+      !val ||
+      val.startsWith('YOUR_') ||
+      val === 'change-me-to-a-long-random-string' ||
+      val === 'change-me-to-another-long-random-string'
+    ) {
+      switch (level) {
+        case levels.CRITICAL:
+          missingCritical.push({ key, desc });
+          break;
+        case levels.REQUIRED:
+          missingRequired.push({ key, desc });
+          break;
+        case levels.OPTIONAL:
+          missingOptional.push({ key, desc });
+          break;
+      }
+    }
+  });
+
   const warnings = [];
 
-  // 프로덕션 안전장치: 개발용 우회 플래그가 켜져 있으면 거부
+  // Production safety checks for dev flags
   if (process.env.NODE_ENV === 'production') {
-    const unsafeFlags = ['BYPASS_OTP', 'EXPOSE_OTP', 'ALLOW_MOCK_PAYMENTS'].filter(
-      (flag) => process.env[flag] === 'true'
-    );
-    if (unsafeFlags.length > 0) {
-      const msg = `[CRITICAL] 프로덕션에서 금지된 개발 플래그 활성화:\n${unsafeFlags.map((f) => `  - ${f}`).join('\n')}`;
-      logger.error(msg);
-      return { ok: false, warnings: [msg] };
+    const dangerousFlags = ['BYPASS_OTP', 'EXPOSE_OTP', 'ALLOW_MOCK_PAYMENTS'];
+    for (const flag of dangerousFlags) {
+      if (process.env[flag] === 'true') {
+        const msg = `[CRITICAL] Production mode rejects ${flag}`;
+        logger.error(msg);
+        return { ok: false, warnings: [msg] };
+      }
     }
+  }
+
+  // NCP 지오코드 옵션 상호 의존성 검사
+  if (
+    (process.env.NCP_GEOCODE_KEY_ID && !process.env.NCP_GEOCODE_KEY) ||
+    (!process.env.NCP_GEOCODE_KEY_ID && process.env.NCP_GEOCODE_KEY)
+  ) {
+    warnings.push('[WARN] NCP_GEOCODE_KEY_ID와 NCP_GEOCODE_KEY를 함께 설정해야 합니다.');
   }
 
   if (missingCritical.length > 0) {
@@ -108,16 +116,6 @@ function checkEnv() {
       logger.info(line);
       warnings.push(line);
     });
-  }
-
-  // NCP 지오코딩은 키 ID/키를 함께 설정해야 동작 — 한쪽만 있으면 경고
-  const ncpId = process.env.NCP_GEOCODE_KEY_ID;
-  const ncpKey = process.env.NCP_GEOCODE_KEY;
-  if (Boolean(ncpId) !== Boolean(ncpKey)) {
-    const msg =
-      '[WARN] NCP_GEOCODE_KEY_ID와 NCP_GEOCODE_KEY를 함께 설정하세요 (지오코딩 비활성화됨)';
-    logger.warn(msg);
-    warnings.push(msg);
   }
 
   return { ok: true, warnings };

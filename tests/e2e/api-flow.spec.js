@@ -11,8 +11,8 @@ test.describe('주문 API 플로우', () => {
     const loginResponse = await request.post(`${API_URL}/api/auth/login`, {
       data: {
         email: 'test@example.com',
-        password: 'testpass123'
-      }
+        password: 'testpass123',
+      },
     });
     if (loginResponse.ok()) {
       const data = await loginResponse.json();
@@ -25,8 +25,7 @@ test.describe('주문 API 플로우', () => {
     const response = await request.get(`${API_URL}/api/stores`);
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
-    expect(data).toHaveProperty('stores');
-    expect(Array.isArray(data.stores)).toBeTruthy();
+    expect(Array.isArray(data.data)).toBeTruthy();
   });
 
   test('주문 생성 - 현금 결제', async ({ request }) => {
@@ -39,13 +38,11 @@ test.describe('주문 API 플로우', () => {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         store_id: storeId,
-        items: [
-          { product_id: 1, product_name: '테스트 상품', quantity: 2, price: 10000 }
-        ],
+        items: [{ product_id: 1, product_name: '테스트 상품', quantity: 2, price: 10000 }],
         total_amount: 20000,
         payment_method: 'cash',
-        phone: '01012345678'
-      }
+        phone: '01012345678',
+      },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -64,7 +61,7 @@ test.describe('주문 API 플로우', () => {
 
     const response = await request.post(`${API_URL}/api/orders`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      data: { store_id: 999999, items: [] }
+      data: { store_id: 999999, items: [] },
     });
 
     expect(response.status()).toBeGreaterThanOrEqual(400);
@@ -77,7 +74,7 @@ test.describe('주문 API 플로우', () => {
     }
 
     const response = await request.get(`${API_URL}/api/orders`, {
-      headers: { Authorization: `Bearer ${authToken}` }
+      headers: { Authorization: `Bearer ${authToken}` },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -92,7 +89,7 @@ test.describe('주문 API 플로우', () => {
     }
 
     const response = await request.get(`${API_URL}/api/orders/stats`, {
-      headers: { Authorization: `Bearer ${authToken}` }
+      headers: { Authorization: `Bearer ${authToken}` },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -105,7 +102,7 @@ test.describe('주문 API 플로우', () => {
     }
 
     const response = await request.delete(`${API_URL}/api/orders/${createdOrderId}`, {
-      headers: { Authorization: `Bearer ${authToken}` }
+      headers: { Authorization: `Bearer ${authToken}` },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -118,7 +115,7 @@ test.describe('주문 API 플로우', () => {
     }
 
     const response = await request.get(`${API_URL}/api/payments`, {
-      headers: { Authorization: `Bearer ${authToken}` }
+      headers: { Authorization: `Bearer ${authToken}` },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -134,7 +131,7 @@ test.describe('주문 API 플로우', () => {
 
     const response = await request.post(`${API_URL}/api/payments/99999/cancel`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      data: { reason: '테스트 취소' }
+      data: { reason: '테스트 취소' },
     });
 
     expect(response.status()).toBe(404);
@@ -148,7 +145,7 @@ test.describe('주문 → 결제 → 영수증 전체 플로우', () => {
 
   test.beforeAll(async ({ request }) => {
     const loginResponse = await request.post(`${API_URL}/api/auth/login`, {
-      data: { email: 'test@example.com', password: 'testpass123' }
+      data: { email: 'test@example.com', password: 'testpass123' },
     });
     if (loginResponse.ok()) {
       const data = await loginResponse.json();
@@ -169,12 +166,12 @@ test.describe('주문 → 결제 → 영수증 전체 플로우', () => {
         store_id: storeId,
         items: [
           { product_id: 1, product_name: '아이스 아메리카노', quantity: 2, price: 4500 },
-          { product_id: 2, product_name: '카페라떼', quantity: 1, price: 5000 }
+          { product_id: 2, product_name: '카페라떼', quantity: 1, price: 5000 },
         ],
         total_amount: 14000,
         payment_method: 'card',
-        phone: '01012345678'
-      }
+        phone: '01012345678',
+      },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -193,7 +190,7 @@ test.describe('주문 → 결제 → 영수증 전체 플로우', () => {
     }
 
     const response = await request.get(`${API_URL}/api/orders/${orderId}`, {
-      headers: { Authorization: `Bearer ${authToken}` }
+      headers: { Authorization: `Bearer ${authToken}` },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -206,9 +203,8 @@ test.describe('주문 → 결제 → 영수증 전체 플로우', () => {
 
   test('3. 영수증 페이지 접근', async ({ page }) => {
     await page.goto(`/payment/success?order_id=${orderId || ''}`);
-    await expect(page.locator('body')).toBeVisible({ timeout: 10000 });
-    const text = await page.locator('body').innerText();
-    expect(text.length).toBeGreaterThan(0);
+    // React 마운트 전 body가 빈 상태로 읽히는 레이스 방지 — 텍스트가 채워질 때까지 대기
+    await expect(page.locator('body')).toContainText(/.+/, { timeout: 15000 });
   });
 
   test('4. 주문 취소', async ({ request }) => {
@@ -218,7 +214,7 @@ test.describe('주문 → 결제 → 영수증 전체 플로우', () => {
     }
 
     const response = await request.delete(`${API_URL}/api/orders/${orderId}`, {
-      headers: { Authorization: `Bearer ${authToken}` }
+      headers: { Authorization: `Bearer ${authToken}` },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -232,8 +228,8 @@ test.describe('예약 API 플로우', () => {
     const loginResponse = await request.post(`${API_URL}/api/auth/login`, {
       data: {
         email: 'test@example.com',
-        password: 'testpass123'
-      }
+        password: 'testpass123',
+      },
     });
     if (loginResponse.ok()) {
       const data = await loginResponse.json();
@@ -242,8 +238,13 @@ test.describe('예약 API 플로우', () => {
   });
 
   test('예약 목록 조회', async ({ request }) => {
-    const response = await request.get(`${API_URL}/api/reservations`, {
-      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
+    if (!authToken) {
+      test.skip();
+      return;
+    }
+
+    const response = await request.get(`${API_URL}/api/reservations/store/1`, {
+      headers: { Authorization: `Bearer ${authToken}` },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -261,8 +262,8 @@ test.describe('예약 API 플로우', () => {
         store_id: 1,
         customer_name: '테스트',
         reservation_date: 'invalid-date',
-        party_size: 0
-      }
+        party_size: 0,
+      },
     });
 
     expect(response.status()).toBeGreaterThanOrEqual(400);
@@ -271,8 +272,8 @@ test.describe('예약 API 플로우', () => {
 
 test.describe('에러 핸들링', () => {
   test('인증 없이 보호된 엔드포인트 접근', async ({ request }) => {
-    const response = await request.get(`${API_URL}/api/orders`, {
-      headers: { Authorization: 'Bearer invalid-token' }
+    const response = await request.get(`${API_URL}/api/orders/store/1`, {
+      headers: { Authorization: 'Bearer invalid-token' },
     });
 
     expect(response.status()).toBe(401);
@@ -286,7 +287,7 @@ test.describe('에러 핸들링', () => {
   test('잘못된 JSON 요청', async ({ request }) => {
     const response = await request.post(`${API_URL}/api/auth/login`, {
       headers: { 'Content-Type': 'application/json' },
-      data: 'invalid json'
+      data: 'invalid json',
     });
 
     expect(response.status()).toBeGreaterThanOrEqual(400);

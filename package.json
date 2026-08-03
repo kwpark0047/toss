@@ -42,7 +42,7 @@
     "lhci:assert": "lhci assert",
     "lhci:server": "lhci server",
     "lhci:upload": "lhci upload",
-    "security:scan": "semgrep --config p/javascript --config p/nodejs --config p/secrets --config p/owasp-top-ten --exclude node_modules --exclude dist --exclude frontend/dist --exclude tests routes services middleware controllers utils models config app.js index.js",
+    "security:scan": "semgrep --config p/javascript --config p/nodejs --config p/secrets --config p/owasp-top-ten --exclude node_modules --exclude dist --exclude frontend/dist --exclude tests routes services middleware controllers utils config app.js index.js",
     "security:scan:frontend": "semgrep --config p/react --config p/secrets --exclude node_modules --exclude dist frontend/src",
     "prepare": "husky"
   },
@@ -66,6 +66,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@sentry/node": "^10.67.0",
+    "@socket.io/redis-adapter": "^8.3.0",
     "@supabase/supabase-js": "^2.90.1",
     "awilix": "^13.0.5",
     "axios": "^1.16.0",

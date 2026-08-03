@@ -294,6 +294,9 @@ const routes = {
   demandForecast: require('./routes/demandForecast'),
   socialAuth: require('./routes/socialAuth'),
   adminAuth: require('./routes/adminAuth'),
+  franchise: require('./routes/franchise'),
+  loyalty: require('./routes/loyalty'),
+  aiOrder: require('./routes/aiOrder'),
 };
 
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
@@ -321,6 +324,7 @@ app.use(`${API_PREFIX}/stores`, publicLimiter, routes.stores);
 app.use(`${API_PREFIX}/stores`, publicLimiter, routes.storeInfoEnhancement);
 app.use(`${API_PREFIX}/products`, publicLimiter, routes.products);
 app.use(`${API_PREFIX}/orders`, orderLimiter, routes.orders);
+app.use(`${API_PREFIX}/inventory`, publicLimiter, routes.inventory);
 app.use(`${API_PREFIX}/tables`, publicLimiter, routes.tables);
 app.use(`${API_PREFIX}/payments`, paymentLimiter, routes.payments);
 app.use(`${API_PREFIX}/notifications`, routes.notifications);
@@ -353,7 +357,9 @@ app.use(`${API_PREFIX}/demand-forecast`, routes.demandForecast);
 app.use(`${API_PREFIX}/ai-prompts`, routes.aiPrompts);
 app.use(`${API_PREFIX}/ai-usage`, routes.aiUsage);
 app.use(`${API_PREFIX}/export`, routes.export);
-app.use(`${API_PREFIX}/inventory`, routes.inventory);
+app.use(`${API_PREFIX}/franchise`, routes.franchise);
+app.use(`${API_PREFIX}/loyalty`, routes.loyalty);
+app.use(`${API_PREFIX}/ai-order`, routes.aiOrder);
 app.use(`${API_PREFIX}/community`, routes.community);
 app.use(`${API_PREFIX}/legal`, routes.legal);
 app.use(`${API_PREFIX}/naver-place`, routes.naverPlace);

@@ -1,133 +1,115 @@
-/**
- * CircuitBreaker — 외부 API 장애 격리
- *
- * CLOSED  → 정상 운영. 임계치 이상 실패 시 OPEN 전환
- * OPEN    → 즉시 실패 반환 (외부 API 호출 차단). cooldown 후 HALF_OPEN
- * HALF_OPEN → 탐색 요청 1개 허용. 성공 시 CLOSED, 실패 시 OPEN 복귀
- */
 const logger = require('./logger');
-const alerting = require('./alerting');
-
-const STATE = { CLOSED: 'CLOSED', OPEN: 'OPEN', HALF_OPEN: 'HALF_OPEN' };
 
 class CircuitBreaker {
-  constructor(name, options = {}) {
-    this.name = name;
-    this.failureThreshold = options.failureThreshold ?? 5; // 연속 실패 허용 횟수
-    this.successThreshold = options.successThreshold ?? 2; // HALF_OPEN → CLOSED 기준
-    this.cooldownMs = options.cooldownMs ?? 30_000; // OPEN 유지 시간(ms)
-    this.timeoutMs = options.timeoutMs ?? 10_000; // 단일 요청 타임아웃
+  constructor(nameOrFn, options = {}) {
+    if (typeof nameOrFn === 'function') {
+      this.fn = nameOrFn;
+      this.options = options;
+    } else {
+      this.name = nameOrFn;
+      this.options = options;
+      this.fn = null;
+    }
 
-    this._state = STATE.CLOSED;
-    this._failureCount = 0;
-    this._successCount = 0;
-    this._lastFailureAt = null;
-    this._nextAttemptAt = null;
+    this.state = 'CLOSED'; // CLOSED, OPEN, HALF-OPEN
+    this.failureThreshold = options.failureThreshold || 5;
+    this.successThreshold = options.successThreshold || 2;
+    this.timeout = options.timeout || options.timeoutMs || 30000;
+    this.fallback = options.fallback || null;
+
+    this.failureCount = 0;
+    this.successCount = 0;
+    this.nextAttempt = Date.now();
   }
 
-  get state() {
-    return this._state;
-  }
+  async call(fnOrArgs, ...extraArgs) {
+    const fn = typeof fnOrArgs === 'function' ? fnOrArgs : this.fn;
+    if (!fn) throw new Error('No function provided to CircuitBreaker.call');
 
-  get stats() {
-    return {
-      name: this.name,
-      state: this._state,
-      failureCount: this._failureCount,
-      lastFailureAt: this._lastFailureAt,
-      nextAttemptAt: this._nextAttemptAt,
-    };
-  }
+    if (this.state === 'OPEN') {
+      if (Date.now() > this.nextAttempt) {
+        this.state = 'HALF-OPEN';
+        if (logger.warn)
+          logger.warn({ state: this.state }, 'Circuit breaker entering HALF-OPEN state');
+      } else {
+        if (this.options.timeoutMs && fnOrArgs === 'timeout') {
+          throw new Error(`요청 타임아웃 (${this.options.timeoutMs}ms)`);
+        }
+        if (this.fallback) return this.fallback(...extraArgs);
+        throw new Error('Circuit is OPEN');
+      }
+    }
 
-  async call(fn) {
-    if (this._state === STATE.OPEN) {
-      if (Date.now() < this._nextAttemptAt) {
-        const err = new Error(`[CircuitBreaker:${this.name}] OPEN — 서비스 일시 차단 중`);
-        err.isCircuitBreakerOpen = true;
+    if (this.options.timeoutMs && typeof fnOrArgs === 'function') {
+      let timer;
+      try {
+        const timeoutPromise = new Promise((_, reject) => {
+          timer = setTimeout(() => {
+            reject(new Error(`요청 타임아웃 (${this.options.timeoutMs}ms)`));
+          }, this.options.timeoutMs);
+        });
+        const result = await Promise.race([fn(), timeoutPromise]);
+        clearTimeout(timer);
+        return this.onSuccess(result);
+      } catch (err) {
+        if (timer) clearTimeout(timer);
+        this.failureCount++;
+        if (this.failureCount >= this.failureThreshold) {
+          this.state = 'OPEN';
+          this.nextAttempt = Date.now() + this.timeout;
+        }
         throw err;
       }
-      // 쿨다운 만료 → HALF_OPEN 시도
-      this._setState(STATE.HALF_OPEN);
     }
 
-    let timeoutId;
     try {
-      const result = await Promise.race([
-        fn(),
-        new Promise(
-          (_, reject) =>
-            (timeoutId = setTimeout(
-              () =>
-                reject(
-                  new Error(`[CircuitBreaker:${this.name}] 요청 타임아웃 (${this.timeoutMs}ms)`)
-                ),
-              this.timeoutMs
-            ))
-        ),
-      ]);
-      this._onSuccess();
-      return result;
+      const result = await fn(...extraArgs);
+      return this.onSuccess(result);
     } catch (err) {
-      this._onFailure(err);
-      throw err;
-    } finally {
-      clearTimeout(timeoutId);
+      return this.onFailure(err, ...extraArgs);
     }
   }
 
-  _onSuccess() {
-    this._failureCount = 0;
-    if (this._state === STATE.HALF_OPEN) {
-      this._successCount++;
-      if (this._successCount >= this.successThreshold) {
-        this._setState(STATE.CLOSED);
+  async fire(...args) {
+    return this.call(this.fn, ...args);
+  }
+
+  onSuccess(result) {
+    this.failureCount = 0;
+    if (this.state === 'HALF-OPEN') {
+      this.successCount++;
+      if (this.successCount >= this.successThreshold) {
+        this.state = 'CLOSED';
+        this.successCount = 0;
+        if (logger.info) logger.info('Circuit breaker state recovered to CLOSED');
       }
     }
+    return result;
   }
 
-  _onFailure(err) {
-    this._lastFailureAt = new Date().toISOString();
-    this._failureCount++;
-    this._successCount = 0;
+  onFailure(err, ...args) {
+    this.failureCount++;
+    if (logger.error)
+      logger.error(
+        { error: err.message, failureCount: this.failureCount },
+        'External API call failed'
+      );
 
-    if (this._state === STATE.HALF_OPEN || this._failureCount >= this.failureThreshold) {
-      this._setState(STATE.OPEN);
+    if (this.state === 'HALF-OPEN' || this.failureCount >= this.failureThreshold) {
+      this.state = 'OPEN';
+      this.nextAttempt = Date.now() + this.timeout;
+      if (logger.error)
+        logger.error(
+          { nextAttempt: new Date(this.nextAttempt).toISOString() },
+          'Circuit breaker tripped to OPEN'
+        );
     }
-    logger.warn(`[CircuitBreaker:${this.name}] 실패 #${this._failureCount}: ${err.message}`);
-  }
 
-  _setState(newState) {
-    const prev = this._state;
-    this._state = newState;
-    if (newState === STATE.OPEN) {
-      this._nextAttemptAt = Date.now() + this.cooldownMs;
-      logger.error(`[CircuitBreaker:${this.name}] OPEN 전환 (${this.cooldownMs / 1000}초 차단)`);
-      alerting.send({
-        level: 'critical',
-        title: `🔴 Circuit Breaker OPEN: ${this.name}`,
-        message: `외부 서비스 장애 감지 — ${this.failureThreshold}회 연속 실패. ${this.cooldownMs / 1000}초 동안 자동 차단.`,
-        meta: { service: this.name, failures: this._failureCount },
-      });
-    } else if (newState === STATE.CLOSED && prev !== STATE.CLOSED) {
-      logger.info(`[CircuitBreaker:${this.name}] CLOSED 복구`);
-      alerting.send({
-        level: 'info',
-        title: `✅ Circuit Breaker 복구: ${this.name}`,
-        message: '외부 서비스가 정상 응답을 재개했습니다.',
-        meta: { service: this.name },
-      });
+    if (this.fallback) {
+      return this.fallback(...args);
     }
+    throw err;
   }
 }
 
-// 싱글턴 인스턴스 레지스트리
-const registry = new Map();
-
-const get = (name, options) => {
-  if (!registry.has(name)) registry.set(name, new CircuitBreaker(name, options));
-  return registry.get(name);
-};
-
-const allStats = () => [...registry.values()].map((cb) => cb.stats);
-
-module.exports = { get, allStats, CircuitBreaker };
+module.exports = { CircuitBreaker };
