@@ -56,6 +56,7 @@ const httpServer = createServer(app);
 
 // 알림 서비스 인스턴스
 const notificationService = require('./services/notificationService');
+const dashboardBroadcastService = require('./services/DashboardBroadcastService');
 
 const { getAllowedOrigins, isOriginAllowed } = require('./config/domain');
 const allowedOrigins = getAllowedOrigins();
@@ -412,6 +413,7 @@ registerSocketHandlers(io);
 
 // 알림 서비스 초기화 (Socket.io 인스턴스 주입)
 notificationService.init(io);
+dashboardBroadcastService.init(io);
 
 app.set('io', io);
 

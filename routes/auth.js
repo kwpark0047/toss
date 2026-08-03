@@ -220,4 +220,13 @@ router.post('/refresh-token', authController.refreshToken);
  */
 router.post('/logout', authController.logout);
 
+// ===== 2FA (일반 사용자 공용) =====
+const twoFactorController = require('../controllers/admin2faController');
+
+router.post('/2fa/send-login-otp', twoFactorController.sendLoginOtp);
+router.post('/2fa/verify-login-otp', twoFactorController.verifyLoginOtp);
+router.get('/2fa/status', authMiddleware, twoFactorController.getStatus);
+router.post('/2fa/send-otp', authMiddleware, twoFactorController.sendSettingsOtp);
+router.post('/2fa/verify', authMiddleware, twoFactorController.verifySettingsOtp);
+
 module.exports = router;

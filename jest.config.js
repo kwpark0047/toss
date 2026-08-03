@@ -1,4 +1,5 @@
 module.exports = {
+  maxWorkers: 1,
   testEnvironment: 'node',
   clearMocks: true,
   setupFiles: ['./jest.setup.js'],
@@ -9,6 +10,11 @@ module.exports = {
     '/tests/e2e/',
     '/tests/api/',
     '/print-agent/',
+  ],
+  modulePathIgnorePatterns: [
+    '<rootDir>/toss-miniapp-examples/',
+    '<rootDir>/wemarket-miniapp/',
+    '<rootDir>/miniapp/',
   ],
   transformIgnorePatterns: [
     '/node_modules/(?!(sanitize-html|htmlparser2|dom-serializer|domelementtype|domhandler|entities|domexception|abort-controller|node-fetch|buffer|stream/web|worker_threads)/)',

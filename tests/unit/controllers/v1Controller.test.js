@@ -1,12 +1,7 @@
 // catchAsync 미들웨어를 모크하여 테스트 환경에서는 래핑 없이 일반 비동기 함수로 실행되도록 함 (동기식 expect 평가를 위함)
 jest.mock('../../../utils/catchAsync', () => fn => fn);
 
-const v1Controller = require('../../../controllers/v1Controller');
-const prisma = require('../../../config/prisma');
-const OrderRepository = require('../../../repositories/Order');
-const { emitEvent } = require('../../../services/webhookDispatcher');
-
-// ── Prisma 데이터베이스 어댑터 모의 ────────────────────────────────────────────────
+const prismaPath = require.resolve('../../../config/prisma');
 jest.mock('../../../config/prisma', () => {
     const mockPrisma = {
         stores: {
@@ -24,6 +19,10 @@ jest.mock('../../../config/prisma', () => {
     };
     return mockPrisma;
 });
+const v1Controller = require('../../../controllers/v1Controller');
+const prisma = require('../../../config/prisma');
+const OrderRepository = require('../../../repositories/Order');
+const { emitEvent } = require('../../../services/webhookDispatcher');
 
 // ── Order 레포지토리 및 웹훅 연동 모의 ─────────────────────────────────────────────
 jest.mock('../../../repositories/Order', () => {

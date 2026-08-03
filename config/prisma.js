@@ -2,7 +2,7 @@ const { PrismaClient } = require('../prisma/app/generated/prisma');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
 
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/wemarket_test';
 const REPLICA_URL = process.env.REPLICA_URL || DATABASE_URL; // 레플리카 키 누락 시 자동으로 주 데이터베이스로 가용 폴백
 
 // 1. 주 데이터베이스 클라이언트 생성 (CUD - 쓰기 전용 세션 풀)
