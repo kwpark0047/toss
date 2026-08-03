@@ -4,6 +4,7 @@ node_modules
 # 빌드 결과물
 frontend/dist/
 frontend/dev-dist/
+dist/
 generated/
 
 # 테스트 아티팩트
