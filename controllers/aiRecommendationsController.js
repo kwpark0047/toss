@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
+const aiService = require('../services/aiService');
 
 async function generateProductRecommendations(storeId) {
   const since = new Date(Date.now() - 30 * 86400000);
@@ -58,11 +59,20 @@ async function generateProductRecommendations(storeId) {
   const recommendations = [];
   for (const p of topProducts) {
     const detail = detailMap[p.id];
+    let aiDescription = `최근 30일간 ${p.count}회 주문된 인기 메뉴입니다.`;
+    try {
+      aiDescription = await aiService.generateMenuDescription({
+        name: detail.name,
+        price: detail.price,
+        description: aiDescription,
+      });
+    } catch (e) {}
+
     recommendations.push({
       store_id: Number(storeId),
       recommendation_type: 'PRODUCT',
       title: `${detail?.name || '인기 상품'} 추천`,
-      description: `최근 30일간 ${p.count}회 주문된 인기 메뉴입니다.`,
+      description: aiDescription,
       target_product_ids: JSON.stringify([p.id]),
       valid_from: new Date(),
       valid_to: new Date(Date.now() + 7 * 86400000),
@@ -76,11 +86,19 @@ async function generateProductRecommendations(storeId) {
       db = detailMap[b];
     if (!da || !db || seen.has(`${b}-${a}`)) continue;
     seen.add(key);
+
+    let title = `${da.name} + ${db.name} 세트`;
+    let description = `함께 주문이 많은 인기 조합 (${shared}회).`;
+    try {
+       const aiBundle = await aiService.proposeMenuFull({ name: title, categoryName: '세트' });
+       if (aiBundle.description) description = aiBundle.description;
+    } catch (e) {}
+
     recommendations.push({
       store_id: Number(storeId),
       recommendation_type: 'BUNDLE',
-      title: `${da.name} + ${db.name} 세트`,
-      description: `함께 주문이 많은 인기 조합 (${shared}회).`,
+      title,
+      description,
       target_product_ids: JSON.stringify([a, b]),
       discount_percent: 5,
       valid_from: new Date(),

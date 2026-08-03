@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
+const aiService = require('../services/aiService');
 
 function calculateWeightedDemand(recentOrders, days) {
   if (recentOrders.length === 0)
@@ -95,10 +96,26 @@ const DemandForecastController = {
 
           const dailyOrders = recentOrders.filter((o) => o.order_items.length > 0);
           const {
-            predicted: predictedDemand,
-            confidence,
+            predicted: baselinePredicted,
+            confidence: baselineConfidence,
             trend,
           } = calculateWeightedDemand(dailyOrders, 30);
+
+          let predictedDemand = baselinePredicted;
+          let confidence = baselineConfidence;
+          let aiInsight = '';
+          
+          try {
+            const prompt = `다음은 최근 30일간의 특정 메뉴(${product.name}) 일일 주문 건수 패턴입니다: ${dailyOrders.length}건 발생. 트렌드: ${trend}.
+이 데이터를 바탕으로 다음 주 예상 수요량, 신뢰도(0~1), 그리고 매장 운영을 위한 짧은 코멘트(1~2문장)를 JSON으로 제안해주세요. 
+기본 예측치: ${baselinePredicted}, 신뢰도: ${baselineConfidence}.
+형식: {"predicted": 숫자, "confidence": 숫자, "comment": "코멘트"}`;
+            const aiResText = await aiService.generateWithFallback(prompt, { generationConfig: { temperature: 0.3, response_mime_type: "application/json" } });
+            const aiRes = JSON.parse(aiResText);
+            predictedDemand = aiRes.predicted ?? baselinePredicted;
+            confidence = aiRes.confidence ?? baselineConfidence;
+            aiInsight = aiRes.comment ?? '';
+          } catch (e) {}
 
           const weekLater = new Date(now.getTime() + 7 * 86400000);
           const forecast = await prisma.demand_forecasts.upsert({
@@ -120,6 +137,7 @@ const DemandForecastController = {
                 trend,
                 dataPoints: dailyOrders.length,
                 holiday: false,
+                aiInsight,
               },
               model_version: 'v2.0-weighted',
             },
@@ -131,8 +149,9 @@ const DemandForecastController = {
                 trend,
                 dataPoints: dailyOrders.length,
                 holiday: false,
+                aiInsight,
               },
-              model_version: 'v2.0-weighted',
+              model_version: 'v2.0-gemini',
               updated_at: new Date(),
             },
           });

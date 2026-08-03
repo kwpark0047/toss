@@ -207,8 +207,8 @@ const login = async (req, res, next) => {
       return next(new AppError('아이디 또는 비밀번호가 올바르지 않습니다.', 401));
     }
 
-    // 관리자 2FA가 활성화된 경우 temp_token 발급 (2차 인증 필요)
-    if (user.role === 'super_admin' && user.two_factor_enabled) {
+    // 2FA가 활성화된 경우 temp_token 발급 (2차 인증 필요)
+    if (user.two_factor_enabled) {
       const tempToken = jwt.sign(
         { id: user.id, name: user.name, role: user.role, type: '2fa_pending' },
         JWT_SECRET,

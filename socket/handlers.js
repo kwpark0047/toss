@@ -76,6 +76,17 @@ function registerSocketHandlers(io) {
       if (typeof ack === 'function') ack({ ok: true });
     });
 
+    // ── 실시간 대시보드 (DashboardBroadcastService 연동) ──
+    socket.on('join-dashboard', async (data, ack) => {
+      const storeId = typeof data === 'object' ? data.storeId : data;
+      const role = await getAuthorizedStoreRole(socket, storeId, ['owner', 'manager', 'super_admin']);
+      if (!role) return deny(ack, 'FORBIDDEN', '대시보드 구독 권한이 없습니다.');
+
+      const sid = Number(storeId);
+      socket.join(`store_${sid}_dashboard`);
+      if (typeof ack === 'function') ack({ ok: true, role });
+    });
+
     socket.on('register-foodtruck-client', ({ phone, storeId }) => {
       const normalized = String(phone || '').replace(/[^0-9]/g, '');
       activeFoodTruckClients.set(socket.id, { phone: normalized, storeId });

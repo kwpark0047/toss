@@ -1,3 +1,4 @@
+require('dotenv').config();
 const prisma = require('../config/prisma');
 const { dbLogger: logger } = require('../utils/logger');
 

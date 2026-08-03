@@ -1,4 +1,4 @@
-﻿// Node 22+ built-in globals — only polyfill if missing
+// Node 22+ built-in globals — only polyfill if missing
 if (typeof ReadableStream === 'undefined') {
   const { ReadableStream: RS } = require('stream/web');
   global.ReadableStream = RS;
@@ -14,6 +14,9 @@ if (process.env.NODE_ENV === 'test' && !process.env.TOSS_SECRET_KEY) {
 // 테스트 전용 시크릿을 고정한다. (실제 값은 프로덕션 .env에만 존재)
 if (process.env.NODE_ENV === 'test' && !process.env.JWT_SECRET) {
   process.env.JWT_SECRET = 'test_jwt_secret';
+}
+if (process.env.NODE_ENV === 'test' && !process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = 'postgresql://dummy:dummy@localhost:5432/dummy';
 }
 if (typeof Blob === 'undefined') {
   const { Blob: B } = require('buffer');

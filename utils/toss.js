@@ -9,7 +9,7 @@ const cb = require('./circuitBreaker');
 
 const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY;
 const logger = require('../utils/logger');
-const tossCircuit = cb.get('toss-api', {
+const tossCircuit = new cb.CircuitBreaker('toss-api', {
   failureThreshold: 5,
   cooldownMs: 30_000,
   timeoutMs: 10_000,

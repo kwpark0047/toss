@@ -121,7 +121,7 @@ class AIService {
 
         try {
             const res = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.7 } });
-            this.setCache(cacheKey, res); // 결과 캐싱 (with eviction)
+            await this.cache.set(cacheKey, res, 86400).catch(()=>{}); // 결과 캐싱 (with eviction)
             return res;
         } catch (error) {
             logger.error(error);
@@ -226,7 +226,7 @@ class AIService {
                 }
             }
 
-            this.setCache(cacheKey, result);
+            await this.cache.set(cacheKey, res, 86400).catch(()=>{});
             return result;
         } catch (error) {
             logger.error(error);
@@ -246,7 +246,7 @@ class AIService {
         if (!dessertList || dessertList.length === 0) return [];
 
         const cacheKey = `dessert_${currentItems.join("_")}_${dessertList.length}`;
-        if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
+        const cached = await this.cache.get().catch(()=>null);\n        if (cached) return cached;
 
         const prompt = `
       당신은 디저트 페어링 전문가입니다. 고객이 현재 주문한 메뉴들과 가장 잘 어울리는 후식을 추천해 주세요.
@@ -274,7 +274,7 @@ class AIService {
             const rawText = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.2, response_mime_type: "application/json" } });
             const text = rawText.replace(/```json|```/g, "").trim();
             const result = JSON.parse(text);
-            this.setCache(cacheKey, result);
+            await this.cache.set(cacheKey, res, 86400).catch(()=>{});
             return result;
         } catch (error) {
             logger.error(error);
@@ -540,7 +540,7 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
      */
     async translateText(text, targetLang) {
         const cacheKey = `trans_${targetLang}_${text}`;
-        if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
+        const cached = await this.cache.get().catch(()=>null);\n        if (cached) return cached;
 
         const langMap = {
             'en': 'English',
@@ -558,7 +558,7 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
 
         try {
             const res = await this.generateWithFallback(prompt, { generationConfig: { temperature: 0.1 } });
-            this.setCache(cacheKey, res);
+            await this.cache.set(cacheKey, res, 86400).catch(()=>{});
             return res;
         } catch (error) {
             logger.error(error);
@@ -651,7 +651,7 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
     async generateMenuImage(menuInfo) {
         const { name, category, description } = menuInfo;
         const cacheKey = `img_${name}_${category}`;
-        if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
+        const cached = await this.cache.get().catch(()=>null);\n        if (cached) return cached;
 
         const prompt = `
       You are a food photography expert. Generate 3~5 English keywords
@@ -677,7 +677,7 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
             const keyword = parsed.keyword || `${name} food plated`;
             const imageUrl = await this._fetchMenuImageUrl(keyword);
             const result = { imageUrl, keyword };
-            this.setCache(cacheKey, result);
+            await this.cache.set(cacheKey, res, 86400).catch(()=>{});
             return result;
         } catch (error) {
             logger.error({ error: error.message }, '[AI] generateMenuImage failed');

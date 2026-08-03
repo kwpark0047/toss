@@ -76,7 +76,7 @@ const sendLoginOtp = async (req, res, next) => {
       data: { user_id: user.id, otp, purpose: 'LOGIN', expires_at: expiresAt },
     });
 
-    await sendSms(phone, `[위마켓 관리자] 로그인 인증번호: ${otp}`);
+    await sendSms(phone, `[위마켓] 2차 로그인 인증번호: ${otp}`);
 
     const responseData = { message: '2FA 인증번호가 발송되었습니다.' };
     if (IS_DEV || !process.env.SMS_ENV || process.env.SMS_ENV === 'none') {
@@ -171,7 +171,7 @@ const sendSettingsOtp = async (req, res, next) => {
     });
 
     const label = purpose === 'ENABLE' ? '활성화' : '비활성화';
-    await sendSms(phone, `[위마켓 관리자] 2FA ${label} 인증번호: ${otp}`);
+    await sendSms(phone, `[위마켓] 2FA ${label} 인증번호: ${otp}`);
 
     const responseData = { message: `2FA ${label} 인증번호가 발송되었습니다.` };
     if (IS_DEV || !process.env.SMS_ENV || process.env.SMS_ENV === 'none') {
