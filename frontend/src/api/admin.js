@@ -32,6 +32,13 @@ export const adminAPI = {
   toggleStoreActive: (id, is_active) =>
     api.patch(`/admin/platform/stores/${id}/active`, { is_active }),
   grantPoints: (id, data) => api.post(`/admin/platform/stores/${id}/points`, data),
+  // 매장 정보 보강 (AI + 커버리지) — super_admin 전용
+  enrichmentCoverage: () => api.get('/admin/platform/enrichment/coverage'),
+  storeCompletion: (id) => api.get(`/admin/platform/stores/${id}/completion`),
+  runStoreEnhance: (id, { autoSave = false } = {}) =>
+    api.post(`/admin/platform/stores/${id}/enhance`, null, { params: { autoSave } }),
+  applyStoreEnhance: (id, enhancements) =>
+    api.post(`/admin/platform/stores/${id}/enhance/apply`, { enhancements }),
   // 매장 연동 승인 요청 (사업자 ↔ 공공매장)
   linkRequests: (status = 'pending') =>
     api.get('/admin/store-link-requests', { params: { status } }),

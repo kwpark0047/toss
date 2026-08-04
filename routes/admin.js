@@ -448,6 +448,30 @@ router.post(
   adminOnly,
   platformController.grantPoints
 );
+router.get(
+  '/platform/enrichment/coverage',
+  authMiddleware,
+  adminOnly,
+  platformController.getEnrichmentCoverage
+);
+router.get(
+  '/platform/stores/:id/completion',
+  authMiddleware,
+  adminOnly,
+  platformController.getStoreCompletion
+);
+router.post(
+  '/platform/stores/:id/enhance',
+  authMiddleware,
+  adminOnly,
+  platformController.runStoreEnhance
+);
+router.post(
+  '/platform/stores/:id/enhance/apply',
+  authMiddleware,
+  adminOnly,
+  platformController.applyStoreEnhance
+);
 
 // ── 매장 정보 보강 (super_admin) ──────────────────────────────────────────
 router.get(
