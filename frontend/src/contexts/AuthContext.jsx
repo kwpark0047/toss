@@ -14,9 +14,11 @@ const USE_COOKIE = import.meta.env.VITE_HTTPONLY_COOKIE === 'true';
 const decodeToken = (token) => {
   try {
     const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
     return JSON.parse(new TextDecoder('utf-8').decode(bytes));
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 };
 
 // refreshToken으로 새 accessToken 발급
@@ -75,7 +77,10 @@ export const AuthProvider = ({ children }) => {
       }
 
       const token = localStorage.getItem('token');
-      if (!token) { setLoading(false); return; }
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
       const payload = decodeToken(token);
       const validFor = payload?.exp ? payload.exp * 1000 - Date.now() : 0;
@@ -85,7 +90,13 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
         if (validFor <= 300_000) {
           refreshAccessToken()
-            .then(newToken => { if (newToken) setUser(prev => ({ ...prev, ...{ id: payload.id, name: payload.name, role: payload.role } })); })
+            .then((newToken) => {
+              if (newToken)
+                setUser((prev) => ({
+                  ...prev,
+                  ...{ id: payload.id, name: payload.name, role: payload.role },
+                }));
+            })
             .catch(() => {});
         }
         return;
@@ -125,6 +136,14 @@ export const AuthProvider = ({ children }) => {
   const login = async (identifier, password) => {
     const res = await authAPI.login(identifier, password);
     const data = res.data || res;
+
+    // 2FA가 활성화된 계정: tempToken을 반환하고 OTP 인증 단계로 전환
+    // (tempToken은 localStorage의 'token'으로 저장하지 않는다 — API 401 잠금 방지)
+    if (data.two_factor_required) {
+      if (!data.tempToken) throw new Error('서버 응답이 올바르지 않습니다.');
+      return { twoFactorRequired: true, tempToken: data.tempToken };
+    }
+
     const { token, refreshToken, user: userData } = data;
 
     if (!token || !userData) throw new Error('서버 응답이 올바르지 않습니다.');
@@ -135,14 +154,64 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(userData);
 
-    storesAPI.getMy()
-      .then(res => {
-        const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+    storesAPI
+      .getMy()
+      .then((res) => {
+        const list = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
         storesCacheRef.current = { list, ts: Date.now() };
       })
       .catch(() => {});
 
     return { token, user: userData };
+  };
+
+  // 2차 로그인 OTP 발송 (tempToken 필요)
+  const sendLoginOtp = async (tempToken) => {
+    const res = await authAPI.sendLoginOtp(tempToken);
+    return res.data || res;
+  };
+
+  // 2차 로그인 OTP 검증 → 최종 토큰 발급
+  const verifyLoginOtp = async (tempToken, otp) => {
+    const res = await authAPI.verifyLoginOtp(tempToken, otp);
+    const data = res.data || res;
+    const { token, refreshToken, user: userData } = data;
+
+    if (!token || !userData) throw new Error('서버 응답이 올바르지 않습니다.');
+
+    if (!USE_COOKIE) {
+      localStorage.setItem('token', token);
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    }
+    setUser(userData);
+
+    storesAPI
+      .getMy()
+      .then((res) => {
+        const list = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+        storesCacheRef.current = { list, ts: Date.now() };
+      })
+      .catch(() => {});
+
+    return { token, user: userData };
+  };
+
+  // 2FA 활성화 상태 조회
+  const getTwoFactorStatus = async () => {
+    const res = await authAPI.getTwoFactorStatus();
+    return (res.data || res)?.two_factor_enabled ?? false;
+  };
+
+  // 2FA 활성화/비활성화 OTP 발송
+  const sendTwoFactorOtp = async (purpose) => {
+    const res = await authAPI.sendTwoFactorOtp(purpose);
+    return res.data || res;
+  };
+
+  // 2FA 활성화/비활성화 실행
+  const verifyTwoFactorOtp = async (purpose, otp) => {
+    const res = await authAPI.verifyTwoFactorOtp(purpose, otp);
+    return (res.data || res)?.two_factor_enabled ?? false;
   };
 
   const register = async (data) => {
@@ -216,7 +285,26 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, sendOtp, verifyOtp, login, socialLogin, register, updateProfile, changePassword, logout, consumeStoresCache }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        sendOtp,
+        verifyOtp,
+        login,
+        socialLogin,
+        register,
+        updateProfile,
+        changePassword,
+        logout,
+        consumeStoresCache,
+        sendLoginOtp,
+        verifyLoginOtp,
+        getTwoFactorStatus,
+        sendTwoFactorOtp,
+        verifyTwoFactorOtp,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -4,6 +4,7 @@ const Coupon = require('../repositories/Coupon');
 const Table = require('../repositories/Table');
 const Product = require('../repositories/Product');
 const notificationService = require('./notificationService');
+const dashboardBroadcastService = require('./DashboardBroadcastService');
 const webhookDispatcher = require('./webhookDispatcher');
 const printService = require('./printService');
 const logger = require('../utils/logger');
@@ -520,6 +521,9 @@ class OrderService {
     this.io.to(`store - ${order.store_id}`).emit('order-updated', payload);
     this.io.to(`kitchen - ${order.store_id}`).emit('order-updated', payload);
     this.io.to(`order - ${order.id}`).emit('order-updated', payload);
+
+    // 실시간 대시보드 (store_${storeId}_dashboard 룸) 알림 — DashboardBroadcastService 전담 채널
+    dashboardBroadcastService.notifyOrderChange(order.store_id, payload);
 
     if (order.customer_phone) {
       const normalized = normalizePhone(decryptPhone(order.customer_phone));

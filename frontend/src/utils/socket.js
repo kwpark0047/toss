@@ -40,6 +40,46 @@ socket.on('connect', () => {
   }
 });
 
+/* ── 실시간 대시보드 (DashboardBroadcastService 연동) ──────────────── */
+// 재접속 시 대시보드 룸 자동 재구독
+let _dashboardJoinParams = null;
+
+socket.on('connect', () => {
+  if (_dashboardJoinParams) {
+    socket.emit('join-dashboard', _dashboardJoinParams);
+  }
+});
+
+// 대시보드 룸 구독 (store_${storeId}_dashboard)
+export const joinDashboard = (storeId) => {
+  _dashboardJoinParams = { storeId };
+  if (!socket.connected) {
+    socket.connect();
+  } else {
+    socket.emit('join-dashboard', { storeId });
+  }
+};
+
+// 대시보드 구독 해제
+export const leaveDashboard = () => {
+  _dashboardJoinParams = null;
+  if (socket.connected) {
+    socket.emit('leave-dashboard');
+  }
+};
+
+// 대시보드: 주문 상태 변경 실시간 수신 (DashboardBroadcastService.notifyOrderChange)
+export const onDashboardOrderStatusChanged = (callback) => {
+  socket.on('order_status_changed', callback);
+  return () => socket.off('order_status_changed', callback);
+};
+
+// 대시보드: 수요 예측 업데이트 실시간 수신 (DashboardBroadcastService.notifyForecastUpdate)
+export const onDashboardForecastUpdate = (callback) => {
+  socket.on('forecast_updated', callback);
+  return () => socket.off('forecast_updated', callback);
+};
+
 /** 소켓 연결이 끊어졌으면 재연결, 연결되어 있으면 직접 emit */
 const ensureOrEmit = (eventName, params) => {
   if (!socket.connected) {
