@@ -23,12 +23,14 @@ describe('PaymentReconciliationService', () => {
   });
 
   describe('reconcileStalePayments', () => {
-    test('30분이 지난 PENDING 결제 내역을 만료 처리한다', async () => {
-      const staleItems = [{ id: 101, payment_status: 'PENDING', order_id: 501 }];
+    test('30분이 지난 pending 결제를 취소하고 주문을 실패 처리한다', async () => {
+      const staleItems = [{ id: 101, status: 'pending', order_id: 501 }];
       prisma.payments.findMany.mockResolvedValue(staleItems);
 
       const count = await paymentReconciliationService.reconcileStalePayments();
       expect(prisma.payments.findMany).toHaveBeenCalled();
+      expect(prisma.payments.findMany.mock.calls[0][0].where.status).toBe('pending');
+      expect(prisma.payments.findMany.mock.calls[0][0].where.payment_status).toBeUndefined();
       expect(count).toBe(1);
     });
 

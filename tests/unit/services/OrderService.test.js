@@ -24,6 +24,11 @@ jest.mock('../../../config/prisma', () => ({
   },
   products: {
     findUnique: jest.fn(),
+    findMany: jest.fn(),
+  },
+  orders: {
+    updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+    update: jest.fn(),
   },
 }));
 jest.mock('../../../repositories/Order', () => ({
@@ -200,7 +205,7 @@ describe('OrderService', () => {
         status: 'pending',
         order_items: [],
       });
-      Table.findByStoreAndTable.mockResolvedValue({ id: 10, table_number: '1' });
+      Table.findById.mockResolvedValue({ id: 10, table_number: '1', store_id: 1 });
       const result = await svc.createOrder({
         store_id: '1',
         table_id: '10',
@@ -238,36 +243,41 @@ describe('OrderService', () => {
     test(' FIXED 쿠폰 적용 시 정액 할인', async () => {
       Coupon.findUserCoupon.mockResolvedValue({
         id: 1,
+        customer_phone: '01012345678',
         status: 'UNUSED',
         coupons: { type: 'FIXED', amount: 2000, min_order_amount: 5000 },
       });
       await svc.createOrder({
         store_id: '1',
         user_coupon_id: 1,
+        phone: '01012345678',
         items: [{ product_id: 100, quantity: 1 }],
         total_amount: 10000,
       });
-      expect(Coupon.useCoupon).toHaveBeenCalledWith(1, 4);
+      expect(Coupon.useCoupon).not.toHaveBeenCalled();
     });
 
     test('PERCENT 쿠폰 적용 시 정률 할인', async () => {
       Coupon.findUserCoupon.mockResolvedValue({
         id: 2,
+        customer_phone: '01012345678',
         status: 'UNUSED',
         coupons: { type: 'PERCENT', amount: 10, min_order_amount: 0 },
       });
       await svc.createOrder({
         store_id: '1',
         user_coupon_id: 2,
+        phone: '01012345678',
         items: [{ product_id: 100, quantity: 1 }],
         total_amount: 10000,
       });
-      expect(Coupon.useCoupon).toHaveBeenCalled();
+      expect(Coupon.useCoupon).not.toHaveBeenCalled();
     });
 
     test('사용 완료된 쿠폰이면 400 에러', async () => {
       Coupon.findUserCoupon.mockResolvedValue({
         id: 3,
+        customer_phone: '01012345678',
         status: 'USED',
         coupons: { type: 'FIXED', amount: 1000, min_order_amount: 0 },
       });
@@ -275,6 +285,7 @@ describe('OrderService', () => {
         svc.createOrder({
           store_id: '1',
           user_coupon_id: 3,
+          phone: '01012345678',
           items: [{ product_id: 100, quantity: 1 }],
           total_amount: 10000,
         })
@@ -284,6 +295,7 @@ describe('OrderService', () => {
     test('최소 주문 미달 시 400 에러', async () => {
       Coupon.findUserCoupon.mockResolvedValue({
         id: 4,
+        customer_phone: '01012345678',
         status: 'UNUSED',
         coupons: { type: 'FIXED', amount: 1000, min_order_amount: 20000 },
       });
@@ -291,6 +303,7 @@ describe('OrderService', () => {
         svc.createOrder({
           store_id: '1',
           user_coupon_id: 4,
+          phone: '01012345678',
           items: [{ product_id: 100, quantity: 1 }],
           total_amount: 10000,
         })
@@ -404,6 +417,7 @@ describe('OrderService', () => {
           },
           stock_history: {
             create: jest.fn().mockResolvedValue({}),
+            findFirst: jest.fn().mockResolvedValue(null),
           },
         })
       );
@@ -457,12 +471,11 @@ describe('OrderService', () => {
       Order.findById.mockResolvedValue({ id: 3, status: 'confirmed', store_id: 1 });
       Order.updateStatus.mockResolvedValue({ id: 3, status: 'cancelled' });
       prisma.order_items.findMany.mockResolvedValue([{ product_id: 100, quantity: 2 }]);
-      prisma.products.findUnique.mockResolvedValue({ id: 100, store_id: 1, stock_quantity: 48 });
+      prisma.products.findMany.mockResolvedValue([{ id: 100, store_id: 1, stock_quantity: 48 }]);
       prisma.$transaction.mockImplementation(async (fn) =>
         fn({
           products: {
-            findUnique: jest.fn().mockResolvedValue({ id: 100, store_id: 1, stock_quantity: 48 }),
-            update: jest.fn().mockResolvedValue({}),
+            update: jest.fn().mockResolvedValue({ id: 100, store_id: 1, stock_quantity: 50 }),
           },
           stock_history: {
             create: jest.fn().mockResolvedValue({}),

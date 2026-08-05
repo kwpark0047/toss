@@ -61,10 +61,17 @@ class OrderService {
     if (!items || items.length === 0) {
       throw new AppError('주문 상품이 없습니다.', 400);
     }
+    const rawPhone = phone || customer_phone;
     if (user_coupon_id) {
+      if (!rawPhone) {
+        throw new AppError('쿠폰 사용에는 고객 전화번호가 필요합니다.', 400);
+      }
       userCoupon = await Coupon.findUserCoupon(user_coupon_id);
       if (!userCoupon || userCoupon.status !== 'UNUSED') {
         throw new AppError('유효하지 않은 쿠폰입니다.', 400);
+      }
+      if (normalizePhone(userCoupon.customer_phone) !== normalizePhone(rawPhone)) {
+        throw new AppError('본인에게 발급된 쿠폰만 사용할 수 있습니다.', 403);
       }
     }
 
@@ -92,20 +99,32 @@ class OrderService {
 
     if (lookupStr) {
       const table = await Table.findByStoreAndTable(storeIdNum, lookupStr);
+      if (!table) throw new AppError('유효한 테이블을 찾을 수 없습니다.', 400);
       resolvedTableId = table?.id || null;
       resolvedTableName = table?.table_number || lookupStr;
     } else if (table_id && !isNaN(parseInt(table_id))) {
       resolvedTableId = parseInt(table_id);
       const table = await Table.findById(resolvedTableId);
+      if (!table || (table.store_id != null && Number(table.store_id) !== storeIdNum)) {
+        throw new AppError('해당 매장의 테이블이 아닙니다.', 403);
+      }
       resolvedTableName = table?.table_number || null;
     }
 
     // 2. 서버 가격, 재고 및 품절 검증
     if (items && items.length > 0) {
       const insufficient = [];
+      const products = Product.findByIds
+        ? await Product.findByIds(
+            items.map((item) => item.product_id),
+            storeIdNum
+          )
+        : [];
+      const productsById = new Map(products.map((product) => [product.id, product]));
       for (const item of items) {
         if (!item.product_id) throw new AppError('상품 ID가 필요합니다.', 400);
-        const product = await Product.findById(item.product_id);
+        const product =
+          productsById.get(Number(item.product_id)) || (await Product.findById(item.product_id));
         const pricedItem = priceOrderItem(product, item, storeIdNum);
         pricedItems.push(pricedItem);
         serverSubtotal += pricedItem.subtotal;
@@ -140,7 +159,6 @@ class OrderService {
     const orderData = { ...data };
     orderData.items = pricedItems;
     orderData.method = method || payment_method;
-    const rawPhone = phone || customer_phone;
     if (rawPhone) {
       orderData.customer_phone = encryptPhone(rawPhone);
     }
@@ -154,10 +172,7 @@ class OrderService {
     });
 
     // 5. 후처리 (쿠폰 사용, 테이블 상태, 재고 차감, 알림)
-    if (user_coupon_id) await Coupon.useCoupon(user_coupon_id, order.id);
-
     if (order.table_id) {
-      await Table.update(order.table_id, { status: 'occupied' });
       if (this.io)
         this.io.emit('table-updated', { store_id: order.store_id, table_id: order.table_id });
     }
@@ -171,14 +186,40 @@ class OrderService {
   async updateStatus(id, status, staff_id) {
     const orderId = parseInt(id);
     const oldOrder = await Order.findById(orderId);
-    const updatedOrder = await Order.updateStatus(orderId, status, staff_id);
+    if (!oldOrder) throw new AppError('주문을 찾을 수 없습니다.', 404);
+    if (
+      oldOrder.status === status &&
+      !['confirmed', 'preparing', 'ready', 'completed'].includes(status)
+    ) {
+      return oldOrder;
+    }
+
+    const inventoryTransition =
+      oldOrder.status === 'pending' &&
+      ['confirmed', 'preparing', 'ready', 'completed'].includes(status);
+
+    let updatedOrder;
+    if (inventoryTransition) {
+      // 여러 KDS/관리자 요청이 동시에 들어와도 pending 상태를 선점한
+      // 요청 하나만 후속 재고 처리를 시작하도록 원자적으로 전환한다.
+      const data = { status, updated_at: new Date() };
+      if (staff_id) data.handled_by_staff_id = parseInt(staff_id);
+      if (status === 'preparing') data.preparing_at = new Date();
+      if (status === 'ready') data.ready_at = new Date();
+      if (status === 'completed') data.completed_at = new Date();
+
+      const claimed = await prisma.orders.updateMany({
+        where: { id: orderId, status: 'pending' },
+        data,
+      });
+      if (claimed.count !== 1) return Order.findById(orderId);
+      updatedOrder = await Order.findById(orderId);
+    } else {
+      updatedOrder = await Order.updateStatus(orderId, status, staff_id);
+    }
 
     // KDS 수락 시 재고 차감 및 품절 처리
-    if (
-      oldOrder &&
-      oldOrder.status === 'pending' &&
-      ['confirmed', 'preparing', 'ready', 'completed'].includes(status)
-    ) {
+    if (updatedOrder && ['confirmed', 'preparing', 'ready', 'completed'].includes(status)) {
       await this._processInventory(updatedOrder);
     }
 
@@ -301,6 +342,14 @@ class OrderService {
         const product = lockedRows && lockedRows[0] ? lockedRows[0] : null;
 
         if (!product || product.stock_quantity === null) return null;
+
+        // 상태 재시도/동시 요청에서 동일 주문의 재고를 두 번 차감하지 않는다.
+        const existingStockHistory = await tx.stock_history.findFirst({
+          where: { order_id: order.id, product_id: item.product_id, reason: 'ORDER' },
+          select: { id: true },
+        });
+        if (existingStockHistory) return { alreadyProcessed: true };
+
         if (product.stock_quantity < item.quantity) {
           await tx.products.update({ where: { id: item.product_id }, data: { is_sold_out: true } });
           return {
@@ -338,6 +387,7 @@ class OrderService {
         };
       });
       if (result) {
+        if (result.alreadyProcessed) continue;
         if (result.newQty <= result.threshold) {
           notificationService
             .notifyLowStockDB({ id: item.product_id, stock_quantity: result.newQty })
@@ -359,35 +409,38 @@ class OrderService {
       where: { order_id: orderId },
       select: { product_id: true, quantity: true },
     });
-    for (const item of items) {
-      if (!item.product_id) continue;
-      try {
-        await prisma.$transaction(async (tx) => {
-          const product = await tx.products.findUnique({
-            where: { id: item.product_id },
-            select: { id: true, store_id: true, stock_quantity: true },
-          });
-          if (!product || product.stock_quantity === null) return;
-          const restoredQty = product.stock_quantity + item.quantity;
-          await tx.products.update({
-            where: { id: item.product_id },
-            data: { stock_quantity: restoredQty, is_sold_out: false },
-          });
-          await tx.stock_history.create({
-            data: {
-              product_id: item.product_id,
-              store_id: product.store_id,
-              change: item.quantity,
-              qty_after: restoredQty,
-              reason: 'CANCEL',
-              order_id: orderId,
-            },
-          });
+    const validItems = items.filter((it) => it.product_id);
+    if (validItems.length === 0) return;
+
+    // N+1 방지: 대상 상품을 한 번에 조회
+    const productIds = validItems.map((it) => it.product_id);
+    const products = await prisma.products.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, store_id: true, stock_quantity: true },
+    });
+    const productByStore = new Map(products.map((p) => [String(p.id), p.store_id]));
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of validItems) {
+        const store_id = productByStore.get(String(item.product_id));
+        if (store_id === undefined) continue;
+        // 원자적 증가로 오버라이트 경쟁/유실 업데이트 방지 (update가 갱신된 행을 반환)
+        const updated = await tx.products.update({
+          where: { id: item.product_id },
+          data: { stock_quantity: { increment: item.quantity }, is_sold_out: false },
         });
-      } catch (e) {
-        logger.warn(`[Inventory] 복구 실패: ${item.product_id}`, e.message);
+        await tx.stock_history.create({
+          data: {
+            product_id: item.product_id,
+            store_id,
+            change: item.quantity,
+            qty_after: updated.stock_quantity,
+            reason: 'CANCEL',
+            order_id: orderId,
+          },
+        });
       }
-    }
+    });
   }
 
   async _processLoyaltyPoints(order) {

@@ -230,12 +230,15 @@ const Product = {
   },
 
   // [다중 ID 상품 조회]
-  findByIds: async (ids, selectFields = null, includeFields = null) => {
+  findByIds: async (ids, storeIdOrSelect = null, includeFields = null) => {
+    const storeId = Number.isInteger(Number(storeIdOrSelect)) ? Number(storeIdOrSelect) : null;
+    const selectFields = storeId === null ? storeIdOrSelect : null;
     const query = {
       where: {
         id: { in: ids.map((id) => parseInt(id)) },
       },
     };
+    if (storeId !== null) query.where.store_id = storeId;
     if (selectFields) query.select = selectFields;
     if (includeFields) query.include = includeFields;
     return await prisma.products.findMany(query);

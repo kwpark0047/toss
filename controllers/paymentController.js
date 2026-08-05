@@ -121,7 +121,8 @@ const paymentController = {
     const result = await paymentService.processPartialCancel(
       req.params.orderId,
       cancelAmount,
-      cancelReason
+      cancelReason,
+      req.get('Idempotency-Key') || req.get('X-Idempotency-Key')
     );
     res.json({
       success: true,

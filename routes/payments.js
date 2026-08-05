@@ -7,6 +7,8 @@ const authMiddleware = require('../middleware/auth');
 const paymentController = require('../controllers/paymentController');
 const idempotency = require('../middleware/idempotency');
 const orderCapability = require('../middleware/orderCapability');
+const paymentOrderCapability = require('../middleware/paymentOrderCapability');
+const { paymentCapabilityOrStoreAuth } = paymentOrderCapability;
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -82,7 +84,7 @@ router.post('/', idempotency({ namespace: 'payments:create' }), paymentControlle
  *       200:
  *         description: 결제 준비 정보
  */
-router.post('/ready', paymentController.preparePayment);
+router.post('/ready', orderCapability, paymentController.preparePayment);
 
 /**
  * @swagger
@@ -113,6 +115,7 @@ router.post('/ready', paymentController.preparePayment);
  */
 router.post(
   '/:orderId/confirm',
+  paymentOrderCapability,
   idempotency({ namespace: 'payments:confirm' }),
   paymentController.confirmPayment
 );
@@ -189,7 +192,12 @@ router.post('/order/:orderId/cancel', authMiddleware, paymentController.cancelBy
  *       200:
  *         description: 부분 취소 완료
  */
-router.post('/order/:orderId/partial-cancel', authMiddleware, paymentController.partialCancel);
+router.post(
+  '/order/:orderId/partial-cancel',
+  authMiddleware,
+  idempotency({ namespace: 'payments:partial-cancel', required: true }),
+  paymentController.partialCancel
+);
 
 /**
  * @swagger
@@ -246,7 +254,13 @@ router.post('/:paymentKey/cancel', authMiddleware, paymentController.cancelByPay
  *       200:
  *         description: 업로드 완료
  */
-router.post('/:paymentId/proof', upload.single('proof'), paymentController.uploadProof);
+router.post(
+  '/:paymentId/proof',
+  authMiddleware,
+  paymentCapabilityOrStoreAuth,
+  upload.single('proof'),
+  paymentController.uploadProof
+);
 
 /**
  * @swagger

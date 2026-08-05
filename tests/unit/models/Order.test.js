@@ -38,15 +38,17 @@ describe('Order.create', () => {
   test('클라이언트 단가와 합계를 무시하고 서버 상품 가격을 저장한다', async () => {
     const tx = {
       products: {
-        findUnique: jest.fn().mockResolvedValue({
-          id: 10,
-          store_id: 3,
-          name: '떡볶이',
-          price: 3000,
-          is_active: true,
-          is_sold_out: false,
-          options: null,
-        }),
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 10,
+            store_id: 3,
+            name: '떡볶이',
+            price: 3000,
+            is_active: true,
+            is_sold_out: false,
+            options: null,
+          },
+        ]),
       },
       orders: { create: jest.fn().mockImplementation(({ data }) => ({ id: 1, ...data })) },
     };

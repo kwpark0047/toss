@@ -24,6 +24,7 @@ enum OrderStatus {
 enum OrderPaymentStatus {
   pending
   paid
+  partial
   failed
   refunded
   @@schema("public")

@@ -109,6 +109,8 @@ describe('OrderService — 지오펜싱 통합 테스트', () => {
       stock_quantity: null,
       options: null,
     });
+    const Table = require('../../../repositories/Table');
+    Table.findById.mockResolvedValue({ id: 1, table_number: '1', store_id: 1 });
   });
 
   test('매장 위치 정보 없으면 지오펜싱 스킵', async () => {

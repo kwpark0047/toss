@@ -37,6 +37,7 @@ jest.mock('../../config/prisma', () => {
     },
     products: {
       findUnique: jest.fn(),
+      findMany: jest.fn(),
       update: jest.fn(),
     },
     store_customers: { upsert: jest.fn() },
@@ -176,15 +177,17 @@ describe('[회귀] 현금 결제 주문 생성 (즉시 완료)', () => {
 
   beforeEach(() => {
     // PaymentService(Prisma)는 product_id로 상품을 조회해 가격을 재계산한다
-    prisma.products.findUnique.mockResolvedValue({
-      id: 100,
-      store_id: 1,
-      name: '아메리카노',
-      price: 10000,
-      is_active: true,
-      is_sold_out: false,
-      stock_quantity: null,
-    });
+    prisma.products.findMany.mockResolvedValue([
+      {
+        id: 100,
+        store_id: 1,
+        name: '아메리카노',
+        price: 10000,
+        is_active: true,
+        is_sold_out: false,
+        stock_quantity: null,
+      },
+    ]);
     prisma.orders.create.mockResolvedValue(mockOrder);
     prisma.orders.update.mockResolvedValue(mockOrder);
     prisma.payments.create.mockResolvedValue(mockPayment);
@@ -236,15 +239,17 @@ describe('[회귀] 계좌이체 주문 (수동 확인 필요)', () => {
   const mockPayment = { id: 2, status: 'READY' };
 
   beforeEach(() => {
-    prisma.products.findUnique.mockResolvedValue({
-      id: 101,
-      store_id: 1,
-      name: '라떼',
-      price: 20000,
-      is_active: true,
-      is_sold_out: false,
-      stock_quantity: null,
-    });
+    prisma.products.findMany.mockResolvedValue([
+      {
+        id: 101,
+        store_id: 1,
+        name: '라떼',
+        price: 20000,
+        is_active: true,
+        is_sold_out: false,
+        stock_quantity: null,
+      },
+    ]);
     prisma.orders.create.mockResolvedValue(mockOrder);
     prisma.orders.update.mockResolvedValue(mockOrder);
     prisma.payments.create.mockResolvedValue(mockPayment);
@@ -395,15 +400,17 @@ describe('[회귀] Circuit Breaker 유틸리티', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 describe('[회귀] 품절 동시성 — 재고 체크', () => {
   test('재고 부족 주문 처리 시 서버 오류 없음', async () => {
-    prisma.products.findUnique.mockResolvedValue({
-      id: 10,
-      store_id: 1,
-      name: '한정 메뉴',
-      price: 5000,
-      is_active: true,
-      stock_quantity: 0,
-      is_sold_out: true,
-    });
+    prisma.products.findMany.mockResolvedValue([
+      {
+        id: 10,
+        store_id: 1,
+        name: '한정 메뉴',
+        price: 5000,
+        is_active: true,
+        stock_quantity: 0,
+        is_sold_out: true,
+      },
+    ]);
     prisma.orders.create.mockResolvedValue({
       id: 9,
       order_number: 'ORD-009',
