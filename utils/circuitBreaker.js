@@ -43,7 +43,7 @@ class CircuitBreaker {
       if (Date.now() > this.nextAttempt) {
         this.state = 'HALF-OPEN';
         if (logger.warn)
-          logger.warn({ state: this.state }, 'Circuit breaker entering HALF-OPEN state');
+          logger.warn('Circuit breaker entering HALF-OPEN state', { state: this.state });
       } else {
         if (this.options.timeoutMs && fnOrArgs === 'timeout') {
           throw new Error(`요청 타임아웃 (${this.options.timeoutMs}ms)`);
@@ -104,19 +104,18 @@ class CircuitBreaker {
     this.failureCount++;
     this.lastFailureAt = new Date().toISOString();
     if (logger.error)
-      logger.error(
-        { error: err.message, failureCount: this.failureCount },
-        'External API call failed'
-      );
+      logger.error('External API call failed', {
+        error: err.message,
+        failureCount: this.failureCount,
+      });
 
     if (this.state === 'HALF-OPEN' || this.failureCount >= this.failureThreshold) {
       this.state = 'OPEN';
       this.nextAttempt = Date.now() + this.timeout;
       if (logger.error)
-        logger.error(
-          { nextAttempt: new Date(this.nextAttempt).toISOString() },
-          'Circuit breaker tripped to OPEN'
-        );
+        logger.error('Circuit breaker tripped to OPEN', {
+          nextAttempt: new Date(this.nextAttempt).toISOString(),
+        });
     }
 
     if (this.fallback) {

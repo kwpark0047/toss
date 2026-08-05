@@ -10,20 +10,14 @@ const cb      = require('../utils/circuitBreaker');
 const alerting = require('../utils/alerting');
 const axios   = require('axios');
 
-// 런타임 클라이언트 화이트리스트 (PWA 서비스 워커 및 Vercel 크로스 도메인 수신용)
-const allowedOrigins = [
-    'https://frontend-gamma-ten-89.vercel.app',
-    'https://wemarket.pages.dev',
-    'https://wemarket.vercel.app',
-    'https://250105.vercel.app',
-    'https://wemarket-6k6.pages.dev',
-    'https://toss.wemarket.workers.dev'
-];
+// CORS 허용 도메인은 단일 모듈(config/domain)에서 관리한다.
+const { getAllowedOrigins, isOriginAllowed } = require('../config/domain');
 
 // DB 슬립/서버 503 가용성 장애 시에도 브라우저 전송에 필요한 CORS 헤더를 원자적으로 강제 반사 (Workbox fetch 우회 차단 해결)
 router.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (origin && allowedOrigins.includes(origin)) {
+    const allowed = origin && isOriginAllowed(origin, getAllowedOrigins());
+    if (allowed) {
         res.setHeader('Access-Control-Allow-Origin', origin);
         res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');

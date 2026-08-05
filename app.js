@@ -151,13 +151,10 @@ const diLoadPromise = import('./app/infrastructure/di/container.mjs')
 
 // DI 컨테이너가 준비될 때까지 요청 대기
 app.use((req, res, next) => {
-  if (diLoadPromise.isFulfilled !== undefined || diContainer) {
-    next();
-  } else {
-    // 초기화 중: 헬스체크만 허용
-    if (req.path.startsWith('/api/health')) return next();
-    res.status(503).json({ error: 'Server initializing' });
-  }
+  if (diContainer) return next();
+  // 초기화 중: 헬스체크만 허용
+  if (req.path.startsWith('/api/health')) return next();
+  return res.status(503).json({ error: 'Server initializing' });
 });
 
 /**
@@ -383,7 +380,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'frontend/dist')));
 
 // SPA 라우팅 지원: 모든 비 API 요청을 index.html로 전송
-app.get('/{*path}', (req, res, next) => {
+app.get('*', (req, res, next) => {
   // API 요청이나 정적 파일 요청(확장자가 있는 경우)은 통과
   if (req.path.startsWith('/api') || req.path.includes('.')) {
     return next();

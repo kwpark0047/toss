@@ -18,7 +18,7 @@ httpServer.listen(PORT, async () => {
     const { setupSocketRedisAdapter } = require('./socket/adapter');
     await setupSocketRedisAdapter(io);
   } catch (err) {
-    logger.warn({ error: err.message }, '[서버] Socket.IO Redis Adapter 초기화 실패');
+    logger.warn('[서버] Socket.IO Redis Adapter 초기화 실패', { error: err.message });
   }
 
   // 주간 매출 리포트 스케줄러 (매주 월요일 09:00 KST)
@@ -40,9 +40,9 @@ httpServer.listen(PORT, async () => {
       try {
         const count = await collectAndPost();
         logger.info(`[뉴스수집] 스케줄러 완료 — ${count}건 등록`);
-      } catch (err) {
-        logger.error({ error: err.message }, '[뉴스수집] 스케줄러 오류');
-      }
+        } catch (err) {
+          logger.error('[뉴스수집] 스케줄러 오류', { error: err.message });
+        }
     },
     { timezone: 'Asia/Seoul' }
   );
@@ -108,7 +108,7 @@ async function initStoreLinkTemplates() {
         logger.info(`[알림템플릿] ${tpl.type} 기본 템플릿 등록 완료`);
       }
     } catch (e) {
-      logger.warn({ error: e.message }, `[알림템플릿] ${tpl.type} 등록 실패`);
+      logger.warn(`[알림템플릿] ${tpl.type} 등록 실패`, { error: e.message });
     }
   }
 }
