@@ -21,6 +21,7 @@
     "bundle:check": "bash scripts/bundle-check.sh",
     "postinstall": "node -e \"if(!process.env.VERCEL && !process.env.CF_PAGES){require('child_process').execSync('prisma generate',{stdio:'inherit'})}\"",
     "seed": "node scripts/seed_production_direct.js",
+    "backfill:mask-card-numbers": "node scripts/mask_card_numbers.js",
     "test": "jest --config jest.config.js tests/unit tests/routes --coverage",
     "test:unit": "jest --config jest.config.js tests/unit tests/routes",
     "test:routes": "jest --config jest.config.js tests/routes",

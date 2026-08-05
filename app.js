@@ -380,7 +380,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'frontend/dist')));
 
 // SPA 라우팅 지원: 모든 비 API 요청을 index.html로 전송
-app.get('*', (req, res, next) => {
+// Express 5/path-to-regexp 문법: 이름 있는 와일드카드가 필요하다.
+app.get('/{*splat}', (req, res, next) => {
   // API 요청이나 정적 파일 요청(확장자가 있는 경우)은 통과
   if (req.path.startsWith('/api') || req.path.includes('.')) {
     return next();

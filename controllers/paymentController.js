@@ -10,6 +10,11 @@ const { AppError } = require('../utils/errorHandler');
 const logger = require('../utils/logger');
 const { getStoreRole } = require('../middleware/storeAuth');
 
+const maskPaymentKey = (paymentKey) => {
+  if (typeof paymentKey !== 'string' || paymentKey.length <= 8) return '****';
+  return `****${paymentKey.slice(-8)}`;
+};
+
 const assertStoreAccess = async (user, storeId, permission = 'orders:manage') => {
   if (user.role === 'super_admin') return;
   const role = await getStoreRole(user.id, storeId);
@@ -176,10 +181,9 @@ const paymentController = {
     const auth = req.headers['authorization'] || '';
     const expectedRaw = (process.env.TOSS_SECRET_KEY || '') + ':';
     const expected = 'Basic ' + Buffer.from(expectedRaw).toString('base64');
-    const authBuf = Buffer.alloc(expected.length);
     const expectedBuf = Buffer.from(expected);
-    authBuf.write(auth);
-    if (!crypto.timingSafeEqual(authBuf, expectedBuf)) {
+    const authBuf = Buffer.from(auth);
+    if (authBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(authBuf, expectedBuf)) {
       logger.warn('[Webhook/Toss] 서명 검증 실패 - 요청 무시');
       return res.status(401).end();
     }
@@ -197,7 +201,10 @@ const paymentController = {
     try {
       verifiedPayment = await TossAPI.getPayment(paymentKey);
     } catch (e) {
-      logger.error(`[Webhook/Toss] 결제 조회 실패 - 요청 무시: ${e.message}`);
+      logger.error('[Webhook/Toss] 결제 조회 실패 - 요청 무시', {
+        error: e.message,
+        paymentKey: maskPaymentKey(paymentKey),
+      });
       return res.status(400).end();
     }
     const amountOk = Number(verifiedPayment?.totalAmount) === Number(eventData?.totalAmount);

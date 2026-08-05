@@ -42,6 +42,11 @@ function maskCardNumber(cardNumber) {
   return `****-****-****-${lastFour}`;
 }
 
+function maskPaymentKey(paymentKey) {
+  if (typeof paymentKey !== 'string' || paymentKey.length <= 8) return '****';
+  return `****${paymentKey.slice(-8)}`;
+}
+
 /**
  * [PaymentService]
  * 결제 승인/취소 오케스트레이션을 담당합니다.
@@ -467,7 +472,9 @@ class PaymentService {
       tossResponse = await TossAPI.confirmPayment(paymentKey, orderIdString, amount);
     }
 
-    logger.info('[PaymentService] 토스 결제 승인 완료:', tossResponse.paymentKey);
+    logger.info('[PaymentService] 토스 결제 승인 완료', {
+      paymentKey: maskPaymentKey(tossResponse.paymentKey),
+    });
 
     try {
       const result = await prisma.$transaction(async (tx) => {
@@ -684,7 +691,7 @@ class PaymentService {
         logger.error(
           isAmountMismatch
             ? `[PaymentService] 승인 금액 불일치 — order=${e.orderNumber} expected=${e.expected} approved=${e.actual} → 자동 취소 시도`
-            : `[PaymentService] 중복 승인 경합 — order=${e.orderNumber} paymentKey=${paymentKey} → 자동 취소 시도`
+            : `[PaymentService] 중복 승인 경합 — order=${e.orderNumber} paymentKey=${maskPaymentKey(paymentKey)} → 자동 취소 시도`
         );
         let autoCanceled = false;
         try {
@@ -693,7 +700,9 @@ class PaymentService {
             : '중복 결제 승인 자동 취소';
           await TossAPI.cancelPayment(paymentKey, cancelReason);
           autoCanceled = true;
-          logger.warn(`[PaymentService] 금액 불일치 결제 자동 취소 완료: ${paymentKey}`);
+          logger.warn('[PaymentService] 금액 불일치 결제 자동 취소 완료', {
+            paymentKey: maskPaymentKey(paymentKey),
+          });
         } catch (cancelErr) {
           logger.error(`[PaymentService] 자동 취소 실패 (수동 처리 필요): ${cancelErr.message}`);
         }
@@ -704,13 +713,13 @@ class PaymentService {
               ? '결제 승인 이상 — 자동 취소됨'
               : '결제 승인 이상 — 자동 취소 실패(수동 확인 필요)',
             message: isAmountMismatch
-              ? `주문 ${e.orderNumber} / 기대 ${e.expected}원 / 실제 승인 ${e.actual}원 / paymentKey=${paymentKey}`
-              : `주문 ${e.orderNumber} / 중복 승인 경합 / paymentKey=${paymentKey}`,
+              ? `주문 ${e.orderNumber} / 기대 ${e.expected}원 / 실제 승인 ${e.actual}원 / paymentKey=${maskPaymentKey(paymentKey)}`
+              : `주문 ${e.orderNumber} / 중복 승인 경합 / paymentKey=${maskPaymentKey(paymentKey)}`,
             meta: {
               orderNumber: e.orderNumber,
               expected: e.expected,
               actual: e.actual,
-              paymentKey,
+              paymentKey: maskPaymentKey(paymentKey),
               autoCanceled,
             },
           })
@@ -745,7 +754,9 @@ class PaymentService {
 
     // 토스 취소 API 호출
     await TossAPI.cancelPayment(payment.payment_key, cancelReason || '시스템 취소');
-    logger.info('[PaymentService] 토스 결제 취소 완료:', payment.payment_key);
+    logger.info('[PaymentService] 토스 결제 취소 완료', {
+      paymentKey: maskPaymentKey(payment.payment_key),
+    });
 
     // DB 상태 업데이트 (트랜잭션)
     await prisma.$transaction(async (tx) => {

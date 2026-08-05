@@ -15,6 +15,11 @@ const tossCircuit = cb.get('toss-api', {
   timeoutMs: 10_000,
 });
 
+const maskPaymentKey = (paymentKey) => {
+  if (typeof paymentKey !== 'string' || paymentKey.length <= 8) return '****';
+  return `****${paymentKey.slice(-8)}`;
+};
+
 if (!TOSS_SECRET_KEY) {
   logger.warn('[Warning] TOSS_SECRET_KEY가 설정되지 않았습니다. 결제 기능이 제한될 수 있습니다.');
 }
@@ -46,7 +51,7 @@ const TossAPI = {
   confirmPayment: async (paymentKey, orderId, amount) => {
     // [테스트 시뮬레이션 모드] mock_ 키는 명시적 테스트 환경에서만 성공 응답 반환
     if (isMockAllowed(paymentKey)) {
-      logger.info('[Mock] 결제 승인 시뮬레이션:', paymentKey);
+      logger.info('[Mock] 결제 승인 시뮬레이션', { paymentKey: maskPaymentKey(paymentKey) });
       return {
         paymentKey: paymentKey,
         orderId: orderId,
@@ -133,7 +138,7 @@ const TossAPI = {
   cancelPayment: async (paymentKey, cancelReason, cancelAmount, idempotencyKey) => {
     // [테스트 시뮬레이션 모드]
     if (isMockAllowed(paymentKey)) {
-      logger.info('[Mock] 결제 취소 시뮬레이션:', paymentKey);
+      logger.info('[Mock] 결제 취소 시뮬레이션', { paymentKey: maskPaymentKey(paymentKey) });
       return {
         paymentKey: paymentKey,
         status: 'CANCELED',
