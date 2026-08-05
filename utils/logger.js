@@ -29,7 +29,11 @@ const { combine, timestamp, printf, colorize, errors } = winston.format;
 
 // [로그 포맷 정의]
 const logFormat = printf(({ level, message, timestamp, stack }) => {
-  return `${timestamp} [${level}]: ${stack || message}`;
+  // message가 객체/배열이면 직렬화하여 출력
+  const msg = typeof message === 'object' && message !== null
+    ? (message instanceof Error ? message.stack || message.message : JSON.stringify(message))
+    : (stack || message);
+  return `${timestamp} [${level}]: ${msg}`;
 });
 
 // [로거 인스턴스 생성]
