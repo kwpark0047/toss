@@ -104,6 +104,7 @@ describe('Phase 4 Business Enhancements Integration Tests', () => {
         queue_number: 12,
       };
       Order.updateStatus.mockResolvedValue(mockOrder);
+      Order.findById.mockResolvedValue(mockOrder);
       Store.findById.mockResolvedValue({ id: 1, name: '맛있는 식당' });
 
       const ioMock = { emit: jest.fn(), to: jest.fn().mockReturnThis() };
@@ -125,6 +126,7 @@ describe('Phase 4 Business Enhancements Integration Tests', () => {
         total_amount: 15000,
       };
       Order.updateStatus.mockResolvedValue(mockOrder);
+      Order.findById.mockResolvedValue(mockOrder);
       Table.findById.mockResolvedValue({ id: 5, table_number: '3번 테이블' });
 
       const ioMock = { emit: jest.fn(), to: jest.fn().mockReturnThis() };

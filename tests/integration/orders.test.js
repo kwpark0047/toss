@@ -258,13 +258,23 @@ describe('Orders Integration Tests', () => {
           created_at: new Date().toISOString(),
         },
       ];
-      mockOrderRepository.findByStoreId.mockResolvedValue(mockOrders);
+      mockOrderRepository.findByStoreId.mockResolvedValue({
+        items: mockOrders,
+        total: 2,
+        page: 1,
+        limit: 20,
+      });
 
       const res = await request(app).get(`${baseUrl}/store/1?page=1&limit=20`).expect(200);
 
       expect(res.body.success).toBe(true);
       expect(res.body.data).toHaveLength(2);
-      expect(mockOrderRepository.findByStoreId).toHaveBeenCalledWith('1', undefined, undefined);
+      expect(res.body.pagination.total).toBe(2);
+      expect(mockOrderRepository.findByStoreId).toHaveBeenCalledWith('1', undefined, undefined, {
+        page: '1',
+        limit: '20',
+        paginated: true,
+      });
     });
 
     it('should filter by status when provided', async () => {
@@ -276,7 +286,11 @@ describe('Orders Integration Tests', () => {
       const res = await request(app).get(`${baseUrl}/store/1?status=completed`).expect(200);
 
       expect(res.body.data).toHaveLength(1);
-      expect(mockOrderRepository.findByStoreId).toHaveBeenCalledWith('1', 'completed', undefined);
+      expect(mockOrderRepository.findByStoreId).toHaveBeenCalledWith('1', 'completed', undefined, {
+        page: undefined,
+        limit: undefined,
+        paginated: false,
+      });
     });
 
     it('should return empty array when no orders', async () => {
