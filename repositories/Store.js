@@ -67,40 +67,39 @@ const Store = {
     },
 
     findByUserId: async (userId) => {
-        try {
-            const uid = parseInt(userId);
-            if (isNaN(uid)) return [];
+        const uid = parseInt(userId);
+        if (isNaN(uid)) return [];
 
-            // 1. 소유한 매장 조회 (is_active null 포함)
+        const result = new Map();
+
+        // 1. 소유한 매장 조회 (is_active null 포함)
+        try {
             const ownedStores = await prisma.stores.findMany({
                 where: { user_id: uid, is_active: { not: false } }
             });
+            ownedStores.forEach(store => {
+                result.set(store.id, { ...store, role: 'owner' });
+            });
+        } catch (error) {
+            console.error(`[Prisma Error] Store.findByUserId ownedStores failed for User: ${uid}`, error);
+        }
 
-            // 2. 직원으로 등록된 매장 조회 (schema 모델명: staff)
+        // 2. 직원으로 등록된 매장 조회 (별도 try-catch: 스키마 불일치 시에도 소유 매장 반환)
+        try {
             const staffed = await prisma.staff.findMany({
                 where: { user_id: uid },
                 include: { stores: true }
             });
-
-            const result = new Map();
-
-            // 소유 매장 추가 (role: owner)
-            ownedStores.forEach(store => {
-                result.set(store.id, { ...store, role: 'owner' });
-            });
-
-            // 직원 매장 추가 (소유 매장이 아닐 경우에만)
             staffed.forEach(item => {
                 if (item.stores && item.stores.is_active && !result.has(item.stores.id)) {
                     result.set(item.stores.id, { ...item.stores, role: item.role });
                 }
             });
-
-            return Array.from(result.values());
         } catch (error) {
-            console.error(`[Prisma Error] Store.findByUserId failed for User: ${userId}`, error);
-            return [];
+            console.error(`[Prisma Error] Store.findByUserId staffed query failed for User: ${uid}`, error);
         }
+
+        return Array.from(result.values());
     },
 
     findAll: async () => {
