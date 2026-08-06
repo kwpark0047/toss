@@ -2,12 +2,43 @@ const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
 const authMiddleware = require('../middleware/auth');
-const { optionalAuth } = require('../middleware/auth');
 const { checkStorePermission, checkStorePermissionForObject } = require('../middleware/storeAuth');
-const { requireOrderCapabilityOrAuth } = require('../middleware/orderCapability');
 const validate = require('../middleware/validate');
 const idempotency = require('../middleware/idempotency');
 const { order: schema } = require('../utils/validationSchemas');
+const { verifyOrderCapability } = require('../utils/orderCapability');
+const prisma = require('../config/prisma');
+const { checkResourcePermission } = require('../middleware/storeAuth');
+
+const checkOrderPermission = checkResourcePermission(
+  prisma.orders,
+  'id',
+  'store_id',
+  'orders:manage'
+);
+
+// 주문 capability 검증: 유효한 x-order-capability(고객 경로)가 있으면 우선 통과,
+// super_admin/staff는 checkStorePermissionForObject로, 그 외 인증 사용자는
+// 주문 소유권(checkResourcePermission)으로 접근을 허용한다.
+const requireOrderCapability = (req, res, next) => {
+  const orderId = parseInt(req.params.id || req.params.orderId);
+  const capability = verifyOrderCapability(req.get('x-order-capability'));
+  if (capability && capability.orderId === orderId) {
+    req.orderCapability = capability;
+    return next();
+  }
+
+  if (req.user?.role === 'super_admin' || req.user?.role === 'staff') {
+    const middleware = checkStorePermissionForObject();
+    return middleware(req, res, next);
+  }
+
+  if (req.user) {
+    return checkOrderPermission(req, res, next);
+  }
+
+  return res.status(403).json({ error: '주문 결제 권한이 없거나 만료되었습니다.' });
+};
 
 /**
  * @swagger
@@ -78,9 +109,8 @@ router.post(
  */
 router.post(
   '/:orderId/customer-token',
-  optionalAuth,
-  requireOrderCapabilityOrAuth,
-  checkStorePermissionForObject('orders'),
+  authMiddleware.optionalAuth,
+  requireOrderCapability,
   orderController.registerCustomerToken
 );
 
@@ -205,9 +235,8 @@ router.get(
  */
 router.get(
   '/:id',
-  optionalAuth,
-  requireOrderCapabilityOrAuth,
-  checkStorePermissionForObject('orders'),
+  authMiddleware.optionalAuth,
+  requireOrderCapability,
   orderController.getOrderDetails
 );
 
@@ -237,12 +266,7 @@ router.get(
  *       200:
  *         description: 상태 변경 완료
  */
-router.put(
-  '/:id/status',
-  authMiddleware,
-  checkStorePermissionForObject('orders'),
-  orderController.updateStatus
-);
+router.put('/:id/status', authMiddleware, checkOrderPermission, orderController.updateStatus);
 
 /**
  * @swagger
@@ -261,12 +285,7 @@ router.put(
  *       200:
  *         description: 주문 취소 완료
  */
-router.post(
-  '/:id/cancel',
-  authMiddleware,
-  checkStorePermissionForObject('orders'),
-  orderController.cancelOrder
-);
+router.post('/:id/cancel', authMiddleware, orderController.cancelOrder);
 
 /**
  * @swagger
@@ -285,11 +304,6 @@ router.post(
  *       200:
  *         description: 주문 삭제 완료
  */
-router.delete(
-  '/:id',
-  authMiddleware,
-  checkStorePermissionForObject('orders'),
-  orderController.deleteOrder
-);
+router.delete('/:id', authMiddleware, orderController.deleteOrder);
 
 module.exports = router;

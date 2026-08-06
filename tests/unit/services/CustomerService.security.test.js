@@ -1,15 +1,10 @@
 jest.mock('../../../config/prisma', () => ({
-  store_customers: { findFirst: jest.fn(), upsert: jest.fn() },
-  point_transactions: { findFirst: jest.fn() },
-  coupons: { findFirst: jest.fn() },
-  user_coupons: { create: jest.fn() },
+  orders: { findUnique: jest.fn() },
+  store_customers: { findFirst: jest.fn() },
   notifications: { create: jest.fn() },
+  $transaction: jest.fn(),
 }));
-jest.mock('../../../repositories/Point', () => ({
-  calculateEarnPoints: jest.fn(),
-  earn: jest.fn(),
-  getBalance: jest.fn(),
-}));
+jest.mock('../../../repositories/Point', () => ({ calculateEarnPoints: jest.fn() }));
 jest.mock('../../../repositories/StoreTier', () => ({
   calculateTier: jest.fn(),
   getTiers: jest.fn(),
@@ -26,73 +21,92 @@ const Point = require('../../../repositories/Point');
 const StoreTier = require('../../../repositories/StoreTier');
 const CustomerService = require('../../../services/CustomerService');
 
-describe('CustomerService loyalty', () => {
+describe('CustomerService loyalty security', () => {
+  let tx;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    prisma.point_transactions.findFirst.mockResolvedValue(null);
+    tx = {
+      point_transactions: { findFirst: jest.fn(), create: jest.fn() },
+      store_customers: { upsert: jest.fn() },
+      user_points: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
+      coupons: { findFirst: jest.fn() },
+      user_coupons: { create: jest.fn() },
+    };
+    prisma.$transaction.mockImplementation((callback) => callback(tx));
+    prisma.orders.findUnique.mockResolvedValue({
+      store_id: 3,
+      customer_phone: '01012345678',
+      total_amount: 5000,
+    });
     prisma.store_customers.findFirst.mockResolvedValue(null);
-    prisma.store_customers.upsert.mockResolvedValue({ visit_count: 1, total_spent: 5000 });
-    prisma.coupons.findFirst.mockResolvedValue(null);
     prisma.notifications.create.mockResolvedValue({});
     StoreTier.calculateTier.mockResolvedValue({ tier_name: '일반', earn_rate: 1 });
     StoreTier.getTiers.mockResolvedValue([]);
+    Point.calculateEarnPoints.mockResolvedValue(50);
+    tx.point_transactions.findFirst.mockResolvedValue(null);
+    tx.point_transactions.create.mockResolvedValue({ id: 1 });
+    tx.store_customers.upsert.mockResolvedValue({ visit_count: 1, total_spent: 5000 });
+    tx.user_points.findFirst.mockResolvedValue({ id: 7, total_points: 100 });
+    tx.coupons.findFirst.mockResolvedValue(null);
   });
 
-  test('신규 고객은 매출·포인트를 계산하고 고객을 upsert한다', async () => {
-    Point.calculateEarnPoints.mockResolvedValue(50);
-    Point.earn.mockResolvedValue({ balance: 150 });
-
+  test('derives spend and points from the capability-bound order, not client total', async () => {
     const service = new CustomerService();
-    const result = await service.phoneJoin({
-      phone: '01012345678',
-      store_id: 3,
-      order_id: 10,
-      total_amount: 5000,
-    });
+    const result = await service.phoneJoin(
+      { phone: '01012345678', store_id: 3, order_id: 10, total_amount: 99999999 },
+      { orderId: 10, storeId: 3 }
+    );
 
     expect(Point.calculateEarnPoints).toHaveBeenCalledWith(5000, 3, { phone: '01012345678' });
-    expect(prisma.store_customers.upsert).toHaveBeenCalledWith(
+    expect(tx.store_customers.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({ total_spent: 5000 }),
         update: expect.objectContaining({ total_spent: { increment: 5000 } }),
       })
     );
-    expect(result).toMatchObject({
-      is_new_customer: true,
-      points_earned: 50,
-      total_points: 150,
-      customer_tier: '일반',
-    });
+    expect(tx.point_transactions.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          order_id: 10,
+          amount: 50,
+          balance_after: 150,
+          reference_id: 'order:10:loyalty-earn',
+        }),
+      })
+    );
+    expect(result.points_earned).toBe(50);
   });
 
-  test('이미 적립된 주문이면 중복 적립을 차단하고 아무것도 변경하지 않는다', async () => {
-    prisma.point_transactions.findFirst.mockResolvedValue({ id: 99 });
-
+  test('requires a matching order capability', async () => {
     const service = new CustomerService();
-    const result = await service.phoneJoin({
-      phone: '01012345678',
-      store_id: 3,
-      order_id: 10,
-      total_amount: 5000,
-    });
-
-    expect(result.duplicate).toBe(true);
-    expect(prisma.store_customers.upsert).not.toHaveBeenCalled();
-    expect(prisma.user_coupons.create).not.toHaveBeenCalled();
+    await expect(
+      service.phoneJoin(
+        { phone: '01012345678', store_id: 3, order_id: 10 },
+        { orderId: 11, storeId: 3 }
+      )
+    ).rejects.toMatchObject({ status: 403 });
+    expect(prisma.orders.findUnique).not.toHaveBeenCalled();
   });
 
-  test('order_id가 없으면 중복 적립 검사를 건너뛰고 일반 적립을 수행한다', async () => {
-    Point.calculateEarnPoints.mockResolvedValue(0);
-    Point.getBalance.mockResolvedValue({ total_points: 200 });
-
+  test('requires an order instead of accepting arbitrary loyalty activity', async () => {
     const service = new CustomerService();
-    const result = await service.phoneJoin({
-      phone: '01012345678',
-      store_id: 3,
-      total_amount: 5000,
-    });
+    await expect(
+      service.phoneJoin({ phone: '01012345678', store_id: 3, total_amount: 5000 }, null)
+    ).rejects.toMatchObject({ status: 400 });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
 
-    expect(prisma.point_transactions.findFirst).not.toHaveBeenCalled();
-    expect(result.total_points).toBe(200);
+  test('does not mutate loyalty data when the order already has an earn marker', async () => {
+    tx.point_transactions.findFirst.mockResolvedValue({ id: 99 });
+    const service = new CustomerService();
+    const result = await service.phoneJoin(
+      { phone: '01012345678', store_id: 3, order_id: 10 },
+      { orderId: 10, storeId: 3 }
+    );
+
+    expect(result).toEqual(expect.objectContaining({ duplicate: true }));
+    expect(tx.store_customers.upsert).not.toHaveBeenCalled();
+    expect(tx.point_transactions.create).not.toHaveBeenCalled();
   });
 });

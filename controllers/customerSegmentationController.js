@@ -1,5 +1,5 @@
 const prisma = require('../config/prisma');
-const { apiLogger, syncLogger } = require('../utils/logger');
+const logger = require('../utils/logger');
 
 /**
  * 고객 세그멘트 목록 조회
@@ -20,7 +20,7 @@ async function getSegments(req, res) {
 
     return res.json(segments);
   } catch (error) {
-    apiLogger.error({ error: error.message, storeId: req.params.storeId }, '세그멘트 조회 실패');
+    logger.error({ error: error.message, storeId: req.params.storeId }, '세그멘트 조회 실패');
     return res.status(500).json({ error: '세그멘트 조회 실패' });
   }
 }
@@ -60,7 +60,7 @@ async function upsertSegment(req, res) {
 
     return res.status(201).json(segment);
   } catch (error) {
-    apiLogger.error({ error: error.message, storeId: req.params.storeId }, '세그멘트 저장 실패');
+    logger.error({ error: error.message, storeId: req.params.storeId }, '세그멘트 저장 실패');
     return res.status(500).json({ error: '세그멘트 저장 실패' });
   }
 }
@@ -78,7 +78,7 @@ async function deleteSegment(req, res) {
 
     return res.status(204).send();
   } catch (error) {
-    apiLogger.error({ error: error.message }, '세그멘트 삭제 실패');
+    logger.error({ error: error.message }, '세그멘트 삭제 실패');
     return res.status(500).json({ error: '세그멘트 삭제 실패' });
   }
 }
@@ -115,7 +115,7 @@ async function getPersonalization(req, res) {
 
     return res.json(personalization);
   } catch (error) {
-    apiLogger.error({ error: error.message }, '개인화 데이터 조회 실패');
+    logger.error({ error: error.message }, '개인화 데이터 조회 실패');
     return res.status(500).json({ error: '개인화 데이터 조회 실패' });
   }
 }
@@ -158,7 +158,7 @@ async function upsertPersonalization(req, res) {
 
     return res.json(personalization);
   } catch (error) {
-    apiLogger.error({ error: error.message }, '개인화 데이터 저장 실패');
+    logger.error({ error: error.message }, '개인화 데이터 저장 실패');
     return res.status(500).json({ error: '개인화 데이터 저장 실패' });
   }
 }
@@ -187,7 +187,7 @@ async function getRecommendations(req, res) {
 
     return res.json(recommendations);
   } catch (error) {
-    apiLogger.error({ error: error.message }, '추천 목록 조회 실패');
+    logger.error({ error: error.message }, '추천 목록 조회 실패');
     return res.status(500).json({ error: '추천 목록 조회 실패' });
   }
 }
@@ -225,10 +225,10 @@ async function createRecommendation(req, res) {
       },
     });
 
-    apiLogger.info({ recommendationId: recommendation.id, storeId }, 'AI 추천 생성됨');
+    logger.info({ recommendationId: recommendation.id, storeId }, 'AI 추천 생성됨');
     return res.status(201).json(recommendation);
   } catch (error) {
-    apiLogger.error({ error: error.message }, 'AI 추천 생성 실패');
+    logger.error({ error: error.message }, 'AI 추천 생성 실패');
     return res.status(500).json({ error: 'AI 추천 생성 실패' });
   }
 }
@@ -263,7 +263,7 @@ async function getRecommendationsBySegment(req, res) {
 
     return res.json({ segment, recommendations });
   } catch (error) {
-    apiLogger.error({ error: error.message }, '세그멘트별 추천 조회 실패');
+    logger.error({ error: error.message }, '세그멘트별 추천 조회 실패');
     return res.status(500).json({ error: '세그멘트별 추천 조회 실패' });
   }
 }
@@ -298,7 +298,7 @@ async function getSegmentCustomers(req, res) {
 
     return res.json({ items: customers, total });
   } catch (error) {
-    apiLogger.error({ error: error.message }, '세그멘트 고객 목록 조회 실패');
+    logger.error({ error: error.message }, '세그멘트 고객 목록 조회 실패');
     return res.status(500).json({ error: '세그멘트 고객 목록 조회 실패' });
   }
 }
@@ -329,8 +329,8 @@ async function getAnalytics(req, res) {
     const totalConversions = analytics.reduce((sum, a) => sum + a.conversions, 0);
     const totalRevenue = analytics.reduce((sum, a) => sum + a.revenue_from_segment, 0);
 
-    const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(2) : 0;
-    const cvr = totalImpressions > 0 ? (totalConversions / totalImpressions * 100).toFixed(2) : 0;
+    const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : 0;
+    const cvr = totalImpressions > 0 ? ((totalConversions / totalImpressions) * 100).toFixed(2) : 0;
     const aov = totalConversions > 0 ? Math.round(totalRevenue / totalConversions) : 0;
 
     return res.json({
@@ -338,7 +338,7 @@ async function getAnalytics(req, res) {
       summary: { totalImpressions, totalClicks, totalConversions, totalRevenue, ctr, cvr, aov },
     });
   } catch (error) {
-    apiLogger.error({ error: error.message }, '개인화 분석 조회 실패');
+    logger.error({ error: error.message }, '개인화 분석 조회 실패');
     return res.status(500).json({ error: '개인화 분석 조회 실패' });
   }
 }

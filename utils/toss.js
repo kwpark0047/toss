@@ -15,13 +15,22 @@ const tossCircuit = cb.get('toss-api', {
   timeoutMs: 10_000,
 });
 
+const maskPaymentKey = (paymentKey) => {
+  if (typeof paymentKey !== 'string' || paymentKey.length <= 8) return '****';
+  return `****${paymentKey.slice(-8)}`;
+};
+
 if (!TOSS_SECRET_KEY) {
   logger.warn('[Warning] TOSS_SECRET_KEY가 설정되지 않았습니다. 결제 기능이 제한될 수 있습니다.');
 }
 
-// mock_ 결제 키는 명시적인 테스트 모드(ALLOW_MOCK_PAYMENTS=true, production 아님)에서만 허용한다.
-const allowMockPayments = () =>
-  process.env.ALLOW_MOCK_PAYMENTS === 'true' && process.env.NODE_ENV !== 'production';
+// mock_ 키는 명시적 테스트 모드(test + ALLOW_MOCK_PAYMENTS)에서만 허용.
+// 프로덕션에서 위조 키가 실제 API로 안 가고 통과되는 걸 막는다.
+const isMockAllowed = (paymentKey) =>
+  process.env.NODE_ENV === 'test' &&
+  process.env.ALLOW_MOCK_PAYMENTS === 'true' &&
+  typeof paymentKey === 'string' &&
+  paymentKey.startsWith('mock_');
 
 /**
  * Basic 인증 헤더 생성
@@ -40,9 +49,9 @@ const TossAPI = {
    * 결제창 호출 후 발급받은 paymentKey를 이용해 실제 승인을 요청합니다.
    */
   confirmPayment: async (paymentKey, orderId, amount) => {
-    // [테스트 시뮬레이션 모드] mock_ 으로 시작하는 키는 실제 API 호출 없이 성공 응답 반환
-    if (paymentKey && paymentKey.startsWith('mock_') && allowMockPayments()) {
-      logger.info('[Mock] 결제 승인 시뮬레이션:', paymentKey);
+    // [테스트 시뮬레이션 모드] mock_ 키는 명시적 테스트 환경에서만 성공 응답 반환
+    if (isMockAllowed(paymentKey)) {
+      logger.info('[Mock] 결제 승인 시뮬레이션', { paymentKey: maskPaymentKey(paymentKey) });
       return {
         paymentKey: paymentKey,
         orderId: orderId,
@@ -128,8 +137,8 @@ const TossAPI = {
    */
   cancelPayment: async (paymentKey, cancelReason, cancelAmount, idempotencyKey) => {
     // [테스트 시뮬레이션 모드]
-    if (paymentKey && paymentKey.startsWith('mock_') && allowMockPayments()) {
-      logger.info('[Mock] 결제 취소 시뮬레이션:', paymentKey);
+    if (isMockAllowed(paymentKey)) {
+      logger.info('[Mock] 결제 취소 시뮬레이션', { paymentKey: maskPaymentKey(paymentKey) });
       return {
         paymentKey: paymentKey,
         status: 'CANCELED',
@@ -138,10 +147,11 @@ const TossAPI = {
       };
     }
 
+    const headers = getAuthHeader();
+    if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+
     return tossCircuit.call(async () => {
       try {
-        const headers = getAuthHeader();
-        if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
         const response = await axios.post(
           `https://api.tosspayments.com/v1/payments/${paymentKey}/cancel`,
           { cancelReason, cancelAmount },

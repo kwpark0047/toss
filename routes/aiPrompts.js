@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const aiPromptService = require('../services/AIPromptService');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
-const { checkStorePermission } = require('../middleware/storeAuth');
 
 /**
  * @swagger

@@ -36,6 +36,7 @@ import { weatherAPI } from "@/api/misc";
 import LanguageSelector from "@/components/menu/LanguageSelector";
 import TinkerBell from "@/components/ai/TinkerBell";
 import { loadTinkerBellSettings } from "@/utils/tinkerbell";
+import { useTossPayment } from "@/hooks/useTossPayment";
 
 /** 순수 함수: 항목이 최근 7일 이내 생성되었는지 확인 */
 const isNewItem = (item) => {
@@ -191,6 +192,7 @@ const MenuPage = () => {
   const [showChatDrawer, setShowChatDrawer] = useState(false);
   const [currentOrderId, _setCurrentOrderId] = useState(null);
   const [currentOrderAmount, _setCurrentOrderAmount] = useState(0);
+  const { initiateTossPayment } = useTossPayment();
 
   const [lang, setLang] = useState(() => {
     try {
@@ -425,10 +427,29 @@ const MenuPage = () => {
       }
 
       const order = await ordersAPI.create(orderData);
+      const orderData_ = order?.data || order || {};
+      const createdOrderId = orderData_.id;
+      if (!createdOrderId) throw new Error('주문 생성 결과에 주문 ID가 없습니다.');
+
+      // 온라인 결제는 주문을 먼저 생성한 뒤 서버가 만든 결제 대기 레코드와
+      // 동일한 주문을 Toss 승인 흐름으로 연결한다.
+      if (paymentMethod === 'card' || paymentMethod === 'toss') {
+        const paymentResult = await initiateTossPayment({
+          orderId: createdOrderId,
+          storeId,
+          totalAmount: Number(orderData_.total_amount ?? totalPrice),
+          tossUserKey: undefined,
+          phone: hasPhone ? notifyDigits : undefined,
+          capability: orderData_.order_capability,
+        });
+        if (!paymentResult?.success) {
+          throw new Error(paymentResult?.error || '결제 진행에 실패했습니다.');
+        }
+        // 웹 SDK는 successUrl로 이동하므로 여기서는 장바구니를 유지한다.
+        if (paymentResult.pendingRedirect) return;
+      }
 
       toast.success(t('order.success'));
-
-      const orderData_ = order?.data || order || {};
       const orderNo = orderData_.order_number || orderData_.id;
       // 예상 준비시간: 메뉴별 실제 조리시간(cooking_time, 기본 5분) 기준.
       // 가장 오래 걸리는 메뉴가 기준이 되고, 수량이 많을수록 큐 지연을 더한다.
@@ -449,7 +470,7 @@ const MenuPage = () => {
     } finally {
       setIsOrdering(false);
     }
-  }, [storeId, cart, storeOpen, tableNumber, totalPrice, navigate, profile, paymentMethod]);
+  }, [storeId, cart, storeOpen, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment]);
 
   // Stable callbacks for JSX props (prevents child re-renders from inline closures)
   const handleOpenOrderHistory = useCallback(() => setIsOrderStatusOpen(true), []);

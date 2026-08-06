@@ -2,16 +2,47 @@ const express = require('express');
 const router = express.Router();
 const Table = require('../repositories/Table');
 const authMiddleware = require('../middleware/auth');
-const {
-  checkStorePermission,
-  checkStorePermissionForObjectBatch,
-  getStoreRole,
-} = require('../middleware/storeAuth');
+const { checkStorePermission, getStoreRole } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const { AppError } = require('../utils/errorHandler');
 const logger = require('../utils/logger');
 const crypto = require('crypto');
 const prisma = require('../config/prisma');
+
+// 대상 테이블의 저장된 매장으로 권한을 확인한다 (body/URL의 store_id를 신뢰하지 않음)
+const checkTablePermission = (requiredPermission) => {
+  return async (req, res, next) => {
+    try {
+      const tableId = parseInt(req.params.id);
+      const rows = await prisma.tables.findMany({
+        where: { id: { in: [tableId] } },
+        select: { id: true, store_id: true },
+      });
+      if (!rows.length) return res.status(404).json({ error: '테이블을 찾을 수 없습니다.' });
+      const tableStoreId = rows[0].store_id;
+
+      // super_admin은 모든 매장에 대해 무조건 통과
+      if (req.user.role === 'super_admin') {
+        req.storeId = tableStoreId;
+        return next();
+      }
+
+      const role = await getStoreRole(req.user.id, tableStoreId);
+      if (!role) {
+        return res.status(403).json({ error: '해당 매장에 대한 권한이 없습니다.' });
+      }
+      const permissions = require('../middleware/storeAuth').rolePermissions[role] || [];
+      if (role === 'owner' || permissions.includes(requiredPermission)) {
+        req.storeId = tableStoreId;
+        return next();
+      }
+      return res.status(403).json({ error: `권한이 부족합니다 (${requiredPermission})` });
+    } catch (error) {
+      logger.error(error);
+      return res.status(500).json({ error: '권한 검증 중 서버 오류가 발생했습니다' });
+    }
+  };
+};
 
 /**
  * @swagger
@@ -86,22 +117,17 @@ router.put(
     if (!layout || !Array.isArray(layout)) {
       return res.status(400).json({ success: false, error: 'layout 배열이 필요합니다.' });
     }
+    const storeId = parseInt(req.params.storeId);
 
-    const layoutIds = layout
-      .map((t) => Number(t && t.id))
-      .filter((n) => Number.isInteger(n) && n > 0);
-    if (layoutIds.length) {
-      const rows = await prisma.tables.findMany({
-        where: { id: { in: layoutIds } },
-        select: { id: true, store_id: true },
-      });
-      const targetStoreId = Number(req.params.storeId);
-      const foreign = rows.some((row) => row.store_id !== targetStoreId);
-      if (foreign) {
-        return res
-          .status(400)
-          .json({ success: false, error: '모든 테이블은 요청한 매장에 속해야 합니다.' });
-      }
+    // 요청한 모든 테이블이 URL 매장 소속인지 확인
+    const ids = layout.map((t) => parseInt(t.id));
+    const rows = await prisma.tables.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, store_id: true },
+    });
+    const allBelong = rows.length === ids.length && rows.every((r) => r.store_id === storeId);
+    if (!allBelong) {
+      return res.status(400).json({ error: '모든 테이블은 요청한 매장에 속해야 합니다.' });
     }
 
     const tables = await Table.updateLayout(req.params.storeId, layout);
@@ -137,7 +163,7 @@ router.get(
   '/qr/:qrCode',
   catchAsync(async (req, res) => {
     const table = await Table.findByQrCode(req.params.qrCode);
-    if (!table) return res.status(404).json({ error: '유효하지 않은 QR 코드입니다.' });
+    if (!table) return res.status(404).json({ error: '?�효?��? ?��? QR 코드?�니??' });
     res.success(table);
   })
 );
@@ -197,7 +223,7 @@ router.post(
 router.put(
   '/:id',
   authMiddleware,
-  checkStorePermissionForObjectBatch('tables'),
+  checkTablePermission('store:update'),
   catchAsync(async (req, res) => {
     const table = await Table.update(req.params.id, req.body);
 
@@ -233,11 +259,11 @@ router.post(
   authMiddleware,
   catchAsync(async (req, res) => {
     const existing = await Table.findById(req.params.id);
-    if (!existing) return res.status(404).json({ error: '테이블을 찾을 수 없습니다.' });
+    if (!existing) return res.status(404).json({ error: '?�이블을 찾을 ???�습?�다.' });
 
     if (req.user.role !== 'super_admin') {
       const role = await getStoreRole(req.user.id, existing.store_id);
-      if (!role) return res.status(403).json({ error: '해당 매장에 접근 권한이 없습니다.' });
+      if (!role) return res.status(403).json({ error: '?�당 매장???�??권한???�습?�다.' });
     }
 
     const newQrCode = `qr_${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`;
@@ -246,7 +272,7 @@ router.post(
     if (io) {
       io.emit('table-updated', { store_id: table.store_id, table_id: table.id });
     }
-    res.success(table, 'QR 코드가 재생성되었습니다.');
+    res.success(table, 'QR 코드가 ?�생?�되?�습?�다.');
   })
 );
 
@@ -271,7 +297,7 @@ router.post(
 router.delete(
   '/:id',
   authMiddleware,
-  checkStorePermissionForObjectBatch('tables'),
+  checkTablePermission('store:delete'),
   catchAsync(async (req, res) => {
     const table = await Table.findById(req.params.id);
     if (table) {

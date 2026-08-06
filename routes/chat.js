@@ -2,8 +2,24 @@ const express = require('express');
 const router = express.Router();
 const Chat = require('../repositories/Chat');
 const catchAsync = require('../utils/catchAsync');
-const { authMiddleware, adminOnly } = require('../middleware/auth');
+const { authMiddleware, optionalAuth, adminOnly } = require('../middleware/auth');
 const { verifyOrderCapability } = require('../utils/orderCapability');
+
+// 멤버십 검증: user(optional) + 주문 capability로 채팅방 접근 권한을 판정한다.
+// 권한이 없으면 403, 있으면 req.membership = { senderId, senderType, room } 설정.
+async function requireMembership(req, res, next) {
+  const roomId = req.params.roomId || req.body?.room_id;
+  const capability = verifyOrderCapability(req.get('x-order-capability'));
+  const membership = await Chat.authorizeRoom(roomId, {
+    user: req.user,
+    capability,
+  });
+  if (!membership) {
+    return res.status(403).json({ error: '채팅방 접근 권한이 없습니다.' });
+  }
+  req.membership = membership;
+  next();
+}
 
 /**
  * @swagger
@@ -39,11 +55,12 @@ const { verifyOrderCapability } = require('../utils/orderCapability');
 router.post(
   '/rooms/access',
   catchAsync(async (req, res) => {
+    // 고객 채팅방 접근은 x-order-capability 헤더만 신뢰한다.
+    // body의 store_id/customer_phone/customer_id 등 클라이언트 입력은 무시된다.
     const capability = verifyOrderCapability(req.get('x-order-capability'));
-    if (!capability) {
+    if (!capability || !capability.orderId || !capability.storeId) {
       return res.status(403).json({ error: '주문 결제 권한이 없거나 만료되었습니다.' });
     }
-
     const room = await Chat.accessCustomerRoom({
       orderId: capability.orderId,
       storeId: capability.storeId,
@@ -138,11 +155,10 @@ router.get(
  */
 router.get(
   '/rooms/:roomId/messages',
+  optionalAuth,
+  requireMembership,
   catchAsync(async (req, res) => {
     const { roomId } = req.params;
-    const auth = await Chat.authorizeRoom(roomId, req);
-    if (!auth) return res.status(403).json({ error: '접근 권한이 없습니다' });
-
     const messages = await Chat.getMessages(roomId);
     res.json({ success: true, data: messages });
   })
@@ -177,12 +193,12 @@ router.get(
  */
 router.patch(
   '/rooms/:roomId/read',
+  optionalAuth,
+  requireMembership,
   catchAsync(async (req, res) => {
     const { roomId } = req.params;
-    const auth = await Chat.authorizeRoom(roomId, req);
-    if (!auth) return res.status(403).json({ error: '접근 권한이 없습니다' });
-
-    await Chat.markAsRead(roomId, auth.senderType);
+    // 읽음 필터는 멤버십의 senderType에서 파생한다. body의 sender_type_not은 무시된다.
+    await Chat.markAsRead(roomId, req.membership.senderType);
     res.json({ success: true });
   })
 );
@@ -219,16 +235,15 @@ router.patch(
 router.post(
   '/messages',
   authMiddleware,
+  requireMembership,
   catchAsync(async (req, res) => {
-    const { room_id, content, message_type } = req.body;
-
-    const auth = await Chat.authorizeRoom(room_id, req);
-    if (!auth) return res.status(403).json({ error: '접근 권한이 없습니다' });
+    // sender_id/sender_type은 검증된 멤버십에서 파생한다. body의 sender_type은 무시된다.
+    const { content, message_type } = req.body;
 
     const message = await Chat.sendMessage({
-      room_id,
-      sender_id: auth.senderId,
-      sender_type: auth.senderType,
+      room_id: req.body.room_id,
+      sender_id: req.membership.senderId,
+      sender_type: req.membership.senderType,
       content,
       message_type,
     });

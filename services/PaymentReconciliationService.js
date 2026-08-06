@@ -10,10 +10,10 @@ class PaymentReconciliationService {
     try {
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 
-      // PENDING 상태인 결제 내역 조회
+      // pending 상태인 결제 내역 조회
       const stalePayments = await prisma.payments.findMany({
         where: {
-          payment_status: 'PENDING',
+          status: 'pending',
           created_at: { lt: thirtyMinutesAgo },
         },
         take: 50,
@@ -27,13 +27,17 @@ class PaymentReconciliationService {
         await prisma.$transaction(async (tx) => {
           await tx.payments.update({
             where: { id: payment.id },
-            data: { payment_status: 'EXPIRED', updated_at: new Date() },
+            data: { status: 'CANCELED', updated_at: new Date() },
           });
 
           if (payment.order_id) {
             await tx.orders.updateMany({
               where: { id: payment.order_id, status: 'pending' },
-              data: { status: 'cancelled', updated_at: new Date() },
+              data: {
+                status: 'cancelled',
+                payment_status: 'failed',
+                updated_at: new Date(),
+              },
             });
           }
         });

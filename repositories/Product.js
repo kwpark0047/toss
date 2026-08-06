@@ -230,12 +230,15 @@ const Product = {
   },
 
   // [다중 ID 상품 조회]
-  findByIds: async (ids, selectFields = null, includeFields = null) => {
+  findByIds: async (ids, storeIdOrSelect = null, includeFields = null) => {
+    const storeId = Number.isInteger(Number(storeIdOrSelect)) ? Number(storeIdOrSelect) : null;
+    const selectFields = storeId === null ? storeIdOrSelect : null;
     const query = {
       where: {
         id: { in: ids.map((id) => parseInt(id)) },
       },
     };
+    if (storeId !== null) query.where.store_id = storeId;
     if (selectFields) query.select = selectFields;
     if (includeFields) query.include = includeFields;
     return await prisma.products.findMany(query);
@@ -274,83 +277,83 @@ const Product = {
     return await prisma.products.findMany(query);
   },
 
-  // [주문 생성 시 조건부 재고 예약]
-  // 재고가 충분할 때만 원자적으로 차감하고, 성공 시 stock_history(ORDER)를 남긴다.
-  reserveStock: async (productId, storeId, qty, orderId) => {
-    const pid = parseInt(productId);
-    const sid = parseInt(storeId);
-    const reserveQty = parseInt(qty);
-
+  // [주문 시 재고 예약] 조건부 updateMany로 경쟁 안전하게 차감하고 ORDER 이력을 남긴다.
+  // 실패(재고 부족/품절) 시 null, 성공 시 갱신된 상품을 반환한다.
+  reserveStock: async (productId, storeId, quantity, orderId) => {
     const updated = await prisma.products.updateMany({
       where: {
-        id: pid,
-        store_id: sid,
+        id: parseInt(productId),
+        store_id: parseInt(storeId),
         is_active: true,
         is_sold_out: false,
-        stock_quantity: { gte: reserveQty },
+        stock_quantity: { gte: parseInt(quantity) },
       },
-      data: { stock_quantity: { decrement: reserveQty } },
+      data: { stock_quantity: { decrement: parseInt(quantity) } },
     });
 
-    if (updated.count === 0) return null;
+    if (!updated.count) return null;
 
-    const product = await prisma.products.findUnique({ where: { id: pid } });
+    const product = await prisma.products.findUnique({ where: { id: parseInt(productId) } });
+    if (!product) return null;
+
     await prisma.stock_history.create({
       data: {
-        product_id: pid,
-        store_id: sid,
-        change: -reserveQty,
+        product_id: product.id,
+        store_id: product.store_id,
+        change: -parseInt(quantity),
         qty_after: product.stock_quantity,
         reason: 'ORDER',
         order_id: parseInt(orderId),
       },
     });
 
+    cache.flushByStore(product.store_id);
     return product;
   },
 
-  // [주문 취소 시 재고 복구]
-  // ORDER(-)와 CANCEL(+) 이력을 합산해 이미 복구된 예약은 건너뛴다 (멱등성).
+  // [주문 취소 시 재고 복구] ORDER 이력을 집계해 취소 재고를 돌려주고 CANCEL 이력을 남긴다.
+  // 이미 CANCEL 복구된 주문(order_id)이면 아무것도 하지 않고 []를 반환한다.
   restoreOrderStock: async (orderId) => {
-    const history = await prisma.stock_history.findMany({
-      where: { order_id: orderId },
-      include: { products: true },
-    });
+    const history = await prisma.stock_history.findMany({ where: { order_id: parseInt(orderId) } });
+    if (!history.length) return [];
 
-    if (history.length === 0) return [];
+    // ORDER(음수)와 CANCEL(양수) 이력이 함께 존재하면 이미 복구된 것
+    const alreadyRestored = history.some((h) => h.change > 0);
+    if (alreadyRestored) return [];
 
-    const productGroups = {};
-    for (const h of history) {
-      const pid = h.product_id;
-      if (!productGroups[pid]) {
-        productGroups[pid] = { product_id: pid, store_id: h.store_id, totalChange: 0 };
+    const byProduct = history.reduce((acc, h) => {
+      if (h.change < 0) {
+        const key = `${h.product_id}:${h.store_id}`;
+        acc[key] = (acc[key] || 0) + Math.abs(h.change);
       }
-      productGroups[pid].totalChange += h.change;
-    }
+      return acc;
+    }, {});
 
-    const results = [];
-    for (const { product_id, store_id, totalChange } of Object.values(productGroups)) {
-      if (totalChange === 0) continue; // 이미 CANCEL 이력으로 복구됨
-      const restoreQty = Math.abs(totalChange);
+    const restored = [];
+    for (const [key, amount] of Object.entries(byProduct)) {
+      const [product_id, store_id] = key.split(':').map(Number);
+      const product = await prisma.products.findUnique({ where: { id: product_id } });
+      if (!product) continue;
+
       await prisma.products.update({
         where: { id: product_id },
-        data: { stock_quantity: { increment: restoreQty }, is_sold_out: false },
+        data: { stock_quantity: { increment: amount }, is_sold_out: false },
       });
       await prisma.stock_history.create({
         data: {
           product_id,
           store_id,
-          change: restoreQty,
-          qty_after: (await prisma.products.findUnique({ where: { id: product_id } }))
-            .stock_quantity,
+          change: amount,
+          qty_after: product.stock_quantity,
           reason: 'CANCEL',
-          order_id: orderId,
+          order_id: parseInt(orderId),
         },
       });
-      results.push({ product_id, restored: restoreQty });
+      cache.flushByStore(store_id);
+      restored.push(product);
     }
 
-    return results;
+    return restored;
   },
 };
 

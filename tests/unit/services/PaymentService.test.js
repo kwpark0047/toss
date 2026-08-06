@@ -62,12 +62,12 @@ jest.mock('../../../config/prisma', () => ({
     aggregate: jest.fn(),
     updateMany: jest.fn(),
   },
-  products: { findUnique: jest.fn() },
+  products: { findUnique: jest.fn(), findMany: jest.fn() },
   stores: { findUnique: jest.fn() },
   order_items: { findMany: jest.fn() },
   store_customers: { upsert: jest.fn() },
   stock_history: { create: jest.fn() },
-  ledger: { create: jest.fn() },
+  ledger: { create: jest.fn(), aggregate: jest.fn() },
 }));
 
 // ── Imports ───────────────────────────────────────────────
@@ -81,7 +81,7 @@ const PaymentService = require('../../../services/PaymentService');
 
 // ── Shared mocks ──────────────────────────────────────────
 const mockTx = {
-  products: { findUnique: jest.fn() },
+  products: { findUnique: jest.fn(), findMany: jest.fn() },
   orders: { create: jest.fn(), update: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn() },
   payments: {
     create: jest.fn(),
@@ -115,6 +115,7 @@ describe('PaymentService', () => {
       return Promise.all(Array.from(fn));
     });
     prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+    prisma.ledger.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
     mockTx.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
     mockTx.payments.updateMany.mockResolvedValue({ count: 1 });
 
@@ -127,7 +128,7 @@ describe('PaymentService', () => {
   // ─────────────────────────────────────────────────────────
   describe('preparePayment', () => {
     test('creates a READY payment with store_id and amount', async () => {
-      prisma.payments.create.mockResolvedValue({ id: 99 });
+      prisma.payments.create.mockResolvedValue({ id: 99, amount: 50000 });
 
       const result = await service.preparePayment({
         store_id: 1,
@@ -135,7 +136,7 @@ describe('PaymentService', () => {
         order_name: '테스트 주문',
       });
 
-      expect(result).toEqual({ paymentId: 99 });
+      expect(result).toMatchObject({ paymentId: 99, payment_id: 99, amount: 50000 });
       expect(prisma.payments.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ store_id: 1, amount: 50000, status: 'READY' }),
@@ -146,7 +147,7 @@ describe('PaymentService', () => {
     test('falls back to order data when store_id or amount missing', async () => {
       prisma.orders.findUnique.mockResolvedValue({ id: 5, store_id: 5, total_amount: 30000 });
       prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
-      prisma.payments.create.mockResolvedValue({ id: 42 });
+      prisma.payments.create.mockResolvedValue({ id: 42, amount: 30000, order_number: null });
 
       const result = await service.preparePayment({ order_id: 5 });
 
@@ -154,7 +155,7 @@ describe('PaymentService', () => {
       expect(prisma.payments.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ store_id: 5, amount: 30000 }) })
       );
-      expect(result).toEqual({ paymentId: 42 });
+      expect(result).toMatchObject({ paymentId: 42, payment_id: 42, amount: 30000 });
     });
 
     test('ignores client store and amount overrides when order_id is present', async () => {
@@ -181,7 +182,7 @@ describe('PaymentService', () => {
 
       const result = await service.preparePayment({ order_id: 5 });
 
-      expect(result).toEqual({ paymentId: 77 });
+      expect(result).toMatchObject({ paymentId: 77, payment_id: 77 });
       expect(prisma.payments.create).not.toHaveBeenCalled();
     });
 
@@ -206,14 +207,16 @@ describe('PaymentService', () => {
     };
 
     test('creates order + payment for cash and marks DONE', async () => {
-      mockTx.products.findUnique.mockResolvedValue({
-        id: 10,
-        store_id: 1,
-        name: '아메리카노',
-        price: 3000,
-        is_sold_out: false,
-        is_active: true,
-      });
+      mockTx.products.findMany.mockResolvedValue([
+        {
+          id: 10,
+          store_id: 1,
+          name: '아메리카노',
+          price: 3000,
+          is_sold_out: false,
+          is_active: true,
+        },
+      ]);
       mockTx.orders.create.mockResolvedValue({
         id: 100,
         order_number: '20260720-0001',
@@ -254,38 +257,44 @@ describe('PaymentService', () => {
     });
 
     test('throws AppError when product is sold out', async () => {
-      mockTx.products.findUnique.mockResolvedValue({
-        id: 10,
-        store_id: 1,
-        name: '아메리카노',
-        price: 3000,
-        is_sold_out: true,
-        is_active: true,
-      });
+      mockTx.products.findMany.mockResolvedValue([
+        {
+          id: 10,
+          store_id: 1,
+          name: '아메리카노',
+          price: 3000,
+          is_sold_out: true,
+          is_active: true,
+        },
+      ]);
       await expect(service.processDirectPayment(baseInput)).rejects.toThrow(AppError);
     });
 
     test('throws AppError when product is inactive', async () => {
-      mockTx.products.findUnique.mockResolvedValue({
-        id: 10,
-        store_id: 1,
-        name: '아메리카노',
-        price: 3000,
-        is_sold_out: false,
-        is_active: false,
-      });
+      mockTx.products.findMany.mockResolvedValue([
+        {
+          id: 10,
+          store_id: 1,
+          name: '아메리카노',
+          price: 3000,
+          is_sold_out: false,
+          is_active: false,
+        },
+      ]);
       await expect(service.processDirectPayment(baseInput)).rejects.toThrow(AppError);
     });
 
     test('rejects forged client prices and totals', async () => {
-      mockTx.products.findUnique.mockResolvedValue({
-        id: 10,
-        store_id: 1,
-        name: '아메리카노',
-        price: 3000,
-        is_sold_out: false,
-        is_active: true,
-      });
+      mockTx.products.findMany.mockResolvedValue([
+        {
+          id: 10,
+          store_id: 1,
+          name: '아메리카노',
+          price: 3000,
+          is_sold_out: false,
+          is_active: true,
+        },
+      ]);
 
       await expect(
         service.processDirectPayment({

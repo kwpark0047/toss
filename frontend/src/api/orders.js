@@ -17,7 +17,12 @@ export const ordersAPI = {
     if (params.length > 0) url += '?' + params.join('&');
     return api.get(url);
   },
-  create: (data) => api.post('/orders', data),
+  create: (data) =>
+    api.post('/orders', data, {
+      headers: {
+        'Idempotency-Key': globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+      },
+    }),
   updateStatus: (id, status, staffId = null) =>
     api.put('/orders/' + id + '/status', { status, staff_id: staffId }),
   cancel: (id) => api.post('/orders/' + id + '/cancel'),
@@ -35,6 +40,10 @@ export const ordersAPI = {
 
 export const paymentsAPI = {
   create: (data) => api.post('/payments', data),
+  prepare: (data, capability) =>
+    api.post('/payments/ready', data, {
+      headers: capability ? { 'x-order-capability': capability } : undefined,
+    }),
   getById: (id) => api.get('/payments/' + id),
   confirm: (id, data, capability) =>
     api.post(
@@ -45,7 +54,15 @@ export const paymentsAPI = {
   cancel: (id, data) => api.post('/payments/' + id + '/cancel', data),
   cancelByOrder: (orderId, data) => api.post('/payments/order/' + orderId + '/cancel', data),
   partialCancel: (orderId, cancelAmount, cancelReason) =>
-    api.post('/payments/order/' + orderId + '/partial-cancel', { cancelAmount, cancelReason }),
+    api.post(
+      '/payments/order/' + orderId + '/partial-cancel',
+      { cancelAmount, cancelReason },
+      {
+        headers: {
+          'Idempotency-Key': globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+        },
+      }
+    ),
   uploadProof: (id, formData) =>
     api.post(`/payments/${id}/proof`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

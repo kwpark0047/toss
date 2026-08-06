@@ -5,6 +5,31 @@ const { authMiddleware } = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const { createAIRateLimiter } = require('../utils/aiRateLimiter');
 
+/**
+ * @swagger
+ * tags:
+ *   name: DemandForecast
+ *   description: AI 수요 예측 및 경쟁사 가격 관리
+ */
+
+/**
+ * @swagger
+ * /api/demand-forecast/store/{storeId}/forecasts:
+ *   get:
+ *     summary: 매장 수요 예측 조회
+ *     tags: [DemandForecast]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 수요 예측 데이터 반환 성공
+ */
 router.get('/store/:storeId/forecasts',
   authMiddleware,
   checkStorePermission('stats:read'),
@@ -12,6 +37,24 @@ router.get('/store/:storeId/forecasts',
   demandForecastController.getDemandForecasts
 );
 
+/**
+ * @swagger
+ * /api/demand-forecast/store/{storeId}/forecasts/generate:
+ *   post:
+ *     summary: AI 기반 수요 예측 생성
+ *     tags: [DemandForecast]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 수요 예측 생성 완료
+ */
 router.post('/store/:storeId/forecasts/generate',
   authMiddleware,
   checkStorePermission('products:write'),

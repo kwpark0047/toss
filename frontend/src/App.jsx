@@ -178,6 +178,7 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/reservations" element={<AdminPage><ValidStoreRoute><AdminSuspense><ReservationManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/bulk-sms" element={<AdminPage><ValidStoreRoute><AdminSuspense><BulkSMSManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/enrichment" element={<AdminPage><ValidStoreRoute><AdminSuspense><StoreEnrichment /></AdminSuspense></ValidStoreRoute></AdminPage>} />
+    <Route path="/admin/enrich-stores" element={<AdminPage><RoleBasedRoute allowedRoles={['super_admin']}><AdminSuspense><StoreEnrichment /></AdminSuspense></RoleBasedRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/inventory" element={<AdminPage><ValidStoreRoute><AdminSuspense><InventoryManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/tables" element={<AdminPage><ValidStoreRoute><AdminSuspense><TableManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/store-settings" element={<AdminPage><ValidStoreRoute><AdminSuspense><StoreSettings /></AdminSuspense></ValidStoreRoute></AdminPage>} />

@@ -2,8 +2,16 @@ const express = require('express');
 const router = express.Router();
 const optionTemplatesController = require('../controllers/optionTemplatesController');
 const authMiddleware = require('../middleware/auth');
-const { checkStorePermission, checkStorePermissionForObject } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
+const prisma = require('../config/prisma');
+const { checkResourcePermission, checkStorePermission } = require('../middleware/storeAuth');
+
+const checkOptionPermission = checkResourcePermission(
+  prisma.option_templates,
+  'id',
+  'store_id',
+  'items:manage'
+);
 
 /**
  * @swagger
@@ -33,7 +41,7 @@ const catchAsync = require('../utils/catchAsync');
 router.get(
   '/store/:storeId',
   authMiddleware,
-  checkStorePermission('items:manage'),
+  checkStorePermission('order:read'),
   catchAsync(optionTemplatesController.getTemplates)
 );
 
@@ -84,7 +92,7 @@ router.post('/', authMiddleware, catchAsync(optionTemplatesController.createTemp
 router.put(
   '/:id',
   authMiddleware,
-  checkStorePermissionForObject('option_templates'),
+  checkOptionPermission,
   catchAsync(optionTemplatesController.updateTemplate)
 );
 
@@ -109,7 +117,7 @@ router.put(
 router.delete(
   '/:id',
   authMiddleware,
-  checkStorePermissionForObject('option_templates'),
+  checkOptionPermission,
   catchAsync(optionTemplatesController.deleteTemplate)
 );
 

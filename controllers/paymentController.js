@@ -10,6 +10,11 @@ const { AppError } = require('../utils/errorHandler');
 const logger = require('../utils/logger');
 const { getStoreRole } = require('../middleware/storeAuth');
 
+const maskPaymentKey = (paymentKey) => {
+  if (typeof paymentKey !== 'string' || paymentKey.length <= 8) return '****';
+  return `****${paymentKey.slice(-8)}`;
+};
+
 const assertStoreAccess = async (user, storeId, permission = 'orders:manage') => {
   if (user.role === 'super_admin') return;
   const role = await getStoreRole(user.id, storeId);
@@ -116,7 +121,8 @@ const paymentController = {
     const result = await paymentService.processPartialCancel(
       req.params.orderId,
       cancelAmount,
-      cancelReason
+      cancelReason,
+      req.get('Idempotency-Key') || req.get('X-Idempotency-Key')
     );
     res.json({
       success: true,
@@ -176,16 +182,47 @@ const paymentController = {
     const auth = req.headers['authorization'] || '';
     const expectedRaw = (process.env.TOSS_SECRET_KEY || '') + ':';
     const expected = 'Basic ' + Buffer.from(expectedRaw).toString('base64');
-    const authBuf = Buffer.alloc(expected.length);
     const expectedBuf = Buffer.from(expected);
-    authBuf.write(auth);
-    if (!crypto.timingSafeEqual(authBuf, expectedBuf)) {
+    const authBuf = Buffer.from(auth);
+    if (authBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(authBuf, expectedBuf)) {
       logger.warn('[Webhook/Toss] 서명 검증 실패 - 요청 무시');
       return res.status(401).end();
     }
 
+    const eventData = req.body?.data;
+    const paymentKey = eventData?.paymentKey;
+    if (!paymentKey) {
+      logger.warn('[Webhook/Toss] paymentKey 누락 - 요청 무시');
+      return res.status(400).end();
+    }
+
+    // [보안] 웹훅 본문을 신뢰하지 않는다 — 토스 결제 조회 API로 실제 결제 상태를 재검증한다.
+    // (웹훅 위변조 시 orderId/금액이 조작돼도, 조회 결과와 대조하여 차단)
+    let verifiedPayment;
+    try {
+      verifiedPayment = await TossAPI.getPayment(paymentKey);
+    } catch (e) {
+      logger.error('[Webhook/Toss] 결제 조회 실패 - 요청 무시', {
+        error: e.message,
+        paymentKey: maskPaymentKey(paymentKey),
+      });
+      return res.status(400).end();
+    }
+    const amountOk = Number(verifiedPayment?.totalAmount) === Number(eventData?.totalAmount);
+    const orderOk = verifiedPayment?.orderId === eventData?.orderId;
+    const statusOk = verifiedPayment?.status === 'DONE';
+    if (!amountOk || !orderOk || !statusOk) {
+      logger.warn('[Webhook/Toss] 결제 재검증 실패 - 요청 무시', {
+        orderId: eventData?.orderId,
+        amountMismatch: !amountOk,
+        orderMismatch: !orderOk,
+        statusMismatch: !statusOk,
+      });
+      return res.status(400).end();
+    }
+
     logger.info(`[Webhook/Toss] 이벤트 수신: ${req.body?.eventType}`, {
-      orderId: req.body?.data?.orderId,
+      orderId: eventData?.orderId,
     });
     const io = req.app.get('io');
     const paymentService = new PaymentService(io);

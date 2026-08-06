@@ -28,24 +28,20 @@ describe('LoyaltyService', () => {
       const mockTx = {
         store_customers: {
           findFirst: jest.fn().mockResolvedValue(null),
-          create: jest
-            .fn()
-            .mockResolvedValue({
-              id: 1,
-              store_id: 1,
-              phone: '01012345678',
-              stamp_count: 0,
-              tier: 'BRONZE',
-            }),
-          update: jest
-            .fn()
-            .mockResolvedValue({
-              id: 1,
-              store_id: 1,
-              phone: '01012345678',
-              stamp_count: 1,
-              tier: 'BRONZE',
-            }),
+          create: jest.fn().mockResolvedValue({
+            id: 1,
+            store_id: 1,
+            phone: '01012345678',
+            stamp_count: 0,
+            tier: 'BRONZE',
+          }),
+          update: jest.fn().mockResolvedValue({
+            id: 1,
+            store_id: 1,
+            phone: '01012345678',
+            stamp_count: 1,
+            tier: 'BRONZE',
+          }),
         },
       };
       prisma.$transaction.mockImplementation((cb) => cb(mockTx));
@@ -59,26 +55,22 @@ describe('LoyaltyService', () => {
     test('스탬프 10개 이상 적립 시 SILVER 등급으로 승급한다', async () => {
       const mockTx = {
         store_customers: {
-          findFirst: jest
-            .fn()
-            .mockResolvedValue({
-              id: 1,
-              store_id: 1,
-              phone: '01012345678',
-              stamp_count: 9,
-              tier: 'BRONZE',
-              visit_count: 4,
-            }),
-          update: jest
-            .fn()
-            .mockResolvedValue({
-              id: 1,
-              store_id: 1,
-              phone: '01012345678',
-              stamp_count: 10,
-              tier: 'SILVER',
-              visit_count: 5,
-            }),
+          findFirst: jest.fn().mockResolvedValue({
+            id: 1,
+            store_id: 1,
+            phone: '01012345678',
+            stamp_count: 9,
+            tier: 'BRONZE',
+            visit_count: 4,
+          }),
+          update: jest.fn().mockResolvedValue({
+            id: 1,
+            store_id: 1,
+            phone: '01012345678',
+            stamp_count: 10,
+            tier: 'SILVER',
+            visit_count: 5,
+          }),
         },
       };
       prisma.$transaction.mockImplementation((cb) => cb(mockTx));

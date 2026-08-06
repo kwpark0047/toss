@@ -30,8 +30,16 @@ const orderController = {
   getStoreOrders: catchAsync(async (req, res) => {
     const { storeId } = req.params;
     const { status, date } = req.query;
-    const orders = await Order.findByStoreId(storeId, status, date);
-    res.success(orders);
+    const hasPagination = req.query.page !== undefined || req.query.limit !== undefined;
+    const result = await Order.findByStoreId(storeId, status, date, {
+      page: req.query.page,
+      limit: req.query.limit,
+      paginated: hasPagination,
+    });
+    if (hasPagination) {
+      return res.paginated(result.items, result, '주문 목록을 조회했습니다.');
+    }
+    res.success(result);
   }),
 
   // 주문 단일 상세 조회

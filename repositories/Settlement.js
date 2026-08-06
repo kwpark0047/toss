@@ -38,6 +38,23 @@ const Settlement = {
     const end = new Date(period_end);
     end.setHours(23, 59, 59, 999);
 
+    // 동일/중복 기간 정산이 이미 존재하는지 검사
+    const existing = await prisma.settlements.findFirst({
+      where: {
+        store_id: parseInt(store_id),
+        period_start: { lte: end },
+        period_end: { gte: start },
+      },
+    });
+
+    if (existing) {
+      const samePeriod =
+        existing.period_start.getTime() === start.getTime() &&
+        existing.period_end.getTime() === end.getTime();
+      if (samePeriod) return existing; // 동일 기간 재요청 → 기존 정산 반환 (멱등성)
+      throw new Error('이미 처리된 기간과 정산 기간이 겹칩니다.');
+    }
+
     // 매장 설정에서 수수료율·부가세율 읽기
     const store = await prisma.stores.findUnique({
       where: { id: parseInt(store_id) },
@@ -47,15 +64,14 @@ const Settlement = {
     const vatRate = store?.vat_rate ?? 0.1;
 
     // 장부 데이터 집계 (결제수단별 분리)
-    const stats =
-      (await prisma.ledger.groupBy({
-        by: ['type', 'method'],
-        where: {
-          store_id: parseInt(store_id),
-          created_at: { gte: start, lte: end },
-        },
-        _sum: { amount: true },
-      })) ?? [];
+    const stats = await prisma.ledger.groupBy({
+      by: ['type', 'method'],
+      where: {
+        store_id: parseInt(store_id),
+        created_at: { gte: start, lte: end },
+      },
+      _sum: { amount: true },
+    });
 
     let totalSales = 0;
     let totalRefunds = 0;

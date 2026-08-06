@@ -56,6 +56,7 @@ jest.mock('../../middleware/auth', () => {
 jest.mock('../../middleware/storeAuth', () => ({
   checkStorePermission: () => (req, res, next) => next(),
   checkStorePermissionForObject: () => mockObjectPermission,
+  checkResourcePermission: () => (req, res, next) => next(),
 }));
 
 const {
@@ -96,9 +97,7 @@ describe('customer capability route boundaries', () => {
   });
 
   test.each(['staff', 'super_admin'])('keeps authenticated %s order access', async (role) => {
-    const response = await request(app())
-      .get('/api/orders/10')
-      .set('x-test-role', role);
+    const response = await request(app()).get('/api/orders/10').set('x-test-role', role);
 
     expect(response.status).toBe(200);
     expect(mockObjectPermission).toHaveBeenCalled();

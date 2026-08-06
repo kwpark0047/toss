@@ -81,6 +81,7 @@ jest.mock('../../middleware/storeAuth', () => ({
     next();
   },
   getStoreRole: jest.fn().mockResolvedValue('owner'),
+  checkResourcePermission: () => (req, res, next) => next(),
 }));
 
 // ── 검증 미들웨어 모의 (실제 Joi 검증 수행, 테스트 신뢰성 확보) ──────────────────
@@ -107,13 +108,11 @@ jest.mock('../../middleware/validate', () => {
       const { error, value } = v.schema.validate(v.data, { abortEarly: false, stripUnknown: true });
       if (error) {
         const errorMessage = error.details.map((d) => d.message).join(', ');
-        return res
-          .status(400)
-          .json({
-            error: `Validation Error (${v.type})`,
-            message: errorMessage,
-            details: error.details,
-          });
+        return res.status(400).json({
+          error: `Validation Error (${v.type})`,
+          message: errorMessage,
+          details: error.details,
+        });
       }
       req[v.type] = value;
     }

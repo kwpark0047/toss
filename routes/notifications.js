@@ -3,7 +3,8 @@ const router = express.Router();
 const { AppError } = require('../utils/errorHandler');
 const logger = require('../utils/logger');
 const authMiddleware = require('../middleware/auth');
-const { checkStorePermissionForObject } = require('../middleware/storeAuth');
+const prisma = require('../config/prisma');
+const { checkResourcePermission } = require('../middleware/storeAuth');
 const {
   getNotifications,
   getUnreadCount,
@@ -14,6 +15,13 @@ const {
   createSystemNotification,
   registerToken,
 } = require('../controllers/notificationsController');
+
+const checkNotificationPermission = checkResourcePermission(
+  prisma.notifications,
+  'id',
+  'store_id',
+  'order:read'
+);
 
 /**
  * @swagger
@@ -184,12 +192,7 @@ router.post('/system', authMiddleware, createSystemNotification);
  *       200:
  *         description: 읽음 처리 완료
  */
-router.patch(
-  '/:id/read',
-  authMiddleware,
-  checkStorePermissionForObject('notifications'),
-  markAsRead
-);
+router.patch('/:id/read', authMiddleware, checkNotificationPermission, markAsRead);
 
 /**
  * @swagger
@@ -209,11 +212,6 @@ router.patch(
  *       200:
  *         description: 삭제 완료
  */
-router.delete(
-  '/:id',
-  authMiddleware,
-  checkStorePermissionForObject('notifications'),
-  deleteNotification
-);
+router.delete('/:id', authMiddleware, checkNotificationPermission, deleteNotification);
 
 module.exports = router;

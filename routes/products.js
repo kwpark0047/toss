@@ -1,10 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
-const { checkStorePermissionForObject } = require('../middleware/storeAuth');
 const validate = require('../middleware/validate');
 const { product: schema } = require('../utils/validationSchemas');
 const productsController = require('../controllers/productsController');
+const prisma = require('../config/prisma');
+const { checkResourcePermission } = require('../middleware/storeAuth');
+
+const checkProductPermission = checkResourcePermission(
+  prisma.products,
+  'id',
+  'store_id',
+  'items:manage'
+);
 
 /**
  * @swagger
@@ -85,12 +93,7 @@ router.post('/', authMiddleware, validate(schema.create), productsController.cre
  *       200:
  *         description: 수정 완료
  */
-router.put(
-  '/:id',
-  authMiddleware,
-  checkStorePermissionForObject('products'),
-  productsController.updateProduct
-);
+router.put('/:id', authMiddleware, checkProductPermission, productsController.updateProduct);
 
 /**
  * @swagger
@@ -109,12 +112,7 @@ router.put(
  *       200:
  *         description: 삭제 완료
  */
-router.delete(
-  '/:id',
-  authMiddleware,
-  checkStorePermissionForObject('products'),
-  productsController.deleteProduct
-);
+router.delete('/:id', authMiddleware, checkProductPermission, productsController.deleteProduct);
 
 /**
  * @swagger

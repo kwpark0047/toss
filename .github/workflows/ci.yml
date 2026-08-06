@@ -126,6 +126,34 @@ jobs:
       - name: Run integration tests
         run: npx jest --config jest.config.js tests/integration/ --no-cache --forceExit
 
+  backend-regression-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 회귀 테스트는 Prisma를 mock 처리하므로 Postgres 의존성 없이 샌드박스 단위 테스트처럼 실행된다.
+    # (integration job과 순서를 맞추어 DB 마이그레이션 검증과 병렬 가능하도록 needs 없이 독립 실행)
+    env:
+      NODE_ENV: test
+      SMS_ENV: dev
+      JWT_SECRET: test-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
+      DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run regression tests
+        run: npx jest --config jest.config.js tests/regression/ --no-cache --forceExit
+
   print-agent-test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -149,7 +177,14 @@ jobs:
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [lint-and-test, backend-unit-tests]
+    needs:
+      [
+        lint-and-test,
+        backend-unit-tests,
+        backend-integration-tests,
+        backend-regression-tests,
+        frontend-test,
+      ]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -209,12 +244,53 @@ jobs:
         run: npm ci
       - name: Run frontend tests
         run: npm run test:coverage
+      - name: Type check
+        run: npm run typecheck
+        env:
+          VITE_API_URL: http://localhost:3000/api
+
+  # 프론트엔드 린트 — 비차단 검토용(advisory) 잡
+  # [배경] 프론트엔드에 pre-existing React 19 strict-mode 규칙 위반(react-hooks/set-state-in-effect)과
+  # unused-vars debt가 100여 건 존재. 이를 하나의 CI 게이트로 끊는 데에는 대규모 리팩터링이 필요해
+  # 차단 없이 보고(advisory) 형태로 운영: 린트 리포트를 아티팩트로 수집·팀가시성 확보.
+  # 목표: 향후 `allow-lint-errors` 임계값(0) 채택 시 차단하도록 전환 가능.
+  frontend-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run ESLint (advisory)
+        run: |
+          npm run lint > eslint-report.txt 2>&1 || true
+          echo "::warning::Frontend ESLint has pre-existing debt. See eslint-report.txt artifact."
+      - name: Upload ESLint report
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-eslint-report
+          path: frontend/eslint-report.txt
 
   # Docker build and security scan
   docker-build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [lint-and-test, backend-unit-tests, frontend-test]
+    needs:
+      [
+        lint-and-test,
+        backend-unit-tests,
+        backend-integration-tests,
+        backend-regression-tests,
+        frontend-test,
+      ]
     steps:
       - uses: actions/checkout@v4
 

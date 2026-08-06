@@ -3,8 +3,8 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const { validateBody, validateId } = require('../middleware/validator');
-const { requireWalletCapability } = require('../middleware/orderCapability');
 const pointsController = require('../controllers/pointsController');
+const { verifyOrderCapability } = require('../utils/orderCapability');
 
 /**
  * @swagger
@@ -51,7 +51,22 @@ router.get('/history', authMiddleware, pointsController.getHistory);
  *       200:
  *         description: 월렛 정보 조회
  */
-router.get('/wallet-lookup', requireWalletCapability, pointsController.walletLookup);
+router.get(
+  '/wallet-lookup',
+  (req, res, next) => {
+    const capability = verifyOrderCapability(req.get('x-order-capability'));
+    if (!capability) {
+      return res.status(403).json({ error: '주문 결제 권한이 없거나 만료되었습니다.' });
+    }
+    const queryStoreId = parseInt(req.query.store_id);
+    if (!queryStoreId || capability.storeId !== queryStoreId) {
+      return res.status(403).json({ error: '주문 결제 권한이 없거나 만료되었습니다.' });
+    }
+    req.orderCapability = capability;
+    next();
+  },
+  pointsController.walletLookup
+);
 
 /**
  * @swagger

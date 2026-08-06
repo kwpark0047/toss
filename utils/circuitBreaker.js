@@ -20,6 +20,19 @@ class CircuitBreaker {
     this.failureCount = 0;
     this.successCount = 0;
     this.nextAttempt = Date.now();
+    this.lastFailureAt = null;
+  }
+
+  // health.js / /api/health/circuits가 사용하는 통계 스냅샷
+  get stats() {
+    return {
+      name: this.name || this.options?.name || 'unknown',
+      state: this.state,
+      failureCount: this.failureCount,
+      successCount: this.successCount,
+      lastFailureAt: this.lastFailureAt,
+      nextAttemptAt: this.nextAttempt,
+    };
   }
 
   async call(fnOrArgs, ...extraArgs) {
@@ -30,7 +43,7 @@ class CircuitBreaker {
       if (Date.now() > this.nextAttempt) {
         this.state = 'HALF-OPEN';
         if (logger.warn)
-          logger.warn({ state: this.state }, 'Circuit breaker entering HALF-OPEN state');
+          logger.warn('Circuit breaker entering HALF-OPEN state', { state: this.state });
       } else {
         if (this.options.timeoutMs && fnOrArgs === 'timeout') {
           throw new Error(`요청 타임아웃 (${this.options.timeoutMs}ms)`);
@@ -89,20 +102,20 @@ class CircuitBreaker {
 
   onFailure(err, ...args) {
     this.failureCount++;
+    this.lastFailureAt = new Date().toISOString();
     if (logger.error)
-      logger.error(
-        { error: err.message, failureCount: this.failureCount },
-        'External API call failed'
-      );
+      logger.error('External API call failed', {
+        error: err.message,
+        failureCount: this.failureCount,
+      });
 
     if (this.state === 'HALF-OPEN' || this.failureCount >= this.failureThreshold) {
       this.state = 'OPEN';
       this.nextAttempt = Date.now() + this.timeout;
       if (logger.error)
-        logger.error(
-          { nextAttempt: new Date(this.nextAttempt).toISOString() },
-          'Circuit breaker tripped to OPEN'
-        );
+        logger.error('Circuit breaker tripped to OPEN', {
+          nextAttempt: new Date(this.nextAttempt).toISOString(),
+        });
     }
 
     if (this.fallback) {
@@ -112,4 +125,15 @@ class CircuitBreaker {
   }
 }
 
-module.exports = { CircuitBreaker };
+// 싱글턴 인스턴스 레지스트리 — 이름 기반으로 동일 인스턴스를 재사용한다
+// (toss.js: cb.get('toss-api', {...}) / health.js: cb.get('toss-api'), cb.allStats())
+const registry = new Map();
+
+const get = (name, options) => {
+  if (!registry.has(name)) registry.set(name, new CircuitBreaker(name, options));
+  return registry.get(name);
+};
+
+const allStats = () => [...registry.values()].map((cb) => cb.stats);
+
+module.exports = { get, allStats, CircuitBreaker };

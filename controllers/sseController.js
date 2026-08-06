@@ -34,10 +34,17 @@ exports.subscribeToOrder = (req, res) => {
 
 exports.notifyOrderStatusChange = (orderId, newStatus) => {
   const orderClients = clients.get(String(orderId));
-  if (orderClients) {
-    orderClients.forEach((client) => {
+  if (!orderClients) return;
+
+  // 한 클라이언트의 write 실패(이미 연결 종료된 응답)가 다른 클라이언트의
+  // 알림을 함께 중단시키지 않도록 개별 try/catch로 격리한다.
+  orderClients.forEach((client) => {
+    try {
+      if (client.writableEnded || client.destroyed) return;
       client.write(`data: ${JSON.stringify({ status: newStatus })}\n\n`);
-    });
-    logger.info(`[SSE] Notified clients for order ${orderId} of status change to ${newStatus}`);
-  }
+    } catch (writeErr) {
+      logger.warn(`[SSE] 클라이언트 쓰기 실패 (order ${orderId}): ${writeErr.message}`);
+    }
+  });
+  logger.info(`[SSE] Notified clients for order ${orderId} of status change to ${newStatus}`);
 };

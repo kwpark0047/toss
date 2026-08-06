@@ -66,6 +66,15 @@ services:
       # ── 프론트엔드 연동 ──
       - key: FRONTEND_URL
         sync: false
+      # ── 파일 저장소 (운영 디스크는 재배포 시 초기화됨) ──
+      - key: STORAGE_DRIVER
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: uploads
       # ── SMS ──
       - key: SMS_API_KEY
         sync: false

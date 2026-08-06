@@ -41,7 +41,10 @@ module.exports = [
     rules: {
       ...js.configs.recommended.rules,
 
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
       'no-console': 'off',
       'no-constant-condition': ['error', { checkLoops: false }],
       'no-empty': ['error', { allowEmptyCatch: true }],
@@ -52,8 +55,8 @@ module.exports = [
 
       'prefer-const': 'error',
       'no-var': 'error',
-      'eqeqeq': ['error', 'always', { null: 'ignore' }],
-      'curly': ['error', 'multi-line'],
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
+      curly: ['error', 'multi-line'],
       'no-throw-literal': 'error',
       'prefer-promise-reject-errors': 'off',
 
@@ -69,7 +72,13 @@ module.exports = [
   },
   {
     // 유닛/통합 테스트 (Jest, Node 환경). node:crypto를 require로 사용.
-    files: ['**/*.test.js', 'tests/unit/**/*.js', 'tests/integration/**/*.js', 'tests/scripts/**/*.js', 'jest.setup.js'],
+    files: [
+      '**/*.test.js',
+      'tests/unit/**/*.js',
+      'tests/integration/**/*.js',
+      'tests/scripts/**/*.js',
+      'jest.setup.js',
+    ],
     languageOptions: {
       globals: {
         ...globals.jest,

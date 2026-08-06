@@ -44,11 +44,16 @@ const Order = {
             throw new Error('주문 상품이 없습니다.');
           }
 
+          // 상품 유효성 검사: N+1 방지를 위해 모든 상품을 한 번에 조회 후 매핑
+          const productIds = items.map((it) => parseInt(it.product_id));
+          const fetchedProducts = await tx.products.findMany({
+            where: { id: { in: productIds } },
+          });
+          const productById = new Map(fetchedProducts.map((p) => [String(p.id), p]));
+
           const validatedItems = [];
           for (const item of items) {
-            const product = await tx.products.findUnique({
-              where: { id: item.product_id },
-            });
+            const product = productById.get(String(item.product_id));
 
             const pricedItem = priceOrderItem(product, item, store_id);
             calculatedTotal += pricedItem.subtotal;
@@ -90,6 +95,27 @@ const Order = {
               order_items: true,
             },
           });
+
+          if (data.user_coupon_id) {
+            const couponUsed = await tx.user_coupons.updateMany({
+              where: {
+                id: parseInt(data.user_coupon_id),
+                status: 'UNUSED',
+                expires_at: { gte: new Date() },
+              },
+              data: { status: 'USED', used_at: new Date() },
+            });
+            if (couponUsed.count !== 1) {
+              throw new Error('쿠폰이 이미 사용되었거나 만료되었습니다.');
+            }
+          }
+
+          if (order.table_id) {
+            await tx.tables.update({
+              where: { id: order.table_id },
+              data: { status: 'occupied', updated_at: new Date() },
+            });
+          }
 
           return order;
         },
@@ -136,10 +162,12 @@ const Order = {
   },
 
   // [매장별 주문 목록 조회]
-  findByStoreId: async (storeId, status = null, date = null) => {
+  findByStoreId: async (storeId, status = null, date = null, options = {}) => {
     try {
       const numericStoreId = parseInt(storeId);
-      if (isNaN(numericStoreId)) return [];
+      if (isNaN(numericStoreId)) {
+        return options.paginated ? { items: [], total: 0, page: 1, limit: 20 } : [];
+      }
 
       const where = { store_id: numericStoreId };
 
@@ -157,9 +185,15 @@ const Order = {
         where.created_at = { gte: startOfDay, lte: endOfDay };
       }
 
+      const page = Math.max(1, parseInt(options.page) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(options.limit) || 20));
+      const pagination = options.paginated === true;
+      const queryOptions = pagination ? { skip: (page - 1) * limit, take: limit } : {};
       let orders;
+      let total = null;
       try {
-        orders = await prisma.orders.findMany({
+        const query = prisma.orders.findMany({
+          ...queryOptions,
           where,
           include: {
             order_items: true,
@@ -173,12 +207,18 @@ const Order = {
           },
           orderBy: { created_at: 'desc' },
         });
+        if (pagination) {
+          [orders, total] = await Promise.all([query, prisma.orders.count({ where })]);
+        } else {
+          orders = await query;
+        }
       } catch (innerErr) {
         console.warn(
           `[Prisma Warning] findByStoreId with include:payments failed, retrying without payments...`,
           innerErr
         );
-        orders = await prisma.orders.findMany({
+        const fallbackQuery = prisma.orders.findMany({
+          ...queryOptions,
           where,
           include: {
             order_items: true,
@@ -188,17 +228,23 @@ const Order = {
           },
           orderBy: { created_at: 'desc' },
         });
+        if (pagination) {
+          [orders, total] = await Promise.all([fallbackQuery, prisma.orders.count({ where })]);
+        } else {
+          orders = await fallbackQuery;
+        }
       }
 
-      return orders.map((order) => ({
+      const items = orders.map((order) => ({
         ...order,
         items: order.order_items || [],
         table_name: order.tables?.table_number || null,
         latest_payment: order.payments && order.payments.length > 0 ? order.payments[0] : null,
       }));
+      return pagination ? { items, total, page, limit } : items;
     } catch (error) {
       console.error(`[Prisma Error] findByStoreId failed for Store: ${storeId}`, error);
-      return [];
+      return options.paginated ? { items: [], total: 0, page: 1, limit: 20 } : [];
     }
   },
 

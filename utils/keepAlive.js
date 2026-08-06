@@ -1,5 +1,6 @@
 const axios = require('axios');
 const logger = require('./logger');
+const { BACKEND_URL } = require('../config/domain');
 
 /**
  * Render Free Tier 서버 슬립 방지용 자가 핑 데몬
@@ -10,7 +11,7 @@ const startKeepAlive = (selfUrl) => {
         return;
     }
 
-    const url = selfUrl || process.env.SELF_URL || 'https://wemarket.onrender.com';
+    const url = selfUrl || process.env.SELF_URL || BACKEND_URL;
     const intervalMs = 10 * 60 * 1000; // 10분 간격
 
     logger.info(`[Keep-Alive] Render Free Tier 슬립 방지 자가 핑 데몬이 성공적으로 가동되었습니다. 대상: ${url}`);

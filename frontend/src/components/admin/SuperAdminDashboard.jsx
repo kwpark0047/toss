@@ -3,13 +3,20 @@ import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import {
   Store, Users, Coins, ShoppingBag, Clock, Search, ChevronLeft, ChevronRight,
-  Settings, Gift, MapPinned, Loader2, Building2, Link2, Check, X,
+  Settings, Gift, MapPinned, Loader2, Building2, Link2, Check, X, Sparkles,
 } from 'lucide-react';
 import { adminAPI } from '../../api/admin';
 import { bizLabel } from '../../utils/businessType';
 import { useSEO } from '../../lib/useSEO';
 import MiniBarChart from './MiniBarChart';
 import StoreDetailModal from './StoreDetailModal';
+import StoreEnrichmentModal from './StoreEnrichmentModal';
+
+const INFO_BADGE = {
+  good: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  partial: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  poor: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+};
 
 const won = (n) => `₩${Number(n || 0).toLocaleString('ko-KR')}`;
 const num = (n) => Number(n || 0).toLocaleString('ko-KR');
@@ -35,6 +42,8 @@ export default function SuperAdminDashboard() {
   const [trend, setTrend] = useState([]);
   const [trendMetric, setTrendMetric] = useState('orders'); // orders | sales | newStores
   const [detailId, setDetailId] = useState(null);
+  const [enhanceId, setEnhanceId] = useState(null);
+  const [coverage, setCoverage] = useState(null);
   const [linkReqs, setLinkReqs] = useState([]);
   const [linkBusy, setLinkBusy] = useState(null);
 
@@ -42,11 +51,16 @@ export default function SuperAdminDashboard() {
     adminAPI.linkRequests('pending').then(r => setLinkReqs((r?.data || r)?.requests || [])).catch(() => {});
   }, []);
 
+  const loadCoverage = useCallback(() => {
+    adminAPI.enrichmentCoverage().then(r => setCoverage(r?.data || r)).catch(() => setCoverage(null));
+  }, []);
+
   useEffect(() => {
     adminAPI.platformOverview().then(r => setOverview(r?.data || r)).catch(() => {});
     adminAPI.platformTrend(14).then(r => setTrend((r?.data || r)?.daily || [])).catch(() => {});
     loadLinkReqs();
-  }, [loadLinkReqs]);
+    loadCoverage();
+  }, [loadLinkReqs, loadCoverage]);
 
   const decideLink = async (id, approve) => {
     setLinkBusy(id);
@@ -126,6 +140,34 @@ export default function SuperAdminDashboard() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-8">
           {[...Array(6)].map((_, i) => <div key={i} className="skeleton-dark h-28 rounded-2xl" />)}
+        </div>
+      )}
+
+      {/* 매장 정보 커버리지 위젯 */}
+      {coverage && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <h2 className="text-sm font-black flex items-center gap-2">
+              <MapPinned size={15} className="text-orange-400" aria-hidden="true" /> 매장 정보 보강 현황
+              <span className="text-[11px] bg-white/10 text-slate-300 px-2 py-0.5 rounded-full">평균 완성도 {coverage.overallScore ?? 0}%</span>
+            </h2>
+            <button type="button" onClick={() => navigate('/admin/enrich-stores')}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-orange-500/15 border border-orange-500/30 text-[11px] font-black text-orange-300 hover:bg-orange-500/25 transition-colors">
+              <Sparkles size={13} aria-hidden="true" /> 일괄 보강 도구
+            </button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-2">
+            {Object.entries(coverage.coverage || {}).map(([key, f]) => {
+              const ratio = coverage.totalStores ? f.missing / coverage.totalStores : 0;
+              const hot = ratio >= 0.5;
+              return (
+                <div key={key} className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
+                  <p className="text-[10px] text-slate-500 font-bold truncate">{f.label}</p>
+                  <p className={`text-sm font-black tabular-nums ${hot ? 'text-rose-300' : 'text-slate-200'}`}>{num(f.missing)}<span className="text-[10px] text-slate-500 font-bold ml-0.5">누락</span></p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -228,6 +270,9 @@ export default function SuperAdminDashboard() {
               <div className="flex items-center gap-2">
                 <span className="font-black text-sm truncate">{s.name}</span>
                 {!s.is_active && <span className="shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded bg-white/10 text-slate-400">비활성</span>}
+                {typeof s.infoScore === 'number' && (
+                  <span className={`shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-full border ${INFO_BADGE[s.infoLevel] || INFO_BADGE.poor}`}>정보 {s.infoScore}%</span>
+                )}
               </div>
               <p className="text-[11px] text-slate-500 truncate">{s.address || '주소 없음'}</p>
             </div>
@@ -236,6 +281,10 @@ export default function SuperAdminDashboard() {
             <div className="hidden md:block col-span-2 text-right text-sm font-bold tabular-nums text-orange-300">{won(s.sales)}</div>
             <div className="hidden md:block col-span-1 text-right text-sm font-bold tabular-nums">{num(s.customers)}</div>
             <div className="col-span-2 flex items-center justify-end gap-1.5">
+              <button type="button" onClick={() => setEnhanceId(s.id)} aria-label={`${s.name} AI 보강`}
+                className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg bg-violet-500/15 border border-violet-500/30 text-[11px] font-black text-violet-300 hover:bg-violet-500/25 transition-colors">
+                <Sparkles size={13} aria-hidden="true" /> 보강
+              </button>
               <button type="button" onClick={() => setDetailId(s.id)} aria-label={`${s.name} 상세`}
                 className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg bg-orange-500/15 border border-orange-500/30 text-[11px] font-black text-orange-300 hover:bg-orange-500/25 transition-colors">
                 <Settings size={13} aria-hidden="true" /> 상세
@@ -267,6 +316,16 @@ export default function SuperAdminDashboard() {
       {/* 매장 상세 드릴인 */}
       {detailId && (
         <StoreDetailModal storeId={detailId} onClose={() => setDetailId(null)} onChanged={fetchStores} />
+      )}
+
+      {/* 매장 정보 AI 보강 */}
+      {enhanceId && (
+        <StoreEnrichmentModal
+          storeId={enhanceId}
+          storeName={rows.find(r => r.id === enhanceId)?.name}
+          onClose={() => { setEnhanceId(null); loadCoverage(); fetchStores(); }}
+          onChanged={() => { fetchStores(); loadCoverage(); }}
+        />
       )}
     </div>
   );

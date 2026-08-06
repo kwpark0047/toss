@@ -24,6 +24,7 @@ enum OrderStatus {
 enum OrderPaymentStatus {
   pending
   paid
+  partial
   failed
   refunded
   @@schema("public")
@@ -77,6 +78,7 @@ model ledger {
   amount      Int
   method      String?
   description String?
+  event_key   String?   @unique(map: "uq_ledger_event_key")
   created_at  DateTime? @default(now())
   payments    payments? @relation(fields: [payment_id], references: [id], onUpdate: NoAction)
   orders      orders?   @relation(fields: [order_id], references: [id], onUpdate: NoAction)

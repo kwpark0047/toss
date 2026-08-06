@@ -115,42 +115,47 @@ const Table = {
   },
 
   updateLayout: async (storeId, layoutArray) => {
-    const storeIdNum = parseInt(storeId);
-    const tableIds = layoutArray.map((item) => parseInt(item.id));
-    const existingTables = await prisma.tables.findMany({
-      where: { id: { in: tableIds } },
-      select: { id: true, store_id: true },
-    });
-    const mismatched = existingTables.find((t) => t.store_id !== storeIdNum);
-    if (mismatched) {
-      const err = new Error('모든 테이블은 요청한 매장에 속해야 합니다.');
-      err.statusCode = 400;
-      throw err;
-    }
-    const queries = layoutArray.map((item) => {
-      return prisma.tables.update({
-        where: { id: parseInt(item.id) },
-        data: {
-          x: parseInt(item.x),
-          y: parseInt(item.y),
-          updated_at: new Date(),
-        },
+    const sid = parseInt(storeId);
+    const requestedIds = layoutArray.map((item) => parseInt(item.id));
+
+    return await prisma.$transaction(async (tx) => {
+      // 요청한 모든 테이블이 해당 매장 소유인지 먼저 검증
+      const owned = await tx.tables.findMany({
+        where: { id: { in: requestedIds }, store_id: sid },
+        select: { id: true },
       });
-    });
-    await prisma.$transaction(queries);
-    return await prisma.tables.findMany({
-      where: { store_id: storeIdNum, is_active: true },
+      if (owned.length !== requestedIds.length) {
+        const err = new Error('요청한 테이블이 매장에 속하지 않습니다.');
+        err.statusCode = 400;
+        err.code = 'INVALID_TABLE_STORE';
+        throw err;
+      }
+
+      // 각 테이블 좌표 갱신
+      for (const item of layoutArray) {
+        await tx.tables.update({
+          where: { id: parseInt(item.id) },
+          data: {
+            x: parseInt(item.x),
+            y: parseInt(item.y),
+            updated_at: new Date(),
+          },
+        });
+      }
+
+      return await tx.tables.findMany({
+        where: { store_id: sid, is_active: true },
+      });
     });
   },
 
-  // [매장 활성 테이블 점유 처리 - 트랜잭션용]
-  occupyActiveForStore: async (tableId, storeId, tx) => {
-    const db = tx || prisma;
-    await db.tables.updateMany({
+  // [매장 소유 활성 테이블만 조건부 점유] (트랜잭션/점유 경쟁 안전)
+  occupyActiveForStore: async (tableId, storeId, tx = prisma) => {
+    const result = await tx.tables.updateMany({
       where: { id: parseInt(tableId), store_id: parseInt(storeId), is_active: true },
       data: { status: 'occupied', updated_at: new Date() },
     });
-    return true;
+    return result.count > 0;
   },
 };
 

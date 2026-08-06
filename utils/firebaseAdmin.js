@@ -46,15 +46,20 @@ function loadServiceAccount() {
 /**
  * Firebase Admin 앱을 (필요 시) 초기화하고 Messaging 인스턴스를 반환한다.
  * 자격 증명이 없거나 SDK 로드에 실패하면 null 을 반환한다(앱 기동은 계속).
+ *
+ * @param {{ firebaseApp?: object, firebaseMessaging?: object }} [deps]
+ *   테스트용 의존성 주입. 생략하면 실제 firebase-admin 모듈을 사용한다.
  * @returns {import('firebase-admin/messaging').Messaging|null}
  */
-function getMessagingClient() {
+function getMessagingClient(deps = {}) {
   if (_initialized) return _messaging;
   _initialized = true;
 
   try {
-    const { getApps, initializeApp, cert } = require('firebase-admin/app');
-    const { getMessaging } = require('firebase-admin/messaging');
+    const firebaseApp = deps.firebaseApp || require('firebase-admin/app');
+    const firebaseMessaging = deps.firebaseMessaging || require('firebase-admin/messaging');
+    const { getApps, initializeApp, cert } = firebaseApp;
+    const { getMessaging } = firebaseMessaging;
 
     if (getApps().length === 0) {
       const serviceAccount = loadServiceAccount();
@@ -75,10 +80,14 @@ function getMessagingClient() {
   }
 }
 
-/** 초기화된 Firebase 앱을 모두 정리 (테스트 teardown 용) */
-async function shutdownFirebase() {
+/**
+ * 초기화된 Firebase 앱을 모두 정리 (테스트 teardown 용)
+ * @param {{ firebaseApp?: object }} [deps] 테스트용 의존성 주입
+ */
+async function shutdownFirebase(deps = {}) {
   try {
-    const { getApps, deleteApp } = require('firebase-admin/app');
+    const firebaseApp = deps.firebaseApp || require('firebase-admin/app');
+    const { getApps, deleteApp } = firebaseApp;
     await Promise.all(getApps().map((app) => deleteApp(app)));
   } catch {
     // SDK 미설치/미초기화 — 무시

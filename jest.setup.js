@@ -1,7 +1,22 @@
-﻿// Node 22+ built-in globals — only polyfill if missing
+// Node 22+ built-in globals — only polyfill if missing
 if (typeof ReadableStream === 'undefined') {
   const { ReadableStream: RS } = require('stream/web');
   global.ReadableStream = RS;
+}
+
+// 테스트 환경에서 Toss 웹훅 서명 검증 회귀 테스트가 유효 서명을 만들 수 있도록
+// 시크릿을 고정한다. (실제 값은 프로덕션 .env에만 존재)
+if (process.env.NODE_ENV === 'test' && !process.env.TOSS_SECRET_KEY) {
+  process.env.TOSS_SECRET_KEY = 'test_sk_123';
+}
+
+// 주문/예약 capability JWT 테스트가 dotenv 로딩 순서(프로세스 오염)에 의존하지 않도록
+// 테스트 전용 시크릿을 고정한다. (실제 값은 프로덕션 .env에만 존재)
+if (process.env.NODE_ENV === 'test' && !process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = 'test_jwt_secret';
+}
+if (process.env.NODE_ENV === 'test' && !process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = 'postgresql://dummy:dummy@localhost:5432/dummy';
 }
 if (typeof Blob === 'undefined') {
   const { Blob: B } = require('buffer');

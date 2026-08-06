@@ -42,6 +42,11 @@ function maskCardNumber(cardNumber) {
   return `****-****-****-${lastFour}`;
 }
 
+function maskPaymentKey(paymentKey) {
+  if (typeof paymentKey !== 'string' || paymentKey.length <= 8) return '****';
+  return `****${paymentKey.slice(-8)}`;
+}
+
 /**
  * [PaymentService]
  * 결제 승인/취소 오케스트레이션을 담당합니다.
@@ -126,8 +131,13 @@ class PaymentService {
 
       const pricedItems = [];
       let authoritativeTotal = 0;
+      // N+1 방지: 모든 상품을 한 번에 조회 후 매핑
+      const rawItemsCache = await tx.products.findMany({
+        where: { id: { in: items.map((it) => parseInt(it.product_id)) } },
+      });
+      const productById = new Map(rawItemsCache.map((p) => [String(p.id), p]));
       for (const item of items) {
-        const product = await tx.products.findUnique({ where: { id: item.product_id } });
+        const product = productById.get(String(item.product_id));
         const pricedItem = priceOrderItem(product, item, store_id);
         pricedItems.push(pricedItem);
         authoritativeTotal += pricedItem.subtotal;
@@ -467,7 +477,9 @@ class PaymentService {
       tossResponse = await TossAPI.confirmPayment(paymentKey, orderIdString, amount);
     }
 
-    logger.info('[PaymentService] 토스 결제 승인 완료:', tossResponse.paymentKey);
+    logger.info('[PaymentService] 토스 결제 승인 완료', {
+      paymentKey: maskPaymentKey(tossResponse.paymentKey),
+    });
 
     try {
       const result = await prisma.$transaction(async (tx) => {
@@ -684,7 +696,7 @@ class PaymentService {
         logger.error(
           isAmountMismatch
             ? `[PaymentService] 승인 금액 불일치 — order=${e.orderNumber} expected=${e.expected} approved=${e.actual} → 자동 취소 시도`
-            : `[PaymentService] 중복 승인 경합 — order=${e.orderNumber} paymentKey=${paymentKey} → 자동 취소 시도`
+            : `[PaymentService] 중복 승인 경합 — order=${e.orderNumber} paymentKey=${maskPaymentKey(paymentKey)} → 자동 취소 시도`
         );
         let autoCanceled = false;
         try {
@@ -693,7 +705,9 @@ class PaymentService {
             : '중복 결제 승인 자동 취소';
           await TossAPI.cancelPayment(paymentKey, cancelReason);
           autoCanceled = true;
-          logger.warn(`[PaymentService] 금액 불일치 결제 자동 취소 완료: ${paymentKey}`);
+          logger.warn('[PaymentService] 금액 불일치 결제 자동 취소 완료', {
+            paymentKey: maskPaymentKey(paymentKey),
+          });
         } catch (cancelErr) {
           logger.error(`[PaymentService] 자동 취소 실패 (수동 처리 필요): ${cancelErr.message}`);
         }
@@ -704,13 +718,13 @@ class PaymentService {
               ? '결제 승인 이상 — 자동 취소됨'
               : '결제 승인 이상 — 자동 취소 실패(수동 확인 필요)',
             message: isAmountMismatch
-              ? `주문 ${e.orderNumber} / 기대 ${e.expected}원 / 실제 승인 ${e.actual}원 / paymentKey=${paymentKey}`
-              : `주문 ${e.orderNumber} / 중복 승인 경합 / paymentKey=${paymentKey}`,
+              ? `주문 ${e.orderNumber} / 기대 ${e.expected}원 / 실제 승인 ${e.actual}원 / paymentKey=${maskPaymentKey(paymentKey)}`
+              : `주문 ${e.orderNumber} / 중복 승인 경합 / paymentKey=${maskPaymentKey(paymentKey)}`,
             meta: {
               orderNumber: e.orderNumber,
               expected: e.expected,
               actual: e.actual,
-              paymentKey,
+              paymentKey: maskPaymentKey(paymentKey),
               autoCanceled,
             },
           })
@@ -745,7 +759,9 @@ class PaymentService {
 
     // 토스 취소 API 호출
     await TossAPI.cancelPayment(payment.payment_key, cancelReason || '시스템 취소');
-    logger.info('[PaymentService] 토스 결제 취소 완료:', payment.payment_key);
+    logger.info('[PaymentService] 토스 결제 취소 완료', {
+      paymentKey: maskPaymentKey(payment.payment_key),
+    });
 
     // DB 상태 업데이트 (트랜잭션)
     await prisma.$transaction(async (tx) => {
@@ -829,10 +845,12 @@ class PaymentService {
   async preparePayment({ order_id, store_id, order_name, amount, method, checkout_url }) {
     let targetStoreId = store_id;
     let targetAmount = amount;
+    let orderNumber = null;
 
     if (order_id) {
       const order = await prisma.orders.findUnique({ where: { id: parseInt(order_id) } });
       if (!order) throw new AppError('주문 정보를 찾을 수 없습니다.', 404);
+      orderNumber = order.order_number;
       const paid = await prisma.payments.aggregate({
         where: { order_id: order.id, status: 'DONE' },
         _sum: { amount: true },
@@ -853,7 +871,12 @@ class PaymentService {
         if (Number(existing.amount) !== Number(targetAmount)) {
           throw new AppError('기존 결제 대기 금액이 주문 잔액과 일치하지 않습니다.', 409);
         }
-        return { paymentId: existing.id };
+        return {
+          paymentId: existing.id,
+          payment_id: existing.id,
+          order_number: orderNumber,
+          amount: existing.amount,
+        };
       }
     }
 
@@ -881,13 +904,18 @@ class PaymentService {
       if (!payment || Number(payment.amount) !== Number(targetAmount)) throw error;
     }
 
-    return { paymentId: payment.id };
+    return {
+      paymentId: payment.id,
+      payment_id: payment.id,
+      order_number: orderNumber,
+      amount: payment.amount,
+    };
   }
 
   // ═════════════════════════════════════════════════════════════════
   // [부분 환불 처리]
   // ═════════════════════════════════════════════════════════════════
-  async processPartialCancel(orderId, cancelAmount, cancelReason) {
+  async processPartialCancel(orderId, cancelAmount, cancelReason, idempotencyKey) {
     const amount = Number(cancelAmount);
     if (!amount || amount <= 0) throw new AppError('환불 금액이 올바르지 않습니다.', 400);
 
@@ -896,6 +924,18 @@ class PaymentService {
     });
     const payment = payments.find((p) => p.status === 'DONE');
     if (!payment) throw new AppError('취소 가능한 결제 내역이 없습니다.', 404);
+
+    const refunded = await prisma.ledger.aggregate({
+      where: { payment_id: payment.id, type: 'REFUND' },
+      _sum: { amount: true },
+    });
+    const refundedAmount = Math.abs(Number(refunded._sum.amount || 0));
+    if (amount + refundedAmount > Number(payment.amount)) {
+      throw new AppError(
+        `누적 환불 금액(${(amount + refundedAmount).toLocaleString()}원)이 결제 금액을 초과합니다.`,
+        400
+      );
+    }
 
     if (amount > payment.amount) {
       throw new AppError(
@@ -907,7 +947,8 @@ class PaymentService {
     const tossResponse = await TossAPI.cancelPayment(
       payment.payment_key,
       cancelReason || '부분 환불',
-      amount
+      amount,
+      idempotencyKey ? `partial-refund:${idempotencyKey}` : undefined
     );
     logger.info(`[PaymentService] 부분 환불 완료: orderId=${orderId}, amount=${amount}`);
 
@@ -921,6 +962,7 @@ class PaymentService {
         amount: -amount,
         method: payment.method,
         description: `부분 환불: ${cancelReason || '부분 환불'} (${amount.toLocaleString()}원)`,
+        event_key: idempotencyKey ? `partial-refund:${idempotencyKey}` : null,
         created_at: new Date(),
       },
     });
@@ -981,7 +1023,7 @@ class PaymentService {
     const plainPhone = order.customer_phone ? decryptPhone(order.customer_phone) : null;
 
     await prisma.$transaction(async (tx) => {
-      await tx.payments.updateMany({
+      const transition = await tx.payments.updateMany({
         where: { order_id: parseInt(orderId), method: { in: ['STORE_CARD', 'store_card'] } },
         data: {
           status: 'DONE',
@@ -989,6 +1031,9 @@ class PaymentService {
           transfer_reference: terminalReceiptNo || null,
         },
       });
+      if (transition.count === 0) {
+        throw new AppError('확인할 매장카드 결제 내역이 없습니다.', 409);
+      }
       await tx.orders.update({
         where: { id: parseInt(orderId) },
         data: { payment_status: 'paid', updated_at: new Date() },
@@ -1038,7 +1083,7 @@ class PaymentService {
     const plainPhone = order.customer_phone ? decryptPhone(order.customer_phone) : null;
 
     await prisma.$transaction(async (tx) => {
-      await tx.payments.updateMany({
+      const transition = await tx.payments.updateMany({
         where: { order_id: parseInt(orderId), method: { in: ['TRANSFER', 'transfer'] } },
         data: {
           status: 'DONE',
@@ -1048,6 +1093,9 @@ class PaymentService {
           approved_at: new Date(),
         },
       });
+      if (transition.count === 0) {
+        throw new AppError('확인할 계좌이체 결제 내역이 없습니다.', 409);
+      }
       await tx.orders.update({
         where: { id: parseInt(orderId) },
         data: { payment_status: 'paid', updated_at: new Date() },

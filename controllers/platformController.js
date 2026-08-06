@@ -1,6 +1,35 @@
 const prisma = require('../config/prisma');
 const catchAsync = require('../utils/catchAsync');
 const logger = require('../utils/logger');
+const Store = require('../repositories/Store');
+const storeInfoEnhancementService = require('../services/StoreInfoEnhancementService');
+
+// 매장 정보 완성도에 기여하는 핵심 필드 (정보 보강 가시화용)
+const ENRICHMENT_FIELDS = [
+  'name',
+  'address',
+  'phone',
+  'business_type',
+  'business_number',
+  'ceo_name',
+  'business_address',
+  'open_time',
+  'close_time',
+  'description',
+  'latitude',
+  'longitude',
+];
+
+// 가벼운 완성도 점수(0~100)와 레벨 — 대시보드 목록에서 즉시 판단 가능하도록 JS로만 계산
+function computeInfoScore(store) {
+  const filled = ENRICHMENT_FIELDS.filter((f) => {
+    const v = store[f];
+    return v !== null && v !== undefined && v !== '';
+  }).length;
+  const score = Math.round((filled / ENRICHMENT_FIELDS.length) * 100);
+  const level = score >= 80 ? 'good' : score >= 50 ? 'partial' : 'poor';
+  return { infoScore: score, infoLevel: level };
+}
 
 exports.getOverview = catchAsync(async (req, res) => {
   const [totalStores, activeStores, totalCustomers, totalOrders, pointsAgg] = await Promise.all([
@@ -45,9 +74,22 @@ exports.getStores = catchAsync(async (req, res) => {
     prisma.stores.findMany({
       where,
       select: {
-        id: true, name: true, address: true, is_active: true,
-        business_type: true, phone: true, created_at: true, plan: true,
-        latitude: true, longitude: true,
+        id: true,
+        name: true,
+        address: true,
+        is_active: true,
+        business_type: true,
+        phone: true,
+        created_at: true,
+        plan: true,
+        latitude: true,
+        longitude: true,
+        description: true,
+        business_number: true,
+        ceo_name: true,
+        business_address: true,
+        open_time: true,
+        close_time: true,
         _count: { select: { orders: true, store_customers: true } },
       },
       orderBy: { id: 'desc' },
@@ -59,7 +101,7 @@ exports.getStores = catchAsync(async (req, res) => {
 
   const totalPages = Math.ceil(total / limit) || 1;
 
-  const rows = stores.map(s => ({
+  const rows = stores.map((s) => ({
     id: s.id,
     name: s.name,
     address: s.address,
@@ -73,6 +115,7 @@ exports.getStores = catchAsync(async (req, res) => {
     orders: s._count.orders,
     customers: s._count.store_customers,
     sales: 0,
+    ...computeInfoScore(s),
   }));
 
   res.success({ stores: rows, total, totalPages, page });
@@ -224,7 +267,8 @@ exports.grantPoints = catchAsync(async (req, res) => {
   }
 
   const delta = parseInt(amount, 10);
-  if (!delta) return res.status(400).json({ success: false, error: '유효한 포인트 금액이 아닙니다.' });
+  if (!delta)
+    return res.status(400).json({ success: false, error: '유효한 포인트 금액이 아닙니다.' });
 
   let point = await prisma.user_points.findFirst({ where: { phone } });
   if (point) {
@@ -235,7 +279,8 @@ exports.grantPoints = catchAsync(async (req, res) => {
     if (delta > 0) updateData.lifetime_earned = { increment: delta };
     point = await prisma.user_points.update({ where: { id: point.id }, data: updateData });
   } else {
-    if (delta < 0) return res.status(400).json({ success: false, error: '포인트 내역이 없는 고객입니다.' });
+    if (delta < 0)
+      return res.status(400).json({ success: false, error: '포인트 내역이 없는 고객입니다.' });
     point = await prisma.user_points.create({
       data: { phone, total_points: delta, lifetime_earned: delta },
     });
@@ -254,4 +299,130 @@ exports.grantPoints = catchAsync(async (req, res) => {
 
   logger.info({ storeId, phone, delta, reason }, '포인트 수동 지급/차감');
   res.success({ phone, delta, balance: point.total_points || 0 }, '처리 완료');
+});
+
+// ── 매장 정보 보강 (super_admin) ─────────────────────────────────────────────
+
+// 플랫폼 전역 매장 정보 커버리지 — 대시보드 위젯용 필드별 누락 집계
+exports.getEnrichmentCoverage = catchAsync(async (req, res) => {
+  const totalStores = await prisma.stores.count();
+
+  const keyFields = [
+    { field: 'phone', label: '전화번호', where: { phone: null } },
+    { field: 'business_type', label: '업종', where: { business_type: null } },
+    { field: 'latitude', label: '위도', where: { latitude: null } },
+    { field: 'longitude', label: '경도', where: { longitude: null } },
+    {
+      field: 'open_time',
+      label: '영업시간',
+      where: { OR: [{ open_time: null }, { close_time: null }] },
+    },
+    { field: 'description', label: '매장 설명', where: { description: null } },
+    { field: 'business_number', label: '사업자등록번호', where: { business_number: null } },
+    { field: 'ceo_name', label: '대표자명', where: { ceo_name: null } },
+    { field: 'business_address', label: '사업장 주소', where: { business_address: null } },
+  ];
+
+  const missingCounts = await Promise.all(
+    keyFields.map((f) => prisma.stores.count({ where: f.where }))
+  );
+  const coverage = {};
+  keyFields.forEach((f, i) => {
+    coverage[f.field] = { label: f.label, missing: missingCounts[i] };
+  });
+
+  const filled = keyFields.reduce((acc, f, i) => acc + (totalStores - missingCounts[i]), 0);
+  const overallScore =
+    totalStores > 0 ? Math.round((filled / (totalStores * keyFields.length)) * 100) : 100;
+
+  res.success({ totalStores, overallScore, coverage });
+});
+
+// 매장별 정보 완성도 리포트 (AI 보강 컨텍스트)
+exports.getStoreCompletion = catchAsync(async (req, res) => {
+  const storeId = parseInt(req.params.id, 10);
+  if (!storeId) return res.status(400).json({ success: false, error: '잘못된 매장 ID입니다.' });
+
+  const store = await prisma.stores.findUnique({ where: { id: storeId } });
+  if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다.' });
+
+  const report = await storeInfoEnhancementService.generateCompletionReport(storeId);
+  res.success(report);
+});
+
+// 매장 정보 AI 보강 실행 (autoSave=true 시 즉시 반영, false 시 제안만 생성)
+exports.runStoreEnhance = catchAsync(async (req, res) => {
+  const storeId = parseInt(req.params.id, 10);
+  if (!storeId) return res.status(400).json({ success: false, error: '잘못된 매장 ID입니다.' });
+
+  const store = await prisma.stores.findUnique({ where: { id: storeId } });
+  if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다.' });
+
+  const autoSave = req.query.autoSave === 'true';
+  let enhancement;
+  try {
+    enhancement = autoSave
+      ? await storeInfoEnhancementService.autoCompleteStoreInfo(storeId, { autoSave: true })
+      : await storeInfoEnhancementService.enhanceStoreInfo(storeId);
+  } catch (error) {
+    logger.warn({ storeId, error: error.message }, 'AI 매장 정보 보강 실패');
+    return res
+      .status(502)
+      .json({ success: false, error: 'AI 보강에 실패했습니다. 잠시 후 다시 시도하세요.' });
+  }
+
+  res.success(
+    enhancement,
+    autoSave ? '보강 데이터가 적용되었습니다.' : '보강 제안이 생성되었습니다.'
+  );
+});
+
+// 생성된 보강 데이터 적용 (화이트리스트 필드만 허용)
+exports.applyStoreEnhance = catchAsync(async (req, res) => {
+  const storeId = parseInt(req.params.id, 10);
+  if (!storeId) return res.status(400).json({ success: false, error: '잘못된 매장 ID입니다.' });
+
+  const { enhancements } = req.body;
+  if (!enhancements || typeof enhancements !== 'object' || Object.keys(enhancements).length === 0) {
+    return res.status(400).json({ success: false, error: '적용할 보강 필드가 없습니다.' });
+  }
+
+  const allowed = new Set([
+    'name',
+    'description',
+    'address',
+    'phone',
+    'business_type',
+    'open_time',
+    'close_time',
+    'business_hours',
+    'latitude',
+    'longitude',
+    'business_number',
+    'business_name',
+    'ceo_name',
+    'tax_invoice_email',
+    'mail_order_number',
+    'business_address',
+    'customer_service_phone',
+    'customer_service_email',
+    'terms_of_service',
+    'privacy_policy',
+    'refund_policy',
+  ]);
+
+  const sanitized = {};
+  for (const [key, value] of Object.entries(enhancements)) {
+    if (allowed.has(key)) sanitized[key] = value;
+  }
+  if (Object.keys(sanitized).length === 0) {
+    return res.status(400).json({ success: false, error: '적용 가능한 필드가 없습니다.' });
+  }
+
+  const updated = await Store.update(storeId, sanitized);
+  logger.info({ storeId, fields: Object.keys(sanitized) }, '슈퍼관리자 매장 정보 보강 적용');
+  res.success(
+    { store: updated, applied: Object.keys(sanitized) },
+    `${Object.keys(sanitized).length}개 필드가 보강되었습니다.`
+  );
 });

@@ -56,6 +56,7 @@ jest.mock('../../middleware/storeAuth', () => {
       next();
     },
     getStoreRole: jest.fn(() => 'owner'),
+    checkResourcePermission: () => (req, res, next) => next(),
   };
 });
 

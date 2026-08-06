@@ -1,4 +1,6 @@
 const prisma = require('../config/prisma');
+const { getStoreRole } = require('../middleware/storeAuth');
+const { phoneSearchCandidates } = require('../utils/phoneEncryption');
 
 /**
  * 채팅 모델 (Prisma 기반)
@@ -41,6 +43,45 @@ const Chat = {
             select: { id: true, name: true, phone: true },
           },
         },
+      });
+    }
+
+    return room;
+  },
+
+  // [주문 capability 기반 고객 채팅방 조회/생성]
+  // 클라이언트가 임의의 store_id/phone을 지정할 수 없도록 주문 컨텍스트만 사용한다.
+  accessCustomerRoom: async ({ orderId, storeId }) => {
+    const order = await prisma.orders.findUnique({ where: { id: parseInt(orderId) } });
+    if (!order || parseInt(order.store_id) !== parseInt(storeId)) {
+      const err = new Error('유효한 주문이 아닙니다.');
+      err.status = 403;
+      throw err;
+    }
+
+    // 주문의 고객 전화를 채팅방 매칭에 사용 (암호화 후보 포함)
+    const candidates = phoneSearchCandidates(order.customer_phone || '');
+
+    const where = {
+      type: 'STORE_CUSTOMER',
+      store_id: parseInt(storeId),
+      is_active: true,
+      customer_phone: { in: candidates },
+    };
+
+    let room = await prisma.chat_rooms.findFirst({
+      where,
+      include: { users: { select: { id: true, name: true, phone: true } } },
+    });
+
+    if (!room) {
+      room = await prisma.chat_rooms.create({
+        data: {
+          store_id: parseInt(storeId),
+          customer_phone: order.customer_phone || null,
+          type: 'STORE_CUSTOMER',
+        },
+        include: { users: { select: { id: true, name: true, phone: true } } },
       });
     }
 
@@ -139,19 +180,36 @@ const Chat = {
     });
   },
 
-  // [채팅방 권한 검증] - 사용자가 해당 방의 멤버인지 확인하고 sender_type 반환
-  authorizeRoom: async (roomId, req) => {
-    const userId = req.user?.id;
-    if (!userId) return null;
-    const room = await prisma.chat_rooms.findUnique({
-      where: { id: parseInt(roomId) },
-      include: { users: { select: { id: true, sender_type: true } } },
-    });
+  // [채팅방 접근 권한 검증]
+  // ctx.user(인증 매장 직원) 또는 ctx.capability(주문 capability) 기반 멤버십을 반환한다.
+  // 반환: { senderId, senderType } | null (권한 없음)
+  authorizeRoom: async (roomId, ctx) => {
+    const room = await prisma.chat_rooms.findUnique({ where: { id: parseInt(roomId) } });
     if (!room) return null;
-    const users = room.users || [];
-    const user = users.find((u) => u.id === userId);
-    if (!user) return null;
-    return { senderType: user.sender_type, senderId: userId, room: { id: room.id } };
+
+    // 주문 capability — 방의 매장/고객에 묶인 주문만 허용
+    if (ctx.capability) {
+      const { orderId, storeId } = ctx.capability;
+      if (!orderId || parseInt(storeId) !== room.store_id) return null;
+
+      const order = await prisma.orders.findUnique({ where: { id: parseInt(orderId) } });
+      if (!order || parseInt(order.store_id) !== room.store_id) return null;
+
+      // 주문의 고객 전화가 채팅방 고객과 일치해야 한다 (암호화 후보 포함)
+      const candidates = phoneSearchCandidates(order.customer_phone || '');
+      if (room.customer_phone && !candidates.includes(room.customer_phone)) return null;
+
+      return { senderId: null, senderType: 'customer' };
+    }
+
+    // 인증 매장 직원 — 실제 매장 역할로 senderType 파생
+    if (ctx.user) {
+      const role = await getStoreRole(ctx.user.id, room.store_id);
+      if (!role) return null;
+      return { senderId: ctx.user.id, senderType: role };
+    }
+
+    return null;
   },
 };
 

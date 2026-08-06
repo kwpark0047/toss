@@ -1,9 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  User, Phone, Mail, MapPin, Lock, Check, Edit2, X,
-  ShieldCheck, AlertCircle, Eye, EyeOff, Trash2, Save
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  Lock,
+  Check,
+  Edit2,
+  X,
+  ShieldCheck,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Trash2,
+  Save,
+  RefreshCw,
 } from 'lucide-react';
 
 /* ──────────────────────────────────────────────
@@ -53,7 +66,17 @@ const Toast = ({ message, type }) => (
 /* ──────────────────────────────────────────────
    프로필 필드 카드
 ────────────────────────────────────────────── */
-const ProfileField = ({ icon: Icon, label, fieldKey, value, placeholder, type = 'text', disabled = false, onSave, onClear }) => {
+const ProfileField = ({
+  icon: Icon,
+  label,
+  fieldKey,
+  value,
+  placeholder,
+  type = 'text',
+  disabled = false,
+  onSave,
+  onClear,
+}) => {
   const [editing, setEditing] = useState(false);
   const [input, setInput] = useState('');
   const [fieldError, setFieldError] = useState('');
@@ -107,22 +130,30 @@ const ProfileField = ({ icon: Icon, label, fieldKey, value, placeholder, type = 
   };
 
   return (
-    <div className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
-      editing
-        ? 'border-orange-500/50 bg-slate-800/60'
-        : 'border-white/5 bg-slate-900/50 hover:border-white/10'
-    }`}>
+    <div
+      className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+        editing
+          ? 'border-orange-500/50 bg-slate-800/60'
+          : 'border-white/5 bg-slate-900/50 hover:border-white/10'
+      }`}
+    >
       {/* 필드 헤더 */}
       <div className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-          editing ? 'bg-orange-500/20' : 'bg-white/5'
-        }`}>
+        <div
+          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            editing ? 'bg-orange-500/20' : 'bg-white/5'
+          }`}
+        >
           <Icon className={`w-4 h-4 ${editing ? 'text-orange-400' : 'text-slate-400'}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">{label}</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">
+            {label}
+          </p>
           {!editing && (
-            <p className={`text-sm font-semibold truncate ${hasValue ? 'text-white' : 'text-slate-600 italic'}`}>
+            <p
+              className={`text-sm font-semibold truncate ${hasValue ? 'text-white' : 'text-slate-600 italic'}`}
+            >
               {hasValue ? value : placeholder}
             </p>
           )}
@@ -157,11 +188,19 @@ const ProfileField = ({ icon: Icon, label, fieldKey, value, placeholder, type = 
               type={type}
               value={input}
               autoFocus
-              onChange={(e) => { setInput(e.target.value); setFieldError(''); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setFieldError('');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSave();
+                if (e.key === 'Escape') handleCancel();
+              }}
               placeholder={placeholder}
               className={`w-full px-4 py-3 rounded-xl bg-slate-800 border text-sm font-medium text-white placeholder-slate-600 focus:outline-none transition-all ${
-                fieldError ? 'border-red-500 focus:border-red-400' : 'border-white/10 focus:border-orange-500'
+                fieldError
+                  ? 'border-red-500 focus:border-red-400'
+                  : 'border-white/10 focus:border-orange-500'
               }`}
             />
 
@@ -182,10 +221,13 @@ const ProfileField = ({ icon: Icon, label, fieldKey, value, placeholder, type = 
                 disabled={loading}
                 className="flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-400 text-white text-xs font-bold rounded-xl transition-all disabled:opacity-50"
               >
-                {loading
-                  ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <><Save className="w-3.5 h-3.5" /> 저장</>
-                }
+                {loading ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" /> 저장
+                  </>
+                )}
               </button>
               <button
                 onClick={handleCancel}
@@ -235,7 +277,10 @@ const PasswordCard = ({ changePassword }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const e2 = validateForm();
-    if (Object.keys(e2).length) { setErrors(e2); return; }
+    if (Object.keys(e2).length) {
+      setErrors(e2);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -258,15 +303,23 @@ const PasswordCard = ({ changePassword }) => {
   ];
 
   return (
-    <div className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
-      open ? 'border-orange-500/50 bg-slate-800/60' : 'border-white/5 bg-slate-900/50 hover:border-white/10'
-    }`}>
+    <div
+      className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+        open
+          ? 'border-orange-500/50 bg-slate-800/60'
+          : 'border-white/5 bg-slate-900/50 hover:border-white/10'
+      }`}
+    >
       <div className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${open ? 'bg-orange-500/20' : 'bg-white/5'}`}>
+        <div
+          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${open ? 'bg-orange-500/20' : 'bg-white/5'}`}
+        >
           <Lock className={`w-4 h-4 ${open ? 'text-orange-400' : 'text-slate-400'}`} />
         </div>
         <div className="flex-1">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">비밀번호</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">
+            비밀번호
+          </p>
           <p className="text-sm font-semibold text-white">••••••••</p>
         </div>
         {!open && (
@@ -296,7 +349,10 @@ const PasswordCard = ({ changePassword }) => {
                   <input
                     type={show ? 'text' : 'password'}
                     value={form[key]}
-                    onChange={(e) => { setForm((p) => ({ ...p, [key]: e.target.value })); setErrors((p) => ({ ...p, [key]: '' })); }}
+                    onChange={(e) => {
+                      setForm((p) => ({ ...p, [key]: e.target.value }));
+                      setErrors((p) => ({ ...p, [key]: '' }));
+                    }}
                     placeholder={placeholder}
                     className={`w-full px-4 py-3 pr-10 rounded-xl bg-slate-800 border text-sm font-medium text-white placeholder-slate-600 focus:outline-none transition-all ${
                       errors[key] ? 'border-red-500' : 'border-white/10 focus:border-orange-500'
@@ -313,14 +369,22 @@ const PasswordCard = ({ changePassword }) => {
                   )}
                 </div>
                 {errors[key] && (
-                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-1 flex items-center gap-1 text-xs text-red-400 font-medium">
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-1 flex items-center gap-1 text-xs text-red-400 font-medium"
+                  >
                     <AlertCircle className="w-3.5 h-3.5" /> {errors[key]}
                   </motion.p>
                 )}
                 {/* 실시간 일치 표시 */}
                 {key === 'confirm' && form.confirm && !errors.confirm && (
-                  <p className={`mt-1 text-xs font-medium ${form.next === form.confirm ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {form.next === form.confirm ? '✓ 비밀번호가 일치합니다' : '비밀번호가 일치하지 않습니다'}
+                  <p
+                    className={`mt-1 text-xs font-medium ${form.next === form.confirm ? 'text-emerald-400' : 'text-red-400'}`}
+                  >
+                    {form.next === form.confirm
+                      ? '✓ 비밀번호가 일치합니다'
+                      : '비밀번호가 일치하지 않습니다'}
                   </p>
                 )}
               </div>
@@ -332,12 +396,203 @@ const PasswordCard = ({ changePassword }) => {
                 disabled={loading}
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-orange-500 hover:bg-orange-400 text-white text-xs font-bold rounded-xl transition-all disabled:opacity-50"
               >
-                {loading ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Save className="w-3.5 h-3.5" /> 변경 완료</>}
+                {loading ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" /> 변경 완료
+                  </>
+                )}
               </button>
               <button
                 type="button"
-                onClick={() => { setOpen(false); setErrors({}); setForm({ current: '', next: '', confirm: '' }); }}
+                onClick={() => {
+                  setOpen(false);
+                  setErrors({});
+                  setForm({ current: '', next: '', confirm: '' });
+                }}
                 className="px-4 py-2.5 bg-white/5 text-slate-400 hover:text-white text-xs font-medium rounded-xl transition-all"
+              >
+                취소
+              </button>
+            </div>
+          </motion.form>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+/* ──────────────────────────────────────────────
+   2단계 인증 (2FA) 카드
+────────────────────────────────────────────── */
+const TwoFactorCard = ({ enabled, onSend, onVerify }) => {
+  const [open, setOpen] = useState(false);
+  const [purpose, setPurpose] = useState('ENABLE');
+  const [otp, setOtp] = useState('');
+  const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
+  const [devOtp, setDevOtp] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const startFlow = async (p) => {
+    setPurpose(p);
+    setOtp('');
+    setError('');
+    setInfo('');
+    setDevOtp('');
+    setOpen(true);
+    setSending(true);
+    try {
+      const res = await onSend(p);
+      if (res?.dev_otp) setDevOtp(res.dev_otp);
+      setInfo(
+        res?.message ||
+          (p === 'ENABLE'
+            ? '활성화 인증번호가 발송되었습니다.'
+            : '비활성화 인증번호가 발송되었습니다.')
+      );
+    } catch (err) {
+      setError(err.response?.data?.message || '인증번호 발송에 실패했습니다.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    if (otp.trim().length < 6) {
+      setError('인증번호 6자리를 입력해주세요.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await onVerify(purpose, otp.trim());
+      setOpen(false);
+    } catch (err) {
+      setError(err.response?.data?.message || '인증에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setSending(true);
+    setError('');
+    try {
+      const res = await onSend(purpose);
+      if (res?.dev_otp) setDevOtp(res.dev_otp);
+      setInfo(res?.message || '인증번호가 재발송되었습니다.');
+    } catch (err) {
+      setError(err.response?.data?.message || '재발송에 실패했습니다.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div
+      className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+        open
+          ? 'border-orange-500/50 bg-slate-800/60'
+          : 'border-white/5 bg-slate-900/50 hover:border-white/10'
+      }`}
+    >
+      <div className="flex items-center gap-3 px-5 pt-4 pb-3">
+        <div
+          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${enabled ? 'bg-emerald-500/20' : 'bg-white/5'}`}
+        >
+          <ShieldCheck className={`w-4 h-4 ${enabled ? 'text-emerald-400' : 'text-slate-400'}`} />
+        </div>
+        <div className="flex-1">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">
+            2단계 인증 (2FA)
+          </p>
+          <p className={`text-sm font-semibold ${enabled ? 'text-emerald-400' : 'text-slate-500'}`}>
+            {enabled ? '활성화됨 — 로그인 시 인증번호 필요' : '비활성화됨'}
+          </p>
+        </div>
+        {!open && (
+          <button
+            onClick={() => startFlow(enabled ? 'DISABLE' : 'ENABLE')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              enabled
+                ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300'
+                : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300'
+            }`}
+          >
+            <ShieldCheck className="w-3 h-3" /> {enabled ? '비활성화' : '활성화'}
+          </button>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {open && (
+          <motion.form
+            onSubmit={handleVerify}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="px-5 pb-4 space-y-3"
+          >
+            <p className="text-xs text-slate-400">
+              {purpose === 'ENABLE' ? '활성화' : '비활성화'} 인증번호가 등록된 핸드폰으로
+              전송되었습니다. 6자리를 입력해주세요.
+            </p>
+            {info && <p className="text-xs text-emerald-400 font-medium">{info}</p>}
+            {error && (
+              <p className="flex items-center gap-1 text-xs text-red-400 font-medium">
+                <AlertCircle className="w-3.5 h-3.5" /> {error}
+              </p>
+            )}
+            {devOtp && (
+              <p className="text-[11px] text-amber-400 font-medium">
+                개발 모드 인증번호: <span className="font-mono font-bold">{devOtp}</span>
+              </p>
+            )}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5">인증번호</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="6자리 인증번호"
+                className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-white/10 text-sm font-mono font-bold tracking-[0.4em] text-center text-white placeholder-slate-600 focus:outline-none focus:border-orange-500 transition-all"
+              />
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="submit"
+                disabled={loading || sending}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-bold transition-all disabled:opacity-50"
+              >
+                {loading ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Check className="w-4 h-4" />
+                )}
+                {purpose === 'ENABLE' ? '활성화 확인' : '비활성화 확인'}
+              </button>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={sending}
+                className="px-3 py-3 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 text-xs font-semibold transition-all disabled:opacity-50 flex items-center gap-1"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> 재전송
+              </button>
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-xs text-slate-500 hover:text-slate-300 transition-colors font-medium"
               >
                 취소
               </button>
@@ -353,8 +608,31 @@ const PasswordCard = ({ changePassword }) => {
    메인 페이지
 ────────────────────────────────────────────── */
 const ProfilePage = () => {
-  const { user, updateProfile, changePassword } = useAuth();
+  const {
+    user,
+    updateProfile,
+    changePassword,
+    getTwoFactorStatus,
+    sendTwoFactorOtp,
+    verifyTwoFactorOtp,
+  } = useAuth();
   const [toast, setToast] = useState(null);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+
+  // 마운트 시 2FA 활성화 상태 조회
+  /* eslint-disable react-hooks/exhaustive-deps */
+  useEffect(() => {
+    let mounted = true;
+    getTwoFactorStatus()
+      .then((enabled) => {
+        if (mounted) setTwoFactorEnabled(enabled);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -378,6 +656,17 @@ const ProfilePage = () => {
     showToast('비밀번호가 변경되었습니다.');
   };
 
+  const handleTwoFactorSend = async (purpose) => {
+    const res = await sendTwoFactorOtp(purpose);
+    return res;
+  };
+
+  const handleTwoFactorVerify = async (purpose, otp) => {
+    const enabled = await verifyTwoFactorOtp(purpose, otp);
+    setTwoFactorEnabled(enabled);
+    showToast(`2FA가 ${purpose === 'ENABLE' ? '활성화' : '비활성화'}되었습니다.`);
+  };
+
   const filled = [user.name, user.email, user.address].filter(Boolean).length;
   const total = 3;
   const pct = Math.round((filled / total) * 100);
@@ -387,22 +676,31 @@ const ProfilePage = () => {
       {/* 헤더 */}
       <div className="mb-7">
         <h1 className="text-2xl font-extrabold text-white tracking-tight">내 프로필</h1>
-        <p className="text-slate-400 text-sm mt-1">이름, 이메일 등 추가 정보는 언제든지 설정할 수 있어요</p>
+        <p className="text-slate-400 text-sm mt-1">
+          이름, 이메일 등 추가 정보는 언제든지 설정할 수 있어요
+        </p>
       </div>
 
       {/* 완성률 */}
       <div className="mb-6 p-5 rounded-2xl bg-slate-900/70 border border-white/5">
         <div className="flex items-end justify-between mb-3">
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">프로필 완성도</p>
-            <p className="text-2xl font-black text-white">{pct}<span className="text-sm text-slate-400 ml-1">%</span></p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">
+              프로필 완성도
+            </p>
+            <p className="text-2xl font-black text-white">
+              {pct}
+              <span className="text-sm text-slate-400 ml-1">%</span>
+            </p>
           </div>
           {pct === 100 ? (
             <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/20">
               <Check className="w-3.5 h-3.5" /> 완성
             </span>
           ) : (
-            <span className="text-xs text-slate-500 font-medium">{filled}/{total} 항목</span>
+            <span className="text-xs text-slate-500 font-medium">
+              {filled}/{total} 항목
+            </span>
           )}
         </div>
         <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -415,7 +713,10 @@ const ProfilePage = () => {
         </div>
         {pct < 100 && (
           <p className="mt-3 text-xs text-slate-500">
-            미입력: {[!user.name && '이름', !user.email && '이메일', !user.address && '주소'].filter(Boolean).join(' · ')}
+            미입력:{' '}
+            {[!user.name && '이름', !user.email && '이메일', !user.address && '주소']
+              .filter(Boolean)
+              .join(' · ')}
           </p>
         )}
       </div>
@@ -470,11 +771,25 @@ const ProfilePage = () => {
 
         {/* 비밀번호 */}
         <PasswordCard changePassword={handleChangePassword} />
+
+        {/* 2단계 인증 (2FA) */}
+        <TwoFactorCard
+          enabled={twoFactorEnabled}
+          onSend={handleTwoFactorSend}
+          onVerify={handleTwoFactorVerify}
+        />
       </div>
 
       {/* 가입일 */}
       <p className="mt-6 text-center text-xs text-slate-600">
-        가입일 {user.created_at ? new Date(user.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}
+        가입일{' '}
+        {user.created_at
+          ? new Date(user.created_at).toLocaleDateString('ko-KR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })
+          : '-'}
       </p>
 
       {/* 토스트 */}

@@ -39,7 +39,8 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   if (!USE_COOKIE) {
     const token = localStorage.getItem('token');
-    if (token) {
+    // 2FA 임시 토큰처럼 요청별로 명시적으로 설정된 Authorization은 우선시한다
+    if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
   }
@@ -70,15 +71,21 @@ api.interceptors.response.use(
     // 전역 에러 로깅 (401 제외 — 토큰 갱신 로직에서 처리)
     if (error.response?.status && error.response.status !== 401) {
       const summary = extractErrorMessage(error);
-      console.warn(`${CLIENT_ERROR_LOG} ${error.config?.method?.toUpperCase()} ${error.config?.url} → ${error.response.status}: ${summary}`);
+      console.warn(
+        `${CLIENT_ERROR_LOG} ${error.config?.method?.toUpperCase()} ${error.config?.url} → ${error.response.status}: ${summary}`
+      );
     }
 
     // 401 에러 처리 - 토큰 갱신
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        const refreshBody = USE_COOKIE ? {} : { refreshToken: localStorage.getItem('refreshToken') };
-        const response = await axios.post(`${API_URL}/auth/refresh-token`, refreshBody, { withCredentials: true });
+        const refreshBody = USE_COOKIE
+          ? {}
+          : { refreshToken: localStorage.getItem('refreshToken') };
+        const response = await axios.post(`${API_URL}/auth/refresh-token`, refreshBody, {
+          withCredentials: true,
+        });
         const { token, refreshToken: newRefreshToken } = response.data.data || response.data;
         if (!USE_COOKIE) {
           localStorage.setItem('token', token);

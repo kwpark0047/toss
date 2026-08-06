@@ -31,7 +31,11 @@ describe('reservationsController', () => {
       mockService.register.mockResolvedValue({ id: 1, status: 'pending' });
       await reservationsController.register(req, res);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: true, data: { id: 1, status: 'pending' } })
+        expect.objectContaining({
+          success: true,
+          data: { id: 1, status: 'pending' },
+          capability: expect.any(String),
+        })
       );
     });
   });

@@ -1,9 +1,45 @@
 const express = require('express');
 const router = express.Router();
 const waitingController = require('../controllers/waitingController');
-const authMiddleware = require('../middleware/auth');
-const { checkStorePermission, checkStorePermissionForObject } = require('../middleware/storeAuth');
 const { createAIRateLimiter } = require('../utils/aiRateLimiter');
+const authMiddleware = require('../middleware/auth');
+const { checkStorePermission, getStoreRole } = require('../middleware/storeAuth');
+const prisma = require('../config/prisma');
+const logger = require('../utils/logger');
+
+// 대기 상태 변경 시 body store_id 대신 대기 항목의 저장된 매장으로 권한을 확인한다
+const checkWaitingPermission = (requiredPermission) => {
+  return async (req, res, next) => {
+    try {
+      const waitingId = parseInt(req.params.id);
+      const waiting = await prisma.waiting_list.findUnique({
+        where: { id: waitingId },
+        select: { store_id: true },
+      });
+      if (!waiting) return res.status(404).json({ error: '대기 항목을 찾을 수 없습니다.' });
+      const storeId = waiting.store_id;
+
+      if (req.user.role === 'super_admin') {
+        req.storeId = storeId;
+        return next();
+      }
+
+      const role = await getStoreRole(req.user.id, storeId);
+      if (!role) {
+        return res.status(403).json({ error: '해당 매장에 대한 권한이 없습니다.' });
+      }
+      const permissions = require('../middleware/storeAuth').rolePermissions[role] || [];
+      if (role === 'owner' || permissions.includes(requiredPermission)) {
+        req.storeId = storeId;
+        return next();
+      }
+      return res.status(403).json({ error: `권한이 부족합니다 (${requiredPermission})` });
+    } catch (error) {
+      logger.error(error);
+      return res.status(500).json({ error: '권한 검증 중 서버 오류가 발생했습니다' });
+    }
+  };
+};
 
 /**
  * @swagger
@@ -101,7 +137,7 @@ router.post('/register', waitingController.register);
 router.patch(
   '/:id/status',
   authMiddleware,
-  checkStorePermissionForObject('waiting_list'),
+  checkWaitingPermission('orders:manage'),
   waitingController.updateStatus
 );
 

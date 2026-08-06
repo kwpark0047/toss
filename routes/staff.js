@@ -1,9 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
-const { checkStorePermission, checkStorePermissionForObject } = require('../middleware/storeAuth');
+const { checkStorePermission } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const staffController = require('../controllers/staffController');
+const prisma = require('../config/prisma');
+const { checkResourcePermission } = require('../middleware/storeAuth');
+
+const checkStaffPermission = checkResourcePermission(
+  prisma.staff,
+  'id',
+  'store_id',
+  'staff:manage'
+);
 
 /**
  * @swagger
@@ -178,7 +187,7 @@ router.post('/:id/clock-out', authMiddleware, catchAsync(staffController.clockOu
 router.put(
   '/:id',
   authMiddleware,
-  checkStorePermissionForObject('staff'),
+  checkStaffPermission,
   catchAsync(staffController.updateStaffRole)
 );
 
@@ -200,7 +209,12 @@ router.put(
  *       200:
  *         description: 삭제 완료
  */
-router.delete('/:id', authMiddleware, catchAsync(staffController.deleteStaff));
+router.delete(
+  '/:id',
+  authMiddleware,
+  checkStaffPermission,
+  catchAsync(staffController.deleteStaff)
+);
 
 /**
  * @swagger

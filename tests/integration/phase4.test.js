@@ -55,6 +55,7 @@ jest.mock('../../middleware/storeAuth', () => {
       next();
     },
     getStoreRole: jest.fn(() => 'owner'),
+    checkResourcePermission: () => (req, res, next) => next(),
   };
 });
 
@@ -72,7 +73,10 @@ jest.mock('../../config/prisma', () => {
     },
     tables: {
       findUnique: jest.fn(() => ({ id: 5, table_number: '3번 테이블' })),
-      findMany: jest.fn(() => []),
+      findMany: jest.fn(() => [
+        { id: 1, store_id: 1 },
+        { id: 2, store_id: 1 },
+      ]),
     },
     store_customers: {
       findFirst: jest.fn(() => ({ fcm_token: 'test_token' })),
