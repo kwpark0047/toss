@@ -181,6 +181,7 @@ const Store = {
                 commission_rate: true,
                 vat_rate: true,
                 enabled_payment_methods: true,
+                theme: true, // 매장 테마 설정 (theme_settings JSON)
                 store_accounts: {
                     select: {
                         bank_code: true, bank_name: true,
@@ -203,6 +204,10 @@ const Store = {
             updateData.enabled_payment_methods = JSON.stringify(
                 Array.isArray(data.enabled_payment_methods) ? data.enabled_payment_methods : []
             );
+        }
+        // 매장 테마 설정 (theme_settings) → theme JSON 문자열 저장
+        if (data.theme_settings !== undefined && data.theme_settings !== null) {
+            updateData.theme = JSON.stringify(data.theme_settings);
         }
         return prisma.stores.update({ where: { id: parseInt(id) }, data: updateData });
     },

@@ -45,7 +45,9 @@ export const SalesStats = lazy(() => import('../components/admin/SalesStats'));
 export const ReviewManager = lazy(() => import('../components/admin/ReviewManager'));
 export const AnalyticsDashboard = lazy(() => import('../components/admin/AnalyticsDashboard'));
 export const SettlementManager = lazy(() => import('../components/admin/SettlementManager'));
-export const BusinessSettings = lazy(() => import('../components/admin/BusinessSettings'));
+export const BusinessSettingsWithTheme = lazy(
+  () => import('../components/admin/BusinessSettingsWithTheme')
+);
 export const SystemStatus = lazy(() => import('../components/admin/SystemStatus'));
 export const ReceiptSettings = lazy(() => import('../components/admin/ReceiptSettings'));
 export const CustomerManager = lazy(() => import('../components/admin/CustomerManager'));
@@ -79,6 +81,4 @@ export const MultiStoreSupervisorDashboard = lazy(
 export const AlimtalkDeliveryConsole = lazy(
   () => import('../components/admin/AlimtalkDeliveryConsole')
 );
-export const PlanRequestsManage = lazy(
-  () => import('../pages/PlanRequestsManage')
-);
+export const PlanRequestsManage = lazy(() => import('../pages/PlanRequestsManage'));

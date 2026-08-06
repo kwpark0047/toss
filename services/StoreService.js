@@ -426,7 +426,14 @@ class StoreService {
       enabledMethods = JSON.parse(store.enabled_payment_methods || '[]');
     } catch {}
 
-    return { ...store, enabled_payment_methods: enabledMethods };
+    let themeSettings = null;
+    try {
+      themeSettings = store.theme ? JSON.parse(store.theme) : null;
+    } catch {
+      themeSettings = null;
+    }
+
+    return { ...store, enabled_payment_methods: enabledMethods, theme_settings: themeSettings };
   }
 
   // 캐시 처리

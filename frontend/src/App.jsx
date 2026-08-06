@@ -20,7 +20,7 @@ import {
   AdminLayout, MasterDashboard, MultiStoreSupervisorDashboard,
   StoreSetupWizard, StoreForm, OrderManager, MenuManager, MenuBuilder,
   StaffManager, SalesStats, ReviewManager, AnalyticsDashboard,
-  SettlementManager, BusinessSettings, SystemStatus, ReceiptSettings,
+  SettlementManager, BusinessSettingsWithTheme, SystemStatus, ReceiptSettings,
   CustomerManager, CampaignDashboard, ReservationManager, BulkSMSManager,
   StoreEnrichment, InventoryManager, TableManager, StoreSettings,
   LegalSettings, NotificationTemplatesManager, DeveloperConsole,
@@ -170,7 +170,7 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/reviews" element={<AdminPage><ValidStoreRoute><AdminSuspense><ReviewManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/analytics" element={<AdminPage><ValidStoreRoute><AdminSuspense><AnalyticsDashboard /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/settlements" element={<AdminPage><ValidStoreRoute><AdminSuspense><SettlementManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
-    <Route path="/admin/stores/:storeId/settings" element={<AdminPage><ValidStoreRoute><AdminSuspense><BusinessSettings /></AdminSuspense></ValidStoreRoute></AdminPage>} />
+    <Route path="/admin/stores/:storeId/settings" element={<AdminPage><ValidStoreRoute><AdminSuspense><BusinessSettingsWithTheme /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/system" element={<AdminPage><ValidStoreRoute><AdminSuspense><SystemStatus /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/receipt" element={<AdminPage><ValidStoreRoute><AdminSuspense><ReceiptSettings /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/customers" element={<AdminPage><ValidStoreRoute><AdminSuspense><CustomerManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />

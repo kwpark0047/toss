@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Loader2, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { storesAPI } from "@/api/stores";
+import { resolveThemeStyle, formatPriceWithOptions } from "@/lib/themePresets";
 import { categoriesAPI, productsAPI } from "@/api/products";
 import { ordersAPI } from "@/api/orders";
 import { wakeupServer } from "@/api/wakeup";
@@ -110,21 +111,8 @@ const ColdStartLoading = ({ elapsed }) => {
   );
 };
 
-/** 테마 설정 → CSS 변수 객체 변환 */
-const buildThemeStyle = (theme) => {
-  if (!theme) return {};
-  return {
-    '--color-primary': theme.primaryColor || '#f97316',
-    '--color-secondary': theme.secondaryColor || '#1e3a5f',
-    '--color-accent': theme.accentColor || '#10b981',
-    '--color-bg': theme.backgroundColor || '#f8fafc',
-    '--color-card': theme.cardColor || '#ffffff',
-    '--color-text': theme.textColor || '#1e293b',
-    fontFamily: theme.fontFamily || 'inherit',
-    backgroundColor: theme.backgroundColor || undefined,
-    color: theme.textColor || undefined,
-  };
-};
+/** 테마 설정 → CSS 변수 객체 변환 (공용: lib/themePresets) */
+const buildThemeStyle = resolveThemeStyle;
 
 const MenuPage = () => {
   const { t, i18n } = useTranslation();
@@ -506,6 +494,12 @@ const MenuPage = () => {
 
   const themeStyle = buildThemeStyle(profile?.theme);
 
+  // 매장 테마 설정(menu_layout / ui_size / menu_options) 파생 — 미저장 매장은 기존 목록형 유지
+  const themeSettings = profile?.theme || {};
+  const isGridLayout = themeSettings.menu_layout === 'grid';
+  const cardPadding = themeSettings.ui_size === 'small' ? 'S' : themeSettings.ui_size === 'large' ? 'XL' : 'L';
+  const menuDisplayOptions = themeSettings.menu_options || {};
+
   return (
     // TDS 미니앱 프레임: 모바일 폭(480px) 중앙 정렬, 데스크톱에선 좌우 여백 배경
     <div className={`min-h-screen w-full flex justify-center bg-slate-200 overflow-x-hidden ${isDark ? 'dark' : ''}`}>
@@ -571,8 +565,10 @@ const MenuPage = () => {
             description={selectedCategory === t('menu.all_category') ? t('menu.empty_desc') : t('menu.category_empty')}
           />
         ) : (
-          // TDS 리스트 그룹: 둥근 흰 컨테이너 + 행 사이 divider (flush)
-          <div className="cust-bg-card rounded-2xl border cust-border shadow-sm overflow-hidden cust-divide">
+          // 테마 menu_layout=grid → 2열 카드 그리드, 그 외 → TDS 리스트 그룹 (flush divider)
+          <div className={isGridLayout
+            ? 'grid grid-cols-2 gap-3'
+            : 'cust-bg-card rounded-2xl border cust-border shadow-sm overflow-hidden cust-divide'}>
             {filteredItems.map(item => {
               const options = getOptionsForMenuItem(menuItems, item.id);
               const isPopular = orderStats.includes(item.id);
@@ -587,7 +583,8 @@ const MenuPage = () => {
                   isNew={isNew}
                   onAddToCart={handleAddToCartClick}
                   disabled={!storeOpen}
-                  padding="L"
+                  padding={isGridLayout ? cardPadding : 'L'}
+                  options={menuDisplayOptions}
                 />
               );
             })}

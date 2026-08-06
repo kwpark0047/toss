@@ -1,108 +1,45 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router';
 import { businessAPI, storeAccountAPI } from '../../api';
-import { Palette, Layout, Image, Sliders, FileText, Save, RefreshCw, Check, AlertCircle, Info, CreditCard, Store, Building2, BadgeCheck } from 'lucide-react';
+import { Palette, Layout, Sliders, Save, RefreshCw, Check, AlertCircle, Info, CreditCard, Store, Building2, BadgeCheck, Banknote, Smartphone, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { THEME_PRESETS, DEFAULT_THEME_SETTINGS } from '../../lib/themePresets';
 
-// ── 지원 테마 프리셋 ────────────────────────────────────────────────────────────
-const THEME_PRESETS = [
-    {
-        id: 'classic-blue',
-        name: '클래식 블루',
-        description: '전문적이고 신뢰할 수 있는 전통적인 스타일',
-        colors: {
-            primary: '#0EA5E9',
-            secondary: '#6366F1',
-            background: '#F8FAFC',
-            surface: '#FFFFFF',
-            text: '#1E293B',
-            border: '#E2E8F0'
-        },
-        font: 'Inter, sans-serif',
-        radius: 'rounded-lg'
-    },
-    {
-        id: 'warm-cocoa',
-        name: '웜 코코아',
-        description: '따뜻하고 아늑한 분위기,카페 컨셉에 적합',
-        colors: {
-            primary: '#D97706',
-            secondary: '#F59E0B',
-            background: '#FDFCFB',
-            surface: '#FFFFFF',
-            text: '#374151',
-            border: '#E5E7EB'
-        },
-        font: 'Noto Sans KR, sans-serif',
-        radius: 'rounded-xl'
-    },
-    {
-        id: 'forest-green',
-        name: '포레스트 그린',
-        description: '신선하고 자연 친화적인 분위기',
-        colors: {
-            primary: '#10B981',
-            secondary: '#059669',
-            background: '#F0FDF4',
-            surface: '#FFFFFF',
-            text: '#14532D',
-            border: '#D1FAE5'
-        },
-        font: 'Pretendard, sans-serif',
-        radius: 'rounded-2xl'
-    },
-    {
-        id: 'royal-purple',
-        name: '로열 퍼플',
-        description: '고급스럽고 세련된 분위기로 고급 레스토랑에 적합',
-        colors: {
-            primary: '#9333EA',
-            secondary: '#7C3AED',
-            background: '#FAF5FF',
-            surface: '#FFFFFF',
-            text: '#581C87',
-            border: '#E9D5FF'
-        },
-        font: 'Noto Sans KR, sans-serif',
-        radius: 'rounded-2xl'
-    },
-    {
-        id: 'ocean-breeze',
-        name: '오션 브리즈',
-        description: '시원하고 깔끔한 바다 분위기',
-        colors: {
-            primary: '#0F766E',
-            secondary: '#14B8A6',
-            background: '#F0F9FF',
-            surface: '#FFFFFF',
-            text: '#134E4A',
-            border: '#CCFBF1'
-        },
-        font: 'Inter, sans-serif',
-        radius: 'rounded-lg'
-    },
-    {
-        id: 'sunset-rose',
-        name: '선셋 로즈',
-        description: '로맨틱하고 감각적인 분위기로 카페에 적합',
-        colors: {
-            primary: '#EC4899',
-            secondary: '#F43F5E',
-            background: '#FFF5F7',
-            surface: '#FFFFFF',
-            text: '#9D174D',
-            border: '#FCE7F3'
-        },
-        font: 'Pretendard, sans-serif',
-        radius: 'rounded-xl'
-    }
+// ── 결제수단 옵션 ─────────────────────────────────────────────────────────────
+const PAYMENT_METHOD_OPTIONS = [
+    { id: 'cash', label: '현금', desc: '기본 결제수단 (항상 활성)', icon: Banknote, color: '#16A34A', fixed: true },
+    { id: 'store_card', label: '매장 카드 단말기', desc: 'POS 단말기 연결 시 활성화', icon: Store, color: '#0EA5E9' },
+    { id: 'transfer', label: '계좌이체', desc: '사업자 계좌 등록 후 활성화', icon: Building2, color: '#10B981' },
+    { id: 'kakao', label: '카카오페이', desc: '토스페이먼츠 연동 필요 (개발 중)', icon: Smartphone, color: '#FEE500', dev: true },
+    { id: 'naver', label: '네이버페이', desc: '토스페이먼츠 연동 필요 (개발 중)', icon: Smartphone, color: '#03C75A', dev: true },
+    { id: 'toss_pay', label: '토스페이먼츠', desc: '개발 키 테스트 중', icon: CreditCard, color: '#0064FF', dev: true },
+    { id: 'point', label: '포인트 결제', desc: '포인트 적립 시 자동 제공', icon: BadgeCheck, color: '#F59E0B', fixed: true },
 ];
 
+// ── 섹션 헤더 (아코디언) ─────────────────────────────────────────────────────────
+// 모듈 레벨 컴포넌트: 부모 렌더마다 재생성되지 않도록 밖으로 추출 (react-best-practices: rerender-no-inline-components)
+const SectionHeader = ({ id, icon: Icon, title, desc, active, onToggle }) => (
+    <button
+        onClick={() => onToggle(active === id ? null : id)}
+        className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+    >
+        <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <Icon size={18} className="text-white" />
+            </div>
+            <div className="text-left">
+                <p className="font-bold text-gray-900">{title}</p>
+                <p className="text-xs text-gray-400">{desc}</p>
+            </div>
+        </div>
+        {active === id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+    </button>
+);
+
+// ── 지원 테마 프리셋 (공용: lib/themePresets) ──────────────────────────────────
+
 // ── UI 크기 설정 ───────────────────────────────────────────────────────────────
-const UISOften = () => {
-    const [uiSize, setUiSize] = useState('medium');
-    const [menuLayout, setMenuLayout] = useState('grid');
-    const [imageQuality, setImageQuality] = useState('high');
+const UISOften = ({ uiSize, onUiSizeChange, menuLayout, onMenuLayoutChange, imageQuality, onImageQualityChange }) => {
 
     return (
         <div className="space-y-6">
@@ -124,7 +61,7 @@ const UISOften = () => {
                         ].map(option => (
                             <button
                                 key={option.value}
-                                onClick={() => setUiSize(option.value)}
+                                onClick={() => onUiSizeChange(option.value)}
                                 className={`p-3 rounded-xl border-2 text-center transition-all ${uiSize === option.value
                                         ? 'border-purple-500 bg-purple-50'
                                         : 'border-gray-200 hover:border-purple-200'
@@ -146,7 +83,7 @@ const UISOften = () => {
                         ].map(option => (
                             <button
                                 key={option.value}
-                                onClick={() => setMenuLayout(option.value)}
+                                onClick={() => onMenuLayoutChange(option.value)}
                                 className={`p-3 rounded-xl border-2 text-center transition-all ${menuLayout === option.value
                                         ? 'border-purple-500 bg-purple-50'
                                         : 'border-gray-200 hover:border-purple-200'
@@ -169,7 +106,7 @@ const UISOften = () => {
                         ].map(option => (
                             <button
                                 key={option.value}
-                                onClick={() => setImageQuality(option.value)}
+                                onClick={() => onImageQualityChange(option.value)}
                                 className={`p-3 rounded-xl border-2 text-center transition-all ${imageQuality === option.value
                                         ? 'border-purple-500 bg-purple-50'
                                         : 'border-gray-200 hover:border-purple-200'
@@ -195,7 +132,7 @@ const UISOften = () => {
                         </div>
                         <span className="font-bold text-gray-800">매장명</span>
                     </div>
-                    <div className={`grid gap-2 ${menuLayout === 'grid' ? 'grid-cols-2' : 'grid-cols-1'}`}>Your store items will appear here with the selected layout and size</div>
+                    <div className={`grid gap-2 ${menuLayout === 'grid' ? 'grid-cols-2' : 'grid-cols-1'}`}>선택한 레이아웃과 크기로 매장 메뉴가 표시됩니다.</div>
                 </div>
             </div>
         </div>
@@ -203,26 +140,9 @@ const UISOften = () => {
 };
 
 // ── 메뉴 옵션 템플릿 ─────────────────────────────────────────────────────────────
-const MenuOptions = () => {
-    const [options, setOptions] = useState({
-        showBadge: true,
-        badgeTypes: {
-            new: { label: 'NEW', color: '#EF4444', show: true },
-            popular: { label: '인기', color: '#10B981', show: true },
-            special: { label: 'SPECIAL', color: '#8B5CF6', show: false }
-        },
-        showPriceUnit: '원',
-        showRating: true,
-        showReviewCount: true,
-        priceFormat: 'comma', // comma | dot | space
-        showSoldOutBadge: true,
-        showLowStockWarning: true,
-        minimumOrderAmount: null,
-        optionDisplay: 'dropdown' // dropdown | buttons | compact
-    });
-
+const MenuOptions = ({ options, onChange }) => {
     const handleOptionChange = (key, value) => {
-        setOptions(prev => ({ ...prev, [key]: value }));
+        onChange(key, value);
     };
 
     return (
@@ -318,10 +238,7 @@ const MenuOptions = () => {
 
 // ── 테마 프리셋 선택 컴포넌트 ─────────────────────────────────────────────────────
 const ThemePresetSelector = ({ onSelect, selectedPreset }) => {
-    const [selected, setSelected] = useState(selectedPreset);
-
     const handlePresetSelect = (preset) => {
-        setSelected(preset.id);
         onSelect(preset);
     };
 
@@ -339,7 +256,7 @@ const ThemePresetSelector = ({ onSelect, selectedPreset }) => {
                     <button
                         key={preset.id}
                         onClick={() => handlePresetSelect(preset)}
-                        className={`p-5 rounded-2xl border-2 transition-all hover:scale-105 ${selected === preset.id
+                        className={`p-5 rounded-2xl border-2 transition-all hover:scale-105 ${selectedPreset === preset.id
                                 ? 'border-blue-500 bg-blue-50 shadow-lg'
                                 : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
                             }`}
@@ -428,11 +345,18 @@ export default function BusinessSettingsWithTheme() {
     };
 
     // 테마 설정
-    const [selectedTheme, setSelectedTheme] = useState(null);
-    const [uiSize, setUiSize] = useState('medium');
-    const [menuLayout, setMenuLayout] = useState('grid');
-    const [imageQuality, setImageQuality] = useState('high');
+    const [selectedTheme, setSelectedTheme] = useState(THEME_PRESETS[0]);
+    const [uiSize, setUiSize] = useState(DEFAULT_THEME_SETTINGS.ui_size);
+    const [menuLayout, setMenuLayout] = useState(DEFAULT_THEME_SETTINGS.menu_layout);
+    const [imageQuality, setImageQuality] = useState(DEFAULT_THEME_SETTINGS.image_quality);
     const [themePreview, setThemePreview] = useState(false);
+
+    // 메뉴 표시 옵션
+    const [menuOptions, setMenuOptions] = useState(DEFAULT_THEME_SETTINGS.menu_options);
+
+    const handleMenuOptionChange = (key, value) => {
+        setMenuOptions(prev => ({ ...prev, [key]: value }));
+    };
 
     useEffect(() => { fetchData(); }, [storeId]);
 
@@ -463,6 +387,10 @@ export default function BusinessSettingsWithTheme() {
             if (data.theme_settings) {
                 const theme = THEME_PRESETS.find(t => t.id === data.theme_settings.theme_preset);
                 setSelectedTheme(theme || null);
+                if (data.theme_settings.ui_size) setUiSize(data.theme_settings.ui_size);
+                if (data.theme_settings.menu_layout) setMenuLayout(data.theme_settings.menu_layout);
+                if (data.theme_settings.image_quality) setImageQuality(data.theme_settings.image_quality);
+                if (data.theme_settings.menu_options) setMenuOptions(data.theme_settings.menu_options);
             }
         } catch {
             toast.error('설정을 불러오지 못했습니다.');
@@ -482,6 +410,7 @@ export default function BusinessSettingsWithTheme() {
                     ui_size: uiSize,
                     menu_layout: menuLayout,
                     image_quality: imageQuality,
+                    menu_options: menuOptions,
                     custom_colors: selectedTheme.colors
                 } : null
             });
@@ -498,17 +427,6 @@ export default function BusinessSettingsWithTheme() {
         if (digits.length <= 5) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
         return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
     };
-
-    const BANKS = [
-        { code: '004', name: '국민은행' }, { code: '088', name: '신한은행' },
-        { code: '020', name: '우리은행' }, { code: '081', name: '하나은행' },
-        { code: '003', name: '기업은행' }, { code: '011', name: 'NH농협은행' },
-        { code: '071', name: '우체국' },   { code: '089', name: '케이뱅크' },
-        { code: '090', name: '카카오뱅크' }, { code: '092', name: '토스뱅크' },
-        { code: '023', name: 'SC제일은행' }, { code: '027', name: '씨티은행' },
-        { code: '035', name: '제주은행' }, { code: '045', name: '새마을금고' },
-        { code: '048', name: '신협' },     { code: '050', name: '저축은행' },
-    ];
 
     if (loading) return <div className="p-10 text-center text-gray-400">설정을 불러오는 중...</div>;
 
@@ -681,7 +599,7 @@ export default function BusinessSettingsWithTheme() {
                                         </div>
                                         <p className="text-xs text-gray-400 mt-0.5">{m.desc}</p>
                                     </div>
-                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${isEnabled ? 'bg-blue-500' : 'bg-gray-200'}`">
+                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${isEnabled ? 'bg-blue-500' : 'bg-gray-200'}`}>
                                         {isEnabled && <Check size={14} className="text-white" />}
                                     </div>
                                 </div>
@@ -692,23 +610,6 @@ export default function BusinessSettingsWithTheme() {
                             {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
                             결제수단 설정 저장
                         </button>
-                    </div>
-                )}
-            </div>
-
-            {/* 메뉴 옵션 */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <SectionHeader
-                    id="options"
-                    icon={Sliders}
-                    title="메뉴 표시 옵션"
-                    desc="메뉴 아이템 표시 방식과 배지, 가격 표시 등 고객용 옵션을 설정합니다"
-                    active={activeSection}
-                    onToggle={setActiveSection}
-                />
-                {activeSection === 'options' && (
-                    <div className="px-5 pb-5 space-y-6 border-t border-gray-50">
-                        <MenuOptions />
                     </div>
                 )}
             </div>
@@ -726,7 +627,14 @@ export default function BusinessSettingsWithTheme() {
                 {activeSection === 'theme' && (
                     <div className="px-5 pb-5 space-y-6 border-t border-gray-50">
                         <ThemePresetSelector onSelect={setSelectedTheme} selectedPreset={selectedTheme?.id} />
-                        <UISOften />
+                        <UISOften
+                            uiSize={uiSize}
+                            onUiSizeChange={setUiSize}
+                            menuLayout={menuLayout}
+                            onMenuLayoutChange={setMenuLayout}
+                            imageQuality={imageQuality}
+                            onImageQualityChange={setImageQuality}
+                        />
                     </div>
                 )}
             </div>
@@ -743,7 +651,7 @@ export default function BusinessSettingsWithTheme() {
                 />
                 {activeSection === 'options' && (
                     <div className="px-5 pb-5 space-y-6 border-t border-gray-50">
-                        <MenuOptions />
+                        <MenuOptions options={menuOptions} onChange={handleMenuOptionChange} />
                     </div>
                 )}
             </div>
@@ -798,5 +706,3 @@ export default function BusinessSettingsWithTheme() {
         </div>
     );
 }
-
-export default BusinessSettingsWithTheme;
