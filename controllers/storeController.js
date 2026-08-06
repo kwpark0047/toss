@@ -83,6 +83,15 @@ const storeController = {
             userId: req.user.id,
         });
 
+        if (result.alreadyOwned) {
+            // 사용자가 이미 전화번호로 소유한 매장이 존재 → 중복 생성 방지
+            return res.success(
+                { alreadyOwned: true, store: result.store, matchMethod: result.matchMethod },
+                '이미 등록된 매장입니다.',
+                200
+            );
+        }
+
         if (result.linkRequested) {
             // 매칭된 매장에 대한 링크 요청 생성
             const linkReq = await storeService.createLinkRequest(

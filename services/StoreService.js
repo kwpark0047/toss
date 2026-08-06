@@ -159,10 +159,34 @@ class StoreService {
         const { name, address, phone, business_number, userId } = data;
 
         if (name && name.trim()) {
-            // 1) 사업자등록번호 매칭
+            // 0) 우선 사용자 자신이 소유한 매장인지 확인 (중복 생성 방지)
+            //    전화번호로 로그인한 사용자가 이미 만든 매장은 재매칭하지 않음
+            if (phone) {
+                const phoneDigits = digitsOnly(phone);
+                if (phoneDigits.length >= 9) {
+                    const ownedMatch = await prisma.stores.findFirst({
+                        where: {
+                            user_id: userId,
+                            phone: { not: null },
+                        },
+                        select: { id: true, name: true, address: true, phone: true },
+                    });
+                    const ownedPhoneMatch = ownedMatch && digitsOnly(ownedMatch.phone || '') === phoneDigits
+                        ? ownedMatch
+                        : null;
+                    if (ownedPhoneMatch) {
+                        return { alreadyOwned: true, store: ownedPhoneMatch, matchMethod: 'user_owned_phone' };
+                    }
+                }
+            }
+
+            // 1) 사업자등록번호 매칭 (공공 매장 + 사용자 매장)
             if (business_number) {
                 const bnMatch = await prisma.stores.findFirst({
-                    where: { user_id: PUBLIC_OWNER_ID, business_number: business_number.trim() },
+                    where: {
+                        user_id: { in: [PUBLIC_OWNER_ID, userId] },
+                        business_number: business_number.trim(),
+                    },
                     select: { id: true, name: true, address: true, phone: true, business_number: true },
                 });
                 if (bnMatch) {
@@ -170,12 +194,15 @@ class StoreService {
                 }
             }
 
-            // 2) 전화번호 매칭
+            // 2) 전화번호 매칭 (공공 매장 + 사용자 매장)
             if (phone) {
                 const phoneDigits = digitsOnly(phone);
                 if (phoneDigits.length >= 9) {
                     const allCandidates = await prisma.stores.findMany({
-                        where: { user_id: PUBLIC_OWNER_ID, phone: { not: null } },
+                        where: {
+                            user_id: { in: [PUBLIC_OWNER_ID, userId] },
+                            phone: { not: null },
+                        },
                         select: { id: true, name: true, address: true, phone: true },
                         take: 500,
                     });
@@ -186,14 +213,17 @@ class StoreService {
                 }
             }
 
-            // 3) 상호명+주소 점수 기반 매칭
+            // 3) 상호명+주소 점수 기반 매칭 (공공 매장 + 사용자 매장)
             const tokens = name.trim().split(/\s+/).filter(Boolean);
             const nameKey = tokens.sort((a, b) => b.length - a.length)[0].slice(0, 20);
             const target = normNm(name);
             const inDong = dongOf(address), inGu = guOf(address);
 
             const candidates = await prisma.stores.findMany({
-                where: { user_id: PUBLIC_OWNER_ID, name: { contains: nameKey } },
+                where: {
+                    user_id: { in: [PUBLIC_OWNER_ID, userId] },
+                    name: { contains: nameKey },
+                },
                 select: { id: true, name: true, address: true, phone: true },
                 take: 80,
             });
