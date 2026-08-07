@@ -18,11 +18,13 @@ function loadSentry() {
 /** 운영 환경에서만 Sentry 초기화 (첫 렌더 이후 호출 권장) */
 export async function initSentry() {
   if (import.meta.env.DEV) return;
+  const dsn = import.meta.env.VITE_SENTRY_DSN;
+  if (!dsn) return; // DSN 미설정 시 초기화 생략 (소스 콘솔 placeholder 경고 방지)
   try {
     const Sentry = await loadSentry();
     const { BrowserTracing } = await import('@sentry/tracing');
     Sentry.init({
-      dsn: 'https://your-sentry-dsn@sentry.io/YOUR_PROJECT_ID',
+      dsn,
       integrations: [new BrowserTracing()],
       tracesSampleRate: 1.0,
       environment: import.meta.env.MODE,

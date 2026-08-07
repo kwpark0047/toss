@@ -25,8 +25,8 @@ export default function SystemStatusWidget() {
     const checkHealth = async () => {
       try {
         const start = Date.now();
-        // Fallback to a simple health check or just /api/businesses
-        const response = await api.get('/businesses', { params: { limit: 1 } });
+        // Fallback to a simple health check
+        await api.get('/health');
         const latency = Date.now() - start;
         
         setStatus(prev => ({
