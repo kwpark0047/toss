@@ -1,7 +1,6 @@
 const prisma = require('../config/prisma');
 const Store = require('../repositories/Store');
 const cache = require('../utils/cache');
-const logger = require('../utils/logger');
 
 // 공공매장 매칭 상수
 const PUBLIC_OWNER_ID = 1;

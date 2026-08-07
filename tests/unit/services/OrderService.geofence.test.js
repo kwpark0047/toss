@@ -120,7 +120,6 @@ describe('OrderService — 지오펜싱 통합 테스트', () => {
       latitude: null,
       longitude: null,
     });
-    const { AppError } = require('../../../utils/errorHandler');
     const Order = require('../../../repositories/Order');
     Order.create.mockResolvedValue({ id: 1, order_number: 'ORD-001' });
 

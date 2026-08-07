@@ -1,5 +1,4 @@
 const axios = require('axios');
-const logger = require('../utils/logger');
 
 /**
  * 네이버 지역검색 API 연동 (공식 Open API).

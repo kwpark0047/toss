@@ -1,7 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { AppError } = require('../utils/errorHandler');
-const logger = require('../utils/logger');
 const authMiddleware = require('../middleware/auth');
 const prisma = require('../config/prisma');
 const { checkResourcePermission } = require('../middleware/storeAuth');

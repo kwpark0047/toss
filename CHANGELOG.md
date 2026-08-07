@@ -1,7 +1,31 @@
 # Changelog
 
 > WeMarket QR Menu Platform — SaaS for Small Business
-> 최신 버전: v1.1.1 (2026-07-25)
+> 최신 버전: v1.2.0 (2026-08-07)
+
+---
+
+## v1.2.0 (2026-08-07)
+
+### 매장 테마 설정 저장 · 메뉴판 적용 (Store Theme Settings)
+
+#### 🎨 테마 저장/조회 파이프라인
+- **Store 저장소/서비스에 theme 지원 추가**: `findBusinessInfo`가 `theme`(theme_settings)를 포함 조회, `updateBusinessInfo`가 theme_settings를 JSON으로 저장
+- **BusinessSettingsWithTheme**: 로컬 프리셋을 공용 모듈로 분리 — `frontend/src/lib/themePresets.js` 신규 (THEME_PRESETS 6종, DEFAULT_THEME_SETTINGS, resolveThemeStyle, formatPriceWithOptions)
+- **MenuPage 테마 적용**: `store.theme`에서 프리셋 색상/폰트, `menu_layout`(그리드), `ui_size`(카드 패딩), `menu_options`(배지/가격 포맷/단위 표시)를 파싱해 CSS 변수로 반영
+- **MenuItemCard 옵션 지원**: `showBadge`, `priceFormat`, `showPriceUnit` prop 적용
+- **themePresets 단위 테스트 추가** (`frontend/src/test/themePresets.test.js`)
+
+#### 🔧 배포 인프라 정상화 (Deployment Pipeline)
+- **Cloudflare Worker `/api` 프록시**: `frontend/worker.js`가 `/api/*` 요청을 백엔드(`https://wemarket.onrender.com`)로 프록시 — 배포본에서 `/api`가 SPA HTML로 응답되던 문제 해결
+- **worker 스크립트 실행 보장**: 루트 `wrangler.json`(assets-only, main 없음)이 `frontend/wrangler.toml`보다 우선 로드되어 no-op worker + SPA 폴백만 동작하던 원인 제거, `run_worker_first = true` 추가
+- **wrangler devDependency 고정**: wrangler-action@v3의 npx 비대화형 설치 실패(`no YES option`) 해결 위해 `wrangler@4.119.0` 고정 + 워크플로 `wranglerVersion` 지정
+- **CI deploy job 최초 통과**: Render 재배포(hook) + frontend 빌드 + Cloudflare Workers 배포 전 단계 성공
+- **통합 테스트 계약 정합**: 주문 API 페이지네이션 계약 및 OrderService 선행조회에 맞게 `orders.test.js`, `phase4.test.js` 수정
+
+#### 🚀 배포 결과
+- 백엔드: `https://wemarket.onrender.com` — `/api/health` 200 (v1.2.0)
+- 프론트: `https://toss.wemarket.workers.dev` — SPA + `/api` 프록시 동작 확인
 
 ---
 

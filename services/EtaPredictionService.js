@@ -22,15 +22,8 @@ class EtaPredictionService {
 
       // 3. 주문된 아이템들의 복잡도 가중치 반영
       if (items && items.length > 0) {
-        const productIds = items.map((i) => Number(i.product_id)).filter(Boolean);
-        if (productIds.length > 0) {
-          const products = await prisma.products.findMany({
-            where: { id: { in: productIds } },
-            select: { id: true, name: true },
-          });
-          // 복잡한 메뉴(예: 세트, 수제 등)가 포함된 경우 추가 시간 산정
-          estimatedMinutes += items.reduce((acc, cur) => acc + (cur.quantity || 1) * 1.5, 0);
-        }
+        // 복잡한 메뉴(예: 세트, 수제 등)가 포함된 경우 추가 시간 산정
+        estimatedMinutes += items.reduce((acc, cur) => acc + (cur.quantity || 1) * 1.5, 0);
       }
 
       const finalEta = Math.min(Math.max(Math.round(estimatedMinutes), 5), 60); // 최소 5분, 최대 60분

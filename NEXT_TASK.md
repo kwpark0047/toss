@@ -1,19 +1,30 @@
 # NEXT_TASK.md - 다음 작업 우선순위
 
 > **작성일**: 2026-07-25  
+> **최종 갱신**: 2026-08-07  
 > **작성자**: WeMarket 개발팀  
-> **기준**: 성능 최적화 고도화(v1.1.1) 완료 후 다음 단계
+> **기준**: 매장 테마 + CI/CD 배포 운영(v1.2.0) 완료 후 다음 단계
 
 ---
 
 ## 🎯 즉시 실행 필요 (우선순위: 높음)
 
-### 1. GitHub Secrets 설정 및 CI 실행 검증
+### 1. `docker-build` Trivy 취약점 대응 (배포 파이프라인 차단 중)
 | 작업 | 상세 | 예상 시간 |
 |-----|------|-----------|
-| GitHub Repository Settings → Secrets and variables → Actions에서 시크릿 등록 | - `DATABASE_URL` (PostgreSQL 연결 문자열)<br>- `JWT_SECRET` / `JWT_REFRESH_SECRET`<br>- `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`<br>- `RENDER_DEPLOY_HOOK_URL`<br>- `SLACK_WEBHOOK_URL` (알림용)<br>- `SENTRY_DSN` (선택) | 30분 |
-| `git push origin main` 실행하여 CI 파이프라인 첫 실행 | GitHub Actions 탭에서 8개 Job 순차 실행 확인 | 10분 |
-| 실패 Job 로그 분석 및 수정 | 최초 실행 시 환경변수 누락/권한 이슈 해결 | 30분 |
+| Trivy 결과 분석 | `trivy image --severity CRITICAL,HIGH --exit-code 1` 실패 원인 파악 (base image/의존성 업데이트 필요) | 30분 |
+| 베이스 이미지/의존성 업그레이드 | `node:22-alpine` 등 최신 패치 반영, `npm audit fix` | 1시간 |
+| 스캔 재실행 | CI `docker-build` job 통과 확인 (재실행 시 rerun-failed-jobs 활용) | 10분 |
+
+---
+
+## ✅ 완료 (2026-08-07)
+
+### GitHub Secrets 설정 및 CI 실행 검증
+- [x] GitHub Secrets 등록: `DATABASE_URL`, `JWT_SECRET`/`JWT_REFRESH_SECRET`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `RENDER_DEPLOY_HOOK_URL`, `SLACK_WEBHOOK_URL` 등
+- [x] CI/CD 첫 배포 실행 성공 (deploy job success — run `31116379511`): Render hook → frontend build → wrangler 배포
+- [x] Cloudflare `/api` 프록시 동작 확인: `https://toss.wemarket.workers.dev/api/health` → `{"status":"ok","db":"connected","version":"1.2.0"}`
+- [x] wrangler devDependency 고정(`4.119.0`)으로 배포 워크플로 안정화
 
 ---
 
@@ -100,10 +111,10 @@
 
 ```
 Week 1 (이번 주)
-├── Day 1: GitHub Secrets 설정 + CI 첫 실행 → 수정
+├── Day 1: Trivy 취약점 대응 → docker-build job 통과 (배포 차단 해소)
 ├── Day 2: PostgreSQL 로컬 + 통합 테스트 검증
 ├── Day 3: Playwright CI 안정화 + Semgrep 튜닝
-├── Day 4: Docker 멀티스테이지 빌드 + Trivy 통과
+├── Day 4: Docker 멀티스테이지 빌드 마무리 + 이미지 크기 최적화
 └── Day 5: 버그 수정/문서 정리 + PR 머지
 
 Week 2 (다음 주)
@@ -117,17 +128,18 @@ Week 2 (다음 주)
 ## 📌 참고: 현재 브랜치 상태
 
 ```bash
-# 현재 브랜치: main (v1.1.1 커밋됨: 1fa366d)
+# 현재 브랜치: main (v1.2.0 커밋됨: 7238e72)
 # develop 브랜치 없음 → 필요시 생성 권장
 git branch -a
 # * main
 #   remotes/origin/main
 
-# 푸시 대기 중인 커밋: 1fa366d (ci: 파이프라인 강화 — lint/test/build/보안)
+# 최근 커밋: 7238e72 (fix(cloudflare): run worker first so /api proxy actually executes)
 git log --oneline -5
 ```
 
 ---
 
 **작성 완료**: 2026-07-25  
-**다음 검토**: CI 파이프라인 첫 실행 후 검증 시
+**최종 갱신**: 2026-08-07 (v1.2.0 — CI/CD 배포 운영 반영)  
+**다음 검토**: Trivy 취약점 대응 완료 후

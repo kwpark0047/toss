@@ -72,7 +72,6 @@ jest.mock('../../../config/prisma', () => ({
 
 // ── Imports ───────────────────────────────────────────────
 const TossAPI = require('../../../utils/toss');
-const notificationUtils = require('../../../utils/notifications');
 const prisma = require('../../../config/prisma');
 const pointService = require('../../../services/PointsService');
 const ledgerService = require('../../../services/LedgerService');

@@ -4,7 +4,6 @@ const Table = require('../repositories/Table');
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission, getStoreRole } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
-const { AppError } = require('../utils/errorHandler');
 const logger = require('../utils/logger');
 const crypto = require('crypto');
 const prisma = require('../config/prisma');

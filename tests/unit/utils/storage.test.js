@@ -5,7 +5,6 @@
  * 드라이버 추상화가 계약대로 동작하는지, 경로 이탈이 차단되는지 검증한다.
  */
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 
 jest.mock('../../../utils/logger', () => ({

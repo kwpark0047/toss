@@ -24,7 +24,7 @@ class DynamicSaleService {
 
     const expiresAt = new Date(Date.now() + (Number(durationHours) || 2) * 60 * 60 * 1000);
 
-    const updated = await prisma.products.update({
+    await prisma.products.update({
       where: { id: numericProductId },
       data: {
         price: salePrice,

@@ -98,7 +98,6 @@ const Table = require('../../../repositories/Table');
 const Product = require('../../../repositories/Product');
 const Store = require('../../../repositories/Store');
 const prisma = require('../../../config/prisma');
-const { AppError } = require('../../../utils/errorHandler');
 
 describe('OrderService', () => {
   let svc;

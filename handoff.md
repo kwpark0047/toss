@@ -1,9 +1,10 @@
 # WeMarket 프로젝트 인수인계 문서
 
 > **작성일**: 2026-07-25  
+> **최종 갱신**: 2026-08-07  
 > **작성자**: WeMarket 개발팀  
-> **버전**: v1.1.1  
-> **상태**: 성능 최적화 고도화 완료, CI 파이프라인 준비 완료
+> **버전**: v1.2.0  
+> **상태**: 매장 테마 기능 + `/api` 프록시 + CI/CD 배포 파이프라인 운영 완료
 
 ---
 
@@ -13,8 +14,8 @@
 |------|------|
 | **프로젝트명** | WeMarket (QR 메뉴 & 스마트 매장 관리 플랫폼) |
 | **레포지토리** | https://github.com/kwpark0047-iceu/250105 |
-| **현재 버전** | v1.1.1 (성능 최적화 고도화 완료) |
-| **배포 환경** | 백엔드: Render.com, 프론트엔드: Cloudflare Pages |
+| **현재 버전** | v1.2.0 (매장 테마 + CI/CD 배포 운영) |
+| **배포 환경** | 백엔드: Render (`wemarket.onrender.com`), 프론트엔드: Cloudflare Workers (`toss.wemarket.workers.dev`) |
 | **데이터베이스** | PostgreSQL (Supabase) + Prisma ORM |
 
 ---
@@ -25,15 +26,25 @@
 |------|-----------|
 | **Backend** | Node.js 18+, Express 5, Socket.IO, Prisma ORM, PostgreSQL |
 | **Frontend** | React 19, Vite 7, React Router 7, react-i18next (4개 언어) |
-| **Infra** | Cloudflare Pages/Workers, Render, Supabase, GitHub Actions |
+| **Infra** | Cloudflare Workers (Static Assets + `/api` 프록시), Render, Supabase, GitHub Actions |
 | **Testing** | Jest (Backend), Vitest (Frontend), Playwright (E2E) |
 | **CI/CD** | GitHub Actions (8개 Job 병렬 실행) |
 
 ---
 
-## 3. 최근 완료된 주요 작업 (v1.1.1)
+## 3. 최근 완료된 주요 작업
 
-### 성능 최적화 고도화 (2026-07-25 완료)
+### v1.2.0 — 매장 테마 + `/api` 프록시 + CI/CD 배포 운영 (2026-08-07)
+
+| # | 작업 | 핵심 내용 | 검증 결과 |
+|---|------|-----------|-----------|
+| 1 | 매장 테마 설정 저장·적용 | `theme_settings` 저장/조회, `themePresets.js`(6종) 공용화, MenuPage CSS 변수 적용 | 테마 단위 테스트 통과 |
+| 2 | Cloudflare Worker `/api` 프록시 | `frontend/worker.js`가 `/api/*` → `https://wemarket.onrender.com` 프록시 | `https://toss.wemarket.workers.dev/api/health` 200 |
+| 3 | worker 실행 우선순위 해결 | 루트 `wrangler.json`(assets-only) 삭제 + `run_worker_first = true` | `/api`가 HTML 대신 백엔드 JSON 반환 |
+| 4 | wrangler devDependency 고정 | `wrangler@4.119.0` + 워크플로 `wranglerVersion` 지정 | CI deploy job 최초 통과 |
+| 5 | 통합 테스트 계약 정합 | 주문 API 페이지네이션/선행조회 mock 정합 | `orders.test.js`, `phase4.test.js` 수정 |
+
+### 성능 최적화 고도화 (2026-07-25 완료, v1.1.1)
 
 | # | 작업 | 도구/기술 | 검증 결과 |
 |---|------|-----------|-----------|
@@ -63,7 +74,12 @@ Jobs (병렬 실행):
   7. deploy                 → Render(백엔드) + Cloudflare Workers(프론트)
 ```
 
-**현재 상태**: 로컬에서 모든 단계 검증 완료, 푸시 시 자동 실행 대기 중
+**현재 상태**: 배포 파이프라인 운영 중 — 최종 run `31116379511`에서 deploy job (Render hook → frontend build → wrangler deploy) 및 테스트 job 통과. 프론트/백엔드 모두 운영 배포 완료.
+
+**알려진 이슈**:
+- `docker-build`의 Trivy가 백엔드 취약점 발견으로 실패 (사전 존재 이슈)
+- `bundle-size-check`는 인프라 오류(`Failed to resolve action download info`, Bad Gateway)로 간헐 실패 → rerun-failed-jobs로 재실행 필요
+- Playwright E2E job은 사전 존재 이슈로 실패 상태
 
 ---
 
@@ -101,6 +117,10 @@ Jobs (병렬 실행):
 
 | 커밋 | 메시지 | 날짜 |
 |------|--------|------|
+| `7238e72` | fix(cloudflare): run worker first so /api proxy actually executes | 2026-08-07 |
+| `899b81c` | ci: fix cloudflare deploy failure by pinning wrangler as devDependency | 2026-08-06 |
+| `7e932a6` | test: 주문 API 페이지네이션 계약 및 OrderService 선행조회에 맞게 통합 테스트 수정 | 2026-08-06 |
+| `d5614ee` | feat: 매장 테마 저장·메뉴판 적용 및 Cloudflare worker /api 프록시 | 2026-08-06 |
 | `1fa366d` | ci: 파이프라인 강화 — lint/test/build/보안 | 2026-07-25 |
 | - | 프론트엔드 pnpm→npm 전환, 테스트/빌드/린트/예산 모두 통과 | |
 | - | Service Worker Stale-While-Revalidate 전략 적용 | |
@@ -119,13 +139,15 @@ Jobs (병렬 실행):
 
 | 순위 | 작업 | 난이도 | 예상 기간 |
 |------|------|--------|-----------|
-| 1 | GitHub Secrets 설정 및 CI 실행 검증 | 낮 | 30분 |
+| 1 | `docker-build` Trivy 취약점 대응 (배포 차단 중) | 높음 | 2시간 |
 | 2 | PostgreSQL 컨테이너로 통합 테스트 로컬 검증 | 중간 | 1시간 |
 | 3 | Playwright E2E 브라우저 의존성 해결 (CI) | 중간 | 1시간 |
 | 4 | Semgrep 보안 스캔 규칙 튜닝 | 낮 | 30분 |
 | 5 | Docker 이미지 크기 최적화 (multi-stage) | 중간 | 1시간 |
 | 6 | 프론트엔드 번들 추가 분할 (lazy loading) | 중간 | 2시간 |
 | 7 | DB 인덱스 최적화 (느린 쿼리 분석) | 높음 | 2시간 |
+
+> ✅ 완료: GitHub Secrets 설정 (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` 등), CI/CD 실행 검증 (deploy job success)
 
 ---
 
@@ -138,20 +160,19 @@ Jobs (병렬 실행):
 ├── jest.config.js / jest.setup.js    # Jest 설정
 ├── package.json / package-lock.json  # 백엔드 의존성
 ├── playwright.config.js              # Playwright E2E 설정
-├── CHANGELOG.md                      # 변경 이력 (v1.1.1 최신)
-├── CONTRIBUTING.md                   # 기여 가이드 (신규)
+├── CHANGELOG.md                      # 변경 이력 (v1.2.0 최신)
+├── CONTRIBUTING.md                   # 기여 가이드
 ├── handoff.md                        # 이 문서
 ├── NEXT_TASK.md                      # 다음 작업 우선순위 (별도 파일)
-├── README.md                         # 프로젝트 개요 (성능 최적화 반영)
-├── LICENSE                           # MIT License (신규)
-├── CONTRIBUTING.md                   # 기여 가이드 (신규)
-├── handoff.md                        # 이 문서
-├── NEXT_TASK.md                      # 다음 작업 우선순위 (별도)
+├── README.md                         # 프로젝트 개요 (배포/테마 반영)
+├── LICENSE                           # MIT License
 ├── app.js / index.js                 # 백엔드 진입점
 ├── app.js / controllers/ / services/ / routes/ / middleware/ / repositories/
 ├── prisma/schema.prisma              # Prisma 스키마 (53 모델)
 ├── frontend/
 │   ├── vite.config.js               # Vite + PWA + Critical CSS + 이미지 최적화
+│   ├── wrangler.toml                 # Cloudflare Workers (assets + run_worker_first)
+│   ├── worker.js                     # /api/* → 백엔드 프록시
 │   ├── package.json / package-lock.json
 │   ├── performance-budget.json       # 성능 예산 설정
 │   ├── scripts/performance-budget.cjs  # 예산 검증 스크립트
@@ -160,13 +181,13 @@ Jobs (병렬 실행):
 │   ├── src/
 │   │   ├── main.jsx                 # 진입점 (Web Vitals 초기화)
 │   │   ├── utils/webVitals.js       # Web Vitals 모니터링
+│   │   ├── lib/themePresets.js      # 테마 프리셋 6종 (공용)
 │   │   ├── api/                     # API 클라이언트 (20개 모듈)
-│   │   ├── components/              # 127개 컴포넌트
-│   │   ├── pages/                   # 32개 페이지
+│   │   ├── components/              # 컴포넌트
+│   │   ├── pages/                   # 페이지
 │   │   ├── hooks/                   # 커스텀 훅
 │   │   ├── contexts/                # React Context
-│   │   └── test/                    # 4개 테스트 파일 (33 테스트)
-│   ├── package.json / package-lock.json
+│   │   └── test/                    # 테스트 파일
 │   └── postcss.config.js
 └── tests/
     ├── unit/ (41개)                 # 백엔드 단위 테스트
@@ -180,15 +201,14 @@ Jobs (병렬 실행):
 
 ## 9. 인수인계 체크리스트
 
-- [x] README.md 업데이트 (성능 최적화 현황 반영)
-- [x] CHANGELOG.md 업데이트 (v1.1.1 추가)
+- [x] README.md 업데이트 (성능 최적화 현황 + 배포 섹션 반영)
+- [x] CHANGELOG.md 업데이트 (v1.2.0 추가)
 - [x] LICENSE 파일 생성 (MIT)
 - [x] CONTRIBUTING.md 생성
 - [x] handoff.md 작성 (이 문서)
 - [x] NEXT_TASK.md 생성 (별도 파일)
-- [x] LICENSE 파일 생성 (MIT)
-- [ ] GitHub Secrets 설정 (DATABASE_URL, JWT_SECRET, CLOUDFLARE_API_TOKEN 등)
-- [ ] GitHub Actions CI 실행 검증
+- [x] GitHub Secrets 설정 (DATABASE_URL, JWT_SECRET, CLOUDFLARE_API_TOKEN 등)
+- [x] GitHub Actions CI 실행 검증 (deploy job success — run `31116379511`)
 - [ ] PR 템플릿/이슈 템플릿 추가 (`.github/`)
 
 ---
@@ -205,4 +225,5 @@ Jobs (병렬 실행):
 ---
 
 **작성 완료**: 2026-07-25  
-**다음 검토 예정**: CI 파이프라인 첫 실행 후 검증 시
+**최종 갱신**: 2026-08-07 (v1.2.0 — 매장 테마 + `/api` 프록시 + CI/CD 배포 운영 반영)  
+**다음 검토 예정**: Trivy 취약점 대응 완료 후

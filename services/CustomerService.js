@@ -2,12 +2,7 @@ const prisma = require('../config/prisma');
 const Point = require('../repositories/Point');
 const StoreTier = require('../repositories/StoreTier');
 const StoreCustomer = require('../repositories/StoreCustomer');
-const {
-  normalizePhone,
-  encryptPhone,
-  decryptPhone,
-  phoneSearchCandidates,
-} = require('../utils/phoneEncryption');
+const { normalizePhone, encryptPhone, phoneSearchCandidates } = require('../utils/phoneEncryption');
 const { haversineKm } = require('../utils/geo');
 const logger = require('../utils/logger');
 

@@ -1,7 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { AppError } = require('../utils/errorHandler');
-const logger = require('../utils/logger');
 const staffGamificationController = require('../controllers/staffGamificationController');
 const { authMiddleware } = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
@@ -31,9 +29,10 @@ const { checkStorePermission } = require('../middleware/storeAuth');
  *       200:
  *         description: 리더보드 데이터
  */
-router.get('/store/:storeId/leaderboard', 
-  authMiddleware, 
-  checkStorePermission('stats:read'), 
+router.get(
+  '/store/:storeId/leaderboard',
+  authMiddleware,
+  checkStorePermission('stats:read'),
   staffGamificationController.getLeaderboard
 );
 
@@ -60,11 +59,11 @@ router.get('/store/:storeId/leaderboard',
  *       200:
  *         description: 직원 성과 상세
  */
-router.get('/store/:storeId/performance/:staffId', 
-  authMiddleware, 
-  checkStorePermission('stats:read'), 
+router.get(
+  '/store/:storeId/performance/:staffId',
+  authMiddleware,
+  checkStorePermission('stats:read'),
   staffGamificationController.getStaffDetailPerformance
 );
 
 module.exports = router;
-

@@ -7,7 +7,7 @@ SaaS QR Menu & Small Business Platform — QR 코드 기반 매장 운영(메뉴
 - **Backend**: Node.js + Express 5 (`express@^5.2.1`), Socket.IO (`^4.8.3`), Helmet (`^8.1.0`), CORS
 - **Database**: PostgreSQL + Prisma ORM (`^5.22.0`)
 - **Frontend**: React (Vite SPA), `react-i18next` (ko/en/ja/zh 4개 locale)
-- **Infra**: Cloudflare Pages / Workers, Vercel (빌드), Render (`render.yaml`) 배포 지원
+- **Infra**: 백엔드 Render (`render.yaml`, `wemarket.onrender.com`), 프론트 Cloudflare Workers Static Assets (`toss.wemarket.workers.dev`), Vercel (빌드) 지원
 - **Test**: Jest (`^30.4.2`), Playwright (E2E), React Testing Library
 - **Security**: helmet 보안 헤더 + CSP nonce (`middleware/cspNonce.js`), XSS sanitizer, domain 기반 CORS 화이트리스트 (`config/domain.js`)
 - **Performance**: WebP/AVIF 자동 변환, Critical CSS 인라인화, 번들 분석, 성능 예산, Web Vitals 모니터링
@@ -96,24 +96,18 @@ npm run dev
 | 리소스 힌트 | preconnect/preload/dns-prefetch | 폰트/Unsplash/Kakao Maps/Solapi 조기 연결 |
 | SW 캐시 전략 | Workbox `NetworkFirst` + `StaleWhileRevalidate` | API 응답 지연 숨김, 오프라인 지원 |
 
-## 주요 스크립트
+## 배포
 
-| 스크립트 | 설명 |
-|---|---|
-| `npm start` | 프로덕션 서버 기동 (`node index.js`) |
-| `npm run build` | Prisma generate + 프론트엔드 빌드 |
-| `npm test` | Jest 전체 (coverage, `--forceExit --detectOpenHandles`) |
-| `npm run test:unit` | 단위 테스트 |
-| `npm run test:integration` | 통합 테스트 (`tests/integration`) |
-| `npm run test:regression` | 회귀 테스트 |
-| `npm run test:e2e` | Playwright E2E |
-| `npm run db:migrate` | Prisma 마이그레이션(dev) |
-| `npm run db:migrate:prod` | Prisma 마이그레이션(deploy) |
-| `npm run seed` | 운영 시드 데이터 |
-| `npm run lint:backend` | ESLint |
-| `npm run security:scan` | semgrep 보안 스캔 (backend) |
-| `npm run security:scan:frontend` | semgrep 보안 스캔 (frontend) |
-| `npm run perf:budget` | 프론트엔드 성능 예산 검증 |
+```bash
+# 프론트엔드 빌드 + Cloudflare Workers 배포 (worker.js가 /api/* 를 백엔드로 프록시)
+cd frontend
+npm run build
+npx wrangler deploy   # CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID 필요
+```
+
+- **백엔드**: Render `https://wemarket.onrender.com` (`render.yaml`, 배포 hook으로 CI 트리거)
+- **프론트**: Cloudflare Workers `https://toss.wemarket.workers.dev` (Static Assets + `/api` 프록시)
+- **CI**: GitHub Actions `deploy` job이 Render hook 호출 → frontend 빌드 → wrangler 배포 순서로 자동 진행
 
 ## API 개요
 
@@ -132,7 +126,7 @@ npm run dev
 
 ## 문서
 
-- `CHANGELOG.md` — 실제 진행 이력 (최신 v1.1.1)
+- `CHANGELOG.md` — 실제 진행 이력 (최신 v1.2.0)
 - `CONTRIBUTING.md` — 기여 가이드
 - `CLAUDE.md` — 개발 가이드
 - `handoff.md` — 인수인계 문서
