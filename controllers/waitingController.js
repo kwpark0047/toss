@@ -4,6 +4,7 @@ const Product = require('../repositories/Product');
 const Order = require('../repositories/Order');
 const WaitingService = require('../services/WaitingService');
 const CustomerPreferenceService = require('../services/CustomerPreferenceService');
+const { success, created, error, validationError } = require('../utils/apiResponse');
 
 const waitingService = new WaitingService();
 const preferenceService = new CustomerPreferenceService();
@@ -12,19 +13,19 @@ const waitingController = {
   // [GET] 특정 매장의 현재 대기 현황 조회
   getStoreStatus: catchAsync(async (req, res) => {
     const count = await waitingService.getStoreStatus(req.params.storeId);
-    res.json({ success: true, waiting_teams: count });
+    return success(res, { waiting_teams: count }, '대기 현황 조회 성공');
   }),
 
   // [GET] 특정 매장의 대기 리스트 조회 (관리자)
   getStoreWaitingList: catchAsync(async (req, res) => {
     const data = await waitingService.getStoreWaitingList(req.params.storeId);
-    res.json({ success: true, data });
+    return success(res, data, '대기 리스트 조회 성공');
   }),
 
   // [POST] 대기 등록 (고객)
   register: catchAsync(async (req, res) => {
     const data = await waitingService.register(req.body);
-    res.json({ success: true, data });
+    return created(res, data, '대기 등록 완료');
   }),
 
   // [PATCH] 대기 상태 변경 (관리자: 호출/입장/취소, 고객: 취소)
@@ -49,26 +50,26 @@ const waitingController = {
             : '대기 상태가 업데이트되었습니다.',
       });
     }
-    res.json({ success: true, data });
+    return success(res, data, '대기 상태 변경 완료');
   }),
 
   // [GET] 내 대기 상태 조회 (휴대폰 번호 기준)
   getMyWaiting: catchAsync(async (req, res) => {
     const data = await waitingService.getMyWaiting(req.params.phone);
-    res.json({ success: true, data });
+    return success(res, data, '내 대기 상태 조회 성공');
   }),
 
   // [GET] AI 기반 대기 중 메뉴 추천 (개인화)
   // GET /api/waiting/store/:storeId/ai-suggestions?weather=&mood=&phone=&toss_user_key=
   getAISuggestions: catchAsync(async (req, res) => {
     const storeId = parseInt(req.params.storeId);
-    if (isNaN(storeId)) return res.status(400).json({ error: '유효하지 않은 매장 ID입니다.' });
+    if (isNaN(storeId)) return error(res, '유효하지 않은 매장 ID입니다.', 400);
 
     const { weather, mood, phone, toss_user_key } = req.query;
 
     const menuList = await Product.findActiveAndInStock(storeId);
     if (menuList.length === 0) {
-      return res.json({ suggestions: [], source: 'ai' });
+      return success(res, { suggestions: [], source: 'ai' }, '추천 메뉴 없음');
     }
 
     // 개인화 추천 서비스 사용 (전화번호가 있는 경우)
@@ -84,16 +85,20 @@ const waitingController = {
         }
       );
 
-      return res.json({
-        suggestions: suggestions.map((s) => ({
-          id: s.id,
-          name: s.name,
-          price: s.price,
-          reason: s.reason,
-          is_favorite: s.is_favorite,
-        })),
-        source: 'personalized_ai',
-      });
+      return success(
+        res,
+        {
+          suggestions: suggestions.map((s) => ({
+            id: s.id,
+            name: s.name,
+            price: s.price,
+            reason: s.reason,
+            is_favorite: s.is_favorite,
+          })),
+          source: 'personalized_ai',
+        },
+        '개인화 추천 완료'
+      );
     }
 
     // 전화번호 없으면 기존 방식 (비개인화)
@@ -148,23 +153,27 @@ const waitingController = {
       })
       .filter(Boolean);
 
-    res.json({ suggestions, source: 'ai' });
+    return success(res, { suggestions, source: 'ai' }, 'AI 추천 완료');
   }),
 
   // [PATCH] 알림톡 재발송 (상태 변경 없이 알림만 재전송)
   resendNotification: catchAsync(async (req, res) => {
     const data = await waitingService.resendNotification(req.params.id);
-    res.json({ success: true, data });
+    return success(res, data, '알림톡 재발송 완료');
   }),
 
   // [POST] 즐겨찾기 메뉴 토글 (고객)
   toggleFavorite: catchAsync(async (req, res) => {
     const { store_id, customer_phone, menu_id } = req.body;
     if (!store_id || !customer_phone || !menu_id) {
-      return res.status(400).json({ error: 'store_id, customer_phone, menu_id 필수' });
+      return validationError(
+        res,
+        { store_id, customer_phone, menu_id },
+        'store_id, customer_phone, menu_id 필수'
+      );
     }
     const data = await preferenceService.toggleFavorite(store_id, customer_phone, menu_id);
-    res.json({ success: true, data });
+    return success(res, data, '즐겨찾기 토글 완료');
   }),
 };
 

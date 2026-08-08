@@ -29,7 +29,11 @@ describe('waitingController', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     req = { body: {}, query: {}, params: {}, user: { id: 10 } };
-    res = { json: jest.fn(), status: jest.fn().mockReturnThis(), success: jest.fn() };
+    res = {
+      json: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+      success: jest.fn(),
+    };
     next = jest.fn();
   });
 
@@ -38,7 +42,12 @@ describe('waitingController', () => {
       req.params.storeId = '1';
       mockWaitingService.getStoreStatus.mockResolvedValue(5);
       await waitingController.getStoreStatus(req, res);
-      expect(res.json).toHaveBeenCalledWith({ success: true, waiting_teams: 5 });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: '대기 현황 조회 성공',
+        data: { waiting_teams: 5 },
+      });
     });
   });
 
@@ -47,7 +56,12 @@ describe('waitingController', () => {
       req.params.storeId = '1';
       mockWaitingService.getStoreWaitingList.mockResolvedValue([{ id: 1 }]);
       await waitingController.getStoreWaitingList(req, res);
-      expect(res.json).toHaveBeenCalledWith({ success: true, data: [{ id: 1 }] });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: '대기 리스트 조회 성공',
+        data: [{ id: 1 }],
+      });
     });
   });
 
@@ -56,7 +70,14 @@ describe('waitingController', () => {
       req.body = { store_id: 1, name: '김철수', phone: '01012345678', party_size: 2 };
       mockWaitingService.register.mockResolvedValue({ id: 1, position: 3 });
       await waitingController.register(req, res);
-      expect(res.json).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          message: '대기 등록 완료',
+          data: { id: 1, position: 3 },
+        })
+      );
     });
   });
 
@@ -66,7 +87,14 @@ describe('waitingController', () => {
       req.body = { status: 'called' };
       mockWaitingService.updateStatus.mockResolvedValue({ id: 1, status: 'called' });
       await waitingController.updateStatus(req, res);
-      expect(res.json).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          message: '대기 상태 변경 완료',
+          data: { id: 1, status: 'called' },
+        })
+      );
     });
 
     test('상태 변경 시 스태프/고객 소켓 룸에 실시간 방송한다', async () => {
@@ -104,7 +132,13 @@ describe('waitingController', () => {
       mockWaitingService.updateStatus.mockResolvedValue({ id: 1, status: 'cancelled' });
       req.app = undefined;
       await expect(waitingController.updateStatus(req, res)).resolves.not.toThrow();
-      expect(res.json).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          message: '대기 상태 변경 완료',
+        })
+      );
     });
   });
 
@@ -113,7 +147,12 @@ describe('waitingController', () => {
       req.params.phone = '01012345678';
       mockWaitingService.getMyWaiting.mockResolvedValue({ position: 2, ahead_count: 1 });
       await waitingController.getMyWaiting(req, res);
-      expect(res.json).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: '내 대기 상태 조회 성공',
+        data: { position: 2, ahead_count: 1 },
+      });
     });
   });
 });
