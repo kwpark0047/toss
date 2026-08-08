@@ -1,6 +1,8 @@
 import api from './client';
+import { getSocket } from '../utils/socket';
 
 export const ordersAPI = {
+  getSocket,
   getByStore: (storeId, status, date) => {
     let url = '/orders/store/' + storeId;
     const params = [];

@@ -1,4 +1,5 @@
 import api from './client';
+import { getSocket as getOrderSocket } from '../utils/socket';
 
 export const pointsAPI = {
   getBalance: (params) => api.get('/points/balance', { params }),
@@ -11,11 +12,14 @@ export const pointsAPI = {
 
 export const analyticsAPI = {
   getSales: (storeId, period, startDate, endDate) =>
-    api.get(`/analytics/store/${storeId}/sales?period=${period}&start_date=${startDate}&end_date=${endDate}`),
-  getComparison: (storeId, type) =>
-    api.get(`/analytics/store/${storeId}/comparison?type=${type}`),
+    api.get(
+      `/analytics/store/${storeId}/sales?period=${period}&start_date=${startDate}&end_date=${endDate}`
+    ),
+  getComparison: (storeId, type) => api.get(`/analytics/store/${storeId}/comparison?type=${type}`),
   getProducts: (storeId, startDate, endDate, limit = 10, sort = 'quantity') =>
-    api.get(`/analytics/store/${storeId}/products?start_date=${startDate}&end_date=${endDate}&limit=${limit}&sort=${sort}`),
+    api.get(
+      `/analytics/store/${storeId}/products?start_date=${startDate}&end_date=${endDate}&limit=${limit}&sort=${sort}`
+    ),
   getStaff: (storeId, startDate, endDate) =>
     api.get(`/analytics/store/${storeId}/staff?start_date=${startDate}&end_date=${endDate}`),
   getKds: (storeId, startDate, endDate) =>
@@ -23,20 +27,22 @@ export const analyticsAPI = {
   getInsights: (storeId, startDate, endDate) =>
     api.get(`/analytics/store/${storeId}/insights?start_date=${startDate}&end_date=${endDate}`),
   getMultiStore: (params) => api.get('/analytics/multi-store', { params }),
-  getForecast: (storeId, days = 7) =>
-    api.get(`/analytics/store/${storeId}/forecast?days=${days}`),
+  getForecast: (storeId, days = 7) => api.get(`/analytics/store/${storeId}/forecast?days=${days}`),
 };
 
 export const uploadsAPI = {
-  uploadImage: (formData) => api.post('/uploads/image', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  uploadImages: (formData) => api.post('/uploads/images', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  uploadReviewImage: (formData) => api.post('/uploads/review-image', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
+  uploadImage: (formData) =>
+    api.post('/uploads/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  uploadImages: (formData) =>
+    api.post('/uploads/images', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  uploadReviewImage: (formData) =>
+    api.post('/uploads/review-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
   deleteImage: (filename) => api.delete(`/uploads/image/${filename}`),
 };
 
@@ -45,7 +51,8 @@ export const waitingAPI = {
   register: (data) => api.post('/waiting/register', data),
   cancel: (id) => api.patch(`/waiting/${id}/status`, { status: 'cancelled' }),
   getMyWaiting: (phone) => api.get(`/waiting/my/${phone}`),
-  getAISuggestions: (storeId, params = {}) => api.get(`/waiting/store/${storeId}/ai-suggestions`, { params }),
+  getAISuggestions: (storeId, params = {}) =>
+    api.get(`/waiting/store/${storeId}/ai-suggestions`, { params }),
 };
 
 export const reservationsAPI = {
@@ -89,7 +96,8 @@ export const aiAPI = {
   storytelling: (data) => api.post('/ai/storytelling', data),
   analyzeMenuList: (data) => api.post('/ai/analyze-menu-list', data),
   recommendEnhancement: (description) => api.post('/ai/recommend-enhancement', { description }),
-  translateMenu: (storeId, targetLang) => api.post('/ai/translate-menu', { store_id: storeId, targetLang }),
+  translateMenu: (storeId, targetLang) =>
+    api.post('/ai/translate-menu', { store_id: storeId, targetLang }),
   recommendPersonalized: (data) => api.post('/ai/recommend', data),
   recommendDessert: (data) => api.post('/ai/recommend-dessert', data),
   proposeMenuFull: (data) => api.post('/ai/propose-menu-full', data),
@@ -103,6 +111,5 @@ export const weatherAPI = {
 };
 
 export const getSocket = () => {
-  if (window.orderSocket) return window.orderSocket;
-  return null;
+  return getOrderSocket();
 };

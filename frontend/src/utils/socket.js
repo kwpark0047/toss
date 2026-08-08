@@ -149,8 +149,15 @@ export const onDisconnect = (callback) => {
 // 연결 상태 확인
 export const isConnected = () => socket.connected;
 
-// 소켓 인스턴스 반환
-export const getSocket = () => socket;
+// 소켓 인스턴스 반환.
+// autoConnect: false 이므로 고객 페이지 같이 명시적 join 전에 소켓을 얻는
+// 사용처에서도 emit이 전송되도록, 아직 연결 전이면 지연 연결을 보장한다.
+export const getSocket = () => {
+  if (!socket.active) {
+    socket.connect();
+  }
+  return socket;
+};
 
 // 주방 소켓 연결
 export const connectKitchen = (storeId, userId) => {
