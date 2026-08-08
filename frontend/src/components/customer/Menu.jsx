@@ -192,7 +192,8 @@ const Menu = () => {
         storesAPI.getById(storeId), categoriesAPI.getByStore(storeId), productsAPI.getByStore(storeId)
       ]);
       setStore(storeRes.data);
-      setCategories(categoriesRes.data);
+      // categoriesController는 bare res.json(array) 응답하므로 배열 직접 접근 지원
+      setCategories(Array.isArray(categoriesRes) ? categoriesRes : (categoriesRes.data || []));
       setProducts(productsRes.data.filter((p) => p.is_active && !p.is_sold_out));
     } catch { setError("매장 정보를 불러올 수 없습니다"); }
     finally { setLoading(false); }

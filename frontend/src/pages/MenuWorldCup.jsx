@@ -31,7 +31,8 @@ const MenuWorldCup = () => {
             try {
                 // 카테고리 로드
                 const catRes = await categoriesAPI.getAll();
-                setCategories(catRes.data || []);
+                // categoriesController는 bare res.json(array) 응답하므로 배열 직접 접근 지원
+                setCategories(Array.isArray(catRes) ? catRes : (catRes.data || []));
 
                 // 전체 상품 로드 (실제로는 카테고리 선택 후 로드하거나 필터링)
                 // MVP에서는 일단 전체 로드 후 필터링
