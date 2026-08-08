@@ -82,14 +82,17 @@ const OrderHistory = () => {
                 }
             });
 
-            socket.on('order-updated', (data) => {
+            // 등록한 리스너만 참조로 제거해 다른 컴포넌트의
+            // order-updated 리스너까지 삭제하는 것을 방지한다.
+            const handleOrderUpdated = (data) => {
                 setOrders(prev => prev.map(o =>
                     o.id === data.order_id ? { ...o, status: data.status, status_label: data.status_label } : o
                 ));
-            });
+            };
+            socket.on('order-updated', handleOrderUpdated);
 
             return () => {
-                socket.off('order-updated');
+                socket.off('order-updated', handleOrderUpdated);
             };
         }
     }, [userPhone, tossUserKey]);

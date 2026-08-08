@@ -222,16 +222,51 @@ const Menu = () => {
     const socket = ordersAPI.getSocket();
     if (!socket) return;
 
+    const handleOrderUpdated = (data) => {
+      if (data?.order_id === orderSuccess.id) {
+        setOrderSuccess(prev => ({ ...prev, status: data.status }));
+        if (data.status === 'ready' && Notification?.permission === 'granted') {
+          new Notification('식사가 준비되었습니다!', { body: data.status_label || '음식이 준비되었습니다.' });
+        }
+      }
+    };
+    const handleCartItemUpdated = (data) => {
+      setCart(prev => {
+        if (data.action === 'add' || data.action === 'update') {
+          const exists = prev.find(i => (i.product_id || i.id) === data.item.product_id);
+          if (exists) return prev.map(i => (i.product_id || i.id) === data.item.product_id ? { ...i, quantity: data.item.quantity } : i);
+          return [...prev, {
+            id: data.item.product_id,
+            product_id: data.item.product_id,
+            product_name: data.item.products?.name || '상품',
+            price: data.item.products?.price || 0,
+            quantity: data.item.quantity,
+            shared: true
+          }];
+        } else if (data.action === 'remove') {
+          return prev.filter(i => (i.product_id || i.id) !== data.item.product_id);
+        } else if (data.action === 'clear') {
+          return [];
+        }
+        return prev;
+      });
+    };
+    const handleProductUpdated = (data) => {
+      setProducts(prev => prev.map(p => p.id === data.productId ? { ...p, ...data, is_sold_out: data.is_sold_out } : p));
+
+      setCart(prev => {
+        const itemInCart = prev.find(i => (i.product_id || i.id) === data.productId);
+        if (itemInCart && data.is_sold_out) {
+          alert(`죄송합니다. 담으신 [${data.name}] 메뉴가 방금 품절되었습니다.`);
+          return prev.filter(i => (i.product_id || i.id) !== data.productId);
+        }
+        return prev;
+      });
+    };
+
     if (orderSuccess?.id) {
       socket.emit('join-order', orderSuccess.id);
-      socket.on('order-updated', (data) => {
-        if (data?.order_id === orderSuccess.id) {
-          setOrderSuccess(prev => ({ ...prev, status: data.status }));
-          if (data.status === 'ready' && Notification?.permission === 'granted') {
-            new Notification('식사가 준비되었습니다!', { body: data.status_label || '음식이 준비되었습니다.' });
-          }
-        }
-      });
+      socket.on('order-updated', handleOrderUpdated);
     }
 
     if (table?.id) {
@@ -254,46 +289,15 @@ const Menu = () => {
       };
       loadCart();
 
-      socket.on('cart-item-updated', (data) => {
-        setCart(prev => {
-          if (data.action === 'add' || data.action === 'update') {
-            const exists = prev.find(i => (i.product_id || i.id) === data.item.product_id);
-            if (exists) return prev.map(i => (i.product_id || i.id) === data.item.product_id ? { ...i, quantity: data.item.quantity } : i);
-            return [...prev, {
-              id: data.item.product_id,
-              product_id: data.item.product_id,
-              product_name: data.item.products?.name || '상품',
-              price: data.item.products?.price || 0,
-              quantity: data.item.quantity,
-              shared: true
-            }];
-          } else if (data.action === 'remove') {
-            return prev.filter(i => (i.product_id || i.id) !== data.item.product_id);
-          } else if (data.action === 'clear') {
-            return [];
-          }
-          return prev;
-        });
-      });
+      socket.on('cart-item-updated', handleCartItemUpdated);
     }
 
-    socket.on('product-updated', (data) => {
-      setProducts(prev => prev.map(p => p.id === data.productId ? { ...p, ...data, is_sold_out: data.is_sold_out } : p));
-
-      setCart(prev => {
-        const itemInCart = prev.find(i => (i.product_id || i.id) === data.productId);
-        if (itemInCart && data.is_sold_out) {
-          alert(`죄송합니다. 담으신 [${data.name}] 메뉴가 방금 품절되었습니다.`);
-          return prev.filter(i => (i.product_id || i.id) !== data.productId);
-        }
-        return prev;
-      });
-    });
+    socket.on('product-updated', handleProductUpdated);
 
     return () => {
-      socket.off('order-updated');
-      socket.off('cart-item-updated');
-      socket.off('product-updated');
+      socket.off('order-updated', handleOrderUpdated);
+      socket.off('cart-item-updated', handleCartItemUpdated);
+      socket.off('product-updated', handleProductUpdated);
     };
   }, [orderSuccess?.id, table?.id]);
 
