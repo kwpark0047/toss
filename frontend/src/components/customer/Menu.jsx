@@ -28,6 +28,7 @@ import { enqueueOperation } from "../../lib/offlineQueue";
 // 모듈화된 하위 컴포넌트들 임포트
 import MenuSkeleton from "./MenuSkeleton";
 import MenuProductList from "./MenuProductList";
+import OrderProgressBar from "./OrderProgressBar";
 
 const defaultTheme = {
   primaryColor: "#f97316",
@@ -45,7 +46,7 @@ const paymentMethods = [
   { id: "transfer", label: "계좌이체", icon: Building2, desc: "실시간 이체" }
 ];
 
-const Menu = () => {
+const Menu = ({ kioskMode = false }) => {
   const { t, i18n } = useTranslation();
   const { qrCode } = useParams();
   const navigate = useNavigate();
@@ -1082,6 +1083,8 @@ const Menu = () => {
                 <X size={24} style={{ color: theme.textColor }} />
               </button>
             </div>
+            {/* 주문 진행바 */}
+            <OrderProgressBar currentStep={orderStep} kioskMode={kioskMode} theme={theme} />
 
             {orderStep === "cart" && (
               <>
@@ -1098,12 +1101,12 @@ const Menu = () => {
                         <p className="text-sm font-black" style={{ color: theme.primaryColor }}>{formatPrice(i.price)}</p>
                       </div>
                       <div className="flex items-center gap-3 bg-white p-1 rounded-2xl shadow-sm border border-slate-100">
-                        <button onClick={() => updateQuantity(i.product_id, -1)} className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors">
-                          <Minus size={16} className="text-slate-600" />
+                        <button onClick={() => updateQuantity(i.product_id, -1)} className={`w-12 h-12 rounded-xl flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors ${kioskMode ? 'scale-125' : ''}`}>
+                          <Minus size={kioskMode ? 20 : 16} className="text-slate-600" />
                         </button>
-                        <span className="w-6 text-center font-black text-slate-800">{i.quantity}</span>
-                        <button onClick={() => updateQuantity(i.product_id, 1)} className="w-9 h-9 rounded-xl flex items-center justify-center bg-orange-50 hover:bg-orange-100 transition-colors">
-                          <Plus size={16} className="text-orange-600" />
+                        <span className={`w-8 text-center font-black text-slate-800 ${kioskMode ? 'text-lg' : ''}`}>{i.quantity}</span>
+                        <button onClick={() => updateQuantity(i.product_id, 1)} className="w-12 h-12 rounded-xl flex items-center justify-center bg-orange-50 hover:bg-orange-100 transition-colors">
+                          <Plus size={kioskMode ? 20 : 16} className="text-orange-600" />
                         </button>
                       </div>
                     </motion.div>
@@ -1157,24 +1160,24 @@ const Menu = () => {
             {orderStep === "payment" && (
               <>
                 <div className="p-6">
-                  <h3 className="text-xl font-black mb-6" style={{ color: theme.textColor }}>결제 방식을 선택해주세요</h3>
+                  <h3 className={`text-xl font-black mb-6 ${kioskMode ? 'text-2xl' : ''}`} style={{ color: theme.textColor }}>결제 방식을 선택해주세요</h3>
 
                   <motion.button
                     whileTap={{ scale: 0.98 }}
                     onClick={() => { setShowTogetherSheet(true); setShowCart(false); }}
-                    className="w-full mb-6 p-5 rounded-[2rem] bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-xl shadow-blue-100 flex items-center justify-between group overflow-hidden relative"
+                    className={`w-full mb-6 p-6 rounded-[2rem] bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-xl shadow-blue-100 flex items-center justify-between group overflow-hidden relative ${kioskMode ? 'p-8' : ''}`}
                   >
                     <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="flex items-center gap-4 relative z-10">
-                      <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-                        <Users size={24} />
+                    <div className="flex items-center gap-5 relative z-10">
+                      <div className={`w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center ${kioskMode ? 'w-14 h-14' : ''}`}>
+                        <Users size={kioskMode ? 28 : 24} />
                       </div>
                       <div className="text-left">
-                        <p className="font-black text-lg">함께 결제하기 (N분의 1)</p>
-                        <p className="text-[11px] opacity-80 font-medium">따로 결제하고 포인트도 각자 받으세요!</p>
+                        <p className={`font-black ${kioskMode ? 'text-xl' : 'text-lg'}`}>함께 결제하기 (N분의 1)</p>
+                        <p className={`opacity-80 font-medium ${kioskMode ? 'text-sm' : 'text-[11px]'}`}>따로 결제하고 포인트도 각자 받으세요!</p>
                       </div>
                     </div>
-                    <ChevronRight size={24} className="opacity-50 group-hover:translate-x-1 transition-transform" />
+                    <ChevronRight size={kioskMode ? 28 : 24} className="opacity-50 group-hover:translate-x-1 transition-transform" />
                   </motion.button>
 
                   <div className="space-y-3">
@@ -1182,20 +1185,20 @@ const Menu = () => {
                       <button
                         key={m.id}
                         onClick={() => setOrderForm({ ...orderForm, payment_method: m.id })}
-                        className="w-full p-5 rounded-[2rem] border-2 flex items-center gap-4 transition-all"
+                        className={`w-full p-6 rounded-[2rem] border-2 flex items-center gap-5 transition-all ${kioskMode ? 'p-7' : ''}`}
                         style={{
                           borderColor: orderForm.payment_method === m.id ? theme.primaryColor : "transparent",
                           backgroundColor: orderForm.payment_method === m.id ? theme.primaryColor + "08" : "#f8fafc"
                         }}
                       >
-                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm" style={{ backgroundColor: theme.primaryColor + "15" }}>
-                          <m.icon size={24} style={{ color: theme.primaryColor }} />
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${kioskMode ? 'w-14 h-14' : ''}`} style={{ backgroundColor: theme.primaryColor + "15" }}>
+                          <m.icon size={kioskMode ? 28 : 24} style={{ color: theme.primaryColor }} />
                         </div>
                         <div className="text-left flex-1">
-                          <p className="font-bold text-gray-900">{m.label}</p>
-                          <p className="text-xs text-gray-400 font-medium">{m.desc}</p>
+                          <p className={`font-bold text-gray-900 ${kioskMode ? 'text-lg' : ''}`}>{m.label}</p>
+                          <p className={`text-xs text-gray-400 font-medium ${kioskMode ? 'text-sm' : ''}`}>{m.desc}</p>
                         </div>
-                        {orderForm.payment_method === m.id && <CheckCircle size={24} style={{ color: theme.primaryColor }} />}
+                        {orderForm.payment_method === m.id && <CheckCircle size={kioskMode ? 28 : 24} style={{ color: theme.primaryColor }} />}
                       </button>
                     ))}
                   </div>
@@ -1203,7 +1206,7 @@ const Menu = () => {
                 <div className="p-8 border-t bg-white/80 backdrop-blur-md sticky bottom-0">
                   <button
                     onClick={() => setOrderStep("confirm")}
-                    className="w-full py-5 text-white rounded-[2rem] font-black text-lg shadow-xl shadow-orange-500/30 active:scale-[0.98] transition-all"
+                    className={`w-full py-6 text-white rounded-[2rem] font-black text-xl shadow-xl shadow-orange-500/30 active:scale-[0.98] transition-all ${kioskMode ? 'text-2xl py-8' : ''}`}
                     style={{ background: gradientBg }}
                   >
                     {t('order.enter_info')}
@@ -1214,8 +1217,8 @@ const Menu = () => {
 
             {orderStep === "confirm" && (
               <>
-                <div className="p-6 space-y-4">
-                  <h3 className="text-xl font-black mb-4" style={{ color: theme.textColor }}>
+                <div className="p-6 space-y-5">
+                  <h3 className={`text-xl font-black mb-5 ${kioskMode ? 'text-2xl' : ''}`} style={{ color: theme.textColor }}>
                     {t('order.order_info')} ({t('order.optional')})
                   </h3>
                   <input
@@ -1226,7 +1229,7 @@ const Menu = () => {
                     placeholder={t('order.name')}
                     value={orderForm.customer_name}
                     onChange={(e) => setOrderForm({ ...orderForm, customer_name: e.target.value })}
-                    className="w-full px-5 py-4 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-orange-400 text-sm font-medium border"
+                    className={`w-full px-6 py-5 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-orange-400 font-medium border ${kioskMode ? 'text-lg' : 'text-sm'}`}
                     style={{ backgroundColor: theme.backgroundColor }}
                   />
                   <input
@@ -1238,7 +1241,7 @@ const Menu = () => {
                     placeholder={t('order.phone')}
                     value={orderForm.customer_phone}
                     onChange={(e) => setOrderForm({ ...orderForm, customer_phone: e.target.value })}
-                    className="w-full px-5 py-4 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-orange-400 text-sm font-medium border"
+                    className={`w-full px-6 py-5 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-orange-400 font-medium border ${kioskMode ? 'text-lg' : 'text-sm'}`}
                     style={{ backgroundColor: theme.backgroundColor }}
                   />
                   <textarea
@@ -1246,8 +1249,8 @@ const Menu = () => {
                     placeholder={t('order.notes')}
                     value={orderForm.notes}
                     onChange={(e) => setOrderForm({ ...orderForm, notes: e.target.value })}
-                    rows={2}
-                    className="w-full px-5 py-4 rounded-2xl outline-none resize-none focus-visible:ring-2 focus-visible:ring-orange-400 text-sm font-medium border"
+                    rows={3}
+                    className={`w-full px-6 py-5 rounded-2xl outline-none resize-none focus-visible:ring-2 focus-visible:ring-orange-400 font-medium border ${kioskMode ? 'text-lg' : 'text-sm'}`}
                     style={{ backgroundColor: theme.backgroundColor }}
                   />
 
@@ -1269,7 +1272,7 @@ const Menu = () => {
                 <div className="p-8 border-t bg-white/80 backdrop-blur-md sticky bottom-0">
                   <button
                     onClick={orderForm.payment_method === "card" ? openPaymentSheet : handleOrder}
-                    className="w-full py-5 text-white rounded-[2rem] font-black text-lg shadow-xl shadow-orange-500/30 active:scale-[0.98] transition-all"
+                    className={`w-full py-6 text-white rounded-[2rem] font-black text-xl shadow-xl shadow-orange-500/30 active:scale-[0.98] transition-all ${kioskMode ? 'text-2xl py-8' : ''}`}
                     style={{ background: gradientBg }}
                   >
                     {orderForm.payment_method === "card" ? t('order.pay_now') : t('order.place_order')}
