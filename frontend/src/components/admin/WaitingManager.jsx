@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { getSocket, waitingAPI } from '../../api';
+import { useTTS } from '../../hooks/useTTS';
 import {
   PhoneCall,
   Users,
@@ -16,6 +17,8 @@ import {
   BarChart2,
   Send,
   AlertTriangle,
+  Mic2,
+  Mic,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
@@ -100,7 +103,9 @@ const WaitingManager = () => {
     const [activeTab, setActiveTab] = useState('ACTIVE');
     const [refreshing, setRefreshing] = useState(false);
     const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('waiting_sound') !== 'false');
+    const [ttsEnabled, setTtsEnabled] = useState(() => localStorage.getItem('waiting_tts') !== 'false');
     const [notificationEnabled, setNotificationEnabled] = useState(false);
+    const { speak, speaking: ttsSpeaking } = useTTS();
     const fetchList = useCallback(async () => {
         try {
             const response = await waitingAPI.getStoreWaitingList(storeId);
@@ -156,15 +161,24 @@ const WaitingManager = () => {
                 applyRemoteUpdate(res.data);
                 toast.success(`${label} 처리되었습니다.`);
 
-                // 호출(called) 시 알림음 + 브라우저 알림
-                if (status === 'called' && soundEnabled) {
-                    playNotificationSound();
-                }
-                if (status === 'called' && notificationEnabled) {
-                    sendBrowserNotification(
-                        '대기 호출',
-                        `${entry?.customer_name || '고객'}님 #{entry?.queue_number}번 입장 안내`
-                    );
+                // 호출(called) 시 알림음 + 브라우저 알림 + 음성 안내(TTS)
+                if (status === 'called') {
+                    if (soundEnabled) {
+                        playNotificationSound();
+                    }
+                    if (notificationEnabled) {
+                        sendBrowserNotification(
+                            '대기 호출',
+                            `${entry?.customer_name || '고객'}님 #{entry?.queue_number}번 입장 안내`
+                        );
+                    }
+                    // TTS 음성 안내
+                    if (ttsEnabled) {
+                        speak(
+                            `${entry?.customer_name || '고객'}님 ${entry?.queue_number}번, 입장해 주세요.`,
+                            { lang: 'ko-KR', rate: 1, pitch: 1, volume: 1 }
+                        );
+                    }
                 }
             }
         } catch {
@@ -278,6 +292,21 @@ const WaitingManager = () => {
                         <span className="flex items-center gap-1">
                             <Bell size={16} />
                             브라우저 알림
+                        </span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={ttsEnabled}
+                            onChange={e => {
+                                setTtsEnabled(e.target.checked);
+                                localStorage.setItem('waiting_tts', e.target.checked.toString());
+                            }}
+                            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="flex items-center gap-1">
+                            {ttsSpeaking ? <Mic2 size={16} /> : <Mic size={16} />}
+                            음성 안내(TTS)
                         </span>
                     </label>
                     <button
