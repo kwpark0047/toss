@@ -41,6 +41,7 @@ const WaitingSection = ({ store, onClose }) => {
         return () => {
             socket.off('waiting-status-changed', onWaitingStatusChanged);
             socket.off('refresh-ahead-count', onRefreshAheadCount);
+            socket.emit('leave-my-waiting', { phone: localStorage.getItem('waiting_phone') });
         };
     }, []);
 

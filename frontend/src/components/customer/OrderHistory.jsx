@@ -78,18 +78,18 @@ const OrderHistory = () => {
             // 진행 중인 주문들에 대해 룸 참여
             orders.forEach(order => {
                 if (!['completed', 'cancelled'].includes(order.status)) {
-                    socket.emit('join-order-room', { orderId: order.id });
+                    socket.emit('join-order', order.id);
                 }
             });
 
-            socket.on('order-status', (data) => {
+            socket.on('order-updated', (data) => {
                 setOrders(prev => prev.map(o =>
-                    o.id === data.orderId ? { ...o, status: data.status } : o
+                    o.id === data.order_id ? { ...o, status: data.status, status_label: data.status_label } : o
                 ));
             });
 
             return () => {
-                socket.off('order-status');
+                socket.off('order-updated');
             };
         }
     }, [userPhone, tossUserKey]);

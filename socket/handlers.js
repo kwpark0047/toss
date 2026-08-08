@@ -79,7 +79,11 @@ function registerSocketHandlers(io) {
     // ── 실시간 대시보드 (DashboardBroadcastService 연동) ──
     socket.on('join-dashboard', async (data, ack) => {
       const storeId = typeof data === 'object' ? data.storeId : data;
-      const role = await getAuthorizedStoreRole(socket, storeId, ['owner', 'manager', 'super_admin']);
+      const role = await getAuthorizedStoreRole(socket, storeId, [
+        'owner',
+        'manager',
+        'super_admin',
+      ]);
       if (!role) return deny(ack, 'FORBIDDEN', '대시보드 구독 권한이 없습니다.');
 
       const sid = Number(storeId);
@@ -287,6 +291,10 @@ function registerSocketHandlers(io) {
 
     socket.on('join-my-waiting', ({ phone }) => {
       socket.join(`customer - waiting - ${phone}`);
+    });
+
+    socket.on('leave-my-waiting', ({ phone }) => {
+      socket.leave(`customer - waiting - ${phone}`);
     });
 
     socket.on('update-waiting-status', (data) => {

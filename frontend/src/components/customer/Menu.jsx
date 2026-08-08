@@ -223,13 +223,13 @@ const Menu = () => {
     if (!socket) return;
 
     if (orderSuccess?.id) {
-      socket.emit('join-order-room', { orderId: orderSuccess.id });
-      socket.on('order-status', (data) => {
-        setOrderSuccess(prev => ({ ...prev, status: data.status }));
-      });
-      socket.on('notification', (notif) => {
-        if (notif.type === 'ORDER_READY' && Notification.permission === 'granted') {
-          new Notification('식사가 준비되었습니다!', { body: notif.message });
+      socket.emit('join-order', orderSuccess.id);
+      socket.on('order-updated', (data) => {
+        if (data?.order_id === orderSuccess.id) {
+          setOrderSuccess(prev => ({ ...prev, status: data.status }));
+          if (data.status === 'ready' && Notification?.permission === 'granted') {
+            new Notification('식사가 준비되었습니다!', { body: data.status_label || '음식이 준비되었습니다.' });
+          }
         }
       });
     }
@@ -291,8 +291,7 @@ const Menu = () => {
     });
 
     return () => {
-      socket.off('order-status');
-      socket.off('notification');
+      socket.off('order-updated');
       socket.off('cart-item-updated');
       socket.off('product-updated');
     };
