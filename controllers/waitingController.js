@@ -3,8 +3,10 @@ const aiService = require('../services/aiService');
 const Product = require('../repositories/Product');
 const Order = require('../repositories/Order');
 const WaitingService = require('../services/WaitingService');
+const CustomerPreferenceService = require('../services/CustomerPreferenceService');
 
 const waitingService = new WaitingService();
+const preferenceService = new CustomerPreferenceService();
 
 const waitingController = {
   // [GET] 특정 매장의 현재 대기 현황 조회
@@ -56,7 +58,7 @@ const waitingController = {
     res.json({ success: true, data });
   }),
 
-  // [GET] AI 기반 대기 중 메뉴 추천
+  // [GET] AI 기반 대기 중 메뉴 추천 (개인화)
   // GET /api/waiting/store/:storeId/ai-suggestions?weather=&mood=&phone=&toss_user_key=
   getAISuggestions: catchAsync(async (req, res) => {
     const storeId = parseInt(req.params.storeId);
@@ -69,9 +71,35 @@ const waitingController = {
       return res.json({ suggestions: [], source: 'ai' });
     }
 
+    // 개인화 추천 서비스 사용 (전화번호가 있는 경우)
+    if (phone) {
+      const suggestions = await preferenceService.getPersonalizedRecommendations(
+        storeId,
+        phone,
+        menuList,
+        {
+          weather: weather || '맑음',
+          mood: mood || '보통',
+          time: new Date().toLocaleTimeString('ko-KR'),
+        }
+      );
+
+      return res.json({
+        suggestions: suggestions.map((s) => ({
+          id: s.id,
+          name: s.name,
+          price: s.price,
+          reason: s.reason,
+          is_favorite: s.is_favorite,
+        })),
+        source: 'personalized_ai',
+      });
+    }
+
+    // 전화번호 없으면 기존 방식 (비개인화)
     let pastOrders = [];
-    if (phone || toss_user_key) {
-      const history = await Order.findByCustomer(phone, toss_user_key);
+    if (toss_user_key) {
+      const history = await Order.findByCustomer(null, toss_user_key);
       pastOrders = history
         .flatMap((order) => order.items.map((item) => item.product_name))
         .slice(0, 10);
@@ -126,6 +154,16 @@ const waitingController = {
   // [PATCH] 알림톡 재발송 (상태 변경 없이 알림만 재전송)
   resendNotification: catchAsync(async (req, res) => {
     const data = await waitingService.resendNotification(req.params.id);
+    res.json({ success: true, data });
+  }),
+
+  // [POST] 즐겨찾기 메뉴 토글 (고객)
+  toggleFavorite: catchAsync(async (req, res) => {
+    const { store_id, customer_phone, menu_id } = req.body;
+    if (!store_id || !customer_phone || !menu_id) {
+      return res.status(400).json({ error: 'store_id, customer_phone, menu_id 필수' });
+    }
+    const data = await preferenceService.toggleFavorite(store_id, customer_phone, menu_id);
     res.json({ success: true, data });
   }),
 };

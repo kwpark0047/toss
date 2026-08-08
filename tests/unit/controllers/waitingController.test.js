@@ -1,15 +1,24 @@
 // waitingController 단위 테스트
 jest.mock('../../../utils/catchAsync', () => (fn) => fn);
 
-const mockService = {
+const mockWaitingService = {
   getStoreStatus: jest.fn(),
   getStoreWaitingList: jest.fn(),
   register: jest.fn(),
   updateStatus: jest.fn(),
   getMyWaiting: jest.fn(),
+  resendNotification: jest.fn(),
 };
 jest.mock('../../../services/WaitingService', () => {
-  return jest.fn().mockImplementation(() => mockService);
+  return jest.fn().mockImplementation(() => mockWaitingService);
+});
+
+const mockPreferenceService = {
+  getPersonalizedRecommendations: jest.fn(),
+  toggleFavorite: jest.fn(),
+};
+jest.mock('../../../services/CustomerPreferenceService', () => {
+  return jest.fn().mockImplementation(() => mockPreferenceService);
 });
 
 const waitingController = require('../../../controllers/waitingController');
@@ -27,7 +36,7 @@ describe('waitingController', () => {
   describe('getStoreStatus', () => {
     test('매장 대기 현황을 조회한다', async () => {
       req.params.storeId = '1';
-      mockService.getStoreStatus.mockResolvedValue(5);
+      mockWaitingService.getStoreStatus.mockResolvedValue(5);
       await waitingController.getStoreStatus(req, res);
       expect(res.json).toHaveBeenCalledWith({ success: true, waiting_teams: 5 });
     });
@@ -36,7 +45,7 @@ describe('waitingController', () => {
   describe('getStoreWaitingList', () => {
     test('매장 대기 리스트를 조회한다', async () => {
       req.params.storeId = '1';
-      mockService.getStoreWaitingList.mockResolvedValue([{ id: 1 }]);
+      mockWaitingService.getStoreWaitingList.mockResolvedValue([{ id: 1 }]);
       await waitingController.getStoreWaitingList(req, res);
       expect(res.json).toHaveBeenCalledWith({ success: true, data: [{ id: 1 }] });
     });
@@ -45,7 +54,7 @@ describe('waitingController', () => {
   describe('register', () => {
     test('대기를 등록한다', async () => {
       req.body = { store_id: 1, name: '김철수', phone: '01012345678', party_size: 2 };
-      mockService.register.mockResolvedValue({ id: 1, position: 3 });
+      mockWaitingService.register.mockResolvedValue({ id: 1, position: 3 });
       await waitingController.register(req, res);
       expect(res.json).toHaveBeenCalled();
     });
@@ -55,7 +64,7 @@ describe('waitingController', () => {
     test('대기 상태를 변경한다', async () => {
       req.params.id = '1';
       req.body = { status: 'called' };
-      mockService.updateStatus.mockResolvedValue({ id: 1, status: 'called' });
+      mockWaitingService.updateStatus.mockResolvedValue({ id: 1, status: 'called' });
       await waitingController.updateStatus(req, res);
       expect(res.json).toHaveBeenCalled();
     });
@@ -68,7 +77,7 @@ describe('waitingController', () => {
         emit: jest.fn(),
       };
       req.app = { get: jest.fn((key) => (key === 'io' ? io : undefined)) };
-      mockService.updateStatus.mockResolvedValue({
+      mockWaitingService.updateStatus.mockResolvedValue({
         id: 1,
         status: 'called',
         store_id: 42,
@@ -92,7 +101,7 @@ describe('waitingController', () => {
     test('io 주입이 없으면 방송 없이 정상 처리한다', async () => {
       req.params.id = '1';
       req.body = { status: 'cancelled' };
-      mockService.updateStatus.mockResolvedValue({ id: 1, status: 'cancelled' });
+      mockWaitingService.updateStatus.mockResolvedValue({ id: 1, status: 'cancelled' });
       req.app = undefined;
       await expect(waitingController.updateStatus(req, res)).resolves.not.toThrow();
       expect(res.json).toHaveBeenCalled();
@@ -102,7 +111,7 @@ describe('waitingController', () => {
   describe('getMyWaiting', () => {
     test('내 대기 상태를 조회한다', async () => {
       req.params.phone = '01012345678';
-      mockService.getMyWaiting.mockResolvedValue({ position: 2, ahead_count: 1 });
+      mockWaitingService.getMyWaiting.mockResolvedValue({ position: 2, ahead_count: 1 });
       await waitingController.getMyWaiting(req, res);
       expect(res.json).toHaveBeenCalled();
     });

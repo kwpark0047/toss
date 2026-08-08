@@ -856,6 +856,27 @@ model store_customers {
   @@schema("public")
 }
 
+model customer_preferences {
+  id              Int       @id @default(autoincrement())
+  store_id        Int
+  customer_phone  String
+  preferred_categories  String[]    @default([])  // 선호 카테고리 (한식, 중식, 일식 등)
+  preferred_tastes      String[]    @default([])  // 선호 맛 (매운, 달콤, 담백, 짭짤 등)
+  spicy_tolerance       Int         @default(1)   // 맵기 선호도 0~3
+  price_sensitivity     String      @default("MEDIUM") // LOW/MEDIUM/HIGH
+  dietary_restrictions  String[]    @default([])  // 알레르기/식이제한
+  favorite_items        Json        @default("[]")  // 즐겨찾기 메뉴 ID 리스트
+  order_patterns        Json        @default("{}")  // 주문 패턴 분석 결과 {timeOfDay, dayOfWeek, avgOrderValue, frequency}
+  embedding_vector      Bytes?                    // 향후 벡터 검색용 임베딩
+  created_at        DateTime? @default(now())
+  updated_at        DateTime? @updatedAt
+
+  @@unique([store_id, customer_phone], name: "uk_customer_preferences")
+  @@index([store_id], map: "idx_customer_preferences_store")
+  @@index([customer_phone], map: "idx_customer_preferences_phone")
+  @@schema("public")
+}
+
 model store_tier_settings {
   id         Int       @id @default(autoincrement())
   store_id   Int

@@ -218,3 +218,28 @@ router.patch(
   checkWaitingPermission('orders:manage'),
   waitingController.resendNotification
 );
+
+/**
+ * @swagger
+ * /api/waiting/toggle-favorite:
+ *   post:
+ *     tags: [Waiting]
+ *     summary: 즐겨찾기 메뉴 토글 (고객)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [store_id, customer_phone, menu_id]
+ *             properties:
+ *               store_id: { type: integer }
+ *               customer_phone: { type: string }
+ *               menu_id: { type: integer }
+ *     responses:
+ *       200:
+ *         description: 즐겨찾기 토글 완료
+ */
+router.post('/toggle-favorite', waitingController.toggleFavorite);
+
+module.exports = router;

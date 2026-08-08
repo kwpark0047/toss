@@ -56,6 +56,12 @@ export const waitingAPI = {
   getMyWaiting: (phone) => api.get(`/waiting/my/${phone}`),
   getAISuggestions: (storeId, params = {}) =>
     api.get(`/waiting/store/${storeId}/ai-suggestions`, { params }),
+  toggleFavorite: (storeId, phone, menuId) =>
+    api.post('/waiting/toggle-favorite', {
+      store_id: storeId,
+      customer_phone: phone,
+      menu_id: menuId,
+    }),
 };
 
 export const reservationsAPI = {

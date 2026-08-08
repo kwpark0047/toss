@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Phone, User, X, ChevronRight, BellRing, Sparkles, CheckCircle, ChefHat } from 'lucide-react';
+import { Users, Phone, User, X, ChevronRight, BellRing, Sparkles, CheckCircle, ChefHat, Heart } from 'lucide-react';
 import { waitingAPI } from '../../api';
 import { ordersAPI } from '../../api';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 
 const WaitingSection = ({ store, onClose }) => {
     const { t } = useTranslation();
@@ -110,6 +111,20 @@ const WaitingSection = ({ store, onClose }) => {
             }
         } catch {
             alert(t('waiting.errors.cancel_failed'));
+        }
+    };
+
+    const handleToggleFavorite = async (menuId) => {
+        if (!myWaiting) return;
+        try {
+            const res = await waitingAPI.toggleFavorite(store.id, myWaiting.customer_phone, menuId);
+            if (res.success) {
+                setAiSuggestions(prev =>
+                    prev.map(s => s.id === menuId ? { ...s, is_favorite: !s.is_favorite } : s)
+                );
+            }
+        } catch {
+            toast.error('즐겨찾기 설정에 실패했습니다.');
         }
     };
 
@@ -234,31 +249,52 @@ const WaitingSection = ({ store, onClose }) => {
 </div>
                              </div>
 
-                             {/* AI 추천 메뉴 */}
-                             {aiLoading && (
-                                 <div className="flex items-center justify-center gap-2 py-4 text-slate-400 text-sm font-medium">
-                                     <ChefHat size={16} className="animate-pulse" />
-                                     AI가 추천하는 메뉴를 분석 중...
-                                 </div>
-                             )}
-                             {!aiLoading && aiSuggestions.length > 0 && (
-                                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-                                     <h4 className="text-xs font-black text-slate-400 uppercase mb-3 flex items-center gap-1">
-                                         <ChefHat size={12} /> AI 추천 메뉴
-                                     </h4>
-                                     <div className="space-y-2">
-                                         {aiSuggestions.map((s) => (
-                                             <div key={s.id} className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-xl">
-                                                 <div>
-                                                     <p className="font-bold text-slate-800 text-sm">{s.name}</p>
-                                                     <p className="text-[10px] text-slate-400">{s.reason}</p>
-                                                 </div>
-                                                 <span className="text-xs font-black text-orange-500">₩{s.price?.toLocaleString()}</span>
-                                             </div>
-                                         ))}
-                                     </div>
-                                 </div>
-                             )}
+{/* AI 추천 메뉴 */}
+                              {aiLoading && (
+                                  <div className="flex items-center justify-center gap-2 py-4 text-slate-400 text-sm font-medium">
+                                      <ChefHat size={16} className="animate-pulse" />
+                                      AI가 맞춤 메뉴를 분석 중...
+                                  </div>
+                              )}
+                              {!aiLoading && aiSuggestions.length > 0 && (
+                                  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+                                      <div className="flex items-center justify-between mb-3">
+                                          <h4 className="text-xs font-black text-slate-400 uppercase flex items-center gap-1">
+                                              <ChefHat size={12} /> AI 맞춤 추천
+                                          </h4>
+                                          <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                                              <Sparkles size={10} /> 개인화됨
+                                          </span>
+                                      </div>
+                                      <div className="space-y-2">
+                                          {aiSuggestions.map((s) => (
+                                              <div key={s.id} className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-xl group">
+                                                  <div className="flex-1 min-w-0">
+                                                      <div className="flex items-center gap-2">
+                                                          <p className="font-bold text-slate-800 text-sm truncate">{s.name}</p>
+                                                          {s.is_favorite && (
+                                                              <span className="px-1.5 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-700 rounded-full">
+                                                                  찜
+                                                              </span>
+                                                          )}
+                                                      </div>
+                                                      <p className="text-[10px] text-slate-400 mt-0.5">{s.reason}</p>
+                                                  </div>
+                                                  <div className="flex items-center gap-2">
+                                                      <span className="text-xs font-black text-orange-500">₩{s.price?.toLocaleString()}</span>
+                                                      <button
+                                                          onClick={() => handleToggleFavorite(s.id)}
+                                                          className={`p-1.5 rounded-lg transition-colors ${s.is_favorite ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                                                          aria-label={s.is_favorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+                                                      >
+                                                          <Heart className={s.is_favorite ? 'fill-current' : ''} size={16} />
+                                                      </button>
+                                                  </div>
+                                              </div>
+                                          ))}
+                                      </div>
+                                  </div>
+                              )}
 
                              <div className="flex gap-4">
                                 <button
