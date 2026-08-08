@@ -17,13 +17,14 @@ export function usePoints(identifier = {}) {
     setError(null);
 
     try {
-      const { data } = await pointsAPI.getBalance({
+      // pointsController는 bare res.json(balance)로 응답하므로 본문을 그대로 사용
+      const res = await pointsAPI.getBalance({
         toss_user_key,
         phone,
-        user_id
+        user_id,
       });
-      setPoints(data);
-      return data;
+      setPoints(res);
+      return res;
     } catch (err) {
       setError(err.response?.data?.error || err.message);
       return null;
@@ -33,82 +34,86 @@ export function usePoints(identifier = {}) {
   }, [toss_user_key, phone, user_id]);
 
   // 포인트 내역 조회
-  const fetchHistory = useCallback(async (options = {}) => {
-    if (!toss_user_key && !phone && !user_id) return;
+  const fetchHistory = useCallback(
+    async (options = {}) => {
+      if (!toss_user_key && !phone && !user_id) return;
 
-    try {
-      const { data } = await pointsAPI.getHistory({
-        toss_user_key,
-        phone,
-        user_id,
-        ...options
-      });
-      setHistory(data.transactions);
-      return data;
-    } catch {
-      return null;
-    }
-  }, [toss_user_key, phone, user_id]);
+      try {
+        const res = await pointsAPI.getHistory({
+          toss_user_key,
+          phone,
+          user_id,
+          ...options,
+        });
+        setHistory(res.transactions);
+        return res;
+      } catch {
+        return null;
+      }
+    },
+    [toss_user_key, phone, user_id]
+  );
 
   // 사용 가능 포인트 계산
-  const calculateUsablePoints = useCallback(async (amount, storeId) => {
-    if (!toss_user_key && !phone && !user_id) return 0;
+  const calculateUsablePoints = useCallback(
+    async (amount, storeId) => {
+      if (!toss_user_key && !phone && !user_id) return 0;
 
-    try {
-      const { data } = await pointsAPI.calculateUsable(amount, storeId, {
-        toss_user_key,
-        phone,
-        user_id
-      });
-      return data;
-    } catch {
-      return { total_points: 0, usable_points: 0, max_discount: 0 };
-    }
-  }, [toss_user_key, phone, user_id]);
+      try {
+        const res = await pointsAPI.calculateUsable(amount, storeId, {
+          toss_user_key,
+          phone,
+          user_id,
+        });
+        return res;
+      } catch {
+        return { total_points: 0, usable_points: 0, max_discount: 0 };
+      }
+    },
+    [toss_user_key, phone, user_id]
+  );
 
   // 적립 예정 포인트 계산
   const calculateEarnPoints = useCallback(async (amount, storeId) => {
     try {
-      const { data } = await pointsAPI.calculateEarn(amount, storeId);
-      return data.earn_points;
+      const res = await pointsAPI.calculateEarn(amount, storeId);
+      return res.earn_points;
     } catch {
       return 0;
     }
   }, []);
 
   // 포인트 결제 실행
-  const payWithPoints = useCallback(async ({
-    orderId,
-    storeId,
-    totalAmount,
-    pointAmount
-  }) => {
-    if (pointAmount > (points?.total_points || 0)) {
-      return { success: false, error: '포인트가 부족합니다' };
-    }
+  const payWithPoints = useCallback(
+    async ({ orderId, storeId, totalAmount, pointAmount }) => {
+      if (pointAmount > (points?.total_points || 0)) {
+        return { success: false, error: '포인트가 부족합니다' };
+      }
 
-    try {
-      const paymentMethod = pointAmount === totalAmount ? 'point' : 'mixed';
+      try {
+        const paymentMethod = pointAmount === totalAmount ? 'point' : 'mixed';
 
-      const { data: payment } = await paymentsAPI.create({
-        order_id: orderId,
-        store_id: storeId,
-        payment_method: paymentMethod,
-        total_amount: totalAmount,
-        point_amount: pointAmount,
-        toss_user_key,
-        phone
-      });
+        const { data: payment } = await paymentsAPI.create({
+          order_id: orderId,
+          store_id: storeId,
+          payment_method: paymentMethod,
+          total_amount: totalAmount,
+          point_amount: pointAmount,
+          toss_user_key,
+          phone,
+        });
 
-      // 잔액 새로고침
-      await fetchBalance();
+        // 잔액 새로고침
+        await fetchBalance();
 
-      return { success: true, payment };
-    } catch (err) {
-      const errorMessage = err.response?.data?.error || err.message;
-      return { success: false, error: errorMessage };
-    }
-  }, [points, toss_user_key, phone, fetchBalance]);
+        return { success: true, payment };
+      } catch (err) {
+        const errorMessage = err.response?.data?.error || err.message;
+        return { success: false, error: errorMessage };
+      }
+    },
+    [points, toss_user_key, phone, fetchBalance]
+  );
 
   // 초기 로드
   useEffect(() => {
@@ -127,7 +132,7 @@ export function usePoints(identifier = {}) {
     calculateUsablePoints,
     calculateEarnPoints,
     payWithPoints,
-    hasPoints: (points?.total_points || 0) > 0
+    hasPoints: (points?.total_points || 0) > 0,
   };
 }
 
