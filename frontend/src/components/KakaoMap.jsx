@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { MapPin, Navigation, ZoomIn, ZoomOut } from 'lucide-react';
 import { bizLabel } from '../utils/businessType';

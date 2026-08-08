@@ -35,107 +35,40 @@ const emptyTemplate = {
   is_active: true,
 };
 
-const NotificationTemplatesManager = () => {
-  const { storeId } = useParams();
-  const [templates, setTemplates] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(null); // null | 'new' | template object
-  const [saving, setSaving] = useState(false);
+// ── Edit Modal (모듈 상단 고정 — 렌더링 중 재생성 시 상태 리셋 방지) ──
+const EditModal = ({ editing, saving, onSave, onClose }) => {
+  const data = editing === 'new' ? emptyTemplate : editing;
+  const [form, setForm] = useState({ ...data, variables: Array.isArray(data.variables) ? data.variables.join(', ') : '' });
 
-  const fetchTemplates = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await notificationTemplatesAPI.getList(storeId);
-      setTemplates(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      toast.error('템플릿 목록을 불러오는데 실패했습니다.');
-      setTemplates([]);
-    } finally {
-      setLoading(false);
+  const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!form.title.trim() || !form.message.trim()) {
+      toast.warn('제목과 내용을 모두 입력해주세요.');
+      return;
     }
-  }, [storeId]);
-
-  useEffect(() => {
-    fetchTemplates();
-  }, [fetchTemplates]);
-
-  const handleSave = async (form) => {
-    setSaving(true);
-    try {
-      if (form.id) {
-        await notificationTemplatesAPI.update(form.id, form);
-        toast.success('템플릿이 수정되었습니다.');
-      } else {
-        await notificationTemplatesAPI.create({ ...form, store_id: Number(storeId) });
-        toast.success('템플릿이 생성되었습니다.');
-      }
-      setEditing(null);
-      fetchTemplates();
-    } catch (err) {
-      toast.error('저장에 실패했습니다: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setSaving(false);
-    }
+    onSave({
+      ...form,
+      variables: form.variables ? form.variables.split(',').map(v => v.trim()).filter(Boolean) : []
+    });
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('이 템플릿을 삭제하시겠습니까?')) return;
-    try {
-      await notificationTemplatesAPI.delete(id);
-      toast.success('템플릿이 삭제되었습니다.');
-      fetchTemplates();
-    } catch {
-      toast.error('삭제에 실패했습니다.');
-    }
-  };
-
-  const handleToggleActive = async (template) => {
-    try {
-      await notificationTemplatesAPI.update(template.id, { is_active: !template.is_active });
-      toast.success(template.is_active ? '템플릿이 비활성화되었습니다.' : '템플릿이 활성화되었습니다.');
-      fetchTemplates();
-    } catch {
-      toast.error('상태 변경에 실패했습니다.');
-    }
-  };
-
-  const typeLabel = (type) => NOTIFICATION_TYPES.find(t => t.value === type)?.label || type;
-  const channelLabel = (ch) => CHANNELS.find(c => c.value === ch)?.label || ch;
-
-  // ── Edit Modal ──
-  const EditModal = () => {
-    const data = editing === 'new' ? emptyTemplate : editing;
-    const [form, setForm] = useState({ ...data, variables: Array.isArray(data.variables) ? data.variables.join(', ') : '' });
-
-    const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
-
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      if (!form.title.trim() || !form.message.trim()) {
-        toast.warn('제목과 내용을 모두 입력해주세요.');
-        return;
-      }
-      handleSave({
-        ...form,
-        variables: form.variables ? form.variables.split(',').map(v => v.trim()).filter(Boolean) : []
-      });
-    };
-
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-slate-900 rounded-[32px] border border-white/10 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-        >
-          <div className="flex items-center justify-between p-6 border-b border-white/5">
-            <h2 className="text-lg font-black text-white">
-              {data.id ? '템플릿 수정' : '새 템플릿'}
-            </h2>
-            <button onClick={() => setEditing(null)} className="text-slate-500 hover:text-white transition-colors">
-              <X size={20} />
-            </button>
-          </div>
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-slate-900 rounded-[32px] border border-white/10 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+      >
+        <div className="flex items-center justify-between p-6 border-b border-white/5">
+          <h2 className="text-lg font-black text-white">
+            {data.id ? '템플릿 수정' : '새 템플릿'}
+          </h2>
+          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
+            <X size={20} />
+          </button>
+        </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
             <div className="grid grid-cols-2 gap-4">
@@ -219,7 +152,7 @@ const NotificationTemplatesManager = () => {
               </Button>
               <button
                 type="button"
-                onClick={() => setEditing(null)}
+                onClick={onClose}
                 className="px-6 py-3 bg-slate-800 text-slate-300 rounded-xl font-bold text-sm hover:bg-slate-700 transition-all"
               >
                 취소
@@ -230,6 +163,73 @@ const NotificationTemplatesManager = () => {
       </div>
     );
   };
+
+const NotificationTemplatesManager = () => {
+  const { storeId } = useParams();
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null); // null | 'new' | template object
+  const [saving, setSaving] = useState(false);
+
+  const fetchTemplates = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await notificationTemplatesAPI.getList(storeId);
+      setTemplates(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      toast.error('템플릿 목록을 불러오는데 실패했습니다.');
+      setTemplates([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [storeId]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  const handleSave = async (form) => {
+    setSaving(true);
+    try {
+      if (form.id) {
+        await notificationTemplatesAPI.update(form.id, form);
+        toast.success('템플릿이 수정되었습니다.');
+      } else {
+        await notificationTemplatesAPI.create({ ...form, store_id: Number(storeId) });
+        toast.success('템플릿이 생성되었습니다.');
+      }
+      setEditing(null);
+      fetchTemplates();
+    } catch (err) {
+      toast.error('저장에 실패했습니다: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('이 템플릿을 삭제하시겠습니까?')) return;
+    try {
+      await notificationTemplatesAPI.delete(id);
+      toast.success('템플릿이 삭제되었습니다.');
+      fetchTemplates();
+    } catch {
+      toast.error('삭제에 실패했습니다.');
+    }
+  };
+
+  const handleToggleActive = async (template) => {
+    try {
+      await notificationTemplatesAPI.update(template.id, { is_active: !template.is_active });
+      toast.success(template.is_active ? '템플릿이 비활성화되었습니다.' : '템플릿이 활성화되었습니다.');
+      fetchTemplates();
+    } catch {
+      toast.error('상태 변경에 실패했습니다.');
+    }
+  };
+
+  const typeLabel = (type) => NOTIFICATION_TYPES.find(t => t.value === type)?.label || type;
+  const channelLabel = (ch) => CHANNELS.find(c => c.value === ch)?.label || ch;
 
   if (loading) {
     return (
@@ -326,7 +326,14 @@ const NotificationTemplatesManager = () => {
 
       {/* Edit / Create Modal */}
       <AnimatePresence>
-        {editing && <EditModal />}
+        {editing && (
+          <EditModal
+            editing={editing}
+            saving={saving}
+            onSave={handleSave}
+            onClose={() => setEditing(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );

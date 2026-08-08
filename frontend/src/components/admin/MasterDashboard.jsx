@@ -399,7 +399,7 @@ const MasterDashboard = () => {
 
   // AI 결제량 변동성 실시간 위기경보 상태
   const [anomalyAlert, setAnomalyAlert] = useState(null);
-  // 수요 예측 실시간 갱신 �rigger (forecast_updated 소켓 이벤트 → SalesForecastWidget 재조회)
+  // 수요 예측 실시간 갱신 trigger (forecast_updated 소켓 이벤트 → SalesForecastWidget 재조회)
   const [forecastRefreshKey, setForecastRefreshKey] = useState(0);
 
   /* ─── 매장 로딩 (StoreContext에서 관리) ─── */

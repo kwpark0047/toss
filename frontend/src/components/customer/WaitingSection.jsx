@@ -22,6 +22,20 @@ const WaitingSection = ({ store, onClose }) => {
         }
     }, []);
 
+    const fetchAISuggestions = useCallback(async () => {
+        try {
+            setAiLoading(true);
+            const res = await waitingAPI.getAISuggestions(store.id);
+            if (res.success) {
+                setAiSuggestions(res.suggestions || res.data?.suggestions || []);
+            }
+        } catch (err) {
+            console.error('AI 추천 메뉴 조회 실패:', err);
+        } finally {
+            setAiLoading(false);
+        }
+    }, [store.id]);
+
     const fetchMyStatus = async (phone) => {
         try {
             const res = await waitingAPI.getMyWaiting(phone);

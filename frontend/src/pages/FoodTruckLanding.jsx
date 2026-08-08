@@ -102,6 +102,7 @@ export default function FoodTruckLanding() {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const markersLayerRef = useRef(null);
+  const [mapReady, setMapReady] = useState(false);
 
   /* ─── Fetch active trucks ─── */
   const fetchActiveTrucks = async () => {
@@ -203,9 +204,11 @@ export default function FoodTruckLanding() {
       }).addTo(map);
       mapRef.current = map;
       markersLayerRef.current = L.layerGroup().addTo(map);
+      if (!cancelled) setMapReady(true);
     }).catch(() => {});
     return () => {
       cancelled = true;
+      setMapReady(false);
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
     };
   }, []);
@@ -577,7 +580,7 @@ export default function FoodTruckLanding() {
         <div className="lg:col-span-5 h-[400px] lg:h-[calc(100vh-12rem)] lg:sticky lg:top-28 rounded-3xl overflow-hidden border border-slate-200 bg-slate-50 relative">
           <div ref={mapContainerRef} className="w-full h-full" />
           {/* Map loading overlay */}
-          {!mapRef.current && (
+          {!mapReady && (
             <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
               <p className="text-sm text-slate-500 font-bold">지도를 불러오는 중…</p>
             </div>

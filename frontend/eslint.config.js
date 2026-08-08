@@ -48,20 +48,34 @@ export default [
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
-      'jsx': jsxA11yLocal,
+      jsx: jsxA11yLocal,
     },
     rules: {
       ...js.configs.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
+      // ── eslint-plugin-react-hooks ──
+      // 이 프로젝트는 React Compiler를 사용하지 않으므로, 컴파일러 전용 규칙
+      // (set-state-in-effect, purity, use-memo 등) 은 비활성화하고 코어 훅 규칙만 적용한다.
+      // ※ 컴파일러 도입 시 reactHooks.configs.recommended.rules 로 교체 필요
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': [
+        'warn',
+        { additionalHooks: '(useOfflineSync|useMenuManager)' },
+      ],
+      'react-hooks/static-components': 'error',
+      'react-hooks/refs': 'error',
+      'react-hooks/incompatible-library': 'warn',
       'jsx/uses-vars': 'error',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
       'no-console': 'off',
       'no-constant-condition': ['error', { checkLoops: false }],
       'no-empty': ['error', { allowEmptyCatch: true }],
       'prefer-const': 'error',
       'no-var': 'error',
-      'eqeqeq': ['error', 'always', { null: 'ignore' }],
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
     },
   },
   {
