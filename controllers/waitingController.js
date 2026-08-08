@@ -122,6 +122,12 @@ const waitingController = {
 
     res.json({ suggestions, source: 'ai' });
   }),
+
+  // [PATCH] 알림톡 재발송 (상태 변경 없이 알림만 재전송)
+  resendNotification: catchAsync(async (req, res) => {
+    const data = await waitingService.resendNotification(req.params.id);
+    res.json({ success: true, data });
+  }),
 };
 
 module.exports = waitingController;

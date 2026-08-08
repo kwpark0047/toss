@@ -17,6 +17,7 @@ jest.mock('../../controllers/waitingController', () => ({
   updateStatus: (req, res) => res.json({ success: true }),
   getMyWaiting: (req, res) => res.json({ success: true }),
   getAISuggestions: (req, res) => res.json({ success: true }),
+  resendNotification: (req, res) => res.json({ success: true }),
 }));
 jest.mock('../../utils/aiRateLimiter', () => ({
   createAIRateLimiter: () => (req, res, next) => next(),

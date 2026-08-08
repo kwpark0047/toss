@@ -161,6 +161,44 @@ class WaitingService {
 
     return results;
   }
+
+  /**
+   * 알림톡 재발송 (상태 변경 없이 현재 상태에 맞는 알림 재전송)
+   */
+  async resendNotification(id) {
+    const entry = await prisma.waiting_list.findUnique({
+      where: { id: parseInt(id) },
+      select: { store_id: true, customer_phone: true, status: true, queue_number: true },
+    });
+    if (!entry) throw new Error('Waiting entry not found');
+
+    const store = await prisma.stores.findUnique({
+      where: { id: entry.store_id },
+      select: { name: true },
+    });
+    const storeName = store?.name || '매장';
+    const phone = entry.customer_phone;
+
+    try {
+      if (entry.status === 'called') {
+        await alimtalkService.sendWaitingCall(phone, storeName, entry.queue_number);
+      } else if (entry.status === 'cancelled') {
+        await alimtalkService.sendWaitingCancel(phone, storeName);
+      } else if (entry.status === 'waiting') {
+        const waitingCount = await this.getStoreStatus(entry.store_id);
+        await alimtalkService.sendWaitingRegistered(
+          phone,
+          storeName,
+          entry.queue_number,
+          waitingCount
+        );
+      }
+    } catch (e) {
+      logger.warn(`[Waiting] 알림톡 재발송 실패: ${e.message}`);
+    }
+
+    return { message: '알림톡 재발송 완료', status: entry.status };
+  }
 }
 
 module.exports = WaitingService;

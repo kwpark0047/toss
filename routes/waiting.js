@@ -194,3 +194,27 @@ router.get(
 );
 
 module.exports = router;
+
+/**
+ * @swagger
+ * /api/waiting/{id}/resend-notification:
+ *   patch:
+ *     tags: [Waiting]
+ *     summary: 알림톡 재발송 (호출/취소 알림)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: 알림톡 재발송 완료
+ */
+router.patch(
+  '/:id/resend-notification',
+  authMiddleware,
+  checkWaitingPermission('orders:manage'),
+  waitingController.resendNotification
+);
