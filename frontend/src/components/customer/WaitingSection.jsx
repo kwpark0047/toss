@@ -223,8 +223,8 @@ const WaitingSection = ({ store, onClose }) => {
                                 <div className="mt-8 grid grid-cols-2 gap-4">
                                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
                                         <p className="text-[10px] uppercase font-black text-slate-400 mb-1">Status</p>
-                                        <p className="font-black text-slate-800">
-                                            {myWaiting.status === 'waiting' ? t('status.pending') : t('status.ready')}
+                                        <p className={`font-black ${myWaiting.status === 'called' ? 'text-emerald-600 animate-pulse' : 'text-slate-800'}`}>
+                                            {myWaiting.status === 'called' ? '🔥 입장 안내 중!' : (myWaiting.status === 'waiting' ? t('status.pending') : t('status.ready'))}
                                         </p>
                                     </div>
                                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">

@@ -48,8 +48,10 @@ export const uploadsAPI = {
 
 export const waitingAPI = {
   getStatus: (storeId) => api.get(`/waiting/store/${storeId}/status`),
+  getStoreWaitingList: (storeId) => api.get(`/waiting/store/${storeId}`),
   register: (data) => api.post('/waiting/register', data),
   cancel: (id) => api.patch(`/waiting/${id}/status`, { status: 'cancelled' }),
+  updateStatus: (id, status) => api.patch(`/waiting/${id}/status`, { status }),
   getMyWaiting: (phone) => api.get(`/waiting/my/${phone}`),
   getAISuggestions: (storeId, params = {}) =>
     api.get(`/waiting/store/${storeId}/ai-suggestions`, { params }),

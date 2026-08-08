@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Store, LogOut, LayoutDashboard, UtensilsCrossed,
   Settings, Users, Receipt, Wallet, Palette,
-  Menu as MenuIcon, MessageSquare, LogIn, Smartphone, CalendarCheck, Sparkles, Package, Bell,
+  Menu as MenuIcon, MessageSquare, LogIn, Smartphone, CalendarCheck, Clock, Sparkles, Package, Bell,
   UserCircle, ChevronRight, ShoppingBag, Building2, Activity, Scale, Headset, Truck, ChefHat, Award, Megaphone
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
@@ -419,6 +419,7 @@ const AdminLayout = ({ children }) => {
     { label: t('productManagement'),     icon: ShoppingBag,       path: `/admin/stores/${storeId}/menu`,                    show: !!storeId, roles: [] },
     { label: t('menuBuilder'),   icon: Palette,           path: `/admin/stores/${storeId}/visual-builder`,          show: !!storeId, roles: [] },
     { label: t('smartReservation'),   icon: CalendarCheck,     path: `/admin/stores/${storeId}/reservations`,            show: !!storeId, roles: [] },
+    { label: t('smartWaiting'),   icon: Clock,     path: `/admin/stores/${storeId}/waiting`,            show: !!storeId, roles: [] },
     { label: t('settlementAnalysis'),     icon: Wallet,            path: `/admin/stores/${storeId}/settlements`,             show: !!storeId, roles: [] },
     { label: t('businessPayment'),  icon: Building2,         path: `/admin/stores/${storeId}/business-settings`,       show: !!storeId, roles: [] },
     { label: t('legalInfo'),    icon: Scale,             path: `/admin/stores/${storeId}/legal`,                   show: !!storeId, roles: [] },

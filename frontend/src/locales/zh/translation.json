@@ -412,6 +412,7 @@
     "productManagement": "商品管理",
     "menuBuilder": "菜单构建器",
     "smartReservation": "智能预订",
+    "smartWaiting": "智能排队",
     "settlementAnalysis": "结算分析",
     "businessPayment": "商家·结算",
     "legalInfo": "法律信息",
@@ -513,11 +514,7 @@
         "name": "免费",
         "price": "￥0",
         "period": "/月",
-        "features": [
-          "二维码生",
-          "订单通知（网",
-          "基本销售统计"
-        ],
+        "features": ["二维码生", "订单通知（网", "基本销售统计"],
         "cta": "免费开始"
       },
       "pro": {

@@ -413,6 +413,7 @@
     "productManagement": "상품 관리",
     "menuBuilder": "메뉴판 빌더",
     "smartReservation": "스마트 예약",
+    "smartWaiting": "스마트 대기",
     "settlementAnalysis": "정산 분석",
     "businessPayment": "사업자·결제",
     "legalInfo": "법적 정보",
@@ -514,11 +515,7 @@
         "name": "Free",
         "price": "₩0",
         "period": "/월",
-        "features": [
-          "QR 코드 생성",
-          "주문 알림 (웹)",
-          "기본 매출 통계"
-        ],
+        "features": ["QR 코드 생성", "주문 알림 (웹)", "기본 매출 통계"],
         "cta": "무료로 시작"
       },
       "pro": {

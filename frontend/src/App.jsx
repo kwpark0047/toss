@@ -21,7 +21,7 @@ import {
   StoreSetupWizard, StoreForm, OrderManager, MenuManager, MenuBuilder,
   StaffManager, SalesStats, ReviewManager, AnalyticsDashboard,
   SettlementManager, BusinessSettingsWithTheme, SystemStatus, ReceiptSettings,
-  CustomerManager, CampaignDashboard, ReservationManager, BulkSMSManager,
+  CustomerManager, CampaignDashboard, ReservationManager, WaitingManager, BulkSMSManager,
   StoreEnrichment, InventoryManager, TableManager, StoreSettings,
   LegalSettings, NotificationTemplatesManager, DeveloperConsole,
   QrCustomizer, PartnershipManager, StaffScheduler,
@@ -176,6 +176,7 @@ const AppRoutes = memo(() => (
     <Route path="/admin/stores/:storeId/customers" element={<AdminPage><ValidStoreRoute><AdminSuspense><CustomerManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/campaigns" element={<AdminPage><ValidStoreRoute><AdminSuspense><CampaignDashboard /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/reservations" element={<AdminPage><ValidStoreRoute><AdminSuspense><ReservationManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
+    <Route path="/admin/stores/:storeId/waiting" element={<AdminPage><ValidStoreRoute><AdminSuspense><WaitingManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/bulk-sms" element={<AdminPage><ValidStoreRoute><AdminSuspense><BulkSMSManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/enrichment" element={<AdminPage><ValidStoreRoute><AdminSuspense><StoreEnrichment /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/enrich-stores" element={<AdminPage><RoleBasedRoute allowedRoles={['super_admin']}><AdminSuspense><StoreEnrichment /></AdminSuspense></RoleBasedRoute></AdminPage>} />

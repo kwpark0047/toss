@@ -412,6 +412,7 @@
     "productManagement": "Product Management",
     "menuBuilder": "Menu Builder",
     "smartReservation": "Smart Reservation",
+    "smartWaiting": "Smart Waiting",
     "settlementAnalysis": "Settlement Analysis",
     "businessPayment": "Business & Payment",
     "legalInfo": "Legal Info",
@@ -513,11 +514,7 @@
         "name": "Free",
         "price": "₩0",
         "period": "/month",
-        "features": [
-          "QR Code Generation",
-          "Order Notifications (Web)",
-          "Basic Sales Stats"
-        ],
+        "features": ["QR Code Generation", "Order Notifications (Web)", "Basic Sales Stats"],
         "cta": "Start Free"
       },
       "pro": {

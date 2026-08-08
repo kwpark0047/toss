@@ -53,6 +53,7 @@ export const ReceiptSettings = lazy(() => import('../components/admin/ReceiptSet
 export const CustomerManager = lazy(() => import('../components/admin/CustomerManager'));
 export const CampaignDashboard = lazy(() => import('../components/admin/CampaignDashboard'));
 export const ReservationManager = lazy(() => import('../components/admin/ReservationManager'));
+export const WaitingManager = lazy(() => import('../components/admin/WaitingManager'));
 export const StoreForm = lazy(() => import('../components/admin/StoreForm'));
 export const BulkSMSManager = lazy(() => import('../components/admin/BulkSMSManager'));
 export const StoreEnrichment = lazy(() => import('../components/admin/StoreEnrichment'));

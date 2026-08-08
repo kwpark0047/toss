@@ -412,6 +412,7 @@
     "productManagement": "商品管理",
     "menuBuilder": "メニュービルダー",
     "smartReservation": "スマート予約",
+    "smartWaiting": "スマート待ち",
     "settlementAnalysis": "精算分析",
     "businessPayment": "事業者・決済",
     "legalInfo": "法的情報",
@@ -513,11 +514,7 @@
         "name": "無料",
         "price": "₩0",
         "period": "/月",
-        "features": [
-          "QRコード生成",
-          "注文通知（ウェブ）",
-          "基本売上統計"
-        ],
+        "features": ["QRコード生成", "注文通知（ウェブ）", "基本売上統計"],
         "cta": "無料で始める"
       },
       "pro": {
