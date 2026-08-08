@@ -265,7 +265,7 @@ export default function FoodTruckLanding() {
 
     if (pts.length === 1) map.setView(pts[0], 15);
     else if (pts.length > 1) map.fitBounds(pts, { padding: [50, 50], maxZoom: 15 });
-  }, [processedTrucks, userCoords]);
+  }, [processedTrucks, userCoords, mapReady]);
 
   /* ─── Center map on selected truck ─── */
   useEffect(() => {

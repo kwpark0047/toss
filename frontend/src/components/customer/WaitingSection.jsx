@@ -26,9 +26,7 @@ const WaitingSection = ({ store, onClose }) => {
         try {
             setAiLoading(true);
             const res = await waitingAPI.getAISuggestions(store.id);
-            if (res.success) {
-                setAiSuggestions(res.suggestions || res.data?.suggestions || []);
-            }
+            setAiSuggestions(res.suggestions || res.data?.suggestions || []);
         } catch (err) {
             console.error('AI 추천 메뉴 조회 실패:', err);
         } finally {
