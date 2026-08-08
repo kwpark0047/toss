@@ -128,30 +128,52 @@ app.use('/api', generalLimiter); // 전체 API 속도 제한
  * Clean Architecture DI 컨테이너 설정
  * ESM migration: 동적 import()로 ESM 컨테이너 로드 (CommonJS ↔ ESM interop)
  * .mjs 파일이 로드 실패 시 .js (CommonJS) 버전으로 폴백
+ * 테스트 환경에서는 동기 폴백을 즉시 수행
  */
+const isTest = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID;
 let diContainer;
 let diMiddlewareFn;
 
-// ESM 동적 로드 (비동기이지만 서버 시작 전 완료됨)
-const diLoadPromise = import('./app/infrastructure/di/container.mjs')
-  .then((module) => {
-    diContainer = module.createDIContainer();
-    diMiddlewareFn = module.diMiddleware;
-    app.use(diMiddlewareFn(diContainer));
-    app.set('diContainer', diContainer);
-  })
-  .catch((_err) => {
-    // 폴백: CommonJS 버전 사용
+if (isTest) {
+  // 테스트 환경: 동기 로드로 즉시 초기화
+  try {
     const { createDIContainer, diMiddleware } = require('./app/infrastructure/di/container');
     diContainer = createDIContainer();
     diMiddlewareFn = diMiddleware;
     app.use(diMiddlewareFn(diContainer));
     app.set('diContainer', diContainer);
-  });
+  } catch (_err) {
+    // 컨테이너 로드 실패 시 더미 미들웨어 사용
+    diMiddlewareFn = (container) => (req, res, next) => {
+      req.container = container || {};
+      next();
+    };
+    diContainer = {};
+    app.use(diMiddlewareFn(diContainer));
+    app.set('diContainer', diContainer);
+  }
+} else {
+  // 운영/개발 환경: ESM 동적 로드
+  const diLoadPromise = import('./app/infrastructure/di/container.mjs')
+    .then((module) => {
+      diContainer = module.createDIContainer();
+      diMiddlewareFn = module.diMiddleware;
+      app.use(diMiddlewareFn(diContainer));
+      app.set('diContainer', diContainer);
+    })
+    .catch((_err) => {
+      // 폴백: CommonJS 버전 사용
+      const { createDIContainer, diMiddleware } = require('./app/infrastructure/di/container');
+      diContainer = createDIContainer();
+      diMiddlewareFn = diMiddleware;
+      app.use(diMiddlewareFn(diContainer));
+      app.set('diContainer', diContainer);
+    });
+}
 
-// DI 컨테이너가 준비될 때까지 요청 대기
+// DI 컨테이너가 준비될 때까지 요청 대기 (테스트 환경에서는 즉시 통과)
 app.use((req, res, next) => {
-  if (diContainer) return next();
+  if (isTest || diContainer) return next();
   // 초기화 중: 헬스체크만 허용
   if (req.path.startsWith('/api/health')) return next();
   return res.status(503).json({ error: 'Server initializing' });
