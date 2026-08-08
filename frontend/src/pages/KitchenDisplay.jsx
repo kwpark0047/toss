@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import KdsOrderProgressBar from '../components/customer/KdsOrderProgressBar';
 import { 
   Play, CheckCircle2, RefreshCw, Printer, Volume2, VolumeX, 
   Wifi, WifiOff, Clock, User, ChevronRight, Hash, XCircle, Keyboard, Megaphone, Bluetooth
@@ -559,9 +560,12 @@ export default function KitchenDisplay() {
                       <div className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border ${getTimerSeverityClass(order.created_at)}`}>
                         {formatElapsedTime(order.created_at)}
                       </div>
-                    </div>
+</div>
 
-                    {/* 주문 내역 */}
+                      {/* 조리 진행바 */}
+                      <KdsOrderProgressBar currentStatus={order.status} compact={true} />
+
+                      {/* 주문 내역 */}
                     <div className="p-3.5 flex flex-col gap-2">
                       <ul className="divide-y divide-slate-850/50">
                         {order.items.map(item => (
@@ -639,9 +643,12 @@ export default function KitchenDisplay() {
                       <div className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border ${getTimerSeverityClass(order.created_at)}`}>
                         {formatElapsedTime(order.created_at)}
                       </div>
-                    </div>
+</div>
 
-                    {/* 인터랙티브 체크아이템 주문 상품 목록 */}
+                      {/* 조리 진행바 */}
+                      <KdsOrderProgressBar currentStatus={order.status} compact={true} />
+
+                      {/* 인터랙티브 체크아이템 주문 상품 목록 */}
                     <div className="p-3.5 flex flex-col gap-2">
                       <ul className="divide-y divide-slate-850/50">
                         {order.items.map(item => {
@@ -749,6 +756,9 @@ export default function KitchenDisplay() {
                           CALLING...
                         </div>
                       </div>
+
+                      {/* 조리 진행바 */}
+                      <KdsOrderProgressBar currentStatus={order.status} compact={true} />
 
                       {/* 수령 정보 카드 */}
                       <div className="p-3.5 flex flex-col gap-2">
