@@ -378,6 +378,10 @@ const OrderHistory = () => {
                             tableName: '내 주문 내역',
                             type
                         });
+                        // 서버 handlers.js의 manager-call 처리 후 manager-call-ack 수신
+                        socket.once('manager-call-ack', (ack) => {
+                            if (ack?.message) alert(ack.message);
+                        });
                     }
                 }}
             />

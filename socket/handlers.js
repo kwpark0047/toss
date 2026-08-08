@@ -197,18 +197,21 @@ function registerSocketHandlers(io) {
       if (message.sender_type === 'customer') {
         io.to(`store - ${targetId}`).emit('manager-notification', {
           type: 'CHAT_RECEPTION',
+          title: '💬 새 고객 메시지',
           message: '새로운 고객 메시지가 도착했습니다.',
           roomId,
         });
       } else if (message.sender_type === 'owner' && roomType === 'ADMIN_SUPPORT') {
         io.to('admin').emit('manager-notification', {
           type: 'ADMIN_SUPPORT_REQUEST',
+          title: '🔧 지원 요청 도착',
           message: `[지원요청] ${message.sender_name || '사업자'}님의 메시지`,
           roomId,
         });
       } else if (message.sender_type === 'super_admin' && roomType === 'ADMIN_SUPPORT') {
         io.to(`user - ${targetId}`).emit('manager-notification', {
           type: 'ADMIN_SUPPORT_REPLY',
+          title: '✅ 운영팀 답변',
           message: '운영팀의 답변이 도착했습니다.',
           roomId,
         });
@@ -242,8 +245,10 @@ function registerSocketHandlers(io) {
         io.to(`store - ${storeId}`).emit('manager-notification', {
           id: notification.id,
           type: 'MANAGER_CALL',
+          title: '🛎️ 직원 호출 도착',
           message: `${tableName || '포장'}에서 "${type || '직원 호출'}" 호출이 들어왔습니다.`,
           data: { tableName, type, isStaffConnected, id: notification.id },
+          priority: 'high',
           created_at: notification.created_at,
         });
 

@@ -103,9 +103,11 @@ export const disconnectSocket = () => {
 };
 
 // 알림 이벤트 리스너 등록
+// 서버 handlers.js가 실시간 알림을 `manager-notification`으로만 emit하므로,
+// 과거 `notification` 이벤트명을 사용하던 구독을 실제 이벤트명으로 맞춘다.
 export const onNotification = (callback) => {
-  socket.on('notification', callback);
-  return () => socket.off('notification', callback);
+  socket.on('manager-notification', callback);
+  return () => socket.off('manager-notification', callback);
 };
 
 // 새 주문 이벤트 리스너 등록 (어드민 실시간 주문 갱신용)

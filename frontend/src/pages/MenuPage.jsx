@@ -680,6 +680,10 @@ const MenuPage = () => {
               tableName: t('menu.table', { number: tableNumber }),
               type
             });
+            // 서버 handlers.js의 manager-call 처리 후 manager-call-ack 수신
+            socket.once('manager-call-ack', (ack) => {
+              if (ack?.message) toast.info(ack.message);
+            });
           }
         }}
       />
