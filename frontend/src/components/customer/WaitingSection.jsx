@@ -22,6 +22,28 @@ const WaitingSection = ({ store, onClose }) => {
         }
     }, []);
 
+    // socket은 전역 단일 인스턴스이므로 리스너는 1회만 등록하고,
+    // unmount 시 반드시 해제해야 다른 페이지에서 이벤트가 중복 발화되지 않는다.
+    useEffect(() => {
+        const socket = ordersAPI.getSocket();
+        const onWaitingStatusChanged = (data) => {
+            setMyWaiting(prev => (prev ? { ...prev, status: data.status } : prev));
+            if (data.status === 'called') {
+                alert(data.message);
+            }
+        };
+        const onRefreshAheadCount = () => {
+            const savedPhone = localStorage.getItem('waiting_phone');
+            if (savedPhone) fetchMyStatus(savedPhone);
+        };
+        socket.on('waiting-status-changed', onWaitingStatusChanged);
+        socket.on('refresh-ahead-count', onRefreshAheadCount);
+        return () => {
+            socket.off('waiting-status-changed', onWaitingStatusChanged);
+            socket.off('refresh-ahead-count', onRefreshAheadCount);
+        };
+    }, []);
+
     const fetchAISuggestions = useCallback(async () => {
         try {
             setAiLoading(true);
@@ -45,17 +67,7 @@ const WaitingSection = ({ store, onClose }) => {
                     setStep('status');
                     fetchAISuggestions();
 
-                    const socket = ordersAPI.getSocket();
-                    socket.emit('join-my-waiting', { phone });
-                    socket.on('waiting-status-changed', (data) => {
-                        setMyWaiting(prev => ({ ...prev, status: data.status }));
-                        if (data.status === 'called') {
-                            alert(data.message);
-                        }
-                    });
-                    socket.on('refresh-ahead-count', () => {
-                        fetchMyStatus(phone);
-                    });
+                    ordersAPI.getSocket().emit('join-my-waiting', { phone });
                 }
             }
         } catch (err) {
@@ -75,6 +87,7 @@ const WaitingSection = ({ store, onClose }) => {
             });
             if (res.success) {
                 localStorage.setItem('waiting_phone', formData.phone);
+                ordersAPI.getSocket().emit('join-my-waiting', { phone: formData.phone });
                 setMyWaiting(res.data);
                 setStep('success');
             }

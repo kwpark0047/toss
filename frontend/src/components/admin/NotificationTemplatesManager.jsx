@@ -328,6 +328,7 @@ const NotificationTemplatesManager = () => {
       <AnimatePresence>
         {editing && (
           <EditModal
+            key={editing.id || 'new'}
             editing={editing}
             saving={saving}
             onSave={handleSave}
