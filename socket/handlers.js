@@ -274,6 +274,15 @@ function registerSocketHandlers(io) {
       socket.join(`table - cart - ${tableId}`);
     });
 
+    // ── 분할 결제 테이블 룸 (PaymentService._emitSplitUpdate와 쌍) ──
+    socket.on('join-table-payment', ({ tableId }) => {
+      socket.join(`table - ${tableId}`);
+    });
+
+    socket.on('leave-table-payment', ({ tableId }) => {
+      socket.leave(`table - ${tableId}`);
+    });
+
     socket.on('update-shared-cart', (data) => {
       const { tableId, item, userPhone, action } = data;
       io.to(`table - cart - ${tableId}`).emit('cart-item-updated', {

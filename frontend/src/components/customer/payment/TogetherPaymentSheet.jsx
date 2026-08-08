@@ -27,6 +27,16 @@ const TogetherPaymentSheet = React.memo(({
     useEffect(() => {
         if (!socket || !tableId) return;
 
+        // 분할 결제 상태를 서버가 `table - ${tableId}` 룸으로 방송하므로,
+        // 같은 테이블 고객끼리 실시간 정산 현황을 공유하려면 이 룸에 참여해야 한다.
+        socket.emit('join-table-payment', { tableId });
+
+        return () => socket.emit('leave-table-payment', { tableId });
+    }, [socket, tableId]);
+
+    useEffect(() => {
+        if (!socket || !tableId) return;
+
         const handleSplitUpdate = (data) => {
             // console.log('[Together] 정산 현황 업데이트 수신:', data);
             setSplitStatus(data);
