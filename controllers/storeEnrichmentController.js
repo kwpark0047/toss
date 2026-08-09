@@ -150,14 +150,12 @@ exports.enrichSeoul = catchAsync(async (req, res) => {
     }
   }
 
-  let processed = 0,
-    matched = 0,
+  let matched = 0,
     updated = 0,
     nameFixed = 0;
   const samples = [];
 
   for (const row of rows) {
-    processed++;
     const seoulItem = seoulData.mapRow(row);
     const key = seoulData.addrCore(seoulItem.address);
     if (!key || !storeIndex[key]) continue;

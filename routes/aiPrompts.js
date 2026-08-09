@@ -27,7 +27,7 @@ router.get('/', authMiddleware, adminOnly, async (req, res) => {
     const includeInactive = req.query.includeInactive === 'true';
     const prompts = await aiPromptService.listPrompts(includeInactive);
     res.json({ success: true, prompts });
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: '프롬프트 조회 실패' });
   }
 });
@@ -63,7 +63,7 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
     }
     const template = await aiPromptService.createPrompt(name, prompt, description);
     res.status(201).json({ success: true, template });
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: '프롬프트 생성 실패' });
   }
 });
@@ -103,7 +103,7 @@ router.put('/:name', authMiddleware, adminOnly, async (req, res) => {
     }
     const template = await aiPromptService.updatePrompt(req.params.name, prompt, description);
     res.json({ success: true, template });
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: '프롬프트 업데이트 실패' });
   }
 });
@@ -129,7 +129,7 @@ router.delete('/:name', authMiddleware, adminOnly, async (req, res) => {
   try {
     await aiPromptService.deactivatePrompt(req.params.name);
     res.json({ success: true, message: '프롬프트가 비활성화되었습니다.' });
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: '프롬프트 비활성화 실패' });
   }
 });

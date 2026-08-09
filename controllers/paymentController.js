@@ -3,7 +3,6 @@ const prisma = require('../config/prisma');
 const Payment = require('../repositories/Payment');
 const Order = require('../repositories/Order');
 const PaymentService = require('../services/PaymentService');
-const Ledger = require('../repositories/Ledger');
 const TossAPI = require('../utils/toss');
 const catchAsync = require('../utils/catchAsync');
 const { AppError } = require('../utils/errorHandler');

@@ -199,12 +199,6 @@ exports.getStoreDetail = catchAsync(async (req, res) => {
     }),
   ]);
 
-  const firstCustomer = await prisma.store_customers.findFirst({
-    where: { store_id: storeId },
-    select: { id: true },
-    orderBy: { id: 'asc' },
-  });
-
   const dailyOrders = await prisma.orders.findMany({
     where: { store_id: storeId, created_at: { gte: since } },
     select: { created_at: true, total_amount: true },

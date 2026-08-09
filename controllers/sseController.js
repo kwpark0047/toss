@@ -1,7 +1,4 @@
 const logger = require('../utils/logger');
-// [수정] 모듈마다 new PrismaClient() 를 만들면 커넥션 풀이 중복 생성되어
-// 서버리스/컨테이너 환경에서 DB 연결 수가 폭증한다. 공유 싱글턴을 사용한다.
-const prisma = require('../config/prisma');
 
 const clients = new Map();
 

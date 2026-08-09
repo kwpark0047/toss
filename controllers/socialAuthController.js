@@ -6,7 +6,6 @@ const socialAccountRepository = require('../app/lib/repositories/socialAccount.r
 const { setTokenCookies } = require('../utils/tokenCookies');
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const IS_DEV = process.env.NODE_ENV !== 'production';
 
 const signTokens = (user) => {
   const jwt = require('jsonwebtoken');
@@ -19,11 +18,9 @@ const signTokens = (user) => {
     JWT_SECRET,
     { expiresIn: JWT_ACCESS_EXPIRY }
   );
-  const refreshToken = jwt.sign(
-    { id: user.id, type: 'refresh' },
-    JWT_REFRESH_SECRET,
-    { expiresIn: JWT_REFRESH_EXPIRY }
-  );
+  const refreshToken = jwt.sign({ id: user.id, type: 'refresh' }, JWT_REFRESH_SECRET, {
+    expiresIn: JWT_REFRESH_EXPIRY,
+  });
   return { token, refreshToken };
 };
 
@@ -39,17 +36,21 @@ const httpsGet = (url, accessToken) => {
   const options = { headers: { 'User-Agent': 'WeMarket/1.0' } };
   if (accessToken) options.headers['Authorization'] = `Bearer ${accessToken}`;
   return new Promise((resolve, reject) => {
-    https.get(url, options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch {
-          reject(new Error('Invalid JSON response from provider'));
-        }
-      });
-    }).on('error', reject);
+    https
+      .get(url, options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch {
+            reject(new Error('Invalid JSON response from provider'));
+          }
+        });
+      })
+      .on('error', reject);
   });
 };
 
@@ -64,7 +65,8 @@ const verifyToken = async (provider, accessToken) => {
         providerId: String(data.id),
         email: data.kakao_account?.email || null,
         name: data.properties?.nickname || data.kakao_account?.profile?.nickname || null,
-        profileImage: data.properties?.profile_image || data.kakao_account?.profile?.profile_image_url || null,
+        profileImage:
+          data.properties?.profile_image || data.kakao_account?.profile?.profile_image_url || null,
       };
     }
     case 'naver': {
@@ -109,7 +111,10 @@ const socialLogin = async (provider, accessToken, res, next) => {
       const user = existing.users;
       const { token, refreshToken } = signTokens(user);
       setTokenCookies(res, token, refreshToken);
-      return res.success({ token, refreshToken, user: safeUser(user), isNew: false }, '로그인 성공');
+      return res.success(
+        { token, refreshToken, user: safeUser(user), isNew: false },
+        '로그인 성공'
+      );
     }
 
     // 신규 — 사용자 찾기 또는 생성
@@ -122,7 +127,9 @@ const socialLogin = async (provider, accessToken, res, next) => {
 
     if (!user) {
       // 새 사용자 생성
-      const userName = profile.name || (provider === 'kakao' ? 'KakaoUser' : provider === 'naver' ? 'NaverUser' : 'GoogleUser');
+      const userName =
+        profile.name ||
+        (provider === 'kakao' ? 'KakaoUser' : provider === 'naver' ? 'NaverUser' : 'GoogleUser');
       user = await userRepository.create({
         name: userName,
         email: profile.email || null,
@@ -145,7 +152,10 @@ const socialLogin = async (provider, accessToken, res, next) => {
 
     const { token, refreshToken } = signTokens(user);
     setTokenCookies(res, token, refreshToken);
-    res.created({ token, refreshToken, user: safeUser(user), isNew: true }, '회원가입이 완료되었습니다.');
+    res.created(
+      { token, refreshToken, user: safeUser(user), isNew: true },
+      '회원가입이 완료되었습니다.'
+    );
   } catch (error) {
     if (error instanceof AppError) return next(error);
     logger.error({ error: error.message, provider }, 'Social login failed');
@@ -205,7 +215,8 @@ const getAccounts = async (req, res, next) => {
 const link = async (req, res, next) => {
   const { provider, accessToken } = req.body;
   try {
-    if (!provider || !accessToken) return next(new AppError('provider와 accessToken이 필요합니다.', 400));
+    if (!provider || !accessToken)
+      return next(new AppError('provider와 accessToken이 필요합니다.', 400));
 
     const profile = await verifyToken(provider, accessToken);
 

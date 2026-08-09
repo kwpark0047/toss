@@ -4,7 +4,7 @@ const aiService = require('../services/aiService');
 const logger = require('../utils/logger');
 const dashboardBroadcastService = require('../services/DashboardBroadcastService');
 
-function calculateWeightedDemand(recentOrders, days) {
+function calculateWeightedDemand(recentOrders) {
   if (recentOrders.length === 0)
     return { predicted: 0, confidence: 0.3, trend: 'insufficient_data' };
 
@@ -101,7 +101,7 @@ const DemandForecastController = {
             predicted: baselinePredicted,
             confidence: baselineConfidence,
             trend,
-          } = calculateWeightedDemand(dailyOrders, 30);
+          } = calculateWeightedDemand(dailyOrders);
 
           let predictedDemand = baselinePredicted;
           let confidence = baselineConfidence;

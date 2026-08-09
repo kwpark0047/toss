@@ -16,7 +16,7 @@ const reservationsController = {
         store_id: data.store_id,
         customer_phone: req.body.customer_phone || data.customer_phone,
       });
-    } catch (err) {
+    } catch (_err) {
       // capability 생성 실패는 예약 등록 자체를 막지 않는다 (시크릿 미설정 시 null)
     }
     res.json({ success: true, data, ...(capability ? { capability } : {}) });

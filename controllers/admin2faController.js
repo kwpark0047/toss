@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/prisma');
-const logger = require('../utils/logger');
 const { AppError } = require('../utils/errorHandler');
 const { sendSms } = require('../utils/smsService');
 const { decryptPhone } = require('../utils/phoneEncryption');
@@ -20,11 +19,9 @@ const signTokens = (user) => {
     JWT_SECRET,
     { expiresIn: JWT_ACCESS_EXPIRY }
   );
-  const refreshToken = jwt.sign(
-    { id: user.id, type: 'refresh' },
-    JWT_REFRESH_SECRET,
-    { expiresIn: JWT_REFRESH_EXPIRY }
-  );
+  const refreshToken = jwt.sign({ id: user.id, type: 'refresh' }, JWT_REFRESH_SECRET, {
+    expiresIn: JWT_REFRESH_EXPIRY,
+  });
   return { token, refreshToken };
 };
 

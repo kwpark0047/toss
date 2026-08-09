@@ -1,7 +1,6 @@
 const StoreService = require('../services/StoreService');
 const Store = require('../repositories/Store');
 const prisma = require('../config/prisma');
-const logger = require('../utils/logger');
 
 const storeService = new StoreService();
 
