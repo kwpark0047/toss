@@ -62,7 +62,7 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
       return res.status(400).json({ error: 'name과 prompt는 필수입니다.' });
     }
     const template = await aiPromptService.createPrompt(name, prompt, description);
-    res.status(201).json({ success: true, template });
+    res.created(template);
   } catch (_err) {
     res.status(500).json({ error: '프롬프트 생성 실패' });
   }

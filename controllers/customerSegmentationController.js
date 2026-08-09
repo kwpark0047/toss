@@ -58,7 +58,7 @@ async function upsertSegment(req, res) {
       },
     });
 
-    return res.status(201).json(segment);
+    return res.created(segment);
   } catch (error) {
     logger.error({ error: error.message, storeId: req.params.storeId }, '세그멘트 저장 실패');
     return res.status(500).json({ error: '세그멘트 저장 실패' });
@@ -226,7 +226,7 @@ async function createRecommendation(req, res) {
     });
 
     logger.info({ recommendationId: recommendation.id, storeId }, 'AI 추천 생성됨');
-    return res.status(201).json(recommendation);
+    return res.created(recommendation);
   } catch (error) {
     logger.error({ error: error.message }, 'AI 추천 생성 실패');
     return res.status(500).json({ error: 'AI 추천 생성 실패' });
