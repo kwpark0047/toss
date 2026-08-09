@@ -11,6 +11,8 @@ export function useSEO({ title, description }) {
 
     if (title) {
       document.title = title;
+    } else if (!document.title || document.title === '') {
+      document.title = DEFAULT_TITLE;
     }
     if (description) {
       let metaDesc = document.querySelector('meta[name="description"]');
@@ -20,6 +22,14 @@ export function useSEO({ title, description }) {
         document.head.appendChild(metaDesc);
       }
       metaDesc.content = description;
+    } else {
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.name = 'description';
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.content = DEFAULT_DESCRIPTION;
     }
 
     return () => {

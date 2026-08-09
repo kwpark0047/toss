@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { ordersAPI, getSocket } from '../../api';
 import { ChevronLeft, ShoppingBag, Clock, CheckCircle2, XCircle, Calendar, RefreshCw, MoreVertical, ChevronRight, UtensilsCrossed, PackageCheck, BellRing } from 'lucide-react';
@@ -45,7 +45,7 @@ const OrderHistory = () => {
     };
 
     // 데이터 불러오기 함수
-    const fetchHistory = async (isManual = false) => {
+    const fetchHistory = useCallback(async (isManual = false) => {
         if (isManual) setRefreshing(true);
         else setLoading(true);
 
@@ -67,7 +67,7 @@ const OrderHistory = () => {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [userPhone, tossUserKey]);
 
     useEffect(() => {
         fetchHistory();
@@ -95,7 +95,7 @@ const OrderHistory = () => {
                 socket.off('order-updated', handleOrderUpdated);
             };
         }
-    }, [userPhone, tossUserKey]);
+    }, [fetchHistory, orders, userPhone, tossUserKey]);
 
     const activeOrders = useMemo(() =>
         orders.filter(o => !['completed', 'cancelled'].includes(o.status)),

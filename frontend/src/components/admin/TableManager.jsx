@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { tablesAPI, storesAPI } from '../../api';
 import {
@@ -406,9 +406,9 @@ const TableManager = () => {
       });
     }
     return () => { if (getSocket()) getSocket().off('table-updated'); };
-  }, [storeId]);
+  }, [storeId, fetchData]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [storeRes, tablesRes] = await Promise.all([
         storesAPI.getById(storeId),
@@ -422,7 +422,7 @@ const TableManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [storeId, navigate]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('이 테이블을 삭제하시겠습니까?')) return;

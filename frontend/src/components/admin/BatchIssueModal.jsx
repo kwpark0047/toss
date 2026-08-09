@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Coins, Ticket, Loader2, X, Check, AlertTriangle, FileText } from 'lucide-react';
 import { adminAPI } from '../../api/admin';
@@ -18,17 +18,16 @@ export default function BatchIssueModal({ storeId, storeName, onClose }) {
   const [result, setResult] = useState(null);
   const [showTemplateMgr, setShowTemplateMgr] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
-      const [tpl, cpn] = await Promise.all([
+      const [tpl] = await Promise.all([
         adminAPI.getGrantTemplates(storeId).catch(() => ({ data: [] })),
-        adminAPI.platformStores({ limit: 1 }).catch(() => null),
       ]);
       setTemplates(tpl?.data || []);
     } catch { /* ignore */ }
-  };
+  }, [storeId]);
 
-  useEffect(() => { load(); }, [storeId]);
+  useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
     if (tab === 'coupons') {

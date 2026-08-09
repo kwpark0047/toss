@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
 import { boardAPI } from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -85,7 +85,7 @@ const BoardDetail = () => {
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
-    const fetchPost = async () => {
+    const fetchPost = useCallback(async () => {
         try {
             const [postRes, commentRes] = await Promise.all([
                 boardAPI.getPost(id),
@@ -99,9 +99,9 @@ const BoardDetail = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id, navigate]);
 
-    useEffect(() => { fetchPost(); }, [id]);
+    useEffect(() => { fetchPost(); }, [fetchPost]);
 
     const handleLike = async () => {
         if (!user) { toast.info('로그인이 필요합니다.'); return; }

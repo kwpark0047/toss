@@ -1,62 +1,57 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import {
-  MapPin, Navigation, Truck, Bell, ShieldCheck, Clock,
-  Smartphone, Zap, Menu, X, Sparkles, Signal, Fuel, AlertTriangle
-} from 'lucide-react';
-
+import { MapPin, Navigation, Truck, Smartphone, Menu, X, Sparkles, Signal, Fuel, AlertTriangle } from 'lucide-react';
 export default function FoodTruckFeatures() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const navItems = [
-    { label: '매장찾기', to: '/foodtruck/landing' },
-    { label: '기능소개', to: '/foodtruck/landing', active: true },
-    { label: '요금제', to: '/foodtruck/landing' },
-    { label: '이용가이드', to: '/foodtruck/landing' },
-    { label: '문의하기', to: '/foodtruck/landing' }
-  ];
-
-  const features = [
-    {
-      icon: Navigation,
-      title: '실시간 GPS 위치 싱크',
-      desc: '이동 중인 푸드트럭의 GPS 좌표를 초 단위로 서버에 전송하고, 고객에게는 한글 도로명 주소로 변환된 실시간 위치를 제공합니다.',
-      badge: '핵심 기능'
-    },
-    {
-      icon: AlertTriangle,
-      title: '긴급 킬스위치 (재료소진)',
-      desc: '재료가 소진되면 원터치로 전 메뉴를 일괄 품절 처리하고, 대기 중인 고객에게 자동으로 품절 알림톡을 발송합니다.',
-      badge: '안전장치'
-    },
-    {
-      icon: Smartphone,
-      title: '모바일 우선 주문',
-      desc: '별도 앱 설치 없이 모바일 브라우저에서 메뉴 확인 → 주문 → 결제까지 완료. 고객 유입 경로를 최소화합니다.',
-      badge: '고객 경험'
-    },
-    {
-      icon: Signal,
-      title: '하트비트 연결 유지',
-      desc: '불안정한 현장 네트워크 환경에서도 고객 연결 상태를 모니터링하고, 끊김 시 자동으로 알림톡 예비 경로를 가동합니다.',
-      badge: '신뢰성'
-    },
-    {
-      icon: MapPin,
-      title: '스마트 거점 배치',
-      desc: 'AI가 과거 판매 데이터와 시간대별 유동인구를 분석하여 최적의 영업 거점과 이동 동선을 제안합니다.',
-      badge: 'AI 추천'
-    },
-    {
-      icon: Fuel,
-      title: '이동 동선 최적화',
-      desc: '연료 효율과 예상 매출을 동시에 고려한 최적 이동 경로를 실시간으로 계산하여 보여줍니다.',
-      badge: '경로 최적화'
-    }
-  ];
-
-  return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
+  const navItems = [{
+    label: '매장찾기',
+    to: '/foodtruck/landing'
+  }, {
+    label: '기능소개',
+    to: '/foodtruck/landing',
+    active: true
+  }, {
+    label: '요금제',
+    to: '/foodtruck/landing'
+  }, {
+    label: '이용가이드',
+    to: '/foodtruck/landing'
+  }, {
+    label: '문의하기',
+    to: '/foodtruck/landing'
+  }];
+  const features = [{
+    icon: Navigation,
+    title: '실시간 GPS 위치 싱크',
+    desc: '이동 중인 푸드트럭의 GPS 좌표를 초 단위로 서버에 전송하고, 고객에게는 한글 도로명 주소로 변환된 실시간 위치를 제공합니다.',
+    badge: '핵심 기능'
+  }, {
+    icon: AlertTriangle,
+    title: '긴급 킬스위치 (재료소진)',
+    desc: '재료가 소진되면 원터치로 전 메뉴를 일괄 품절 처리하고, 대기 중인 고객에게 자동으로 품절 알림톡을 발송합니다.',
+    badge: '안전장치'
+  }, {
+    icon: Smartphone,
+    title: '모바일 우선 주문',
+    desc: '별도 앱 설치 없이 모바일 브라우저에서 메뉴 확인 → 주문 → 결제까지 완료. 고객 유입 경로를 최소화합니다.',
+    badge: '고객 경험'
+  }, {
+    icon: Signal,
+    title: '하트비트 연결 유지',
+    desc: '불안정한 현장 네트워크 환경에서도 고객 연결 상태를 모니터링하고, 끊김 시 자동으로 알림톡 예비 경로를 가동합니다.',
+    badge: '신뢰성'
+  }, {
+    icon: MapPin,
+    title: '스마트 거점 배치',
+    desc: 'AI가 과거 판매 데이터와 시간대별 유동인구를 분석하여 최적의 영업 거점과 이동 동선을 제안합니다.',
+    badge: 'AI 추천'
+  }, {
+    icon: Fuel,
+    title: '이동 동선 최적화',
+    desc: '연료 효율과 예상 매출을 동시에 고려한 최적 이동 경로를 실시간으로 계산하여 보여줍니다.',
+    badge: '경로 최적화'
+  }];
+  return <div className="min-h-screen bg-white text-slate-900 font-sans">
       {/* Navigation */}
       <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
@@ -71,17 +66,9 @@ export default function FoodTruckFeatures() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            {navItems.map(item => (
-              <Link
-                key={item.label}
-                to={item.to}
-                className={`text-sm font-bold tracking-tight transition-all ${
-                  item.active ? 'text-orange-500' : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
+            {navItems.map(item => <Link key={item.label} to={item.to} className={`text-sm font-bold tracking-tight transition-all ${item.active ? 'text-orange-500' : 'text-slate-500 hover:text-slate-900'}`}>
                 {item.label}
-              </Link>
-            ))}
+              </Link>)}
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -98,20 +85,11 @@ export default function FoodTruckFeatures() {
           </button>
         </div>
 
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-200 bg-white px-6 py-6 flex flex-col gap-4">
-            {navItems.map(item => (
-              <Link
-                key={item.label}
-                to={item.to}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`text-sm font-bold py-2 ${item.active ? 'text-orange-500' : 'text-slate-500'}`}
-              >
+        {mobileMenuOpen && <div className="md:hidden border-t border-slate-200 bg-white px-6 py-6 flex flex-col gap-4">
+            {navItems.map(item => <Link key={item.label} to={item.to} onClick={() => setMobileMenuOpen(false)} className={`text-sm font-bold py-2 ${item.active ? 'text-orange-500' : 'text-slate-500'}`}>
                 {item.label}
-              </Link>
-            ))}
-          </div>
-        )}
+              </Link>)}
+          </div>}
       </nav>
 
       {/* Hero */}
@@ -135,11 +113,7 @@ export default function FoodTruckFeatures() {
       {/* Features Grid */}
       <section className="pb-24 lg:pb-36 max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feat, idx) => (
-            <div
-              key={idx}
-              className="bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-3xl p-8 transition-all hover:scale-[1.02] flex flex-col justify-between"
-            >
+          {features.map((feat, idx) => <div key={idx} className="bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-3xl p-8 transition-all hover:scale-[1.02] flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center">
@@ -152,8 +126,7 @@ export default function FoodTruckFeatures() {
                 <h3 className="text-lg font-black tracking-tight text-slate-900 mb-3">{feat.title}</h3>
                 <p className="text-slate-500 text-sm leading-relaxed">{feat.desc}</p>
               </div>
-            </div>
-          ))}
+            </div>)}
         </div>
       </section>
 
@@ -169,6 +142,5 @@ export default function FoodTruckFeatures() {
           <p className="text-xs font-mono text-slate-400">&copy; 2026 WeMarket Platform. All rights reserved.</p>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 }

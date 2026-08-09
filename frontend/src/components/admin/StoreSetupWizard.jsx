@@ -54,7 +54,7 @@ export default function StoreSetupWizard() {
   const { refetch: refetchStores } = useStore();
 
   const [step, setStep] = useState(0);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [voiceEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tbMsg, setTbMsg] = useState('');
   const [tbHappy, setTbHappy] = useState(false);

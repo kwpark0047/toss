@@ -115,7 +115,7 @@ export default function PaymentSuccess() {
     };
 
     capturePayment();
-  }, [paymentKey, orderId, paymentId, phone, tossUserKey]);
+  }, [paymentKey, orderId, paymentId, phone, tossUserKey, amount]);
 
   // PWA 원클릭 브라우저 전용 설치 트리거
   const handlePwaInstall = async () => {

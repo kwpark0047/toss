@@ -66,15 +66,15 @@ export default function VisualTableMap({ _storeId, tables, onUpdate }) {
     const newX = Math.round((itemX + dx) / GRID_SIZE) * GRID_SIZE;
     const newY = Math.round((itemY + dy) / GRID_SIZE) * GRID_SIZE;
     moveItem(id, newX, newY, mapRect.width);
-  }, [isEditing, items]);
+  }, [isEditing, moveItem]);
 
   const handleTouchEnd = () => { touchRef.current = null; };
 
-  const moveItem = (id, rawX, rawY, mapW) => {
+  const moveItem = useCallback((id, rawX, rawY, mapW) => {
     const bx = Math.max(0, Math.min(rawX, mapW - TABLE_SIZE));
     const by = Math.max(0, Math.min(rawY, mapHeight - TABLE_SIZE));
     setItems(prev => prev.map(i => i.id === id ? { ...i, x: bx, y: by } : i));
-  };
+  }, [mapHeight]);
 
   /* ─── 저장 ─── */
   const saveLayout = async () => {

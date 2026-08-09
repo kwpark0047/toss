@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { getSocket, reservationsAPI } from '../../api';
 import { CalendarCheck, Clock, Users, Phone, XCircle, CheckCircle } from 'lucide-react';
@@ -13,7 +13,7 @@ const ReservationManager = () => {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [activeTab, setActiveTab] = useState('ALL');
 
-    const fetchReservations = async () => {
+    const fetchReservations = useCallback(async () => {
         try {
             const dateStr = selectedDate.toISOString().split('T')[0];
             const response = await reservationsAPI.getByStore(storeId, { date: dateStr });
@@ -25,7 +25,7 @@ const ReservationManager = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [storeId, selectedDate]);
 
     useEffect(() => {
         fetchReservations();
@@ -49,7 +49,7 @@ const ReservationManager = () => {
                 socket.off('new-reservation');
             }
         };
-    }, [storeId, selectedDate]);
+    }, [storeId, fetchReservations]);
 
     const handleStatusUpdate = async (id, status) => {
         try {

@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import {
-  Truck, Menu, X, Mail, Send, CheckCircle, Sparkles
-} from 'lucide-react';
-
+import { Truck, Menu, X, Mail, Send, CheckCircle } from 'lucide-react';
 export default function FoodTruckContact() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -14,22 +11,28 @@ export default function FoodTruckContact() {
     category: 'FOOD_TRUCK',
     message: ''
   });
-
-  const navItems = [
-    { label: '매장찾기', to: '/foodtruck/landing' },
-    { label: '기능소개', to: '/foodtruck/landing' },
-    { label: '요금제', to: '/foodtruck/landing' },
-    { label: '이용가이드', to: '/foodtruck/landing' },
-    { label: '문의하기', to: '/foodtruck/landing', active: true }
-  ];
-
-  const handleSubmit = (e) => {
+  const navItems = [{
+    label: '매장찾기',
+    to: '/foodtruck/landing'
+  }, {
+    label: '기능소개',
+    to: '/foodtruck/landing'
+  }, {
+    label: '요금제',
+    to: '/foodtruck/landing'
+  }, {
+    label: '이용가이드',
+    to: '/foodtruck/landing'
+  }, {
+    label: '문의하기',
+    to: '/foodtruck/landing',
+    active: true
+  }];
+  const handleSubmit = e => {
     e.preventDefault();
     setSubmitted(true);
   };
-
-  return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
+  return <div className="min-h-screen bg-white text-slate-900 font-sans">
       {/* Navigation */}
       <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
@@ -44,17 +47,9 @@ export default function FoodTruckContact() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            {navItems.map(item => (
-              <Link
-                key={item.label}
-                to={item.to}
-                className={`text-sm font-bold tracking-tight transition-all ${
-                  item.active ? 'text-orange-500' : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
+            {navItems.map(item => <Link key={item.label} to={item.to} className={`text-sm font-bold tracking-tight transition-all ${item.active ? 'text-orange-500' : 'text-slate-500 hover:text-slate-900'}`}>
                 {item.label}
-              </Link>
-            ))}
+              </Link>)}
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -71,20 +66,11 @@ export default function FoodTruckContact() {
           </button>
         </div>
 
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-200 bg-white px-6 py-6 flex flex-col gap-4">
-            {navItems.map(item => (
-              <Link
-                key={item.label}
-                to={item.to}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`text-sm font-bold py-2 ${item.active ? 'text-orange-500' : 'text-slate-500'}`}
-              >
+        {mobileMenuOpen && <div className="md:hidden border-t border-slate-200 bg-white px-6 py-6 flex flex-col gap-4">
+            {navItems.map(item => <Link key={item.label} to={item.to} onClick={() => setMobileMenuOpen(false)} className={`text-sm font-bold py-2 ${item.active ? 'text-orange-500' : 'text-slate-500'}`}>
                 {item.label}
-              </Link>
-            ))}
-          </div>
-        )}
+              </Link>)}
+          </div>}
       </nav>
 
       {/* Hero */}
@@ -107,53 +93,38 @@ export default function FoodTruckContact() {
 
       {/* Contact Form */}
       <section className="pb-24 max-w-2xl mx-auto px-6">
-        {submitted ? (
-          <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center">
+        {submitted ? <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center">
             <CheckCircle className="size-12 text-orange-500 mx-auto mb-4" />
             <h3 className="text-xl font-black text-slate-900 mb-2">문의가 접수되었습니다</h3>
             <p className="text-slate-500 text-sm">빠른 시일 내에 답변 드리겠습니다.</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
+          </div> : <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-2">이름</label>
-              <input
-                type="text"
-                required
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-orange-400 transition-all"
-                placeholder="홍길동"
-              />
+              <input type="text" required value={form.name} onChange={e => setForm({
+            ...form,
+            name: e.target.value
+          })} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-orange-400 transition-all" placeholder="홍길동" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-2">이메일</label>
-              <input
-                type="email"
-                required
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-orange-400 transition-all"
-                placeholder="example@email.com"
-              />
+              <input type="email" required value={form.email} onChange={e => setForm({
+            ...form,
+            email: e.target.value
+          })} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-orange-400 transition-all" placeholder="example@email.com" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-2">전화번호</label>
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-orange-400 transition-all"
-                placeholder="010-0000-0000"
-              />
+              <input type="tel" value={form.phone} onChange={e => setForm({
+            ...form,
+            phone: e.target.value
+          })} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-orange-400 transition-all" placeholder="010-0000-0000" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-2">문의 유형</label>
-              <select
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-sm focus:outline-none focus:border-orange-400 transition-all"
-              >
+              <select value={form.category} onChange={e => setForm({
+            ...form,
+            category: e.target.value
+          })} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-sm focus:outline-none focus:border-orange-400 transition-all">
                 <option value="FOOD_TRUCK">푸드트럭 입점 문의</option>
                 <option value="GENERAL">일반 문의</option>
                 <option value="PAY_CONTRACT">결제 계약 문의</option>
@@ -162,24 +133,16 @@ export default function FoodTruckContact() {
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-2">메시지</label>
-              <textarea
-                required
-                rows={5}
-                value={form.message}
-                onChange={(e) => setForm({ ...form, message: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-orange-400 transition-all resize-none"
-                placeholder="문의 내용을 입력해주세요..."
-              />
+              <textarea required rows={5} value={form.message} onChange={e => setForm({
+            ...form,
+            message: e.target.value
+          })} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-orange-400 transition-all resize-none" placeholder="문의 내용을 입력해주세요..." />
             </div>
-            <button
-              type="submit"
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 text-white text-sm font-black shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
-            >
+            <button type="submit" className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 text-white text-sm font-black shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 transition-all active:scale-95 flex items-center justify-center gap-2">
               <Send className="size-4" />
               문의 보내기
             </button>
-          </form>
-        )}
+          </form>}
       </section>
 
       {/* Footer */}
@@ -194,6 +157,5 @@ export default function FoodTruckContact() {
           <p className="text-xs font-mono text-slate-400">&copy; 2026 WeMarket Platform. All rights reserved.</p>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Plus, Trash2, FileText } from 'lucide-react';
 import { optionTemplatesAPI } from '../../api';
 
@@ -8,11 +8,7 @@ const OptionTemplateModal = ({ storeId, onClose }) => {
     const [editingTemplate, setEditingTemplate] = useState(null);
     const [newTemplate, setNewTemplate] = useState({ name: '', options: [] });
 
-    useEffect(() => {
-        fetchTemplates();
-    }, [storeId]);
-
-    const fetchTemplates = async () => {
+    const fetchTemplates = useCallback(async () => {
         try {
             const res = await optionTemplatesAPI.getByStore(storeId);
             setTemplates(res || []);
@@ -21,7 +17,11 @@ const OptionTemplateModal = ({ storeId, onClose }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [storeId]);
+
+    useEffect(() => {
+        fetchTemplates();
+    }, [fetchTemplates]);
 
     const handleSave = async () => {
         if (!newTemplate.name) return alert('이름을 입력하세요.');

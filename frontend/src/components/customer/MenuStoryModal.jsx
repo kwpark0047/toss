@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { X, Heart, Quote, Share2 } from 'lucide-react';
 import { aiAPI } from '../../api';
@@ -13,9 +13,9 @@ const MenuStoryModal = ({ isOpen, onClose, product, storeName }) => {
         if (isOpen && product) {
             generateStory();
         }
-    }, [isOpen, product]);
+    }, [isOpen, product, generateStory]);
 
-    const generateStory = async () => {
+    const generateStory = useCallback(async () => {
         setLoading(true);
         try {
             const lang = i18n.language.split("-")[0];
@@ -34,7 +34,7 @@ const MenuStoryModal = ({ isOpen, onClose, product, storeName }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [product, i18n.language]);
 
     if (!isOpen) return null;
 

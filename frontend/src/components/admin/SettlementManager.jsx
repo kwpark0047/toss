@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { adminAPI } from '../../api';
 import {
@@ -183,9 +183,9 @@ const SettlementManager = () => {
     const [period, setPeriod] = useState({ start: '', end: '' });
     const [selected, setSelected] = useState(null);
 
-    useEffect(() => { fetchSettlements(); }, [storeId]);
+    useEffect(() => { fetchSettlements(); }, [fetchSettlements]);
 
-    const fetchSettlements = async () => {
+    const fetchSettlements = useCallback(async () => {
         try {
             const res = await adminAPI.getSettlements(storeId);
             setSettlements(res.data || res);
@@ -194,7 +194,7 @@ const SettlementManager = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [storeId]);
 
     const openDetail = async (s) => {
         try {

@@ -49,7 +49,6 @@ function EncryptAnimation({ phone, onDone }) {
   const [display, setDisplay] = useState(phone);
   const [progress, setProgress] = useState(0);
   const [sealDone, setSealDone] = useState(false);
-  const intervalRef = useRef(null);
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -115,9 +114,8 @@ function EncryptAnimation({ phone, onDone }) {
     run();
     return () => {
       cancelled = true;
-      clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [phone, onDone]);
 
   return (
     <motion.div
@@ -316,7 +314,7 @@ export default function CustomerPhoneSheet({
       setError(err.response?.data?.message || t('points.error_generic'));
       setStep('idle');
     }
-  }, [phone, storeId, orderId, totalAmount]);
+  }, [phone, storeId, orderId, totalAmount, t]);
 
   const AnimatedPoints = useCountUp(step === 'done' ? result?.points_earned : 0);
   const AnimatedTotal  = useCountUp(step === 'done' ? result?.total_points : 0);

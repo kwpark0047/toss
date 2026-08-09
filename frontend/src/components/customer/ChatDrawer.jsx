@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, ShieldCheck, Sparkles, Image as ImageIcon } from 'lucide-react';
@@ -22,7 +22,7 @@ const ChatDrawer = ({ isOpen, onClose, store, _table, customerInfo }) => {
         if (isOpen && store?.id) {
             initChat();
         }
-    }, [isOpen, store?.id]);
+    }, [isOpen, store?.id, initChat]);
 
     // 스크롤 하단 고정
     useEffect(() => {
@@ -46,7 +46,7 @@ const ChatDrawer = ({ isOpen, onClose, store, _table, customerInfo }) => {
         }
     }, [socket, roomId]);
 
-    const initChat = async () => {
+    const initChat = useCallback(async () => {
         setLoading(true);
         try {
             const res = await chatAPI.accessRoom({
@@ -67,7 +67,7 @@ const ChatDrawer = ({ isOpen, onClose, store, _table, customerInfo }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [store?.id, customerInfo?.phone, customerInfo?.id]);
 
     const handleSendMessage = async (e) => {
         if (e) e.preventDefault();

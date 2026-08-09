@@ -1,15 +1,18 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router';
-import { 
-  Building2, TrendingUp, ShoppingCart, DollarSign, Calendar, 
-  ArrowUpRight, AlertCircle, RefreshCw, Layers, ChevronRight, Store, CheckCircle
-} from 'lucide-react';
+import { Building2, TrendingUp, ShoppingCart, DollarSign, Calendar, RefreshCw, Layers, ChevronRight, Store } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import { toast } from 'react-toastify';
 import { vibrateShort } from '../../utils/notificationSound';
-
 export default function MultiStoreSupervisorDashboard() {
-  const [data, setData] = useState({ summary: { total_sales: 0, total_orders: 0, store_count: 0 }, stores: [] });
+  const [data, setData] = useState({
+    summary: {
+      total_sales: 0,
+      total_orders: 0,
+      store_count: 0
+    },
+    stores: []
+  });
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -24,26 +27,35 @@ export default function MultiStoreSupervisorDashboard() {
   const [reconciledMap, setReconciledMap] = useState({});
 
   // 통합 다점포 매출 분석 조회
-  const fetchMultiStoreStats = async () => {
+const fetchMultiStoreStats = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/analytics/multi-store?start_date=${startDate}&end_date=${endDate}`);
       if (!res.ok) throw new Error('다점포 통계 데이터를 로드하지 못했습니다.');
       const json = await res.json();
-      setData(json.data || json || { summary: { total_sales: 0, total_orders: 0, store_count: 0 }, stores: [] });
+      setData(json.data || json || {
+        summary: {
+          total_sales: 0,
+          total_orders: 0,
+          store_count: 0
+        },
+        stores: []
+      });
     } catch (err) {
       console.error('[Supervisor] Fetch Error:', err);
     } finally {
       if (typeof setLoading === 'function') setLoading(false);
     }
-  };
-
+  }, [startDate, endDate]);
   useEffect(() => {
     fetchMultiStoreStats();
-  }, [startDate, endDate]);
-
-  const summary = data.summary || { total_sales: 0, total_orders: 0, store_count: 0 };
-  const stores = data.stores || [];
+  }, [fetchMultiStoreStats]);
+const summary = useMemo(() => data.summary || {
+    total_sales: 0,
+    total_orders: 0,
+    store_count: 0
+  }, [data]);
+  const stores = useMemo(() => data.stores || [], [data]);
 
   // 평균 객단가 계산 (Combined Average Ticket Size)
   const averageTicketSize = useMemo(() => {
@@ -60,7 +72,10 @@ export default function MultiStoreSupervisorDashboard() {
   // 원클릭 대사 대조 토글 핸들러
   const toggleReconcile = (storeId, storeName) => {
     setReconciledMap(prev => {
-      const next = { ...prev, [storeId]: !prev[storeId] };
+      const next = {
+        ...prev,
+        [storeId]: !prev[storeId]
+      };
       const isChecking = next[storeId];
       if (isChecking) {
         toast.success(`[${storeName}] 지점의 자금 대사 대조 검증이 원클릭 완료 처리되었습니다. 💵`);
@@ -71,9 +86,7 @@ export default function MultiStoreSupervisorDashboard() {
       vibrateShort();
     } catch (_) {}
   };
-
-  return (
-    <div className="space-y-8 text-slate-100 max-w-7xl mx-auto p-1 select-none">
+  return <div className="space-y-8 text-slate-100 max-w-7xl mx-auto p-1 select-none">
       
       {/* 1. 최상단 통합 헤더바 */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-900">
@@ -100,24 +113,10 @@ export default function MultiStoreSupervisorDashboard() {
             <Calendar className="size-4" />
             <span>분석 기간</span>
           </div>
-          <input 
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 outline-none focus:border-orange-500/40 focus:ring-4 focus:ring-orange-500/5 transition-all"
-          />
+          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 outline-none focus:border-orange-500/40 focus:ring-4 focus:ring-orange-500/5 transition-all" />
           <span className="text-slate-600 text-xs">~</span>
-          <input 
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 outline-none focus:border-orange-500/40 focus:ring-4 focus:ring-orange-500/5 transition-all"
-          />
-          <button 
-            onClick={fetchMultiStoreStats}
-            disabled={loading}
-            className="w-10 h-10 rounded-xl border border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center bg-slate-950 active:scale-95"
-          >
+          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 outline-none focus:border-orange-500/40 focus:ring-4 focus:ring-orange-500/5 transition-all" />
+          <button onClick={fetchMultiStoreStats} disabled={loading} className="w-10 h-10 rounded-xl border border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center bg-slate-950 active:scale-95">
             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -191,20 +190,13 @@ export default function MultiStoreSupervisorDashboard() {
           <span className="text-[10px] text-slate-400 font-mono font-bold">TOTAL : {stores.length} STORES</span>
         </div>
 
-        {stores.length === 0 ? (
-          <div className="text-center py-10 text-slate-650 text-xs font-semibold">
+        {stores.length === 0 ? <div className="text-center py-10 text-slate-650 text-xs font-semibold">
             조회 기간에 결제된 내역이 없어 매출 비율 그래프를 그릴 수 없습니다.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {stores.map((st) => {
-              // 해당 매장의 매출이 총 매출에서 차지하는 비율 계산
-              const sharePercent = summary.total_sales > 0 
-                ? Math.round((st.total_sales / summary.total_sales) * 100) 
-                : 0;
-
-              return (
-                <div key={st.store_id} className="space-y-1.5">
+          </div> : <div className="space-y-4">
+            {stores.map(st => {
+          // 해당 매장의 매출이 총 매출에서 차지하는 비율 계산
+          const sharePercent = summary.total_sales > 0 ? Math.round(st.total_sales / summary.total_sales * 100) : 0;
+          return <div key={st.store_id} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-slate-300">{st.store_name}</span>
                     <div className="flex items-center gap-2">
@@ -218,16 +210,13 @@ export default function MultiStoreSupervisorDashboard() {
                   </div>
                   {/* 정밀 가로 그래프 바 */}
                   <div className="h-4 bg-slate-950/80 rounded-lg overflow-hidden border border-slate-850/60 p-0.5">
-                    <div 
-                      className="h-full bg-gradient-to-r from-orange-500 to-rose-600 rounded-md transition-all duration-1000" 
-                      style={{ width: `${Math.max(1, sharePercent)}%` }}
-                    />
+                    <div className="h-full bg-gradient-to-r from-orange-500 to-rose-600 rounded-md transition-all duration-1000" style={{
+                width: `${Math.max(1, sharePercent)}%`
+              }} />
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                </div>;
+        })}
+          </div>}
       </div>
 
       {/* 4. 다점포 통합 자금 정산 대사 매니저 (Reconciliation - 패널 신설) */}
@@ -254,16 +243,14 @@ export default function MultiStoreSupervisorDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-850/40 text-xs font-medium">
-              {stores.map((st) => {
-                const total = st.total_sales;
-                const commission = Math.round(total * 0.03);
-                const vat = Math.round(commission * 0.1);
-                const cardFee = Math.round(total * 0.02);
-                const netPayout = total - commission - vat - cardFee;
-                const isReconciled = reconciledMap[st.store_id];
-
-                return (
-                  <tr key={st.store_id} className={`hover:bg-white/[0.01] transition-colors ${isReconciled ? 'opacity-50' : ''}`}>
+              {stores.map(st => {
+              const total = st.total_sales;
+              const commission = Math.round(total * 0.03);
+              const vat = Math.round(commission * 0.1);
+              const cardFee = Math.round(total * 0.02);
+              const netPayout = total - commission - vat - cardFee;
+              const isReconciled = reconciledMap[st.store_id];
+              return <tr key={st.store_id} className={`hover:bg-white/[0.01] transition-colors ${isReconciled ? 'opacity-50' : ''}`}>
                     <td className="p-4 font-bold text-slate-200">{st.store_name}</td>
                     <td className="p-4 text-right font-mono font-bold text-slate-300 tabular-nums">{formatPrice(total, true)}</td>
                     <td className="p-4 text-right font-mono text-slate-400 tabular-nums">{formatPrice(commission, true)}</td>
@@ -271,20 +258,12 @@ export default function MultiStoreSupervisorDashboard() {
                     <td className="p-4 text-right font-mono text-slate-500 tabular-nums">{formatPrice(cardFee, true)}</td>
                     <td className="p-4 text-right font-mono font-bold text-emerald-400 tabular-nums">{formatPrice(netPayout, true)}</td>
                     <td className="p-4 text-center">
-                      <button
-                        onClick={() => toggleReconcile(st.store_id, st.store_name)}
-                        className={`w-24 h-10 rounded-xl text-[10px] font-black tracking-wider transition-all active:scale-95 border ${
-                          isReconciled 
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-                            : 'bg-slate-900 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
+                      <button onClick={() => toggleReconcile(st.store_id, st.store_name)} className={`w-24 h-10 rounded-xl text-[10px] font-black tracking-wider transition-all active:scale-95 border ${isReconciled ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-900 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200'}`}>
                         {isReconciled ? '✓ 대사완료' : '대조 체크'}
                       </button>
                     </td>
-                  </tr>
-                );
-              })}
+                  </tr>;
+            })}
             </tbody>
           </table>
         </div>
@@ -297,16 +276,9 @@ export default function MultiStoreSupervisorDashboard() {
           지점별 라이브 대시보드
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {stores.length === 0 ? (
-            <div className="col-span-2 p-10 bg-slate-900/30 border border-slate-900 rounded-3xl text-center text-slate-500 text-xs font-semibold">
+          {stores.length === 0 ? <div className="col-span-2 p-10 bg-slate-900/30 border border-slate-900 rounded-3xl text-center text-slate-500 text-xs font-semibold">
               등록된 매장 데이터가 없습니다. 매장 개설 마법사를 통해 첫 매장을 등록해 주세요.
-            </div>
-          ) : (
-            stores.map((st) => (
-              <div 
-                key={st.store_id} 
-                className="bg-slate-900/40 border border-slate-900 hover:border-slate-800 rounded-3xl p-6 transition-all hover:scale-[1.01] flex flex-col justify-between h-48 shadow-xl"
-              >
+            </div> : stores.map(st => <div key={st.store_id} className="bg-slate-900/40 border border-slate-900 hover:border-slate-800 rounded-3xl p-6 transition-all hover:scale-[1.01] flex flex-col justify-between h-48 shadow-xl">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <h4 className="text-base font-black text-white flex items-center gap-2">
@@ -332,20 +304,14 @@ export default function MultiStoreSupervisorDashboard() {
                     <strong className="font-mono text-white font-bold">{st.total_orders}건</strong>
                   </div>
                   
-                  <Link 
-                    to={`/admin/stores/${st.store_id}/orders`}
-                    className="px-4 py-2 bg-white text-slate-950 rounded-xl font-black text-xs hover:bg-orange-500 hover:text-white transition-all flex items-center gap-1 active:scale-95 shadow-md shadow-white/5"
-                  >
+                  <Link to={`/admin/stores/${st.store_id}/orders`} className="px-4 py-2 bg-white text-slate-950 rounded-xl font-black text-xs hover:bg-orange-500 hover:text-white transition-all flex items-center gap-1 active:scale-95 shadow-md shadow-white/5">
                     <span>이 매장 대시보드로 입장</span>
                     <ChevronRight size={12} />
                   </Link>
                 </div>
-              </div>
-            ))
-          )}
+              </div>)}
         </div>
       </div>
 
-    </div>
-  );
+    </div>;
 }

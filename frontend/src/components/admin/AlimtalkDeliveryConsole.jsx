@@ -1,62 +1,72 @@
-import { useState, useEffect, useMemo} from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
-import { 
-  MessageSquare, CheckCircle2, RefreshCw, Volume2, VolumeX, 
-  Clock, User, Hash, AlertCircle, Phone, DollarSign, BarChart3, Search, Calendar, ChevronRight
-} from 'lucide-react';
+import { MessageSquare, CheckCircle2, RefreshCw, DollarSign, BarChart3, Search } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
-
 export default function AlimtalkDeliveryConsole() {
-  const { storeId } = useParams();
-  const [data, setData] = useState({ summary: { total: 0, success: 0, fallback: 0, total_cost: 0 }, logs: [] });
+  const {
+    storeId
+  } = useParams();
+  const [data, setData] = useState({
+    summary: {
+      total: 0,
+      success: 0,
+      fallback: 0,
+      total_cost: 0
+    },
+    logs: []
+  });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [_socketStatus, _setSocketStatus] = useState('CONNECTED');
-
-  const fetchAlimtalkHistory = async (showLoading = true) => {
+const fetchAlimtalkHistory = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
       const res = await fetch(`/api/alimtalk/stores/${storeId}/history`);
       if (!res.ok) throw new Error('알림톡 전송 이력 데이터를 로드하지 못했습니다.');
       const json = await res.json();
-      setData(json.data || json || { summary: { total: 0, success: 0, fallback: 0, total_cost: 0 }, logs: [] });
+      setData(json.data || json || {
+        summary: {
+          total: 0,
+          success: 0,
+          fallback: 0,
+          total_cost: 0
+        },
+        logs: []
+      });
     } catch (err) {
       console.error('[Alimtalk] Fetch Error:', err);
     } finally {
       if (showLoading) setLoading(false);
     }
-  };
-
+  }, [storeId]);
   useEffect(() => {
     if (storeId) {
       fetchAlimtalkHistory(true);
       const iv = setInterval(() => fetchAlimtalkHistory(false), 15000); // 15초마다 백그라운드 갱신
       return () => clearInterval(iv);
     }
-  }, [storeId]);
-
-  const summary = data.summary || { total: 0, success: 0, fallback: 0, total_cost: 0 };
-  const logs = data.logs || [];
+  }, [storeId, fetchAlimtalkHistory]);
+const summary = useMemo(() => data.summary || {
+    total: 0,
+    success: 0,
+    fallback: 0,
+    total_cost: 0
+  }, [data]);
+  const logs = useMemo(() => data.logs || [], [data]);
 
   // 전송 성공률 계산
   const successRate = useMemo(() => {
     if (!summary.total) return 100;
-    return Math.round((summary.success / summary.total) * 100);
+    return Math.round(summary.success / summary.total * 100);
   }, [summary.success, summary.total]);
 
   // 검색 필터링 적용
   const filteredLogs = useMemo(() => {
     if (!searchQuery) return logs;
     const q = searchQuery.toLowerCase();
-    return logs.filter(log => 
-      log.phone.includes(q) || 
-      log.templateId.toLowerCase().includes(q) || 
-      log.text.toLowerCase().includes(q)
-    );
+    return logs.filter(log => log.phone.includes(q) || log.templateId.toLowerCase().includes(q) || log.text.toLowerCase().includes(q));
   }, [logs, searchQuery]);
-
-  return (
-    <div className="space-y-8 text-slate-100 max-w-7xl mx-auto p-1 select-none font-sans">
+  return <div className="space-y-8 text-slate-100 max-w-7xl mx-auto p-1 select-none font-sans">
       
       {/* 1. 최상단 통합 헤더바 */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-900">
@@ -80,20 +90,10 @@ export default function AlimtalkDeliveryConsole() {
         {/* 상단 컨트롤 패널 */}
         <div className="flex items-center gap-2.5">
           <div className="relative w-64">
-            <input 
-              type="text" 
-              placeholder="수신 번호, 템플릿, 문구 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-850 text-slate-200 rounded-xl px-10 py-2.5 text-xs focus:outline-none focus:border-orange-500 transition-all placeholder-slate-500"
-            />
+            <input type="text" placeholder="수신 번호, 템플릿, 문구 검색..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-slate-900 border border-slate-850 text-slate-200 rounded-xl px-10 py-2.5 text-xs focus:outline-none focus:border-orange-500 transition-all placeholder-slate-500" />
             <Search className="size-4 text-slate-500 absolute left-3.5 top-3" />
           </div>
-          <button 
-            onClick={() => fetchAlimtalkHistory(true)}
-            disabled={loading}
-            className="w-10 h-10 rounded-xl border border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center bg-slate-950 active:scale-95"
-          >
+          <button onClick={() => fetchAlimtalkHistory(true)} disabled={loading} className="w-10 h-10 rounded-xl border border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center bg-slate-950 active:scale-95">
             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -177,19 +177,14 @@ export default function AlimtalkDeliveryConsole() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-850/40 text-xs font-medium">
-              {filteredLogs.length === 0 ? (
-                <tr>
+              {filteredLogs.length === 0 ? <tr>
                   <td colSpan={6} className="text-center py-12 text-slate-600 font-semibold">
                     송신된 알림톡 전송 이력이 존재하지 않습니다.
                   </td>
-                </tr>
-              ) : (
-                filteredLogs.map((log) => {
-                  const isSms = log.fallback || log.simulated === false && log.sent === false;
-                  const formattedPhone = log.phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-****-$3');
-                  
-                  return (
-                    <tr key={log.id || log.timestamp} className="hover:bg-white/[0.01] transition-colors">
+                </tr> : filteredLogs.map(log => {
+              const isSms = log.fallback || log.simulated === false && log.sent === false;
+              const formattedPhone = log.phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-****-$3');
+              return <tr key={log.id || log.timestamp} className="hover:bg-white/[0.01] transition-colors">
                       <td className="p-4 font-mono font-bold text-slate-200 tabular-nums">
                         {formattedPhone}
                       </td>
@@ -202,13 +197,7 @@ export default function AlimtalkDeliveryConsole() {
                         {log.text}
                       </td>
                       <td className="p-4 text-center">
-                        <span className={`px-2 py-1 rounded-lg text-[10px] font-black tracking-wider uppercase ${
-                          log.simulated 
-                            ? 'bg-orange-500/10 border border-orange-500/20 text-orange-400' 
-                            : isSms
-                              ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
-                              : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-                        }`}>
+                        <span className={`px-2 py-1 rounded-lg text-[10px] font-black tracking-wider uppercase ${log.simulated ? 'bg-orange-500/10 border border-orange-500/20 text-orange-400' : isSms ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'}`}>
                           {log.simulated ? 'SIMULATED' : isSms ? 'FALLBACK_SMS' : 'ALIMTALK'}
                         </span>
                       </td>
@@ -216,12 +205,12 @@ export default function AlimtalkDeliveryConsole() {
                         {isSms ? '₩50' : '₩15'}
                       </td>
                       <td className="p-4 text-right font-mono text-slate-500 tabular-nums">
-                        {new Date(log.timestamp).toLocaleString('ko-KR', { hour12: false })}
+                        {new Date(log.timestamp).toLocaleString('ko-KR', {
+                    hour12: false
+                  })}
                       </td>
-                    </tr>
-                  );
-                })
-              )}
+                    </tr>;
+            })}
             </tbody>
           </table>
         </div>
@@ -244,6 +233,5 @@ export default function AlimtalkDeliveryConsole() {
           SYSTEM HEALTHY
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 }

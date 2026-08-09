@@ -49,7 +49,7 @@ const BoardWrite = () => {
             setIsPinned(p.is_pinned || false);
             if (p.tags) setTags(p.tags.split(',').filter(Boolean));
         }).catch(() => toast.error('게시글을 불러올 수 없습니다.'));
-    }, [editId]);
+    }, [editId, initialType]);
 
     // localStorage 임시저장 복원
     useEffect(() => {
@@ -61,7 +61,7 @@ const BoardWrite = () => {
                 if (parsed.title || parsed.content) setHasDraft(true);
             } catch {}
         }
-    }, [boardType]);
+    }, [boardType, editId]);
 
     // 자동 임시저장 (2초 디바운스)
     useEffect(() => {

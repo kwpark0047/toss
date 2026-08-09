@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { businessAPI, storeAccountAPI } from '../../api';
 import { Palette, Layout, Sliders, Save, RefreshCw, Check, AlertCircle, Info, CreditCard, Store, Building2, BadgeCheck, Banknote, Smartphone, ChevronUp, ChevronDown } from 'lucide-react';
@@ -358,9 +358,9 @@ export default function BusinessSettingsWithTheme() {
         setMenuOptions(prev => ({ ...prev, [key]: value }));
     };
 
-    useEffect(() => { fetchData(); }, [storeId]);
+    useEffect(() => { fetchData(); }, [fetchData]);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const res = await businessAPI.get(storeId);
@@ -397,7 +397,7 @@ export default function BusinessSettingsWithTheme() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [storeId]);
 
     const saveAll = async () => {
         setSaving(true);

@@ -4,83 +4,62 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router";
 import { StoreProvider } from "@/contexts/StoreContext";
-import { lazy, Suspense, useState, useEffect, memo } from "react";
+import { Suspense, useState, useEffect, memo } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { logError } from "@/lib/errorUtils";
 
 // Lazy imports
-import {
-  Index, MenuPage, PaymentSuccess, PaymentFail, QrResolvePage,
-  MenuDemo, BusinessDemo, AuthPage, Register, StoreSearchPage,
-  NotFound, KioskPage, ProfilePage, KitchenDisplayPage, LegalPage,
-  StoreDisplay, FoodTruckLanding, FoodTruckDesignShowcase,
-  FeaturesPage, PricingPage, GuidesPage, NewsPage, ContactPage,
-  BoardList, BoardDetail, BoardWrite, PlanUpgrade,
-  AdminLayout, MasterDashboard, MultiStoreSupervisorDashboard,
-  StoreSetupWizard, StoreForm, OrderManager, MenuManager, MenuBuilder,
-  StaffManager, SalesStats, ReviewManager, AnalyticsDashboard,
-  SettlementManager, BusinessSettingsWithTheme, SystemStatus, ReceiptSettings,
-  CustomerManager, CampaignDashboard, ReservationManager, WaitingManager, BulkSMSManager,
-  StoreEnrichment, InventoryManager, TableManager, StoreSettings,
-  LegalSettings, NotificationTemplatesManager, DeveloperConsole,
-  QrCustomizer, PartnershipManager, StaffScheduler,
-  FoodTruckOwnerDashboard, FoodTruckAnalyticsDashboard,
-    AlimtalkDeliveryConsole, CommunityPage,
-    TinkerBellManagerPage, PlanRequestsManage,
-  } from "@/routes/lazyImports";
-
+import { Index, MenuPage, PaymentSuccess, PaymentFail, QrResolvePage, MenuDemo, BusinessDemo, AuthPage, Register, StoreSearchPage, NotFound, KioskPage, ProfilePage, KitchenDisplayPage, LegalPage, StoreDisplay, FoodTruckLanding, FoodTruckDesignShowcase, FeaturesPage, PricingPage, GuidesPage, NewsPage, ContactPage, BoardList, BoardDetail, BoardWrite, PlanUpgrade, AdminLayout, MasterDashboard, MultiStoreSupervisorDashboard, StoreSetupWizard, StoreForm, OrderManager, MenuManager, MenuBuilder, StaffManager, SalesStats, ReviewManager, AnalyticsDashboard, SettlementManager, BusinessSettingsWithTheme, SystemStatus, ReceiptSettings, CustomerManager, CampaignDashboard, ReservationManager, WaitingManager, BulkSMSManager, StoreEnrichment, InventoryManager, TableManager, StoreSettings, LegalSettings, NotificationTemplatesManager, DeveloperConsole, QrCustomizer, PartnershipManager, StaffScheduler, FoodTruckOwnerDashboard, FoodTruckAnalyticsDashboard, AlimtalkDeliveryConsole, CommunityPage, TinkerBellManagerPage, PlanRequestsManage } from "@/routes/lazyImports";
 import PWAInstallBanner from "@/components/common/PWAInstallBanner";
 import PWAUpdateNotification from "@/components/common/PWAUpdateNotification";
 import OfflineBanner from "@/components/common/OfflineBanner";
 import { ErrorBoundary, ErrorFallback } from "@/components/common/ErrorBoundary";
-
 const queryClient = new QueryClient();
-
-const SPINNER_FALLBACK = (
-  <div className="min-h-screen bg-white flex items-center justify-center">
+const SPINNER_FALLBACK = <div className="min-h-screen bg-white flex items-center justify-center">
     <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-  </div>
-);
-
-const AdminSuspense = ({ children }) => (
-  <ErrorBoundary onError={logError}>
+  </div>;
+const AdminSuspense = ({
+  children
+}) => <ErrorBoundary onError={logError}>
     <Suspense fallback={SPINNER_FALLBACK}>
       {children}
     </Suspense>
-  </ErrorBoundary>
-);
+  </ErrorBoundary>;
 
 // Protected Route Component
-const ProtectedRoute = memo(({ children }) => {
-  const { user, loading } = useAuth();
+const ProtectedRoute = memo(({
+  children
+}) => {
+  const {
+    user,
+    loading
+  } = useAuth();
   const [timedOut, setTimedOut] = useState(false);
-
   useEffect(() => {
     if (!loading) return;
     const t = setTimeout(() => setTimedOut(true), 8000);
     return () => clearTimeout(t);
   }, [loading]);
-
   if (loading && !timedOut) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-4">
+    return <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-4">
         <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
         <p className="text-slate-500 text-xs">로그인 정보 확인 중...</p>
-      </div>
-    );
+      </div>;
   }
-
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-
   return <>{children}</>;
 });
 
 // storeId가 "undefined" 문자열이거나 없으면 대시보드로 리다이렉트
-const ValidStoreRoute = memo(({ children }) => {
-  const { storeId } = useParams();
+const ValidStoreRoute = memo(({
+  children
+}) => {
+  const {
+    storeId
+  } = useParams();
   if (!storeId || storeId === 'undefined') {
     return <Navigate to="/admin" replace />;
   }
@@ -88,52 +67,49 @@ const ValidStoreRoute = memo(({ children }) => {
 });
 
 // Admin Layout Wrapper
-const AdminPage = memo(({ children }) => (
-  <ProtectedRoute>
+const AdminPage = memo(({
+  children
+}) => <ProtectedRoute>
     <AdminSuspense>
       <AdminLayout>
         {children}
       </AdminLayout>
     </AdminSuspense>
-  </ProtectedRoute>
-));
+  </ProtectedRoute>);
 
 // Role-based route guard — restricts access to users with specific roles
-const RoleBasedRoute = memo(({ children, allowedRoles = [] }) => {
-  const { user, loading } = useAuth();
+const RoleBasedRoute = memo(({
+  children,
+  allowedRoles = []
+}) => {
+  const {
+    user,
+    loading
+  } = useAuth();
   const [timedOut, setTimedOut] = useState(false);
-
   useEffect(() => {
     if (!loading) return;
     const t = setTimeout(() => setTimedOut(true), 8000);
     return () => clearTimeout(t);
   }, [loading]);
-
   if (loading && !timedOut) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-4">
+    return <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-4">
         <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
         <p className="text-slate-500 text-xs">로그인 정보 확인 중...</p>
-      </div>
-    );
+      </div>;
   }
-
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
     return <Navigate to="/admin" replace />;
   }
-
   return <>{children}</>;
 });
 
 // Export for route groups
 export { AdminSuspense, ProtectedRoute, ValidStoreRoute, AdminPage, RoleBasedRoute };
-
-const AppRoutes = memo(() => (
-  <Routes>
+const AppRoutes = memo(() => <Routes>
     {/* Public Routes */}
     <Route path="/" element={<AdminSuspense><Index /></AdminSuspense>} />
     <Route path="/auth" element={<AdminSuspense><AuthPage /></AdminSuspense>} />
@@ -216,12 +192,9 @@ const AppRoutes = memo(() => (
 
     {/* 404 */}
     <Route path="*" element={<AdminSuspense><NotFound /></AdminSuspense>} />
-  </Routes>
-));
-
+  </Routes>);
 const App = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-
   useEffect(() => {
     const goOnline = () => setIsOnline(true);
     const goOffline = () => setIsOnline(false);
@@ -232,19 +205,14 @@ const App = () => {
       window.removeEventListener('offline', goOffline);
     };
   }, []);
-
-  return (
-    <QueryClientProvider client={queryClient}>
+  return <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ThemeProvider>
           <AuthProvider>
             <TooltipProvider>
               <Toaster />
               <Sonner />
-              <ErrorBoundary
-                onError={logError}
-                FallbackComponent={ErrorFallback}
-              />
+              <ErrorBoundary onError={logError} FallbackComponent={ErrorFallback} />
               {!isOnline && <OfflineBanner />}
               <PWAInstallBanner />
                <PWAUpdateNotification />
@@ -255,8 +223,6 @@ const App = () => {
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>
-    </QueryClientProvider>
-  );
+    </QueryClientProvider>;
 };
-
 export default App;

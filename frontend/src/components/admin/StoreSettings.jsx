@@ -126,7 +126,6 @@ export default function StoreSettings() {
 
   // 등급 설정
   const [tiers, setTiers] = useState([]);
-  const [tiersLoading, setTiersLoading] = useState(false);
   const [showTierForm, setShowTierForm] = useState(false);
   const [editingTier, setEditingTier] = useState(null);
   const [tierForm, setTierForm] = useState({ tier_name: 'GOLD', min_spent: 100000, earn_rate: 5.0 });

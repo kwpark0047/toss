@@ -21,7 +21,7 @@ const WaitingSection = ({ store, onClose }) => {
         if (savedPhone) {
             fetchMyStatus(savedPhone);
         }
-    }, []);
+    }, [fetchMyStatus]);
 
     // socket은 전역 단일 인스턴스이므로 리스너는 1회만 등록하고,
     // unmount 시 반드시 해제해야 다른 페이지에서 이벤트가 중복 발화되지 않는다.
@@ -44,7 +44,7 @@ const WaitingSection = ({ store, onClose }) => {
             socket.off('refresh-ahead-count', onRefreshAheadCount);
             socket.emit('leave-my-waiting', { phone: localStorage.getItem('waiting_phone') });
         };
-    }, []);
+    }, [fetchMyStatus]);
 
     const fetchAISuggestions = useCallback(async () => {
         try {
@@ -58,7 +58,7 @@ const WaitingSection = ({ store, onClose }) => {
         }
     }, [store.id]);
 
-    const fetchMyStatus = async (phone) => {
+    const fetchMyStatus = useCallback(async (phone) => {
         try {
             const res = await waitingAPI.getMyWaiting(phone);
             if (res.success && res.data.length > 0) {
@@ -75,7 +75,7 @@ const WaitingSection = ({ store, onClose }) => {
         } catch (err) {
             console.error('대기 상태 조회 실패:', err);
         }
-    };
+    }, [store.id, fetchAISuggestions]);
 
     const handleRegister = async () => {
         if (!formData.phone || !formData.name) return alert(t('waiting.errors.input_required'));

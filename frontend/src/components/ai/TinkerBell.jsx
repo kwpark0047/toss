@@ -376,20 +376,20 @@ const typingRef  = useRef(null);
   useEffect(() => {
     const t = setTimeout(entrance, 650);
     return () => clearTimeout(t);
-  }, []);
+  }, [entrance]);
 
   // ── previewTrigger 변경 시 재등장 (관리자 미리보기) ───────────────────────
   useEffect(() => {
     if (previewTrigger === 0) return;
     entrance();
-  }, [previewTrigger]);
+  }, [previewTrigger, entrance]);
 
   // ── 언어 변경 시 인사 ────────────────────────────────────────────────────
   useEffect(() => {
     if (!visible) return;
     const L = I18N[lang] || I18N.ko;
     say('', adminMode ? pick(L.admin) : pick(L.greet), false, adminMode ? 'biz_greeting' : 'cust_welcome');
-  }, [lang]);
+  }, [lang, visible, adminMode, say]);
 
   // ── 유동 부유 ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -415,7 +415,7 @@ const typingRef  = useRef(null);
     spawnSparks(12);
     say('', line);
     setTimeout(() => setIsHappy(false), 1900);
-  }, [lastAddedItem]);
+  }, [lastAddedItem, lang, say, spawnSparks]);
 
 // ── 날씨 기반 자동 추천 ──────────────────────────────────────────────────
    useEffect(() => {

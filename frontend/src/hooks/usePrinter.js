@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-
 export function usePrinter() {
   const [printerDevice, setPrinterDevice] = useState(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -12,23 +11,19 @@ export function usePrinter() {
       setIsSupported(true);
     }
   }, []);
-
   const connectPrinter = async () => {
     if (!isSupported) {
       toast.error('이 브라우저는 Web Bluetooth API를 지원하지 않습니다. (Local Agent 폴백을 사용합니다)');
       return;
     }
-
     try {
       setIsConnecting(true);
       const device = await navigator.bluetooth.requestDevice({
         acceptAllDevices: true,
-        optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] 
+        optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
       });
-
       setPrinterDevice(device);
       toast.success(`프린터 연결됨: ${device.name}`);
-      
       device.addEventListener('gattserverdisconnected', () => {
         setPrinterDevice(null);
         toast.warning('프린터 연결이 끊어졌습니다.');
@@ -40,17 +35,14 @@ export function usePrinter() {
       setIsConnecting(false);
     }
   };
-
-  const printReceipt = useCallback(async (order) => {
+  const printReceipt = useCallback(async order => {
     // 1. Web Bluetooth 시도
     if (printerDevice && isSupported) {
       try {
         const server = await printerDevice.gatt.connect();
         const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
         const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
-
         const encoder = new TextEncoder();
-        
         const ESC = '\x1B';
         const GS = '\x1D';
         const INIT = ESC + '@';
@@ -59,7 +51,6 @@ export function usePrinter() {
         const BOLD_ON = ESC + 'E' + '\x01';
         const BOLD_OFF = ESC + 'E' + '\x00';
         const CUT = GS + 'V' + '\x41' + '\x00';
-
         let receipt = INIT;
         receipt += ALIGN_CENTER + BOLD_ON + '=== 주문 영수증 ===\n\n' + BOLD_OFF;
         receipt += ALIGN_LEFT;
@@ -70,7 +61,6 @@ export function usePrinter() {
         }
         receipt += `주문일시: ${new Date(order.created_at).toLocaleString()}\n`;
         receipt += '-'.repeat(32) + '\n';
-        
         order.items?.forEach(item => {
           receipt += `${item.menu_name} x ${item.quantity}\n`;
           receipt += `  ${item.price}원\n`;
@@ -80,24 +70,21 @@ export function usePrinter() {
               Object.entries(opts).forEach(([k, v]) => {
                 receipt += `    - ${k}: ${v}\n`;
               });
-            } catch (e) {}
+            } catch (_e) {}
           }
         });
-        
         receipt += '-'.repeat(32) + '\n';
         if (order.notes) {
           receipt += `요청사항: ${order.notes}\n`;
           receipt += '-'.repeat(32) + '\n';
         }
         receipt += '\n\n\n' + CUT;
-
         const data = encoder.encode(receipt);
         const CHUNK_SIZE = 512;
         for (let i = 0; i < data.length; i += CHUNK_SIZE) {
           const chunk = data.slice(i, i + CHUNK_SIZE);
           await characteristic.writeValue(chunk);
         }
-
         toast.success('영수증 출력이 완료되었습니다. (Web Bluetooth)');
         return true;
       } catch (error) {
@@ -109,12 +96,15 @@ export function usePrinter() {
     try {
       let parsedItems = order.items || [];
       if (typeof parsedItems === 'string') {
-        try { parsedItems = JSON.parse(parsedItems); } catch(e) {}
+        try {
+          parsedItems = JSON.parse(parsedItems);
+        } catch (_e) {}
       }
-
       const response = await fetch('http://localhost:8081/print', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           storeName: order.store?.name || 'WeMarket',
           orderNo: order.order_number?.slice(-4),
@@ -124,9 +114,7 @@ export function usePrinter() {
           total: order.total_amount
         })
       });
-
       if (!response.ok) throw new Error('Local agent responded with error');
-      
       toast.success('영수증 출력이 완료되었습니다. (Local Agent)');
       return true;
     } catch (fallbackError) {
@@ -135,7 +123,6 @@ export function usePrinter() {
       return false;
     }
   }, [printerDevice, isSupported]);
-
   return {
     printerDevice,
     isConnecting,

@@ -13,9 +13,11 @@ import { onCLS, onINP, onLCP, onFCP, onTTFB } from 'web-vitals';
  * @param {string} [options.reportTo] - Analytics endpoint URL for beacon sending
  */
 export function initWebVitals(options = {}) {
-  const { onMetric, reportTo } = options;
-
-  const handleMetric = (metric) => {
+  const {
+    onMetric,
+    reportTo
+  } = options;
+  const handleMetric = metric => {
     // Log to console in development
     if (import.meta.env.DEV) {
       console.log(`[Web Vitals] ${metric.name}:`, metric.value, metric.rating);
@@ -34,9 +36,8 @@ export function initWebVitals(options = {}) {
         rating: metric.rating,
         url: window.location.href,
         timestamp: Date.now(),
-        userAgent: navigator.userAgent,
+        userAgent: navigator.userAgent
       });
-
       navigator.sendBeacon(reportTo, body);
     }
   };
@@ -58,11 +59,26 @@ export function initWebVitals(options = {}) {
  * @readonly
  */
 export const VITAL_THRESHOLDS = {
-  LCP: { good: 2500, poor: 4000 },
-  INP: { good: 200, poor: 500 },
-  CLS: { good: 0.1, poor: 0.25 },
-  FCP: { good: 1800, poor: 3000 },
-  TTFB: { good: 800, poor: 1800 },
+  LCP: {
+    good: 2500,
+    poor: 4000
+  },
+  INP: {
+    good: 200,
+    poor: 500
+  },
+  CLS: {
+    good: 0.1,
+    poor: 0.25
+  },
+  FCP: {
+    good: 1800,
+    poor: 3000
+  },
+  TTFB: {
+    good: 800,
+    poor: 1800
+  }
 };
 
 /**
@@ -74,7 +90,6 @@ export const VITAL_THRESHOLDS = {
 export function getRating(metricName, value) {
   const thresholds = VITAL_THRESHOLDS[metricName];
   if (!thresholds) return 'good';
-
   if (value <= thresholds.good) return 'good';
   if (value >= thresholds.poor) return 'poor';
   return 'needs-improvement';
@@ -90,22 +105,19 @@ export function getRating(metricName, value) {
  * @param {string} [options.url] - Page URL
  * @returns {Object} Custom metric object
  */
-export function reportCustomMetric(name, value, options = {}) {
+export function reportCustomMetric(name, value, _options = {}) {
   const rating = getRating(name, value);
-
   const metric = {
     name,
     value,
     rating,
     delta: value,
     entries: [],
-    id: crypto.randomUUID(),
+    id: crypto.randomUUID()
   };
-
   if (import.meta.env.DEV) {
     console.log(`[Custom Metric] ${name}:`, value, rating);
   }
-
   return metric;
 }
 
@@ -114,10 +126,9 @@ export function reportCustomMetric(name, value, options = {}) {
  * @param {PerformanceEntry[]} [entries] - Initial entries
  * @returns {PerformanceObserver|null} Observer instance or null if not supported
  */
-export function observePerformance(entries = []) {
+export function observePerformance(_entries = []) {
   if (!window.PerformanceObserver) return null;
-
-  const observer = new PerformanceObserver((list) => {
+  const observer = new PerformanceObserver(list => {
     for (const entry of list.getEntries()) {
       // Log long tasks
       if (entry.entryType === 'longtask' && entry.duration > 50) {
@@ -130,24 +141,36 @@ export function observePerformance(entries = []) {
       }
     }
   });
-
   try {
-    observer.observe({ type: 'longtask', buffered: true });
-    observer.observe({ type: 'layout-shift', buffered: true });
-    observer.observe({ type: 'first-input', buffered: true });
-    observer.observe({ type: 'navigation', buffered: true });
-    observer.observe({ type: 'resource', buffered: true });
-  } catch (e) {
+    observer.observe({
+      type: 'longtask',
+      buffered: true
+    });
+    observer.observe({
+      type: 'layout-shift',
+      buffered: true
+    });
+    observer.observe({
+      type: 'first-input',
+      buffered: true
+    });
+    observer.observe({
+      type: 'navigation',
+      buffered: true
+    });
+    observer.observe({
+      type: 'resource',
+      buffered: true
+    });
+  } catch (_e) {
     // Some observers might not be supported
   }
-
   return observer;
 }
-
 export default {
   initWebVitals,
   getRating,
   reportCustomMetric,
   observePerformance,
-  VITAL_THRESHOLDS,
+  VITAL_THRESHOLDS
 };

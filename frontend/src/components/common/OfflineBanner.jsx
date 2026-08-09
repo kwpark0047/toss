@@ -1,6 +1,6 @@
 import { WifiOff, Wifi, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useOnlineStatus, useConnectionInfo } from '@/hooks/usePWA';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getSyncStats } from '@/lib/offlineQueue';
 
 export default function OfflineBanner() {
@@ -42,12 +42,12 @@ export default function OfflineBanner() {
         }
       }, 60);
     }
-  }, [isOnline]);
+  }, [isOnline, phase, clearAll]);
 
-  function clearAll() {
+  const clearAll = useCallback(() => {
     clearTimeout(timerRef.current);
     clearInterval(progressRef.current);
-  }
+  }, []);
 
   async function handleRetry() {
     if (retrying) return;

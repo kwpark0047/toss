@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { adminAPI } from '../../api';
 import { formatPrice } from '../../utils/format';
@@ -11,11 +11,7 @@ const ReceiptSettings = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
-        fetchSettings();
-    }, [storeId]);
-
-    const fetchSettings = async () => {
+    const fetchSettings = useCallback(async () => {
         try {
             const res = await adminAPI.getReceiptSettings(storeId);
             setSettings(res.data || res); // 응답 형식에 따라 조정
@@ -24,7 +20,11 @@ const ReceiptSettings = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [storeId]);
+
+    useEffect(() => {
+        fetchSettings();
+    }, [fetchSettings]);
 
     const handleUpdate = async () => {
         setSaving(true);

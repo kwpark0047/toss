@@ -1,4 +1,4 @@
-import{ useState, useEffect } from 'react';
+import{ useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
 import { 
     TrendingUp, 
@@ -14,6 +14,32 @@ import {
     Map
 } from 'lucide-react';
 
+// 가상 데이터 세팅 (서버 통신 실패 또는 데모 환경용 완벽 세팅)
+const fallbackData = {
+    totalSales: 4580000,
+    totalOrderCount: 382,
+    averageOrderValue: 11989,
+    hourlyOrders: [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 20, 45, 12, 10, 8, 15, 30, 80, 95, 40, 15, 5, 0
+    ],
+    hourlySales: [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 60000, 240000, 540000, 144000, 120000, 96000, 180000, 360000, 960000, 1140000, 480000, 180000, 60000, 0
+    ],
+    dailyOrders: [45, 30, 25, 40, 50, 92, 100], // 일요일 ~ 토요일
+    dailySales: [540000, 360000, 300000, 480000, 600000, 1100000, 1200000],
+    locationSales: [
+        { name: '홍대입구역 9번 출구', count: 152, sales: 1824000 },
+        { name: '강남대로 푸드트럭 존', count: 120, sales: 1440000 },
+        { name: '대학로 예술의 거리', count: 68, sales: 816000 },
+        { name: '부산 서면 야시장', count: 42, sales: 500000 }
+    ],
+    aiInsights: {
+        summary: "이번 주 누적 매출 458만 원을 기록하며 전주 대비 14.2%의 강력한 우상향 성장을 이루어냈습니다! 특히 야간 유동인구가 집중되는 '부산 서면 야시장'과 '홍대 스트리트'에서의 저녁 매출 집중도가 대단히 뛰어납니다.",
+        peakAdvice: "가장 주문이 급증하는 골든 피크타임은 저녁 18시부터 20시 사이(총 175건 발생)입니다. 피크타임 시작 30분 전 원재료 사전 프레임 준비(조리 세팅) 및 대기 진열 용기 정비를 선제 완료하여 고객당 평균 대기 시간을 3분 미만으로 단축하면 매출을 최대 22% 추가 확장할 수 있습니다.",
+        inventoryStrategy: "평일 대비 금요일과 토요일의 주문 비중이 전체의 50%를 초과하는 주말 편중형 소비 패턴을 보입니다. 일요일 밤 등 영업 종료 마감 직전 남은 신선 재료 소진을 극대화하기 위해, 반경 500m 내 대기중인 기가입 단골 고객을 향해 '마감 30% 플래시 세일' 실시간 지오펜싱 쿠폰을 전송해 폐기율 0% 도전에 성공하세요!"
+    }
+};
+
 export default function FoodTruckAnalyticsDashboard() {
     const { storeId } = useParams();
     const [loading, setLoading] = useState(true);
@@ -21,33 +47,7 @@ export default function FoodTruckAnalyticsDashboard() {
     const [analyticsData, setAnalyticsData] = useState(null);
     const [_error, setError] = useState(null);
 
-    // 가상 데이터 세팅 (서버 통신 실패 또는 데모 환경용 완벽 세팅)
-    const fallbackData = {
-        totalSales: 4580000,
-        totalOrderCount: 382,
-        averageOrderValue: 11989,
-        hourlyOrders: [
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 20, 45, 12, 10, 8, 15, 30, 80, 95, 40, 15, 5, 0
-        ],
-        hourlySales: [
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 60000, 240000, 540000, 144000, 120000, 96000, 180000, 360000, 960000, 1140000, 480000, 180000, 60000, 0
-        ],
-        dailyOrders: [45, 30, 25, 40, 50, 92, 100], // 일요일 ~ 토요일
-        dailySales: [540000, 360000, 300000, 480000, 600000, 1100000, 1200000],
-        locationSales: [
-            { name: '홍대입구역 9번 출구', count: 152, sales: 1824000 },
-            { name: '강남대로 푸드트럭 존', count: 120, sales: 1440000 },
-            { name: '대학로 예술의 거리', count: 68, sales: 816000 },
-            { name: '부산 서면 야시장', count: 42, sales: 500000 }
-        ],
-        aiInsights: {
-            summary: "이번 주 누적 매출 458만 원을 기록하며 전주 대비 14.2%의 강력한 우상향 성장을 이루어냈습니다! 특히 야간 유동인구가 집중되는 '부산 서면 야시장'과 '홍대 스트리트'에서의 저녁 매출 집중도가 대단히 뛰어납니다.",
-            peakAdvice: "가장 주문이 급증하는 골든 피크타임은 저녁 18시부터 20시 사이(총 175건 발생)입니다. 피크타임 시작 30분 전 원재료 사전 프레임 준비(조리 세팅) 및 대기 진열 용기 정비를 선제 완료하여 고객당 평균 대기 시간을 3분 미만으로 단축하면 매출을 최대 22% 추가 확장할 수 있습니다.",
-            inventoryStrategy: "평일 대비 금요일과 토요일의 주문 비중이 전체의 50%를 초과하는 주말 편중형 소비 패턴을 보입니다. 일요일 밤 등 영업 종료 마감 직전 남은 신선 재료 소진을 극대화하기 위해, 반경 500m 내 대기중인 기가입 단골 고객을 향해 '마감 30% 플래시 세일' 실시간 지오펜싱 쿠폰을 전송해 폐기율 0% 도전에 성공하세요!"
-        }
-    };
-
-    const fetchAnalytics = async () => {
+    const fetchAnalytics = useCallback(async () => {
         try {
             setError(null);
             const token = localStorage.getItem('token');
@@ -69,11 +69,11 @@ export default function FoodTruckAnalyticsDashboard() {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [storeId]);
 
     useEffect(() => {
         fetchAnalytics();
-    }, [storeId]);
+    }, [fetchAnalytics]);
 
     const handleRefresh = () => {
         setRefreshing(true);
