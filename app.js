@@ -276,6 +276,7 @@ const routes = {
   admin: require('./routes/admin'),
   points: require('./routes/points'),
   planRequests: require('./routes/planRequests'),
+  adminPlans: require('./routes/adminPlans'),
   staffRequests: require('./routes/staffRequests'),
   optionTemplates: require('./routes/optionTemplates'),
   boards: require('./routes/boards'),
@@ -354,6 +355,7 @@ app.use(`${API_PREFIX}/admin`, routes.admin);
 app.use(`${API_PREFIX}/admin/auth`, routes.adminAuth);
 app.use(`${API_PREFIX}/points`, routes.points);
 app.use(`${API_PREFIX}/plan-requests`, routes.planRequests);
+app.use(`${API_PREFIX}/admin/plans`, routes.adminPlans);
 app.use(`${API_PREFIX}/staff-requests`, routes.staffRequests);
 app.use(`${API_PREFIX}/staff`, routes.staff);
 app.use(`${API_PREFIX}/boards`, routes.boards);

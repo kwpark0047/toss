@@ -235,6 +235,52 @@ model plan_requests {
   @@schema("public")
 }
 
+model Plan {
+  id                String   @id @default(cuid())
+  name              String   @unique  // free, pro, enterprise
+  display_name      String
+  description       String?
+  price_monthly     Int      @default(0)
+  price_yearly      Int      @default(0)
+  features          Json     // { maxMenus, maxStaff, aiRecommendations, etc. }
+  limits            Json?    // { menuItems: 100, staff: 5, apiCalls: 10000 }
+  is_active         Boolean  @default(true)
+  sort_order        Int      @default(0)
+  trial_days        Int      @default(0)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  subscriptions     Subscription[]
+  @@index([is_active], map: "idx_plan_active")
+  @@schema("public")
+}
+
+model Subscription {
+  id                String   @id @default(cuid())
+  store_id          Int      @unique(map: "uq_subscription_store")
+  plan_id           String
+  status            String   @default("active") // active|trialing|past_due|canceled|expired
+  billing_cycle     String   @default("MONTHLY") // MONTHLY|YEARLY
+  current_period_start DateTime  @default(now())
+  current_period_end   DateTime
+  trial_ends_at         DateTime?
+  cancel_at             DateTime?
+  canceled_at           DateTime?
+  payment_method_id     String?   // Toss billingKey
+  last_payment_at       DateTime?
+  next_payment_at       DateTime?
+  metadata              Json?     // Toss subscription info
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  plan                  Plan      @relation(fields: [plan_id], references: [id])
+  store                 stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([status], map: "idx_subscription_status")
+  @@index([plan_id], map: "idx_subscription_plan")
+  @@schema("public")
+}
+
 model point_transactions {
   id            Int         @id @default(autoincrement())
   user_point_id Int
@@ -498,6 +544,15 @@ model stores {
   latitude                 Float?
   longitude                Float?
   plan                     String?                  @default("free")
+  // ── 구독/멤버십 ────────────────────────────────────
+  subscription_id          String?                  @unique(map: "uq_stores_subscription_id")
+  billing_cycle            String?                  @default("MONTHLY")     // MONTHLY|YEARLY
+  trial_ends_at            DateTime?
+  plan_expires_at          DateTime?
+  auto_renew               Boolean?                 @default(true)
+  payment_method_id        String?                  // Toss brandpay billingKey
+  last_payment_at          DateTime?
+  next_payment_at          DateTime?
   // ── 사업자 정보 ──────────────────────────────────
   business_number          String?                  // 사업자등록번호 (000-00-00000)
   business_name            String?                  // 법인명/상호명
@@ -571,6 +626,7 @@ model stores {
   grant_change_logs       grant_change_logs[]
   point_grant_history     point_grant_history[]
   coupon_issue_history    coupon_issue_history[]
+  subscription            Subscription?
 
   @@index([user_id], map: "idx_stores_user_id")
   @@schema("public")

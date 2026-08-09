@@ -57,6 +57,16 @@ export const planRequestsAPI = {
     api.post(`/plan-requests/${id}/reject`, { admin_note: adminNote }),
 };
 
+export const plansAPI = {
+  getAll: () => api.get('/admin/plans'),
+  getById: (id) => api.get(`/admin/plans/${id}`),
+  create: (data) => api.post('/admin/plans', data),
+  update: (id, data) => api.patch(`/admin/plans/${id}`, data),
+  deactivate: (id) => api.patch(`/admin/plans/${id}/deactivate`),
+  reorder: (plans) => api.post('/admin/plans/reorder', { plans }),
+  getStats: () => api.get('/admin/plans/stats/subscriptions'),
+};
+
 export const tierSettingsAPI = {
   getTiers: (storeId) => api.get(`/admin/stores/${storeId}/tier-settings`),
   upsertTier: (storeId, data) => api.post(`/admin/stores/${storeId}/tier-settings`, data),

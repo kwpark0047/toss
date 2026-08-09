@@ -195,6 +195,232 @@ const TossAPI = {
     };
     return messages[status] || status;
   },
+
+  // ─────────────────────────────────────────────────────────────────
+  // BrandPay 정기결제 (Subscription) API
+  // ─────────────────────────────────────────────────────────────────
+
+  /**
+   * 1. 빌링키 발급 (고객 결제 수단 등록)
+   * 고객이 결제 수단을 등록하면 빌링키를 발급받아 저장
+   */
+  issueBillingKey: async (customerKey, method, card = null, easyPay = null) => {
+    if (isMockAllowed(customerKey)) {
+      logger.info('[Mock] 빌링키 발급 시뮬레이션', { customerKey });
+      return {
+        billingKey: `mock_billing_${Date.now()}`,
+        customerKey,
+        method,
+        card: card ? { company: '비씨카드', number: '1234-****-****-****' } : null,
+        easyPay,
+      };
+    }
+
+    return tossCircuit.call(async () => {
+      try {
+        const body = { customerKey, method };
+        if (card) body.card = card;
+        if (easyPay) body.easyPay = easyPay;
+
+        const response = await axios.post(
+          'https://api.tosspayments.com/v1/billing/authorizations/issue',
+          body,
+          { headers: getAuthHeader() }
+        );
+        return response.data;
+      } catch (error) {
+        logger.error(error);
+        throw Object.assign(
+          new Error(error.response?.data?.message || '빌링키 발급 중 오류가 발생했습니다.'),
+          {
+            code: error.response?.data?.code || 'BILLING_KEY_ISSUE_ERROR',
+            statusCode: error.response?.status || 500,
+          }
+        );
+      }
+    });
+  },
+
+  /**
+   * 2. 빌링키로 결제 요청 (정기결제 실행)
+   * 저장된 빌링키로 자동 결제 수행
+   */
+  payWithBillingKey: async (
+    billingKey,
+    customerKey,
+    amount,
+    orderId,
+    orderName,
+    customerEmail = null,
+    customerName = null,
+    taxFreeAmount = 0
+  ) => {
+    if (isMockAllowed(billingKey)) {
+      logger.info('[Mock] 빌링키 결제 시뮬레이션', { billingKey: maskPaymentKey(billingKey) });
+      return {
+        paymentKey: `mock_pay_${Date.now()}`,
+        orderId,
+        amount,
+        status: 'DONE',
+        approvedAt: new Date().toISOString(),
+        receipt: { url: 'http://mock-receipt-url.com' },
+      };
+    }
+
+    return tossCircuit.call(async () => {
+      try {
+        const response = await axios.post(
+          'https://api.tosspayments.com/v1/billing/payments',
+          {
+            billingKey,
+            customerKey,
+            amount,
+            orderId,
+            orderName,
+            customerEmail,
+            customerName,
+            taxFreeAmount,
+          },
+          { headers: getAuthHeader() }
+        );
+        return response.data;
+      } catch (error) {
+        logger.error(error);
+        throw Object.assign(
+          new Error(error.response?.data?.message || '빌링키 결제 중 오류가 발생했습니다.'),
+          {
+            code: error.response?.data?.code || 'BILLING_PAYMENT_ERROR',
+            statusCode: error.response?.status || 500,
+          }
+        );
+      }
+    });
+  },
+
+  /**
+   * 3. 정기결제 예약 생성 (Subscription 예약)
+   * 토스 정기결제 API로 주기적 결제 예약
+   */
+  createSubscription: async (billingKey, customerKey, plan) => {
+    // plan: { interval: 'month'|'year', amount, orderName, executeTime?: '00:00', startDate?: '2024-01-01' }
+    try {
+      const response = await axios.post(
+        'https://api.tosspayments.com/v1/subscriptions',
+        {
+          billingKey,
+          customerKey,
+          plan: {
+            interval: plan.interval || 'month',
+            amount: plan.amount,
+            orderName: plan.orderName,
+            executeTime: plan.executeTime || '00:00',
+            startDate: plan.startDate || new Date().toISOString().slice(0, 10),
+          },
+        },
+        { headers: getAuthHeader() }
+      );
+      return response.data;
+    } catch (error) {
+      logger.error(error);
+      throw Object.assign(new Error(error.response?.data?.message || '정기결제 예약 생성 실패'), {
+        code: error.response?.data?.code || 'SUBSCRIPTION_CREATE_ERROR',
+        statusCode: error.response?.status || 500,
+      });
+    }
+  },
+
+  /**
+   * 4. 정기결제 조회
+   */
+  getSubscription: async (subscriptionId) => {
+    try {
+      const response = await axios.get(
+        `https://api.tosspayments.com/v1/subscriptions/${subscriptionId}`,
+        { headers: getAuthHeader() }
+      );
+      return response.data;
+    } catch (error) {
+      throw Object.assign(new Error(error.response?.data?.message || '정기결제 조회 실패'), {
+        code: error.response?.data?.code || 'SUBSCRIPTION_GET_ERROR',
+        statusCode: error.response?.status || 500,
+      });
+    }
+  },
+
+  /**
+   * 5. 정기결제 취소
+   */
+  cancelSubscription: async (subscriptionId, cancelReason = '고객 요청') => {
+    try {
+      const response = await axios.post(
+        `https://api.tosspayments.com/v1/subscriptions/${subscriptionId}/cancel`,
+        { cancelReason },
+        { headers: getAuthHeader() }
+      );
+      return response.data;
+    } catch (error) {
+      throw Object.assign(new Error(error.response?.data?.message || '정기결제 취소 실패'), {
+        code: error.response?.data?.code || 'SUBSCRIPTION_CANCEL_ERROR',
+        statusCode: error.response?.status || 500,
+      });
+    }
+  },
+
+  /**
+   * 6. 정기결제 일시정지
+   */
+  pauseSubscription: async (subscriptionId, pauseReason = '일시정지') => {
+    try {
+      const response = await axios.post(
+        `https://api.tosspayments.com/v1/subscriptions/${subscriptionId}/pause`,
+        { pauseReason },
+        { headers: getAuthHeader() }
+      );
+      return response.data;
+    } catch (error) {
+      throw Object.assign(new Error(error.response?.data?.message || '정기결제 일시정지 실패'), {
+        code: error.response?.data?.code || 'SUBSCRIPTION_PAUSE_ERROR',
+        statusCode: error.response?.status || 500,
+      });
+    }
+  },
+
+  /**
+   * 7. 정기결제 재개
+   */
+  resumeSubscription: async (subscriptionId) => {
+    try {
+      const response = await axios.post(
+        `https://api.tosspayments.com/v1/subscriptions/${subscriptionId}/resume`,
+        {},
+        { headers: getAuthHeader() }
+      );
+      return response.data;
+    } catch (error) {
+      throw Object.assign(new Error(error.response?.data?.message || '정기결제 재개 실패'), {
+        code: error.response?.data?.code || 'SUBSCRIPTION_RESUME_ERROR',
+        statusCode: error.response?.status || 500,
+      });
+    }
+  },
+
+  /**
+   * 8. 정기결제 결제 내역 조회
+   */
+  getSubscriptionPayments: async (subscriptionId) => {
+    try {
+      const response = await axios.get(
+        `https://api.tosspayments.com/v1/subscriptions/${subscriptionId}/payments`,
+        { headers: getAuthHeader() }
+      );
+      return response.data;
+    } catch (error) {
+      throw Object.assign(new Error(error.response?.data?.message || '정기결제 내역 조회 실패'), {
+        code: error.response?.data?.code || 'SUBSCRIPTION_PAYMENTS_ERROR',
+        statusCode: error.response?.status || 500,
+      });
+    }
+  },
 };
 
 module.exports = TossAPI;

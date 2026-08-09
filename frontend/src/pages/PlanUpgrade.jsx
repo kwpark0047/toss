@@ -1,35 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router';
-import { storesAPI, planRequestsAPI } from '../api';
+import { storesAPI, planRequestsAPI, plansAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { Crown, CheckCircle, XCircle, Clock, Sparkles, Store, TrendingUp, Shield, MessageSquare, Send, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'react-toastify';
-const PLANS = [{
-  id: 'free',
-  name: 'Free',
-  price: '무료',
-  desc: '기본 매장 운영 및 QR 코드 생성',
-  color: 'from-slate-500 to-slate-700',
-  border: 'border-slate-300',
-  features: ['테이블별 무제한 QR 코드', '기본 모바일 웹 메뉴판', '실시간 조리 대기열 (KDS)', '기본 일일 매출 통계', '직원 1명 계정']
-}, {
-  id: 'pro',
-  name: 'Pro',
-  price: '₩20,000/월',
-  desc: '실시간 결제 및 부가 편의 기능',
-  color: 'from-orange-500 to-rose-600',
-  border: 'border-orange-400',
-  popular: true,
-  features: ['Toss Payments 라이브 결제', '실시간 매장 위치 공유', '고객 알림톡 발송', '긴급 품절 처리', '단골 마케팅 (찜·푸시)', '직원/매니저 무제한 계정']
-}, {
-  id: 'enterprise',
-  name: 'Enterprise',
-  price: '₩50,000/월',
-  desc: '프리미엄 통합 매장 운영',
-  color: 'from-purple-500 to-indigo-600',
-  border: 'border-purple-400',
-  features: ['모든 Pro 기능 포함', 'AI 메뉴 분석·추천', '맞춤형 KDS 연동', '전용 담당 매니저 배정', '우선 기술 지원', 'API 웹훅 연동']
-}];
+
 export default function PlanUpgrade() {
   const {
     storeId
@@ -39,16 +14,29 @@ export default function PlanUpgrade() {
   } = useAuth();
   const [store, setStore] = useState(null);
   const [requests, setRequests] = useState([]);
+  const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+
+  const planColors = {
+    free: { color: 'from-slate-500 to-slate-700', border: 'border-slate-300', icon: Store },
+    pro: { color: 'from-orange-500 to-rose-600', border: 'border-orange-400', icon: TrendingUp, popular: true },
+    enterprise: { color: 'from-purple-500 to-indigo-600', border: 'border-purple-400', icon: Crown }
+  };
+
   useEffect(() => {
     if (!storeId) return;
-    Promise.all([storesAPI.getById(storeId), planRequestsAPI.getByStore(storeId)]).then(([storeRes, reqRes]) => {
+    Promise.all([
+      storesAPI.getById(storeId),
+      planRequestsAPI.getByStore(storeId),
+      plansAPI.getAll()
+    ]).then(([storeRes, reqRes, plansRes]) => {
       setStore(storeRes.data);
       setRequests(reqRes.data || []);
+      setPlans(plansRes.data || []);
     }).catch(() => toast.error('정보를 불러오지 못했습니다.')).finally(() => setLoading(false));
   }, [storeId]);
   const handleSubmit = async () => {
@@ -88,6 +76,9 @@ export default function PlanUpgrade() {
         return <span className="flex items-center gap-1 px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold"><Clock size={12} />대기중</span>;
     }
   };
+  const getPlanConfig = (planId) => planColors[planId] || planColors.free;
+  const getPlanData = (planId) => plans.find(p => p.name === planId) || { name: planId, display_name: planId.toUpperCase(), price_monthly: 0, price_yearly: 0, description: '', features: {}, limits: {} };
+  const CurrentPlanIcon = getPlanConfig(currentPlan).icon;
   if (loading) {
     return <div className="flex items-center justify-center h-64 text-gray-400">
         <div className="w-8 h-8 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin mr-3" />
@@ -108,12 +99,12 @@ export default function PlanUpgrade() {
       <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 mb-8">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
-            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${PLANS.find(p => p.id === currentPlan)?.color || 'from-slate-500 to-slate-700'} flex items-center justify-center shadow-lg`}>
-              <Store className="text-white" size={24} />
+            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${getPlanConfig(currentPlan).color} flex items-center justify-center shadow-lg`}>
+              <CurrentPlanIcon className="text-white" size={24} />
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">현재 플랜</p>
-              <p className="text-xl font-black text-white">{PLANS.find(p => p.id === currentPlan)?.name || currentPlan.toUpperCase()}</p>
+              <p className="text-xl font-black text-white">{getPlanData(currentPlan).display_name || currentPlan.toUpperCase()}</p>
               <p className="text-sm text-slate-400">{store?.name}</p>
             </div>
           </div>
@@ -132,12 +123,14 @@ export default function PlanUpgrade() {
         요금제 비교
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {PLANS.map(plan => {
-        const isCurrent = plan.id === currentPlan;
-        const isDowngrade = planOrder[plan.id] < planOrder[currentPlan];
-        const canSelect = plan.id !== currentPlan && !isDowngrade && !pendingRequest;
-        return <div key={plan.id} className={`relative rounded-2xl border-2 transition-all ${isCurrent ? 'border-orange-500 bg-orange-500/5 shadow-lg shadow-orange-500/10' : selectedPlan === plan.id ? 'border-blue-500 bg-blue-500/5' : canSelect ? 'border-white/10 bg-white/5 hover:border-white/20 cursor-pointer' : 'border-white/5 bg-white/[0.02] opacity-60'}`} onClick={() => canSelect && setSelectedPlan(plan.id)}>
-              {plan.popular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-orange-500 to-rose-500 rounded-full text-white text-[10px] font-black uppercase tracking-wider shadow-lg">
+        {plans.map(plan => {
+        const isCurrent = plan.name === currentPlan;
+        const isDowngrade = planOrder[plan.name] < planOrder[currentPlan];
+        const canSelect = plan.name !== currentPlan && !isDowngrade && !pendingRequest;
+        const config = getPlanConfig(plan.name);
+        const PlanIcon = config.icon;
+        return <div key={plan.name} className={`relative rounded-2xl border-2 transition-all ${isCurrent ? 'border-orange-500 bg-orange-500/5 shadow-lg shadow-orange-500/10' : selectedPlan === plan.name ? 'border-blue-500 bg-blue-500/5' : canSelect ? 'border-white/10 bg-white/5 hover:border-white/20 cursor-pointer' : 'border-white/5 bg-white/[0.02] opacity-60'}`} onClick={() => canSelect && setSelectedPlan(plan.name)}>
+              {config.popular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-orange-500 to-rose-500 rounded-full text-white text-[10px] font-black uppercase tracking-wider shadow-lg">
                   인기
                 </div>}
               {isCurrent && <div className="absolute top-3 right-3 px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-[10px] font-black">
@@ -145,17 +138,17 @@ export default function PlanUpgrade() {
                 </div>}
 
               <div className="p-6">
-                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${plan.color} flex items-center justify-center mb-4 shadow-lg`}>
-                  {plan.id === 'enterprise' ? <Crown className="text-white" size={20} /> : plan.id === 'pro' ? <TrendingUp className="text-white" size={20} /> : <Store className="text-white" size={20} />}
+                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${config.color} flex items-center justify-center mb-4 shadow-lg`}>
+                  <PlanIcon className="text-white" size={20} />
                 </div>
-                <h3 className="text-lg font-black text-white mb-1">{plan.name}</h3>
-                <p className="text-2xl font-black text-white mb-1">{plan.price}</p>
-                <p className="text-xs text-slate-400 mb-4">{plan.desc}</p>
+                <h3 className="text-lg font-black text-white mb-1">{plan.display_name}</h3>
+                <p className="text-2xl font-black text-white mb-1">{plan.price_yearly > 0 ? `₩${(plan.price_monthly).toLocaleString()}/월` : '무료'}</p>
+                <p className="text-xs text-slate-400 mb-4">{plan.description}</p>
 
                 <ul className="space-y-2 mb-6">
-                  {plan.features.map((f, i) => <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                  {Object.entries(plan.features || {}).map(([key, value], i) => <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
                       <CheckCircle size={12} className="text-green-400 mt-0.5 shrink-0" />
-                      <span>{f}</span>
+                      <span>{key}: {value === true ? '제공' : value === false ? '미제공' : value}</span>
                     </li>)}
                 </ul>
 
@@ -163,7 +156,7 @@ export default function PlanUpgrade() {
                     현재 사용중
                   </div> : isDowngrade ? <div className="w-full py-3 bg-slate-800 text-slate-500 rounded-xl text-sm font-bold text-center">
                     다운그레이드 불가
-                  </div> : selectedPlan === plan.id ? <div className="w-full py-3 bg-blue-500 text-white rounded-xl text-sm font-bold text-center">
+                  </div> : selectedPlan === plan.name ? <div className="w-full py-3 bg-blue-500 text-white rounded-xl text-sm font-bold text-center">
                     선택됨
                   </div> : <div className={`w-full py-3 rounded-xl text-sm font-bold text-center transition-all ${canSelect ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-800 text-slate-600'}`}>
                     {canSelect ? '선택하기' : pendingRequest ? '승인 대기중' : '선택 불가'}
