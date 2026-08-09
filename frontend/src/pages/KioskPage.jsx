@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
+import { useSystemDark } from '@/hooks/useSystemDark';
 
 /**
  * KioskPage — 키오스크 전용 주문 페이지
@@ -11,6 +12,7 @@ import { useParams, useNavigate } from "react-router";
 export default function KioskPage() {
   const { storeId } = useParams();
   const navigate = useNavigate();
+  const isDark = useSystemDark();
 
   useEffect(() => {
     if (storeId) {
@@ -19,7 +21,7 @@ export default function KioskPage() {
   }, [storeId, navigate]);
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+    <div className={`min-h-screen cust-bg-base flex items-center justify-center ${isDark ? 'dark' : ''}`}>
       <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );

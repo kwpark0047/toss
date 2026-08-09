@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { tablesAPI, wakeupServer } from '@/api';
 import { Loader2, QrCode, AlertCircle, RefreshCw, Wifi } from 'lucide-react';
+import { useSystemDark } from '@/hooks/useSystemDark';
 
 const MAX_RETRIES = 8;          // 최대 재시도
 const RETRY_INTERVAL_MS = 3000; // 3초 간격
@@ -9,6 +10,7 @@ const RETRY_INTERVAL_MS = 3000; // 3초 간격
 export default function QrResolvePage() {
   const { qrCode } = useParams();
   const navigate = useNavigate();
+  const isDark = useSystemDark();
   const [status, setStatus] = useState(!qrCode ? 'error' : 'wakeup'); // wakeup | resolving | error
   const [attempt, setAttempt] = useState(0);
   const retryCount = useRef(0);
@@ -59,14 +61,14 @@ export default function QrResolvePage() {
   /* ── 에러 화면 ── */
   if (status === 'error') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6">
+      <div className={`min-h-screen flex items-center justify-center cust-bg-base px-6 ${isDark ? 'dark' : ''}`}>
         <div className="text-center space-y-5 max-w-xs">
           <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto">
             <AlertCircle size={28} className="text-rose-400" />
           </div>
           <div>
-            <h2 className="text-white font-black text-lg mb-2">메뉴판을 불러올 수 없습니다</h2>
-            <p className="text-slate-400 text-sm leading-relaxed">
+            <h2 className="cust-text-main font-black text-lg mb-2">메뉴판을 불러올 수 없습니다</h2>
+            <p className="cust-text-sub text-sm leading-relaxed">
               잠시 후 다시 시도하거나 매장 직원에게 문의해주세요.
             </p>
           </div>
@@ -83,7 +85,7 @@ export default function QrResolvePage() {
 
   /* ── 로딩 화면 ── */
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6">
+    <div className={`min-h-screen flex items-center justify-center cust-bg-base px-6 ${isDark ? 'dark' : ''}`}>
       <div className="text-center space-y-6 max-w-xs w-full">
         {/* 로고 */}
         <div className="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mx-auto">
@@ -92,10 +94,10 @@ export default function QrResolvePage() {
 
         {/* 상태 메시지 */}
         <div>
-          <h2 className="text-white font-black text-lg mb-2">
+          <h2 className="cust-text-main font-black text-lg mb-2">
             {status === 'wakeup' ? '서버 연결 중...' : '메뉴판 불러오는 중...'}
           </h2>
-          <p className="text-slate-500 text-sm">
+          <p className="cust-text-sub text-sm">
             {status === 'wakeup'
               ? '처음 접속 시 서버를 깨우는 데 잠시 걸릴 수 있습니다.'
               : `연결 시도 중 (${attempt}/${MAX_RETRIES})`}
@@ -103,7 +105,7 @@ export default function QrResolvePage() {
         </div>
 
         {/* 프로그레스 바 */}
-        <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+        <div className="w-full cust-border rounded-full h-1.5 overflow-hidden">
           <div
             className="h-full bg-orange-500 rounded-full transition-all duration-1000"
             style={{ width: `${Math.min((attempt / MAX_RETRIES) * 100, 90)}%` }}
@@ -111,7 +113,7 @@ export default function QrResolvePage() {
         </div>
 
         {/* 스피너 */}
-        <div className="flex items-center justify-center gap-3 text-slate-500">
+        <div className="flex items-center justify-center gap-3 cust-text-sub">
           {status === 'wakeup'
             ? <Wifi size={18} className="text-orange-400 animate-pulse" />
             : <Loader2 size={18} className="animate-spin text-orange-400" />}
@@ -120,7 +122,7 @@ export default function QrResolvePage() {
           </span>
         </div>
 
-        <p className="text-slate-600 text-xs">
+        <p className="cust-text-sub text-xs">
           처음 접속 시 최대 30초 소요될 수 있습니다
         </p>
       </div>

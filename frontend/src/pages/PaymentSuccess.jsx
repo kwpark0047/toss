@@ -4,11 +4,13 @@ import { CheckCircle2, Loader2, Sparkles, ShoppingBag, ArrowRight, Bell, Smartph
 import { paymentsAPI } from '../api';
 import { requestNotificationPermission } from '../firebase';
 import { toast } from 'react-toastify';
+import { useSystemDark } from '@/hooks/useSystemDark';
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const confirmTriggered = useRef(false);
+  const isDark = useSystemDark();
 
   const [status, setStatus] = useState('loading'); // 'loading' | 'success' | 'error'
   const [errorMsg, setErrorMsg] = useState('');
@@ -161,8 +163,8 @@ export default function PaymentSuccess() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-[32px] p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+    <div className={`min-h-screen cust-bg-base text-slate-100 flex flex-col items-center justify-center p-4 ${isDark ? 'dark' : ''}`}>
+      <div className="w-full max-w-md cust-bg-card cust-border rounded-[32px] p-6 sm:p-8 shadow-2xl relative overflow-hidden">
         {/* 장식용 글로우 배경 */}
         <div className="absolute -top-12 -left-12 w-24 h-24 bg-orange-500/10 rounded-full blur-xl pointer-events-none" />
         <div className="absolute -bottom-12 -right-12 w-24 h-24 bg-orange-500/10 rounded-full blur-xl pointer-events-none" />
@@ -176,8 +178,8 @@ export default function PaymentSuccess() {
               </div>
             </div>
             <div className="text-center space-y-1">
-              <h2 className="text-lg font-semibold text-slate-200">결제 승인 중</h2>
-              <p className="text-xs text-slate-400">토스페이먼츠 보안 게이트웨이에서 최종 승인을 처리하고 있습니다.</p>
+              <h2 className="text-lg font-semibold cust-text-main">결제 승인 중</h2>
+              <p className="text-xs cust-text-sub">토스페이먼츠 보안 게이트웨이에서 최종 승인을 처리하고 있습니다.</p>
             </div>
           </div>
         )}
@@ -194,24 +196,24 @@ export default function PaymentSuccess() {
                 </div>
               </div>
               <div className="space-y-1">
-                <h1 className="text-xl font-bold text-slate-100">결제가 완료되었습니다!</h1>
-                <p className="text-xs text-slate-400">주문이 성공적으로 접수되어 주방으로 전송되었습니다.</p>
+                <h1 className="text-xl font-bold cust-text-main">결제가 완료되었습니다!</h1>
+                <p className="text-xs cust-text-sub">주문이 성공적으로 접수되어 주방으로 전송되었습니다.</p>
               </div>
             </div>
 
-            <div className="border-t border-b border-slate-800/60 py-4 space-y-3">
+            <div className="cust-border-y py-4 space-y-3">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-400">주문 번호</span>
-                <span className="font-mono text-slate-200 font-semibold">{orderId}</span>
+                <span className="cust-text-sub">주문 번호</span>
+                <span className="font-mono cust-text-main font-semibold">{orderId}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-slate-400">결제 금액</span>
+                <span className="cust-text-sub">결제 금액</span>
                 <span className="text-orange-400 font-bold font-mono">
                   {Number(amount).toLocaleString()}원
                 </span>
               </div>
               {paymentData?.pointsEarned > 0 && (
-                <div className="flex justify-between text-xs bg-orange-500/5 border border-orange-500/10 p-2.5 rounded-xl">
+                <div className="flex justify-between text-xs bg-orange-500/5 cust-border p-2.5 rounded-xl">
                   <span className="text-orange-300 font-medium">적립된 포인트</span>
                   <span className="text-orange-400 font-bold font-mono">+{paymentData.pointsEarned.toLocaleString()} P</span>
                 </div>
@@ -220,14 +222,14 @@ export default function PaymentSuccess() {
 
             {/* 실시간 픽업/취소 알림 웹 푸시 온보딩 프로모션 카드 */}
             {showPushPrompt && !pushOnboarded && (
-              <div className="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-3">
+              <div className="p-5 rounded-2xl bg-indigo-500/5 cust-border space-y-3">
                 <div className="flex items-start gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-500/10 cust-border text-indigo-400 flex items-center justify-center shrink-0">
                     <Bell className="size-4" />
                   </div>
                   <div className="min-w-0 text-left">
                     <h4 className="text-xs font-black text-indigo-300">실시간 주문 & 취소 알림 받기</h4>
-                    <p className="text-[10px] text-slate-400 leading-normal mt-1 font-semibold">
+                    <p className="text-[10px] cust-text-sub leading-normal mt-1 font-semibold">
                       주방에서 음식을 완성해 호출하거나 비상 취소 상황 발생 시 브라우저 푸시 알림을 즉시 수신합니다.
                     </p>
                   </div>
@@ -254,14 +256,14 @@ export default function PaymentSuccess() {
             )}
 
             {/* 고객 맞춤형 홈 화면 PWA 전용 설치 카드 */}
-            <div className="p-5 rounded-2xl bg-white/[0.01] border border-white/5 space-y-4">
+            <div className="p-5 rounded-2xl bg-white/[0.01] cust-border space-y-4">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center shrink-0 shadow-md">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/10 cust-border text-orange-400 flex items-center justify-center shrink-0 shadow-md">
                   <Smartphone className="size-5" />
                 </div>
                 <div className="text-left space-y-1">
-                  <h4 className="text-xs font-black text-white">WeMarket 고객용 전용 웹앱 설치</h4>
-                  <p className="text-[10px] text-slate-400 leading-relaxed font-semibold">
+                  <h4 className="text-xs font-black cust-text-main">WeMarket 고객용 전용 웹앱 설치</h4>
+                  <p className="text-[10px] cust-text-sub leading-relaxed font-semibold">
                     바탕화면에 전용 웹앱을 추가하면 주문 내역 및 포인트 적립 장부를 1초 자동 로그인으로 실시간 편하게 모니터링할 수 있습니다.
                   </p>
                 </div>
@@ -278,12 +280,12 @@ export default function PaymentSuccess() {
                 </button>
               ) : isSafari ? (
                 /* 아이폰 Safari용 브라우저 수동 홈화면 추가 벌룬 가이드 */
-                <div className="bg-slate-950 border border-white/5 p-4 rounded-xl text-left space-y-2">
+                <div className="cust-bg-base cust-border p-4 rounded-xl text-left space-y-2">
                   <div className="flex items-center gap-1.5 text-xs text-orange-400 font-bold">
                     <Info size={13} />
                     <span>아이폰 iOS 설치 가이드</span>
                   </div>
-                  <ol className="text-[10px] text-slate-400 space-y-1.5 list-decimal pl-4 leading-normal font-semibold">
+                  <ol className="text-[10px] cust-text-sub space-y-1.5 list-decimal pl-4 leading-normal font-semibold">
                     <li>하단 내비게이션 바의 <Share className="size-3 inline mx-0.5 text-blue-400" /> <strong>공유</strong> 버튼을 탭합니다.</li>
                     <li>목록 아래로 내려서 <strong>'홈 화면에 추가'</strong> 버튼을 클릭합니다.</li>
                     <li>우측 상단 <strong>'추가'</strong>를 선택하여 위앱을 바탕화면에 안착시킵니다.</li>
@@ -291,7 +293,7 @@ export default function PaymentSuccess() {
                 </div>
               ) : (
                 /* 미지원 브라우저 혜택 요약 캡션 */
-                <div className="flex items-center gap-2 px-1 text-[10px] text-slate-500 font-semibold text-left">
+                <div className="flex items-center gap-2 px-1 text-[10px] cust-text-sub font-semibold text-left">
                   <div className="w-1.5 h-1.5 rounded-full bg-slate-700 shrink-0" />
                   <span>이미 설치되었거나 브라우저 홈 화면에 추가를 제공하지 않는 환경입니다.</span>
                 </div>
@@ -308,7 +310,7 @@ export default function PaymentSuccess() {
               </button>
               <button
                 onClick={() => navigate('/')}
-                className="w-full h-11 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-semibold rounded-xl text-sm transition-all flex items-center justify-center gap-2 border border-slate-700"
+                className="w-full h-11 cust-bg-card hover:bg-slate-700 active:scale-95 cust-text-main font-semibold rounded-xl text-sm transition-all flex items-center justify-center gap-2 cust-border"
               >
                 메인 화면으로
                 <ArrowRight className="w-4 h-4" />
@@ -324,12 +326,12 @@ export default function PaymentSuccess() {
                 <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 font-extrabold text-lg">!</div>
               </div>
               <div className="space-y-1">
-                <h1 className="text-xl font-bold text-slate-100">결제 최종 승인 실패</h1>
+                <h1 className="text-xl font-bold cust-text-main">결제 최종 승인 실패</h1>
                 <p className="text-xs text-red-400 font-medium">{errorMsg}</p>
               </div>
             </div>
 
-            <div className="space-y-2 border-t border-slate-800/60 pt-4">
+            <div className="space-y-2 cust-border-t pt-4">
               <button
                 onClick={() => window.history.back()}
                 className="w-full h-11 bg-orange-500 hover:bg-orange-600 active:scale-95 text-slate-950 font-bold rounded-xl text-sm transition-all flex items-center justify-center"
@@ -338,7 +340,7 @@ export default function PaymentSuccess() {
               </button>
               <button
                 onClick={() => navigate('/')}
-                className="w-full h-11 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-semibold rounded-xl text-sm transition-all flex items-center justify-center border border-slate-700"
+                className="w-full h-11 cust-bg-card hover:bg-slate-700 active:scale-95 cust-text-main font-semibold rounded-xl text-sm transition-all flex items-center justify-center cust-border"
               >
                 메인으로 이동
               </button>
