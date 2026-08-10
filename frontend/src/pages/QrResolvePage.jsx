@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { tablesAPI, wakeupServer } from '@/api';
-import { Loader2, QrCode, AlertCircle, RefreshCw, Wifi } from 'lucide-react';
+import { Loader2, QrCode, AlertCircle, RefreshCw, Wifi, Server } from 'lucide-react';
 import { useSystemDark } from '@/hooks/useSystemDark';
 
-const MAX_RETRIES = 8;          // 최대 재시도
-const RETRY_INTERVAL_MS = 3000; // 3초 간격
+const MAX_WAIT_MS = 60000;      // 총 대기 시간 (wakeupServer와 동일 60초)
+const BASE_RETRY_MS = 2000;     // 초기 재시도 간격
+const MAX_RETRY_MS = 8000;      // 최대 재시도 간격
 
 export default function QrResolvePage() {
   const { qrCode } = useParams();
@@ -13,6 +14,8 @@ export default function QrResolvePage() {
   const isDark = useSystemDark();
   const [status, setStatus] = useState(!qrCode ? 'error' : 'wakeup'); // wakeup | resolving | error
   const [attempt, setAttempt] = useState(0);
+  const [serverReady, setServerReady] = useState(false);
+  const startTime = useRef(Date.now());
   const retryCount = useRef(0);
   const cancelled = useRef(false);
 
@@ -22,10 +25,14 @@ export default function QrResolvePage() {
     const run = async () => {
       /* 1. Render 서버 웨이크업 */
       setStatus('wakeup');
-      try { await wakeupServer(); } catch { /* ignore */ }
+      try {
+        await wakeupServer();
+        if (!cancelled.current) setServerReady(true);
+      } catch { /* ignore */ }
 
-      /* 2. QR 코드 resolve (재시도 포함) */
-      while (retryCount.current < MAX_RETRIES && !cancelled.current) {
+      /* 2. QR 코드 resolve (지수 백오프 재시도) */
+      let retryMs = BASE_RETRY_MS;
+      while (Date.now() - startTime.current < MAX_WAIT_MS && !cancelled.current) {
         setStatus('resolving');
         setAttempt(retryCount.current + 1);
 
@@ -46,8 +53,9 @@ export default function QrResolvePage() {
 
         retryCount.current += 1;
 
-        if (retryCount.current < MAX_RETRIES && !cancelled.current) {
-          await new Promise(r => setTimeout(r, RETRY_INTERVAL_MS));
+        if (Date.now() - startTime.current < MAX_WAIT_MS && !cancelled.current) {
+          await new Promise(r => setTimeout(r, retryMs));
+          retryMs = Math.min(retryMs * 1.5, MAX_RETRY_MS); // 지수 백오프
         }
       }
 
@@ -69,11 +77,12 @@ export default function QrResolvePage() {
           <div>
             <h2 className="cust-text-main font-black text-lg mb-2">메뉴판을 불러올 수 없습니다</h2>
             <p className="cust-text-sub text-sm leading-relaxed">
-              잠시 후 다시 시도하거나 매장 직원에게 문의해주세요.
+              서버가 준비되는 데 시간이 더 필요할 수 있습니다.
+              <br />잠시 후 다시 시도하거나 매장 직원에게 문의해주세요.
             </p>
           </div>
           <button
-            onClick={() => { cancelled.current = false; retryCount.current = 0; setStatus('wakeup'); }}
+            onClick={() => { cancelled.current = false; retryCount.current = 0; startTime.current = Date.now(); setStatus('wakeup'); setServerReady(false); }}
             className="w-full py-3 bg-orange-500 hover:bg-orange-400 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all"
           >
             <RefreshCw size={16} /> 다시 시도
@@ -100,7 +109,9 @@ export default function QrResolvePage() {
           <p className="cust-text-sub text-sm">
             {status === 'wakeup'
               ? '처음 접속 시 서버를 깨우는 데 잠시 걸릴 수 있습니다.'
-              : `연결 시도 중 (${attempt}/${MAX_RETRIES})`}
+              : serverReady
+                ? '서버 준비 완료 — 메뉴판 연결 중...'
+                : '서버 준비 중... 잠시만 기다려주세요'}
           </p>
         </div>
 
@@ -108,7 +119,7 @@ export default function QrResolvePage() {
         <div className="w-full cust-border rounded-full h-1.5 overflow-hidden">
           <div
             className="h-full bg-orange-500 rounded-full transition-all duration-1000"
-            style={{ width: `${Math.min((attempt / MAX_RETRIES) * 100, 90)}%` }}
+            style={{ width: `${Math.min(((Date.now() - startTime.current) / MAX_WAIT_MS) * 100, 95)}%` }}
           />
         </div>
 
@@ -123,7 +134,7 @@ export default function QrResolvePage() {
         </div>
 
         <p className="cust-text-sub text-xs">
-          처음 접속 시 최대 30초 소요될 수 있습니다
+          처음 접속 시 최대 1분 소요될 수 있습니다
         </p>
       </div>
     </div>

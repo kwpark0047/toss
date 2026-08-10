@@ -62,7 +62,8 @@ const getOptionsForMenuItem = (menuItems, itemId) => {
 
 /** 콜드스타트 로딩 화면 */
 const ColdStartLoading = ({
-  elapsed
+  elapsed,
+  serverReady
 }) => {
   const {
     t
@@ -80,7 +81,9 @@ const ColdStartLoading = ({
             {isColdStart ? t('menu.loading') : t('menu.no_menu')}
           </h2>
           <p className="text-slate-500 text-sm leading-relaxed">
-            {elapsed < 8 ? t('menu.please_wait') : elapsed < 30 ? t('menu.cold_start_hint') : t('menu.almost_ready')}
+            {serverReady
+              ? t('menu.server_ready')
+              : elapsed < 8 ? t('menu.please_wait') : elapsed < 30 ? t('menu.cold_start_hint') : t('menu.almost_ready')}
           </p>
         </div>
 
@@ -140,12 +143,13 @@ const MenuPage = () => {
     }
   }, [storeId, isNumericStoreId, navigate]);
 
-  /* 첫 마운트 시 Render 서버 웨이크업 + 경과 시간 추적 */
+/* 첫 마운트 시 Render 서버 웨이크업 + 경과 시간 추적 */
   const startTimeRef = useRef(Date.now());
   const [elapsed, setElapsed] = useState(0);
+  const [serverReady, setServerReady] = useState(false);
   useEffect(() => {
     if (!isNumericStoreId) return;
-    wakeupServer();
+    wakeupServer().then(() => setServerReady(true)).catch(() => {});
     const iv = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
     }, 500);
@@ -513,7 +517,7 @@ const order = await ordersAPI.create(orderData);
         </div>
       </div>;
   }
-  if (isLoading) return <ColdStartLoading elapsed={elapsed} />;
+  if (isLoading) return <ColdStartLoading elapsed={elapsed} serverReady={serverReady} />;
   const themeStyle = buildThemeStyle(profile?.theme);
 
   // 매장 테마 설정(menu_layout / ui_size / menu_options) 파생 — 미저장 매장은 기존 목록형 유지
