@@ -27,6 +27,8 @@ function getAllowedOrigins() {
     // 명시적 환경변수 설정이 있으면 최우선
     FRONTEND_URL,
     BACKEND_URL,
+    // 현재 운영 프론트엔드 도메인 (CORS 허용 안전망)
+    'https://toss.wemarket.workers.dev',
     // 기존 배포 도메인 (하위 호환)
     'https://frontend-gamma-ten-89.vercel.app',
     'https://wemarket.onrender.com',
