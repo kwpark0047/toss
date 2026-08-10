@@ -21,6 +21,11 @@ export default function OfflineBanner() {
     return () => clearInterval(interval);
   }, []);
 
+  const clearAll = useCallback(() => {
+    clearTimeout(timerRef.current);
+    clearInterval(progressRef.current);
+  }, []);
+
   useEffect(() => {
     if (!isOnline) {
       clearAll();
@@ -43,11 +48,6 @@ export default function OfflineBanner() {
       }, 60);
     }
   }, [isOnline, phase, clearAll]);
-
-  const clearAll = useCallback(() => {
-    clearTimeout(timerRef.current);
-    clearInterval(progressRef.current);
-  }, []);
 
   async function handleRetry() {
     if (retrying) return;

@@ -55,18 +55,6 @@ const AnalyticsDashboard = () => {
       setExporting(null);
     }
   };
-useEffect(() => {
-    const controller = new AbortController();
-    fetchInitialData(controller.signal);
-    return () => controller.abort();
-  }, [fetchInitialData]);
-  useEffect(() => {
-    if (myRole === 'owner') {
-      const controller = new AbortController();
-      fetchAnalytics(controller.signal);
-      return () => controller.abort();
-    }
-  }, [myRole, fetchAnalytics]);
 const fetchInitialData = useCallback(async signal => {
     try {
       const [storeRes, roleRes] = await Promise.all([storesAPI.getById(storeId, {
@@ -113,6 +101,18 @@ const fetchInitialData = useCallback(async signal => {
       if (error.name === 'CanceledError' || error.name === 'AbortError') return;
     }
   }, [storeId, period, dateRange, productSort]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchInitialData(controller.signal);
+    return () => controller.abort();
+  }, [fetchInitialData]);
+  useEffect(() => {
+    if (myRole === 'owner') {
+      const controller = new AbortController();
+      fetchAnalytics(controller.signal);
+      return () => controller.abort();
+    }
+  }, [myRole, fetchAnalytics]);
   const handleForecastDaysChange = async days => {
     setForecastDays(days);
     try {

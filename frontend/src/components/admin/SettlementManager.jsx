@@ -183,8 +183,6 @@ const SettlementManager = () => {
     const [period, setPeriod] = useState({ start: '', end: '' });
     const [selected, setSelected] = useState(null);
 
-    useEffect(() => { fetchSettlements(); }, [fetchSettlements]);
-
     const fetchSettlements = useCallback(async () => {
         try {
             const res = await adminAPI.getSettlements(storeId);
@@ -195,6 +193,8 @@ const SettlementManager = () => {
             setLoading(false);
         }
     }, [storeId]);
+
+    useEffect(() => { fetchSettlements(); }, [fetchSettlements]);
 
     const openDetail = async (s) => {
         try {

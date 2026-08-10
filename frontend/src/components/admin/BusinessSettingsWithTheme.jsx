@@ -358,8 +358,6 @@ export default function BusinessSettingsWithTheme() {
         setMenuOptions(prev => ({ ...prev, [key]: value }));
     };
 
-    useEffect(() => { fetchData(); }, [fetchData]);
-
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
@@ -398,6 +396,8 @@ export default function BusinessSettingsWithTheme() {
             setLoading(false);
         }
     }, [storeId]);
+
+    useEffect(() => { fetchData(); }, [fetchData]);
 
     const saveAll = async () => {
         setSaving(true);

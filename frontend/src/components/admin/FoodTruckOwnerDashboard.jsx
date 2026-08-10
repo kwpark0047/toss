@@ -40,6 +40,13 @@ const fetchTruckDetails = useCallback(async () => {
       setLoading(false);
     }
   }, [storeId]);
+const stopAutoSync = useCallback(() => {
+    setAutoSync(false);
+    if (syncIntervalRef.current) {
+      clearInterval(syncIntervalRef.current);
+      syncIntervalRef.current = null;
+    }
+  }, []);
 useEffect(() => {
     if (storeId) {
       fetchTruckDetails();
@@ -171,14 +178,7 @@ useEffect(() => {
       });
     }, 30000);
   };
-const stopAutoSync = useCallback(() => {
-    setAutoSync(false);
-    if (syncIntervalRef.current) {
-      clearInterval(syncIntervalRef.current);
-      syncIntervalRef.current = null;
-    }
-  }, []);
-  const handleSpotSelect = (lat, lng, spotName) => {
+const handleSpotSelect = (lat, lng, spotName) => {
     handleUpdateGpsManually(lat, lng, spotName);
   };
   if (loading) {

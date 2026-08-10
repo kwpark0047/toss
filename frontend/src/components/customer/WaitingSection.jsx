@@ -15,37 +15,6 @@ const WaitingSection = ({ store, onClose }) => {
     const [aiSuggestions, setAiSuggestions] = useState([]);
     const [aiLoading, setAiLoading] = useState(false);
 
-    // 초기 로드 시 기존 대입 상태 확인 (로컬 스토리지 또는 전화번호 입력 유도)
-    useEffect(() => {
-        const savedPhone = localStorage.getItem('waiting_phone');
-        if (savedPhone) {
-            fetchMyStatus(savedPhone);
-        }
-    }, [fetchMyStatus]);
-
-    // socket은 전역 단일 인스턴스이므로 리스너는 1회만 등록하고,
-    // unmount 시 반드시 해제해야 다른 페이지에서 이벤트가 중복 발화되지 않는다.
-    useEffect(() => {
-        const socket = ordersAPI.getSocket();
-        const onWaitingStatusChanged = (data) => {
-            setMyWaiting(prev => (prev ? { ...prev, status: data.status } : prev));
-            if (data.status === 'called') {
-                alert(data.message);
-            }
-        };
-        const onRefreshAheadCount = () => {
-            const savedPhone = localStorage.getItem('waiting_phone');
-            if (savedPhone) fetchMyStatus(savedPhone);
-        };
-        socket.on('waiting-status-changed', onWaitingStatusChanged);
-        socket.on('refresh-ahead-count', onRefreshAheadCount);
-        return () => {
-            socket.off('waiting-status-changed', onWaitingStatusChanged);
-            socket.off('refresh-ahead-count', onRefreshAheadCount);
-            socket.emit('leave-my-waiting', { phone: localStorage.getItem('waiting_phone') });
-        };
-    }, [fetchMyStatus]);
-
     const fetchAISuggestions = useCallback(async () => {
         try {
             setAiLoading(true);
@@ -76,6 +45,37 @@ const WaitingSection = ({ store, onClose }) => {
             console.error('대기 상태 조회 실패:', err);
         }
     }, [store.id, fetchAISuggestions]);
+
+    // 초기 로드 시 기존 대입 상태 확인 (로컬 스토리지 또는 전화번호 입력 유도)
+    useEffect(() => {
+        const savedPhone = localStorage.getItem('waiting_phone');
+        if (savedPhone) {
+            fetchMyStatus(savedPhone);
+        }
+    }, [fetchMyStatus]);
+
+    // socket은 전역 단일 인스턴스이므로 리스너는 1회만 등록하고,
+    // unmount 시 반드시 해제해야 다른 페이지에서 이벤트가 중복 발화되지 않는다.
+    useEffect(() => {
+        const socket = ordersAPI.getSocket();
+        const onWaitingStatusChanged = (data) => {
+            setMyWaiting(prev => (prev ? { ...prev, status: data.status } : prev));
+            if (data.status === 'called') {
+                alert(data.message);
+            }
+        };
+        const onRefreshAheadCount = () => {
+            const savedPhone = localStorage.getItem('waiting_phone');
+            if (savedPhone) fetchMyStatus(savedPhone);
+        };
+        socket.on('waiting-status-changed', onWaitingStatusChanged);
+        socket.on('refresh-ahead-count', onRefreshAheadCount);
+        return () => {
+            socket.off('waiting-status-changed', onWaitingStatusChanged);
+            socket.off('refresh-ahead-count', onRefreshAheadCount);
+            socket.emit('leave-my-waiting', { phone: localStorage.getItem('waiting_phone') });
+        };
+    }, [fetchMyStatus]);
 
     const handleRegister = async () => {
         if (!formData.phone || !formData.name) return alert(t('waiting.errors.input_required'));

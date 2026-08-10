@@ -17,6 +17,29 @@ const ChatDrawer = ({ isOpen, onClose, store, _table, customerInfo }) => {
     const scrollRef = useRef(null);
     const socket = getSocket();
 
+    const initChat = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await chatAPI.accessRoom({
+                store_id: store.id,
+                customer_phone: customerInfo?.phone || localStorage.getItem('user_phone'),
+                customer_id: customerInfo?.id || null
+            });
+
+            if (res.success) {
+                setRoomId(res.data.id);
+                const msgRes = await chatAPI.getMessages(res.data.id);
+                if (msgRes.success) {
+                    setMessages(msgRes.data);
+                }
+            }
+        } catch (error) {
+            console.error('채팅 초기화 실패:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [store?.id, customerInfo?.phone, customerInfo?.id]);
+
     // 채팅방 접속 및 메시지 로딩
     useEffect(() => {
         if (isOpen && store?.id) {
@@ -45,29 +68,6 @@ const ChatDrawer = ({ isOpen, onClose, store, _table, customerInfo }) => {
             };
         }
     }, [socket, roomId]);
-
-    const initChat = useCallback(async () => {
-        setLoading(true);
-        try {
-            const res = await chatAPI.accessRoom({
-                store_id: store.id,
-                customer_phone: customerInfo?.phone || localStorage.getItem('user_phone'),
-                customer_id: customerInfo?.id || null
-            });
-
-            if (res.success) {
-                setRoomId(res.data.id);
-                const msgRes = await chatAPI.getMessages(res.data.id);
-                if (msgRes.success) {
-                    setMessages(msgRes.data);
-                }
-            }
-        } catch (error) {
-            console.error('채팅 초기화 실패:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, [store?.id, customerInfo?.phone, customerInfo?.id]);
 
     const handleSendMessage = async (e) => {
         if (e) e.preventDefault();

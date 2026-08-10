@@ -397,17 +397,6 @@ const TableManager = () => {
   const [activeFloor, setActiveFloor]   = useState('5층');
   const [searchQuery, setSearchQuery]   = useState('');
 
-  useEffect(() => {
-    fetchData();
-    const socket = getSocket();
-    if (socket) {
-      socket.on('table-updated', (data) => {
-        if (data?.store_id === parseInt(storeId)) fetchData();
-      });
-    }
-    return () => { if (getSocket()) getSocket().off('table-updated'); };
-  }, [storeId, fetchData]);
-
   const fetchData = useCallback(async () => {
     try {
       const [storeRes, tablesRes] = await Promise.all([
@@ -423,6 +412,17 @@ const TableManager = () => {
       setLoading(false);
     }
   }, [storeId, navigate]);
+
+  useEffect(() => {
+    fetchData();
+    const socket = getSocket();
+    if (socket) {
+      socket.on('table-updated', (data) => {
+        if (data?.store_id === parseInt(storeId)) fetchData();
+      });
+    }
+    return () => { if (getSocket()) getSocket().off('table-updated'); };
+  }, [storeId, fetchData]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('이 테이블을 삭제하시겠습니까?')) return;

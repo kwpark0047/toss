@@ -9,12 +9,6 @@ const MenuStoryModal = ({ isOpen, onClose, product, storeName }) => {
     const [story, setStory] = useState('');
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        if (isOpen && product) {
-            generateStory();
-        }
-    }, [isOpen, product, generateStory]);
-
     const generateStory = useCallback(async () => {
         setLoading(true);
         try {
@@ -35,6 +29,12 @@ const MenuStoryModal = ({ isOpen, onClose, product, storeName }) => {
             setLoading(false);
         }
     }, [product, i18n.language]);
+
+    useEffect(() => {
+        if (isOpen && product) {
+            generateStory();
+        }
+    }, [isOpen, product, generateStory]);
 
     if (!isOpen) return null;
 
