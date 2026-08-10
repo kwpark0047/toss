@@ -23,15 +23,13 @@ const mockPreferenceServiceInstance = {
   getProfile: jest
     .fn()
     .mockResolvedValue({ preferred_categories: [], preferred_tastes: [], favorite_items: [] }),
-  getStoreStats: jest
-    .fn()
-    .mockResolvedValue({
-      top_categories: [],
-      top_tastes: [],
-      avg_spicy_tolerance: 1,
-      price_sensitivity_dist: {},
-      total_customers: 0,
-    }),
+  getStoreStats: jest.fn().mockResolvedValue({
+    top_categories: [],
+    top_tastes: [],
+    avg_spicy_tolerance: 1,
+    price_sensitivity_dist: {},
+    total_customers: 0,
+  }),
 };
 
 const mockWaitingServiceInstance = {
@@ -161,10 +159,8 @@ jest.mock('../../services/OrderService', () => {
   return jest.fn().mockImplementation(() => mockOrderServiceInstance);
 });
 
-// ── CustomerPreferenceService 모의 ───────────────────────────────────────────
-jest.mock('../../services/CustomerPreferenceService', () => {
-  return jest.fn().mockImplementation(() => mockPreferenceServiceInstance);
-});
+// ── CustomerPreferenceService 모의 (singleton instance export) ────────────────
+jest.mock('../../services/CustomerPreferenceService', () => mockPreferenceServiceInstance);
 
 // ── WaitingService 모의 ───────────────────────────────────────────────────────
 jest.mock('../../services/WaitingService', () => {
@@ -175,6 +171,7 @@ jest.mock('../../services/WaitingService', () => {
 jest.mock('../../config/prisma', () => {
   return {
     orders: {
+      findUnique: jest.fn(),
       update: jest.fn(),
     },
     store_customers: {
@@ -245,7 +242,12 @@ describe('Orders Integration Tests', () => {
           created_at: new Date().toISOString(),
         },
       ];
-      mockOrderRepository.findByStoreId.mockResolvedValue(mockOrders);
+      mockOrderRepository.findByStoreId.mockResolvedValue({
+        items: mockOrders,
+        total: 2,
+        page: 1,
+        limit: 10,
+      });
       mockOrderRepository.getStats.mockResolvedValue({
         total: 2,
         pending: 1,
@@ -296,8 +298,17 @@ describe('Orders Integration Tests', () => {
         .post(`${baseUrl}`)
         .send({
           store_id: 1,
-          items: [{ product_id: 5, quantity: 1 }],
+          items: [
+            {
+              product_id: 5,
+              product_name: '아메리카노',
+              quantity: 1,
+              price: 10000,
+              subtotal: 10000,
+            },
+          ],
           total_amount: 10000,
+          payment_method: 'card',
         })
         .expect(201);
 
