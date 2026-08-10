@@ -1,6 +1,5 @@
 const SubscriptionRepository = require('../repositories/Subscription');
 const PlanRepository = require('../repositories/Plan');
-const TossAPI = require('../utils/toss');
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const { AppError } = require('../utils/errorHandler');
@@ -163,15 +162,6 @@ class SubscriptionService {
     if (applyNow) {
       // 즉시 적용: 현재 기간 비례 환불/차액 계산 후 새 플랜으로 갱신
       const now = new Date();
-      const remainingDays = Math.max(
-        0,
-        Math.ceil((subscription.current_period_end - now) / (1000 * 60 * 60 * 24))
-      );
-      const totalDays = Math.ceil(
-        (subscription.current_period_end - subscription.current_period_start) /
-          (1000 * 60 * 60 * 24)
-      );
-      const unusedRatio = remainingDays / totalDays;
 
       // 구독 정보 업데이트
       const periodStart = now;

@@ -33,6 +33,33 @@ export function usePoints(identifier = {}) {
     }
   }, [toss_user_key, phone, user_id]);
 
+  // 월렛 조회 (비인증 사용자용: phone/toss_user_key로 조회)
+  const walletLookup = useCallback(
+    async (storeId = null) => {
+      if (!toss_user_key && !phone && !user_id) return null;
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await pointsAPI.walletLookup({
+          toss_user_key,
+          phone,
+          user_id,
+          store_id: storeId,
+        });
+        setPoints(res.balance);
+        return res;
+      } catch (err) {
+        setError(err.response?.data?.error || err.message);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [toss_user_key, phone, user_id]
+  );
+
   // 포인트 내역 조회
   const fetchHistory = useCallback(
     async (options = {}) => {
@@ -128,6 +155,7 @@ export function usePoints(identifier = {}) {
     loading,
     error,
     fetchBalance,
+    walletLookup,
     fetchHistory,
     calculateUsablePoints,
     calculateEarnPoints,

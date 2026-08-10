@@ -8,6 +8,11 @@ export const pointsAPI = {
     api.get(`/points/calculate-usable?amount=${amount}&store_id=${storeId}`, { params }),
   calculateEarn: (amount, storeId) =>
     api.get(`/points/calculate-earn?amount=${amount}&store_id=${storeId}`),
+  walletLookup: (params) => api.get('/points/wallet-lookup', { params }),
+  getStoreSettings: (storeId) => api.get(`/points/settings/${storeId}`),
+  updateStoreSettings: (storeId, data) => api.put(`/points/settings/${storeId}`, data),
+  adminEarn: (data) => api.post('/points/admin/earn', data),
+  adminDeduct: (data) => api.post('/points/admin/deduct', data),
 };
 
 export const analyticsAPI = {
@@ -117,6 +122,25 @@ export const aiAPI = {
 
 export const weatherAPI = {
   getCurrent: (stn) => api.get('/weather/current' + (stn ? `?stn=${stn}` : '')),
+  getEnhanced: (stn) => api.get('/weather/enhanced' + (stn ? `?stn=${stn}` : '')),
+  getByCoords: (lat, lng) => api.get(`/weather/coords?lat=${lat}&lng=${lng}`),
+};
+
+// AI 추천 성과 추적 API (impression / click / conversion 퍼널)
+export const recommendationAPI = {
+  recordImpression: (data) => api.post('/recommendation-tracking/impression', data),
+  recordClick: (data) => api.post('/recommendation-tracking/click', data),
+  recordConversion: (data) => api.post('/recommendation-tracking/conversion', data),
+  getDailyStats: (storeId, params) =>
+    api.get(`/recommendation-tracking/stats/daily/${storeId}`, { params }),
+  getSummaryStats: (storeId, params) =>
+    api.get(`/recommendation-tracking/stats/summary/${storeId}`, { params }),
+  getMenuPerformance: (storeId, params) =>
+    api.get(`/recommendation-tracking/stats/menu-performance/${storeId}`, { params }),
+  getTimePeriodPerformance: (storeId, params) =>
+    api.get(`/recommendation-tracking/stats/time-period/${storeId}`, { params }),
+  getSessionFunnel: (storeId, sessionId) =>
+    api.get(`/recommendation-tracking/stats/funnel/${storeId}/${sessionId}`),
 };
 
 export const getSocket = () => {

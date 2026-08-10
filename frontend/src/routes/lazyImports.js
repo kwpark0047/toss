@@ -21,6 +21,9 @@ export const FoodTruckLanding = lazy(() => import('../pages/FoodTruckLanding'));
 export const FoodTruckDesignShowcase = lazy(() => import('../pages/FoodTruckDesignShowcase'));
 export const TinkerBellManagerPage = lazy(() => import('../pages/TinkerBellManagerPage'));
 export const PlanUpgrade = lazy(() => import('../pages/PlanUpgrade'));
+export const PointsHistoryPage = lazy(() => import('../pages/PointsHistoryPage'));
+export const PointsSettingsPage = lazy(() => import('../pages/PointsSettingsPage'));
+export const RecommendationStatsPage = lazy(() => import('../pages/RecommendationStatsPage'));
 
 // 마케팅 페이지
 export const FeaturesPage = lazy(() => import('../pages/marketing/FeaturesPage'));

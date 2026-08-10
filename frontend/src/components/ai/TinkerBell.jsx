@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMotionSafe } from '../../hooks/useMotionSafe';
+import { trackImpressions, trackRecommendationClick } from '../../utils/recommendationTracking';
 
 // ── 팅커벨 녹음 음성 파일 매핑 (한국어) ──────────────────────────────────────
 // 해당 상황에 녹음 mp3가 있으면 재생, 없으면 브라우저 TTS로 폴백.
@@ -291,12 +292,20 @@ const typingRef  = useRef(null);
                    mood: '보통',
                }),
            });
-           if (res.ok) {
-               const data = await res.json();
-               if (data.recommendations?.length) {
-                   setAiRecs(data.recommendations);
-               }
-           }
+if (res.ok) {
+                const data = await res.json();
+                if (data.recommendations?.length) {
+                    setAiRecs(data.recommendations);
+                    trackImpressions(
+                        Number(storeId),
+                        data.recommendations,
+                        'tinkerbell',
+                        'tinkerbell',
+                        weatherData ? { temp: weatherData.temp, isRaining: weatherData.isRaining } : undefined,
+                        new Date().getHours() < 12 ? 'morning' : 'evening'
+                    ).catch(() => { /* 추적 실패는 무시 */ });
+                }
+            }
        } catch { /* AI 추천 실패 시 하드코딩 폴백 */ }
        setAiLoading(false);
    }, [storeId, menuItems.length, weatherData]);
@@ -439,33 +448,39 @@ const typingRef  = useRef(null);
                ctx += ` (${weatherData.temp}°C)`;
            }
 
-           const text = (L.rec[weather] || L.rec.sun).replace('{n}', chosen.name || '');
-           setIsBusy(true);
-           spawnSparks(8);
-           say(ctx, text, false, 'cust_weather');
-           if (onRecommend) onRecommend(chosen);
-           setIsBusy(false);
-       }, 11000);
-       return () => clearTimeout(t);
-   }, [visible, weather, weatherData, menuItems, lang, adminMode, onRecommend, say, spawnSparks, fetchAIRec]);
+const text = (L.rec[weather] || L.rec.sun).replace('{n}', chosen.name || '');
+            setIsBusy(true);
+            spawnSparks(8);
+            say(ctx, text, false, 'cust_weather');
+if (onRecommend) {
+                trackRecommendationClick(Number(storeId), chosen.id || chosen, 'tinkerbell').catch(() => { /* 추적 실패는 무시 */ });
+                onRecommend(chosen);
+            }
+            setIsBusy(false);
+        }, 11000);
+        return () => clearTimeout(t);
+    }, [visible, weather, weatherData, menuItems, lang, adminMode, onRecommend, say, spawnSparks, fetchAIRec, storeId]);
 
 // ── 호기심 메시지 (AI 추천 우선) ──────────────────────────────────
    useEffect(() => {
        if (!visible || !menuItems.length || adminMode) return;
        const t = setTimeout(() => {
            const L = I18N[lang] || I18N.ko;
-           if (aiRecs.length > 0 && !aiLoading) {
-               const rec = pick(aiRecs);
-               const ctx = '🤖 AI 추천';
-               const text = `${rec.name} — ${rec.recommend_reason || rec.name} 추천!`;
-               say(ctx, text, false, 'cust_recommend');
-               if (onRecommend) onRecommend(rec);
-           } else {
-               say('', pick(L.curious), false, 'cust_recommend');
-           }
-       }, 26000);
-       return () => clearTimeout(t);
-   }, [visible, lang, aiRecs, aiLoading, menuItems, adminMode, onRecommend, say]);
+if (aiRecs.length > 0 && !aiLoading) {
+                const rec = pick(aiRecs);
+                const ctx = '🤖 AI 추천';
+                const text = `${rec.name} — ${rec.recommend_reason || rec.name} 추천!`;
+                say(ctx, text, false, 'cust_recommend');
+                if (onRecommend) {
+                    trackRecommendationClick(Number(storeId), rec.id, 'tinkerbell').catch(() => { /* 추적 실패는 무시 */ });
+                    onRecommend(rec);
+                }
+} else {
+                say('', pick(L.curious), false, 'cust_recommend');
+            }
+        }, 26000);
+        return () => clearTimeout(t);
+    }, [visible, lang, aiRecs, aiLoading, menuItems, adminMode, onRecommend, say, storeId]);
 
   // ── 말풍선 위치 ─────────────────────────────────────────────────────────
   const bubbleStyle = mode === 'preview'

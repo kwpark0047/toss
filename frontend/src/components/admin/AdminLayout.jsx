@@ -427,6 +427,7 @@ const AdminLayout = ({ children }) => {
     { label: t('inventoryManagement'),     icon: Package,           path: `/admin/stores/${storeId}/inventory`,               show: !!storeId, roles: [] },
     { label: t('customerManagement'),     icon: Users,             path: `/admin/stores/${storeId}/customers`,               show: !!storeId, roles: [] },
     { label: t('campaignDashboard'),  icon: Megaphone,         path: `/admin/stores/${storeId}/campaigns`,               show: !!storeId, roles: [] },
+    { label: t('aiRecommendationStats'),  icon: Sparkles,       path: `/admin/stores/${storeId}/recommendation-stats`,    show: !!storeId, roles: [] },
     { label: t('staffManagement'),     icon: Users,             path: `/admin/stores/${storeId}/staff`,                   show: !!storeId, roles: [] },
     { label: t('storeSettings'), icon: Settings,          path: `/admin/stores/${storeId}/settings`,               show: !!storeId, roles: [] },
     { label: t('membership'),    icon: Award,             path: `/admin/stores/${storeId}/plan-upgrade`,           show: !!storeId, roles: [] },

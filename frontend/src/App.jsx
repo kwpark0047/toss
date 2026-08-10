@@ -10,7 +10,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { logError } from "@/lib/errorUtils";
 
 // Lazy imports
-import { Index, MenuPage, PaymentSuccess, PaymentFail, QrResolvePage, MenuDemo, BusinessDemo, AuthPage, Register, StoreSearchPage, NotFound, KioskPage, ProfilePage, KitchenDisplayPage, LegalPage, StoreDisplay, FoodTruckLanding, FoodTruckDesignShowcase, FeaturesPage, PricingPage, GuidesPage, NewsPage, ContactPage, BoardList, BoardDetail, BoardWrite, PlanUpgrade, AdminLayout, MasterDashboard, MultiStoreSupervisorDashboard, StoreSetupWizard, StoreForm, OrderManager, MenuManager, MenuBuilder, StaffManager, SalesStats, ReviewManager, AnalyticsDashboard, SettlementManager, BusinessSettingsWithTheme, SystemStatus, ReceiptSettings, CustomerManager, CampaignDashboard, ReservationManager, WaitingManager, BulkSMSManager, StoreEnrichment, InventoryManager, TableManager, StoreSettings, LegalSettings, NotificationTemplatesManager, DeveloperConsole, QrCustomizer, PartnershipManager, StaffScheduler, FoodTruckOwnerDashboard, FoodTruckAnalyticsDashboard, AlimtalkDeliveryConsole, CommunityPage, TinkerBellManagerPage, PlanRequestsManage } from "@/routes/lazyImports";
+import { Index, MenuPage, PaymentSuccess, PaymentFail, QrResolvePage, MenuDemo, BusinessDemo, AuthPage, Register, StoreSearchPage, NotFound, KioskPage, ProfilePage, KitchenDisplayPage, LegalPage, StoreDisplay, FoodTruckLanding, FoodTruckDesignShowcase, FeaturesPage, PricingPage, GuidesPage, NewsPage, ContactPage, BoardList, BoardDetail, BoardWrite, PlanUpgrade, PointsHistoryPage, PointsSettingsPage, RecommendationStatsPage, AdminLayout, MasterDashboard, MultiStoreSupervisorDashboard, StoreSetupWizard, StoreForm, OrderManager, MenuManager, MenuBuilder, StaffManager, SalesStats, ReviewManager, AnalyticsDashboard, SettlementManager, BusinessSettingsWithTheme, SystemStatus, ReceiptSettings, CustomerManager, CampaignDashboard, ReservationManager, WaitingManager, BulkSMSManager, StoreEnrichment, InventoryManager, TableManager, StoreSettings, LegalSettings, NotificationTemplatesManager, DeveloperConsole, QrCustomizer, PartnershipManager, StaffScheduler, FoodTruckOwnerDashboard, FoodTruckAnalyticsDashboard, AlimtalkDeliveryConsole, CommunityPage, TinkerBellManagerPage, PlanRequestsManage } from "@/routes/lazyImports";
 import PWAInstallBanner from "@/components/common/PWAInstallBanner";
 import PWAUpdateNotification from "@/components/common/PWAUpdateNotification";
 import OfflineBanner from "@/components/common/OfflineBanner";
@@ -128,6 +128,8 @@ const AppRoutes = memo(() => <Routes>
     <Route path="/guides" element={<AdminSuspense><GuidesPage /></AdminSuspense>} />
     <Route path="/news" element={<AdminSuspense><NewsPage /></AdminSuspense>} />
     <Route path="/contact" element={<AdminSuspense><ContactPage /></AdminSuspense>} />
+    <Route path="/points/history" element={<AdminSuspense><PointsHistoryPage /></AdminSuspense>} />
+    <Route path="/points/settings/:storeId" element={<AdminSuspense><PointsSettingsPage /></AdminSuspense>} />
 
     {/* Admin Routes */}
     <Route path="/admin" element={<AdminPage><AdminSuspense><MasterDashboard /></AdminSuspense></AdminPage>} />
@@ -145,6 +147,7 @@ const AppRoutes = memo(() => <Routes>
     <Route path="/admin/stores/:storeId/sales" element={<AdminPage><ValidStoreRoute><AdminSuspense><SalesStats /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/reviews" element={<AdminPage><ValidStoreRoute><AdminSuspense><ReviewManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/analytics" element={<AdminPage><ValidStoreRoute><AdminSuspense><AnalyticsDashboard /></AdminSuspense></ValidStoreRoute></AdminPage>} />
+    <Route path="/admin/stores/:storeId/recommendation-stats" element={<AdminPage><ValidStoreRoute><AdminSuspense><RecommendationStatsPage /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/settlements" element={<AdminPage><ValidStoreRoute><AdminSuspense><SettlementManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/settings" element={<AdminPage><ValidStoreRoute><AdminSuspense><BusinessSettingsWithTheme /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/system" element={<AdminPage><ValidStoreRoute><AdminSuspense><SystemStatus /></AdminSuspense></ValidStoreRoute></AdminPage>} />

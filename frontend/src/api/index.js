@@ -38,5 +38,7 @@ export {
   cartAPI,
   legalAPI,
   aiAPI,
+  weatherAPI,
+  recommendationAPI,
   getSocket,
 } from './misc';

@@ -1513,3 +1513,87 @@ model pricing_optimization_jobs {
   @@index([created_at(sort: Desc)], map: "idx_pricing_jobs_created")
   @@schema("public")
 }
+
+// ── AI 추천 노출/클릭/전환 추적 ─────────────────────────────────────
+model recommendation_impressions {
+  id              String    @id @default(cuid())
+  store_id        Int
+  session_id      String    // 세션/방문자 식별자
+  user_id         Int?      // 로그인한 사용자인 경우
+  phone           String?   // 비회원 식별용
+  menu_id         Int       // 추천된 메뉴 ID
+  recommendation_type String  // ai_personalized | tinkerbell | pairing | dessert | trending
+  source          String    // menu_page | tinkerbell | cart | kiosk | qr
+  position        Int       // 추천 목록에서의 순서 (0-based)
+  weather_context Json?     // 당시 날씨 컨텍스트 스냅샷
+  time_period     String?   // 아침/점심/저녁/야식 등
+  created_at      DateTime  @default(now())
+
+  @@index([store_id, created_at], map: "idx_rec_imp_store_time")
+  @@index([session_id], map: "idx_rec_imp_session")
+  @@index([menu_id], map: "idx_rec_imp_menu")
+  @@index([recommendation_type], map: "idx_rec_imp_type")
+  @@schema("public")
+}
+
+model recommendation_clicks {
+  id                String   @id @default(cuid())
+  impression_id     String   @unique(map: "uq_rec_click_impression")
+  store_id          Int
+  session_id        String
+  user_id           Int?
+  phone             String?
+  menu_id           Int
+  recommendation_type String
+  time_to_click_ms  Int?     // 노출 후 클릭까지 걸린 시간
+  created_at        DateTime @default(now())
+
+  @@index([store_id, created_at], map: "idx_rec_click_store_time")
+  @@index([impression_id], map: "idx_rec_click_imp")
+  @@schema("public")
+}
+
+model recommendation_conversions {
+  id                    String   @id @default(cuid())
+  impression_id         String?  // 연결된 노출 (있는 경우)
+  click_id              String?  // 연결된 클릭 (있는 경우)
+  store_id              Int
+  session_id            String
+  user_id               Int?
+  phone                 String?
+  order_id              Int      // 전환된 주문 ID
+  menu_id               Int      // 주문된 메뉴 ID (추천된 메뉴와 다를 수 있음)
+  recommendation_type   String
+  conversion_value      Int      // 주문 금액
+  quantity              Int      @default(1)
+  time_to_conversion_ms BigInt?  // 노출/클릭 후 주문까지 걸린 시간
+  attributed            Boolean  @default(true)  // 어트리뷰션 인정 여부
+  created_at            DateTime @default(now())
+
+  @@index([store_id, created_at], map: "idx_rec_conv_store_time")
+  @@index([session_id], map: "idx_rec_conv_session")
+  @@index([order_id], map: "idx_rec_conv_order")
+  @@index([menu_id], map: "idx_rec_conv_menu")
+  @@schema("public")
+}
+
+// ── 추천 성과 일일 집계 (대시보드용) ────────────────────────────────
+model recommendation_daily_stats {
+  id                  String   @id @default(cuid())
+  store_id            Int
+  date                DateTime @db.Date
+  recommendation_type String
+  impressions         Int      @default(0)
+  clicks              Int      @default(0)
+  conversions         Int      @default(0)
+  revenue             Int      @default(0)
+  ctr                 Float    @default(0)  // Click Through Rate
+  cvr                 Float    @default(0)  // Conversion Rate
+  avg_order_value     Float    @default(0)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  @@unique([store_id, date, recommendation_type], map: "uq_rec_daily_stats")
+  @@index([store_id, date], map: "idx_rec_daily_store_date")
+  @@schema("public")
+}

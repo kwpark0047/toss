@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { aiAPI } from '@/api';
 import { Sparkles, Plus, Sun, Moon, CloudSun, CloudRain, TrendingUp } from 'lucide-react';
 import LazyImage from '../common/LazyImage';
 import { vibrateClick } from '../../utils/notificationSound';
+import { trackImpressions, trackRecommendationClick } from '../../utils/recommendationTracking';
 
 const TIME_ICONS = {
   morning: Sun,
@@ -66,6 +67,18 @@ export default function PersonalizedRecommendations({ storeId, storeOpen, onAddT
   const TimeIcon = TIME_ICONS[timePeriod];
   const seasonEmoji = useMemo(() => getSeasonEmoji(), []);
 
+  const track = useCallback((recommendations) => {
+    if (!recommendations?.length) return;
+    trackImpressions(
+      Number(storeId),
+      recommendations,
+      'ai_personalized',
+      'menu_page',
+      { timePeriod, season: seasonEmoji },
+      timePeriod
+    ).catch(() => { /* 추적 실패는 무시 */ });
+  }, [storeId, timePeriod, seasonEmoji]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -80,7 +93,11 @@ export default function PersonalizedRecommendations({ storeId, storeOpen, onAddT
           weather: '', // 서버에서 기본값 "맑음" 처리
         });
         const data = res?.data || res;
-        if (!cancelled) setRecs((data?.recommendations || []).slice(0, 3));
+        const recommendations = (data?.recommendations || []).slice(0, 3);
+        if (!cancelled) {
+          setRecs(recommendations);
+          track(recommendations);
+        }
       } catch {
         if (!cancelled) setRecs([]);
       } finally {
@@ -88,12 +105,18 @@ export default function PersonalizedRecommendations({ storeId, storeOpen, onAddT
       }
     })();
     return () => { cancelled = true; };
-  }, [storeId]);
+  }, [storeId, track]);
 
   if (loading || recs.length === 0) return null;
 
   const resolve = (rec) => menuItems.find((m) => m.id === rec.id) || rec;
   const hasTrending = recs.some(r => r.is_trending);
+
+  const handleAdd = (item) => {
+    vibrateClick();
+    trackRecommendationClick(Number(storeId), item.id, 'ai_personalized').catch(() => { /* 추적 실패는 무시 */ });
+    onAddToCart?.(item);
+  };
 
   return (
     <div className="container mx-auto px-4 pt-4">
@@ -153,10 +176,7 @@ export default function PersonalizedRecommendations({ storeId, storeOpen, onAddT
                 <span className="font-bold text-white text-sm shrink-0">{(item.price || 0).toLocaleString('ko-KR')}원</span>
                 {onAddToCart && !soldOut && storeOpen && (
                   <button
-                    onClick={() => {
-                      vibrateClick();
-                      onAddToCart(item);
-                    }}
+                    onClick={() => handleAdd(item)}
                     aria-label={`${item.name} 담기`}
                     className="shrink-0 w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600 active:scale-90 transition-all"
                   >

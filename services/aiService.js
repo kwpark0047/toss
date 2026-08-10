@@ -183,8 +183,21 @@ class AIService {
       pastOrders = [],
       trendingItems = [],
       timePeriod = '',
+      // 고객 세그먼트(RFM)/선호도 컨텍스트
+      segmentContext = '',
+      // 향상된 날씨 파라미터
+      temperature,
+      humidity,
+      isRaining,
+      rainAmount,
+      feelsLike,
+      airQuality,
+      season,
+      foodWeights,
     } = context;
-    const cacheKey = `rec_${preferences}_${weather}_${mood}_${pastOrders.length}_${trendingItems.length}_${menuList.length}`;
+
+    // 캐시 키에 향상된 날씨 정보 + 세그먼트 컨텍스트 포함
+    const cacheKey = `rec_${preferences}_${weather}_${mood}_${pastOrders.length}_${trendingItems.length}_${menuList.length}_${temperature}_${humidity}_${isRaining}_${season}_${segmentContext}`;
 
     if (this.cache.has(cacheKey)) {
       logger.debug(`[AI] 캐시에서 추천 결과를 반환합니다.`);
@@ -197,6 +210,32 @@ class AIService {
       category: m.categories?.name,
       price: m.price,
     }));
+
+    // 향상된 날씨 정보 구성
+    const weatherDetails = [];
+    if (temperature !== undefined) weatherDetails.push(`기온: ${temperature}°C`);
+    if (feelsLike !== undefined) weatherDetails.push(`체감온도: ${feelsLike}°C`);
+    if (humidity !== undefined) weatherDetails.push(`습도: ${humidity}%`);
+    if (rainAmount !== undefined && rainAmount > 0) weatherDetails.push(`강수량: ${rainAmount}mm`);
+    if (isRaining !== undefined) weatherDetails.push(`강수: ${isRaining ? '있음' : '없음'}`);
+    if (airQuality)
+      weatherDetails.push(
+        `공기질: ${airQuality.grade} (PM10: ${airQuality.pm10}, PM2.5: ${airQuality.pm25})`
+      );
+    if (season) weatherDetails.push(`계절: ${season}`);
+    if (foodWeights && typeof foodWeights === 'object') {
+      const topFoods = Object.entries(foodWeights)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+      if (topFoods.length > 0) {
+        weatherDetails.push(
+          `날씨 어울리는 음식: ${topFoods.map(([f, w]) => `${f}(${w})`).join(', ')}`
+        );
+      }
+    }
+
+    const weatherContext = weatherDetails.length > 0 ? weatherDetails.join(', ') : weather;
+
     const prompt = `
       당신은 매장의 전문 매니저입니다. 고객의 상황과 취향에 따라 가장 잘 어울리는 메뉴 3가지를 추천해주세요.
       
@@ -204,16 +243,19 @@ class AIService {
       - 선호도: ${preferences || '없음'}
       - 현재 시간: ${time}
       - 시간대: ${timePeriod || '일반'}
-      - 현재 날씨: ${weather}
+      - 현재 날씨: ${weatherContext}
       - 현재 기분 태그: ${mood}
       - 과거 주문했던 메뉴들: ${pastOrders.join(', ') || '내역 없음'}
       - 요즘 인기 메뉴: ${trendingItems.join(', ') || '없음'}
+      ${segmentContext ? `- 고객 프로필: ${segmentContext}` : ''}
       
       [추천 규칙]
       1. 시간대와 날씨에 잘 어울리는 메뉴를 우선 추천하세요.
       2. 고객이 과거에 주문한 메뉴와 비슷한 메뉴를 추천하세요.
       3. 요즘 인기 메뉴가 있다면 가중치를 두고 고려하세요.
       4. 선호도가 명시된 경우 이를 최우선으로 반영하세요.
+      5. 기온, 습도, 강수, 체감온도, 공기질, 계절 등 상세 날씨 정보를 종합적으로 고려하세요.
+      6. 고객 프로필(세그먼트, 선호 카테고리/맛, 알레르기, 등급)이 제공되면 이를 반영해 개인화하세요. 알레르기가 있으면 절대 해당 메뉴를 추천하지 마세요.
       
       [메뉴 목록]
       ${JSON.stringify(menus)}

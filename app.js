@@ -317,7 +317,7 @@ const routes = {
   adminAuth: require('./routes/adminAuth'),
   franchise: require('./routes/franchise'),
   loyalty: require('./routes/loyalty'),
-  aiOrder: require('./routes/aiOrder'),
+  recommendationTracking: require('./routes/recommendationTracking'),
 };
 
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
@@ -392,6 +392,7 @@ app.use(`${API_PREFIX}/weather`, publicLimiter, routes.weather);
 app.use(`${API_PREFIX}/sse`, routes.sse);
 app.use(`${API_PREFIX}/print-jobs`, routes.printJobs);
 app.use(`${API_PREFIX}/dynamic-pricing`, routes.dynamicPricing);
+app.use(`${API_PREFIX}/recommendation-tracking`, routes.recommendationTracking);
 // [수정 M-2] routes/news 는 require 만 되고 마운트되지 않아 프론트의 /api/news 호출이
 // 전부 404 로 떨어지고 있었다. 뉴스 목록은 공개, 크롤링 트리거는 관리자 전용.
 app.use(`${API_PREFIX}/news`, publicLimiter, routes.news);

@@ -27,6 +27,7 @@ import OptionSelectionModal from "@/components/menu/OptionSelectionModal";
 import OrderStatusModal from "@/components/menu/OrderStatusModal";
 import CustomerPhoneSheet from "@/components/menu/CustomerPhoneSheet";
 import PersonalizedRecommendations from "@/components/menu/PersonalizedRecommendations";
+import { trackOrderConversion } from "@/utils/recommendationTracking";
 import ReviewModal from "@/components/customer/ReviewModal";
 import _FloatingCallButton from "@/components/customer/FloatingCallButton";
 import ManagerCallSheet from "@/components/customer/ManagerCallSheet";
@@ -426,10 +427,18 @@ const handleOrder = useCallback(async () => {
           localStorage.setItem('wm_customer_phone', notifyDigits);
         } catch {/* 무시 */}
       }
-      const order = await ordersAPI.create(orderData);
+const order = await ordersAPI.create(orderData);
       const orderData_ = order?.data || order || {};
       const createdOrderId = orderData_.id;
       if (!createdOrderId) throw new Error('주문 생성 결과에 주문 ID가 없습니다.');
+
+      // AI 추천 전환(주문 성공) 어트리뷰션 기록 — 실패해도 주문 흐름은 방해하지 않음
+      trackOrderConversion(
+        Number(storeId),
+        createdOrderId,
+        cart.map(item => ({ id: Number(item.menuItem.id), name: item.menuItem.name })),
+        'ai_personalized'
+      ).catch(() => { /* 추적 실패는 무시 */ });
 
       // 온라인 결제는 주문을 먼저 생성한 뒤 서버가 만든 결제 대기 레코드와
       // 동일한 주문을 Toss 승인 흐름으로 연결한다.

@@ -1,4 +1,3 @@
-const SubscriptionService = require('../services/SubscriptionService');
 const { AppError } = require('../utils/errorHandler');
 
 /**
