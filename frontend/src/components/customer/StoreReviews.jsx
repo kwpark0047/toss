@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MessageSquareText, Heart, Globe } from 'lucide-react';
+import { MessageSquareText, Heart, Globe, Star } from 'lucide-react';
 import { reviewsAPI } from '../../api';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
