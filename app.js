@@ -317,6 +317,7 @@ const routes = {
   adminAuth: require('./routes/adminAuth'),
   franchise: require('./routes/franchise'),
   loyalty: require('./routes/loyalty'),
+  aiOrder: require('./routes/aiOrder'),
   recommendationTracking: require('./routes/recommendationTracking'),
 };
 
