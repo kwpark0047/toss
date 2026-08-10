@@ -55,6 +55,12 @@ export default function VisualTableMap({ _storeId, tables, onUpdate }) {
     touchRef.current = { id, startX: t.clientX, startY: t.clientY, itemX: item.x, itemY: item.y };
   };
 
+  const moveItem = useCallback((id, rawX, rawY, mapW) => {
+    const bx = Math.max(0, Math.min(rawX, mapW - TABLE_SIZE));
+    const by = Math.max(0, Math.min(rawY, mapHeight - TABLE_SIZE));
+    setItems(prev => prev.map(i => i.id === id ? { ...i, x: bx, y: by } : i));
+  }, [mapHeight]);
+
   const handleTouchMove = useCallback((e) => {
     if (!isEditing || !touchRef.current) return;
     e.preventDefault();
@@ -69,12 +75,6 @@ export default function VisualTableMap({ _storeId, tables, onUpdate }) {
   }, [isEditing, moveItem]);
 
   const handleTouchEnd = () => { touchRef.current = null; };
-
-  const moveItem = useCallback((id, rawX, rawY, mapW) => {
-    const bx = Math.max(0, Math.min(rawX, mapW - TABLE_SIZE));
-    const by = Math.max(0, Math.min(rawY, mapHeight - TABLE_SIZE));
-    setItems(prev => prev.map(i => i.id === id ? { ...i, x: bx, y: by } : i));
-  }, [mapHeight]);
 
   /* ─── 저장 ─── */
   const saveLayout = async () => {
