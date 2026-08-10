@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../middleware/auth');
-const checkPermission = require('../middleware/checkPermission');
+const { authMiddleware, adminOnly } = require('../middleware/auth');
 const planController = require('../controllers/planController');
 
 /**
@@ -12,39 +11,24 @@ const planController = require('../controllers/planController');
  */
 
 // 전체 플랜 목록 (관리자)
-router.get('/', authMiddleware, checkPermission('plans:read'), planController.getAllPlans);
+router.get('/', authMiddleware, adminOnly, planController.getAllPlans);
 
 // 플랜 상세
-router.get('/:id', authMiddleware, checkPermission('plans:read'), planController.getPlanById);
+router.get('/:id', authMiddleware, adminOnly, planController.getPlanById);
 
 // 플랜 생성
-router.post('/', authMiddleware, checkPermission('plans:write'), planController.createPlan);
+router.post('/', authMiddleware, adminOnly, planController.createPlan);
 
 // 플랜 수정
-router.patch('/:id', authMiddleware, checkPermission('plans:write'), planController.updatePlan);
+router.patch('/:id', authMiddleware, adminOnly, planController.updatePlan);
 
 // 플랜 비활성화
-router.patch(
-  '/:id/deactivate',
-  authMiddleware,
-  checkPermission('plans:write'),
-  planController.deactivatePlan
-);
+router.patch('/:id/deactivate', authMiddleware, adminOnly, planController.deactivatePlan);
 
 // 플랜 순서 변경
-router.post(
-  '/reorder',
-  authMiddleware,
-  checkPermission('plans:write'),
-  planController.reorderPlans
-);
+router.post('/reorder', authMiddleware, adminOnly, planController.reorderPlans);
 
 // 구독 통계
-router.get(
-  '/stats/subscriptions',
-  authMiddleware,
-  checkPermission('plans:read'),
-  planController.getSubscriptionStats
-);
+router.get('/stats/subscriptions', authMiddleware, adminOnly, planController.getSubscriptionStats);
 
 module.exports = router;
