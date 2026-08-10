@@ -3,11 +3,10 @@ const aiService = require('../services/aiService');
 const Product = require('../repositories/Product');
 const Order = require('../repositories/Order');
 const WaitingService = require('../services/WaitingService');
-const CustomerPreferenceService = require('../services/CustomerPreferenceService');
+const customerPreferenceService = require('../services/CustomerPreferenceService');
 const { success, created, error, validationError } = require('../utils/apiResponse');
 
 const waitingService = new WaitingService();
-const preferenceService = new CustomerPreferenceService();
 
 const waitingController = {
   // [GET] 특정 매장의 현재 대기 현황 조회
@@ -74,7 +73,7 @@ const waitingController = {
 
     // 개인화 추천 서비스 사용 (전화번호가 있는 경우)
     if (phone) {
-      const suggestions = await preferenceService.getPersonalizedRecommendations(
+      const suggestions = await customerPreferenceService.getPersonalizedRecommendations(
         storeId,
         phone,
         menuList,
@@ -172,7 +171,7 @@ const waitingController = {
         'store_id, customer_phone, menu_id 필수'
       );
     }
-    const data = await preferenceService.toggleFavorite(store_id, customer_phone, menu_id);
+    const data = await customerPreferenceService.toggleFavorite(store_id, customer_phone, menu_id);
     return success(res, data, '즐겨찾기 토글 완료');
   }),
 };
