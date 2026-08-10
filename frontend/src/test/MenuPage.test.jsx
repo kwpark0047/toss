@@ -57,7 +57,7 @@ vi.mock('@/api/misc', () => ({
   weatherAPI: { getCurrent: vi.fn() },
 }));
 vi.mock('@/api/wakeup', () => ({
-  wakeupServer: vi.fn(),
+  wakeupServer: vi.fn(() => Promise.resolve()),
 }));
 
 // Hooks
