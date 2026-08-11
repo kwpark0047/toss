@@ -18,7 +18,7 @@ class AIService {
     this.genAI = new GoogleGenerativeAI(apiKey);
     this.cache = new Map(); // 메뉴 설명 및 추천 캐시를 위한 메모리 맵
     this.MAX_CACHE_SIZE = 100; // 최대 캐시 항목 수
-    this.models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-pro']; // 가용 가능한 모델 리스트 (폴백용)
+    this.models = ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-flash-latest']; // 가용 가능한 모델 리스트 (폴백용)
   }
 
   /**
@@ -813,7 +813,7 @@ image_keyword (중요 - Unsplash 검색에 사용됨):
     let lastError = null;
 
     if (this.genAI) {
-      const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+      const modelsToTry = ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-flash-latest'];
 
       for (const modelName of modelsToTry) {
         try {
