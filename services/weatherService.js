@@ -192,11 +192,11 @@ class WeatherService {
   calculateFeelsLike(temp, humidity) {
     if (temp === null || temp === undefined) return temp;
 
-    // Heat Index (고온 다습 시)
+    // Heat Index (고온 다습 시) — 공식은 화씨 기준이므로 변환 후 계산, 결과는 섭씨로 복원
     if (temp >= 27 && humidity >= 40) {
-      const T = temp;
+      const T = (temp * 9) / 5 + 32; // 섭씨 → 화씨
       const R = humidity;
-      const HI =
+      const HI_F =
         -42.379 +
         2.04901523 * T +
         10.14333127 * R -
@@ -206,6 +206,7 @@ class WeatherService {
         1.22874e-3 * T * T * R +
         8.5282e-4 * T * R * R -
         1.99e-6 * T * T * R * R;
+      const HI = ((HI_F - 32) * 5) / 9; // 화씨 → 섭씨
       return Math.round(Math.max(HI, temp) * 10) / 10;
     }
 
