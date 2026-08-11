@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
 const demandForecastController = require('./demandForecastController');
+const DynamicPricingService = require('../services/DynamicPricingService');
 
 const DynamicPricingController = {
   // 가격 최적화 실행/이력/경쟁사/수요예측은 demandForecastController에서 위임
@@ -118,77 +119,8 @@ const DynamicPricingController = {
   activatePricingRules: async (req, res, next) => {
     try {
       const { storeId } = req.params;
-      const activeRules = await prisma.dynamic_pricing_rules.findMany({
-        where: { store_id: Number(storeId), is_active: true },
-        include: { products: true },
-      });
-
-      const results = [];
-      for (const rule of activeRules) {
-        const product = rule.products;
-        if (!product) continue;
-
-        const currentPrice = product.price;
-        let newPrice = currentPrice;
-
-        switch (rule.rule_type) {
-          case 'TIME_BASED':
-            newPrice = applyTimeBasedPricing(currentPrice, rule.config);
-            break;
-          case 'DEMAND_BASED':
-            newPrice = applyDemandBasedPricing(currentPrice, rule.config);
-            break;
-          case 'COMPETITOR_BASED':
-            newPrice = applyCompetitorBasedPricing(
-              currentPrice,
-              rule.config,
-              storeId,
-              product.name
-            );
-            break;
-          case 'INVENTORY_BASED':
-            newPrice = applyInventoryBasedPricing(currentPrice, rule.config, product);
-            break;
-          case 'WEATHER_BASED':
-            newPrice = applyWeatherBasedPricing(currentPrice, rule.config);
-            break;
-        }
-
-        const finalPrice = Math.max(
-          rule.min_price || 0,
-          Math.min(rule.max_price || Infinity, newPrice)
-        );
-
-        if (finalPrice !== currentPrice) {
-          const priceLog = await prisma.dynamic_price_logs.create({
-            data: {
-              store_id: Number(storeId),
-              product_id: Number(product.id),
-              rule_id: rule.id,
-              old_price: currentPrice,
-              new_price: finalPrice,
-              trigger_type: 'SCHEDULED',
-              confidence_score: 0.8,
-              applied: true,
-              applied_at: new Date(),
-            },
-          });
-
-          await prisma.products.update({
-            where: { id: Number(product.id) },
-            data: { price: finalPrice },
-          });
-
-          results.push({
-            product_id: product.id,
-            product_name: product.name,
-            old_price: currentPrice,
-            new_price: finalPrice,
-            log_id: priceLog.id,
-          });
-        }
-      }
-
+      const service = new DynamicPricingService();
+      const results = await service.activatePricingRules(Number(storeId));
       res.success({ rules_applied: results.length, details: results }, '가격 적용 완료');
     } catch (err) {
       next(err);
@@ -245,41 +177,5 @@ const DynamicPricingController = {
     }
   },
 };
-
-function applyTimeBasedPricing(currentPrice, config) {
-  if (!config || !config.timeSlots) return currentPrice;
-  const hour = new Date().getHours();
-  const slot = config.timeSlots.find((s) => hour >= s.startHour && hour < s.endHour);
-  if (!slot || !slot.multiplier) return currentPrice;
-  return Math.round(currentPrice * slot.multiplier);
-}
-
-function applyDemandBasedPricing(currentPrice, config) {
-  if (!config || !config.demandThreshold) return currentPrice;
-  const demandScore = config.demandScore || 1.0;
-  if (demandScore > config.demandThreshold) {
-    return Math.round(currentPrice * (1 + (demandScore - config.demandThreshold) * 0.2));
-  }
-  return currentPrice;
-}
-
-function applyCompetitorBasedPricing(currentPrice, config) {
-  if (!config || !config.competitorMargin) return currentPrice;
-  return Math.round(currentPrice * (1 - config.competitorMargin));
-}
-
-function applyInventoryBasedPricing(currentPrice, config, product) {
-  if (!config || !config.inventoryThreshold) return currentPrice;
-  const stock = product.stock_quantity || 0;
-  if (stock < config.inventoryThreshold) {
-    return Math.round(currentPrice * 1.15);
-  }
-  return currentPrice;
-}
-
-function applyWeatherBasedPricing(currentPrice, config) {
-  if (!config || !config.weatherConditions) return currentPrice;
-  return currentPrice;
-}
 
 module.exports = DynamicPricingController;

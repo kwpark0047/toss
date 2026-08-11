@@ -60,23 +60,32 @@ class RecommendationContextService {
    * 고객별 추천 컨텍스트 구성 (세그먼트 + 선호도 + 티어)
    * @param {number} storeId
    * @param {string} phone
+   * @param {string} [tossUserKey]
    * @returns {Promise<Object>}
    */
-  async buildContext(storeId, phone) {
+  async buildContext(storeId, phone, tossUserKey) {
     const result = {
       segment: null,
       preferences: null,
       tier: null,
     };
 
-    if (!phone) return result;
+    if (!phone && !tossUserKey) return result;
 
     try {
-      // 1. 매장 고객 기록 (암호화 후보군으로 조회)
-      const candidates = phoneSearchCandidates(phone);
-      const storeCustomer = await prisma.store_customers.findFirst({
-        where: { store_id: parseInt(storeId), customer_phone: { in: candidates } },
-      });
+      // 1. 매장 고객 기록 조회 (전화번호 또는 toss_user_key로)
+      let storeCustomer = null;
+      if (phone) {
+        const candidates = phoneSearchCandidates(phone);
+        storeCustomer = await prisma.store_customers.findFirst({
+          where: { store_id: parseInt(storeId), customer_phone: { in: candidates } },
+        });
+      }
+      if (!storeCustomer && tossUserKey) {
+        storeCustomer = await prisma.store_customers.findFirst({
+          where: { store_id: parseInt(storeId), toss_user_key: tossUserKey },
+        });
+      }
 
       if (storeCustomer) {
         result.segment = this.classifySegment(storeCustomer);
@@ -89,10 +98,12 @@ class RecommendationContextService {
         result.segment = this.classifySegment(null);
       }
 
-      // 2. 고객 선호도 프로파일 (없으면 자동 생성)
-      const profile = await CustomerPreference.findOrCreate(parseInt(storeId), phone).catch(
-        () => null
-      );
+      // 2. 고객 선호도 프로파일 (전화번호 또는 toss_user_key로)
+      const profile = await CustomerPreference.findOrCreateByPhoneOrTossKey(
+        parseInt(storeId),
+        phone,
+        tossUserKey
+      ).catch(() => null);
       if (profile) {
         result.preferences = {
           preferred_categories: profile.preferred_categories || [],

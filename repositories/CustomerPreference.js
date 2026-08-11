@@ -2,16 +2,40 @@ const prisma = require('../config/prisma');
 
 class CustomerPreferenceRepository {
   /**
-   * 고객 선호도 조회 (없으면 기본값으로 생성)
+   * 고객 선호도 조회 (전화번호 또는 toss_user_key로, 없으면 기본값으로 생성)
    */
-  async findOrCreate(storeId, customerPhone) {
-    let pref = await prisma.customer_preferences.findUnique({
-      where: {
-        store_id_customer_phone: { store_id: storeId, customer_phone: customerPhone },
-      },
-    });
+  async findOrCreateByPhoneOrTossKey(storeId, customerPhone, tossUserKey) {
+    let pref = null;
 
-    if (!pref) {
+    if (customerPhone) {
+      pref = await prisma.customer_preferences.findUnique({
+        where: {
+          store_id_customer_phone: { store_id: storeId, customer_phone: customerPhone },
+        },
+      });
+    }
+
+    if (!pref && tossUserKey) {
+      // toss_user_key로 고객 찾아서 해당 전화번호의 선호도 사용
+      const storeCustomer = await prisma.store_customers.findFirst({
+        where: { store_id: storeId, toss_user_key: tossUserKey },
+        select: { customer_phone: true },
+      });
+
+      if (storeCustomer) {
+        pref = await prisma.customer_preferences.findUnique({
+          where: {
+            store_id_customer_phone: {
+              store_id: storeId,
+              customer_phone: storeCustomer.customer_phone,
+            },
+          },
+        });
+      }
+    }
+
+    if (!pref && customerPhone) {
+      // 기본 생성 (전화번호 기준)
       pref = await prisma.customer_preferences.create({
         data: {
           store_id: storeId,
@@ -26,7 +50,15 @@ class CustomerPreferenceRepository {
         },
       });
     }
+
     return pref;
+  }
+
+  /**
+   * 고객 선호도 조회 (없으면 기본값으로 생성)
+   */
+  async findOrCreate(storeId, customerPhone) {
+    return this.findOrCreateByPhoneOrTossKey(storeId, customerPhone, null);
   }
 
   /**

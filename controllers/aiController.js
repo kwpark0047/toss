@@ -97,9 +97,14 @@ const aiController = {
     let segmentContext = '';
     let recContext = null;
     try {
-      const phoneForCtx = phone || (toss_user_key ? undefined : undefined);
+      // toss_user_key가 있으면 전화번호 없이도 고객 식별 가능
+      const phoneForCtx = phone || toss_user_key;
       if (phoneForCtx) {
-        recContext = await RecommendationContextService.buildContext(store_id, phoneForCtx);
+        recContext = await RecommendationContextService.buildContext(
+          store_id,
+          phone,
+          toss_user_key
+        );
         segmentContext = RecommendationContextService.formatContext(recContext);
       }
     } catch (ctxError) {
