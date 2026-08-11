@@ -126,6 +126,7 @@ const aiController = {
         airQuality: enhancedWeather?.airQuality,
         season: enhancedWeather?.season,
         foodWeights: enhancedWeather?.foodWeights,
+        alerts: enhancedWeather?.alerts,
       },
       menuList
     );
@@ -422,6 +423,7 @@ const aiController = {
         airQuality: enhancedWeather?.airQuality,
         season: enhancedWeather?.season,
         foodWeights: enhancedWeather?.foodWeights,
+        alerts: enhancedWeather?.alerts,
       },
       menuList
     );

@@ -194,10 +194,11 @@ class AIService {
       airQuality,
       season,
       foodWeights,
+      alerts,
     } = context;
 
     // 캐시 키에 향상된 날씨 정보 + 세그먼트 컨텍스트 포함
-    const cacheKey = `rec_${preferences}_${weather}_${mood}_${pastOrders.length}_${trendingItems.length}_${menuList.length}_${temperature}_${humidity}_${isRaining}_${season}_${segmentContext}`;
+    const cacheKey = `rec_${preferences}_${weather}_${mood}_${pastOrders.length}_${trendingItems.length}_${menuList.length}_${temperature}_${humidity}_${isRaining}_${season}_${alerts ? alerts.join(',') : ''}_${segmentContext}`;
 
     if (this.cache.has(cacheKey)) {
       logger.debug(`[AI] 캐시에서 추천 결과를 반환합니다.`);
@@ -222,6 +223,7 @@ class AIService {
       weatherDetails.push(
         `공기질: ${airQuality.grade} (PM10: ${airQuality.pm10}, PM2.5: ${airQuality.pm25})`
       );
+    if (alerts && alerts.length > 0) weatherDetails.push(`기상특보: ${alerts.join(', ')}`);
     if (season) weatherDetails.push(`계절: ${season}`);
     if (foodWeights && typeof foodWeights === 'object') {
       const topFoods = Object.entries(foodWeights)

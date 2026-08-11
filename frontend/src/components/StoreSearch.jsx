@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import WaitingSection from './customer/WaitingSection';
+import ChatDrawer from './customer/ChatDrawer';
 import { storesAPI, waitingAPI, reviewsAPI } from '../api';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './common/LanguageSwitcher';
@@ -59,6 +60,7 @@ const StoreSearch = () => {
   const [selectedStoreForWaiting, setSelectedStoreForWaiting] = useState(null);
   const [waitingCounts, setWaitingCounts] = useState({});
   const [storeRatings, setStoreRatings] = useState({});
+  const [showChatDrawer, setShowChatDrawer] = useState(false);
 
   const [favorites, setFavorites] = useState(new Set());
   const customerPhone = (() => { try { return localStorage.getItem('wm_customer_phone'); } catch { return null; } })();
@@ -457,11 +459,26 @@ const StoreSearch = () => {
       </AnimatePresence>
 
       {/* 챗봇 버튼 */}
-      <button className="fixed bottom-10 right-10 w-20 h-20 bg-white text-slate-950 rounded-[28px] shadow-2xl shadow-white/5 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 group">
+      <button
+        onClick={() => {
+          const targetStore = selectedStore || stores[0];
+          if (!targetStore) return;
+          setShowChatDrawer(true);
+        }}
+        className="fixed bottom-10 right-10 w-20 h-20 bg-white text-slate-950 rounded-[28px] shadow-2xl shadow-white/5 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 group"
+        aria-label="고객지원 채팅">
         <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-rose-600 rounded-[28px] scale-0 group-hover:scale-100 transition-transform duration-500" />
         <MessageCircle className="relative z-10 w-8 h-8 group-hover:text-white transition-colors" />
         <div className="absolute -top-1 -right-1 w-6 h-6 bg-orange-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-4 border-slate-950 group-hover:border-transparent transition-all">1</div>
       </button>
+
+      {/* 고객지원 채팅 드로어 */}
+      <ChatDrawer
+        isOpen={showChatDrawer}
+        onClose={() => setShowChatDrawer(false)}
+        store={selectedStore || stores[0] || {}}
+        customerInfo={{ phone: customerPhone }}
+      />
 
       <style dangerouslySetInnerHTML={{
         __html: `

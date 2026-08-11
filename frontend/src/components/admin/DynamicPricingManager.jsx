@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useParams } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, Plus, Edit, Trash2, History, Play, BarChart3, Clock, Zap, Package, Users, RefreshCw, CheckCircle, XCircle, PauseCircle, Save, X } from 'lucide-react';
 import { dynamicPricingAPI } from '@/api/admin';
@@ -53,8 +54,10 @@ const JOB_STATUS = {
   }
 };
 const DynamicPricingManager = ({
-  storeId
+  storeId: storeIdProp
 }) => {
+  const { storeId: storeIdParam } = useParams();
+  const storeId = storeIdProp || storeIdParam;
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('rules');
   const [editingRule, setEditingRule] = useState(null);

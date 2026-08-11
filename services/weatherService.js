@@ -117,6 +117,9 @@ class WeatherService {
     // 음식 추천 가중치 계산
     const foodWeights = this.calculateFoodWeights(weather, season, timePeriod);
 
+    // 기상특보 감지 (폭염/한파/호우/건조 등)
+    const alerts = this.detectAlerts(weather, feelsLike);
+
     return {
       ...weather,
       feelsLike,
@@ -125,9 +128,62 @@ class WeatherService {
       timePeriod,
       hour,
       foodWeights,
+      alerts,
       // 레거시 호환성
       condition: weather.condition || weather.condition,
     };
+  }
+
+  /**
+   * 기상특보 감지 (기상청 주의보/경보 기준 근사 판정)
+   * 관측 데이터(기온·체감·강수·습도)로 폭염/한파/호우/강풍 위험도를 판정한다.
+   * @param {Object} weather - 관측 날씨 데이터
+   * @param {number} [feelsLike] - 체감온도 (선택)
+   * @returns {Array<string>} 활성화된 특보 문자열 배열 (없으면 빈 배열)
+   */
+  detectAlerts(weather, feelsLike) {
+    const alerts = [];
+    const temp = weather.temp ?? feelsLike;
+
+    // 폭염특보: 일최고기온(근사: 현재기온) 33°C 이상
+    if (temp !== null && temp !== undefined && temp >= 33) {
+      alerts.push('폭염특보');
+    } else if (temp !== null && temp !== undefined && temp >= 31) {
+      alerts.push('폭염주의보');
+    }
+
+    // 한파특보: 일최저기온(근사: 현재기온) -12°C 이하 / -10°C 이하
+    if (temp !== null && temp !== undefined && temp <= -12) {
+      alerts.push('한파특보');
+    } else if (temp !== null && temp !== undefined && temp <= -10) {
+      alerts.push('한파주의보');
+    }
+
+    // 호우특보: 시간당 강수량 50mm 이상 / 30mm 이상 (비 소식은 호우 주의 포함)
+    if (weather.rain >= 50) {
+      alerts.push('호우특보');
+    } else if (weather.rain >= 30) {
+      alerts.push('호우주의보');
+    } else if (weather.isRaining) {
+      alerts.push('비 소식');
+    }
+
+    // 건조주의보: 습도 30% 이하 + 강수 없음
+    if (
+      !weather.isRaining &&
+      weather.humidity !== null &&
+      weather.humidity !== undefined &&
+      weather.humidity <= 30
+    ) {
+      alerts.push('건조주의보');
+    }
+
+    // 황사·미세먼지: 공기질 추정과 연계 (고온건조 시 주의)
+    if (weather.temp > 20 && !weather.isRaining && weather.humidity <= 35) {
+      alerts.push('미세먼지 주의');
+    }
+
+    return alerts;
   }
 
   /**

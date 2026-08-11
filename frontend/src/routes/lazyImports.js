@@ -52,6 +52,10 @@ export const BusinessSettingsWithTheme = lazy(
   () => import('../components/admin/BusinessSettingsWithTheme')
 );
 export const SystemStatus = lazy(() => import('../components/admin/SystemStatus'));
+export const DynamicPricingManager = lazy(
+  () => import('../components/admin/DynamicPricingManager')
+);
+export const Wallet = lazy(() => import('../pages/customer/Wallet'));
 export const ReceiptSettings = lazy(() => import('../components/admin/ReceiptSettings'));
 export const CustomerManager = lazy(() => import('../components/admin/CustomerManager'));
 export const CampaignDashboard = lazy(() => import('../components/admin/CampaignDashboard'));
