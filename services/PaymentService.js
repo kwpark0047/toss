@@ -240,9 +240,7 @@ class PaymentService {
           data: {
             method: payment_method.toUpperCase(),
             payment_status: 'paid',
-            status: 'paid',
             updated_at: new Date(),
-            completed_at: new Date(),
           },
         });
 
