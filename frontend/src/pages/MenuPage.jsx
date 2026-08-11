@@ -487,7 +487,7 @@ const order = await ordersAPI.create(orderData);
   }, [storeId, cart, storeOpen, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t]);
 
   // Stable callbacks for JSX props (prevents child re-renders from inline closures)
-  const handleOpenOrderHistory = useCallback(() => setIsOrderStatusOpen(true), []);
+  const handleOpenOrderHistory = useCallback(() => navigate('/order-history'), [navigate]);
   const handleOpenCart = useCallback(() => setIsCartOpen(true), []);
   const handleCloseCart = useCallback(() => setIsCartOpen(false), []);
   const handleCloseOrderStatus = useCallback(() => setIsOrderStatusOpen(false), []);

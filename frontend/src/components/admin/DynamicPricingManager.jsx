@@ -53,6 +53,13 @@ const JOB_STATUS = {
     icon: XCircle
   }
 };
+const CONFIG_TEMPLATES = {
+  TIME_BASED: '{"timeSlots":[{"startHour":11,"endHour":14,"multiplier":0.9}]}',
+  DEMAND_BASED: '{"demandThreshold":70,"demandScore":80}',
+  INVENTORY_BASED: '{"inventoryThreshold":10}',
+  WEATHER_BASED: '{"weatherConditions":[{"condition":"heat_wave","discount":0.9},{"condition":"rain","modifier":0.85}]}',
+  COMPETITOR_BASED: '{"competitorMargin":0.1}'
+};
 const DynamicPricingManager = ({
   storeId: storeIdProp
 }) => {
@@ -540,10 +547,15 @@ const DynamicPricingManager = ({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium mb-1">규칙 유형</label>
-                    <select value={ruleForm.rule_type} onChange={e => setRuleForm(f => ({
-                  ...f,
-                  rule_type: e.target.value
-                }))} className="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <select value={ruleForm.rule_type} onChange={e => setRuleForm(f => {
+                  const type = e.target.value;
+                  const isTemplateNeeded = !f.config || f.config === '{}' || !f.config.trim();
+                  return {
+                    ...f,
+                    rule_type: type,
+                    config: isTemplateNeeded ? (CONFIG_TEMPLATES[type] || '{}') : f.config
+                  };
+                })} className="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500">
                       {RULE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>

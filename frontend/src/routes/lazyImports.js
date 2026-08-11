@@ -56,6 +56,9 @@ export const DynamicPricingManager = lazy(
   () => import('../components/admin/DynamicPricingManager')
 );
 export const Wallet = lazy(() => import('../pages/customer/Wallet'));
+export const OrderHistory = lazy(() => import('../components/customer/OrderHistory'));
+export const ManagerView = lazy(() => import('../pages/ManagerView'));
+export const MenuWorldCup = lazy(() => import('../pages/MenuWorldCup'));
 export const ReceiptSettings = lazy(() => import('../components/admin/ReceiptSettings'));
 export const CustomerManager = lazy(() => import('../components/admin/CustomerManager'));
 export const CampaignDashboard = lazy(() => import('../components/admin/CampaignDashboard'));

@@ -40,9 +40,9 @@ httpServer.listen(PORT, async () => {
       try {
         const count = await collectAndPost();
         logger.info(`[뉴스수집] 스케줄러 완료 — ${count}건 등록`);
-        } catch (err) {
-          logger.error('[뉴스수집] 스케줄러 오류', { error: err.message });
-        }
+      } catch (err) {
+        logger.error('[뉴스수집] 스케줄러 오류', { error: err.message });
+      }
     },
     { timezone: 'Asia/Seoul' }
   );
@@ -58,6 +58,22 @@ httpServer.listen(PORT, async () => {
     { timezone: 'Asia/Seoul' }
   );
   logger.info('[아카이빙] 스케줄러 등록 완료 (매월 1일 04:00 KST)');
+
+  // 동적 가격 규칙 스케줄러 (매시간 정각) — 날씨/시간대 기반 자동 가격 조정
+  const { activateAllStores } = require('./services/DynamicPricingService');
+  cron.schedule(
+    '0 * * * *',
+    async () => {
+      logger.info('[동적가격] 스케줄러 시작 — 매시간 정각 가격 규칙 적용');
+      try {
+        await activateAllStores();
+      } catch (err) {
+        logger.error('[동적가격] 스케줄러 오류', { error: err.message });
+      }
+    },
+    { timezone: 'Asia/Seoul' }
+  );
+  logger.info('[동적가격] 스케줄러 등록 완료 (매시간 정각 KST)');
 
   // 매장 연동 요청 알림 기본 템플릿 등록
   initStoreLinkTemplates();

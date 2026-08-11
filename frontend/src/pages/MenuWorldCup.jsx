@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, ChevronLeft, RefreshCw, ShoppingCart, UtensilsCrossed } from 'lucide-react';
 import { productsAPI, categoriesAPI } from '../api';
@@ -14,6 +14,7 @@ const STAGE = {
 
 const MenuWorldCup = () => {
     const navigate = useNavigate();
+    const { storeId } = useParams();
     const { _user } = useAuth();
 
     const [stage, setStage] = useState(STAGE.SETUP);
@@ -24,30 +25,33 @@ const MenuWorldCup = () => {
     const [currentPair, setCurrentPair] = useState([]); // 현재 대결 중인 2개
     const [winner, setWinner] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(null);
 
     // 초기 데이터 로드
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 카테고리 로드
-                const catRes = await categoriesAPI.getAll();
-                // categoriesController는 bare res.json(array) 응답하므로 배열 직접 접근 지원
+                // 매장별 카테고리 로드 (storeId 없으면 기본 1)
+                const targetStoreId = storeId || 1;
+                const catRes = await categoriesAPI.getByStore(targetStoreId);
                 setCategories(Array.isArray(catRes) ? catRes : (catRes.data || []));
 
-                // 전체 상품 로드 (실제로는 카테고리 선택 후 로드하거나 필터링)
-                // MVP에서는 일단 전체 로드 후 필터링
-                const prodRes = await productsAPI.getAll();
+                // 매장별 상품 로드
+                const prodRes = await productsAPI.getByStore(targetStoreId);
+                const rawProducts = Array.isArray(prodRes) ? prodRes : (prodRes.data || []);
                 // 이미지가 있는 상품만 필터링 (월드컵은 이미지가 생명)
-                const validProducts = (prodRes.data || []).filter(p => p.image_url && p.is_active);
+                const validProducts = rawProducts.filter(p => p.image_url && p.is_active);
                 setProducts(validProducts);
+                if (validProducts.length === 0) setLoadError('메뉴가 없습니다.');
             } catch (err) {
                 console.error('Failed to load data:', err);
+                setLoadError('메뉴를 불러오지 못했습니다.');
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, []);
+    }, [storeId]);
 
     // 게임 시작
     const startGame = (categoryId, roundCount) => {
@@ -129,6 +133,7 @@ const MenuWorldCup = () => {
                             categories={categories}
                             loading={loading}
                             onStart={startGame}
+                            loadError={loadError}
                         />
                     )}
                     {stage === STAGE.BATTLE && currentPair.length === 2 && (
@@ -145,7 +150,7 @@ const MenuWorldCup = () => {
                             key="winner"
                             winner={winner}
                             onRestart={() => setStage(STAGE.SETUP)}
-                            onOrder={() => navigate('/stores')} // 매장 찾기로 이동
+                            onOrder={() => navigate(storeId ? `/menu/${storeId}` : '/stores')}
                         />
                     )}
                 </AnimatePresence>
@@ -156,11 +161,30 @@ const MenuWorldCup = () => {
 
 // --- Sub Components ---
 
-const SetupStage = ({ categories, loading, onStart }) => {
+const SetupStage = ({ categories, loading, onStart, loadError }) => {
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [roundCount, setRoundCount] = useState(8);
 
     if (loading) return <div className="text-slate-400">메뉴 로딩 중...</div>;
+
+    if (loadError) {
+        return (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="w-full max-w-md text-center space-y-6 py-16"
+            >
+                <div className="text-6xl">😅</div>
+                <p className="text-slate-300 font-bold">{loadError}</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="px-6 py-3 bg-slate-800 text-white rounded-2xl font-bold hover:bg-slate-700 transition-all"
+                >
+                    다시 시도
+                </button>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div

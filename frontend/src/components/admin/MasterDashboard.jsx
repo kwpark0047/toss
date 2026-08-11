@@ -20,6 +20,7 @@ const SkeletonDonut = () => <div className="bg-white/5 border border-white/10 ro
 import SuperAdminDashboard from './SuperAdminDashboard';
 import SystemStatusWidget from './SystemStatusWidget';
 import Button from '../common/Button';
+import WeatherAlertBanner from './WeatherAlertBanner';
 import notificationSound from '../../utils/notificationSound';
 import { onNewOrder, onOrderUpdated, joinDashboard, leaveDashboard, onDashboardOrderStatusChanged, onDashboardForecastUpdate, onConnect } from '../../utils/socket';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -597,6 +598,9 @@ const MasterDashboard = () => {
           </button>
         </div>
       </div>
+
+      {/* 기상특보 알림 배너 (폭염/한파/호우/건조 등) */}
+      <WeatherAlertBanner store={selectedStore} />
 
       {/* 실시간 AI 매출 변동성 위기 경보 비상 배너 (SLA 지표 차단 방지) */}
       <AnimatePresence>
