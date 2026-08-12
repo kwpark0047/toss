@@ -575,6 +575,11 @@ model stores {
   vat_rate                 Float?                   @default(0.10)      // 부가세율 (법정 10%)
   // ── 활성 결제수단 (JSON 배열) ─────────────────────
   enabled_payment_methods  String?                  @default("[\"cash\",\"store_card\",\"transfer\"]")
+  // ── 친환경 뱃지 ────────────────────────────────────
+  eco_badge_level          String?                  @default("GREEN_BEGINNER") // GREEN_BEGINNER|ECO_FRIENDLY|ECO_PRO|ECO_MASTER
+  eco_badge_title          String?                  @default("그린 파트너 🌿")
+  eco_carbon_saved_kg      Float?                   @default(0)
+  eco_orders_count         Int?                     @default(0)
   @@index([is_active], map: "idx_stores_is_active")
   @@index([business_type], map: "idx_stores_business_type")
   campaign_settings      campaign_settings[]
@@ -1597,3 +1602,5 @@ model recommendation_daily_stats {
   @@index([store_id, date], map: "idx_rec_daily_store_date")
   @@schema("public")
 }
+
+// Eco Badge fields (added via migration)

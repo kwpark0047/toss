@@ -324,6 +324,7 @@ const routes = {
   adminAuth: require('./routes/adminAuth'),
   franchise: require('./routes/franchise'),
   loyalty: require('./routes/loyalty'),
+  ecoBadge: require('./routes/ecoBadge'),
   aiOrder: require('./routes/aiOrder'),
   recommendationTracking: require('./routes/recommendationTracking'),
   config: require('./routes/config'),
@@ -391,6 +392,7 @@ app.use(`${API_PREFIX}/ai-usage`, routes.aiUsage);
 app.use(`${API_PREFIX}/export`, routes.export);
 app.use(`${API_PREFIX}/franchise`, routes.franchise);
 app.use(`${API_PREFIX}/loyalty`, routes.loyalty);
+app.use(`${API_PREFIX}/eco-badge`, routes.ecoBadge);
 app.use(`${API_PREFIX}/ai-order`, routes.aiOrder);
 app.use(`${API_PREFIX}/community`, routes.community);
 app.use(`${API_PREFIX}/legal`, routes.legal);
