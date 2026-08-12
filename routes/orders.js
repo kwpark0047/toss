@@ -306,4 +306,33 @@ router.post('/:id/cancel', authMiddleware, orderController.cancelOrder);
  */
 router.delete('/:id', authMiddleware, orderController.deleteOrder);
 
+/**
+ * @swagger
+ * /api/orders/store/{storeId}/eta:
+ *   get:
+ *     tags: [Orders]
+ *     summary: 주문 예상 소요 시간(ETA) 조회
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: items
+ *         schema: { type: string }
+ *         description: 주문 아이템 배열(JSON 문자열) [{"product_id":1,"quantity":2}]
+ *     responses:
+ *       200:
+ *         description: 예상 소요 시간
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 etaMinutes: { type: integer }
+ *                 activeOrdersAhead: { type: integer }
+ *                 message: { type: string }
+ */
+router.get('/store/:storeId/eta', orderController.getEta);
+
 module.exports = router;

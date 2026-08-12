@@ -4,6 +4,7 @@ const catchAsync = require('../utils/catchAsync');
 const logger = require('../utils/logger');
 const prisma = require('../config/prisma');
 const { createOrderCapability } = require('../utils/orderCapability');
+const EtaPredictionService = require('../services/EtaPredictionService');
 
 const orderController = {
   // 주문 생성
@@ -68,6 +69,25 @@ const orderController = {
   deleteOrder: catchAsync(async (req, res) => {
     await Order.delete(parseInt(req.params.id));
     res.success(null, '주문이 삭제되었습니다.');
+  }),
+
+  /**
+   * [GET] 주문 예상 소요 시간(ETA) 조회
+   * 현재 주방 상황(대기 주문 수, 메뉴 복잡도) 기반으로 ETA 계산
+   */
+  getEta: catchAsync(async (req, res) => {
+    const { storeId } = req.params;
+    const { items } = req.query;
+    let parsedItems = [];
+    try {
+      parsedItems = items ? JSON.parse(items) : [];
+    } catch {
+      parsedItems = [];
+    }
+
+    const etaService = new EtaPredictionService();
+    const eta = await etaService.calculateEta(storeId, parsedItems);
+    res.success(eta);
   }),
 
   // 통계 조회

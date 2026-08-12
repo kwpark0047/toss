@@ -1,7 +1,7 @@
 import { formatWon } from '../../utils/format';
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Clock, CheckCircle2, ChefHat, BellRing, Package, Loader2 } from 'lucide-react';
+import { X, Clock, CheckCircle2, ChefHat, BellRing, Package, Loader2, Timer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ordersAPI } from '@/api';
 import { joinOrderRoom, onOrderUpdated } from '@/utils/socket';
@@ -31,6 +31,7 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [eta, setEta] = useState(null);
   const { t } = useTranslation();
 
   const STEPS = STEPS_CONFIG.map(s => ({ ...s, label: t(`order_status.steps.${s.key}`) }));
@@ -58,7 +59,40 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
     finally { setLoading(false); }
   }, [orderId, storeId, tableNumber]);
 
+  // ETA 조회
+  const fetchEta = useCallback(async () => {
+    if (!storeId || !order) return;
+    const items = (order.items || order.order_items || []).map(item => ({
+      product_id: item.product_id || item.id,
+      quantity: item.quantity
+    }));
+    try {
+      const res = await ordersAPI.getEta(storeId, items);
+      setEta(res?.data || res);
+    } catch (e) {
+      console.warn('ETA 조회 실패:', e);
+    }
+  }, [storeId, order]);
+
   // 모달 열릴 때 초기 로드
+  useEffect(() => {
+    if (isOpen) {
+      setOrder(null);
+      fetchOrder();
+      setEta(null);
+    }
+  }, [isOpen, fetchOrder]);
+
+  // ETA 주기적 갱신 (30초마다)
+  useEffect(() => {
+    if (!isOpen || !storeId) return;
+    const t = setInterval(() => {
+      fetchEta();
+    }, 30000);
+    return () => clearInterval(t);
+  }, [isOpen, storeId, fetchEta]);
+
+  // 소켓: orderId 룸 구독 + 실시간 상태 수신
   useEffect(() => {
     if (isOpen) {
       setOrder(null);
@@ -193,6 +227,28 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
                       <p className="text-xs cust-text-sub mt-0.5">{t(STATUS_MSG_KEYS[status]) || ''}</p>
                     </div>
                   </div>
+
+                  {/* ── 예상 소요 시간(ETA) ── */}
+                  {eta && !isCancelled && status !== 'completed' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800"
+                    >
+                      <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                        <Timer className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">예상 소요 시간</p>
+                        <p className="text-lg font-black text-blue-700 dark:text-blue-300 mt-0.5">
+                          {eta.etaMinutes}분
+                        </p>
+                      </div>
+                      <p className="text-xs text-blue-500 dark:text-blue-500">
+                        대기 주문 {eta.activeOrdersAhead}건
+                      </p>
+                    </motion.div>
+                  )}
 
                   {/* ── 주문 상품 ── */}
                   <div>

@@ -38,6 +38,10 @@ export const ordersAPI = {
     if (params.length > 0) url += '?' + params.join('&');
     return api.get(url);
   },
+  getEta: (storeId, items) =>
+    api.get('/orders/store/' + storeId + '/eta', {
+      params: { items: JSON.stringify(items || []) },
+    }),
 };
 
 export const paymentsAPI = {
