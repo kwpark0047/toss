@@ -4,6 +4,7 @@ jest.mock('../../../config/prisma', () => ({
 
 jest.mock('../../../repositories/CustomerPreference', () => ({
   findOrCreate: jest.fn(),
+  findOrCreateByPhoneOrTossKey: jest.fn(),
 }));
 
 jest.mock('../../../utils/phoneEncryption', () => ({
@@ -60,7 +61,7 @@ describe('RecommendationContextService', () => {
         visit_count: 7,
         total_spent: 80000,
       });
-      CustomerPreference.findOrCreate.mockResolvedValue({
+      CustomerPreference.findOrCreateByPhoneOrTossKey.mockResolvedValue({
         preferred_categories: ['한식'],
         preferred_tastes: ['매운맛'],
         spicy_tolerance: 3,
@@ -89,7 +90,7 @@ describe('RecommendationContextService', () => {
 
     test('storeCustomer 없으면 NEW_VISITOR 세그먼트', async () => {
       prisma.store_customers.findFirst.mockResolvedValue(null);
-      CustomerPreference.findOrCreate.mockResolvedValue(null);
+      CustomerPreference.findOrCreateByPhoneOrTossKey.mockResolvedValue(null);
 
       const result = await service.buildContext(1, '01012345678');
       expect(result.segment.segment_type).toBe('NEW_VISITOR');
@@ -99,7 +100,7 @@ describe('RecommendationContextService', () => {
 
     test('profile 조회 실패는 무시', async () => {
       prisma.store_customers.findFirst.mockResolvedValue(null);
-      CustomerPreference.findOrCreate.mockRejectedValue(new Error('db down'));
+      CustomerPreference.findOrCreateByPhoneOrTossKey.mockRejectedValue(new Error('db down'));
 
       const result = await service.buildContext(1, '01012345678');
       expect(result.segment.segment_type).toBe('NEW_VISITOR');
@@ -108,7 +109,7 @@ describe('RecommendationContextService', () => {
 
     test('전체 조회 실패는 조용한 폴백', async () => {
       prisma.store_customers.findFirst.mockRejectedValue(new Error('db down'));
-      CustomerPreference.findOrCreate.mockResolvedValue(null);
+      CustomerPreference.findOrCreateByPhoneOrTossKey.mockResolvedValue(null);
 
       const result = await service.buildContext(1, '01012345678');
       expect(result.segment).toBeNull();

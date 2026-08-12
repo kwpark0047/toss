@@ -61,6 +61,7 @@ jest.mock('../../controllers/orderController', () => ({
   updateStatus: mockOk,
   cancelOrder: mockOk,
   deleteOrder: mockOk,
+  getEta: mockOk,
 }));
 jest.mock('../../controllers/notificationsController', () => ({
   getNotifications: mockOk,
@@ -120,7 +121,9 @@ function appFor(name) {
   const app = express();
   app.use(express.json());
   app.use('/', routers[name]);
-  app.use((err, _req, res, _next) => res.status(err.statusCode || err.status || 500).json({ error: err.message }));
+  app.use((err, _req, res, _next) =>
+    res.status(err.statusCode || err.status || 500).json({ error: err.message })
+  );
   return app;
 }
 
@@ -151,25 +154,35 @@ describe('multi-tenant route authorization', () => {
     }
   });
 
-  test.each(objectCases)('%s object mutation denies a user from another store', async (route, model, method, path, body) => {
-    const call = request(appFor(route))[method](path).set('Authorization', `Bearer ${OUTSIDER_TOKEN}`);
-    const response = body ? await call.send(body) : await call;
+  test.each(objectCases)(
+    '%s object mutation denies a user from another store',
+    async (route, model, method, path, body) => {
+      const call = request(appFor(route))
+        [method](path)
+        .set('Authorization', `Bearer ${OUTSIDER_TOKEN}`);
+      const response = body ? await call.send(body) : await call;
 
-    expect(response.status).toBe(403);
-    expect(mockPrisma[model].findUnique).toHaveBeenCalledWith({
-      where: { id: 10 },
-      select: { store_id: true },
-    });
-    expect(mockOk).not.toHaveBeenCalled();
-  });
+      expect(response.status).toBe(403);
+      expect(mockPrisma[model].findUnique).toHaveBeenCalledWith({
+        where: { id: 10 },
+        select: { store_id: true },
+      });
+      expect(mockOk).not.toHaveBeenCalled();
+    }
+  );
 
-  test.each(objectCases)('%s object mutation allows the target store owner', async (route, _model, method, path, body) => {
-    const call = request(appFor(route))[method](path).set('Authorization', `Bearer ${OWNER_TOKEN}`);
-    const response = body ? await call.send(body) : await call;
+  test.each(objectCases)(
+    '%s object mutation allows the target store owner',
+    async (route, _model, method, path, body) => {
+      const call = request(appFor(route))
+        [method](path)
+        .set('Authorization', `Bearer ${OWNER_TOKEN}`);
+      const response = body ? await call.send(body) : await call;
 
-    expect(response.status).toBe(200);
-    expect(mockOk).toHaveBeenCalled();
-  });
+      expect(response.status).toBe(200);
+      expect(mockOk).toHaveBeenCalled();
+    }
+  );
 
   test('direct store private read denies another store and allows its owner', async () => {
     const app = appFor('options');
@@ -193,7 +206,12 @@ describe('multi-tenant route authorization', () => {
     const response = await request(appFor('categories'))
       .put('/sort')
       .set('Authorization', `Bearer ${OWNER_TOKEN}`)
-      .send({ orders: [{ id: 10, sort_order: 1 }, { id: 11, sort_order: 2 }] });
+      .send({
+        orders: [
+          { id: 10, sort_order: 1 },
+          { id: 11, sort_order: 2 },
+        ],
+      });
 
     expect(response.status).toBe(400);
     expect(mockOk).not.toHaveBeenCalled();
@@ -201,12 +219,8 @@ describe('multi-tenant route authorization', () => {
 
   test('AI prompt administration is explicitly super_admin only', async () => {
     const app = appFor('prompts');
-    const ownerResponse = await request(app)
-      .get('/')
-      .set('Authorization', `Bearer ${OWNER_TOKEN}`);
-    const adminResponse = await request(app)
-      .get('/')
-      .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
+    const ownerResponse = await request(app).get('/').set('Authorization', `Bearer ${OWNER_TOKEN}`);
+    const adminResponse = await request(app).get('/').set('Authorization', `Bearer ${ADMIN_TOKEN}`);
 
     expect(ownerResponse.status).toBe(403);
     expect(adminResponse.status).toBe(200);

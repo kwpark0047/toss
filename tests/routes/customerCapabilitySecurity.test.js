@@ -14,6 +14,7 @@ const mockOrdersController = {
   updateStatus: jest.fn(),
   cancelOrder: jest.fn(),
   deleteOrder: jest.fn(),
+  getEta: jest.fn((req, res) => res.json({ success: true })),
 };
 const mockReservationsController = {
   register: jest.fn(),
