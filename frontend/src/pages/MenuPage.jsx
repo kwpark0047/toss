@@ -7,7 +7,7 @@ import { Loader2, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { storesAPI } from "@/api/stores";
 import { resolveThemeStyle } from "@/lib/themePresets";
 import { categoriesAPI, productsAPI } from "@/api/products";
-import { ordersAPI } from "@/api/orders";
+import { ordersAPI, paymentsAPI } from "@/api/orders";
 import { wakeupServer } from "@/api/wakeup";
 import { useKioskMode } from "@/hooks/useKioskMode";
 import { withOfflineCache } from "@/utils/menuCache";
@@ -180,9 +180,20 @@ const MenuPage = () => {
   const [showChatDrawer, setShowChatDrawer] = useState(false);
   const [currentOrderId, _setCurrentOrderId] = useState(null);
   const [currentOrderAmount, _setCurrentOrderAmount] = useState(0);
-  const {
+const {
     initiateTossPayment
   } = useTossPayment();
+
+  // 현금/계좌이체/매장카드/간편결제 즉시 결제 처리
+  const createPayment = async (data) => {
+    try {
+      const res = await paymentsAPI.create(data);
+      return res?.data || res;
+    } catch (e) {
+      return { success: false, error: e.message || '결제 실패' };
+    }
+  };
+
   const [lang, setLang] = useState(() => {
     try {
       return localStorage.getItem('wm_customer_lang') || 'ko';
@@ -444,22 +455,41 @@ const order = await ordersAPI.create(orderData);
         'ai_personalized'
       ).catch(() => { /* 추적 실패는 무시 */ });
 
-      // 온라인 결제는 주문을 먼저 생성한 뒤 서버가 만든 결제 대기 레코드와
-      // 동일한 주문을 Toss 승인 흐름으로 연결한다.
-      if (paymentMethod === 'card' || paymentMethod === 'toss') {
+// 토스페이/카드/카카오페이/네이버페이 → 토스 결제 플로우 (리다이렉트)
+      if (['card', 'toss', 'kakao', 'naver'].includes(paymentMethod)) {
         const paymentResult = await initiateTossPayment({
           orderId: createdOrderId,
           storeId,
           totalAmount: Number(orderData_.total_amount ?? totalPrice),
           tossUserKey: undefined,
           phone: hasPhone ? notifyDigits : undefined,
-          capability: orderData_.order_capability
+          capability: orderData_.order_capability,
+          easyPayProvider: paymentMethod === 'kakao' ? 'KAKAOPAY' : paymentMethod === 'naver' ? 'NAVERPAY' : undefined
         });
         if (!paymentResult?.success) {
           throw new Error(paymentResult?.error || '결제 진행에 실패했습니다.');
         }
-        // 웹 SDK는 successUrl로 이동하므로 여기서는 장바구니를 유지한다.
         if (paymentResult.pendingRedirect) return;
+      }
+      // 현금, 계좌이체, 매장카드 → 즉시 결제 API 호출
+      else if (['cash', 'transfer', 'store_card'].includes(paymentMethod)) {
+        const paymentResult = await createPayment({
+          store_id: storeId,
+          payment_method: paymentMethod,
+          total_amount: totalPrice,
+          point_amount: 0,
+          toss_user_key: undefined,
+          phone: hasPhone ? notifyDigits : undefined,
+          items: cart.map(item => ({
+            product_id: item.menuItem.id,
+            quantity: item.quantity,
+            options: item.selectedOptions,
+            user_phone: hasPhone ? notifyDigits : undefined
+          }))
+        });
+        if (!paymentResult?.success) {
+          throw new Error(paymentResult?.error || '결제 진행에 실패했습니다.');
+        }
       }
       toast.success(t('order.success'));
       const orderNo = orderData_.order_number || orderData_.id;

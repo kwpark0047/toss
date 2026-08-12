@@ -15,9 +15,8 @@ const getPaymentGroups = (t) => [
     description: t('cart_modal.easy_payment_desc'),
     methods: [
       { id: 'toss',     label: '토스페이',     icon: Smartphone, desc: t('cart_modal.toss_pay_desc'),   brandColor: '#0064FF', bgClass: 'bg-blue-500', available: true },
-      // 카카오/네이버페이는 아직 PG 가맹 미완료 — 선택 불가 처리 (현재 이용 불가 라벨 노출)
-      { id: 'kakao',    label: '카카오페이',   icon: Smartphone, desc: t('cart_modal.kakao_pay_desc'),  brandColor: '#FEE500', bgClass: 'bg-yellow-300', textColor: '#000000', available: false },
-      { id: 'naver',    label: '네이버페이',   icon: Smartphone, desc: t('cart_modal.naver_pay_desc'),  brandColor: '#03C75A', bgClass: 'bg-green-500', available: false },
+      { id: 'kakao',    label: '카카오페이',   icon: Smartphone, desc: t('cart_modal.kakao_pay_desc'),  brandColor: '#FEE500', bgClass: 'bg-yellow-300', textColor: '#000000', available: true },
+      { id: 'naver',    label: '네이버페이',   icon: Smartphone, desc: t('cart_modal.naver_pay_desc'),  brandColor: '#03C75A', bgClass: 'bg-green-500', available: true },
     ],
   },
   {
