@@ -93,7 +93,14 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Requested-With'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-API-Key',
+      'X-Requested-With',
+      'Idempotency-Key',
+      'X-Idempotency-Key',
+    ],
     maxAge: 3600,
   })
 );
@@ -319,6 +326,7 @@ const routes = {
   loyalty: require('./routes/loyalty'),
   aiOrder: require('./routes/aiOrder'),
   recommendationTracking: require('./routes/recommendationTracking'),
+  config: require('./routes/config'),
 };
 
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
@@ -394,6 +402,7 @@ app.use(`${API_PREFIX}/sse`, routes.sse);
 app.use(`${API_PREFIX}/print-jobs`, routes.printJobs);
 app.use(`${API_PREFIX}/dynamic-pricing`, routes.dynamicPricing);
 app.use(`${API_PREFIX}/recommendation-tracking`, routes.recommendationTracking);
+app.use(`${API_PREFIX}/config`, routes.config);
 // [수정 M-2] routes/news 는 require 만 되고 마운트되지 않아 프론트의 /api/news 호출이
 // 전부 404 로 떨어지고 있었다. 뉴스 목록은 공개, 크롤링 트리거는 관리자 전용.
 app.use(`${API_PREFIX}/news`, publicLimiter, routes.news);
