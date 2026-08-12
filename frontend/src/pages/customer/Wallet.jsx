@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router";
-import axios from "axios";
+import { pointsAPI } from "@/api";
 import { Wallet as WalletIcon, History, ChevronLeft, QrCode, Search, TrendingUp, TrendingDown, Zap, Trophy, Star, Medal } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -17,16 +17,13 @@ const Wallet = () => {
     const fetchWalletData = async (targetPhone) => {
         setIsSearching(true);
         try {
-            const baseUrl = import.meta.env.VITE_API_URL || '';
             const tossKey = searchParams.get("toss_user_key");
             const storeId = searchParams.get("store_id");
 
-            const response = await axios.get(`${baseUrl}/api/points/wallet-lookup`, {
-                params: {
-                    phone: targetPhone,
-                    toss_user_key: tossKey,
-                    store_id: storeId
-                }
+            const response = await pointsAPI.walletLookup({
+                phone: targetPhone,
+                toss_user_key: tossKey,
+                store_id: storeId
             });
             setData(response.data);
             if (targetPhone) setPhone(targetPhone);
