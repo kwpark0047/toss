@@ -75,6 +75,34 @@ httpServer.listen(PORT, async () => {
   );
   logger.info('[동적가격] 스케줄러 등록 완료 (매시간 정각 KST)');
 
+  // 이상 매출 감지 스케줄러 (매 15분) — 매출 급감/폭증 실시간 경보
+  const { checkSalesAnomaly } = require('./services/AnomalyDetectionService');
+  const prisma = require('./config/prisma');
+  const { setupSocketRedisAdapter } = require('./socket/adapter');
+  const io = require('./app').io;
+
+  cron.schedule(
+    '*/15 * * * *',
+    async () => {
+      logger.info('[이상감지] 스케줄러 시작 — 매 15분 매출 변동성 검사');
+      try {
+        const stores = await prisma.stores.findMany({
+          where: { status: 'active' },
+          select: { id: true },
+        });
+        for (const { id } of stores) {
+          await checkSalesAnomaly(id, io).catch((err) => {
+            logger.error(`[이상감지] Store ${id} 오류: ${err.message}`);
+          });
+        }
+      } catch (err) {
+        logger.error('[이상감지] 스케줄러 오류', { error: err.message });
+      }
+    },
+    { timezone: 'Asia/Seoul' }
+  );
+  logger.info('[이상감지] 스케줄러 등록 완료 (매 15분 KST)');
+
   // 매장 연동 요청 알림 기본 템플릿 등록
   initStoreLinkTemplates();
 
