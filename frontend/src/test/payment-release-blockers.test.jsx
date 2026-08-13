@@ -71,7 +71,7 @@ describe('payment release blockers', () => {
     expect(sessionStorage.getItem('wm_pending_payment:10')).toBeNull();
   });
 
-  it('disables unsupported online methods with a Korean availability label', async () => {
+  it('enables supported online methods so kakao pay can be selected', async () => {
     const onPaymentMethodChange = vi.fn();
     render(
       <I18nextProvider i18n={i18n}>
@@ -88,10 +88,10 @@ describe('payment release blockers', () => {
       </I18nextProvider>
     );
 
-    const kakaoButton = screen.getByRole('button', { name: '카카오페이 (현재 이용 불가)' });
-    expect(kakaoButton).toBeDisabled();
+    const kakaoButton = screen.getByRole('button', { name: '카카오페이' });
+    expect(kakaoButton).toBeEnabled();
     await userEvent.click(kakaoButton);
-    expect(onPaymentMethodChange).not.toHaveBeenCalled();
-    expect(screen.getAllByText('현재 준비 중입니다').length).toBeGreaterThan(0);
+    expect(onPaymentMethodChange).toHaveBeenCalledWith('kakao');
+    expect(screen.queryByText('현재 준비 중입니다')).not.toBeInTheDocument();
   });
 });
