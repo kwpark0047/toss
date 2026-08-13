@@ -327,6 +327,7 @@ const routes = {
   ecoBadge: require('./routes/ecoBadge'),
   aiOrder: require('./routes/aiOrder'),
   recommendationTracking: require('./routes/recommendationTracking'),
+  reportPdf: require('./routes/reportPdf'),
   config: require('./routes/config'),
   swagger: require('./routes/swagger'),
 };
@@ -405,6 +406,7 @@ app.use(`${API_PREFIX}/sse`, routes.sse);
 app.use(`${API_PREFIX}/print-jobs`, routes.printJobs);
 app.use(`${API_PREFIX}/dynamic-pricing`, routes.dynamicPricing);
 app.use(`${API_PREFIX}/recommendation-tracking`, routes.recommendationTracking);
+app.use(`${API_PREFIX}/reports`, routes.reportPdf);
 app.use(`${API_PREFIX}/config`, routes.config);
 app.use(`${API_PREFIX}/swagger`, routes.swagger);
 // [수정 M-2] routes/news 는 require 만 되고 마운트되지 않아 프론트의 /api/news 호출이
