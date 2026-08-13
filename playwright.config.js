@@ -19,7 +19,7 @@ export default defineConfig({
     command: 'npm run preview -- --host 127.0.0.1 --port 5173',
     cwd: './frontend',
     url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 120_000,
   },
   projects: [
