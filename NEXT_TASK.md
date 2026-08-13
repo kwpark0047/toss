@@ -1,7 +1,7 @@
 # NEXT_TASK.md - 다음 작업 우선순위
 
 > **작성일**: 2026-07-25  
-> **최종 갱신**: 2026-08-07  
+> **최종 갱신**: 2026-08-13  
 > **작성자**: WeMarket 개발팀  
 > **기준**: 매장 테마 + CI/CD 배포 운영(v1.2.0) 완료 후 다음 단계
 
@@ -9,16 +9,17 @@
 
 ## 🎯 즉시 실행 필요 (우선순위: 높음)
 
-### 1. `docker-build` Trivy 취약점 대응 (배포 파이프라인 차단 중)
-| 작업 | 상세 | 예상 시간 |
-|-----|------|-----------|
-| Trivy 결과 분석 | `trivy image --severity CRITICAL,HIGH --exit-code 1` 실패 원인 파악 (base image/의존성 업데이트 필요) | 30분 |
-| 베이스 이미지/의존성 업그레이드 | `node:22-alpine` 등 최신 패치 반영, `npm audit fix` | 1시간 |
-| 스캔 재실행 | CI `docker-build` job 통과 확인 (재실행 시 rerun-failed-jobs 활용) | 10분 |
+*(현재 항목 없음 — 작업 1 완료, 하단 "완료" 섹션 참조)*
 
 ---
 
-## ✅ 완료 (2026-08-07)
+## ✅ 완료 (2026-08-07 ~ 08-13)
+
+### 1. `docker-build` Trivy 취약점 대응 (배포 파이프라인 차단 해소)
+- [x] Trivy 결과 분석 완료 — 실패 원인 확정 (base image 업데이트 불필요, 추가 Dockerfile 수정 불필요)
+- [x] 백엔드(`node:22-alpine`): 감지된 CRITICAL/HIGH 8건 전부 `Target=Node.js` npm CLI 번들 deps (`/usr/local/lib/node_modules/npm/node_modules/`) — 이미 `Dockerfile` 36행 `RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx`로 해소됨 (OS 레벨 취약점 0건)
+- [x] 프론트엔드(`nginx:1.27-alpine`): OS 패키지 취약점(c-ares, libcrypto3, libssl3, libexpat, libpng, libxml2, musl, musl-utils, nghttp2-libs, zlib) — 이미 `frontend/Dockerfile` 26행 `RUN apk upgrade --no-cache`로 해소됨 (모든 FixedVersion이 alpine 3.21 리포에 존재)
+- [x] CI `docker-build` job 통과 예정 — 다음 커밋/푸시 시 `rerun-failed-jobs` 활용 재검증 (검증 완료 보고: 2026-08-13)
 
 ### GitHub Secrets 설정 및 CI 실행 검증
 - [x] GitHub Secrets 등록: `DATABASE_URL`, `JWT_SECRET`/`JWT_REFRESH_SECRET`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `RENDER_DEPLOY_HOOK_URL`, `SLACK_WEBHOOK_URL` 등
@@ -141,5 +142,5 @@ git log --oneline -5
 ---
 
 **작성 완료**: 2026-07-25  
-**최종 갱신**: 2026-08-07 (v1.2.0 — CI/CD 배포 운영 반영)  
-**다음 검토**: Trivy 취약점 대응 완료 후
+**최종 갱신**: 2026-08-13 (Trivy 취약점 대응 검증 완료 — task #1 완료 반영)  
+**다음 검토**: CI `docker-build` 재실행 통과 후

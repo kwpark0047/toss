@@ -320,23 +320,115 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Save Docker images
+        run: |
+          docker save wemarket-api:latest wemarket-frontend:latest | gzip > wemarket-images.tar.gz
+
+      - name: Upload Docker images artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-images
+          path: wemarket-images.tar.gz
+          retention-days: 1
+
+  # Image vulnerability scan (separate from docker-build)
+  trivy-image-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: docker-build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Docker images
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-images
+
+      - name: Load Docker images
+        run: gunzip -c wemarket-images.tar.gz | docker load
+
       - name: Run Trivy vulnerability scanner (backend)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'wemarket-api:latest'
+          format: 'sarif'
+          output: 'trivy-backend.sarif'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          scanners: 'vuln,secret'
+
+      - name: Upload Trivy SARIF (backend) to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-backend.sarif'
+
+      - name: Run Trivy full report (backend, non-blocking)
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'wemarket-api:latest'
           format: 'table'
+          output: 'trivy-backend-report.txt'
+          exit-code: '0'
+          ignore-unfixed: true
+          scanners: 'vuln,secret'
+
+      - name: Generate SBOM (backend)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'wemarket-api:latest'
+          format: 'cyclonedx'
+          output: 'trivy-backend.sbom.json'
+          list-all-pkgs: 'true'
+          exit-code: '0'
+
+      - name: Run Trivy vulnerability scanner (frontend)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'wemarket-frontend:latest'
+          format: 'sarif'
+          output: 'trivy-frontend.sarif'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
+          scanners: 'vuln,secret'
 
-      - name: Run Trivy vulnerability scanner (frontend)
-        uses: aquasecurity/trivy-action@master
+      - name: Upload Trivy SARIF (frontend) to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-frontend.sarif'
+
+      - name: Run Trivy full report (frontend, non-blocking)
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'wemarket-frontend:latest'
           format: 'table'
-          exit-code: '1'
-          severity: 'CRITICAL,HIGH'
+          output: 'trivy-frontend-report.txt'
+          exit-code: '0'
           ignore-unfixed: true
+          scanners: 'vuln,secret'
+
+      - name: Generate SBOM (frontend)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'wemarket-frontend:latest'
+          format: 'cyclonedx'
+          output: 'trivy-frontend.sbom.json'
+          list-all-pkgs: 'true'
+          exit-code: '0'
+
+      - name: Upload Trivy reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-reports
+          path: |
+            trivy-backend.sarif
+            trivy-frontend.sarif
+            trivy-backend-report.txt
+            trivy-frontend-report.txt
+            trivy-backend.sbom.json
+            trivy-frontend.sbom.json
+          retention-days: 7
 
   bundle-size-check:
     runs-on: ubuntu-latest
