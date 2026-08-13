@@ -15,6 +15,13 @@
 
 ## ✅ 완료 (2026-08-07 ~ 08-13)
 
+### 3. Playwright E2E 테스트 CI 환경 최적화 (+ `trivy-image-scan` SARIF 비차단)
+- [x] `playwright.config.js` 헤드리스 모드 강제(`headless: true`, `--disable-gpu`, `--no-sandbox`), 타임아웃 조정, `fullyParallel: false` 순차 실행 — 커밋 `95f4d62`
+- [x] `playwright.yml` 브라우저 설치 `npx playwright install --with-deps chromium` 적용
+- [x] CI Playwright Tests job success (run `31712498257` 포함) — 브라우저 설치 sudo 이슈 해소
+- [x] `trivy-image-scan` 실패 원인 확정: private 저장소 + Free 플랜에서는 code scanning(SARIF Security-tab 업로드) 불가 (GHAS 유료 필요) → `upload-sarif@v3` 2개 스텝에 `continue-on-error: true` 추가로 비차단 처리 — 커밋 `202386f`
+- [x] `trivy-image-scan` job success 확인 (run `31712498257`, 전체 CI success) — SARIF/보고서/SBOM은 아티팩트 `trivy-reports`로 보존
+
 ### 1. `docker-build` Trivy 취약점 대응 (배포 파이프라인 차단 해소)
 - [x] Trivy 결과 분석 완료 — 실패 원인 확정 (base image 업데이트 불필요, 추가 Dockerfile 수정 불필요)
 - [x] 백엔드(`node:22-alpine`): 감지된 CRITICAL/HIGH 8건 전부 `Target=Node.js` npm CLI 번들 deps (`/usr/local/lib/node_modules/npm/node_modules/`) — 이미 `Dockerfile` 36행 `RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx`로 해소됨 (OS 레벨 취약점 0건)
