@@ -337,6 +337,7 @@ jobs:
     timeout-minutes: 15
     needs: docker-build
     permissions:
+      contents: read
       security-events: write
     steps:
       - uses: actions/checkout@v4
