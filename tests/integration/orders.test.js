@@ -44,6 +44,9 @@ const mockWaitingServiceInstance = {
 
 let mockUser = { id: 1, name: '장사장', role: 'user' };
 
+// 테스트 전체 타임아웃 확대 (Basic Authorization 등 처리 지연 방지)
+jest.setTimeout(15000);
+
 const request = require('supertest');
 
 // ── 인증 및 권한 미들웨어 모의 ──────────────────────────────────────────────────
@@ -151,7 +154,7 @@ jest.mock('../../middleware/validate', () => {
   return validate;
 });
 
-// ── Order 레포지토리 모의 (객체는 파일 최상단에서 선언됨) ─────────────────────
+// ── Order 레포지토리 모의 ─────────────────────
 jest.mock('../../repositories/Order', () => mockOrderRepository);
 
 // ── OrderService 모의 (인스턴스는 파일 최상단에서 선언됨) ───────────────────
@@ -209,7 +212,7 @@ describe('Orders Integration Tests', () => {
         items: [
           { id: 1, product_id: 10, quantity: 2, product: { name: '아메리카노', price: 4500 } },
         ],
-        created_at: new Date().toISOString(),
+        created_at: '2026-07-20T10:00:00.000Z',
       };
       mockOrderRepository.findById.mockResolvedValue(mockOrder);
 
