@@ -311,11 +311,11 @@ const getTodayHours = useCallback(() => {
     if (profile?.business_hours) {
       // business_hours JSON이 있으면 요일별 시간 사용
       const today = new Date().toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
-      const dayMap: Record<string, string> = {
+      const dayMap = {
         'mon': 'mon', 'tue': 'tue', 'wed': 'wed', 'thu': 'thu',
         'fri': 'fri', 'sat': 'sat', 'sun': 'sun'
       };
-      const dayKey = dayMap[today as keyof typeof dayMap];
+      const dayKey = dayMap[today];
       if (dayKey && profile.business_hours[dayKey]) {
         const dayHours = profile.business_hours[dayKey];
         return {
@@ -339,11 +339,11 @@ const getTodayHours = useCallback(() => {
     if (profile?.business_hours) {
       // business_hours JSON이 있으면 요일별 영업시간 로직 사용
       const today = new Date().toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
-      const dayMap: Record<string, string> = {
+      const dayMap = {
         'mon': 'mon', 'tue': 'tue', 'wed': 'wed', 'thu': 'thu',
         'fri': 'fri', 'sat': 'sat', 'sun': 'sun'
       };
-      const dayKey = dayMap[today as keyof typeof dayMap];
+      const dayKey = dayMap[today];
       if (dayKey && profile.business_hours[dayKey]) {
         const dayHours = profile.business_hours[dayKey];
         const isClosed = dayHours.closed || false;
