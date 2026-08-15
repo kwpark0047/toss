@@ -2,6 +2,7 @@
 import { useNavigate, useParams } from 'react-router';
 import { storesAPI, planRequestsAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useStoreOperatingHours } from '../../hooks/useStoreOperatingHours';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Save, Palette, Type, Crown, Zap, Building2, Clock, CheckCircle, XCircle, ChefHat, Info, Smartphone, Layout, MapPin, Phone } from 'lucide-react';
 
@@ -47,7 +48,7 @@ const StoreForm = () => {
   const [form, setForm] = useState({
     name: '', description: '', address: '', phone: '',
     business_type: 'cafe', open_time: '09:00', close_time: '22:00',
-    plan: 'free', can_send_sms: false
+    plan: 'free', can_send_sms: false, operatingHours: { usePerDay: false, hours: {} }
   });
   const [theme, setTheme] = useState(defaultTheme);
   const [activeTab, setActiveTab] = useState('info');
@@ -63,10 +64,36 @@ const StoreForm = () => {
   useEffect(() => {
     if (isEdit) {
       storesAPI.getById(id).then((res) => {
-        setForm(res.data);
-        if (res.data.theme) {
+        const s = res.data;
+        
+        // 새 매장 생성: 기본값 유지
+        if (!id) {
+          setForm(prev => ({
+            ...prev,
+            open_time: '09:00',
+            close_time: '22:00',
+          }));
+          if (s.theme) {
+            try {
+              const parsed = typeof s.theme === 'string' ? JSON.parse(s.theme) : s.theme;
+              setTheme({ ...defaultTheme, ...parsed });
+            } catch (e) { console.error(e); }
+          }
+          if (!isSuperAdmin) {
+            planRequestsAPI.getByStore(id).then(pr => setPlanRequests(pr.data || [])).catch(() => { });
+          }
+          return;
+        }
+        
+        // 기존 매장 편집 모드: basic 영업시간 기본값 유지, operatingHours 필드만 추가
+        setForm(prev => ({
+          ...prev,
+          operatingHours: { usePerDay: false, hours: {} }
+        }));
+        
+        if (s.theme) {
           try {
-            const parsed = typeof res.data.theme === 'string' ? JSON.parse(res.data.theme) : res.data.theme;
+            const parsed = typeof s.theme === 'string' ? JSON.parse(s.theme) : s.theme;
             setTheme({ ...defaultTheme, ...parsed });
           } catch (e) { console.error(e); }
         }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router';
 import { storesAPI, tierSettingsAPI } from '../../api';
+import { useStoreOperatingHours } from '../../hooks/useStoreOperatingHours';
 import { Clock, Palette, Save, CheckCircle2, ChevronDown, ChevronUp, Sun, Moon, Store, Type, Layout, Brush, ToggleLeft, ToggleRight, CopyCheck, Award, Plus, Trash2, Edit3 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useSEO } from '../../lib/useSEO';
@@ -50,76 +51,30 @@ const DEFAULT_THEME = {
 
 const DEFAULT_HOURS = { open: '09:00', close: '22:00', closed: false };
 
-// ── 헬퍼 ─────────────────────────────────────────────────────────────────────
-const initDayHours = (stored) => {
-  const base = DAYS.reduce((acc, d) => ({ ...acc, [d.key]: { ...DEFAULT_HOURS } }), {});
-  if (!stored) return base;
-  try {
-    const parsed = typeof stored === 'string' ? JSON.parse(stored) : stored;
-    return DAYS.reduce((acc, d) => ({
-      ...acc,
-      [d.key]: { ...DEFAULT_HOURS, ...(parsed[d.key] || {}) },
-    }), {});
-  } catch { return base; }
-};
-
-// ── 섹션 래퍼 ─────────────────────────────────────────────────────────────────
-function Section({ title, icon: Icon, color = 'text-blue-500', children, defaultOpen = true }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center ${color}`}>
-            <Icon size={16} />
-          </div>
-          <span className="font-bold text-gray-900">{title}</span>
-        </div>
-        {open ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
-      </button>
-      {open && <div className="px-6 pb-6 pt-2 border-t border-gray-50">{children}</div>}
-    </div>
-  );
-}
-
-// ── 컬러 입력 ─────────────────────────────────────────────────────────────────
-function ColorField({ label, value, onChange }) {
-  return (
-    <div className="flex items-center gap-3">
-      <input
-        type="color"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="w-10 h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5 bg-white"
-      />
-      <div className="flex-1">
-        <p className="text-xs text-gray-500 mb-0.5">{label}</p>
-        <input
-          type="text"
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          className="text-sm font-mono w-28 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-    </div>
-  );
-}
-
-// ── 메인 컴포넌트 ──────────────────────────────────────────────────────────────
-export default function StoreSettings() {
+const setGlobalTime = useCallback((field: 'open' | 'close', value: string) => {
     useSEO({ title: '매장 설정 | 위마켓', description: '매장 정보, 테마, 결제 설정을 관리합니다.' });
     const { storeId } = useParams();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
-  // 영업시간
-  const [globalOpen, setGlobalOpen]   = useState('09:00');
-  const [globalClose, setGlobalClose] = useState('22:00');
-  const [dayHours, setDayHours]       = useState(() => initDayHours(null));
-  const [usePerDay, setUsePerDay]     = useState(false); // 요일별 개별 설정 여부
+  // ── 영업시간 상태 관리 (중앙화된 훅 사용) ────────────────────────────
+  const {
+    hours,
+    globalOpen,
+    globalClose,
+    usePerDay,
+    isLoading,
+    error,
+    updateHours,
+    setDayClosed,
+    setDayTime,
+    setGlobalTime,
+    toggleDay,
+    validateAllHours,
+    getDerivedGlobalTimes,
+    refetch,
+  } = useStoreOperatingHours(storeId);
+
+  // 테마
+  const [theme, setTheme] = useState(DEFAULT_THEME);
 
   // 테마
   const [theme, setTheme] = useState(DEFAULT_THEME);
@@ -134,6 +89,8 @@ export default function StoreSettings() {
   // ── 데이터 로드 ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!storeId) return;
+    // 운영시간 훅이 내부에서 데이터 로드 수행 (fetchStoreHours 등)
+    // 다른 데이터(등급, 테마 등)는 별도 로드
     storesAPI.getById(storeId)
       .then(res => {
         const s = res.data;
@@ -142,14 +99,8 @@ export default function StoreSettings() {
         tierSettingsAPI.getTiers(storeId)
           .then(tRes => setTiers(tRes.data || []))
           .catch(() => {});
-        setGlobalOpen(s.open_time  || '09:00');
-        setGlobalClose(s.close_time || '22:00');
 
-        if (s.business_hours) {
-          setDayHours(initDayHours(s.business_hours));
-          setUsePerDay(true);
-        }
-
+        // 테마 로드
         if (s.theme) {
           try {
             const t = typeof s.theme === 'string' ? JSON.parse(s.theme) : s.theme;
@@ -209,29 +160,6 @@ export default function StoreSettings() {
       toast.error(err?.response?.data?.error || '삭제에 실패했습니다.');
     }
   };
-
-  // ── 저장 ───────────────────────────────────────────────────────────────────
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const payload = {
-        open_time:  globalOpen,
-        close_time: globalClose,
-        business_hours: usePerDay ? JSON.stringify(dayHours) : null,
-        theme: JSON.stringify(theme),
-      };
-      await storesAPI.update(storeId, payload);
-      toast.success('설정이 저장되었습니다.');
-    } catch {
-      toast.error('저장에 실패했습니다. 다시 시도해주세요.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ── 요일별 시간 변경 ──────────────────────────────────────────────────────
-  const setDay = (key, field, value) =>
-    setDayHours(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
 
   // ── 프리셋 적용 ───────────────────────────────────────────────────────────
   const applyPreset = (p) =>
@@ -313,7 +241,7 @@ export default function StoreSettings() {
           요일별 개별 설정
         </button>
 
-        {usePerDay && (
+{usePerDay && (
           <div className="space-y-2">
             {/* 일괄 적용 버튼 */}
             <div className="flex items-center justify-between mb-1 pb-2 border-b border-gray-100">
@@ -321,7 +249,7 @@ export default function StoreSettings() {
               <button
                 onClick={() => {
                   const targets = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-                  setDayHours(prev => {
+                  updateHours(prev => {
                     const next = { ...prev };
                     targets.forEach(k => {
                       next[k] = { ...prev[k], open: globalOpen, close: globalClose, closed: false };
@@ -336,39 +264,39 @@ export default function StoreSettings() {
               </button>
             </div>
 
-            {DAYS.map(({ key, label }) => (
-              <div key={key} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${dayHours[key].closed ? 'bg-gray-50 opacity-60' : 'bg-white border border-gray-100'}`}>
+<DAYS.map(({ key, label }) => (
+              <div key={key} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${hours[key].closed ? 'bg-gray-50 opacity-60' : 'bg-white border border-gray-100'}`}>
                 <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${
                   key === 'sun' ? 'bg-red-100 text-red-600' :
                   key === 'sat' ? 'bg-blue-100 text-blue-600' :
                   'bg-gray-100 text-gray-600'
-                }`}>{label}</span>
+                }}>{label}</span>
 
                 <input
                   type="time"
-                  value={dayHours[key].open}
-                  onChange={e => setDay(key, 'open', e.target.value)}
-                  disabled={dayHours[key].closed}
+                  value={hours[key].open}
+                  onChange={e => setDayTime(key, 'open', e.target.value)}
+                  disabled={hours[key].closed}
                   className="flex-1 text-sm font-medium bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-40"
                 />
                 <span className="text-gray-300 text-xs">~</span>
                 <input
                   type="time"
-                  value={dayHours[key].close}
-                  onChange={e => setDay(key, 'close', e.target.value)}
-                  disabled={dayHours[key].closed}
+                  value={hours[key].close}
+                  onChange={e => setDayTime(key, 'close', e.target.value)}
+                  disabled={hours[key].closed}
                   className="flex-1 text-sm font-medium bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-40"
                 />
 
                 <button
-                  onClick={() => setDay(key, 'closed', !dayHours[key].closed)}
+                  onClick={() => toggleDay(key)}
                   className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                    dayHours[key].closed
+                    hours[key].closed
                       ? 'bg-red-100 text-red-600 hover:bg-red-200'
                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}
                 >
-                  {dayHours[key].closed ? '휴무' : '영업'}
+                  {hours[key].closed ? '휴무' : '영업'}
                 </button>
               </div>
             ))}
@@ -633,3 +561,65 @@ export default function StoreSettings() {
     </div>
   );
 }
+
+// ── 헬퍼 함수 ──────────────────────────────────────────────────────────────────
+const initDayHours = (stored) => {
+  const base = DAYS.reduce(
+    (acc, d) => ({ ...acc, [d.key]: { ...DEFAULT_HOURS } }),
+    {}
+  );
+  if (!stored) return base;
+  try {
+    const parsed = typeof stored === 'string' ? JSON.parse(stored) : stored;
+    return DAYS.reduce((acc, d) => ({
+      ...acc,
+      [d.key]: { ...DEFAULT_HOURS, ...(parsed[d.key] || {}) },
+    }));
+  } catch { return base; }
+};
+
+function Section({ title, icon: Icon, color = 'text-blue-500', children, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center ${color}`}>
+            <Icon size={16} />
+          </div>
+          <span className="font-bold text-gray-900">{title}</span>
+        </div>
+        {open ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+      </button>
+      {open && <div className="px-6 pb-6 pt-2 border-t border-gray-50">{children}</div>}
+    </div>
+  );
+}
+
+function ColorField({ label, value, onChange }) {
+  return (
+    <div className="flex items-center gap-3">
+      <input
+        type="color"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-10 h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5 bg-white"
+      />
+      <div className="flex-1">
+        <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+        <input
+          type="text"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="text-sm font-mono w-28 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── 메인 컴포넌트 ──────────────────────────────────────────────────────────────
+export default function StoreSettings() {

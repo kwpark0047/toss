@@ -307,14 +307,69 @@ const {
   const orderStats = [];
 
   // Helper functions
-  const getTodayHours = useCallback(() => {
+const getTodayHours = useCallback(() => {
+    if (profile?.business_hours) {
+      // business_hours JSON이 있으면 요일별 시간 사용
+      const today = new Date().toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
+      const dayMap: Record<string, string> = {
+        'mon': 'mon', 'tue': 'tue', 'wed': 'wed', 'thu': 'thu',
+        'fri': 'fri', 'sat': 'sat', 'sun': 'sun'
+      };
+      const dayKey = dayMap[today as keyof typeof dayMap];
+      if (dayKey && profile.business_hours[dayKey]) {
+        const dayHours = profile.business_hours[dayKey];
+        return {
+          open: dayHours.open || profile.open_time || '09:00',
+          close: dayHours.close || profile.close_time || '22:00'
+        };
+      }
+      // 해당 요일에 데이터가 없으면 기본값 반환
+      return {
+        open: profile.open_time || '09:00',
+        close: profile.close_time || '22:00'
+      };
+    }
     if (!profile?.open_time || !profile?.close_time) return null;
     return {
       open: profile.open_time,
       close: profile.close_time
     };
-  }, [profile?.open_time, profile?.close_time]);
+  }, [profile?.business_hours, profile?.open_time, profile?.close_time]);
   const isStoreOpen = useCallback(() => {
+    if (profile?.business_hours) {
+      // business_hours JSON이 있으면 요일별 영업시간 로직 사용
+      const today = new Date().toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
+      const dayMap: Record<string, string> = {
+        'mon': 'mon', 'tue': 'tue', 'wed': 'wed', 'thu': 'thu',
+        'fri': 'fri', 'sat': 'sat', 'sun': 'sun'
+      };
+      const dayKey = dayMap[today as keyof typeof dayMap];
+      if (dayKey && profile.business_hours[dayKey]) {
+        const dayHours = profile.business_hours[dayKey];
+        const isClosed = dayHours.closed || false;
+        if (isClosed) return false; // 휴무일
+        
+        const now = new Date();
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        const openTime = (dayHours.open ? dayHours.open.split(':')[0] : '0') * 60 + 
+                          (dayHours.open ? dayHours.open.split(':')[1] : '0');
+        const closeTime = (dayHours.close ? dayHours.close.split(':')[0] : '22') * 60 + 
+                          (dayHours.close ? dayHours.close.split(':')[1] : '0');
+        
+        if (closeTime < openTime) return currentTime >= openTime || currentTime < closeTime;
+        return currentTime >= openTime && currentTime < closeTime;
+      }
+      // business_hours가 있지만 해당 요일 데이터가 없으면 기본 시간 사용
+      if (!profile?.open_time || !profile?.close_time) return true;
+      const now = new Date();
+      const currentTime = now.getHours() * 60 + now.getMinutes();
+      const [openHour, openMin] = profile.open_time.split(":").map(Number);
+      const [closeHour, closeMin] = profile.close_time.split(":").map(Number);
+      const openTime = openHour * 60 + openMin;
+      const closeTime = closeHour * 60 + closeMin;
+      if (closeTime < openTime) return currentTime >= openTime || currentTime < closeTime;
+      return currentTime >= openTime && currentTime < closeTime;
+    }
     if (!profile?.open_time || !profile?.close_time) return true; // 시간 미설정 시 항상 영업 중
     const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes();
@@ -328,7 +383,7 @@ const {
     } catch {
       return true;
     }
-  }, [profile?.open_time, profile?.close_time]);
+  }, [profile?.business_hours, profile?.open_time, profile?.close_time]);
 
   // Computed values
   const todayHours = getTodayHours();
