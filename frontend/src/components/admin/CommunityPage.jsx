@@ -89,7 +89,7 @@ function PostCard({ post, myStoreIds = [], onDelete, onLike }) {
             </span>
             {isHot && (
               <span className="shrink-0 flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30 font-bold">
-                <Flame size={10} /> HOT
+                <Flame size={12} /> HOT
               </span>
             )}
             {isExpired && (
@@ -104,7 +104,7 @@ function PostCard({ post, myStoreIds = [], onDelete, onLike }) {
                   onClick={() => setShowMenu(v => !v)}
                   className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
                 >
-                  <MoreHorizontal size={15} />
+                  <MoreHorizontal size={16} />
                 </button>
                 <AnimatePresence>
                   {showMenu && (
@@ -118,7 +118,7 @@ function PostCard({ post, myStoreIds = [], onDelete, onLike }) {
                         onClick={() => { onDelete(post.id); setShowMenu(false); }}
                         className="flex items-center gap-2 w-full px-3 py-2 text-sm text-rose-400 hover:bg-white/5 transition-colors"
                       >
-                        <Trash2 size={13} /> 삭제
+                        <Trash2 size={14} /> 삭제
                       </button>
                     </motion.div>
                   )}
@@ -158,7 +158,7 @@ function PostCard({ post, myStoreIds = [], onDelete, onLike }) {
         {/* 유효기간 */}
         {post.expires_at && (
           <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${isExpired ? 'text-slate-600' : 'text-orange-400'}`}>
-            <Calendar size={11} />
+            <Calendar size={12} />
             {isExpired ? '종료: ' : '~'}{new Date(post.expires_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
           </div>
         )}
@@ -172,11 +172,11 @@ function PostCard({ post, myStoreIds = [], onDelete, onLike }) {
                 liked ? 'text-rose-400' : 'text-slate-500 hover:text-rose-400'
               }`}
             >
-              <Heart size={15} fill={liked ? 'currentColor' : 'none'} className="transition-all" />
+              <Heart size={16} fill={liked ? 'currentColor' : 'none'} className="transition-all" />
               {count > 0 && count}
             </button>
             <span className="flex items-center gap-1 text-xs text-slate-600">
-              <Eye size={13} /> {post.view_count ?? 0}
+              <Eye size={14} /> {post.view_count ?? 0}
             </span>
           </div>
           <span className="text-xs text-slate-600">{timeAgo(post.created_at)}</span>
@@ -252,7 +252,7 @@ function PostModal({ myStores, onClose, onSuccess }) {
                         : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
                     }`}
                   >
-                    <Store size={13} /> {s.name}
+                    <Store size={14} /> {s.name}
                   </button>
                 ))}
               </div>
@@ -336,7 +336,7 @@ function PostModal({ myStores, onClose, onSuccess }) {
             disabled={loading || !form.title.trim() || !form.content.trim()}
             className="flex-2 flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-black bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-40 transition-colors shadow-lg shadow-orange-500/20"
           >
-            {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
             게시하기
           </button>
         </div>
@@ -451,7 +451,7 @@ function PartnershipModal({ targetStore, myStores, onClose, onSuccess }) {
             disabled={loading}
             className="flex-2 flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-black bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-40 shadow-lg shadow-orange-500/20"
           >
-            {loading ? <Loader2 size={15} className="animate-spin" /> : <Share2 size={15} />}
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
             신청하기
           </button>
         </div>
@@ -721,7 +721,7 @@ export default function CommunityPage() {
       <div className="flex items-center justify-between py-4 mb-2">
         <div>
           <h1 className="text-2xl font-black text-white flex items-center gap-2 leading-tight">
-            <Building2 size={22} className="text-sky-400" />
+            <Building2 size={24} className="text-sky-400" />
             지역 커뮤니티
           </h1>
           <p className="text-slate-500 text-xs font-medium mt-0.5">
@@ -739,7 +739,7 @@ export default function CommunityPage() {
             >
               {myStores.map(s => <option key={s.id} value={s.id} className="bg-slate-800">{s.name}</option>)}
             </select>
-            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
         )}
       </div>
@@ -816,20 +816,20 @@ export default function CommunityPage() {
                   showSearch ? 'bg-sky-500/20 border-sky-500/40 text-sky-400' : 'bg-white/5 border-white/8 text-slate-500'
                 }`}
               >
-                <Search size={15} />
+                <Search size={16} />
               </button>
               <button
                 onClick={loadFeed}
                 className="w-9 h-9 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
               >
-                <RefreshCw size={15} />
+                <RefreshCw size={16} />
               </button>
               {myStores.length > 0 && (
                 <button
                   onClick={() => setShowPostModal(true)}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black bg-orange-500 text-white hover:bg-orange-600 shadow-lg shadow-orange-500/20 transition-colors active:scale-95"
                 >
-                  <Plus size={15} /> 작성
+                  <Plus size={16} /> 작성
                 </button>
               )}
             </div>
@@ -885,7 +885,7 @@ export default function CommunityPage() {
                     onClick={() => setShowPostModal(true)}
                     className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-black rounded-xl shadow-lg shadow-orange-500/20"
                   >
-                    <Plus size={15} /> 첫 번째 피드 작성
+                    <Plus size={16} /> 첫 번째 피드 작성
                   </button>
                 ) : null}
               />
@@ -933,14 +933,14 @@ export default function CommunityPage() {
               onClick={loadNearby}
               className="w-10 h-10 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center text-slate-500 hover:text-white transition-colors shrink-0"
             >
-              <RefreshCw size={15} />
+              <RefreshCw size={16} />
             </button>
           </div>
 
           {/* 지역 정보 */}
           {nearbyDistrict && (
             <div className="flex items-center gap-2 mb-3 px-1">
-              <MapPin size={13} className="text-sky-400" />
+              <MapPin size={14} className="text-sky-400" />
               <span className="text-sm font-bold text-sky-400">{nearbyDistrict}</span>
               <span className="text-slate-600 text-sm">· {filteredNearby.length}개 매장</span>
             </div>

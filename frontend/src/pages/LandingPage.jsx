@@ -175,7 +175,7 @@ const LandingPage = () => {
     // 데모 UX 혁신 3가지
     const demoFeatures = [
         {
-            icon: <Zap size={22} className="text-amber-400" />,
+            icon: <Zap size={24} className="text-amber-400" />,
             badge: 'Zero Friction',
             title: '스캔 하나로 바로 주문',
             desc: '회원가입·로그인 없이 QR 스캔만으로 즉시 장바구니 세션 생성. 랜덤 UUID가 실시간으로 할당됩니다.',
@@ -183,7 +183,7 @@ const LandingPage = () => {
             color: 'amber',
         },
         {
-            icon: <Link2 size={22} className="text-emerald-400" />,
+            icon: <Link2 size={24} className="text-emerald-400" />,
             badge: '공유 오더',
             title: '동석자와 함께 담는 장바구니',
             desc: '테이블 공유 세션이 자동 활성화. 다른 사람이 담은 메뉴가 내 화면에 실시간으로 반영됩니다.',
@@ -191,7 +191,7 @@ const LandingPage = () => {
             color: 'emerald',
         },
         {
-            icon: <Gift size={22} className="text-purple-400" />,
+            icon: <Gift size={24} className="text-purple-400" />,
             badge: '손실 회피',
             title: '60초 타이머로 회원가입 유도',
             desc: '결제 후 포인트가 소멸되기 시작하는 타이머와 사전 입력된 전화번호로 원버튼 가입 완료.',
@@ -414,7 +414,7 @@ const LandingPage = () => {
                                             <motion.div key="entry-screen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                                 className="bg-gradient-to-br from-orange-500 to-rose-600 p-6 flex flex-col items-center min-h-[320px] justify-center">
                                                 <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
-                                                    <QrCode size={28} className="text-white" strokeWidth={1.5} />
+                                                    <QrCode size={24} className="text-white" strokeWidth={1.5} />
                                                 </div>
                                                 <p className="text-white font-black text-sm text-center">위마켓 시그니처 카페</p>
                                                 <p className="text-white/60 text-xs mt-1">테이블 A-07</p>
@@ -496,7 +496,7 @@ const LandingPage = () => {
                                 className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
                                 <Link to="/menu/demo"
                                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-full text-xs font-black shadow-lg hover:bg-slate-800 transition-colors">
-                                    <Play size={12} className="fill-current" /> 직접 체험해보기
+                                    <Play size={14} className="fill-current" /> 직접 체험해보기
                                 </Link>
                             </motion.div>
                         </div>
@@ -523,7 +523,7 @@ const LandingPage = () => {
                                 transition={{ delay: i * 0.07 }} viewport={{ once: true }}
                                 className="p-6 bg-white border border-gray-100 rounded-2xl hover:shadow-lg hover:-translate-y-1.5 hover:border-orange-100 transition-all duration-300 cursor-default group">
                                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${iconColorMap[feature.color]} group-hover:scale-110 transition-transform duration-300`}>
-                                    <feature.icon size={22} />
+                                    <feature.icon size={24} />
                                 </div>
                                 <h3 className="font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">{feature.title}</h3>
                                 <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
@@ -546,7 +546,7 @@ const LandingPage = () => {
                         <motion.div initial={{ opacity:0, x:-30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }} className="flex-1">
                             <div className="flex items-center gap-2 mb-5">
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 text-rose-600 rounded-full text-xs font-black">
-                                    <Heart size={12} className="fill-rose-500" /> 단골고객 관리리스트
+                                    <Heart size={14} className="fill-rose-500" /> 단골고객 관리리스트
                                 </span>
                                 <span className="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-[10px] font-black">핵심 기능</span>
                             </div>
@@ -676,7 +676,7 @@ const LandingPage = () => {
                         <motion.div initial={{ opacity:0, x:30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }} className="flex-1">
                             <div className="flex items-center gap-2 mb-5">
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 rounded-full text-xs font-black">
-                                    <Building2 size={12} /> 지역 커뮤니티
+                                    <Building2 size={14} /> 지역 커뮤니티
                                 </span>
                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-[10px] font-black">상권 활성화</span>
                             </div>
@@ -860,7 +860,7 @@ const LandingPage = () => {
                                                     {store.business_type || '일반'}
                                                 </span>
                                                 <span className="text-[11px] font-bold text-orange-500 flex items-center gap-1">
-                                                    <ShoppingCart size={10} />
+                                                    <ShoppingCart size={12} />
                                                     {store.order_count?.toLocaleString()}회
                                                 </span>
                                             </div>
@@ -879,7 +879,7 @@ const LandingPage = () => {
                     <div className="flex items-center justify-between mb-6 px-1">
                         <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
-                                <Clock size={15} className="text-slate-500" />
+                                <Clock size={16} className="text-slate-500" />
                             </div>
                             <h2 className="font-black text-gray-900 text-lg">최근 본 매장</h2>
                         </div>
@@ -910,7 +910,7 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-center gap-2 px-1 mb-6">
                         <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
-                            <MapPin size={15} className="text-slate-500" />
+                            <MapPin size={16} className="text-slate-500" />
                         </div>
                         <h2 className="font-black text-gray-900 text-lg">전체 매장 위치</h2>
                     </div>
@@ -985,13 +985,13 @@ const LandingPage = () => {
                                     t.color === 'orange' ? 'bg-orange-500' : t.color === 'blue' ? 'bg-blue-500' : 'bg-green-500'
                                 }`} />
                                 {/* 따옴표 */}
-                                <Quote size={28} className={`mb-4 opacity-20 ${
+                                <Quote size={24} className={`mb-4 opacity-20 ${
                                     t.color === 'orange' ? 'text-orange-500' : t.color === 'blue' ? 'text-blue-500' : 'text-green-500'
                                 }`} />
                                 {/* 별점 */}
                                 <div className="flex gap-1 mb-4">
                                     {[...Array(t.rating)].map((_, j) => (
-                                        <Star key={j} size={15} className="fill-amber-400 text-amber-400" />
+                                        <Star key={j} size={16} className="fill-amber-400 text-amber-400" />
                                     ))}
                                 </div>
                                 {/* 본문 */}
@@ -1002,7 +1002,7 @@ const LandingPage = () => {
                                     t.color === 'blue'   ? 'bg-blue-50 text-blue-600' :
                                                            'bg-green-50 text-green-600'
                                 }`}>
-                                    <TrendingUp size={12} />
+                                    <TrendingUp size={14} />
                                     {t.stat}
                                 </div>
                                 {/* 프로필 */}
@@ -1055,7 +1055,7 @@ const LandingPage = () => {
                     <div className="text-center mb-16">
                         <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
                             <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-500/20 text-orange-400 rounded-full text-sm font-bold mb-6 border border-orange-500/20">
-                                <Sparkles size={13} /> 고객 UX 혁신 데모
+                                <Sparkles size={14} /> 고객 UX 혁신 데모
                             </span>
                             <h2 className="text-4xl md:text-5xl font-black text-white mb-4 text-balance">
                                 고객 전환율을 바꾸는<br />
@@ -1087,7 +1087,7 @@ const LandingPage = () => {
                                 <h3 className="text-white font-black text-lg mt-3 mb-2">{f.title}</h3>
                                 <p className="text-slate-400 text-sm leading-relaxed mb-4">{f.desc}</p>
                                 <div className="flex items-center gap-2 pt-4 border-t border-slate-800">
-                                    <TrendingUp size={13} className={
+                                    <TrendingUp size={14} className={
                                         f.color === 'amber'   ? 'text-amber-400' :
                                         f.color === 'emerald' ? 'text-emerald-400' : 'text-purple-400'
                                     } />
@@ -1277,7 +1277,7 @@ const LandingPage = () => {
                                     {plan.features.map(f => (
                                         <div key={f} className="flex items-center gap-2.5">
                                             <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${plan.popular ? 'bg-orange-500' : 'bg-orange-100'}`}>
-                                                <Check size={11} className={plan.popular ? 'text-white' : 'text-orange-500'} />
+                                                <Check size={14} className={plan.popular ? 'text-white' : 'text-orange-500'} />
                                             </div>
                                             <span className={`text-sm ${plan.popular ? 'text-gray-300' : 'text-gray-600'}`}>{f}</span>
                                         </div>
@@ -1322,7 +1322,7 @@ const LandingPage = () => {
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                 onClick={() => navigate('/register')}
                                 className="px-10 py-4 bg-orange-500 text-white rounded-full font-black text-lg hover:bg-orange-600 transition-colors shadow-xl shadow-orange-200 flex items-center justify-center gap-2">
-                                무료로 시작하기 <ArrowRight size={22} />
+                                무료로 시작하기 <ArrowRight size={20} />
                             </motion.button>
                             <Link to="/menu/demo">
                                 <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}

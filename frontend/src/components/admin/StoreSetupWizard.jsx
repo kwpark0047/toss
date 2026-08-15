@@ -741,7 +741,7 @@ export default function StoreSetupWizard() {
                 onClick={() => setStep(1)}
                 className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-black text-base shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2"
               >
-                지금 시작하기 <ArrowRight size={18} />
+                지금 시작하기 <ArrowRight size={20} />
               </motion.button>
               <div className="flex items-center justify-between mt-4">
                 <button
@@ -777,7 +777,7 @@ export default function StoreSetupWizard() {
                     <div
                       className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black transition-all flex-shrink-0 ${done ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : active ? 'bg-amber-500/20 text-amber-400 border border-amber-500/20' : 'bg-white/5 text-slate-600 border border-white/10'}`}
                     >
-                      {done ? <Check size={11} /> : <Icon size={11} />}
+                      {done ? <Check size={12} /> : <Icon size={12} />}
                       <span className={active ? 'inline' : 'hidden sm:inline'}>{s.label}</span>
                     </div>
                     {i < STEPS.length - 1 && (
@@ -842,7 +842,7 @@ export default function StoreSetupWizard() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1">
-                          <Clock size={11} /> ③ 영업 시작
+                          <Clock size={12} /> ③ 영업 시작
                         </label>
                         <input
                           type="time"
@@ -857,7 +857,7 @@ export default function StoreSetupWizard() {
                       </div>
                       <div>
                         <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1">
-                          <Clock size={11} /> 영업 마감
+                          <Clock size={12} /> 영업 마감
                         </label>
                         <input
                           type="time"
@@ -873,7 +873,7 @@ export default function StoreSetupWizard() {
                     </div>
                     <div>
                       <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1">
-                        <Phone size={11} /> ④ 연락처 (선택)
+                        <Phone size={12} /> ④ 연락처 (선택)
                       </label>
                       <input
                         type="tel"
@@ -887,7 +887,7 @@ export default function StoreSetupWizard() {
                     </div>
                     <div>
                       <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1">
-                        <MapPin size={11} /> ⑤ 주소 (선택)
+                        <MapPin size={12} /> ⑤ 주소 (선택)
                       </label>
                       <input
                         type="text"
@@ -1051,9 +1051,9 @@ export default function StoreSetupWizard() {
                             className="px-3 py-2 bg-gradient-to-r from-violet-500/20 to-purple-500/20 border border-violet-500/30 text-violet-300 rounded-xl text-xs font-black hover:from-violet-500/30 transition-all disabled:opacity-50 flex items-center gap-1 flex-shrink-0"
                           >
                             {aiLoadingIdx === idx ? (
-                              <Loader2 size={11} className="animate-spin" />
+                              <Loader2 size={16} className="animate-spin" />
                             ) : (
-                              <Sparkles size={11} />
+                              <Sparkles size={14} />
                             )}{' '}
                             AI
                           </button>
@@ -1179,7 +1179,7 @@ export default function StoreSetupWizard() {
                                 onClick={() => handleDeleteTable(table.id)}
                                 className="p-2 text-rose-400/50 hover:text-rose-400 rounded-xl hover:bg-rose-500/10 transition-all flex-shrink-0"
                               >
-                                <X size={15} />
+                                <X size={16} />
                               </button>
                             )}
                           </motion.div>
@@ -1238,7 +1238,7 @@ export default function StoreSetupWizard() {
                               className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-white rounded-xl text-sm font-black disabled:opacity-40 transition-all flex items-center justify-center gap-1.5"
                             >
                               {saving ? (
-                                <Loader2 size={13} className="animate-spin" />
+                                <Loader2 size={16} className="animate-spin" />
                               ) : (
                                 <Plus size={13} />
                               )}{' '}
@@ -1416,7 +1416,7 @@ export default function StoreSetupWizard() {
                       onClick={handleFinish}
                       className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-black text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
                     >
-                      <PartyPopper size={15} /> 설정 완료!
+                      <PartyPopper size={16} /> 설정 완료!
                     </motion.button>
                   </div>
                 </motion.div>

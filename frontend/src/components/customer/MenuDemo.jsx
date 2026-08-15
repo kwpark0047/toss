@@ -570,7 +570,7 @@ const MenuDemo = () => {
                     <button
                       onClick={() => setShowLangPicker(p => !p)}
                       className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-full hover:bg-slate-100 transition-colors">
-                      <Globe size={11} className="text-slate-500" />
+                      <Globe size={12} className="text-slate-500" />
                       <span className="text-[10px] font-black text-slate-600">
                         {DEMO_LANGS.find(l => l.code === tbLang)?.flag} {DEMO_LANGS.find(l => l.code === tbLang)?.label}
                       </span>
@@ -597,7 +597,7 @@ const MenuDemo = () => {
                   {/* ★ 공유 오더 배지 ★ */}
                   <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-full flex-shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <Link2 size={10} className="text-emerald-600" />
+                    <Link2 size={12} className="text-emerald-600" />
                     <span className="text-[10px] font-black text-emerald-700 hidden sm:inline">공유 오더 ON</span>
                     <div className="flex -space-x-1.5 ml-1">
                       {TABLEMATES.map(tm => (
@@ -626,8 +626,8 @@ const MenuDemo = () => {
               <div className="bg-white border-b border-slate-100 px-4 py-3">
                 <p className="text-xs text-slate-600 leading-relaxed">{STORE.desc}</p>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-[11px] text-slate-400">
-                  <div className="flex items-center gap-1"><MapPin size={10} />{STORE.address}</div>
-                  <div className="flex items-center gap-1"><Clock size={10} />{STORE.hours}</div>
+                  <div className="flex items-center gap-1"><MapPin size={12} />{STORE.address}</div>
+                  <div className="flex items-center gap-1"><Clock size={12} />{STORE.hours}</div>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 rounded-full">
@@ -635,7 +635,7 @@ const MenuDemo = () => {
                     <span className="text-[10px] font-black text-emerald-600">영업 중</span>
                   </div>
                   <div className="flex items-center gap-1 text-[11px] font-bold text-slate-500">
-                    <Star size={10} className="fill-amber-400 text-amber-400" />
+                    <Star size={12} className="fill-amber-400 text-amber-400" />
                     {STORE.rating}
                     <span className="text-slate-300 font-normal">({STORE.reviews.toLocaleString()})</span>
                   </div>
@@ -675,7 +675,7 @@ const MenuDemo = () => {
               <div className="px-4 py-3 pb-24 space-y-2">
                 {selectedCategory !== '전체' && (
                   <div className="flex items-center gap-2 mb-4">
-                    <UtensilsCrossed size={13} className="text-slate-400" />
+                    <UtensilsCrossed size={14} className="text-slate-400" />
                     <h2 className="text-sm font-black text-slate-700">{selectedCategory}</h2>
                     <span className="text-xs text-slate-300 font-bold">({filtered.length})</span>
                   </div>
@@ -780,7 +780,7 @@ const MenuDemo = () => {
                             <p className="text-3xl font-black text-amber-700 mt-0.5">+{orderData?.points ?? 0} P</p>
                           </div>
                           <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center">
-                            <Gift size={26} className="text-amber-500" />
+                            <Gift size={24} className="text-amber-500" />
                           </div>
                         </div>
 
@@ -804,7 +804,7 @@ const MenuDemo = () => {
                         <div className="space-y-1.5">
                           <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">알림 수신 번호 (자동 입력됨)</p>
                           <div className="flex items-center gap-2 bg-white border-2 border-emerald-200 rounded-xl px-4 py-3">
-                            <Wifi size={13} className="text-emerald-500 flex-shrink-0" />
+                            <Wifi size={14} className="text-emerald-500 flex-shrink-0" />
                             <input value={phone} onChange={e => setPhone(e.target.value)}
                               className="flex-1 min-w-0 text-sm font-black text-slate-800 outline-none bg-transparent"
                               placeholder="010-0000-0000" />

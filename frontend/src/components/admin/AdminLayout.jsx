@@ -95,7 +95,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                     />
                   )}
                   <div className="relative z-10 flex items-center gap-4">
-                    <item.icon size={14} className={isActive ? tc.textStrong : `${tc.navIconHover} transition-colors`} />
+                    <item.icon size={16} className={isActive ? tc.textStrong : `${tc.navIconHover} transition-colors`} />
                     <span className="tracking-tight" style={{ fontSize: '21px' }}>{item.label}</span>
                   </div>
                 </Link>
@@ -132,13 +132,13 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                     to="/admin/profile"
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${tc.btnBase}`}
                   >
-                    <UserCircle size={13} /> {t('profile')}
+                    <UserCircle size={16} /> {t('profile')}
                   </Link>
                   <button
                     onClick={handleLogout}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${tc.btnDanger}`}
                   >
-                    <LogOut size={13} /> {t('logout')}
+                    <LogOut size={16} /> {t('logout')}
                   </button>
                 </div>
               </div>
@@ -158,7 +158,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
           <header className={`h-14 lg:h-24 flex items-center justify-between px-4 lg:px-10 sticky top-0 z-20 ${tc.header}`}>
             <Link to="/admin" aria-label={t('goToAdminMain')} className="flex items-center gap-2.5 lg:hidden">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                <Store size={15} className="text-white" aria-hidden="true" />
+                <Store size={18} className="text-white" aria-hidden="true" />
               </div>
               <span className={`font-black text-sm tracking-tight ${tc.logoText}`}>{t('wemarketAdmin')}</span>
             </Link>
@@ -174,7 +174,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                 className={`p-2 lg:p-3 rounded-2xl transition-all relative group ${tc.statusBox} hover:scale-105 active:scale-95`}
                 aria-label={t('chatInquiry')}
               >
-                <Headset size={20} className={tc.navIconHover} />
+                <Headset size={18} className={tc.navIconHover} />
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full animate-ping" />
               </button>
               <ThemeSwitcher />
@@ -220,7 +220,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                       <div className={`w-9 h-9 rounded-[14px] flex items-center justify-center transition-all ${
                         isActive ? `bg-gradient-to-br ${tc.navActiveBg} shadow-md ${tc.navActiveShadow}` : ''
                       }`}>
-                        <item.icon size={12} className={isActive ? 'text-white' : ''} />
+                        <item.icon size={16} className={isActive ? 'text-white' : ''} />
                       </div>
                       {item.badge > 0 && (
                         <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-orange-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-lg ring-2 ring-slate-950">
@@ -237,7 +237,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                 className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${tc.navText}`}
               >
                 <div className="w-9 h-9 rounded-[14px] flex items-center justify-center">
-                  <MenuIcon size={12} />
+                  <MenuIcon size={16} />
                 </div>
                 <span className="font-bold leading-none" style={{ fontSize: '13.5px' }}>{t('more')}</span>
               </button>
@@ -285,7 +285,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                     )}
                     <div className="flex items-center gap-3 mb-3">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black flex-shrink-0 ${tc.avatarBg} ${tc.textStrong}`}>
-                        {user.name ? user.name.charAt(0) : <UserCircle size={18} className={tc.textSub} />}
+                        {user.name ? user.name.charAt(0) : <UserCircle size={20} className={tc.textSub} />}
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <p className={`text-sm font-black truncate ${tc.textStrong}`}>{user.name || t('nameNotSet')}</p>
@@ -295,11 +295,11 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                     <div className="flex gap-2">
                       <Link to="/admin/profile" onClick={() => setMoreOpen(false)}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${tc.btnBase}`}>
-                        <UserCircle size={13} /> {t('profile')}
+                        <UserCircle size={16} /> {t('profile')}
                       </Link>
                       <button onClick={() => { setMoreOpen(false); handleLogout(); }}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${tc.btnDanger}`}>
-                        <LogOut size={13} /> {t('logout')}
+                        <LogOut size={16} /> {t('logout')}
                       </button>
                     </div>
                   </div>

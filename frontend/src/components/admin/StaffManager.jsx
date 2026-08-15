@@ -188,7 +188,7 @@ const SoloModeBanner = ({ myStaffId, attendance, storeId, onSelfRegister, selfRe
                     ? 'bg-orange-500 text-white shadow-orange-500/30 hover:scale-105'
                     : 'bg-emerald-500 text-white shadow-emerald-500/30 hover:scale-105'
                 }`}>
-                {isWorking ? <><LogOut size={14} /> 퇴근 처리하기</> : <><LogIn size={14} /> 출근 처리하기</>}
+                {isWorking ? <><LogOut size={16} /> 퇴근 처리하기</> : <><LogIn size={16} /> 출근 처리하기</>}
               </button>
             ) : (
               <button onClick={onSelfRegister} disabled={selfRegLoading}
@@ -312,7 +312,7 @@ const SoloAttendancePanel = ({ myStaffId, attendance, onClockIn, onClockOut }) =
                   </button>
                   <button onClick={() => setShowNote(false)}
                     className="w-8 h-8 bg-white/5 text-slate-400 rounded-xl flex items-center justify-center">
-                    <X size={14} />
+                    <X size={16} />
                   </button>
                 </div>
               ) : (
@@ -337,13 +337,13 @@ const SoloAttendancePanel = ({ myStaffId, attendance, onClockIn, onClockOut }) =
               {todayRecords.map((r, i) => (
                 <div key={r.id ?? i} className="flex items-center gap-3 text-sm flex-wrap">
                   <span className="text-emerald-400 font-bold flex items-center gap-1">
-                    <LogIn size={11} /> {fmt(r.clock_in)}
+                    <LogIn size={12} /> {fmt(r.clock_in)}
                   </span>
                   {r.clock_out && (
                     <>
                       <span className="text-slate-600">→</span>
                       <span className="text-blue-400 font-bold flex items-center gap-1">
-                        <LogOut size={11} /> {fmt(r.clock_out)}
+                        <LogOut size={12} /> {fmt(r.clock_out)}
                       </span>
                       <span className="text-orange-400 font-black">{fmtHours(r.work_hours)}</span>
                     </>
@@ -507,7 +507,7 @@ const StaffManager = () => {
         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
           onClick={() => navigate('/admin')}
           className="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white transition-all">
-          <ArrowLeft size={22} />
+          <ArrowLeft size={24} />
         </motion.button>
         <div className="flex-1">
           <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
@@ -540,9 +540,9 @@ const StaffManager = () => {
             className={`px-8 py-3 rounded-xl font-black text-[10px] tracking-widest transition-all flex items-center gap-2 ${
               tab === i ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-slate-500 hover:text-slate-300'
             }`}>
-            {i === 0 && <Users size={13} />}
-            {i === 1 && <Clock size={13} />}
-            {i === 2 && <BarChart2 size={13} />}
+            {i === 0 && <Users size={14} />}
+            {i === 1 && <Clock size={14} />}
+            {i === 2 && <BarChart2 size={14} />}
             {t}
           </button>
         ))}
@@ -655,11 +655,11 @@ const TeamTab = ({ staff, myRole, canManage, onRoleChange, onDelete, isSoloStore
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                     <button onClick={() => { setEditingId(member.id); setPendingRole(member.role); }}
                       className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 hover:text-blue-400 transition-all">
-                      <Edit2 size={13} />
+                      <Edit2 size={16} />
                     </button>
                     <button onClick={() => onDelete(member.id, member.name)}
                       className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 hover:text-rose-400 transition-all">
-                      <Trash2 size={13} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 )}
@@ -675,11 +675,11 @@ const TeamTab = ({ staff, myRole, canManage, onRoleChange, onDelete, isSoloStore
                   </select>
                   <button onClick={() => { onRoleChange(member.id, pendingRole); setEditingId(null); }}
                     className="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center text-white">
-                    <Check size={14} />
+                    <Check size={16} />
                   </button>
                   <button onClick={() => setEditingId(null)}
                     className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-slate-400">
-                    <X size={14} />
+                    <X size={16} />
                   </button>
                 </div>
               ) : (
@@ -800,19 +800,19 @@ const AttendCard = ({ member, record, status, canManage, onClockIn, onClockOut }
         <div className="flex items-center gap-2 mb-1">
           <span className="text-white font-black">{member.name}</span>
           <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border ${role.border}`}>
-            <Icon size={10} className={role.text} />
+            <Icon size={12} className={role.text} />
             <span className={`font-black text-[9px] tracking-widest uppercase ${role.text}`}>{role.label}</span>
           </div>
         </div>
         {record ? (
           <div className="flex items-center gap-4 text-xs">
             <span className="text-slate-400 font-bold flex items-center gap-1">
-              <LogIn size={11} className="text-emerald-400" /> {fmt(record.clock_in)}
+              <LogIn size={12} className="text-emerald-400" /> {fmt(record.clock_in)}
             </span>
             {record.clock_out && (
               <>
                 <span className="text-slate-400 font-bold flex items-center gap-1">
-                  <LogOut size={11} className="text-blue-400" /> {fmt(record.clock_out)}
+                  <LogOut size={12} className="text-blue-400" /> {fmt(record.clock_out)}
                 </span>
                 <span className="text-orange-400 font-black">{fmtHours(record.work_hours)}</span>
               </>
@@ -890,7 +890,7 @@ const ReportTab = ({ report, loading, month, onMonthChange, isSoloStore, myStaff
         <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
       ) : report.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 bg-white/5 rounded-[2.5rem] border border-dashed border-white/10">
-          <AlertCircle size={40} className="text-slate-700 mb-4" />
+          <AlertCircle size={48} className="text-slate-700 mb-4" />
           <p className="text-slate-500 font-black text-xs tracking-widest uppercase">해당 월의 근태 기록이 없습니다.</p>
         </div>
       ) : (
@@ -1048,7 +1048,7 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
 
           <div className="flex gap-3">
             <div className="relative flex-1">
-              <Phone size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+              <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 type="tel"
                 value={phone}
@@ -1064,8 +1064,8 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
               disabled={lookupState === 'loading' || phone.replace(/\D/g,'').length < 10}
               className="px-5 py-4 bg-orange-500 text-white rounded-2xl font-black text-xs tracking-widest shadow-lg shadow-orange-500/20 hover:scale-105 transition-all disabled:opacity-40 disabled:scale-100 flex items-center gap-2 shrink-0">
               {lookupState === 'loading'
-                ? <Loader2 size={15} className="animate-spin" />
-                : <Search size={15} />}
+                ? <Loader2 size={16} className="animate-spin" />
+                : <Search size={16} />}
               조회
             </button>
           </div>

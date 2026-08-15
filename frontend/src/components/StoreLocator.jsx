@@ -181,7 +181,7 @@ export default function StoreLocator() {
                     transition={{ type: 'spring', stiffness: 300, damping: 15 }}
                     className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shrink-0"
                   >
-                    <Icon size={26} aria-hidden="true" />
+                    <Icon size={24} aria-hidden="true" />
                   </motion.div>
                   <div className="min-w-0">
                     <p className="text-lg sm:text-xl font-black leading-tight">{cfg.title}</p>
@@ -260,7 +260,7 @@ export default function StoreLocator() {
               <button key={key} type="button" onClick={() => setView(key)}
                 className={`flex items-center gap-1.5 px-3 sm:px-4 h-9 rounded-lg text-sm font-black transition-colors ${view === key ? 'bg-white text-orange-500 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 aria-pressed={view === key} aria-label={`${label} 보기`}>
-                <Icon size={15} aria-hidden="true" /> <span className="hidden sm:inline">{label}</span>
+                <Icon size={16} aria-hidden="true" /> <span className="hidden sm:inline">{label}</span>
               </button>
             ))}
           </div>
@@ -294,7 +294,7 @@ export default function StoreLocator() {
               onClick={() => search()}
               className="inline-flex items-center gap-2 px-6 py-2.5 bg-orange-500 text-white rounded-xl text-sm font-bold hover:bg-orange-600 transition-colors"
             >
-              <RefreshCw size={14} /> 다시 시도
+              <RefreshCw size={16} /> 다시 시도
             </button>
           </div>
         ) : stores.length === 0 ? (
@@ -327,9 +327,9 @@ export default function StoreLocator() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-black text-gray-900 truncate">{s.name}</h3>
                       {s.business_type && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{bizLabel(s.business_type)}</span>}
-                      {s.distance_km != null && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 flex items-center gap-0.5"><Navigation size={9} aria-hidden="true" /><span className="tabular-nums">{s.distance_km}</span>km</span>}
+                      {s.distance_km != null && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 flex items-center gap-0.5"><Navigation size={12} aria-hidden="true" /><span className="tabular-nums">{s.distance_km}</span>km</span>}
                     </div>
-                    {s.address && <p className="text-sm text-gray-500 mt-0.5 truncate flex items-center gap-1"><MapPin size={12} className="text-gray-400 shrink-0" />{s.address}</p>}
+                    {s.address && <p className="text-sm text-gray-500 mt-0.5 truncate flex items-center gap-1"><MapPin size={14} className="text-gray-400 shrink-0" />{s.address}</p>}
                   </div>
                   <NaverShareButton
                     url={`${window.location.origin}/menu/${s.id}`}
@@ -343,7 +343,7 @@ export default function StoreLocator() {
                       <Heart size={16} className={favorites.has(s.id) ? 'fill-rose-400' : ''} />
                     </button>
                   )}
-                  <ChevronRight size={18} className="text-gray-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all shrink-0" />
+                  <ChevronRight size={16} className="text-gray-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all shrink-0" />
                 </Link>
               </motion.div>
             ))}
@@ -359,11 +359,11 @@ export default function StoreLocator() {
                   className="block bg-white border border-gray-100 rounded-2xl p-5 hover:border-orange-200 hover:shadow-lg transition-all group h-full">
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shrink-0 shadow-md">
-                      <Store size={22} className="text-white" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-black text-gray-900 truncate">{s.name}</h3>
+<Store size={20} className="text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-black text-gray-900 truncate">{s.name}</h3>
                         <NaverShareButton
                           url={`${window.location.origin}/menu/${s.id}`}
                           title={`${s.name} - 위마켓에서 찾은 맛집이에요!`}
@@ -373,7 +373,7 @@ export default function StoreLocator() {
                           <button type="button" onClick={(e) => toggleFavorite(s.id, e)}
                             className={`shrink-0 transition-colors ${favorites.has(s.id) ? 'text-rose-500' : 'text-gray-300 hover:text-rose-400'}`}
                             aria-label={favorites.has(s.id) ? '찜 해제' : '찜하기'}>
-                            <Heart size={14} className={favorites.has(s.id) ? 'fill-rose-400' : ''} />
+                            <Heart size={16} className={favorites.has(s.id) ? 'fill-rose-400' : ''} />
                           </button>
                         )}
                       </div>
@@ -383,7 +383,7 @@ export default function StoreLocator() {
                         )}
                         {s.distance_km != null && (
                           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 flex items-center gap-0.5">
-                            <Navigation size={9} aria-hidden="true" /> <span className="tabular-nums">{s.distance_km}</span>km
+                            <Navigation size={12} aria-hidden="true" /> <span className="tabular-nums">{s.distance_km}</span>km
                           </span>
                         )}
                       </div>

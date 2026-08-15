@@ -44,7 +44,7 @@ export default function PWAInstallBanner() {
             onClick={handleInstall}
             className="mt-3 flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
           >
-            <Download size={13} />
+            <Download size={14} />
             앱으로 설치
           </button>
         </div>
