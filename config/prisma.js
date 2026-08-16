@@ -10,6 +10,13 @@ const prismaPrimary = new PrismaClient({
   datasources: {
     db: { url: DATABASE_URL },
   },
+  // Render 콜드스타트 + 첫 DB 연결 지연으로 기본 5초 트랜잭션 타임아웃이
+  // 초과되어 결제(주문) API가 'Transaction already closed' 500을 반환함.
+  // 전역 타임아웃을 상향해 다중 순차 쿼리 트랜잭션(결제 생성 등) 안정화.
+  transactionOptions: {
+    maxWait: 20000,
+    timeout: 30000,
+  },
   log: [
     { emit: 'event', level: 'query' },
     { emit: 'stdout', level: 'error' },
