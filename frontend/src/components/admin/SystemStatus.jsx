@@ -425,7 +425,7 @@ export default function SystemStatus() {
                         # 로컬 서버 대상{'\n'}
                         npx artillery run scripts/load-test.yml{'\n\n'}
                         # 운영 서버 대상{'\n'}
-                        LOAD_TEST_BASE_URL=https://wemarket-toss.onrender.com \{'\n'}
+                        LOAD_TEST_BASE_URL=https://wemarket.onrender.com \{'\n'}
                         LOAD_TEST_STORE_ID=1 \{'\n'}
                         npx artillery run scripts/load-test.yml
                     </code>
