@@ -66,7 +66,8 @@ const checkStorePermission = (requiredPermission) => {
       }
 
       // 권한 체크 대상 storeId 추출
-      const storeId = req.params.storeId || req.query.store_id || req.body.store_id || req.storeId;
+      const storeId =
+        req.params.storeId || req.query.store_id || (req.body && req.body.store_id) || req.storeId;
 
       if (!storeId) {
         return res.status(400).json({ error: '매장 ID가 필요합니다' });

@@ -60,7 +60,7 @@ function checkPlanLimit(planName, limitKey, currentUsage) {
 function requirePlanFeature(feature) {
   return async (req, res, next) => {
     try {
-      const storeId = req.params.storeId || req.body.store_id || req.query.store_id;
+      const storeId = req.params.storeId || (req.body && req.body.store_id) || req.query.store_id;
       const userRole = req.user?.role;
 
       // super_admin은 모든 기능 접근 허용
@@ -105,7 +105,7 @@ function requirePlanFeature(feature) {
 function requirePlanLimit(limitKey, getCurrentUsage) {
   return async (req, res, next) => {
     try {
-      const storeId = req.params.storeId || req.body.store_id || req.query.store_id;
+      const storeId = req.params.storeId || (req.body && req.body.store_id) || req.query.store_id;
       const userRole = req.user?.role;
 
       if (userRole === 'super_admin') {
@@ -148,7 +148,7 @@ function requirePlanLimit(limitKey, getCurrentUsage) {
  * 현재 플랜 정보 조회 헬퍼
  */
 async function getCurrentPlan(req) {
-  const storeId = req.params.storeId || req.body.store_id || req.query.store_id;
+  const storeId = req.params.storeId || (req.body && req.body.store_id) || req.query.store_id;
   if (!storeId) return { name: 'free', subscription: null };
 
   const subscription = await require('../services/SubscriptionService').getSubscription(storeId);
