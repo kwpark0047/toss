@@ -1,6 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { storesAPI } from '@/api';
-import { DAYS, DEFAULT_HOURS } from '@/components/admin/StoreSettings';
+
+// ── 상수 (StoreSettings와 응집된 기본값) ─────────────────────────────
+export const DAYS = [
+  { key: 'mon', label: '월' },
+  { key: 'tue', label: '화' },
+  { key: 'wed', label: '수' },
+  { key: 'thu', label: '목' },
+  { key: 'fri', label: '금' },
+  { key: 'sat', label: '토' },
+  { key: 'sun', label: '일' },
+];
+
+export const DEFAULT_HOURS = { open: '09:00', close: '22:00', closed: false };
 
 // ── 타입 정의 ──────────────────────────────────────────────────────
 export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
@@ -157,7 +169,7 @@ export const useStoreOperatingHours = (storeId: string) => {
   }, [fetchStoreHours]);
 
   // ── state 업데이트 액션 ──────────────────────────────────────────
-  const updateHours = useCallback((newHours: Record<DayKey, Partial<DayHours>>>) => {
+  const updateHours = useCallback((newHours: Record<DayKey, Partial<DayHours>>) => {
     setState(prev => {
       const next: Record<DayKey, DayHours> = {};
 
