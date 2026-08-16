@@ -1,4 +1,4 @@
-const BACKEND_URL = 'https://wemarket.onrender.com';
+const BACKEND_URL = 'https://wemarket-toss.onrender.com';
 
 const API_PREFIX = '/api/';
 
