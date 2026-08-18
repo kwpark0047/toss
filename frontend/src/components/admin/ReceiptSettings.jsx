@@ -7,14 +7,35 @@ import { toast } from 'react-toastify';
 
 const ReceiptSettings = () => {
     const { storeId } = useParams();
-    const [settings, setSettings] = useState(null);
+    const [settings, setSettings] = useState({
+        title: '영수증',
+        greetings: '방문해 주셔서 감사합니다.',
+        footer_text: '교환/환불은 영수증 지참 시 7일 이내 가능합니다.',
+        header_logo: '',
+        show_order_number: true,
+        show_item_details: true,
+        show_store_address: true,
+        show_points: true
+    });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
     const fetchSettings = useCallback(async () => {
         try {
             const res = await adminAPI.getReceiptSettings(storeId);
-            setSettings(res.data || res); // 응답 형식에 따라 조정
+            const data = res.data || res;
+            // 기본값과 병합
+            const defaults = {
+                title: '영수증',
+                greetings: '방문해 주셔서 감사합니다.',
+                footer_text: '교환/환불은 영수증 지참 시 7일 이내 가능합니다.',
+                header_logo: '',
+                show_order_number: true,
+                show_item_details: true,
+                show_store_address: true,
+                show_points: true
+            };
+            setSettings({ ...defaults, ...data });
         } catch {
             toast.error('설정을 불러오는데 실패했습니다.');
         } finally {
@@ -27,6 +48,11 @@ const ReceiptSettings = () => {
     }, [fetchSettings]);
 
     const handleUpdate = async () => {
+        // 유효성 검사
+        if (!settings.title?.trim()) {
+            toast.error('영수증 제목을 입력해주세요.');
+            return;
+        }
         setSaving(true);
         try {
             await adminAPI.updateReceiptSettings(storeId, settings);
@@ -38,8 +64,8 @@ const ReceiptSettings = () => {
         }
     };
 
-    const toggleField = (field) => {
-        setSettings(prev => ({ ...prev, [field]: prev[field] ? 0 : 1 }));
+    const handleBooleanChange = (field) => {
+        setSettings(prev => ({ ...prev, [field]: !prev[field] }));
     };
 
     if (loading) return <div className="p-10 text-center">로딩 중...</div>;
@@ -58,7 +84,8 @@ const ReceiptSettings = () => {
                     disabled={saving}
                     className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 hover:bg-blue-500 active:scale-95 transition-all disabled:opacity-50"
                 >
-                    {saving ? '저장 중...' : <><Save size={20} /> 설정 저장</>}
+                    {loading && <span className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />}
+                {saving ? '저장 중...' : <><Save size={20} /> 설정 저장</>}
                 </button>
             </div>
 
@@ -76,6 +103,16 @@ const ReceiptSettings = () => {
                                     type="text"
                                     value={settings.title}
                                     onChange={e => setSettings({ ...settings, title: e.target.value })}
+                                    className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">상단 로고 이미지 (URL)</label>
+                                <input
+                                    type="text"
+                                    value={settings.header_logo}
+                                    onChange={e => setSettings({ ...settings, header_logo: e.target.value })}
+                                    placeholder="https://example.com/logo.png"
                                     className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all outline-none"
                                 />
                             </div>
@@ -113,7 +150,7 @@ const ReceiptSettings = () => {
                             ].map(item => (
                                 <button
                                     key={item.id}
-                                    onClick={() => toggleField(item.id)}
+                                    onClick={() => handleBooleanChange(item.id)}
                                     className={`flex items-center gap-3 p-4 rounded-xl border transition-all ${settings[item.id] ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-100 text-gray-400'}`}
                                 >
                                     {settings[item.id] ? <CheckSquare /> : <Square />}
@@ -138,6 +175,9 @@ const ReceiptSettings = () => {
 
                             <div className="text-center mb-6 border-b border-dashed border-gray-300 pb-4">
                                 <h2 className="text-xl font-black mb-1 tracking-widest">{settings.title}</h2>
+                                {settings.header_logo && (
+                                    <img src={settings.header_logo} alt="로고" className="mx-auto mb-4 h-16 object-contain" />
+                                )}
                                 <div className="text-xs text-gray-400 mb-2 uppercase tracking-tighter">Receipt for Payment</div>
                                 <p className="whitespace-pre-line text-xs font-sans text-gray-500">{settings.greetings}</p>
                             </div>
