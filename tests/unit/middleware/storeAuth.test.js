@@ -10,6 +10,7 @@ jest.mock('../../../utils/logger');
 
 const {
   getStoreRole,
+  checkStorePermission,
   checkStorePermissionForObject,
   checkStorePermissionForObjectBatch,
   checkUniformStoreMutation,
@@ -45,6 +46,39 @@ describe('getStoreRole', () => {
     prisma.staff.findFirst.mockResolvedValue(null);
 
     await expect(getStoreRole(7, 10)).resolves.toBeNull();
+  });
+});
+
+describe('checkStorePermission manager capabilities', () => {
+  beforeEach(() => jest.resetAllMocks());
+
+  test.each(['settings:read', 'settings:write', 'products:write', 'orders:update'])(
+    '매니저는 %s 권한을 가진다',
+    async (permission) => {
+      prisma.stores.findUnique.mockResolvedValue({ user_id: 99 });
+      prisma.staff.findFirst.mockResolvedValue({ role: 'manager' });
+      const req = { user: { id: 7, role: 'manager' }, params: { storeId: '10' } };
+      const next = jest.fn();
+
+      await checkStorePermission(permission)(req, mockRes(), next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(req.storeRole).toBe('manager');
+    }
+  );
+
+  test('매니저는 매장 삭제 권한을 갖지 않는다', async () => {
+    prisma.stores.findUnique.mockResolvedValue({ user_id: 99 });
+    prisma.staff.findFirst.mockResolvedValue({ role: 'manager' });
+    const next = jest.fn();
+
+    await checkStorePermission('store:delete')(
+      { user: { id: 7, role: 'manager' }, params: { storeId: '10' } },
+      mockRes(),
+      next
+    );
+
+    expect(next).not.toHaveBeenCalled();
   });
 });
 

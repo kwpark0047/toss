@@ -4,6 +4,22 @@ const { AppError } = require('../utils/errorHandler');
 
 const ASSIGNABLE_ROLES = ['staff', 'kitchen', 'manager'];
 
+const parsePositiveInt = (value, fieldName) => {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new AppError(`유효하지 않은 ${fieldName}입니다.`, 400);
+  }
+  return parsed;
+};
+
+const parseTime = (value, fieldName) => {
+  if (typeof value !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+    throw new AppError(`유효하지 않은 ${fieldName}입니다.`, 400);
+  }
+  const [hour, minute] = value.split(':').map(Number);
+  return hour * 60 + minute;
+};
+
 class StaffService {
   async getMyRole(userId, storeId) {
     const store = await prisma.stores.findUnique({ where: { id: storeId } });
@@ -16,6 +32,7 @@ class StaffService {
     const staff = await prisma.staff.findUnique({
       where: { store_id_user_id: { store_id: storeId, user_id: userId } },
     });
+    if (staff && staff.is_active === 0) return { role: 'user', staff_id: null };
     return { role: staff ? staff.role : 'user', staff_id: staff ? staff.id : null };
   }
 
@@ -51,12 +68,29 @@ class StaffService {
     return { id: newStaff.id, name: newStaff.users.name, role: 'owner' };
   }
 
-  async createStaff({ storeId, name, email, password, role }) {
-    if (!storeId || !email || !password || !name) {
+  async createStaff({ storeId, name, email, password, role }, callerUserId) {
+    if (!storeId || !email || !password || !name?.trim()) {
       throw new AppError('필수 정보가 누락되었습니다.', 400);
     }
+    if (String(password).length < 8) throw new AppError('비밀번호는 8자 이상이어야 합니다.', 400);
 
-    const existingUser = await prisma.users.findUnique({ where: { email } });
+    const assignedRole = role || 'staff';
+    if (!ASSIGNABLE_ROLES.includes(assignedRole)) {
+      throw new AppError('유효하지 않은 역할입니다.', 400);
+    }
+
+    // 매장 관리 권한 확인 (오너/매니저) — 미인증 사용자의 타 매장 직원 생성 차단
+    const { getStoreRole } = require('../middleware/storeAuth');
+    const myRole = await getStoreRole(callerUserId, storeId);
+    if (!myRole || (myRole !== 'owner' && myRole !== 'manager')) {
+      throw new AppError('직원 추가 권한이 없습니다.', 403);
+    }
+    if (assignedRole === 'manager' && myRole !== 'owner') {
+      throw new AppError('매니저 역할은 오너만 부여할 수 있습니다.', 403);
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await prisma.users.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
       throw new AppError('이미 존재하는 이메일입니다.', 409);
     }
@@ -64,10 +98,15 @@ class StaffService {
     const result = await prisma.$transaction(async (tx) => {
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = await tx.users.create({
-        data: { name, email, password: hashedPassword, role: 'staff' },
+        data: {
+          name: name.trim(),
+          email: normalizedEmail,
+          password: hashedPassword,
+          role: 'staff',
+        },
       });
       const newStaff = await tx.staff.create({
-        data: { store_id: parseInt(storeId), user_id: newUser.id, role: role || 'staff' },
+        data: { store_id: parseInt(storeId), user_id: newUser.id, role: assignedRole },
         include: { users: { select: { name: true, email: true } } },
       });
       return newStaff;
@@ -83,19 +122,24 @@ class StaffService {
   }
 
   async getAttendance(storeId, { date, month }) {
+    const storeNumber = parsePositiveInt(storeId, '매장 ID');
     let clockFilter = {};
     if (date) {
       const start = new Date(date);
+      if (Number.isNaN(start.getTime())) throw new AppError('유효하지 않은 날짜입니다.', 400);
       const end = new Date(date);
       end.setDate(end.getDate() + 1);
       clockFilter = { clock_in: { gte: start, lt: end } };
     } else if (month) {
       const [y, m] = month.split('-').map(Number);
+      if (!Number.isInteger(y) || !Number.isInteger(m) || m < 1 || m > 12) {
+        throw new AppError('유효하지 않은 월입니다.', 400);
+      }
       clockFilter = { clock_in: { gte: new Date(y, m - 1, 1), lt: new Date(y, m, 1) } };
     }
 
     return prisma.staff_attendance.findMany({
-      where: { store_id: storeId, ...clockFilter },
+      where: { store_id: storeNumber, ...clockFilter },
       include: { staff: { include: { users: { select: { name: true, email: true } } } } },
       orderBy: { clock_in: 'desc' },
     });
@@ -104,6 +148,7 @@ class StaffService {
   async clockIn(staffId, userId, userRole, note) {
     const staff = await prisma.staff.findUnique({ where: { id: staffId } });
     if (!staff) throw new AppError('직원을 찾을 수 없습니다.', 404);
+    if (staff.is_active === 0) throw new AppError('비활성 직원은 출퇴근 처리할 수 없습니다.', 403);
 
     const isSelf = staff.user_id === userId;
     if (!isSelf && userRole !== 'super_admin') {
@@ -132,6 +177,7 @@ class StaffService {
   async clockOut(staffId, userId, userRole) {
     const staff = await prisma.staff.findUnique({ where: { id: staffId } });
     if (!staff) throw new AppError('직원을 찾을 수 없습니다.', 404);
+    if (staff.is_active === 0) throw new AppError('비활성 직원은 출퇴근 처리할 수 없습니다.', 403);
 
     const isSelf = staff.user_id === userId;
     if (!isSelf && userRole !== 'super_admin') {
@@ -156,12 +202,45 @@ class StaffService {
     });
   }
 
-  async updateStaffRole(staffId, role) {
-    return prisma.staff.update({ where: { id: staffId }, data: { role } });
+  async updateStaffRole(staffId, role, callerUserId, callerRole) {
+    const target = await prisma.staff.findUnique({
+      where: { id: parsePositiveInt(staffId, '직원 ID') },
+    });
+    if (!target) throw new AppError('직원을 찾을 수 없습니다.', 404);
+    if (!ASSIGNABLE_ROLES.includes(role)) throw new AppError('유효하지 않은 역할입니다.', 400);
+    if (target.role === 'owner') throw new AppError('오너 역할은 수정할 수 없습니다.', 403);
+
+    let currentRole = callerRole;
+    if (callerRole !== 'super_admin') {
+      const { getStoreRole } = require('../middleware/storeAuth');
+      currentRole = await getStoreRole(callerUserId, target.store_id);
+      if (currentRole !== 'owner' && currentRole !== 'manager') {
+        throw new AppError('직원 역할 수정 권한이 없습니다.', 403);
+      }
+    }
+    if (role === 'manager' && currentRole !== 'owner' && currentRole !== 'super_admin') {
+      throw new AppError('매니저 역할은 오너만 부여할 수 있습니다.', 403);
+    }
+    return prisma.staff.update({ where: { id: target.id }, data: { role } });
   }
 
-  async deleteStaff(staffId) {
-    return prisma.staff.delete({ where: { id: staffId } });
+  async deleteStaff(staffId, callerUserId, callerRole) {
+    const target = await prisma.staff.findUnique({
+      where: { id: parsePositiveInt(staffId, '직원 ID') },
+    });
+    if (!target) throw new AppError('직원을 찾을 수 없습니다.', 404);
+    if (target.role === 'owner') throw new AppError('오너 계정은 삭제할 수 없습니다.', 403);
+    if (callerRole !== 'super_admin') {
+      const { getStoreRole } = require('../middleware/storeAuth');
+      const currentRole = await getStoreRole(callerUserId, target.store_id);
+      if (currentRole !== 'owner' && currentRole !== 'manager') {
+        throw new AppError('직원 삭제 권한이 없습니다.', 403);
+      }
+      if (currentRole === 'manager' && target.role === 'manager') {
+        throw new AppError('매니저는 다른 매니저를 삭제할 수 없습니다.', 403);
+      }
+    }
+    return prisma.staff.delete({ where: { id: target.id } });
   }
 
   async lookupUser(phone, storeId, callerUserId) {
@@ -235,7 +314,10 @@ class StaffService {
   }
 
   async getSchedules(storeId, weekParam) {
+    const storeNumber = parsePositiveInt(storeId, '매장 ID');
     const weekStart = weekParam ? new Date(weekParam) : new Date();
+    if (Number.isNaN(weekStart.getTime()))
+      throw new AppError('유효하지 않은 주 시작일입니다.', 400);
     const dayOfWeek = weekStart.getDay();
     const monday = new Date(weekStart);
     monday.setDate(monday.getDate() - ((dayOfWeek + 6) % 7));
@@ -245,7 +327,7 @@ class StaffService {
     sunday.setHours(23, 59, 59, 999);
 
     const schedules = await prisma.staff_schedules.findMany({
-      where: { store_id: storeId, date: { gte: monday, lte: sunday } },
+      where: { store_id: storeNumber, date: { gte: monday, lte: sunday } },
       include: {
         staff: {
           include: { users: { select: { id: true, name: true, email: true, phone: true } } },
@@ -258,6 +340,7 @@ class StaffService {
   }
 
   async createSchedules(storeId, entries, isBatch) {
+    const storeNumber = parsePositiveInt(storeId, '매장 ID');
     const created = [];
     for (const entry of entries) {
       if (!entry.staff_id || !entry.date || !entry.start_time || !entry.end_time) {
@@ -266,6 +349,28 @@ class StaffService {
       }
 
       const entryDate = new Date(entry.date);
+      if (Number.isNaN(entryDate.getTime())) {
+        if (isBatch) continue;
+        throw new AppError('유효하지 않은 일정 날짜입니다.', 400);
+      }
+      const startMinutes = parseTime(entry.start_time, '시작 시간');
+      const endMinutes = parseTime(entry.end_time, '종료 시간');
+      if (endMinutes <= startMinutes) {
+        if (isBatch) continue;
+        throw new AppError('종료 시간은 시작 시간보다 늦어야 합니다.', 400);
+      }
+      const assignedStaff = await prisma.staff.findUnique({
+        where: { id: parsePositiveInt(entry.staff_id, '직원 ID') },
+        select: { store_id: true, is_active: true },
+      });
+      if (
+        !assignedStaff ||
+        assignedStaff.store_id !== storeNumber ||
+        assignedStaff.is_active === 0
+      ) {
+        if (isBatch) continue;
+        throw new AppError('해당 매장의 활성 직원만 배정할 수 있습니다.', 400);
+      }
       entryDate.setHours(0, 0, 0, 0);
       const nextDay = new Date(entryDate);
       nextDay.setDate(nextDay.getDate() + 1);
@@ -286,8 +391,8 @@ class StaffService {
 
       const schedule = await prisma.staff_schedules.create({
         data: {
-          staff_id: parseInt(entry.staff_id),
-          store_id: storeId,
+          staff_id: parsePositiveInt(entry.staff_id, '직원 ID'),
+          store_id: storeNumber,
           date: entryDate,
           start_time: entry.start_time,
           end_time: entry.end_time,
@@ -302,14 +407,25 @@ class StaffService {
   }
 
   async updateSchedule(scheduleId, storeId, data) {
+    const scheduleNumber = parsePositiveInt(scheduleId, '시프트 ID');
+    const storeNumber = parsePositiveInt(storeId, '매장 ID');
     const existing = await prisma.staff_schedules.findFirst({
-      where: { id: scheduleId, store_id: storeId },
+      where: { id: scheduleNumber, store_id: storeNumber },
     });
     if (!existing) throw new AppError('시프트를 찾을 수 없습니다.', 404);
 
     const { start_time, end_time, role, note } = data;
+    if (start_time !== undefined) parseTime(start_time, '시작 시간');
+    if (end_time !== undefined) parseTime(end_time, '종료 시간');
+    if (
+      start_time !== undefined &&
+      end_time !== undefined &&
+      parseTime(end_time, '종료 시간') <= parseTime(start_time, '시작 시간')
+    ) {
+      throw new AppError('종료 시간은 시작 시간보다 늦어야 합니다.', 400);
+    }
     return prisma.staff_schedules.update({
-      where: { id: scheduleId },
+      where: { id: scheduleNumber },
       data: {
         ...(start_time && { start_time }),
         ...(end_time && { end_time }),
@@ -321,11 +437,13 @@ class StaffService {
   }
 
   async deleteSchedule(scheduleId, storeId) {
+    const scheduleNumber = parsePositiveInt(scheduleId, '시프트 ID');
+    const storeNumber = parsePositiveInt(storeId, '매장 ID');
     const existing = await prisma.staff_schedules.findFirst({
-      where: { id: scheduleId, store_id: storeId },
+      where: { id: scheduleNumber, store_id: storeNumber },
     });
     if (!existing) throw new AppError('시프트를 찾을 수 없습니다.', 404);
-    return prisma.staff_schedules.delete({ where: { id: scheduleId } });
+    return prisma.staff_schedules.delete({ where: { id: scheduleNumber } });
   }
 }
 

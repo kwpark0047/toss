@@ -5,8 +5,8 @@ process.env.ORDER_CAPABILITY_SECRET = 'customer-capability-route-secret';
 
 const mockOrdersController = {
   createOrder: jest.fn(),
-  registerCustomerToken: jest.fn((req, res) => res.json({ success: true })),
   getCustomerHistory: jest.fn((req, res) => res.json({ success: true })),
+  registerCustomerToken: jest.fn((req, res) => res.json({ success: true })),
   getDetailedStats: jest.fn(),
   getStats: jest.fn(),
   getStoreOrders: jest.fn(),
@@ -63,6 +63,7 @@ jest.mock('../../middleware/storeAuth', () => ({
 const {
   createOrderCapability,
   createReservationCapability,
+  createCustomerHistoryCapability,
 } = require('../../utils/orderCapability');
 const ordersRouter = require('../../routes/orders');
 const reservationsRouter = require('../../routes/reservations');
@@ -85,6 +86,23 @@ describe('customer capability route boundaries', () => {
 
     expect(response.status).toBe(403);
     expect(mockOrdersController.getOrderDetails).not.toHaveBeenCalled();
+  });
+
+  test('customer order history rejects phone-only lookup', async () => {
+    const response = await request(app()).get('/api/orders/customer/history?phone=01012345678');
+
+    expect(response.status).toBe(403);
+    expect(mockOrdersController.getCustomerHistory).not.toHaveBeenCalled();
+  });
+
+  test('customer order history accepts a matching history capability', async () => {
+    const capability = createCustomerHistoryCapability({ phone: '01012345678' });
+    const response = await request(app())
+      .get('/api/orders/customer/history?phone=99999999999')
+      .set('x-customer-history-capability', capability);
+
+    expect(response.status).toBe(200);
+    expect(mockOrdersController.getCustomerHistory).toHaveBeenCalled();
   });
 
   test('order details accept the matching order capability', async () => {

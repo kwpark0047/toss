@@ -50,16 +50,13 @@ const OrderHistory = () => {
         else setLoading(true);
 
         try {
-            const params = {};
-            if (userPhone) params.phone = userPhone;
-            if (tossUserKey) params.toss_user_key = tossUserKey;
-
-            if (Object.keys(params).length === 0) {
+            const historyCapability = localStorage.getItem('wm_customer_history_capability');
+            if (!historyCapability || (!userPhone && !tossUserKey)) {
                 setOrders([]);
                 return;
             }
 
-            const response = await ordersAPI.getCustomerHistory(params);
+            const response = await ordersAPI.getCustomerHistory(historyCapability);
             setOrders(response.data);
         } catch (error) {
             console.error('주문 내역 조회 실패:', error);

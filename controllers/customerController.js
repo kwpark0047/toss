@@ -81,14 +81,16 @@ const customerController = {
 
   // GET /:storeId — 매장별 단골고객 리스트
   async getCustomers(req, res) {
-    const { sortBy, order, limit, search } = req.query;
-    const customers = await StoreCustomer.findByStoreId(req.params.storeId, {
+    const { sortBy, order, limit, search, tier, page } = req.query;
+    const result = await StoreCustomer.findByStoreId(req.params.storeId, {
       sortBy,
       order,
       limit: limit ? parseInt(limit) : 50,
       search,
+      tier,
+      page: page ? parseInt(page) : 1,
     });
-    res.json({ success: true, data: customers });
+    res.json({ success: true, data: result });
   },
 
   // POST /update-location — 고객 실시간 위치 업데이트

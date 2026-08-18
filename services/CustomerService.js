@@ -5,6 +5,7 @@ const StoreCustomer = require('../repositories/StoreCustomer');
 const { normalizePhone, encryptPhone, phoneSearchCandidates } = require('../utils/phoneEncryption');
 const { haversineKm } = require('../utils/geo');
 const logger = require('../utils/logger');
+const { AppError } = require('../utils/errorHandler');
 
 class CustomerService {
   // 고객 휴대폰 번호 통합 등록 (phone-join)
@@ -12,30 +13,25 @@ class CustomerService {
   // 클라이언트가 보낸 total_amount 는 신뢰하지 않고, DB의 주문 금액을 사용한다.
   async phoneJoin(input, capability = null) {
     const rawPhone = normalizePhone(input.phone);
+    if (!rawPhone) throw new AppError('유효한 휴대폰 번호가 필요합니다.', 400);
     const encryptedPhone = encryptPhone(rawPhone);
     const storeId = capability ? parseInt(capability.storeId) : parseInt(input.store_id);
 
     // 주문 컨텍스트 없이는 임의의 로열티 적립을 거부한다
     if (!capability || !capability.orderId || !capability.storeId) {
-      const err = new Error('주문 컨텍스트가 없습니다.');
-      err.status = 400;
-      throw err;
+      throw new AppError('주문 컨텍스트가 없습니다.', 400);
     }
 
     const orderId = parseInt(capability.orderId);
     // 클라이언트가 지정한 주문과 capability가 다르면 거부
     if (input.order_id && parseInt(input.order_id) !== orderId) {
-      const err = new Error('주문 정보가 일치하지 않습니다.');
-      err.status = 403;
-      throw err;
+      throw new AppError('주문 정보가 일치하지 않습니다.', 403);
     }
 
     // 서버가 주문을 직접 조회해 금액을 산정 (클라이언트 금액 무시)
     const order = await prisma.orders.findUnique({ where: { id: orderId } });
     if (!order || parseInt(order.store_id) !== storeId) {
-      const err = new Error('유효한 주문이 아닙니다.');
-      err.status = 403;
-      throw err;
+      throw new AppError('유효한 주문이 아닙니다.', 403);
     }
     const amount = parseInt(order.total_amount) || 0;
 
@@ -260,6 +256,7 @@ class CustomerService {
         where: {
           customer_phone: customer.customer_phone,
           status: 'UNUSED',
+          coupons: { store_id: customer.store_id },
           OR: [{ expires_at: null }, { expires_at: { gte: new Date() } }],
         },
         include: { coupons: { select: { name: true, amount: true, type: true, store_id: true } } },
@@ -302,10 +299,25 @@ class CustomerService {
     });
     if (!coupon) return { error: '쿠폰 정보 없음', status: 404 };
 
+    // 만료일 검증
+    if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
+      return { error: '만료된 쿠폰입니다.', status: 400 };
+    }
+
     const alreadyHas = await prisma.user_coupons.findFirst({
       where: { customer_phone: customer.customer_phone, coupon_id: coupon.id, status: 'UNUSED' },
     });
     if (alreadyHas) return { error: '이미 보유 중인 쿠폰입니다.', status: 409 };
+
+    // 발급 한도 검증
+    if (coupon.max_issue_per_customer && coupon.max_issue_per_customer > 0) {
+      const issuedCount = await prisma.user_coupons.count({
+        where: { customer_phone: customer.customer_phone, coupon_id: coupon.id },
+      });
+      if (issuedCount >= coupon.max_issue_per_customer) {
+        return { error: '1인당 발급 한도를 초과했습니다.', status: 409 };
+      }
+    }
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + (coupon.valid_days || 30));
@@ -323,6 +335,15 @@ class CustomerService {
 
   // 위치 업데이트 + 근처 매장 혜택 알림
   async updateLocation({ phone, latitude, longitude }) {
+    const numericLatitude = Number(latitude);
+    const numericLongitude = Number(longitude);
+    if (!normalizePhone(phone)) throw new AppError('유효한 휴대폰 번호가 필요합니다.', 400);
+    if (!Number.isFinite(numericLatitude) || numericLatitude < -90 || numericLatitude > 90) {
+      throw new AppError('위도 값이 올바르지 않습니다.', 400);
+    }
+    if (!Number.isFinite(numericLongitude) || numericLongitude < -180 || numericLongitude > 180) {
+      throw new AppError('경도 값이 올바르지 않습니다.', 400);
+    }
     const activeStores = await prisma.stores.findMany({
       where: { is_active: true, latitude: { not: null }, longitude: { not: null } },
       include: { coupons: { where: { is_active: 1 }, take: 1 } },
@@ -330,7 +351,12 @@ class CustomerService {
 
     const NEARBY_DISTANCE_KM = 0.5;
     const nearbyStore = activeStores.find((store) => {
-      const distance = haversineKm(latitude, longitude, store.latitude, store.longitude);
+      const distance = haversineKm(
+        numericLatitude,
+        numericLongitude,
+        store.latitude,
+        store.longitude
+      );
       return distance <= NEARBY_DISTANCE_KM;
     });
 
@@ -349,6 +375,12 @@ class CustomerService {
   // FCM 토큰 등록
   async registerFcmToken({ phone, store_id, fcm_token }) {
     const storeId = parseInt(store_id);
+    if (!normalizePhone(phone) || !Number.isInteger(storeId) || storeId <= 0) {
+      throw new AppError('휴대폰 번호와 매장 ID가 올바르지 않습니다.', 400);
+    }
+    if (typeof fcm_token !== 'string' || fcm_token.trim().length < 10 || fcm_token.length > 4096) {
+      throw new AppError('FCM 토큰 형식이 올바르지 않습니다.', 400);
+    }
     const encryptedPhone = encryptPhone(phone);
     await prisma.store_customers.upsert({
       where: { uk_store_customer: { store_id: storeId, customer_phone: encryptedPhone } },

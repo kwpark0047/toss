@@ -21,6 +21,7 @@ const ReservationSection = ({ storeId }) => {
     const [searchPhone, setSearchPhone] = useState('');
     const [myReservations, setMyReservations] = useState([]);
     const [hasSearched, setHasSearched] = useState(false);
+    const [reservationCapability, setReservationCapability] = useState(null);
 
     // 컴포넌트 마운트 시 로컬스토리지에서 최근 사용한 번호 불러오기
     useEffect(() => {
@@ -42,6 +43,10 @@ const ReservationSection = ({ storeId }) => {
             });
             if (response.data.success) {
                 localStorage.setItem('reservation_phone', formData.customer_phone);
+                if (response.data.capability) {
+                    setReservationCapability(response.data.capability);
+                    localStorage.setItem('reservation_capability', response.data.capability);
+                }
                 setStep('success');
             } else {
                 setStep('error');
@@ -59,7 +64,8 @@ const ReservationSection = ({ storeId }) => {
         if (!searchPhone) return alert('연락처를 입력해주세요.');
         setLoading(true);
         try {
-            const response = await reservationsAPI.getMyReservations(searchPhone);
+            const capability = reservationCapability || localStorage.getItem('reservation_capability');
+            const response = await reservationsAPI.getMyReservations(searchPhone, capability);
             if (response.data?.success) {
                 // 현재 매장에 해당하는 예약만 필터링
                 const storeReservations = response.data.data.filter(r => r.store_id === storeId);
@@ -78,7 +84,8 @@ const ReservationSection = ({ storeId }) => {
         if (!window.confirm('정말 이 예약을 취소하시겠습니까?')) return;
         setLoading(true);
         try {
-            const response = await reservationsAPI.cancel(reservationId, searchPhone);
+            const capability = reservationCapability || localStorage.getItem('reservation_capability');
+            const response = await reservationsAPI.cancel(reservationId, capability);
             if (response.data?.success) {
                 alert('예약이 정상적으로 취소되었습니다.');
                 handleSearch(); // 목록 갱신

@@ -10,4 +10,5 @@ export const customersAPI = {
   phoneJoin: (data) => api.post('/customers/phone-join', data),
   registerFcmToken: (phone, storeId, fcmToken) =>
     api.post('/customers/fcm-token', { phone, store_id: storeId, fcm_token: fcmToken }),
+  list: (storeId, params = {}) => api.get('/customers/' + storeId, { params }),
 };

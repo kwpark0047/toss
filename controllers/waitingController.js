@@ -4,6 +4,7 @@ const Product = require('../repositories/Product');
 const Order = require('../repositories/Order');
 const WaitingService = require('../services/WaitingService');
 const customerPreferenceService = require('../services/CustomerPreferenceService');
+const { createWaitingCapability, verifyWaitingCapability } = require('../utils/orderCapability');
 const { success, created, error, validationError } = require('../utils/apiResponse');
 
 const waitingService = new WaitingService();
@@ -24,7 +25,13 @@ const waitingController = {
   // [POST] 대기 등록 (고객)
   register: catchAsync(async (req, res) => {
     const data = await waitingService.register(req.body);
-    return created(res, data, '대기 등록 완료');
+    let capability = null;
+    try {
+      capability = createWaitingCapability(data);
+    } catch (_err) {
+      // capability 생성 실패는 대기 등록 자체를 막지 않는다 (시크릿 미설정 시 null)
+    }
+    return created(res, data, '대기 등록 완료', { capability });
   }),
 
   // [PATCH] 대기 상태 변경 (관리자: 호출/입장/취소, 고객: 취소)
@@ -56,6 +63,48 @@ const waitingController = {
   getMyWaiting: catchAsync(async (req, res) => {
     const data = await waitingService.getMyWaiting(req.params.phone);
     return success(res, data, '내 대기 상태 조회 성공');
+  }),
+
+  // [DELETE] 고객 본인 대기 취소 (전화번호 또는 capability 기반)
+  cancelWaiting: catchAsync(async (req, res) => {
+    const io = req.app?.get?.('io');
+    // capability 헤더 또는 body의 phone으로 본인 확인
+    const capability = req.get('x-waiting-capability');
+    let phone = req.body?.phone;
+    if (!phone && capability) {
+      try {
+        const payload = verifyWaitingCapability(capability);
+        if (payload) phone = payload.customer_phone;
+      } catch (_err) {
+        // capability 검증 실패 시 body phone 사용
+      }
+    }
+    if (!phone) {
+      return validationError(
+        res,
+        { phone },
+        '전화번호가 필요합니다. (x-waiting-capability 헤더 또는 body.phone)'
+      );
+    }
+    const data = await waitingService.cancelWaiting(req.params.id, phone, io);
+    return success(res, data, '대기 취소 완료');
+  }),
+
+  // [PATCH] 고객 알림 재발송 (전화번호 또는 capability 기반)
+  resendCustomerNotification: catchAsync(async (req, res) => {
+    const capability = req.get('x-waiting-capability');
+    let phone = req.body?.phone;
+    if (!phone && capability) {
+      try {
+        const payload = verifyWaitingCapability(capability);
+        if (payload) phone = payload.customer_phone;
+      } catch (_err) {}
+    }
+    if (!phone) {
+      return validationError(res, { phone }, '전화번호가 필요합니다.');
+    }
+    const data = await waitingService.resendCustomerNotification(req.params.id, phone);
+    return success(res, data, '알림 재발송 완료');
   }),
 
   // [GET] AI 기반 대기 중 메뉴 추천 (개인화)

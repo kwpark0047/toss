@@ -4,6 +4,7 @@ const waitingController = require('../controllers/waitingController');
 const { createAIRateLimiter } = require('../utils/aiRateLimiter');
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission, getStoreRole } = require('../middleware/storeAuth');
+const { verifyWaitingCapability } = require('../utils/orderCapability');
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 
@@ -218,6 +219,82 @@ router.patch(
   checkWaitingPermission('orders:manage'),
   waitingController.resendNotification
 );
+
+// waiting capability 검증 (고객 본인 확인용)
+const requireWaitingCapability = (req, res, next) => {
+  const capability = verifyWaitingCapability(req.get('x-waiting-capability'));
+  if (!capability) {
+    return res.status(403).json({ error: '대기 조회 권한이 없거나 만료되었습니다.' });
+  }
+  const routeId = req.params.id ? parseInt(req.params.id) : null;
+  if (routeId && capability.id !== routeId) {
+    return res.status(403).json({ error: '대기 조회 권한이 없거나 만료되었습니다.' });
+  }
+  req.capability = capability;
+  next();
+};
+
+/**
+ * @swagger
+ * /api/waiting/{id}/cancel:
+ *   delete:
+ *     tags: [Waiting]
+ *     summary: 고객 본인 대기 취소 (전화번호 또는 capability 기반)
+ *     security:
+ *       - waitingCapability: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               phone:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 대기 취소 완료
+ */
+router.delete('/:id/cancel', requireWaitingCapability, waitingController.cancelWaiting);
+
+/**
+ * @swagger
+ * /api/waiting/{id}/resend-customer-notification:
+ *   patch:
+ *     tags: [Waiting]
+ *     summary: 고객 알림 재발송 (전화번호 또는 capability 기반)
+ *     security:
+ *       - waitingCapability: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               phone:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 알림 재발송 완료
+ */
+router.patch(
+  '/:id/resend-customer-notification',
+  requireWaitingCapability,
+  waitingController.resendCustomerNotification
+);
+
+module.exports = router;
 
 /**
  * @swagger

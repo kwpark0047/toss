@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router';
 import { Users, Search, RefreshCw, Award, X, ChevronRight, Crown, Star, TrendingUp, Gift, Clock, Wallet, AlertTriangle, UserCheck, BarChart2, Loader2, History, Tag, Phone } from 'lucide-react';
+import { customersAPI } from '@/api/customers';
 import { formatPrice } from '../../utils/format';
 import api from '../../api/index.js';
 import Skeleton from '../common/Skeleton';
@@ -41,7 +42,7 @@ function maskPhone(phone = '') {
 
 // ── API helpers ─────────────────────────────────────────────────
 const cApi = {
-  list:    (sid, p) => api.get(`/customers/${sid}`, { params: p }),
+  list:    (sid, p) => customersAPI.list(sid, p),
   stats:   (sid)    => api.get(`/customers/${sid}/stats`),
   history: (sid, cid) => api.get(`/customers/${sid}/customer/${cid}/history`),
   coupons: (sid)    => api.get(`/customers/${sid}/coupons`),
@@ -205,13 +206,17 @@ function CustomerDrawer({ customer, storeId, onClose }) {
     setCouponMsg('');
     try {
       const res = await cApi.issueCoupon(storeId, customer.id, parseInt(selectedCoupon));
-      setCouponMsg(res?.message || '발급 완료');
-      setCouponPicker(false);
-      // 활성 쿠폰 목록 갱신
-      const refreshed = await cApi.history(storeId, customer.id);
-      setData(refreshed?.data || refreshed);
+      if (res?.success) {
+        setCouponMsg(res?.message || '발급 완료');
+        setCouponPicker(false);
+        // 활성 쿠폰 목록 갱신
+        const refreshed = await cApi.history(storeId, customer.id);
+        setData(refreshed?.data || refreshed);
+      } else {
+        setCouponMsg(res?.message || '발급 실패');
+      }
     } catch (e) {
-      setCouponMsg(e?.response?.data?.error || '발급 실패');
+      setCouponMsg(e?.response?.data?.error || e?.message || '발급 실패');
     } finally {
       setIssuing(false);
     }
@@ -549,13 +554,14 @@ const CustomerManager = () => {
     setStatsLoading(false);
   }, [storeId]);
 
-  const fetchCustomers = useCallback(async () => {
+const fetchCustomers = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { sortBy, order, limit: 100, search: searchTerm };
+      const params = { sortBy, order, limit: 100, search: searchTerm, page: 1 };
       if (tierFilter !== 'ALL') params.tier = tierFilter;
       const res = await cApi.list(storeId, params);
-      let list = res?.data || [];
+      const data = res?.data || res;
+      let list = data?.items || data || [];
       // tier 필터를 프론트에서도 적용 (백엔드가 지원 안 할 경우 대비)
       if (tierFilter !== 'ALL') {
         list = list.filter(c => c.tier === tierFilter);

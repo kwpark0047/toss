@@ -92,14 +92,42 @@ class WaitingService {
   }
 
   /**
-   * 대기 상태 변경
+   * 대기 상태 변경 (상태 전이 검증 포함)
    */
   async updateStatus(id, status) {
-    const entry = await prisma.waiting_list.findUnique({
+    const validStatuses = ['waiting', 'called', 'entered', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      throw new AppError('유효하지 않은 대기 상태입니다.', 400);
+    }
+
+    const existing = await prisma.waiting_list.findUnique({
       where: { id: parseInt(id) },
-      select: { store_id: true },
     });
-    if (!entry) throw new Error('Waiting entry not found');
+    if (!existing) throw new AppError('대기 항목을 찾을 수 없습니다.', 404);
+
+    // 상태 전이 검증
+    const invalidTransitions = {
+      cancelled: ['waiting', 'called', 'entered', 'cancelled'],
+      entered: ['waiting', 'called', 'entered', 'cancelled'],
+    };
+
+    if (invalidTransitions[existing.status]?.includes(status)) {
+      throw new AppError(
+        `이미 ${existing.status} 상태인 대기는 ${status}로 변경할 수 없습니다.`,
+        400
+      );
+    }
+
+    // waiting에서는 called, cancelled만 허용
+    if (existing.status === 'waiting' && !['called', 'cancelled'].includes(status)) {
+      throw new AppError('대기 중인 고객은 호출 또는 취소만 가능합니다.', 400);
+    }
+
+    // called에서는 entered, cancelled만 허용
+    if (existing.status === 'called' && !['entered', 'cancelled'].includes(status)) {
+      throw new AppError('호출된 고객은 입장 또는 취소만 가능합니다.', 400);
+    }
+
     const updated = await prisma.waiting_list.update({
       where: { id: parseInt(id) },
       data: {
@@ -111,7 +139,7 @@ class WaitingService {
 
     try {
       const store = await prisma.stores.findUnique({
-        where: { id: entry.store_id },
+        where: { id: existing.store_id },
         select: { name: true },
       });
       const storeName = store?.name || '매장';
@@ -131,6 +159,95 @@ class WaitingService {
     }
 
     return result;
+  }
+
+  /**
+   * 고객 본인 대기 취소 (전화번호 본인 확인)
+   */
+  async cancelWaiting(id, phone, io) {
+    const waiting = await prisma.waiting_list.findUnique({
+      where: { id: parseInt(id) },
+    });
+    if (!waiting) {
+      throw new AppError('대기 항목을 찾을 수 없습니다.', 404);
+    }
+    if (waiting.customer_phone !== phone) {
+      throw new AppError('본인의 대기만 취소할 수 있습니다.', 403);
+    }
+    if (waiting.status !== 'waiting' && waiting.status !== 'called') {
+      throw new AppError('현재 상태에서는 취소할 수 없습니다.', 400);
+    }
+
+    const entry = await prisma.waiting_list.update({
+      where: { id: parseInt(id) },
+      data: { status: 'cancelled' },
+    });
+    const result = decryptPhoneFields(entry);
+
+    if (io) {
+      io.to(`store - waiting - ${waiting.store_id}`).emit('waiting-list-changed', {
+        storeId: waiting.store_id,
+      });
+      io.to(`customer - waiting - ${phone}`).emit('waiting-status-changed', {
+        status: 'cancelled',
+        entry: result,
+        message: '대기가 취소되었습니다.',
+      });
+    }
+
+    // 취소 알림톡 발송
+    try {
+      const store = await prisma.stores.findUnique({
+        where: { id: waiting.store_id },
+        select: { name: true },
+      });
+      await alimtalkService.sendWaitingCancel(phone, store?.name || '매장');
+    } catch (e) {
+      logger.warn(`[Waiting] 취소 알림톡 발송 실패: ${e.message}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * 고객 알림 재발송 (전화번호 본인 확인)
+   */
+  async resendCustomerNotification(id, phone) {
+    const waiting = await prisma.waiting_list.findUnique({
+      where: { id: parseInt(id) },
+      select: { store_id: true, customer_phone: true, status: true, queue_number: true },
+    });
+    if (!waiting) throw new AppError('대기 항목을 찾을 수 없습니다.', 404);
+    if (waiting.customer_phone !== phone) {
+      throw new AppError('본인의 대기만 재발송할 수 있습니다.', 403);
+    }
+
+    const store = await prisma.stores.findUnique({
+      where: { id: waiting.store_id },
+      select: { name: true },
+    });
+    const storeName = store?.name || '매장';
+
+    try {
+      if (waiting.status === 'called') {
+        await alimtalkService.sendWaitingCall(phone, storeName, waiting.queue_number);
+      } else if (waiting.status === 'cancelled') {
+        await alimtalkService.sendWaitingCancel(phone, storeName);
+      } else if (waiting.status === 'waiting') {
+        const waitingCount = await this.getStoreStatus(waiting.store_id);
+        await alimtalkService.sendWaitingRegistered(
+          phone,
+          storeName,
+          waiting.queue_number,
+          waitingCount
+        );
+      }
+    } catch (e) {
+      logger.warn(`[Waiting] 고객 알림 재발송 실패: ${e.message}`);
+      throw new AppError('알림 재발송에 실패했습니다.', 500);
+    }
+
+    return { message: '알림 재발송 완료', status: waiting.status };
   }
 
   /**

@@ -19,17 +19,25 @@ export const ordersAPI = {
     if (params.length > 0) url += '?' + params.join('&');
     return api.get(url);
   },
-  create: (data) =>
-    api.post('/orders', data, {
+  create: async (data) => {
+    const response = await api.post('/orders', data, {
       headers: {
         'Idempotency-Key': globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
       },
-    }),
+    });
+    const capability = response?.data?.customer_history_capability;
+    if (capability) localStorage.setItem('wm_customer_history_capability', capability);
+    return response;
+  },
   updateStatus: (id, status, staffId = null) =>
     api.put('/orders/' + id + '/status', { status, staff_id: staffId }),
   cancel: (id) => api.post('/orders/' + id + '/cancel'),
   delete: (id) => api.delete('/orders/' + id),
   getById: (id) => api.get('/orders/' + id),
+  getCustomerHistory: (capability) =>
+    api.get('/orders/customer/history', {
+      headers: capability ? { 'x-customer-history-capability': capability } : undefined,
+    }),
   getDetailedStats: (storeId, startDate, endDate) => {
     let url = '/orders/store/' + storeId + '/detailed-stats';
     const params = [];

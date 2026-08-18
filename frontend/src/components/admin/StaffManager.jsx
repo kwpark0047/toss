@@ -406,7 +406,7 @@ const StaffManager = () => {
     setAttendLoading(true);
     try {
       const res = await staffAPI.getAttendance(storeId, { date });
-      setAttendance(res.data || []);
+      setAttendance(res || []);
     } catch { /* 조용히 실패 */ }
     finally { setAttendLoading(false); }
   }, [storeId, attendDate]);
@@ -415,7 +415,7 @@ const StaffManager = () => {
     setReportLoading(true);
     try {
       const res = await staffAPI.getAttendance(storeId, { month });
-      const records = res.data || [];
+      const records = res || [];
       const map = {};
       for (const r of records) {
         const key = r.staff_id;

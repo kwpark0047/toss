@@ -59,7 +59,12 @@ router.get('/store/:storeId/role', authMiddleware, catchAsync(staffController.ge
  *       200:
  *         description: 직원 목록
  */
-router.get('/store/:storeId', authMiddleware, catchAsync(staffController.getStaffList));
+router.get(
+  '/store/:storeId',
+  authMiddleware,
+  checkStorePermission('staff:manage'),
+  catchAsync(staffController.getStaffList)
+);
 
 /**
  * @swagger
@@ -273,7 +278,12 @@ router.post('/add-existing', authMiddleware, catchAsync(staffController.addExist
  *       200:
  *         description: 스케줄 목록
  */
-router.get('/:storeId/schedules', authMiddleware, catchAsync(staffController.getSchedules));
+router.get(
+  '/:storeId/schedules',
+  authMiddleware,
+  checkStorePermission('order:read'),
+  catchAsync(staffController.getSchedules)
+);
 
 /**
  * @swagger
@@ -299,7 +309,12 @@ router.get('/:storeId/schedules', authMiddleware, catchAsync(staffController.get
  *       201:
  *         description: 시프트 등록 완료
  */
-router.post('/:storeId/schedules', authMiddleware, catchAsync(staffController.createSchedules));
+router.post(
+  '/:storeId/schedules',
+  authMiddleware,
+  checkStorePermission('staff:manage'),
+  catchAsync(staffController.createSchedules)
+);
 
 /**
  * @swagger
@@ -330,7 +345,12 @@ router.post('/:storeId/schedules', authMiddleware, catchAsync(staffController.cr
  *       200:
  *         description: 수정 완료
  */
-router.put('/:storeId/schedules/:id', authMiddleware, catchAsync(staffController.updateSchedule));
+router.put(
+  '/:storeId/schedules/:id',
+  authMiddleware,
+  checkStorePermission('staff:manage'),
+  catchAsync(staffController.updateSchedule)
+);
 
 /**
  * @swagger
@@ -358,6 +378,7 @@ router.put('/:storeId/schedules/:id', authMiddleware, catchAsync(staffController
 router.delete(
   '/:storeId/schedules/:id',
   authMiddleware,
+  checkStorePermission('staff:manage'),
   catchAsync(staffController.deleteSchedule)
 );
 

@@ -1,9 +1,14 @@
 const Order = require('../repositories/Order');
 const OrderService = require('../services/OrderService');
 const catchAsync = require('../utils/catchAsync');
+const { AppError } = require('../utils/errorHandler');
 const logger = require('../utils/logger');
 const prisma = require('../config/prisma');
-const { createOrderCapability } = require('../utils/orderCapability');
+const {
+  createOrderCapability,
+  createCustomerHistoryCapability,
+  verifyCustomerHistoryCapability,
+} = require('../utils/orderCapability');
 const EtaPredictionService = require('../services/EtaPredictionService');
 
 const orderController = {
@@ -11,19 +16,27 @@ const orderController = {
   createOrder: catchAsync(async (req, res) => {
     const orderService = new OrderService(req.app.get('io'));
     const order = await orderService.createOrder(req.body);
+    const customerHistoryCapability = createCustomerHistoryCapability({
+      phone: req.body.phone || req.body.customer_phone,
+      toss_user_key: req.body.toss_user_key,
+    });
     res.created(
-      { ...order, order_capability: createOrderCapability(order) },
+      {
+        ...order,
+        order_capability: createOrderCapability(order),
+        customer_history_capability: customerHistoryCapability,
+      },
       '주문이 생성되었습니다.'
     );
   }),
 
   // 고객별 주문 내역 조회
   getCustomerHistory: catchAsync(async (req, res) => {
-    const { phone, toss_user_key } = req.query;
-    if (!phone && !toss_user_key) {
-      return res.status(400).json({ error: '조회에 필요한 정보가 부족합니다.' });
+    const capability = verifyCustomerHistoryCapability(req.get('x-customer-history-capability'));
+    if (!capability) {
+      return res.status(403).json({ error: '고객 주문내역 조회 권한이 없거나 만료되었습니다.' });
     }
-    const orders = await Order.findByCustomer(phone, toss_user_key);
+    const orders = await Order.findByCustomer(capability.phone, capability.toss_user_key);
     res.success(orders);
   }),
 
@@ -67,7 +80,15 @@ const orderController = {
 
   // 주문 삭제
   deleteOrder: catchAsync(async (req, res) => {
-    await Order.delete(parseInt(req.params.id));
+    // 주문 삭제는 취소 완료(cancelled)된 주문에만 허용한다.
+    // 재고가 차감된 상태(preparing/ready 등)의 주문을 삭제하면 재고 정합성이 깨지므로
+    // 먼저 취소하여 재고를 복구한 뒤 삭제해야 한다.
+    const orderId = parseInt(req.params.id);
+    const order = await Order.findById(orderId);
+    if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
+    if (order.status !== 'cancelled')
+      throw new AppError('취소된 주문만 삭제할 수 있습니다. 활성 주문은 먼저 취소해 주세요.', 400);
+    await Order.delete(orderId);
     res.success(null, '주문이 삭제되었습니다.');
   }),
 

@@ -6,7 +6,10 @@ const { checkStorePermission, checkStorePermissionForObject } = require('../midd
 const validate = require('../middleware/validate');
 const idempotency = require('../middleware/idempotency');
 const { order: schema } = require('../utils/validationSchemas');
-const { verifyOrderCapability } = require('../utils/orderCapability');
+const {
+  verifyOrderCapability,
+  verifyCustomerHistoryCapability,
+} = require('../utils/orderCapability');
 const prisma = require('../config/prisma');
 const { checkResourcePermission } = require('../middleware/storeAuth');
 
@@ -38,6 +41,15 @@ const requireOrderCapability = (req, res, next) => {
   }
 
   return res.status(403).json({ error: '주문 결제 권한이 없거나 만료되었습니다.' });
+};
+
+const requireCustomerHistoryCapability = (req, res, next) => {
+  const capability = verifyCustomerHistoryCapability(req.get('x-customer-history-capability'));
+  if (!capability) {
+    return res.status(403).json({ error: '고객 주문내역 조회 권한이 없거나 만료되었습니다.' });
+  }
+  req.customerHistoryCapability = capability;
+  next();
 };
 
 /**
@@ -133,7 +145,11 @@ router.post(
  *       200:
  *         description: 주문 내역 목록
  */
-router.get('/customer/history', orderController.getCustomerHistory);
+router.get(
+  '/customer/history',
+  requireCustomerHistoryCapability,
+  orderController.getCustomerHistory
+);
 
 /**
  * @swagger
@@ -295,6 +311,7 @@ router.post('/:id/cancel', authMiddleware, orderController.cancelOrder);
  *     summary: 주문 삭제
  *     security:
  *       - bearerAuth: []
+ *       - orderCapability: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -304,7 +321,7 @@ router.post('/:id/cancel', authMiddleware, orderController.cancelOrder);
  *       200:
  *         description: 주문 삭제 완료
  */
-router.delete('/:id', authMiddleware, orderController.deleteOrder);
+router.delete('/:id', authMiddleware, checkOrderPermission, orderController.deleteOrder);
 
 /**
  * @swagger

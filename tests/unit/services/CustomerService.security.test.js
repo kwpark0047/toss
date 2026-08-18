@@ -85,7 +85,7 @@ describe('CustomerService loyalty security', () => {
         { phone: '01012345678', store_id: 3, order_id: 10 },
         { orderId: 11, storeId: 3 }
       )
-    ).rejects.toMatchObject({ status: 403 });
+    ).rejects.toMatchObject({ statusCode: 403 });
     expect(prisma.orders.findUnique).not.toHaveBeenCalled();
   });
 
@@ -93,7 +93,7 @@ describe('CustomerService loyalty security', () => {
     const service = new CustomerService();
     await expect(
       service.phoneJoin({ phone: '01012345678', store_id: 3, total_amount: 5000 }, null)
-    ).rejects.toMatchObject({ status: 400 });
+    ).rejects.toMatchObject({ statusCode: 400 });
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 

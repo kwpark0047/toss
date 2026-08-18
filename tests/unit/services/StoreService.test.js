@@ -1,5 +1,8 @@
 // StoreService 테스트 — 매장 검색, 사업자 정보(테마/결제수단) 조회·검증
 jest.mock('../../../repositories/Store');
+jest.mock('../../../config/prisma', () => ({
+  store_accounts: { upsert: jest.fn() },
+}));
 jest.mock('../../../utils/cache', () => ({
   flushByStore: jest.fn(),
   getOrSet: jest.fn((_key, fn) => fn()),
@@ -7,6 +10,7 @@ jest.mock('../../../utils/cache', () => ({
 
 const StoreService = require('../../../services/StoreService');
 const Store = require('../../../repositories/Store');
+const prisma = require('../../../config/prisma');
 
 describe('StoreService', () => {
   let svc;
@@ -69,14 +73,24 @@ describe('StoreService', () => {
   });
 
   describe('validateBusinessInfo', () => {
-    it('유효한 사업자번호·정산주기는 null 반환', () => {
+    it('유효한 사업자번호·정산주기는 null 반환 (체크섬 검증 통과)', () => {
       expect(
-        svc.validateBusinessInfo({ business_number: '123-45-67890', settlement_cycle: 'WEEKLY' })
+        svc.validateBusinessInfo({ business_number: '123-45-67895', settlement_cycle: 'WEEKLY' })
+      ).toBeNull();
+    });
+
+    it('체크섬이 올바른 10자리 숫자 사업자번호(하이피� 없음)도 유효', () => {
+      expect(
+        svc.validateBusinessInfo({ business_number: '1234567895', settlement_cycle: 'MONTHLY' })
       ).toBeNull();
     });
 
     it('잘못된 사업자번호 형식은 오류 메시지 반환', () => {
       expect(svc.validateBusinessInfo({ business_number: '1234567890' })).toContain('사업자번호');
+    });
+
+    it('자리수는 맞지만 체크섬이 틀린 사업자번호는 거부', () => {
+      expect(svc.validateBusinessInfo({ business_number: '123-45-67890' })).toContain('사업자번호');
     });
 
     it('잘못된 정산주기는 오류 메시지 반환', () => {
@@ -85,6 +99,64 @@ describe('StoreService', () => {
 
     it('모두 비어있으면 null 반환 (검증 건너뜀)', () => {
       expect(svc.validateBusinessInfo({})).toBeNull();
+    });
+  });
+
+  describe('upsertAccount', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('유효한 계좌번호로 저장하고 은행코드를 자동 매핑한다', async () => {
+      prisma.store_accounts.upsert.mockResolvedValue({ id: 1, bank_name: '국민은행' });
+
+      const result = await svc.upsertAccount(42, {
+        bank_name: '국민은행',
+        account_number: '123-456-7890',
+        account_holder: '홍길동',
+      });
+
+      expect(result).toEqual({ id: 1, bank_name: '국민은행' });
+      const call = prisma.store_accounts.upsert.mock.calls[0][0];
+      expect(call.create.bank_code).toBe('004');
+      expect(call.create.account_number).toBe('123-456-7890');
+    });
+
+    it('계좌번호가 8자리 미만이면 오류', async () => {
+      await expect(
+        svc.upsertAccount(42, {
+          bank_name: '국민은행',
+          account_number: '1234567',
+          account_holder: '홍길동',
+        })
+      ).rejects.toThrow('계좌번호');
+      expect(prisma.store_accounts.upsert).not.toHaveBeenCalled();
+    });
+
+    it('계좌번호에 숫자 이외의 문자만 있으면 오류', async () => {
+      await expect(
+        svc.upsertAccount(42, {
+          bank_name: '국민은행',
+          account_number: 'abcdefgh',
+          account_holder: '홍길동',
+        })
+      ).rejects.toThrow('계좌번호');
+    });
+
+    it('계좌번호가 20자리를 초과하면 오류', async () => {
+      await expect(
+        svc.upsertAccount(42, {
+          bank_name: '국민은행',
+          account_number: '12345678901234567890123',
+          account_holder: '홍길동',
+        })
+      ).rejects.toThrow('계좌번호');
+    });
+
+    it('필수 필드 누락 시 오류', async () => {
+      await expect(
+        svc.upsertAccount(42, { bank_name: '국민은행', account_number: '12345678' })
+      ).rejects.toThrow('은행명, 계좌번호, 예금주명은 필수');
     });
   });
 });

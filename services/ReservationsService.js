@@ -62,6 +62,44 @@ class ReservationsService {
    * 예약 상태 변경
    */
   async updateStatus(id, status) {
+    const validStatuses = ['PENDING', 'CONFIRMED', 'CANCELED', 'COMPLETED', 'NOSHOW', 'REJECTED'];
+    if (!validStatuses.includes(status)) {
+      throw new AppError('유효하지 않은 예약 상태입니다.', 400);
+    }
+
+    const existing = await prisma.reservations.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!existing) {
+      throw new AppError('예약을 찾을 수 없습니다.', 404);
+    }
+
+    // 상태 전이 규칙 검증
+    const invalidTransitions = {
+      CANCELED: ['PENDING', 'CONFIRMED', 'COMPLETED', 'NOSHOW', 'REJECTED'],
+      COMPLETED: ['PENDING', 'CONFIRMED', 'CANCELED', 'NOSHOW', 'REJECTED'],
+      NOSHOW: ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELED', 'REJECTED'],
+      REJECTED: ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELED', 'NOSHOW'],
+    };
+
+    if (invalidTransitions[existing.status]?.includes(status)) {
+      throw new AppError(
+        `이미 ${existing.status} 상태인 예약은 ${status}로 변경할 수 없습니다.`,
+        400
+      );
+    }
+
+    // PENDING에서는 CONFIRMED, REJECTED, CANCELED만 허용
+    if (existing.status === 'PENDING' && !['CONFIRMED', 'REJECTED', 'CANCELED'].includes(status)) {
+      throw new AppError('대기 중인 예약은 확정, 거절, 취소만 가능합니다.', 400);
+    }
+
+    // CONFIRMED에서는 COMPLETED, NOSHOW, CANCELED만 허용
+    if (existing.status === 'CONFIRMED' && !['COMPLETED', 'NOSHOW', 'CANCELED'].includes(status)) {
+      throw new AppError('확정된 예약은 방문완료, 노쇼, 취소만 가능합니다.', 400);
+    }
+
     const entry = await prisma.reservations.update({
       where: { id: parseInt(id) },
       data: { status },

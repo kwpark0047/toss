@@ -52,7 +52,7 @@ export default function KitchenDisplay() {
 const fetchKdsOrders = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
-      const res = await fetch(`/api/v1/kds/stores/${storeId}/orders`);
+       const res = await fetch(`/api/kds/stores/${storeId}/orders`);
       if (!res.ok) throw new Error(t('kds.fetch_error'));
       const json = await res.json();
       setOrders(json.data || json || []);
@@ -199,7 +199,7 @@ knownOrderIdsRef.current = currentIds;
   const handleUpdateStatus = useCallback(async (orderId, nextStatus) => {
     try {
       setUpdatingId(orderId);
-      const res = await fetch(`/api/v1/kds/stores/${storeId}/orders/${orderId}/status`, {
+       const res = await fetch(`/api/kds/stores/${storeId}/orders/${orderId}/status`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -250,7 +250,7 @@ knownOrderIdsRef.current = currentIds;
           }
         }
       }
-      const res = await fetch(`/api/v1/kds/stores/${storeId}/orders/${orderId}/status`, {
+       const res = await fetch(`/api/kds/stores/${storeId}/orders/${orderId}/status`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

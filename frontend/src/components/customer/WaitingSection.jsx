@@ -14,6 +14,7 @@ const WaitingSection = ({ store, onClose }) => {
     const [formData, setFormData] = useState({ name: '', phone: '', partySize: 2 });
     const [aiSuggestions, setAiSuggestions] = useState([]);
     const [aiLoading, setAiLoading] = useState(false);
+    const [waitingCapability, setWaitingCapability] = useState(null);
 
     const fetchAISuggestions = useCallback(async () => {
         try {
@@ -29,7 +30,8 @@ const WaitingSection = ({ store, onClose }) => {
 
     const fetchMyStatus = useCallback(async (phone) => {
         try {
-            const res = await waitingAPI.getMyWaiting(phone);
+            const capability = waitingCapability || localStorage.getItem('waiting_capability');
+            const res = await waitingAPI.getMyWaiting(phone, capability);
             if (res.success && res.data.length > 0) {
                 // 현재 해당 매장에 대기 중인 항목 찾기
                 const active = res.data.find(w => w.store_id === store.id);
@@ -44,7 +46,7 @@ const WaitingSection = ({ store, onClose }) => {
         } catch (err) {
             console.error('대기 상태 조회 실패:', err);
         }
-    }, [store.id, fetchAISuggestions]);
+    }, [store.id, fetchAISuggestions, waitingCapability]);
 
     // 초기 로드 시 기존 대입 상태 확인 (로컬 스토리지 또는 전화번호 입력 유도)
     useEffect(() => {
@@ -89,6 +91,10 @@ const WaitingSection = ({ store, onClose }) => {
             });
             if (res.success) {
                 localStorage.setItem('waiting_phone', formData.phone);
+                if (res.capability) {
+                    setWaitingCapability(res.capability);
+                    localStorage.setItem('waiting_capability', res.capability);
+                }
                 ordersAPI.getSocket().emit('join-my-waiting', { phone: formData.phone });
                 setMyWaiting(res.data);
                 setStep('success');
@@ -100,11 +106,25 @@ const WaitingSection = ({ store, onClose }) => {
         }
     };
 
+    const handleResendNotification = async () => {
+        if (!myWaiting) return;
+        try {
+            const capability = waitingCapability || localStorage.getItem('waiting_capability');
+            const res = await waitingAPI.resendCustomerNotification(myWaiting.id, capability);
+            if (res.success) {
+                toast.success('알림이 재발송되었습니다.');
+            }
+        } catch {
+            toast.error('알림 재발송에 실패했습니다.');
+        }
+    };
+
     const handleCancel = async () => {
         if (!myWaiting) return;
         if (!window.confirm(t('waiting.errors.cancel_confirm'))) return;
         try {
-            const res = await waitingAPI.cancel(myWaiting.id);
+            const capability = waitingCapability || localStorage.getItem('waiting_capability');
+            const res = await waitingAPI.cancel(myWaiting.id, capability);
             if (res.success) {
                 setMyWaiting(null);
                 setStep('register');
@@ -297,6 +317,12 @@ const WaitingSection = ({ store, onClose }) => {
                               )}
 
                              <div className="flex gap-4">
+                                <button
+                                    onClick={handleResendNotification}
+                                    className="flex-1 py-4 bg-blue-50 text-blue-600 rounded-2xl font-bold border border-blue-200"
+                                >
+                                    <BellRing size={16} className="mr-1" /> {t('waiting.resend_notification')}
+                                </button>
                                 <button
                                     onClick={handleCancel}
                                     className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold border border-slate-200"

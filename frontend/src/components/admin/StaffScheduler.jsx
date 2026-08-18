@@ -205,8 +205,8 @@ const StaffScheduler = () => {
         staffAPI.getByStore(storeId),
         staffAPI.getSchedules(storeId, weekStr),
       ]);
-      setStaffList(staffRes.data || []);
-      setSchedules(scheduleRes.data?.schedules || []);
+      setStaffList(staffRes || []);
+      setSchedules(scheduleRes?.schedules || []);
     } catch (err) {
       console.error('데이터 로딩 실패:', err);
     } finally {

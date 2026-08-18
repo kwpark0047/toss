@@ -116,7 +116,12 @@ router.get('/detail/:customerId', authMiddleware, catchAsync(customerController.
  *       200:
  *         description: 고객 통계
  */
-router.get('/:storeId/stats', authMiddleware, checkStorePermission('owner'), catchAsync(customerController.getStats));
+router.get(
+  '/:storeId/stats',
+  authMiddleware,
+  checkStorePermission('customers:read'),
+  catchAsync(customerController.getStats)
+);
 
 /**
  * @swagger
@@ -141,7 +146,12 @@ router.get('/:storeId/stats', authMiddleware, checkStorePermission('owner'), cat
  *       200:
  *         description: 고객 주문 이력
  */
-router.get('/:storeId/customer/:customerId/history', authMiddleware, checkStorePermission('owner'), catchAsync(customerController.getHistory));
+router.get(
+  '/:storeId/customer/:customerId/history',
+  authMiddleware,
+  checkStorePermission('customers:read'),
+  catchAsync(customerController.getHistory)
+);
 
 /**
  * @swagger
@@ -161,7 +171,12 @@ router.get('/:storeId/customer/:customerId/history', authMiddleware, checkStoreP
  *       200:
  *         description: 쿠폰 목록
  */
-router.get('/:storeId/coupons', authMiddleware, checkStorePermission('owner'), catchAsync(customerController.getCoupons));
+router.get(
+  '/:storeId/coupons',
+  authMiddleware,
+  checkStorePermission('customers:read'),
+  catchAsync(customerController.getCoupons)
+);
 
 /**
  * @swagger
@@ -196,7 +211,12 @@ router.get('/:storeId/coupons', authMiddleware, checkStorePermission('owner'), c
  *       200:
  *         description: 쿠폰 발급 완료
  */
-router.post('/:storeId/customer/:customerId/coupon', authMiddleware, checkStorePermission('owner'), catchAsync(customerController.issueCoupon));
+router.post(
+  '/:storeId/customer/:customerId/coupon',
+  authMiddleware,
+  checkStorePermission('customers:write'),
+  catchAsync(customerController.issueCoupon)
+);
 
 /**
  * @swagger
@@ -224,6 +244,11 @@ router.post('/:storeId/customer/:customerId/coupon', authMiddleware, checkStoreP
  *       200:
  *         description: 고객 목록
  */
-router.get('/:storeId', authMiddleware, checkStorePermission('owner'), catchAsync(customerController.getCustomers));
+router.get(
+  '/:storeId',
+  authMiddleware,
+  checkStorePermission('customers:read'),
+  catchAsync(customerController.getCustomers)
+);
 
 module.exports = router;
