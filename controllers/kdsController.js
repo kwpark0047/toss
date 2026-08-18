@@ -42,7 +42,10 @@ const kdsController = {
     // Socket.io 인스턴스를 서비스에 주입하여 실시간 주방 태블릿 전파 작동
     const io = req.app.get('io');
 
-    const order = await KdsService.updateKdsOrderStatus(storeId, orderId, status, staffId, io);
+    const order = await KdsService.updateKdsOrderStatus(storeId, orderId, status, staffId, io, {
+      userId: req.user?.id,
+      role: req.user?.role,
+    });
     res.success(order, `주문 조리 상태가 성공적으로 [${status}] 상태로 전환되었습니다.`);
   }),
 };

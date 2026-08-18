@@ -15,6 +15,7 @@
 4. `audit_logs` 모델·마이그레이션과 민감정보 마스킹 감사 로그 서비스를 추가했다.
 5. `FEATURE_FLAGS_JSON` 기반 boolean·결정적 rollout Feature Flag 서비스를 추가했다.
 6. DB Feature Flag에 환경·매장 scope 복합 키를 적용하고 KDS에 `kds_v2` flag를 연결했다.
+7. `order_events` 원장과 주문·KDS 상태 변경 이벤트 기록을 추가했다.
 
 ## 단계별 로드맵
 
@@ -28,7 +29,7 @@
 ### 2단계: 운영 기반
 
 - 감사 로그 관리자 조회 화면과 검색·보존 정책 추가
-- 주문·결제·KDS 이벤트의 공통 이벤트 원장 구축
+- 주문·결제·KDS 이벤트의 공통 이벤트 원장 조회 API와 관리자 화면 추가
 - Feature Flag와 롤백 절차 도입
 - 장애·지연·프린트 실패 SLO와 알림 정의
 

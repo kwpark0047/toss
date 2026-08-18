@@ -12,6 +12,7 @@ const { encryptPhone, decryptPhone, normalizePhone } = require('../utils/phoneEn
 const { AppError } = require('../utils/errorHandler');
 const { assertOrderStatusTransition } = require('../utils/orderStatus');
 const auditLogService = require('./AuditLogService');
+const orderEventService = require('./OrderEventService');
 const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
 
 // Haversine formula for distance in km
@@ -300,6 +301,16 @@ class OrderService {
       storeId: updatedOrder.store_id,
       before: { status: oldOrder.status },
       after: { status: updatedOrder.status },
+      metadata: { staff_id: staff_id || null },
+    });
+    void orderEventService.record({
+      orderId: updatedOrder.id,
+      storeId: updatedOrder.store_id,
+      eventType: 'STATUS_CHANGED',
+      fromStatus: oldOrder.status,
+      toStatus: updatedOrder.status,
+      actorUserId: actor?.userId || null,
+      actorRole: actor?.role || null,
       metadata: { staff_id: staff_id || null },
     });
     return updatedOrder;

@@ -20,6 +20,7 @@ const logger_1 = __importDefault(require('../utils/logger'));
 const phoneEncryption_1 = require('../utils/phoneEncryption');
 const errorHandler_1 = require('../utils/errorHandler');
 const orderStatus_1 = require('../utils/orderStatus');
+const OrderEventService_1 = require('./OrderEventService');
 class KdsService {
   /**
    * KDS 활성 주문 목록 조회 (pending, preparing, ready 상태)
@@ -67,7 +68,7 @@ class KdsService {
   /**
    * KDS 주문 상태 업데이트 및 자동 기능 트리거 (알림톡, 주방 프린터 잡)
    */
-  async updateKdsOrderStatus(storeId, orderId, status, staffId = null, io = null) {
+  async updateKdsOrderStatus(storeId, orderId, status, staffId = null, io = null, actor = null) {
     try {
       const numericStoreId = Number(storeId);
       const numericOrderId = Number(orderId);
@@ -189,6 +190,16 @@ class KdsService {
           `[KDS Socket] KDS 실시간 브로드캐스트 전송 완료: Store ${numericStoreId}, Order ${order.order_number} → ${status}`
         );
       }
+      void OrderEventService_1.record({
+        orderId: numericOrderId,
+        storeId: numericStoreId,
+        eventType: 'KDS_STATUS_CHANGED',
+        fromStatus: order.status,
+        toStatus: status,
+        actorUserId: actor?.userId || null,
+        actorRole: actor?.role || null,
+        metadata: { staff_id: staffId || null },
+      });
       return {
         ...updatedOrder,
         table_name: order.tables?.table_number || null,

@@ -1638,3 +1638,19 @@ model feature_flags {
   @@schema("public")
 }
 // Eco Badge fields (added via migration)
+model order_events {
+  id            Int      @id @default(autoincrement())
+  order_id      Int
+  store_id      Int
+  event_type    String
+  from_status   String?
+  to_status     String?
+  actor_user_id Int?
+  actor_role    String?
+  metadata      Json?
+  created_at    DateTime @default(now())
+
+  @@index([order_id, created_at], map: "idx_order_events_order_time")
+  @@index([store_id, created_at], map: "idx_order_events_store_time")
+  @@index([event_type, created_at], map: "idx_order_events_type_time")
+  @@schema("public")
