@@ -8,7 +8,7 @@ const router = require('express').Router();
 const v1Controller = require('../controllers/v1Controller');
 const { apiKeyAuth, requireScope } = require('../middleware/apiKeyAuth');
 
-router.use(apiKeyAuth); 
+router.use(apiKeyAuth);
 
 /**
  * @swagger
@@ -22,7 +22,7 @@ router.use(apiKeyAuth);
  *       200:
  *         description: 매장 정보
  */
-router.get('/store', v1Controller.getStore);
+router.get('/store', requireScope('stores:read'), v1Controller.getStore);
 
 /**
  * @swagger
@@ -36,7 +36,7 @@ router.get('/store', v1Controller.getStore);
  *       200:
  *         description: 메뉴 목록
  */
-router.get('/menus', v1Controller.getMenus);
+router.get('/menus', requireScope('menus:read'), v1Controller.getMenus);
 
 /**
  * @swagger
@@ -59,7 +59,7 @@ router.get('/menus', v1Controller.getMenus);
  *       200:
  *         description: 주문 목록
  */
-router.get('/orders', v1Controller.getOrders);
+router.get('/orders', requireScope('orders:read'), v1Controller.getOrders);
 
 /**
  * @swagger
@@ -79,7 +79,7 @@ router.get('/orders', v1Controller.getOrders);
  *       200:
  *         description: 주문 상세
  */
-router.get('/orders/:id', v1Controller.getOrderById);
+router.get('/orders/:id', requireScope('orders:read'), v1Controller.getOrderById);
 
 /**
  * @swagger
@@ -99,7 +99,7 @@ router.get('/orders/:id', v1Controller.getOrderById);
  *       201:
  *         description: 주문 생성 완료
  */
-router.post('/orders', requireScope('write'), v1Controller.createOrder);
+router.post('/orders', requireScope('orders:write'), v1Controller.createOrder);
 
 /**
  * @swagger
@@ -124,7 +124,7 @@ router.post('/orders', requireScope('write'), v1Controller.createOrder);
  *       200:
  *         description: 매출 분석 통계
  */
-router.get('/analytics/summary', v1Controller.getAnalyticsSummary);
+router.get('/analytics/summary', requireScope('analytics:read'), v1Controller.getAnalyticsSummary);
 
 /**
  * @swagger
@@ -143,7 +143,7 @@ router.get('/analytics/summary', v1Controller.getAnalyticsSummary);
  *       200:
  *         description: 점유된 작업 목록
  */
-router.post('/print/jobs/claim', requireScope('write'), v1Controller.claimPrintJobs);
+router.post('/print/jobs/claim', requireScope('print:write'), v1Controller.claimPrintJobs);
 
 /**
  * @swagger
@@ -168,6 +168,6 @@ router.post('/print/jobs/claim', requireScope('write'), v1Controller.claimPrintJ
  *       200:
  *         description: 상태 갱신 완료
  */
-router.post('/print/jobs/:id/ack', requireScope('write'), v1Controller.ackPrintJob);
+router.post('/print/jobs/:id/ack', requireScope('print:write'), v1Controller.ackPrintJob);
 
 module.exports = router;

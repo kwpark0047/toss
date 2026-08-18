@@ -52,7 +52,7 @@ export default function DeveloperConsole() {
 
   // 새 키/웹훅 폼
   const [keyName, setKeyName] = useState('');
-  const [keyScopes, setKeyScopes] = useState(['read']);
+  const [keyScopes, setKeyScopes] = useState(['stores:read', 'menus:read', 'orders:read']);
   const [whUrl, setWhUrl] = useState('');
   const [whEvents, setWhEvents] = useState(['*']);
   const [busy, setBusy] = useState(false);
@@ -156,7 +156,7 @@ export default function DeveloperConsole() {
             placeholder="키 이름 (예: POS 연동)"
             className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-slate-600 outline-none focus:border-orange-500/50" />
           <div className="flex items-center gap-2">
-            {['read', 'write'].map(s => (
+            {['stores:read', 'menus:read', 'orders:read', 'orders:write', 'analytics:read', 'print:write'].map(s => (
               <button key={s} onClick={() => toggleScope(s)}
                 className={`px-3 py-2.5 rounded-xl text-xs font-black border ${keyScopes.includes(s) ? 'bg-orange-500/20 border-orange-500/40 text-orange-300' : 'bg-white/5 border-white/10 text-slate-500'}`}>{s}</button>
             ))}
