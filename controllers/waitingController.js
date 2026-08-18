@@ -142,6 +142,8 @@ const waitingController = {
             price: s.price,
             reason: s.reason,
             is_favorite: s.is_favorite,
+            confidence: s.confidence,
+            evidence: s.evidence,
           })),
           source: 'personalized_ai',
         },
@@ -197,7 +199,14 @@ const waitingController = {
       .map((rec) => {
         const menu = menuList.find((m) => m.id === rec.id);
         if (!menu) return null;
-        return { id: menu.id, name: menu.name, price: menu.price, reason: rec.reason };
+        return {
+          id: menu.id,
+          name: menu.name,
+          price: menu.price,
+          reason: rec.reason,
+          confidence: rec.confidence,
+          evidence: rec.evidence,
+        };
       })
       .filter(Boolean);
 

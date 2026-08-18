@@ -1,6 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const dotenv = require('dotenv');
 const logger = require('../utils/logger');
+const { normalizeRecommendation } = require('../utils/recommendationExplainability');
 
 // 환경 변수 로드
 dotenv.config();
@@ -252,12 +253,12 @@ class AIService {
       ${segmentContext ? `- 고객 프로필: ${segmentContext}` : ''}
       
       [추천 규칙]
-      1. 시간대와 날씨에 잘 어울리는 메뉴를 우선 추천하세요.
+       1. 시간대와 날씨에 잘 어울리는 메뉴를 우선 추천하세요.
       2. 고객이 과거에 주문한 메뉴와 비슷한 메뉴를 추천하세요.
       3. 요즘 인기 메뉴가 있다면 가중치를 두고 고려하세요.
       4. 선호도가 명시된 경우 이를 최우선으로 반영하세요.
       5. 기온, 습도, 강수, 체감온도, 공기질, 계절 등 상세 날씨 정보를 종합적으로 고려하세요.
-      6. 고객 프로필(세그먼트, 선호 카테고리/맛, 알레르기, 등급)이 제공되면 이를 반영해 개인화하세요. 알레르기가 있으면 절대 해당 메뉴를 추천하지 마세요.
+       6. 고객 프로필(세그먼트, 선호 카테고리/맛, 알레르기, 등급)이 제공되면 이를 반영해 개인화하세요. 알레르기가 있으면 절대 해당 메뉴를 추천하지 마세요.
       
       [메뉴 목록]
       ${JSON.stringify(menus)}
@@ -265,7 +266,7 @@ class AIService {
       [결과 형식]
       반드시 다음 JSON 형식으로만 응답하세요. 다른 설명은 제외하고 순수 JSON 배열만 반환하세요:
       [
-        { "id": 메뉴ID, "reason": "추천 이유(한 문장, 예: 비오는 날에 따뜻하게 즐기기 좋은 메뉴입니다.)" },
+         { "id": 메뉴ID, "reason": "추천 이유(한 문장)", "confidence": 0.0, "evidence": ["판단 근거"] },
         ...
       ]
     `;
@@ -289,12 +290,20 @@ class AIService {
         }
       }
 
-      this.setCache(cacheKey, result);
-      return result;
+      const explained = result.map((item, index) => normalizeRecommendation(item, context, index));
+      this.setCache(cacheKey, explained);
+      return explained;
     } catch (error) {
       logger.error(error);
       if (menuList.length > 0) {
-        return [{ id: menuList[0].id, reason: '취향에 맞는 메뉴를 골라보세요.' }];
+        return [
+          {
+            id: menuList[0].id,
+            reason: '취향에 맞는 메뉴를 골라보세요.',
+            confidence: 0.25,
+            evidence: ['기본 fallback'],
+          },
+        ];
       }
       return [];
     }

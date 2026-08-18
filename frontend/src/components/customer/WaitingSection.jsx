@@ -298,7 +298,8 @@ const WaitingSection = ({ store, onClose }) => {
                                                               </span>
                                                           )}
                                                       </div>
-                                                      <p className="text-[10px] text-slate-400 mt-0.5">{s.reason}</p>
+                                                       <p className="text-[10px] text-slate-400 mt-0.5">{s.reason}</p>
+                                                       {s.confidence !== undefined && <p className="text-[9px] text-slate-300 mt-0.5">추천 신뢰도 {Math.round(s.confidence * 100)}% · {(s.evidence || []).slice(0, 2).join(', ')}</p>}
                                                   </div>
                                                   <div className="flex items-center gap-2">
                                                       <span className="text-xs font-black text-orange-500">₩{s.price?.toLocaleString()}</span>

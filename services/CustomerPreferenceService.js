@@ -125,6 +125,8 @@ class CustomerPreferenceService {
           price: m.price,
           reason: '자주 주문하시는 메뉴예요 💖',
           is_favorite: true,
+          confidence: 1,
+          evidence: ['즐겨찾기 메뉴', '고객 선호도'],
         });
       }
     }
@@ -140,6 +142,8 @@ class CustomerPreferenceService {
           price: menu.price,
           reason: rec.reason,
           is_favorite: false,
+          confidence: rec.confidence,
+          evidence: rec.evidence,
         });
       }
     }
