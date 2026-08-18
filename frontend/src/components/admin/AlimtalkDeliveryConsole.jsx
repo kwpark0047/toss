@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
 import { MessageSquare, CheckCircle2, RefreshCw, DollarSign, BarChart3, Search } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
+import api from '../../api/client';
 export default function AlimtalkDeliveryConsole() {
   const {
     storeId
@@ -21,9 +22,8 @@ export default function AlimtalkDeliveryConsole() {
 const fetchAlimtalkHistory = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
-      const res = await fetch(`/api/alimtalk/stores/${storeId}/history`);
-      if (!res.ok) throw new Error('알림톡 전송 이력 데이터를 로드하지 못했습니다.');
-      const json = await res.json();
+      const res = await api.get(`/alimtalk/stores/${storeId}/history`);
+      const json = res.data;
       setData(json.data || json || {
         summary: {
           total: 0,
