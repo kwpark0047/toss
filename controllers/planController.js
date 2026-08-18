@@ -6,10 +6,10 @@ const logger = require('../utils/logger');
  * 관리자용 플랜 관리 컨트롤러
  */
 const planController = {
-  // 플랜 목록 조회 (관리자용 - 전체 포함 비활성)
+  // 플랜 목록 조회 (관리자용 - 비활성 포함 전체)
   async getAllPlans(req, res, next) {
     try {
-      const plans = await require('../repositories/Plan').findActive(); // 관리자는 전체 보면 좋음
+      const plans = await require('../repositories/Plan').findAll();
       res.success(plans);
     } catch (error) {
       next(error);

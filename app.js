@@ -282,6 +282,7 @@ const routes = {
   categories: require('./routes/categories'),
   admin: require('./routes/admin'),
   points: require('./routes/points'),
+  plans: require('./routes/plans'),
   auditLogs: require('./routes/auditLogs'),
   featureFlags: require('./routes/featureFlags'),
   orderEvents: require('./routes/orderEvents'),
@@ -370,6 +371,7 @@ app.use(`${API_PREFIX}/admin`, routes.admin);
 app.use(`${API_PREFIX}/admin/auth`, routes.adminAuth);
 app.use(`${API_PREFIX}/points`, routes.points);
 app.use(`${API_PREFIX}/plan-requests`, routes.planRequests);
+app.use(`${API_PREFIX}/plans`, routes.plans);
 app.use(`${API_PREFIX}/admin`, routes.auditLogs);
 app.use(`${API_PREFIX}/admin`, routes.featureFlags);
 app.use(`${API_PREFIX}/admin`, routes.orderEvents);

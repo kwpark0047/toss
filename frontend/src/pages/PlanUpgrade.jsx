@@ -32,7 +32,7 @@ export default function PlanUpgrade() {
     Promise.all([
       storesAPI.getById(storeId),
       planRequestsAPI.getByStore(storeId),
-      plansAPI.getAll()
+      plansAPI.getActive()
     ]).then(([storeRes, reqRes, plansRes]) => {
       setStore(storeRes.data);
       setRequests(reqRes.data || []);

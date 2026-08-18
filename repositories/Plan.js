@@ -16,6 +16,15 @@ class PlanRepository {
   }
 
   /**
+   * 전체 플랜 조회 (비활성 포함, 관리자용)
+   */
+  async findAll() {
+    return await prisma.plan.findMany({
+      orderBy: { sort_order: 'asc' },
+    });
+  }
+
+  /**
    * 플랜 ID로 단일 조회
    */
   async findById(id) {

@@ -96,11 +96,17 @@ class PlanService {
     return plan.features?.[feature] === true;
   }
 
-  checkLimit(plan, limitKey) {
+  checkLimit(plan, limitKey, usage = 0) {
     const limit = plan.limits?.[limitKey];
-    if (limit === -1 || limit === null || limit === undefined)
+    // 무제한인 경우 (-1/null/undefined)
+    if (limit === -1 || limit === null || limit === undefined) {
       return { allowed: true, limit: null };
-    return { allowed: true, limit };
+    }
+    // 유한 수치 제한 → 현재 사용량(usage)과 비교해 초과 여부 판단
+    if (typeof limit !== 'number' || limit < 0) {
+      return { allowed: true, limit };
+    }
+    return { allowed: usage < limit, limit };
   }
 }
 
