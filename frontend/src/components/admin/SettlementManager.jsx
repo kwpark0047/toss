@@ -28,8 +28,7 @@ const STATUS_STYLES = {
     CANCELLED: { label: '취소됨',   cls: 'bg-gray-100 text-gray-500', dot: '' },
 };
 
-function SettlementDetailModal({ settlement, onClose, onTaxInvoice }) {
-    const { _storeId } = useParams();
+function SettlementDetailModal({ settlement, onClose, onTaxInvoice, storeId }) {
     const [issuingInvoice, setIssuingInvoice] = useState(false);
 
     if (!settlement) return null;
@@ -51,6 +50,23 @@ function SettlementDetailModal({ settlement, onClose, onTaxInvoice }) {
         } finally { setIssuingInvoice(false); }
     };
 
+    const handleDownloadCSV = async () => {
+        try {
+            const res = await adminAPI.getSettlement(storeId, settlement.id, { format: 'csv' });
+            const blob = new Blob([res], { type: 'text/csv;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `settlement_${settlement.id}_${settlement.period_start}_${settlement.period_end}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (_err) {
+            toast.error('CSV 다운로드에 실패했습니다.');
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4" onClick={onClose}>
             <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
@@ -60,7 +76,15 @@ function SettlementDetailModal({ settlement, onClose, onTaxInvoice }) {
                         <h2 className="text-lg font-black text-gray-900">정산 상세 명세서</h2>
                         <p className="text-xs text-gray-400 mt-0.5">{settlement.period_start} ~ {settlement.period_end}</p>
                     </div>
-                    <button onClick={onClose} aria-label="닫기" className="p-2 hover:bg-gray-100 rounded-full"><X size={20} /></button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleDownloadCSV}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-700 transition-all shadow-sm shadow-slate-800/20"
+                        >
+                            <Download size={14} /> CSV 다운로드
+                        </button>
+                        <button onClick={onClose} aria-label="닫기" className="p-2 hover:bg-gray-100 rounded-full"><X size={20} /></button>
+                    </div>
                 </div>
 
                 <div className="p-6 space-y-5">
@@ -180,7 +204,10 @@ const SettlementManager = () => {
     const [settlements, setSettlements] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showGenerate, setShowGenerate] = useState(false);
-    const [period, setPeriod] = useState({ start: '', end: '' });
+    const [period, setPeriod] = useState({
+        start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+        end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+    });
     const [selected, setSelected] = useState(null);
 
     const fetchSettlements = useCallback(async () => {
@@ -207,13 +234,31 @@ const SettlementManager = () => {
 
     const handleGenerate = async () => {
         if (!period.start || !period.end) { toast.warn('시작일과 종료일을 입력해주세요.'); return; }
+        const start = new Date(period.start);
+        const end = new Date(period.end);
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        
+        if (start > end) {
+            toast.error('시작일은 종료일보다 이전이어야 합니다.');
+            return;
+        }
+        if (start > today) {
+            toast.error('미래 날짜의 정산은 생성할 수 없습니다.');
+            return;
+        }
+        
         try {
             await adminAPI.generateSettlement(storeId, { period_start: period.start, period_end: period.end });
             toast.success('신규 정산 데이터가 생성되었습니다.');
             setShowGenerate(false);
             fetchSettlements();
-        } catch {
-            toast.error('정산 생성에 실패했습니다.');
+        } catch (err) {
+            if (err.response?.data?.error?.includes('겹칩니다')) {
+                toast.error('이미 처리된 기간과 정산 기간이 겹칩니다.');
+            } else {
+                toast.error('정산 생성에 실패했습니다.');
+            }
         }
     };
 
@@ -366,11 +411,30 @@ const SettlementManager = () => {
                                             )}
                                         </td>
                                         <td className="px-6 py-5 text-center">
+                                        <div className="flex items-center justify-center gap-2">
                                             <button className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="명세서 보기"
                                                 onClick={e => { e.stopPropagation(); openDetail(s); }}>
                                                 <Download size={18} />
                                             </button>
-                                        </td>
+                                            <button className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all" title="CSV 다운로드"
+                                                onClick={e => {
+                                                    e.stopPropagation();
+                                                    adminAPI.getSettlement(storeId, s.id, { format: 'csv' }).then(res => {
+                                                        const blob = new Blob([res], { type: 'text/csv;charset=utf-8' });
+                                                        const url = window.URL.createObjectURL(blob);
+                                                        const a = document.createElement('a');
+                                                        a.href = url;
+                                                        a.download = `settlement_${s.id}_${s.period_start}_${s.period_end}.csv`;
+                                                        document.body.appendChild(a);
+                                                        a.click();
+                                                        window.URL.revokeObjectURL(url);
+                                                        document.body.removeChild(a);
+                                                    }).catch(() => toast.error('CSV 다운로드 실패'));
+                                                }}>
+                                                <FileText size={18} />
+                                            </button>
+                                        </div>
+                                    </td>
                                     </tr>
                                 );
                             })}
@@ -398,6 +462,7 @@ const SettlementManager = () => {
                     settlement={selected}
                     onClose={() => setSelected(null)}
                     onTaxInvoice={handleTaxInvoice}
+                    storeId={storeId}
                 />
             )}
         </div>

@@ -179,6 +179,34 @@ router.get(
 
 /**
  * @swagger
+ * /api/admin/stores/{storeId}/settlements/{id}:
+ *   delete:
+ *     tags: [Admin]
+ *     summary: 정산 삭제 (PENDING 상태만 가능)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema: { type: integer }
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: 정산 삭제 완료
+ */
+router.delete(
+  '/stores/:storeId/settlements/:id',
+  authMiddleware,
+  checkStorePermission('admin'),
+  settlementController.deleteSettlement
+);
+
+/**
+ * @swagger
  * /api/admin/stores/{storeId}/receipt-settings:
  *   get:
  *     tags: [Admin]

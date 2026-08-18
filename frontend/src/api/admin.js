@@ -2,7 +2,8 @@ import api from './client';
 
 export const adminAPI = {
   getSettlements: (storeId) => api.get(`/admin/stores/${storeId}/settlements`),
-  getSettlement: (storeId, id) => api.get(`/admin/stores/${storeId}/settlements/${id}`),
+  getSettlement: (storeId, id, params = {}) =>
+    api.get(`/admin/stores/${storeId}/settlements/${id}`, { params }),
   generateSettlement: (storeId, data) =>
     api.post(`/admin/stores/${storeId}/settlements/generate`, data),
   updateSettlementStatus: (storeId, id, status) =>
