@@ -12,6 +12,8 @@
 1. 배포 job이 보안·Docker·Trivy·번들·Lighthouse 결과를 기다리도록 CI 게이트를 강화했다.
 2. README, CLAUDE, ARCHITECTURE의 기술 버전과 배포 설명을 실제 구성에 맞췄다.
 3. 주문과 KDS 상태 전이 규칙을 `utils/orderStatus.js`로 중앙화했다.
+4. `audit_logs` 모델·마이그레이션과 민감정보 마스킹 감사 로그 서비스를 추가했다.
+5. `FEATURE_FLAGS_JSON` 기반 boolean·결정적 rollout Feature Flag 서비스를 추가했다.
 
 ## 단계별 로드맵
 
@@ -24,7 +26,7 @@
 
 ### 2단계: 운영 기반
 
-- 감사 로그 모델과 관리자 조회 화면 추가
+- 감사 로그 관리자 조회 화면과 검색·보존 정책 추가
 - 주문·결제·KDS 이벤트의 공통 이벤트 원장 구축
 - Feature Flag와 롤백 절차 도입
 - 장애·지연·프린트 실패 SLO와 알림 정의

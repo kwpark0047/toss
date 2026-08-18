@@ -11,6 +11,7 @@ const logger = require('../utils/logger');
 const { encryptPhone, decryptPhone, normalizePhone } = require('../utils/phoneEncryption');
 const { AppError } = require('../utils/errorHandler');
 const { assertOrderStatusTransition } = require('../utils/orderStatus');
+const auditLogService = require('./AuditLogService');
 const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
 
 // Haversine formula for distance in km
@@ -184,7 +185,7 @@ class OrderService {
     return order;
   }
 
-  async updateStatus(id, status, staff_id) {
+  async updateStatus(id, status, staff_id, actor = null) {
     const orderId = parseInt(id);
     const oldOrder = await Order.findById(orderId);
     if (!oldOrder) throw new AppError('주문을 찾을 수 없습니다.', 404);
@@ -290,6 +291,17 @@ class OrderService {
     }
 
     this._emitOrderUpdate(updatedOrder, status);
+    void auditLogService.record({
+      actorUserId: actor?.userId || null,
+      actorRole: actor?.role || null,
+      action: 'ORDER_STATUS_UPDATED',
+      resourceType: 'order',
+      resourceId: updatedOrder.id,
+      storeId: updatedOrder.store_id,
+      before: { status: oldOrder.status },
+      after: { status: updatedOrder.status },
+      metadata: { staff_id: staff_id || null },
+    });
     return updatedOrder;
   }
 

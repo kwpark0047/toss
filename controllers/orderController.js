@@ -67,7 +67,10 @@ const orderController = {
   updateStatus: catchAsync(async (req, res) => {
     const orderService = new OrderService(req.app.get('io'));
     const { status, staff_id } = req.body;
-    const updated = await orderService.updateStatus(req.params.id, status, staff_id);
+    const updated = await orderService.updateStatus(req.params.id, status, staff_id, {
+      userId: req.user?.id,
+      role: req.user?.role,
+    });
     res.json({ success: true, order: updated, message: '주문 상태가 변경되었습니다' });
   }),
 

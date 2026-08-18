@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const bcrypt = require('bcryptjs');
 const { AppError } = require('../utils/errorHandler');
+const auditLogService = require('./AuditLogService');
 
 const ASSIGNABLE_ROLES = ['staff', 'kitchen', 'manager'];
 
@@ -221,7 +222,18 @@ class StaffService {
     if (role === 'manager' && currentRole !== 'owner' && currentRole !== 'super_admin') {
       throw new AppError('매니저 역할은 오너만 부여할 수 있습니다.', 403);
     }
-    return prisma.staff.update({ where: { id: target.id }, data: { role } });
+    const updated = await prisma.staff.update({ where: { id: target.id }, data: { role } });
+    void auditLogService.record({
+      actorUserId: callerUserId,
+      actorRole: callerRole,
+      action: 'STAFF_ROLE_UPDATED',
+      resourceType: 'staff',
+      resourceId: target.id,
+      storeId: target.store_id,
+      before: { role: target.role },
+      after: { role: updated.role },
+    });
+    return updated;
   }
 
   async deleteStaff(staffId, callerUserId, callerRole) {
@@ -240,7 +252,17 @@ class StaffService {
         throw new AppError('매니저는 다른 매니저를 삭제할 수 없습니다.', 403);
       }
     }
-    return prisma.staff.delete({ where: { id: target.id } });
+    const deleted = await prisma.staff.delete({ where: { id: target.id } });
+    void auditLogService.record({
+      actorUserId: callerUserId,
+      actorRole: callerRole,
+      action: 'STAFF_DELETED',
+      resourceType: 'staff',
+      resourceId: target.id,
+      storeId: target.store_id,
+      before: { role: target.role, user_id: target.user_id },
+    });
+    return deleted;
   }
 
   async lookupUser(phone, storeId, callerUserId) {

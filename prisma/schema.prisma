@@ -1603,4 +1603,22 @@ model recommendation_daily_stats {
   @@schema("public")
 }
 
+model audit_logs {
+  id            Int      @id @default(autoincrement())
+  actor_user_id Int?
+  actor_role    String?
+  action        String
+  resource_type String
+  resource_id   Int?
+  store_id      Int?
+  before_data   Json?
+  after_data    Json?
+  metadata      Json?
+  created_at    DateTime @default(now())
+
+  @@index([store_id, created_at], map: "idx_audit_logs_store_time")
+  @@index([actor_user_id, created_at], map: "idx_audit_logs_actor_time")
+  @@index([resource_type, resource_id], map: "idx_audit_logs_resource")
+  @@schema("public")
+}
 // Eco Badge fields (added via migration)
