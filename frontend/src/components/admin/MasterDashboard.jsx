@@ -965,7 +965,7 @@ const MasterDashboard = () => {
           grad: 'from-rose-500 to-pink-500'
         }, {
           label: '영수증 설정',
-          path: 'receipt-settings',
+          path: 'receipt',
           icon: ReceiptText,
           desc: '인쇄 양식 설정',
           grad: 'from-amber-500 to-orange-500'
@@ -977,7 +977,7 @@ const MasterDashboard = () => {
           grad: 'from-emerald-500 to-teal-500'
         }, {
           label: '알림 템플릿',
-          path: 'notification-templates',
+          path: 'notifications',
           icon: Bell,
           desc: '자동 알림 문구 관리',
           grad: 'from-sky-500 to-indigo-500'

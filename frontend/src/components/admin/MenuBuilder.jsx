@@ -116,7 +116,39 @@ const MenuBuilder = () => {
     const handleSave = async () => {
         setSaveLoading(true);
         try {
-            await storesAPI.update(storeId, { theme: JSON.stringify(theme) });
+            // MenuBuilder 필드 + themePresets 호환 필드 모두 저장
+            const themeToSave = {
+                ...theme,
+                // themePresets 호환 필드
+                theme_preset: 'custom',
+                custom_colors: {
+                    primary: theme.primaryColor,
+                    secondary: theme.secondaryColor,
+                    background: theme.backgroundColor,
+                    surface: theme.cardColor,
+                    text: theme.textColor,
+                    border: theme.secondaryColor,
+                },
+                ui_size: theme.cardRadius === 'sm' ? 'small' : theme.cardRadius === 'xl' || theme.cardRadius === 'full' ? 'large' : 'medium',
+                menu_layout: theme.layoutMode,
+                menu_options: {
+                    showBadge: theme.showBadges,
+                    badgeTypes: {
+                        new: { label: 'NEW', color: '#EF4444', show: true },
+                        popular: { label: '인기', color: theme.primaryColor, show: true },
+                        special: { label: 'SPECIAL', color: '#8B5CF6', show: false },
+                    },
+                    showPriceUnit: '원',
+                    showRating: true,
+                    showReviewCount: true,
+                    priceFormat: 'comma',
+                    showSoldOutBadge: true,
+                    showLowStockWarning: true,
+                    minimumOrderAmount: null,
+                    optionDisplay: 'dropdown',
+                },
+            };
+            await storesAPI.update(storeId, { theme: JSON.stringify(themeToSave) });
             setSaved(true);
             setTimeout(() => setSaved(false), 2500);
         } catch {

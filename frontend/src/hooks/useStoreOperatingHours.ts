@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { storesAPI } from '@/api';
 
+// ── 타입 정의 ──────────────────────────────────────────────────────
+export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+
 // ── 상수 (StoreSettings와 응집된 기본값) ─────────────────────────────
-export const DAYS = [
+export const DAYS: { key: DayKey; label: string }[] = [
   { key: 'mon', label: '월' },
   { key: 'tue', label: '화' },
   { key: 'wed', label: '수' },
@@ -15,8 +18,6 @@ export const DAYS = [
 export const DEFAULT_HOURS = { open: '09:00', close: '22:00', closed: false };
 
 // ── 타입 정의 ──────────────────────────────────────────────────────
-export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
-
 export interface DayHours {
   key: DayKey;
   label: string;
@@ -171,7 +172,7 @@ export const useStoreOperatingHours = (storeId: string) => {
   // ── state 업데이트 액션 ──────────────────────────────────────────
   const updateHours = useCallback((newHours: Record<DayKey, Partial<DayHours>>) => {
     setState(prev => {
-      const next: Record<DayKey, DayHours> = {};
+      const next = {} as Record<DayKey, DayHours>;
 
       DAYS.forEach(d => {
         const existing = prev.hours[d.key];
@@ -349,6 +350,3 @@ export const useStoreOperatingHours = (storeId: string) => {
     error: state.error,
   };
 };
-
-// ── export types ────────────────────────────────────────────────────
-export type { DayHours, OperatingHoursState };

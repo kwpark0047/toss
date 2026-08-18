@@ -128,24 +128,54 @@ export const getThemePreset = (themeSettings) => {
  * theme_settings → CSS 변수 스타일 객체.
  * 고객 메뉴판(MenuPage) 루트 요소에 적용하면 프리셋 색상·폰트가 페이지 전체에 반영된다.
  * `--customer-*` 시맨틱 토큰과 `--color-primary` 를 함께 덮어쓴다.
+ *
+ * 두 가지 포맷을 모두 지원:
+ * 1. themePresets 포맷: { theme_preset, custom_colors, ... }
+ * 2. MenuBuilder 포맷: { primaryColor, secondaryColor, backgroundColor, textColor, cardColor, fontFamily, ... }
  */
 export const resolveThemeStyle = (themeSettings) => {
   if (!themeSettings) return {};
-  const preset = getThemePreset(themeSettings);
-  // 저장 시점의 custom_colors(프리셋 선택 결과)를 우선 사용 — 이후 프리셋이 바뀌어도 유지
-  const customColors = themeSettings.custom_colors;
-  const c =
-    customColors && (customColors.primary || customColors.background)
-      ? {
-          primary: customColors.primary,
-          secondary: customColors.secondary,
-          background: customColors.background,
-          surface: customColors.surface || customColors.cardColor || '#FFFFFF',
-          text: customColors.text,
-          border: customColors.border || customColors.primary,
-        }
-      : preset?.colors;
+
+  // 1. themePresets 포맷 감지 (theme_preset 또는 custom_colors 존재)
+  const isPresetFormat = themeSettings.theme_preset || themeSettings.custom_colors;
+  const preset = isPresetFormat ? getThemePreset(themeSettings) : null;
+
+  let c;
+
+  if (isPresetFormat) {
+    // 기존 themePresets 로직
+    const customColors = themeSettings.custom_colors;
+    c =
+      customColors && (customColors.primary || customColors.background)
+        ? {
+            primary: customColors.primary,
+            secondary: customColors.secondary,
+            background: customColors.background,
+            surface: customColors.surface || customColors.cardColor || '#FFFFFF',
+            text: customColors.text,
+            border: customColors.border || customColors.primary,
+          }
+        : preset?.colors;
+  } else if (themeSettings.primaryColor || themeSettings.backgroundColor) {
+    // 2. MenuBuilder 포맷 직접 매핑
+    c = {
+      primary: themeSettings.primaryColor || '#f97316',
+      secondary: themeSettings.secondaryColor || '#1e3a5f',
+      background: themeSettings.backgroundColor || '#f8fafc',
+      surface: themeSettings.cardColor || '#ffffff',
+      text: themeSettings.textColor || '#1e293b',
+      border: themeSettings.secondaryColor || themeSettings.primaryColor || '#1e3a5f',
+    };
+  } else {
+    // 어떤 포맷도 아니면 빈 객체
+    return {};
+  }
+
   if (!c) return {};
+
+  const fontFamily = isPresetFormat
+    ? themeSettings.fontFamily || preset?.font || 'inherit'
+    : themeSettings.fontFamily || 'Pretendard';
 
   return {
     '--color-primary': c.primary,
@@ -157,7 +187,7 @@ export const resolveThemeStyle = (themeSettings) => {
     '--customer-text-sub': `color-mix(in srgb, ${c.text} 72%, ${c.background})`,
     '--customer-border': c.border,
     '--customer-divider': c.border,
-    fontFamily: preset?.font || 'inherit',
+    fontFamily,
     backgroundColor: c.background,
     color: c.text,
   };

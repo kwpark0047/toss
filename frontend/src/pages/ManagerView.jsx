@@ -201,7 +201,7 @@ const ManagerView = () => {
                 {/* 빠른 링크 */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
-                        { label: '주방 화면', to: `/kitchen/${storeId}`, icon: AlertCircle, color: 'orange' },
+                        { label: '주방 화면', to: `/admin/stores/${storeId}/kitchen`, icon: AlertCircle, color: 'orange' },
                         { label: '직원 관리', to: `/admin/stores/${storeId}/staff`, icon: Users, color: 'blue' },
                         { label: '근무표', to: `/admin/stores/${storeId}/schedules`, icon: Calendar, color: 'teal' },
                         { label: '주문 내역', to: `/admin/stores/${storeId}/orders`, icon: ShoppingBag, color: 'green' },

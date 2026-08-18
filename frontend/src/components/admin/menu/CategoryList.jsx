@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2, Tag, GripVertical, Download, Settings } from 'lucide-react';
+import { useState } from 'react';
 
 export const CategoryList = ({
   categories,
@@ -15,6 +16,17 @@ export const CategoryList = ({
   importFromStore,
   setShowOptionTemplateModal
 }) => {
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importStoreId, setImportStoreId] = useState('');
+
+  const handleImportSubmit = () => {
+    const id = parseInt(importStoreId.trim(), 10);
+    if (!id || Number.isNaN(id)) return;
+    setShowImportModal(false);
+    setImportStoreId('');
+    importFromStore(id);
+  };
+
   return (
     <div className="hidden lg:block lg:col-span-3 space-y-8">
       <div className="bg-white/5 backdrop-blur-xl rounded-[40px] border border-white/5 overflow-hidden">
@@ -90,16 +102,57 @@ export const CategoryList = ({
           <h4 className="text-xl font-black mb-3">메뉴 데이터 가져오기</h4>
           <p className="text-sm text-blue-100/70 font-medium leading-relaxed mb-8">다른 매장의 메뉴 구성을<br />빠르게 적용해보세요</p>
           <button
-            onClick={async () => {
-              const sourceStoreId = window.prompt('가져올 매장의 ID를 입력해주세요');
-              importFromStore(sourceStoreId);
-            }}
+            onClick={() => setShowImportModal(true)}
             className="w-full py-4 bg-white text-blue-700 rounded-[20px] font-black text-sm hover:bg-blue-50 active:scale-95 transition-all shadow-xl"
           >
             매장 데이터 불러오기
           </button>
         </div>
       </div>
+
+      {/* 가져오기 모달 */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center z-[100] p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="bg-slate-900 border border-white/10 rounded-[24px] p-6 max-w-md w-full shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-black text-white">매장 데이터 가져오기</h3>
+              <button onClick={() => setShowImportModal(false)} className="p-2 text-slate-400 hover:text-white transition-colors">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <p className="text-slate-400 text-sm mb-6">가져올 매장의 ID를 입력하세요. 해당 매장의 메뉴가 현재 매장으로 복사됩니다.</p>
+            <div className="space-y-4">
+              <input
+                type="number"
+                value={importStoreId}
+                onChange={(e) => setImportStoreId(e.target.value)}
+                placeholder="매장 ID (숫자)"
+                className="w-full px-4 py-3 bg-slate-800 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none transition-all"
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowImportModal(false); setImportStoreId(''); }}
+                  className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl font-black text-sm hover:bg-slate-700 transition-all"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleImportSubmit}
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition-all"
+                >
+                  가져오기
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* 옵션 템플릿 */}
       <div className="bg-white/5 backdrop-blur-xl p-8 rounded-[40px] border border-white/5">
