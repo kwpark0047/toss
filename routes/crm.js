@@ -3,6 +3,7 @@ const router = express.Router();
 const crmController = require('../controllers/crmController');
 const { authMiddleware } = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
+const crmAutomationController = require('../controllers/crmAutomationController');
 
 /**
  * @swagger
@@ -29,9 +30,10 @@ const { checkStorePermission } = require('../middleware/storeAuth');
  *       200:
  *         description: RFM 세그먼트 분석 결과 (Champions, Loyal, At_Risk, Lost, New, General)
  */
-router.get('/store/:storeId/analysis', 
-  authMiddleware, 
-  checkStorePermission('stats:read'), 
+router.get(
+  '/store/:storeId/analysis',
+  authMiddleware,
+  checkStorePermission('stats:read'),
   crmController.getCustomerAnalysis
 );
 
@@ -59,9 +61,10 @@ router.get('/store/:storeId/analysis',
  *       200:
  *         description: 세그먼트별 고객 목록
  */
-router.get('/store/:storeId/segment/:segmentName', 
-  authMiddleware, 
-  checkStorePermission('stats:read'), 
+router.get(
+  '/store/:storeId/segment/:segmentName',
+  authMiddleware,
+  checkStorePermission('stats:read'),
   crmController.getSegmentCustomers
 );
 
@@ -100,10 +103,36 @@ router.get('/store/:storeId/segment/:segmentName',
  *       404:
  *         description: 매장 없음
  */
-router.post('/store/:storeId/send-smart-sms', 
-  authMiddleware, 
-  checkStorePermission('settings:write'), 
+router.post(
+  '/store/:storeId/send-smart-sms',
+  authMiddleware,
+  checkStorePermission('settings:write'),
   crmController.sendSmartMarketingSms
+);
+
+router.post(
+  '/store/:storeId/automation-campaigns/generate',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  crmAutomationController.generate
+);
+router.get(
+  '/store/:storeId/automation-campaigns',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  crmAutomationController.list
+);
+router.post(
+  '/store/:storeId/automation-campaigns/:id/decide',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  crmAutomationController.decide
+);
+router.post(
+  '/store/:storeId/automation-campaigns/:id/send',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  crmAutomationController.send
 );
 
 module.exports = router;

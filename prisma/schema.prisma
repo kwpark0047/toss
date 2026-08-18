@@ -1674,3 +1674,22 @@ model inventory_reorder_candidates {
   @@index([product_id, status], map: "idx_reorder_candidates_product_status")
   @@schema("public")
 }
+model crm_campaign_runs {
+  id            Int      @id @default(autoincrement())
+  store_id      Int
+  segment_name  String
+  trigger_type  String   @default("MANUAL")
+  message       String
+  status        String   @default("pending")
+  target_count  Int      @default(0)
+  sent_count    Int      @default(0)
+  failed_count  Int      @default(0)
+  created_by    Int?
+  approved_by   Int?
+  approved_at   DateTime?
+  sent_at       DateTime?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([store_id, status, created_at], map: "idx_crm_campaign_runs_store_status")
+  @@index([store_id, segment_name, created_at], map: "idx_crm_campaign_runs_segment")
