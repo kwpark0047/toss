@@ -13,6 +13,7 @@
  */
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
+const orderEventService = require('../services/OrderEventService');
 
 /** 최대 재시도 횟수 (초과 시 failed 확정) */
 const MAX_ATTEMPTS = 3;
@@ -63,6 +64,7 @@ const printJobsController = {
         `SELECT id, store_id, order_id, kind, status, payload_b64, attempts, created_at
                  FROM print_jobs
                  WHERE store_id = $1 AND status = 'pending'
+                   AND (next_retry_at IS NULL OR next_retry_at <= NOW())
                  ORDER BY created_at ASC
                  LIMIT 20`,
         resolved.storeId
@@ -147,7 +149,7 @@ const printJobsController = {
 
     try {
       const rows = await prisma.$queryRawUnsafe(
-        `SELECT attempts FROM print_jobs
+        `SELECT attempts, order_id FROM print_jobs
                   WHERE id = $1 AND store_id = $2 AND status IN ('pending', 'printing')`,
         jobId,
         resolved.storeId
@@ -161,14 +163,30 @@ const printJobsController = {
       const attempts = Number(rows[0].attempts || 0);
       const nextStatus = attempts >= MAX_ATTEMPTS ? 'failed' : 'pending';
 
+      const retryAt =
+        attempts >= MAX_ATTEMPTS
+          ? null
+          : new Date(Date.now() + Math.pow(2, Math.max(0, attempts - 1)) * 60 * 1000);
       await prisma.$executeRawUnsafe(
-        `UPDATE print_jobs SET status = $1, error = $2 WHERE id = $3 AND store_id = $4`,
+        `UPDATE print_jobs SET status = $1, error = $2, next_retry_at = $5 WHERE id = $3 AND store_id = $4`,
         nextStatus,
         reason,
         jobId,
-        resolved.storeId
+        resolved.storeId,
+        retryAt
       );
-      res.json({ success: true, data: { id: jobId, status: nextStatus, attempts } });
+      if (nextStatus === 'failed') {
+        void orderEventService.record({
+          orderId: rows[0].order_id,
+          storeId: resolved.storeId,
+          eventType: 'PRINT_FAILED',
+          metadata: { job_id: jobId, attempts, reason },
+        });
+      }
+      res.json({
+        success: true,
+        data: { id: jobId, status: nextStatus, attempts, next_retry_at: retryAt },
+      });
     } catch (err) {
       logger.error(`[PrintJobs] 실패 처리 실패: ${err.message}`);
       res.status(500).json({ success: false, message: '실패 처리 실패' });

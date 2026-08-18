@@ -1114,11 +1114,12 @@ model print_jobs {
   error       String?
   claimed_at  DateTime?
   printed_at  DateTime?
+  next_retry_at DateTime?
   created_at  DateTime  @default(now())
   stores      stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
   orders      orders?   @relation(fields: [order_id], references: [id], onDelete: SetNull)
 
-  @@index([store_id, status, created_at], map: "idx_print_jobs_claim")
+  @@index([store_id, status, next_retry_at], map: "idx_print_jobs_retry")
   @@schema("public")
 }
 
