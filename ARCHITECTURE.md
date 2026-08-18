@@ -2,7 +2,7 @@
 
 ## Overview
 
-WeMarket is a **SaaS QR Menu & Small Business Platform** built as a Vite-based React SPA with a Node.js/Express backend, PostgreSQL database, and Redis caching layer. The platform provides QR-based digital menus, ordering, payments, waitlist management, and AI-powered recommendations.
+WeMarket is a **SaaS QR Menu & Small Business Platform** built as a Vite-based React SPA with a Node.js/Express 5 backend, PostgreSQL database, and optional Redis caching layer. The platform provides QR-based digital menus, ordering, payments, waitlist management, and AI-powered recommendations.
 
 ---
 
@@ -82,7 +82,7 @@ WeMarket is a **SaaS QR Menu & Small Business Platform** built as a Vite-based R
 | Layer | Technology | Version | Purpose |
 |-------|------------|---------|---------|
 | Runtime | Node.js | 22.x (LTS) | JavaScript runtime |
-| Framework | Express.js | 4.x | Web framework |
+| Framework | Express.js | 5.2.x | Web framework |
 | Database ORM | Prisma | 5.x | Type-safe database access |
 | Database | PostgreSQL | 16 | Primary data store (Supabase) |
 | Cache | Redis | 7.x | Sessions, rate limiting, queues |
@@ -94,12 +94,12 @@ WeMarket is a **SaaS QR Menu & Small Business Platform** built as a Vite-based R
 ### Frontend
 | Layer | Technology | Version | Purpose |
 |-------|------------|---------|---------|
-| Framework | React | 18.x | UI library |
-| Build Tool | Vite | 5.x | Fast build/dev server |
+| Framework | React | 19.x | UI library |
+| Build Tool | Vite | 7.x | Fast build/dev server |
 | Router | React Router | 6.x | Client-side routing |
 | State | Zustand | 4.x | Lightweight state management |
 | Data Fetching | TanStack Query | 5.x | Server state management |
-| Styling | Tailwind CSS | 3.x | Utility-first CSS |
+| Styling | Tailwind CSS | 4.x | Utility-first CSS |
 | i18n | react-i18next | 14.x | Internationalization |
 | Animations | Framer Motion | 11.x | Declarative animations |
 

@@ -184,6 +184,12 @@ jobs:
         backend-integration-tests,
         backend-regression-tests,
         frontend-test,
+        security-scan,
+        docker-build,
+        trivy-image-scan,
+        bundle-size-check,
+        lighthouse-ci,
+        frontend-lint,
       ]
     runs-on: ubuntu-latest
     timeout-minutes: 10

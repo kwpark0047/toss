@@ -19,6 +19,7 @@ const AlimtalkService_1 = __importDefault(require('./AlimtalkService'));
 const logger_1 = __importDefault(require('../utils/logger'));
 const phoneEncryption_1 = require('../utils/phoneEncryption');
 const errorHandler_1 = require('../utils/errorHandler');
+const orderStatus_1 = require('../utils/orderStatus');
 class KdsService {
   /**
    * KDS 활성 주문 목록 조회 (pending, preparing, ready 상태)
@@ -94,17 +95,7 @@ class KdsService {
       if (!order || order.store_id !== numericStoreId) {
         throw new errorHandler_1.AppError('주문을 찾을 수 없거나 해당 매장 소유가 아닙니다.', 404);
       }
-      const allowedTransitions = {
-        pending: ['preparing', 'cancelled'],
-        preparing: ['ready', 'cancelled'],
-        ready: ['completed'],
-      };
-      if (!allowedTransitions[order.status]?.includes(status)) {
-        throw new errorHandler_1.AppError(
-          `현재 ${order.status} 상태에서는 ${status}로 변경할 수 없습니다.`,
-          400
-        );
-      }
+      (0, orderStatus_1.assertKdsOrderStatusTransition)(order.status, status);
       // 2. 상태 전이 및 업데이트용 데이터 조립
       const updateData = {
         status,

@@ -10,6 +10,7 @@ const printService = require('./printService');
 const logger = require('../utils/logger');
 const { encryptPhone, decryptPhone, normalizePhone } = require('../utils/phoneEncryption');
 const { AppError } = require('../utils/errorHandler');
+const { assertOrderStatusTransition } = require('../utils/orderStatus');
 const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
 
 // Haversine formula for distance in km
@@ -187,12 +188,14 @@ class OrderService {
     const orderId = parseInt(id);
     const oldOrder = await Order.findById(orderId);
     if (!oldOrder) throw new AppError('주문을 찾을 수 없습니다.', 404);
+
     if (
       oldOrder.status === status &&
       !['confirmed', 'preparing', 'ready', 'completed'].includes(status)
     ) {
       return oldOrder;
     }
+    assertOrderStatusTransition(oldOrder.status, status);
 
     const inventoryTransition =
       oldOrder.status === 'pending' &&
@@ -304,6 +307,7 @@ class OrderService {
     }
 
     if (order.status === 'cancelled') return { success: true, message: '이미 취소된 주문입니다.' };
+    if (order.status === 'completed') throw new AppError('완료된 주문은 취소할 수 없습니다.', 400);
 
     await Order.updateStatus(orderId, 'cancelled');
     // KDS 수락 이후 취소된 경우에만 재고 복구

@@ -71,7 +71,8 @@ npm run dev
 |---|---|
 | `npm start` | 프로덕션 서버 기동 (`node index.js`) |
 | `npm run build` | Prisma generate + 프론트엔드 빌드 |
-| `npm test` | Jest 전체 (coverage, `--forceExit --detectOpenHandles`) |
+| `npm test` | 백엔드 단위·라우트 테스트 (커버리지 포함) |
+| `npm run test:integration` | PostgreSQL 기반 통합 테스트 |
 | `npm run test:unit` | 단위 테스트 |
 | `npm run test:integration` | 통합 테스트 (`tests/integration`) |
 | `npm run test:regression` | 회귀 테스트 |
@@ -107,7 +108,7 @@ npx wrangler deploy   # CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID 필요
 
 - **백엔드**: Render `https://wemarket.onrender.com` (`render.yaml`, 배포 hook으로 CI 트리거)
 - **프론트**: Cloudflare Workers `https://toss.wemarket.workers.dev` (Static Assets + `/api` 프록시)
-- **CI**: GitHub Actions `deploy` job이 Render hook 호출 → frontend 빌드 → wrangler 배포 순서로 자동 진행
+- **CI**: lint·단위·통합·회귀·보안·Docker·Trivy·번들·Lighthouse 검증 후 Render와 Cloudflare 배포 진행
 
 ## API 개요
 
