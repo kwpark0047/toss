@@ -60,6 +60,44 @@ const AuditLogService = {
       return null;
     }
   },
+
+  async list({ page = 1, limit = 50, action, resourceType, storeId } = {}) {
+    if (!prisma.audit_logs) return { items: [], total: 0, page: 1, limit: 0, totalPages: 0 };
+    const pageNumber = Math.max(1, Number.parseInt(page, 10) || 1);
+    const limitNumber = Math.min(100, Math.max(1, Number.parseInt(limit, 10) || 50));
+    const where = {
+      ...(action ? { action } : {}),
+      ...(resourceType ? { resource_type: resourceType } : {}),
+      ...(storeId ? { store_id: Number.parseInt(storeId, 10) } : {}),
+    };
+    const [total, items] = await Promise.all([
+      prisma.audit_logs.count({ where }),
+      prisma.audit_logs.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip: (pageNumber - 1) * limitNumber,
+        take: limitNumber,
+      }),
+    ]);
+    return {
+      items,
+      total,
+      page: pageNumber,
+      limit: limitNumber,
+      totalPages: Math.ceil(total / limitNumber),
+    };
+  },
+
+  async prune(retentionDays = process.env.AUDIT_LOG_RETENTION_DAYS || 180) {
+    if (!prisma.audit_logs) return { deleted: 0, retentionDays: 0 };
+    const days = Math.min(3650, Math.max(1, Number.parseInt(retentionDays, 10) || 180));
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    const result = await prisma.audit_logs.deleteMany({
+      where: { created_at: { lt: cutoff } },
+    });
+    return { deleted: result.count, retentionDays: days, cutoff };
+  },
 };
 
 module.exports = AuditLogService;

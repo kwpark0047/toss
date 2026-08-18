@@ -131,6 +131,7 @@ export default function SystemStatus() {
   const [sla, setSla] = useState(null);
   const [circuits, setCircuits] = useState([]);
   const [dbProfile, setDbProfile] = useState(null); // Prisma DB 프로파일링 상태 추가
+  const [auditLogs, setAuditLogs] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [error, setError] = useState(null);
@@ -142,12 +143,13 @@ export default function SystemStatus() {
         if (e?.response?.data) return e.response.data;
         throw e;
       });
-      const [hRes, sRes, cRes, dRes] = await Promise.all([fetchBody('/health/deep'), fetchBody('/health/sla'), fetchBody('/health/circuits'), fetchBody('/analytics/db-profile') // 실시간 Prisma 데이터 조회 연동
-      ]);
+       const [hRes, sRes, cRes, dRes, aRes] = await Promise.all([fetchBody('/health/deep'), fetchBody('/health/sla'), fetchBody('/health/circuits'), fetchBody('/analytics/db-profile'), fetchBody('/admin/audit-logs?limit=10') // 실시간 Prisma 데이터 조회 연동
+       ]);
       setHealth(hRes?.data ?? hRes);
       setSla(sRes?.data ?? sRes);
       setCircuits((cRes?.data ?? cRes)?.circuits || []);
-      setDbProfile(dRes?.data ?? dRes);
+       setDbProfile(dRes?.data ?? dRes);
+       setAuditLogs(aRes?.data ?? aRes);
       setLastRefresh(new Date());
     } catch {
       setError('시스템 상태 및 데이터베이스 프로파일 데이터를 불러오지 못했습니다.');
@@ -214,6 +216,24 @@ export default function SystemStatus() {
                     <MetricCard icon={Cpu} label="P95 응답" value={`${slaData?.p95Ms ?? 0}ms`} color="#F59E0B" sub={`P50: ${slaData?.p50Ms ?? 0}ms`} />
                 </div>
             </SectionErrorBoundary>
+
+            {auditLogs?.items?.length > 0 && <SectionErrorBoundary sectionName="감사 로그">
+                <section className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm" aria-label="최근 감사 로그">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-bold text-gray-800">최근 감사 로그</h2>
+                        <span className="text-xs text-gray-400">최근 {auditLogs.items.length}건</span>
+                    </div>
+                    <div className="space-y-2">
+                        {auditLogs.items.map((log) => <div key={log.id} className="flex items-center justify-between gap-3 text-sm border-b border-gray-50 pb-2 last:border-0">
+                            <div className="min-w-0">
+                                <p className="font-semibold text-gray-700 truncate">{log.action}</p>
+                                <p className="text-xs text-gray-400">{log.resource_type} #{log.resource_id || '-'} · {log.actor_role || 'system'}</p>
+                            </div>
+                            <time className="text-xs text-gray-400 whitespace-nowrap">{new Date(log.created_at).toLocaleString()}</time>
+                        </div>)}
+                    </div>
+                </section>
+            </SectionErrorBoundary>}
 
             {/* DB & 메모리 */}
             <SectionErrorBoundary sectionName="데이터베이스 및 메모리">
