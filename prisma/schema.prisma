@@ -1621,4 +1621,19 @@ model audit_logs {
   @@index([resource_type, resource_id], map: "idx_audit_logs_resource")
   @@schema("public")
 }
+model feature_flags {
+  id              Int      @id @default(autoincrement())
+  key             String   @unique
+  description     String?
+  enabled         Boolean  @default(false)
+  rollout_percent Int      @default(100)
+  environment     String   @default("production")
+  store_id        Int?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@index([environment, enabled], map: "idx_feature_flags_environment_enabled")
+  @@index([store_id], map: "idx_feature_flags_store")
+  @@schema("public")
+}
 // Eco Badge fields (added via migration)

@@ -132,6 +132,7 @@ export default function SystemStatus() {
   const [circuits, setCircuits] = useState([]);
   const [dbProfile, setDbProfile] = useState(null); // Prisma DB 프로파일링 상태 추가
   const [auditLogs, setAuditLogs] = useState(null);
+  const [featureFlags, setFeatureFlags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [error, setError] = useState(null);
@@ -143,13 +144,14 @@ export default function SystemStatus() {
         if (e?.response?.data) return e.response.data;
         throw e;
       });
-       const [hRes, sRes, cRes, dRes, aRes] = await Promise.all([fetchBody('/health/deep'), fetchBody('/health/sla'), fetchBody('/health/circuits'), fetchBody('/analytics/db-profile'), fetchBody('/admin/audit-logs?limit=10') // 실시간 Prisma 데이터 조회 연동
+      const [hRes, sRes, cRes, dRes, aRes, fRes] = await Promise.all([fetchBody('/health/deep'), fetchBody('/health/sla'), fetchBody('/health/circuits'), fetchBody('/analytics/db-profile'), fetchBody('/admin/audit-logs?limit=10'), fetchBody('/admin/feature-flags') // 실시간 Prisma 데이터 조회 연동
        ]);
       setHealth(hRes?.data ?? hRes);
       setSla(sRes?.data ?? sRes);
       setCircuits((cRes?.data ?? cRes)?.circuits || []);
        setDbProfile(dRes?.data ?? dRes);
        setAuditLogs(aRes?.data ?? aRes);
+       setFeatureFlags(fRes?.data ?? fRes ?? []);
       setLastRefresh(new Date());
     } catch {
       setError('시스템 상태 및 데이터베이스 프로파일 데이터를 불러오지 못했습니다.');
@@ -157,6 +159,17 @@ export default function SystemStatus() {
       setLoading(false);
     }
   }, []);
+  const saveFeatureFlag = async (flag) => {
+    const response = await api.put(`/admin/feature-flags/${encodeURIComponent(flag.key)}`, {
+      description: flag.description || null,
+      enabled: !flag.enabled,
+      rollout_percent: flag.rollout_percent,
+      environment: flag.environment,
+      store_id: flag.store_id,
+    });
+    const saved = response?.data?.data || response?.data;
+    setFeatureFlags((current) => current.map((item) => item.key === flag.key ? { ...item, ...saved } : item));
+  };
   useEffect(() => {
     fetchAll();
     const interval = setInterval(fetchAll, REFRESH_INTERVAL);
@@ -230,6 +243,26 @@ export default function SystemStatus() {
                                 <p className="text-xs text-gray-400">{log.resource_type} #{log.resource_id || '-'} · {log.actor_role || 'system'}</p>
                             </div>
                             <time className="text-xs text-gray-400 whitespace-nowrap">{new Date(log.created_at).toLocaleString()}</time>
+                        </div>)}
+                    </div>
+                </section>
+            </SectionErrorBoundary>}
+
+            {Array.isArray(featureFlags) && featureFlags.length > 0 && <SectionErrorBoundary sectionName="Feature Flag">
+                <section className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm" aria-label="Feature Flag 관리">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-bold text-gray-800">Feature Flag</h2>
+                        <span className="text-xs text-gray-400">슈퍼관리자 설정</span>
+                    </div>
+                    <div className="space-y-2">
+                        {featureFlags.map((flag) => <div key={flag.key} className="flex items-center justify-between gap-3 border-b border-gray-50 pb-2 last:border-0">
+                            <div className="min-w-0">
+                                <p className="font-semibold text-gray-700 truncate">{flag.key}</p>
+                                <p className="text-xs text-gray-400">{flag.description || '설명 없음'} · rollout {flag.rollout_percent}%</p>
+                            </div>
+                            <button type="button" onClick={() => saveFeatureFlag(flag)} className={`px-3 py-1 rounded-full text-xs font-bold ${flag.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                                {flag.enabled ? 'ON' : 'OFF'}
+                            </button>
                         </div>)}
                     </div>
                 </section>
