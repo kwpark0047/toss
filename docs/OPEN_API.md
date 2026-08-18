@@ -18,7 +18,20 @@ X-API-Key: wm_live_xxxxxxxxxxxx
 Authorization: Bearer wm_live_xxxxxxxxxxxx
 ```
 
-- 스코프: `read`(조회), `write`(주문 생성). 키 발급 시 지정.
+스코프(기능별 미세 권한. 키 발급 시 콤마 구분으로 복수 지정 가능):
+
+| 스코프 | 범위 |
+| --- | --- |
+| `read` | (레거시) 조회 전반 — 모든 조회 엔드포인트 하위호환 |
+| `write` | (레거시) 주문 생성/프린트 전반 — 모든 쓰기 엔드포인트 하위호환 |
+| `stores:read` | 매장 프로필 조회 |
+| `menus:read` | 메뉴 목록 조회 |
+| `orders:read` | 주문 목록·상세 조회 |
+| `orders:write` | 주문 생성 |
+| `analytics:read` | 매출 분석 조회 |
+| `print:write` | 주방 프린트 잡 점유·인쇄 피드백 |
+
+- 레거시 `read`는 모든 `*:read` 작업, 레거시 `write`는 모든 `*:write` 작업(프린트 포함)을 하위호환으로 허용한다.
 - 키는 발급 시 1회만 평문 노출되며 서버에는 SHA-256 해시만 저장된다.
 - 매장 소유주가 개발자 포털에서 발급/폐기: `POST /api/developer/stores/:storeId/api-keys`
 
@@ -31,26 +44,26 @@ Authorization: Bearer wm_live_xxxxxxxxxxxx
 
 ## 엔드포인트
 
-### GET /store
+### GET /store  *(stores:read)*
 매장 프로필.
 ```json
 { "data": { "id": 3, "name": "강남3", "address": "...", "open_time": "10:00", ... } }
 ```
 
-### GET /menus
+### GET /menus  *(menus:read)*
 매장 메뉴 목록.
 ```json
 { "data": [ { "id": 11, "name": "떡볶이", "price": 3000, "is_sold_out": false, ... } ], "meta": { "count": 1 } }
 ```
 
-### GET /orders?status=&date=&limit=
+### GET /orders?status=&date=&limit=  *(orders:read)*
 주문 목록. `status`(콤마 다중), `date`(YYYY-MM-DD, KST), `limit`(최대 200).
 전화번호는 마스킹(`010-****-5678`)되어 반환된다.
 
-### GET /orders/:id
+### GET /orders/:id  *(orders:read)*
 단일 주문 상세.
 
-### POST /orders  *(write 스코프)*
+### POST /orders  *(orders:write)*
 외부 주문 주입. **매장의 실제 `product_id`를 참조**해야 하며(GET /menus로 조회),
 가격·재고는 서버가 DB 기준으로 재계산·차감한다(클라이언트 가격 위변조 불가).
 ```json
@@ -60,7 +73,7 @@ Authorization: Bearer wm_live_xxxxxxxxxxxx
 { "data": { "id": 33, "order_number": "20260705-5169", "status": "pending", "total_amount": 6000 } }
 ```
 
-### GET /analytics/summary?date=
+### GET /analytics/summary?date=  *(analytics:read)*
 매출 요약(주문수·매출·객단가).
 
 ---
@@ -125,8 +138,8 @@ function verify(rawBody, header, secret) {
 
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
-| POST | `/v1/print/jobs/claim` | 대기 잡 원자적 수령(FOR UPDATE SKIP LOCKED, 중복 방지). `{max}` |
-| POST | `/v1/print/jobs/:id/ack` | 인쇄 결과 보고 `{success, error}` (실패 시 3회까지 재시도) |
+| POST | `/v1/print/jobs/claim` | 대기 잡 원자적 수령(FOR UPDATE SKIP LOCKED, 중복 방지). `{max}` — *(print:write)* |
+| POST | `/v1/print/jobs/:id/ack` | 인쇄 결과 보고 `{success, error}` (실패 시 3회까지 재시도) — *(print:write)* |
 
 잡 응답의 `payload_b64`는 인쇄 준비가 끝난 ESC/POS 바이트(base64). 브리지는
 디코딩해 프린터로 그대로 흘려보내면 된다(인코딩·포맷은 서버가 완결).
