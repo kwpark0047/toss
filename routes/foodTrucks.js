@@ -41,7 +41,72 @@ router.get('/active', foodTruckController.getActiveFoodTrucks);
  *       200:
  *         description: 푸드트럭 상태 반환
  */
-router.get('/stores/:storeId', authMiddleware, checkStorePermission('settings:read'), foodTruckController.getFoodTruckStatus);
+router.get(
+  '/stores/:storeId',
+  authMiddleware,
+  checkStorePermission('settings:read'),
+  foodTruckController.getFoodTruckStatus
+);
+
+/**
+ * @swagger
+ * /api/foodtruck/stores/{storeId}/design:
+ *   get:
+ *     tags: [FoodTrucks]
+ *     summary: 사업자 트럭 디자인 쇼케이스 콘셉트 조회
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 적용 중인 디자인 콘셉트 반환
+ */
+router.get(
+  '/stores/:storeId/design',
+  authMiddleware,
+  checkStorePermission('settings:read'),
+  foodTruckController.getDesign
+);
+
+/**
+ * @swagger
+ * /api/foodtruck/stores/{storeId}/design:
+ *   put:
+ *     tags: [FoodTrucks]
+ *     summary: 사업자 트럭 디자인 쇼케이스 콘셉트 저장
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               design_theme:
+ *                 type: string
+ *                 example: concept1
+ *     responses:
+ *       200:
+ *         description: 디자인 콘셉트 저장 완료
+ */
+router.put(
+  '/stores/:storeId/design',
+  authMiddleware,
+  checkStorePermission('settings:update'),
+  foodTruckController.updateDesign
+);
 
 /**
  * @swagger
@@ -72,7 +137,12 @@ router.get('/stores/:storeId', authMiddleware, checkStorePermission('settings:re
  *       200:
  *         description: GPS 갱신 완료
  */
-router.post('/stores/:storeId/gps', authMiddleware, checkStorePermission('settings:update'), foodTruckController.updateLocation);
+router.post(
+  '/stores/:storeId/gps',
+  authMiddleware,
+  checkStorePermission('settings:update'),
+  foodTruckController.updateLocation
+);
 
 /**
  * @swagger
@@ -92,7 +162,12 @@ router.post('/stores/:storeId/gps', authMiddleware, checkStorePermission('settin
  *       200:
  *         description: 세션 전환 완료
  */
-router.post('/stores/:storeId/session', authMiddleware, checkStorePermission('settings:update'), foodTruckController.toggleSession);
+router.post(
+  '/stores/:storeId/session',
+  authMiddleware,
+  checkStorePermission('settings:update'),
+  foodTruckController.toggleSession
+);
 
 /**
  * @swagger
@@ -112,7 +187,12 @@ router.post('/stores/:storeId/session', authMiddleware, checkStorePermission('se
  *       200:
  *         description: 비상 마감 처리 완료
  */
-router.post('/stores/:storeId/emergency-soldout', authMiddleware, checkStorePermission('settings:update'), foodTruckController.toggleEmergencySoldOut);
+router.post(
+  '/stores/:storeId/emergency-soldout',
+  authMiddleware,
+  checkStorePermission('settings:update'),
+  foodTruckController.toggleEmergencySoldOut
+);
 
 /**
  * @swagger
@@ -141,7 +221,12 @@ router.post('/stores/:storeId/emergency-soldout', authMiddleware, checkStorePerm
  *       200:
  *         description: 재료 소진 처리 완료
  */
-router.post('/stores/:storeId/ingredient-sold-out', authMiddleware, checkStorePermission('settings:update'), foodTruckController.ingredientSoldOut);
+router.post(
+  '/stores/:storeId/ingredient-sold-out',
+  authMiddleware,
+  checkStorePermission('settings:update'),
+  foodTruckController.ingredientSoldOut
+);
 
 /**
  * @swagger
@@ -161,7 +246,12 @@ router.post('/stores/:storeId/ingredient-sold-out', authMiddleware, checkStorePe
  *       200:
  *         description: 타임세일 전송 완료
  */
-router.post('/stores/:storeId/flash-sale', authMiddleware, checkStorePermission('settings:update'), foodTruckController.triggerFlashSale);
+router.post(
+  '/stores/:storeId/flash-sale',
+  authMiddleware,
+  checkStorePermission('settings:update'),
+  foodTruckController.triggerFlashSale
+);
 
 /**
  * @swagger
@@ -190,7 +280,12 @@ router.post('/stores/:storeId/flash-sale', authMiddleware, checkStorePermission(
  *       200:
  *         description: 오프라인 동기화 완료
  */
-router.post('/stores/:storeId/offline-sync', authMiddleware, checkStorePermission('settings:update'), foodTruckController.processOfflineSync);
+router.post(
+  '/stores/:storeId/offline-sync',
+  authMiddleware,
+  checkStorePermission('settings:update'),
+  foodTruckController.processOfflineSync
+);
 
 /**
  * @swagger
@@ -210,6 +305,11 @@ router.post('/stores/:storeId/offline-sync', authMiddleware, checkStorePermissio
  *       200:
  *         description: 분석 보고서 반환
  */
-router.get('/stores/:storeId/analytics', authMiddleware, checkStorePermission('settings:read'), foodTruckController.getAnalytics);
+router.get(
+  '/stores/:storeId/analytics',
+  authMiddleware,
+  checkStorePermission('settings:read'),
+  foodTruckController.getAnalytics
+);
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const FoodTruckRepository = require('../repositories/FoodTruck');
 const prisma = require('../config/prisma');
 const notificationService = require('./notificationService');
+const { AppError } = require('../utils/errorHandler');
 const logger = require('../utils/logger');
 
 /**
@@ -139,6 +140,45 @@ class FoodTruckService {
       '[FoodTruck] Emergency Sold Out triggered across all products'
     );
     return truck;
+  }
+
+  /**
+   * 고객 노출용 디자인 쇼케이스 콘셉트 테마 저장
+   * concept1~concept5 만 허용하며, 저장 시 실시간 소켓으로 새 디자인 적용을 전파합니다.
+   */
+  async updateDesignTheme(storeId, designTheme) {
+    const ALLOWED_THEMES = ['concept1', 'concept2', 'concept3', 'concept4', 'concept5'];
+    if (!ALLOWED_THEMES.includes(designTheme)) {
+      throw new AppError(
+        '지원하지 않는 디자인 콘셉트입니다. (concept1 ~ concept5)',
+        400,
+        'INVALID_DESIGN_THEME'
+      );
+    }
+
+    const truck = await FoodTruckRepository.updateDesign(storeId, designTheme);
+
+    // 실시간 소켓 브로드캐스트 (해당 매장 룸 및 전체 관리자 룸 대상)
+    notificationService.sendSocket(`store - ${storeId}`, 'food-truck-design-updated', {
+      storeId: parseInt(storeId),
+      design_theme: designTheme,
+      updatedAt: new Date().toISOString(),
+    });
+    notificationService.sendSocket('admin', 'global-food-truck-design-updated', {
+      storeId: parseInt(storeId),
+      design_theme: designTheme,
+    });
+
+    logger.info({ storeId, designTheme }, '[FoodTruck] Design showcase theme updated');
+    return truck;
+  }
+
+  /**
+   * 고객 노출용 디자인 쇼케이스 콘셉트 테마 조회 (미설정 시 기본 concept1 반환)
+   */
+  async getDesignTheme(storeId) {
+    const truck = await FoodTruckRepository.findByStoreId(storeId);
+    return truck?.design_theme || 'concept1';
   }
 
   async processIngredientSoldOut(storeId, ingredientName) {

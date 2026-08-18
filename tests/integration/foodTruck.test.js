@@ -451,4 +451,91 @@ describe('FoodTruck Integration Tests', () => {
       expect(response.body.data.aiInsights).toHaveProperty('inventoryStrategy');
     });
   });
+
+  describe('GET /stores/:storeId/design (Step: Design Showcase)', () => {
+    it('should return the saved design theme for the store', async () => {
+      prisma.food_trucks.findUnique.mockResolvedValue({
+        id: 1,
+        store_id: 10,
+        design_theme: 'concept3',
+      });
+
+      const response = await request(app).get(`${baseUrl}/stores/10/design`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.store_id).toBe(10);
+      expect(response.body.data.design_theme).toBe('concept3');
+    });
+
+    it('should return default concept1 when no design theme is set yet', async () => {
+      prisma.food_trucks.findUnique.mockResolvedValue(null);
+
+      const response = await request(app).get(`${baseUrl}/stores/999/design`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.design_theme).toBe('concept1');
+    });
+  });
+
+  describe('PUT /stores/:storeId/design (Step: Design Showcase)', () => {
+    it('should persist a valid design theme via upsert', async () => {
+      prisma.food_trucks.upsert.mockResolvedValue({
+        id: 1,
+        store_id: 10,
+        design_theme: 'concept4',
+      });
+
+      const response = await request(app)
+        .put(`${baseUrl}/stores/10/design`)
+        .send({ design_theme: 'concept4' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.design_theme).toBe('concept4');
+      expect(prisma.food_trucks.upsert).toHaveBeenCalledWith({
+        where: { store_id: 10 },
+        update: { design_theme: 'concept4' },
+        create: { store_id: 10, design_theme: 'concept4' },
+      });
+    });
+
+    it('should broadcast real-time update over socket after saving', async () => {
+      prisma.food_trucks.upsert.mockResolvedValue({
+        id: 1,
+        store_id: 10,
+        design_theme: 'concept2',
+      });
+
+      await request(app).put(`${baseUrl}/stores/10/design`).send({ design_theme: 'concept2' });
+
+      expect(notificationService.sendSocket).toHaveBeenCalledWith(
+        'store - 10',
+        'food-truck-design-updated',
+        expect.objectContaining({ storeId: 10, design_theme: 'concept2' })
+      );
+      expect(notificationService.sendSocket).toHaveBeenCalledWith(
+        'admin',
+        'global-food-truck-design-updated',
+        expect.objectContaining({ storeId: 10, design_theme: 'concept2' })
+      );
+    });
+
+    it('should reject an unsupported design theme', async () => {
+      const response = await request(app)
+        .put(`${baseUrl}/stores/10/design`)
+        .send({ design_theme: 'concept_ciencyber' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should reject a missing design_theme field', async () => {
+      const response = await request(app).put(`${baseUrl}/stores/10/design`).send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+  });
 });

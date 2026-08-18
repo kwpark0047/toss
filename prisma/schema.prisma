@@ -1185,6 +1185,7 @@ model food_trucks {
   last_gps_updated_at   DateTime?
   geocoded_address      String?
   is_sold_out_emergency Boolean   @default(false)
+  design_theme          String    @default("concept1") // 고객 노출용 디자인 쇼케이스 콘셉트 (concept1~concept5)
   created_at            DateTime  @default(now())
   updated_at            DateTime  @updatedAt
   stores                stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
@@ -1604,6 +1605,8 @@ model recommendation_daily_stats {
   @@schema("public")
 }
 
+// Eco Badge fields (added via migration)
+
 model audit_logs {
   id            Int      @id @default(autoincrement())
   actor_user_id Int?
@@ -1622,6 +1625,7 @@ model audit_logs {
   @@index([resource_type, resource_id], map: "idx_audit_logs_resource")
   @@schema("public")
 }
+
 model feature_flags {
   id              Int      @id @default(autoincrement())
   key             String
@@ -1634,11 +1638,11 @@ model feature_flags {
   updated_at      DateTime @updatedAt
 
   @@index([environment, enabled], map: "idx_feature_flags_environment_enabled")
-  @@index([store_id], map: "idx_feature_flags_store")
   @@unique([key, environment, store_id], map: "uq_feature_flags_scope")
+  @@index([store_id], map: "idx_feature_flags_store")
   @@schema("public")
 }
-// Eco Badge fields (added via migration)
+
 model order_events {
   id            Int      @id @default(autoincrement())
   order_id      Int
@@ -1655,6 +1659,8 @@ model order_events {
   @@index([store_id, created_at], map: "idx_order_events_store_time")
   @@index([event_type, created_at], map: "idx_order_events_type_time")
   @@schema("public")
+}
+
 model inventory_reorder_candidates {
   id                Int      @id @default(autoincrement())
   store_id          Int
@@ -1675,6 +1681,7 @@ model inventory_reorder_candidates {
   @@index([product_id, status], map: "idx_reorder_candidates_product_status")
   @@schema("public")
 }
+
 model crm_campaign_runs {
   id            Int      @id @default(autoincrement())
   store_id      Int
@@ -1694,3 +1701,5 @@ model crm_campaign_runs {
 
   @@index([store_id, status, created_at], map: "idx_crm_campaign_runs_store_status")
   @@index([store_id, segment_name, created_at], map: "idx_crm_campaign_runs_segment")
+  @@schema("public")
+}
