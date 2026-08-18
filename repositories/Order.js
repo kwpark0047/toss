@@ -595,7 +595,18 @@ const Order = {
 
       const storeStats = await Promise.all(
         storeIds.map(async (storeId) => {
-          const [stats, storeInfo, customerCount, managedProducts] = await Promise.all([
+          const countIfAvailable = (delegate, args) =>
+            delegate?.count ? delegate.count(args) : Promise.resolve(0);
+          const since24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          const [
+            stats,
+            storeInfo,
+            customerCount,
+            managedProducts,
+            pendingReorders,
+            activeCampaigns,
+            events24h,
+          ] = await Promise.all([
             prisma.orders.aggregate({
               where: {
                 store_id: storeId,
@@ -614,6 +625,15 @@ const Order = {
               where: { store_id: storeId, stock_quantity: { not: null }, is_active: true },
               select: { stock_quantity: true, low_stock_threshold: true },
             }),
+            countIfAvailable(prisma.inventory_reorder_candidates, {
+              where: { store_id: storeId, status: 'pending' },
+            }),
+            countIfAvailable(prisma.crm_campaign_runs, {
+              where: { store_id: storeId, status: { in: ['pending', 'approved'] } },
+            }),
+            countIfAvailable(prisma.order_events, {
+              where: { store_id: storeId, created_at: { gte: since24Hours } },
+            }),
           ]);
           const lowStockCount = managedProducts.filter(
             (product) => product.stock_quantity <= product.low_stock_threshold
@@ -629,18 +649,31 @@ const Order = {
             average_ticket: stats._count.id
               ? Math.round((stats._sum.total_amount || 0) / stats._count.id)
               : 0,
+            pending_reorders: pendingReorders,
+            active_campaigns: activeCampaigns,
+            events_24h: events24h,
           };
         })
       );
 
       const totalSales = storeStats.reduce((sum, s) => sum + s.total_sales, 0);
       const totalOrders = storeStats.reduce((sum, s) => sum + s.total_orders, 0);
+      const operational = storeStats.reduce(
+        (summary, store) => ({
+          pending_reorders: summary.pending_reorders + store.pending_reorders,
+          active_campaigns: summary.active_campaigns + store.active_campaigns,
+          events_24h: summary.events_24h + store.events_24h,
+          low_stock_count: summary.low_stock_count + store.low_stock_count,
+        }),
+        { pending_reorders: 0, active_campaigns: 0, events_24h: 0, low_stock_count: 0 }
+      );
 
       return {
         summary: {
           total_sales: totalSales,
           total_orders: totalOrders,
           store_count: storeIds.length,
+          ...operational,
         },
         stores: storeStats.sort((a, b) => b.total_sales - a.total_sales),
       };

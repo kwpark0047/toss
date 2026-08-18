@@ -10,6 +10,9 @@ import {
   Layers,
   ChevronRight,
   Store,
+  Package,
+  Megaphone,
+  Activity,
 } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import { toast } from 'react-toastify';
@@ -154,7 +157,7 @@ export default function MultiStoreSupervisorDashboard() {
       </div>
 
       {/* 2. 최상단 3-Column 통합 금융 KPI 카드 모듈 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* KPI 1: 다점포 합산 총 매출 */}
         <div className="p-6 rounded-3xl bg-slate-900 border border-slate-850 shadow-2xl relative overflow-hidden flex flex-col justify-between h-36">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[radial-gradient(circle_at_100%_0%,rgba(249,115,22,0.04),transparent_70%)] pointer-events-none" />
@@ -217,6 +220,22 @@ export default function MultiStoreSupervisorDashboard() {
               </span>
             </p>
           </div>
+        </div>
+        <div className="p-5 rounded-3xl bg-slate-900 border border-slate-850 shadow-2xl flex flex-col justify-between h-36">
+          <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500">저재고</span><Package className="text-amber-400" size={18} /></div>
+          <h3 className="text-2xl font-black font-mono text-amber-300">{summary.low_stock_count ?? 0}<span className="text-sm ml-1 text-slate-400">개</span></h3>
+        </div>
+        <div className="p-5 rounded-3xl bg-slate-900 border border-slate-850 shadow-2xl flex flex-col justify-between h-36">
+          <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500">발주 대기</span><TrendingUp className="text-orange-400" size={18} /></div>
+          <h3 className="text-2xl font-black font-mono text-orange-300">{summary.pending_reorders ?? 0}<span className="text-sm ml-1 text-slate-400">건</span></h3>
+        </div>
+        <div className="p-5 rounded-3xl bg-slate-900 border border-slate-850 shadow-2xl flex flex-col justify-between h-36">
+          <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500">활성 CRM</span><Megaphone className="text-indigo-400" size={18} /></div>
+          <h3 className="text-2xl font-black font-mono text-indigo-300">{summary.active_campaigns ?? 0}<span className="text-sm ml-1 text-slate-400">건</span></h3>
+        </div>
+        <div className="p-5 rounded-3xl bg-slate-900 border border-slate-850 shadow-2xl flex flex-col justify-between h-36">
+          <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500">24시간 이벤트</span><Activity className="text-cyan-400" size={18} /></div>
+          <h3 className="text-2xl font-black font-mono text-cyan-300">{summary.events_24h ?? 0}<span className="text-sm ml-1 text-slate-400">건</span></h3>
         </div>
       </div>
 
