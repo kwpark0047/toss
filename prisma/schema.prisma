@@ -1654,3 +1654,23 @@ model order_events {
   @@index([store_id, created_at], map: "idx_order_events_store_time")
   @@index([event_type, created_at], map: "idx_order_events_type_time")
   @@schema("public")
+model inventory_reorder_candidates {
+  id                Int      @id @default(autoincrement())
+  store_id          Int
+  product_id        Int
+  current_quantity  Int
+  suggested_quantity Int
+  average_daily_sales Float
+  reorder_point     Int
+  status            String   @default("pending")
+  reason            String?
+  approved_by       Int?
+  approved_at       DateTime?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  @@unique([store_id, product_id, status], map: "uq_reorder_candidate_status")
+  @@index([store_id, status, created_at], map: "idx_reorder_candidates_store_status")
+  @@index([product_id, status], map: "idx_reorder_candidates_product_status")
+  @@schema("public")
+}

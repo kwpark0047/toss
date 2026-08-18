@@ -3,13 +3,14 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission: checkPermission } = require('../middleware/storeAuth');
 const {
-    getInventory,
-    adjustStock,
-    setStock,
-    getStockHistory,
-    getStoreStockHistory,
-    getLowStockAlerts
+  getInventory,
+  adjustStock,
+  setStock,
+  getStockHistory,
+  getStoreStockHistory,
+  getLowStockAlerts,
 } = require('../controllers/inventoryController');
+const inventoryReorderController = require('../controllers/inventoryReorderController');
 
 /**
  * @swagger
@@ -56,7 +57,12 @@ router.get('/store/:storeId', authMiddleware, checkPermission('menu:read'), getI
  *       200:
  *         description: 재고 이력
  */
-router.get('/store/:storeId/history', authMiddleware, checkPermission('menu:read'), getStoreStockHistory);
+router.get(
+  '/store/:storeId/history',
+  authMiddleware,
+  checkPermission('menu:read'),
+  getStoreStockHistory
+);
 
 /**
  * @swagger
@@ -76,7 +82,31 @@ router.get('/store/:storeId/history', authMiddleware, checkPermission('menu:read
  *       200:
  *         description: 저재고 알림 목록
  */
-router.get('/store/:storeId/alerts', authMiddleware, checkPermission('menu:read'), getLowStockAlerts);
+router.get(
+  '/store/:storeId/alerts',
+  authMiddleware,
+  checkPermission('menu:read'),
+  getLowStockAlerts
+);
+
+router.post(
+  '/store/:storeId/reorder-candidates/generate',
+  authMiddleware,
+  checkPermission('items:manage'),
+  inventoryReorderController.generate
+);
+router.get(
+  '/store/:storeId/reorder-candidates',
+  authMiddleware,
+  checkPermission('items:manage'),
+  inventoryReorderController.list
+);
+router.post(
+  '/store/:storeId/reorder-candidates/:id/decide',
+  authMiddleware,
+  checkPermission('items:manage'),
+  inventoryReorderController.decide
+);
 
 /**
  * @swagger
@@ -98,20 +128,26 @@ router.get('/store/:storeId/alerts', authMiddleware, checkPermission('menu:read'
  *         application/json:
  *           schema:
  *             type: object
- *             required: [quantity, type]
+ *             required: [change, reason]
  *             properties:
- *               quantity:
+ *               change:
  *                 type: integer
- *               type:
- *                 type: string
- *                 enum: [in, out, set]
+ *                 description: "양수=입고, 음수=차감"
  *               reason:
+ *                 type: string
+ *                 enum: [MANUAL_IN, MANUAL_OUT, CORRECTION, RETURN]
+ *               note:
  *                 type: string
  *     responses:
  *       200:
  *         description: 재고 조정 완료
  */
-router.put('/products/:productId/stock', authMiddleware, checkPermission('menu:write'), adjustStock);
+router.put(
+  '/products/:productId/stock',
+  authMiddleware,
+  checkPermission('menu:write'),
+  adjustStock
+);
 
 /**
  * @swagger
@@ -134,15 +170,22 @@ router.put('/products/:productId/stock', authMiddleware, checkPermission('menu:w
  *           schema:
  *             type: object
  *             properties:
- *               stock:
+ *               quantity:
  *                 type: integer
- *               lowStockThreshold:
+ *                 description: "설정할 재고 수량 (null=무제한)"
+ *               low_stock_threshold:
  *                 type: integer
+ *                 description: "저재고 경고 임계치"
  *     responses:
  *       200:
  *         description: 재고 설정 완료
  */
-router.put('/products/:productId/stock/set', authMiddleware, checkPermission('menu:write'), setStock);
+router.put(
+  '/products/:productId/stock/set',
+  authMiddleware,
+  checkPermission('menu:write'),
+  setStock
+);
 
 /**
  * @swagger
@@ -162,6 +205,11 @@ router.put('/products/:productId/stock/set', authMiddleware, checkPermission('me
  *       200:
  *         description: 상품 재고 이력
  */
-router.get('/products/:productId/history', authMiddleware, checkPermission('menu:read'), getStockHistory);
+router.get(
+  '/products/:productId/history',
+  authMiddleware,
+  checkPermission('menu:read'),
+  getStockHistory
+);
 
 module.exports = router;
