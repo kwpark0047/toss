@@ -41,6 +41,9 @@ jobs:
       - name: Route Validation
         run: npm run validate:routes
 
+      - name: API Contract Validation
+        run: npm run validate:api
+
   backend-unit-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
