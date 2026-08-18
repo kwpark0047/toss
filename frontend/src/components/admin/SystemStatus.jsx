@@ -132,6 +132,9 @@ export default function SystemStatus() {
   const [circuits, setCircuits] = useState([]);
   const [dbProfile, setDbProfile] = useState(null); // Prisma DB 프로파일링 상태 추가
   const [auditLogs, setAuditLogs] = useState(null);
+  const [auditAction, setAuditAction] = useState('');
+  const [auditResourceType, setAuditResourceType] = useState('');
+  const [auditPage, setAuditPage] = useState(1);
   const [featureFlags, setFeatureFlags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
@@ -144,7 +147,10 @@ export default function SystemStatus() {
         if (e?.response?.data) return e.response.data;
         throw e;
       });
-      const [hRes, sRes, cRes, dRes, aRes, fRes] = await Promise.all([fetchBody('/health/deep'), fetchBody('/health/sla'), fetchBody('/health/circuits'), fetchBody('/analytics/db-profile'), fetchBody('/admin/audit-logs?limit=10'), fetchBody('/admin/feature-flags') // 실시간 Prisma 데이터 조회 연동
+      const auditParams = new URLSearchParams({ limit: '10', page: String(auditPage) });
+      if (auditAction) auditParams.set('action', auditAction);
+      if (auditResourceType) auditParams.set('resourceType', auditResourceType);
+      const [hRes, sRes, cRes, dRes, aRes, fRes] = await Promise.all([fetchBody('/health/deep'), fetchBody('/health/sla'), fetchBody('/health/circuits'), fetchBody('/analytics/db-profile'), fetchBody(`/admin/audit-logs?${auditParams}`), fetchBody('/admin/feature-flags') // 실시간 Prisma 데이터 조회 연동
        ]);
       setHealth(hRes?.data ?? hRes);
       setSla(sRes?.data ?? sRes);
@@ -158,17 +164,21 @@ export default function SystemStatus() {
     } finally {
       setLoading(false);
     }
-  }, []);
-  const saveFeatureFlag = async (flag) => {
+  }, [auditAction, auditPage, auditResourceType]);
+  const saveFeatureFlag = async (flag, patch = {}) => {
     const response = await api.put(`/admin/feature-flags/${encodeURIComponent(flag.key)}`, {
       description: flag.description || null,
-      enabled: !flag.enabled,
-      rollout_percent: flag.rollout_percent,
+      enabled: patch.enabled ?? flag.enabled,
+      rollout_percent: patch.rollout_percent ?? flag.rollout_percent,
       environment: flag.environment,
       store_id: flag.store_id,
     });
     const saved = response?.data?.data || response?.data;
     setFeatureFlags((current) => current.map((item) => item.key === flag.key ? { ...item, ...saved } : item));
+  };
+  const pruneAuditLogs = async () => {
+    await api.delete('/admin/audit-logs/retention');
+    await fetchAll();
   };
   useEffect(() => {
     fetchAll();
@@ -234,7 +244,18 @@ export default function SystemStatus() {
                 <section className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm" aria-label="최근 감사 로그">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-bold text-gray-800">최근 감사 로그</h2>
-                        <span className="text-xs text-gray-400">최근 {auditLogs.items.length}건</span>
+                        <div className="flex items-center gap-2">
+                            <button type="button" onClick={pruneAuditLogs} className="text-xs text-red-500 hover:underline">보존 기간 정리</button>
+                            <span className="text-xs text-gray-400">{auditLogs.page}/{auditLogs.totalPages || 1}쪽</span>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
+                        <input value={auditAction} onChange={(event) => { setAuditAction(event.target.value); setAuditPage(1); }} placeholder="작업 유형" className="border border-gray-200 rounded-lg px-3 py-2 text-xs" />
+                        <input value={auditResourceType} onChange={(event) => { setAuditResourceType(event.target.value); setAuditPage(1); }} placeholder="리소스 유형" className="border border-gray-200 rounded-lg px-3 py-2 text-xs" />
+                        <div className="flex gap-2">
+                            <button type="button" disabled={auditPage <= 1} onClick={() => setAuditPage((page) => page - 1)} className="flex-1 border rounded-lg text-xs disabled:opacity-40">이전</button>
+                            <button type="button" disabled={auditPage >= (auditLogs.totalPages || 1)} onClick={() => setAuditPage((page) => page + 1)} className="flex-1 border rounded-lg text-xs disabled:opacity-40">다음</button>
+                        </div>
                     </div>
                     <div className="space-y-2">
                         {auditLogs.items.map((log) => <div key={log.id} className="flex items-center justify-between gap-3 text-sm border-b border-gray-50 pb-2 last:border-0">
@@ -260,9 +281,12 @@ export default function SystemStatus() {
                                 <p className="font-semibold text-gray-700 truncate">{flag.key}</p>
                                 <p className="text-xs text-gray-400">{flag.description || '설명 없음'} · rollout {flag.rollout_percent}%</p>
                             </div>
-                            <button type="button" onClick={() => saveFeatureFlag(flag)} className={`px-3 py-1 rounded-full text-xs font-bold ${flag.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-                                {flag.enabled ? 'ON' : 'OFF'}
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <input type="number" min="0" max="100" value={flag.rollout_percent} onChange={(event) => setFeatureFlags((current) => current.map((item) => item.key === flag.key ? { ...item, rollout_percent: Number(event.target.value) } : item))} onBlur={() => saveFeatureFlag(flag)} className="w-16 border rounded-lg px-2 py-1 text-xs" aria-label={`${flag.key} rollout`} />
+                                <button type="button" onClick={() => saveFeatureFlag(flag, { enabled: !flag.enabled })} className={`px-3 py-1 rounded-full text-xs font-bold ${flag.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                                    {flag.enabled ? 'ON' : 'OFF'}
+                                </button>
+                            </div>
                         </div>)}
                     </div>
                 </section>
