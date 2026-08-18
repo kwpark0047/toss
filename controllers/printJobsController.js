@@ -14,6 +14,7 @@
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const orderEventService = require('../services/OrderEventService');
+const alerting = require('../utils/alerting');
 
 /** 최대 재시도 횟수 (초과 시 failed 확정) */
 const MAX_ATTEMPTS = 3;
@@ -176,6 +177,12 @@ const printJobsController = {
         retryAt
       );
       if (nextStatus === 'failed') {
+        void alerting.send({
+          level: 'critical',
+          title: '프린트 작업 최종 실패',
+          message: `store ${resolved.storeId} job ${jobId} failed after ${attempts} attempts`,
+          meta: { storeId: resolved.storeId, jobId, orderId: rows[0].order_id, reason },
+        });
         void orderEventService.record({
           orderId: rows[0].order_id,
           storeId: resolved.storeId,
