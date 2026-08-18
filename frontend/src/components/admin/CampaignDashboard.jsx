@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router';
 import { Megaphone, Play, Pause, Trash2, BarChart3, Users, TrendingUp, Gift, Target, Loader2, DollarSign, AlertTriangle, Sparkles } from 'lucide-react';
-import api from '@/api';
+import { campaignAPI } from '@/api/admin';
 import Skeleton from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
 
@@ -90,7 +90,7 @@ export default function CampaignDashboard() {
   const {
     storeId
   } = useParams();
-  const [tab, setTab] = useState('campaigns'); // campaigns | analysis | create
+  const [tab, setTab] = useState('campaigns'); // campaigns | analysis | create | automation
   const [campaigns, setCampaigns] = useState([]);
   const [coupons, setCoupons] = useState([]);
   const [analysis, setAnalysis] = useState(null);
@@ -98,6 +98,10 @@ export default function CampaignDashboard() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
+  const [automationRuns, setAutomationRuns] = useState([]);
+  const [automationSegment, setAutomationSegment] = useState('New');
+  const [automationMessage, setAutomationMessage] = useState('');
+  const [automationLoading, setAutomationLoading] = useState(false);
 
   // Campaign form
   const [form, setForm] = useState({
@@ -120,28 +124,92 @@ export default function CampaignDashboard() {
     setError(null);
     try {
       const sid = storeId;
-      const [campRes, coupRes, analysisRes] = await Promise.all([api.get(`/coupons/stores/${sid}/campaigns`), api.get(`/coupons/stores/${sid}/coupons`), api.get(`/crm/store/${sid}/analysis`).catch(() => null)]);
-      setCampaigns(campRes.data || []);
-      setCoupons(coupRes.data || []);
+      const [campRes, coupRes, analysisRes, automationRes] = await Promise.all([
+        campaignAPI.getList(sid),
+        campaignAPI.getCoupons(sid),
+        campaignAPI.getAnalysis(sid).catch(() => null),
+        campaignAPI.getAutomationRuns(sid).catch(() => ({ data: [] }))
+      ]);
+      setCampaigns(campRes?.data || campRes || []);
+      setCoupons(coupRes?.data || coupRes || []);
       if (analysisRes?.data) setAnalysis(analysisRes.data);
+      setAutomationRuns(automationRes?.data || automationRes || []);
     } catch (_e) {
       setError(_e.response?.data?.error || _e.message);
     } finally {
       setLoading(false);
     }
   }, [storeId]);
+
+  const generateAutomation = async (segmentName = automationSegment, message = automationMessage) => {
+    if (!message.trim()) {
+      showToast('발송 메시지를 입력하세요.', 'error');
+      return;
+    }
+    setAutomationLoading(true);
+    try {
+      await campaignAPI.generateAutomation(storeId, { segmentName, message: message.trim() });
+      showToast('승인 대기 캠페인이 생성되었습니다.');
+      await loadAll();
+    } catch (error) {
+      showToast(error.response?.data?.error || '캠페인 후보 생성 실패', 'error');
+    } finally {
+      setAutomationLoading(false);
+    }
+  };
+
+  const decideAutomation = async (id, status) => {
+    try {
+      await campaignAPI.decideAutomation(storeId, id, status);
+      showToast(status === 'approved' ? '캠페인을 승인했습니다.' : '캠페인을 거절했습니다.');
+      await loadAll();
+    } catch (error) {
+      showToast(error.response?.data?.error || '캠페인 처리 실패', 'error');
+    }
+  };
+
+  const sendAutomation = async (id) => {
+    if (!confirm('승인된 캠페인을 발송하시겠습니까?')) return;
+    try {
+      await campaignAPI.sendAutomation(storeId, id);
+      showToast('캠페인 발송이 완료되었습니다.');
+      await loadAll();
+    } catch (error) {
+      showToast(error.response?.data?.error || '캠페인 발송 실패', 'error');
+    }
+  };
   useEffect(() => {
     loadAll();
   }, [loadAll]);
 
   /* ── 캠페인 저장 ───────────────────────────────────────── */
   const handleSave = async () => {
-    if (!form.trigger_type || !form.coupon_id) {
-      showToast('트리거 유형과 쿠폰을 선택하세요.', 'error');
+    if (!form.trigger_type) {
+      showToast('트리거 유형을 선택하세요.', 'error');
+      return;
+    }
+    if (!form.coupon_id) {
+      showToast('쿠폰을 선택하세요.', 'error');
+      return;
+    }
+    if (form.trigger_type === 'TIER_UP' && !form.target_tier) {
+      showToast('등급 승급 트리거는 대상 등급이 필요합니다.', 'error');
+      return;
+    }
+    // coupon_id 유효성 검사
+    const couponId = parseInt(form.coupon_id, 10);
+    if (isNaN(couponId)) {
+      showToast('올바른 쿠폰을 선택하세요.', 'error');
       return;
     }
     try {
-      await api.post(`/coupons/stores/${storeId}/campaigns`, form);
+      const payload = {
+        trigger_type: form.trigger_type,
+        coupon_id: couponId,
+        is_active: form.is_active,
+        ...(form.target_tier && { target_tier: form.target_tier })
+      };
+      await campaignAPI.create(storeId, payload);
       showToast('캠페인이 저장되었습니다.');
       setForm({
         trigger_type: 'WELCOME',
@@ -158,8 +226,7 @@ export default function CampaignDashboard() {
   /* ── 캠페인 토글 / 삭제 ────────────────────────────────── */
   const toggleCampaign = async c => {
     try {
-      await api.post(`/coupons/stores/${storeId}/campaigns`, {
-        id: c.id,
+      await campaignAPI.toggle(storeId, c.id, {
         trigger_type: c.trigger_type,
         coupon_id: c.coupon_id,
         target_tier: c.target_tier,
@@ -173,7 +240,7 @@ export default function CampaignDashboard() {
   const deleteCampaign = async id => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
     try {
-      await api.delete(`/coupons/stores/${storeId}/campaigns/${id}`);
+      await campaignAPI.delete(storeId, id);
       showToast('삭제되었습니다.');
       loadAll();
     } catch (_e) {
@@ -183,16 +250,23 @@ export default function CampaignDashboard() {
 
   /* ── AI 스마트 SMS 발송 ────────────────────────────────── */
   const sendSmartSms = async segmentName => {
+    // 세그먼트 유효성 검사
+    const validSegments = ['Champions', 'Loyal', 'At_Risk', 'Lost', 'New', 'General'];
+    if (!validSegments.includes(segmentName)) {
+      showToast('유효하지 않은 세그먼트입니다.', 'error');
+      return;
+    }
     setSending(true);
     try {
-      const res = await api.post(`/crm/store/${storeId}/send-smart-sms`, {
-        segmentName
-      });
-      const {
-        sent,
-        preview_phones
-      } = res.data;
-      showToast(`${sent}명에게 AI SMS 발송 완료! (예: ${preview_phones?.join(', ') || ''})`);
+      const defaults = {
+        Champions: '늘 찾아주시는 고객님께 감사 혜택을 준비했습니다.',
+        Loyal: '단골 고객님을 위한 특별 혜택을 준비했습니다.',
+        At_Risk: '오랜만에 다시 방문해 주세요. 특별 혜택을 드립니다.',
+        Lost: '다시 뵙고 싶습니다. 재방문 고객 혜택을 준비했습니다.',
+        New: '첫 방문 감사합니다. 다음 방문 혜택을 준비했습니다.',
+        General: '새로운 메뉴와 혜택을 확인해 보세요.',
+      };
+      await generateAutomation(segmentName, defaults[segmentName]);
     } catch (_e) {
       showToast(_e.response?.data?.error || 'SMS 발송 실패', 'error');
     } finally {
@@ -243,6 +317,9 @@ export default function CampaignDashboard() {
           </button>
           <button onClick={() => setTab('analysis')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'analysis' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 border hover:bg-gray-50'}`}>
             고객 분석
+          </button>
+          <button onClick={() => setTab('automation')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'automation' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 border hover:bg-gray-50'}`}>
+            발송 승인
           </button>
           <button onClick={() => setTab('create')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'create' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 border hover:bg-gray-50'}`}>
             + 새 캠페인
@@ -373,6 +450,33 @@ export default function CampaignDashboard() {
               </div>
             </> : <EmptyState icon={BarChart3} title="RFM 분석 데이터 없음" description="고객 방문 기록이 쌓이면 자동으로 세그먼트가 분석됩니다." />}
         </>}
+
+      {tab === 'automation' && <div className="space-y-4">
+          <div className="rounded-2xl border bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">CRM 자동 캠페인 후보 생성</h3>
+            <div className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
+              <select value={automationSegment} onChange={(event) => setAutomationSegment(event.target.value)} className="rounded-xl border border-gray-200 px-3 py-2 text-sm">
+                {['Champions', 'Loyal', 'At_Risk', 'Lost', 'New', 'General'].map((segment) => <option key={segment}>{segment}</option>)}
+              </select>
+              <input value={automationMessage} onChange={(event) => setAutomationMessage(event.target.value)} maxLength={80} placeholder="80자 이내 발송 메시지" className="rounded-xl border border-gray-200 px-3 py-2 text-sm" />
+              <button disabled={automationLoading} onClick={() => generateAutomation()} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">후보 생성</button>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">후보 생성 후 승인해야 실제 SMS가 발송됩니다.</p>
+          </div>
+          {automationRuns.length === 0 ? <EmptyState icon={Megaphone} title="승인 대기 캠페인이 없습니다" description="세그먼트를 선택해 발송 후보를 생성하세요." /> : <div className="space-y-3">
+            {automationRuns.map((run) => <div key={run.id} className="rounded-2xl border bg-white p-5 shadow-sm flex items-center justify-between gap-4">
+              <div>
+                <p className="font-semibold text-gray-900">{run.segment_name} · {run.target_count}명</p>
+                <p className="text-sm text-gray-500 mt-1">{run.message}</p>
+                <p className="text-xs text-gray-400 mt-1">상태: {run.status}</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                {run.status === 'pending' && <><button onClick={() => decideAutomation(run.id, 'approved')} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">승인</button><button onClick={() => decideAutomation(run.id, 'rejected')} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">거절</button></>}
+                {run.status === 'approved' && <button onClick={() => sendAutomation(run.id)} className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white">발송</button>}
+              </div>
+            </div>)}
+          </div>}
+        </div>}
 
       {/* ── TAB: 새 캠페인 생성 ──────────────────────────── */}
       {tab === 'create' && <div className="rounded-2xl border bg-white p-6 shadow-sm max-w-xl">

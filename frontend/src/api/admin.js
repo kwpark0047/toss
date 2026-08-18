@@ -59,6 +59,7 @@ export const planRequestsAPI = {
 
 export const plansAPI = {
   getAll: () => api.get('/admin/plans'),
+  getActive: () => api.get('/plans'),
   getById: (id) => api.get(`/admin/plans/${id}`),
   create: (data) => api.post('/admin/plans', data),
   update: (id, data) => api.patch(`/admin/plans/${id}`, data),
@@ -119,6 +120,32 @@ export const dynamicPricingAPI = {
   // 수요 예측
   getForecasts: (storeId, params = {}) =>
     api.get(`/admin/stores/${storeId}/pricing/forecasts`, { params }),
+};
+
+export const campaignAPI = {
+  // 캠페인 CRUD
+  getList: (storeId, params = {}) => api.get(`/coupons/stores/${storeId}/campaigns`, { params }),
+  create: (storeId, data) => api.post(`/coupons/stores/${storeId}/campaigns`, data),
+  update: (storeId, campaignId, data) =>
+    api.post(`/coupons/stores/${storeId}/campaigns`, { ...data, id: campaignId }),
+  delete: (storeId, campaignId) => api.delete(`/coupons/stores/${storeId}/campaigns/${campaignId}`),
+  toggle: (storeId, campaignId, data) =>
+    api.post(`/coupons/stores/${storeId}/campaigns`, { ...data, id: campaignId }),
+
+  // 쿠폰
+  getCoupons: (storeId, params = {}) => api.get(`/coupons/stores/${storeId}/coupons`, { params }),
+
+  // CRM 분석
+  getAnalysis: (storeId, params = {}) => api.get(`/crm/store/${storeId}/analysis`, { params }),
+  sendSmartSms: (storeId, data) => api.post(`/crm/store/${storeId}/send-smart-sms`, data),
+  getAutomationRuns: (storeId, status = 'pending') =>
+    api.get(`/crm/store/${storeId}/automation-campaigns`, { params: { status } }),
+  generateAutomation: (storeId, data) =>
+    api.post(`/crm/store/${storeId}/automation-campaigns/generate`, data),
+  decideAutomation: (storeId, id, status) =>
+    api.post(`/crm/store/${storeId}/automation-campaigns/${id}/decide`, { status }),
+  sendAutomation: (storeId, id) =>
+    api.post(`/crm/store/${storeId}/automation-campaigns/${id}/send`),
 };
 
 export const grantTemplateAPI = {
