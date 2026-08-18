@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { MapPin, Search, Navigation, Truck, ArrowRight, Clock, Sparkles, AlertCircle, ShoppingBag, ShieldAlert, Home, CreditCard, BookOpen, Mail, Smartphone, Signal, Fuel, AlertTriangle, Zap } from 'lucide-react';
+import api from '@/api/client';
 
 /* ─── Lazy-load foodtruck-specific marketing pages ─── */
 const FeaturesPage = lazy(() => import('./foodtruck/FoodTruckFeatures'));
@@ -118,9 +119,7 @@ export default function FoodTruckLanding() {
   const fetchActiveTrucks = useCallback(async () => {
     try {
       if (!hasLoadedRef.current) setLoading(true);
-      const res = await fetch('/api/v1/foodtruck/active');
-      if (!res.ok) throw new Error('푸드트럭 정보를 불러오는데 실패했습니다.');
-      const json = await res.json();
+      const json = await api.get('/foodtruck/active');
       const data = json.data || json;
       setTrucks(Array.isArray(data) ? data : []);
       setLastRefresh(new Date());

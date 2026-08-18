@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { MapPin, ShieldAlert, Sparkles, Navigation, RefreshCw, Power, AlertTriangle } from 'lucide-react';
+import api from '@/api/client';
 export default function FoodTruckOwnerDashboard() {
   const {
     storeId
@@ -22,9 +23,7 @@ export default function FoodTruckOwnerDashboard() {
 const fetchTruckDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/v1/foodtruck/stores/${storeId}`);
-      if (!res.ok) throw new Error('푸드트럭 메타 정보를 조회하지 못했습니다.');
-      const json = await res.json();
+      const json = await api.get(`/foodtruck/stores/${storeId}`);
       const data = json.data || json;
       if (data) {
         setTruckInfo(data);
@@ -61,17 +60,9 @@ useEffect(() => {
     if (!truckInfo) return;
     const nextState = !truckInfo.is_active_session;
     try {
-      const res = await fetch(`/api/v1/foodtruck/stores/${storeId}/session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          is_active_session: nextState
-        })
+const json = await api.post(`/foodtruck/stores/${storeId}/session`, {
+        is_active_session: nextState
       });
-      if (!res.ok) throw new Error('세션 변경 요청이 실패했습니다.');
-      const json = await res.json();
       const updated = json.data || json;
       setTruckInfo(prev => ({
         ...prev,
@@ -89,17 +80,9 @@ useEffect(() => {
     const confirmMessage = nextState ? '🚨 [경고] 정말 비상 품절 처리하시겠습니까? 활성화 즉시 매장 안의 모든 상품이 일제히 품절(Out of stock) 상태로 강제 전환되어 오프라인 결제가 전면 정지됩니다.' : '점포 정상 영업 상태로 복구하시겠습니까?';
     if (!window.confirm(confirmMessage)) return;
     try {
-      const res = await fetch(`/api/v1/foodtruck/stores/${storeId}/emergency-soldout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          is_sold_out_emergency: nextState
-        })
+const json = await api.post(`/foodtruck/stores/${storeId}/emergency-soldout`, {
+        is_sold_out_emergency: nextState
       });
-      if (!res.ok) throw new Error('품절 전환 요청이 실패했습니다.');
-      const json = await res.json();
       const updated = json.data || json;
       setTruckInfo(prev => ({
         ...prev,
@@ -114,19 +97,11 @@ useEffect(() => {
   const handleUpdateGpsManually = async (lat, lng, label) => {
     try {
       setSyncingGps(true);
-      const res = await fetch(`/api/v1/foodtruck/stores/${storeId}/gps`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          latitude: parseFloat(lat),
-          longitude: parseFloat(lng),
-          geocoded_address: label || manualAddress
-        })
+const json = await api.post(`/foodtruck/stores/${storeId}/gps`, {
+        latitude: parseFloat(lat),
+        longitude: parseFloat(lng),
+        geocoded_address: label || manualAddress
       });
-      if (!res.ok) throw new Error('위치 동기화에 실패했습니다.');
-      const json = await res.json();
       const updated = json.data || json;
       setTruckInfo(prev => ({
         ...prev,

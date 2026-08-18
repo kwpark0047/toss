@@ -13,6 +13,7 @@ import {
     ChevronRight,
     Map
 } from 'lucide-react';
+import api from '@/api/client';
 
 // 가상 데이터 세팅 (서버 통신 실패 또는 데모 환경용 완벽 세팅)
 const fallbackData = {
@@ -50,13 +51,7 @@ export default function FoodTruckAnalyticsDashboard() {
     const fetchAnalytics = useCallback(async () => {
         try {
             setError(null);
-            const token = localStorage.getItem('token');
-            const res = await fetch(`/api/v1/foodtruck/stores/${storeId}/analytics`, {
-                headers: {
-                    'Authorization': token ? `Bearer ${token}` : ''
-                }
-            });
-            const json = await res.json();
+            const json = await api.get(`/foodtruck/stores/${storeId}/analytics`);
             if (json.success && json.data) {
                 setAnalyticsData(json.data);
             } else {

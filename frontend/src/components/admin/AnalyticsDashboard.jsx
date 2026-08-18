@@ -62,8 +62,8 @@ const fetchInitialData = useCallback(async signal => {
       }), staffAPI.getMyRole(storeId, {
         signal
       })]);
-      setStore(storeRes.data);
-      setMyRole(roleRes.data.role);
+      setStore(storeRes);
+      setMyRole(roleRes.role);
       if (roleRes.data.role !== 'owner') {
         navigate('/admin');
       }
@@ -89,15 +89,15 @@ const fetchInitialData = useCallback(async signal => {
       }) : analyticsAPI.getStaff(storeId, startDate, endDate, {
         signal
       })]);
-      setSalesData(salesRes.data);
-      setComparison(compRes.data);
-      setProducts(prodRes.data);
-      setStaffStats(staffRes.data);
-      try {
+      setSalesData(salesRes);
+      setComparison(compRes);
+      setProducts(prodRes);
+      setStaffStats(staffRes);
+try {
         const forecastRes = await analyticsAPI.getForecast(storeId, 7);
-        setForecastData(forecastRes.data);
+        setForecastData(forecastRes);
       } catch (_e) {/* 예측 데이터는 선택적 */}
-} catch (error) {
+    } catch (error) {
       if (error.name === 'CanceledError' || error.name === 'AbortError') return;
     }
   }, [storeId, period, dateRange, productSort]);
@@ -113,12 +113,14 @@ const fetchInitialData = useCallback(async signal => {
       return () => controller.abort();
     }
   }, [myRole, fetchAnalytics]);
-  const handleForecastDaysChange = async days => {
+const handleForecastDaysChange = async days => {
     setForecastDays(days);
     try {
       const res = await analyticsAPI.getForecast(storeId, days);
-      setForecastData(res.data);
-    } catch (_e) {/* ignore */}
+      setForecastData(res);
+    } catch (_e) {
+      /* ignore */
+    }
   };
   const {
     _maxSales,
@@ -126,7 +128,7 @@ const fetchInitialData = useCallback(async signal => {
     ordersGrowthPositive
   } = useMemo(() => {
     return {
-      maxSales: salesData?.data ? Math.max(...salesData.data.map(d => d.sales), 1) : 1,
+      maxSales: salesData ? Math.max(...salesData.map(d => d.sales), 1) : 1,
       salesGrowthPositive: (comparison?.growth?.sales || 0) >= 0,
       ordersGrowthPositive: (comparison?.growth?.orders || 0) >= 0
     };
