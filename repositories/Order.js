@@ -595,26 +595,40 @@ const Order = {
 
       const storeStats = await Promise.all(
         storeIds.map(async (storeId) => {
-          const stats = await prisma.orders.aggregate({
-            where: {
-              store_id: storeId,
-              created_at: { gte: start, lte: end },
-              status: { not: 'cancelled' },
-            },
-            _sum: { total_amount: true },
-            _count: { id: true },
-          });
-
-          const storeInfo = await prisma.stores.findUnique({
-            where: { id: storeId },
-            select: { name: true },
-          });
+          const [stats, storeInfo, customerCount, managedProducts] = await Promise.all([
+            prisma.orders.aggregate({
+              where: {
+                store_id: storeId,
+                created_at: { gte: start, lte: end },
+                status: { not: 'cancelled' },
+              },
+              _sum: { total_amount: true },
+              _count: { id: true },
+            }),
+            prisma.stores.findUnique({
+              where: { id: storeId },
+              select: { name: true },
+            }),
+            prisma.store_customers.count({ where: { store_id: storeId } }),
+            prisma.products.findMany({
+              where: { store_id: storeId, stock_quantity: { not: null }, is_active: true },
+              select: { stock_quantity: true, low_stock_threshold: true },
+            }),
+          ]);
+          const lowStockCount = managedProducts.filter(
+            (product) => product.stock_quantity <= product.low_stock_threshold
+          ).length;
 
           return {
             store_id: storeId,
             store_name: storeInfo?.name || '알 수 없는 매장',
             total_sales: stats._sum.total_amount || 0,
             total_orders: stats._count.id || 0,
+            customer_count: customerCount,
+            low_stock_count: lowStockCount,
+            average_ticket: stats._count.id
+              ? Math.round((stats._sum.total_amount || 0) / stats._count.id)
+              : 0,
           };
         })
       );
