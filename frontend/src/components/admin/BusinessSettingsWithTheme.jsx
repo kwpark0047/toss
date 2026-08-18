@@ -36,7 +36,19 @@ const SectionHeader = ({ id, icon: Icon, title, desc, active, onToggle }) => (
     </button>
 );
 
-// ── 지원 테마 프리셋 (공용: lib/themePresets) ──────────────────────────────────
+const BANKS = [
+        { code: '004', name: '국민은행' }, { code: '088', name: '신한은행' },
+        { code: '020', name: '우리은행' }, { code: '081', name: '하나은행' },
+        { code: '003', name: '기업은행' }, { code: '011', name: 'NH농협은행' },
+        { code: '071', name: '우체국' },   { code: '089', name: '케이뱅크' },
+        { code: '090', name: '카카오뱅크' }, { code: '092', name: '토스뱅크' },
+        { code: '023', name: 'SC제일은행' }, { code: '027', name: '씨티은행' },
+        { code: '035', name: '제주은행' }, { code: '045', name: '새마을금고' },
+        { code: '048', name: '신협' },     { code: '050', name: '저축은행' },
+    ];
+
+const BANK_CODE_MAP = {};
+BANKS.forEach(b => { BANK_CODE_MAP[b.name] = b.code; });
 
 // ── UI 크기 설정 ───────────────────────────────────────────────────────────────
 const UISOften = ({ uiSize, onUiSizeChange, menuLayout, onMenuLayoutChange, imageQuality, onImageQualityChange }) => {
@@ -335,6 +347,20 @@ export default function BusinessSettingsWithTheme() {
     };
 
     const saveBusiness = async () => {
+        // 사업자번호 검증 (숫자 10자리)
+        const digits = (bizForm.business_number || '').replace(/\D/g, '');
+        if (digits.length !== 10) {
+            toast.error('사업자번호는 숫자 10자리여야 합니다.');
+            return;
+        }
+        
+        // 정산 주기 검증
+        const validCycles = ['DAILY', 'WEEKLY', 'MONTHLY', 'MANUAL'];
+        if (!validCycles.includes(bizForm.settlement_cycle)) {
+            toast.error('정산 주기가 올바르지 않습니다.');
+            return;
+        }
+        
         setSaving(true);
         try {
             await businessAPI.update(storeId, { ...bizForm, enabled_payment_methods: enabledMethods });
@@ -382,13 +408,14 @@ export default function BusinessSettingsWithTheme() {
                 setEnabledMethods(data.enabled_payment_methods);
             }
 
-            if (data.theme_settings) {
-                const theme = THEME_PRESETS.find(t => t.id === data.theme_settings.theme_preset);
+            if (data.theme) {
+                const stored = typeof data.theme === 'string' ? JSON.parse(data.theme) : data.theme;
+                const theme = THEME_PRESETS.find(t => t.id === stored.theme_preset);
                 setSelectedTheme(theme || null);
-                if (data.theme_settings.ui_size) setUiSize(data.theme_settings.ui_size);
-                if (data.theme_settings.menu_layout) setMenuLayout(data.theme_settings.menu_layout);
-                if (data.theme_settings.image_quality) setImageQuality(data.theme_settings.image_quality);
-                if (data.theme_settings.menu_options) setMenuOptions(data.theme_settings.menu_options);
+                if (stored.ui_size) setUiSize(stored.ui_size);
+                if (stored.menu_layout) setMenuLayout(stored.menu_layout);
+                if (stored.image_quality) setImageQuality(stored.image_quality);
+                if (stored.menu_options) setMenuOptions(stored.menu_options);
             }
         } catch {
             toast.error('설정을 불러오지 못했습니다.');
@@ -419,13 +446,6 @@ export default function BusinessSettingsWithTheme() {
         } catch (e) {
             toast.error(e?.response?.data?.error || '저장 실패');
         } finally { setSaving(false); }
-    };
-
-    const formatBizNumber = (v) => {
-        const digits = v.replace(/\D/g, '').slice(0, 10);
-        if (digits.length <= 3) return digits;
-        if (digits.length <= 5) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-        return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
     };
 
     if (loading) return <div className="p-10 text-center text-gray-400">설정을 불러오는 중...</div>;
@@ -459,11 +479,17 @@ export default function BusinessSettingsWithTheme() {
                             <label className="block text-sm font-bold text-gray-700 mb-1.5">사업자등록번호</label>
                             <input
                                 type="text"
-                                placeholder="000-00-00000"
+                                placeholder="000-00-00000 또는 0000000000"
                                 value={bizForm.business_number}
-                                onChange={e => setBizForm(f => ({ ...f, business_number: formatBizNumber(e.target.value) }))}
+                                onChange={e => {
+                                    let v = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                    if (v.length > 5) v = v.slice(0,3)+'-'+v.slice(3,5)+'-'+v.slice(5);
+                                    else if (v.length > 3) v = v.slice(0,3)+'-'+v.slice(3);
+                                    setBizForm(f => ({ ...f, business_number: v }));
+                                }}
                                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-300 font-mono"
                             />
+                            <p className="text-xs text-gray-400 mt-1">숫자만 입력하세요. 자동으로 하이픈이 추가됩니다.</p>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
@@ -537,6 +563,16 @@ export default function BusinessSettingsWithTheme() {
                                 <option value="">-- 은행 선택 --</option>
                                 {BANKS.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
                             </select>
+                            <p className="text-xs text-gray-400 mt-1">은행 코드를 직접 입력하면 은행명이 자동 매핑됩니다.</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1.5">은행명 (자동 매핑)</label>
+                            <input type="text" aria-label="은행명" placeholder="자동 매핑 또는 직접 입력" value={accountForm.bank_name}
+                                onChange={e => {
+                                    const code = BANK_CODE_MAP[e.target.value];
+                                    setAccountForm(f => ({ ...f, bank_name: e.target.value, bank_code: code || f.bank_code }));
+                                }}
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-300" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1.5">계좌번호</label>

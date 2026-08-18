@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const Store = require('../repositories/Store');
 const cache = require('../utils/cache');
+const { AppError } = require('../utils/errorHandler');
 
 // 공공매장 매칭 상수
 const PUBLIC_OWNER_ID = 1;
@@ -23,6 +24,16 @@ const guOf = (a = '') => {
   return m ? m[1] : '';
 };
 const digitsOnly = (s = '') => String(s).replace(/\D/g, '');
+
+// 사업자등록번호 검증 (mod-11 체크섬)
+const isValidBusinessNumber = (digits) => {
+  if (!/^\d{10}$/.test(digits)) return false;
+  const weights = [1, 3, 7, 1, 3, 7, 1, 3, 5];
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += Number(digits[i]) * weights[i];
+  const check = (10 - (sum % 10)) % 10;
+  return check === Number(digits[9]);
+};
 
 // 자카드 유사도 (bigram 기반)
 const jaccardSim = (a, b) => {
@@ -341,19 +352,66 @@ class StoreService {
 
   async upsertAccount(storeId, data) {
     const { bank_code, bank_name, account_number, account_holder } = data;
+
+    if (!bank_name || !account_number || !account_holder) {
+      throw new AppError('은행명, 계좌번호, 예금주명은 필수입니다.', 400);
+    }
+
+    // 계좌번호 형식 검증 (구분자 제거 후 숫자 8~20자리)
+    const accountDigits = String(account_number).replace(/\D/g, '');
+    if (accountDigits.length < 8 || accountDigits.length > 20) {
+      throw new AppError(
+        '유효하지 않은 계좌번호입니다. 하이픈 없이 8~20자리 숫자로 입력해주세요.',
+        400
+      );
+    }
+
+    // bank_code가 없으면 bank_name으로 매핑 시도
+    const BANK_CODE_MAP = {
+      국민은행: '004',
+      신한은행: '088',
+      우리은행: '020',
+      하나은행: '081',
+      기업은행: '003',
+      NH농협은행: '011',
+      우체국: '071',
+      케이뱅크: '089',
+      카카오뱅크: '090',
+      토스뱅크: '092',
+      SC제일은행: '023',
+      씨티은행: '027',
+      제주은행: '035',
+      새마을금고: '045',
+      신협: '048',
+      저축은행: '050',
+      SC은행: '023',
+      농협은행: '011',
+      수협은행: '007',
+      대구은행: '031',
+      부산은행: '032',
+      광주은행: '034',
+      전북은행: '037',
+      경남은행: '039',
+    };
+
+    // bank_code가 비어있으면 bank_name으로 매핑 시도
+    const resolvedBankCode = bank_code || BANK_CODE_MAP[bank_name] || '';
+    const resolvedBankName =
+      bank_name || Object.keys(BANK_CODE_MAP).find((k) => BANK_CODE_MAP[k] === bank_code) || '';
+
     return prisma.store_accounts.upsert({
       where: { store_id: parseInt(storeId) },
       create: {
         store_id: parseInt(storeId),
-        bank_code: bank_code || '',
-        bank_name,
+        bank_code: resolvedBankCode,
+        bank_name: resolvedBankName,
         account_number,
         account_holder,
         is_active: true,
       },
       update: {
-        bank_code: bank_code || bank_name,
-        bank_name,
+        bank_code: resolvedBankCode,
+        bank_name: resolvedBankName,
         account_number,
         account_holder,
         is_active: true,
@@ -405,12 +463,19 @@ class StoreService {
 
   // 사업자 정보 검증
   validateBusinessInfo({ business_number, settlement_cycle }) {
-    if (business_number && !/^\d{3}-\d{2}-\d{5}$/.test(business_number)) {
-      return '사업자번호 형식이 올바르지 않습니다. (예: 123-45-67890)';
+    if (business_number) {
+      // 하이픈 포함/미포함 모두 허용 (숫자만 10자리면 유효)
+      const digits = String(business_number).replace(/\D/g, '');
+      if (digits.length !== 10) {
+        return '사업자번호는 숫자 10자리여야 합니다. (예: 123-45-67890)';
+      }
+      if (!isValidBusinessNumber(digits)) {
+        return '유효하지 않은 사업자번호입니다. 10자리 사업자등록번호를 확인해주세요.';
+      }
     }
     const validCycles = ['DAILY', 'WEEKLY', 'MONTHLY', 'MANUAL'];
     if (settlement_cycle && !validCycles.includes(settlement_cycle)) {
-      return '정산 주기가 올바르지 않습니다.';
+      return '정산 주기가 올바르지 않습니다. (DAILY, WEEKLY, MONTHLY, MANUAL 중 선택)';
     }
     return null;
   }
@@ -423,15 +488,24 @@ class StoreService {
     let enabledMethods = ['cash', 'store_card', 'transfer'];
     try {
       enabledMethods = JSON.parse(store.enabled_payment_methods || '[]');
-    } catch {}
+      if (!Array.isArray(enabledMethods)) {
+        enabledMethods = ['cash', 'store_card', 'transfer'];
+      }
+    } catch {
+      enabledMethods = ['cash', 'store_card', 'transfer'];
+    }
 
     let themeSettings = null;
     try {
       themeSettings = store.theme ? JSON.parse(store.theme) : null;
+      if (themeSettings && typeof themeSettings !== 'object') {
+        themeSettings = null;
+      }
     } catch {
       themeSettings = null;
     }
 
+    // 저장된 결제수단 그대로 반환 (재고 데이터 복원)
     return { ...store, enabled_payment_methods: enabledMethods, theme_settings: themeSettings };
   }
 
