@@ -55,9 +55,18 @@ export const waitingAPI = {
   getStatus: (storeId) => api.get(`/waiting/store/${storeId}/status`),
   getStoreWaitingList: (storeId) => api.get(`/waiting/store/${storeId}`),
   register: (data) => api.post('/waiting/register', data),
-  cancel: (id) => api.patch(`/waiting/${id}/status`, { status: 'cancelled' }),
+  cancel: (id, capability) =>
+    api.delete(`/waiting/${id}/cancel`, {
+      headers: capability ? { 'x-waiting-capability': capability } : undefined,
+    }),
   updateStatus: (id, status) => api.patch(`/waiting/${id}/status`, { status }),
   resendNotification: (id) => api.patch(`/waiting/${id}/resend-notification`),
+  resendCustomerNotification: (id, capability) =>
+    api.patch(
+      `/waiting/${id}/resend-customer-notification`,
+      {},
+      { headers: capability ? { 'x-waiting-capability': capability } : undefined }
+    ),
   getMyWaiting: (phone) => api.get(`/waiting/my/${phone}`),
   getAISuggestions: (storeId, params = {}) =>
     api.get(`/waiting/store/${storeId}/ai-suggestions`, { params }),
@@ -73,8 +82,16 @@ export const reservationsAPI = {
   register: (data) => api.post('/reservations/register', data),
   getByStore: (storeId, params) => api.get(`/reservations/store/${storeId}`, { params }),
   updateStatus: (id, status) => api.patch(`/reservations/${id}/status`, { status }),
-  cancel: (id, phone) => api.patch(`/reservations/${id}/cancel`, { phone }),
-  getMyReservations: (phone) => api.get(`/reservations/my/${phone}`),
+  cancel: (id, capability) =>
+    api.patch(
+      `/reservations/${id}/cancel`,
+      {},
+      { headers: capability ? { 'x-reservation-capability': capability } : undefined }
+    ),
+  getMyReservations: (phone, capability) =>
+    api.get(`/reservations/my/${phone}`, {
+      headers: capability ? { 'x-reservation-capability': capability } : undefined,
+    }),
 };
 
 export const tablesAPI = {
