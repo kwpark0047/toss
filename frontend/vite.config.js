@@ -14,8 +14,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.js',
     css: true,
-    pool: 'forks',
-    poolOptions: { forks: { singleFork: true } },
+    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
+    exclude: ['src/test/debug.test.jsx'],
+    fileParallelism: false,
   },
 
   plugins: [
