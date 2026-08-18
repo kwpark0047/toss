@@ -136,6 +136,7 @@ export default function SystemStatus() {
   const [auditResourceType, setAuditResourceType] = useState('');
   const [auditPage, setAuditPage] = useState(1);
   const [featureFlags, setFeatureFlags] = useState([]);
+  const [orderEvents, setOrderEvents] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [error, setError] = useState(null);
@@ -150,7 +151,7 @@ export default function SystemStatus() {
       const auditParams = new URLSearchParams({ limit: '10', page: String(auditPage) });
       if (auditAction) auditParams.set('action', auditAction);
       if (auditResourceType) auditParams.set('resourceType', auditResourceType);
-      const [hRes, sRes, cRes, dRes, aRes, fRes] = await Promise.all([fetchBody('/health/deep'), fetchBody('/health/sla'), fetchBody('/health/circuits'), fetchBody('/analytics/db-profile'), fetchBody(`/admin/audit-logs?${auditParams}`), fetchBody('/admin/feature-flags') // 실시간 Prisma 데이터 조회 연동
+      const [hRes, sRes, cRes, dRes, aRes, fRes, eRes] = await Promise.all([fetchBody('/health/deep'), fetchBody('/health/sla'), fetchBody('/health/circuits'), fetchBody('/analytics/db-profile'), fetchBody(`/admin/audit-logs?${auditParams}`), fetchBody('/admin/feature-flags'), fetchBody('/admin/order-events?limit=10') // 실시간 Prisma 데이터 조회 연동
        ]);
       setHealth(hRes?.data ?? hRes);
       setSla(sRes?.data ?? sRes);
@@ -158,6 +159,7 @@ export default function SystemStatus() {
        setDbProfile(dRes?.data ?? dRes);
        setAuditLogs(aRes?.data ?? aRes);
        setFeatureFlags(fRes?.data ?? fRes ?? []);
+       setOrderEvents(eRes?.data ?? eRes);
       setLastRefresh(new Date());
     } catch {
       setError('시스템 상태 및 데이터베이스 프로파일 데이터를 불러오지 못했습니다.');
@@ -287,6 +289,24 @@ export default function SystemStatus() {
                                     {flag.enabled ? 'ON' : 'OFF'}
                                 </button>
                             </div>
+                        </div>)}
+                    </div>
+                </section>
+            </SectionErrorBoundary>}
+
+            {orderEvents?.items?.length > 0 && <SectionErrorBoundary sectionName="주문 이벤트">
+                <section className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm" aria-label="최근 주문 이벤트">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-bold text-gray-800">최근 주문 이벤트</h2>
+                        <span className="text-xs text-gray-400">최근 {orderEvents.items.length}건</span>
+                    </div>
+                    <div className="space-y-2">
+                        {orderEvents.items.map((event) => <div key={event.id} className="flex items-center justify-between gap-3 border-b border-gray-50 pb-2 last:border-0">
+                            <div>
+                                <p className="font-semibold text-gray-700">{event.event_type}</p>
+                                <p className="text-xs text-gray-400">주문 #{event.order_id} · {event.from_status || '-'} → {event.to_status || '-'} · {event.actor_role || 'system'}</p>
+                            </div>
+                            <time className="text-xs text-gray-400 whitespace-nowrap">{new Date(event.created_at).toLocaleString()}</time>
                         </div>)}
                     </div>
                 </section>

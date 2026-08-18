@@ -284,6 +284,7 @@ const routes = {
   points: require('./routes/points'),
   auditLogs: require('./routes/auditLogs'),
   featureFlags: require('./routes/featureFlags'),
+  orderEvents: require('./routes/orderEvents'),
   planRequests: require('./routes/planRequests'),
   adminPlans: require('./routes/adminPlans'),
   staffRequests: require('./routes/staffRequests'),
@@ -371,6 +372,7 @@ app.use(`${API_PREFIX}/points`, routes.points);
 app.use(`${API_PREFIX}/plan-requests`, routes.planRequests);
 app.use(`${API_PREFIX}/admin`, routes.auditLogs);
 app.use(`${API_PREFIX}/admin`, routes.featureFlags);
+app.use(`${API_PREFIX}/admin`, routes.orderEvents);
 app.use(`${API_PREFIX}/admin/plans`, routes.adminPlans);
 app.use(`${API_PREFIX}/staff-requests`, routes.staffRequests);
 app.use(`${API_PREFIX}/staff`, routes.staff);
