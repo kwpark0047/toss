@@ -26,7 +26,7 @@ socket/                Socket.IO 핸들러 (주문/채팅/웨이팅 실시간)
 utils/                 공통 유틸 (로깅, 검증 스키마, 에러)
 config/                domain/CORS, env 설정
 frontend/              React SPA (pages 32, components 127)
-prisma/                schema.prisma (53개 모델) + 마이그레이션/시드
+prisma/                schema.prisma (79개 모델) + 마이그레이션/시드
 tests/                 backend 통합/회귀/단위 테스트 (52개 .test.js)
 docs/                  Swagger 수동 정의
 ```
@@ -136,7 +136,7 @@ npx wrangler deploy   # CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID 필요
 
 ## 알려진 기술 부채 (요약)
 
-- `jest@^25.5.4` 낡음 + `express@^5.2.1` 조합, 테스트 스크립트가 `--forceExit --detectOpenHandles` 사용
+- `jest@^30.4.2` 낡음 + `express@^5.2.1` 조합, 테스트 스크립트가 `--forceExit --detectOpenHandles` 사용
 - `responseFormatter` 기본 200 (생성 API 201 미사용)
 - 테스트 커버리지가 backend 일부 라우트에 편중, E2E spec 대부분 제거됨
 - 일부 미들웨어/utils가 10줄 미만으로 분산

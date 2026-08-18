@@ -1,9 +1,35 @@
 # Changelog
 
 > WeMarket QR Menu Platform — SaaS for Small Business
-> 최신 버전: v1.2.0 (2026-08-07)
+> 최신 버전: v1.3.0 (2026-08-18)
 
 ---
+
+## v1.3.0 (2026-08-18)
+
+### 푸드트럭 디자인 쇼케이스 · 운영/정산 개선
+
+#### 🎨 푸드트럭 디자인 테마 (Food Truck Design Showcase)
+- **`food_trucks.design_theme` 컬럼 추가**: `concept1`~`concept5` 중 고객 노출용 디자인 콘셉트 선택 저장 (`prisma/migrations/20260818070000_add_food_truck_design_theme`)
+- **`GET/PUT /api/stores/:storeId/design`**: `FoodTruckService.getDesignTheme`(기본 `concept1`)/`updateDesignTheme`(허용 목록 검증 + 소켓 브로드캐스트)
+- **FoodTruckDesignShowcase**: 콘셉트 미리보기 UI + `/admin/stores/:storeId/foodtruck/design` 라우트
+
+#### 💳 정산(Settlement) 강화
+- **CSV 다운로드**: `GET /api/admin/stores/:storeId/settlements/:id?format=csv` — BOM 포함 `text/csv` 첨부
+- **정산 삭제**: `DELETE /api/admin/stores/:storeId/settlements/:id` (PENDING 상태만, 기간 겹침 검증)
+- **기간 검증 강화**: 시작≤종료, 미래 날짜 불가, 중복 기간 오류 메시지
+
+#### 🛡️ 운영/권한 개선
+- **공개 플랜 API**: `GET /api/plans` (활성 플랜만), 관리자용 `findAll()` — PlanUpgrade가 활성 플랜만 표시
+- **상품/카테고리 권한 강화**: `checkStoreAccess` 적용 (owner 항상 허용)
+- **사업자등록번호(체크 디지트)·계좌번호 형식 검증** (StoreService)
+- **영수증 설정**: 저장 필드 화이트리스트 + Boolean 변환 + 기본값 병합
+- **다이나믹 프라이싱 config 검증**: rule_type별 구조 검증 + 프론트 템플릿 자동 삽입/JSON 검증
+- **알림톡 발송 이력 로깅** (AlimtalkService)
+- **웨이팅/예약 취소 capability 헤더**: `x-waiting-capability` / `x-reservation-capability`
+
+---
+
 
 ## v1.2.0 (2026-08-07)
 
