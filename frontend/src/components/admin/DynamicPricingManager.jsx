@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, Plus, Edit, Trash2, History, Play, BarChart3, Clock, Zap, Package, Users, RefreshCw, CheckCircle, XCircle, PauseCircle, Save, X } from 'lucide-react';
 import { dynamicPricingAPI } from '@/api/admin';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
 import { formatPrice } from '@/utils/format';
 const RULE_TYPES = [{
   value: 'TIME_BASED',
@@ -54,12 +55,33 @@ const JOB_STATUS = {
   }
 };
 const CONFIG_TEMPLATES = {
-  TIME_BASED: '{"timeSlots":[{"startHour":11,"endHour":14,"multiplier":0.9}]}',
-  DEMAND_BASED: '{"demandThreshold":70,"demandScore":80}',
-  INVENTORY_BASED: '{"inventoryThreshold":10}',
-  WEATHER_BASED: '{"weatherConditions":[{"condition":"heat_wave","discount":0.9},{"condition":"rain","modifier":0.85}]}',
-  COMPETITOR_BASED: '{"competitorMargin":0.1}'
+  TIME_BASED: { timeSlots: [{ startHour: 11, endHour: 14, multiplier: 0.9 }] },
+  DEMAND_BASED: { demandThreshold: 70, demandScore: 80 },
+  INVENTORY_BASED: { inventoryThreshold: 10 },
+  WEATHER_BASED: { weatherConditions: [{ condition: 'heat_wave', discount: 0.9 }, { condition: 'rain', modifier: 0.85 }] },
+  COMPETITOR_BASED: { competitorMargin: 0.1 }
 };
+function validateConfig(type, configObj) {
+  if (!configObj || typeof configObj !== 'object') return false;
+  switch (type) {
+    case 'TIME_BASED':
+      return Array.isArray(configObj.timeSlots) && configObj.timeSlots.every((s) => {
+        return typeof s.startHour === 'number' && typeof s.endHour === 'number' && typeof s.multiplier === 'number';
+      });
+    case 'DEMAND_BASED':
+      return typeof configObj.demandThreshold === 'number' && typeof configObj.demandScore === 'number';
+    case 'INVENTORY_BASED':
+      return typeof configObj.inventoryThreshold === 'number';
+    case 'WEATHER_BASED':
+      return Array.isArray(configObj.weatherConditions) && configObj.weatherConditions.every((w) => {
+        return typeof w.condition === 'string' && (typeof w.discount === 'number' || typeof w.modifier === 'number');
+      });
+    case 'COMPETITOR_BASED':
+      return typeof configObj.competitorMargin === 'number';
+    default:
+      return true;
+  }
+}
 const DynamicPricingManager = ({
   storeId: storeIdProp
 }) => {
@@ -82,13 +104,21 @@ const DynamicPricingManager = ({
     max_price: '',
     base_price: ''
   });
+  const handleRuleTypeChange = (e) => {
+    const type = e.target.value;
+    const template = CONFIG_TEMPLATES[type] || {};
+    setRuleForm(f => ({
+      ...f,
+      rule_type: type,
+      config: JSON.stringify(template, null, 2)
+    }));
+  };
 
-  // 가격 규칙 조회
   const {
     data: rulesData,
   } = useQuery({
     queryKey: ['pricing-rules', storeId],
-    queryFn: () => dynamicPricingAPI.getRules(storeId).then(res => res.data),
+    queryFn: () => dynamicPricingAPI.getRules(storeId).then(res => res),
     staleTime: 60000
   });
 
@@ -99,17 +129,16 @@ const DynamicPricingManager = ({
     queryKey: ['pricing-logs', storeId],
     queryFn: () => dynamicPricingAPI.getPriceLogs(storeId, {
       limit: 100
-    }).then(res => res.data),
+    }).then(res => res),
     staleTime: 60000,
     enabled: activeTab === 'logs'
   });
 
-  // 최적화 작업 조회
   const {
     data: jobsData,
   } = useQuery({
     queryKey: ['pricing-jobs', storeId],
-    queryFn: () => dynamicPricingAPI.getJobs(storeId).then(res => res.data),
+    queryFn: () => dynamicPricingAPI.getJobs(storeId).then(res => res),
     staleTime: 60000,
     enabled: activeTab === 'jobs'
   });
@@ -119,12 +148,10 @@ const DynamicPricingManager = ({
     data: forecastsData,
   } = useQuery({
     queryKey: ['pricing-forecasts', storeId],
-    queryFn: () => dynamicPricingAPI.getForecasts(storeId).then(res => res.data),
+    queryFn: () => dynamicPricingAPI.getForecasts(storeId).then(res => res),
     staleTime: 60000,
     enabled: activeTab === 'forecasts'
-  });
-
-  // 뮤테이션
+  });  // 뮤테이션
   const deleteRuleMutation = useMutation({
     mutationFn: ruleId => dynamicPricingAPI.deleteRule(storeId, ruleId),
     onSuccess: () => {
@@ -214,22 +241,35 @@ const DynamicPricingManager = ({
     setShowRuleModal(true);
   };
   const handleSaveRule = async () => {
-    const data = {
-      product_id: Number(ruleForm.product_id),
-      rule_name: ruleForm.rule_name,
-      rule_type: ruleForm.rule_type,
-      min_price: Number(ruleForm.min_price),
-      max_price: Number(ruleForm.max_price),
-      base_price: Number(ruleForm.base_price),
-      config: JSON.parse(ruleForm.config || '{}')
-    };
-    if (editingRule) {
-      await updateRuleMutation.mutateAsync({
-        ruleId: editingRule.id,
-        data
-      });
-    } else {
-      await createRuleMutation.mutateAsync(data);
+    try {
+      const config = JSON.parse(ruleForm.config || '{}');
+      if (!validateConfig(ruleForm.rule_type, config)) {
+        toast.error('설정 JSON 형식이 올바르지 않습니다. 템플릿을 참고해 주세요.');
+        return;
+      }
+      const data = {
+        product_id: Number(ruleForm.product_id),
+        rule_name: ruleForm.rule_name,
+        rule_type: ruleForm.rule_type,
+        min_price: Number(ruleForm.min_price),
+        max_price: Number(ruleForm.max_price),
+        base_price: Number(ruleForm.base_price),
+        config
+      };
+      if (editingRule) {
+        await updateRuleMutation.mutateAsync({
+          ruleId: editingRule.id,
+          data
+        });
+      } else {
+        await createRuleMutation.mutateAsync(data);
+      }
+    } catch (e) {
+      if (e instanceof SyntaxError) {
+        toast.error('설정 JSON 형식이 올바르지 않습니다.');
+      } else {
+        toast.error('저장에 실패했습니다.');
+      }
     }
   };
   const getRuleTypeConfig = type => RULE_TYPES.find(r => r.value === type) || RULE_TYPES[0];
@@ -257,7 +297,6 @@ const DynamicPricingManager = ({
             {tab.label}
           </button>)}
       </div>
-
       {/* 가격 규칙 탭 */}
       {activeTab === 'rules' && <motion.div initial={{
       opacity: 0
@@ -271,7 +310,6 @@ const DynamicPricingManager = ({
               규칙 추가
             </button>
           </div>
-
           {rules.length === 0 ? <div className="text-center py-12 bg-slate-50 rounded-2xl">
               <TrendingUp size={48} className="mx-auto text-slate-300 mb-4" />
               <p className="text-slate-500">가격 책정 규칙이 없습니다. 추가하려면 위 버튼을 클릭하세요.</p>
@@ -325,7 +363,6 @@ const DynamicPricingManager = ({
                   </div>;
         })}
             </div>}
-
           {/* 최적화 실행 버튼 */}
           <div className="flex gap-2 pt-4 border-t">
             <button onClick={() => handleRunOptimization('INCREMENTAL_UPDATE')} disabled={runOptimizationMutation.isPending} className="px-4 py-2 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-colors flex items-center gap-2">
@@ -338,7 +375,6 @@ const DynamicPricingManager = ({
             </button>
           </div>
         </motion.div>}
-
       {/* 변경 이력 탭 */}
       {activeTab === 'logs' && <motion.div initial={{
       opacity: 0
@@ -380,7 +416,6 @@ const DynamicPricingManager = ({
               </table>
             </div>}
         </motion.div>}
-
       {/* 최적화 작업 탭 */}
       {activeTab === 'jobs' && <motion.div initial={{
       opacity: 0
@@ -422,7 +457,6 @@ const DynamicPricingManager = ({
         })}
             </div>}
         </motion.div>}
-
       {/* 수요 예측 탭 */}
       {activeTab === 'forecasts' && <motion.div initial={{
       opacity: 0
@@ -465,7 +499,6 @@ const DynamicPricingManager = ({
               </table>
             </div>}
         </motion.div>}
-
       {/* 수동 가격 변경 모달 */}
       <AnimatePresence>
         {showPriceModal && selectedProduct && <motion.div initial={{
@@ -511,7 +544,6 @@ const DynamicPricingManager = ({
             </motion.div>
           </motion.div>}
       </AnimatePresence>
-
       {/* 가격 규칙 생성/수정 모달 */}
       <AnimatePresence>
         {showRuleModal && <motion.div initial={{
@@ -547,15 +579,7 @@ const DynamicPricingManager = ({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium mb-1">규칙 유형</label>
-                    <select value={ruleForm.rule_type} onChange={e => setRuleForm(f => {
-                  const type = e.target.value;
-                  const isTemplateNeeded = !f.config || f.config === '{}' || !f.config.trim();
-                  return {
-                    ...f,
-                    rule_type: type,
-                    config: isTemplateNeeded ? (CONFIG_TEMPLATES[type] || '{}') : f.config
-                  };
-                })} className="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <select value={ruleForm.rule_type} onChange={handleRuleTypeChange} className="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500">
                       {RULE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>
@@ -610,6 +634,6 @@ const DynamicPricingManager = ({
             </motion.div>
           </motion.div>}
       </AnimatePresence>
-    </div>;
-};
+    </div>
+  };
 export default DynamicPricingManager;

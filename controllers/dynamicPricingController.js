@@ -3,6 +3,39 @@ const { AppError } = require('../utils/errorHandler');
 const demandForecastController = require('./demandForecastController');
 const DynamicPricingService = require('../services/DynamicPricingService');
 
+function validateConfig(type, config) {
+  if (!config || typeof config !== 'object') return false;
+  switch (type) {
+    case 'TIME_BASED':
+      return (
+        Array.isArray(config.timeSlots) &&
+        config.timeSlots.every(
+          (s) =>
+            typeof s.startHour === 'number' &&
+            typeof s.endHour === 'number' &&
+            typeof s.multiplier === 'number'
+        )
+      );
+    case 'DEMAND_BASED':
+      return typeof config.demandThreshold === 'number' && typeof config.demandScore === 'number';
+    case 'INVENTORY_BASED':
+      return typeof config.inventoryThreshold === 'number';
+    case 'WEATHER_BASED':
+      return (
+        Array.isArray(config.weatherConditions) &&
+        config.weatherConditions.every(
+          (w) =>
+            typeof w.condition === 'string' &&
+            (typeof w.discount === 'number' || typeof w.modifier === 'number')
+        )
+      );
+    case 'COMPETITOR_BASED':
+      return typeof config.competitorMargin === 'number';
+    default:
+      return true;
+  }
+}
+
 const DynamicPricingController = {
   // 가격 최적화 실행/이력/경쟁사/수요예측은 demandForecastController에서 위임
   // (admin.js의 /pricing/* 라우트가 참조하는 이름으로 연결)
@@ -11,6 +44,7 @@ const DynamicPricingController = {
   upsertCompetitorPrice: demandForecastController.addCompetitorPrice,
   getCompetitorPrices: demandForecastController.getCompetitorPrices,
   getDemandForecasts: demandForecastController.getDemandForecasts,
+
   getPricingRules: async (req, res, next) => {
     try {
       const { storeId } = req.params;
@@ -33,6 +67,13 @@ const DynamicPricingController = {
 
       if (!product_id || !rule_name || !rule_type || !config) {
         throw new AppError('product_id, rule_name, rule_type, config는 필수입니다.', 400);
+      }
+
+      if (!validateConfig(rule_type, config)) {
+        throw new AppError(
+          'config JSON 형식이 올바르지 않습니다. 규칙 유형에 맞는 템플릿을 확인해 주세요.',
+          400
+        );
       }
 
       const rule = await prisma.dynamic_pricing_rules.create({
@@ -59,6 +100,21 @@ const DynamicPricingController = {
       const { storeId, ruleId } = req.params;
       const { rule_name, rule_type, config, min_price, max_price, base_price, is_active } =
         req.body;
+
+      // config가 제공된 경우 검증
+      if (config !== undefined) {
+        const existingRule = await prisma.dynamic_pricing_rules.findUnique({
+          where: { id: Number(ruleId) },
+          select: { rule_type: true },
+        });
+        const targetType = rule_type || existingRule?.rule_type;
+        if (!validateConfig(targetType, config)) {
+          throw new AppError(
+            'config JSON 형식이 올바르지 않습니다. 규칙 유형에 맞는 템플릿을 확인해 주세요.',
+            400
+          );
+        }
+      }
 
       const rule = await prisma.dynamic_pricing_rules.update({
         where: { id: Number(ruleId), store_id: Number(storeId) },

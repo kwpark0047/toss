@@ -573,16 +573,26 @@ router.get(
  *         application/json:
  *           schema:
  *             type: object
- *             required: [productId, ruleName, ruleType, minPrice, maxPrice, basePrice]
+ *             required: [product_id, rule_name, rule_type, config]
  *             properties:
- *               productId: { type: integer }
- *               ruleName: { type: string }
- *               ruleType: { type: string, enum: [TIME_BASED, DEMAND_BASED, COMPETITOR_BASED, INVENTORY_BASED, WEATHER_BASED] }
- *               priority: { type: integer, default: 0 }
- *               config: { type: object }
- *               minPrice: { type: integer }
- *               maxPrice: { type: integer }
- *               basePrice: { type: integer }
+ *               product_id:
+ *                 type: integer
+ *               rule_name:
+ *                 type: string
+ *               rule_type:
+ *                 type: string
+ *                 enum: [TIME_BASED, DEMAND_BASED, COMPETITOR_BASED, INVENTORY_BASED, WEATHER_BASED]
+ *               priority:
+ *                 type: integer
+ *                 default: 0
+ *               config:
+ *                 type: object
+ *               min_price:
+ *                 type: integer
+ *               max_price:
+ *                 type: integer
+ *               base_price:
+ *                 type: integer
  *     responses:
  *       201:
  *         description: 가격 규칙 생성됨
@@ -613,6 +623,30 @@ router.post(
  *         required: true
  *         schema:
  *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rule_name:
+ *                 type: string
+ *               rule_type:
+ *                 type: string
+ *                 enum: [TIME_BASED, DEMAND_BASED, COMPETITOR_BASED, INVENTORY_BASED, WEATHER_BASED]
+ *               priority:
+ *                 type: integer
+ *               config:
+ *                 type: object
+ *               min_price:
+ *                 type: integer
+ *               max_price:
+ *                 type: integer
+ *               base_price:
+ *                 type: integer
+ *               is_active:
+ *                 type: boolean
  *     responses:
  *       200:
  *         description: 가격 규칙 수정됨
