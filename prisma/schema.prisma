@@ -1623,17 +1623,18 @@ model audit_logs {
 }
 model feature_flags {
   id              Int      @id @default(autoincrement())
-  key             String   @unique
+  key             String
   description     String?
   enabled         Boolean  @default(false)
   rollout_percent Int      @default(100)
   environment     String   @default("production")
-  store_id        Int?
+  store_id        Int      @default(0)
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
   @@index([environment, enabled], map: "idx_feature_flags_environment_enabled")
   @@index([store_id], map: "idx_feature_flags_store")
+  @@unique([key, environment, store_id], map: "uq_feature_flags_scope")
   @@schema("public")
 }
 // Eco Badge fields (added via migration)

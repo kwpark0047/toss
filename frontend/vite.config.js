@@ -14,12 +14,14 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.js',
     css: true,
+    pool: 'forks',
+    poolOptions: { forks: { singleFork: true } },
   },
 
   plugins: [
     react(),
     imagetools({
-      defaultDirectives: (url) => {
+      defaultDirectives: (_url) => {
         return new URLSearchParams({
           format: 'avif;webp;jpeg',
           as: 'picture',
@@ -32,12 +34,14 @@ export default defineConfig({
       gzipSize: true,
       brotliSize: true,
     }),
-    isCI ? {} : criticalCss({
-      include: ['/'],
-      minify: true,
-      height: 800,
-      width: 1280,
-    }),
+    isCI
+      ? {}
+      : criticalCss({
+          include: ['/'],
+          minify: true,
+          height: 800,
+          width: 1280,
+        }),
     VitePWA({
       registerType: 'autoUpdate', // 새 버전 배포 시 SW 자동 교체
       injectRegister: 'auto',

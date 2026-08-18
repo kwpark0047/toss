@@ -5,7 +5,7 @@
 - 제품: QR 메뉴, 주문·결제, KDS, 직원 권한, 고객·CRM, 예약·웨이팅, 리뷰·커뮤니티, AI 추천, 동적 가격, 푸드트럭 기능을 포함한다.
 - 구조: Express 5 + Prisma/PostgreSQL 백엔드와 React 19 + Vite 7 프론트엔드가 한 저장소에 있다.
 - 배포: Render 백엔드와 Cloudflare Workers 프론트엔드로 분리되어 있다.
-- 품질: 백엔드 단위·라우트 테스트 101개 suite, 931개 테스트가 통과했다. 프론트 테스트는 worker timeout이 남아 있어 실행 안정화가 필요하다.
+- 품질: 백엔드 단위·라우트 테스트 107개 suite, 947개 테스트가 통과했다. 프론트 테스트는 worker 수를 1개로 제한해 실행 안정화를 진행 중이다.
 
 ## 이번 단계에서 반영한 기반 개선
 
@@ -14,6 +14,7 @@
 3. 주문과 KDS 상태 전이 규칙을 `utils/orderStatus.js`로 중앙화했다.
 4. `audit_logs` 모델·마이그레이션과 민감정보 마스킹 감사 로그 서비스를 추가했다.
 5. `FEATURE_FLAGS_JSON` 기반 boolean·결정적 rollout Feature Flag 서비스를 추가했다.
+6. DB Feature Flag에 환경·매장 scope 복합 키를 적용하고 KDS에 `kds_v2` flag를 연결했다.
 
 ## 단계별 로드맵
 

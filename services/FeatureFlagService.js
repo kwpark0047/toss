@@ -28,21 +28,26 @@ const evaluate = (flag, { userId = 'anonymous', storeId = 'global' } = {}) => {
 const FeatureFlagService = {
   async isEnabled(key, context = {}) {
     validateKey(key);
+    const scopedStoreId = Number.parseInt(context.storeId, 10) || 0;
     if (!prisma.feature_flags) {
       const envFlag = getEnvFlags()[key];
-      return typeof envFlag === 'boolean' ? envFlag : evaluate({ key, ...envFlag }, context);
+      return typeof envFlag === 'boolean'
+        ? envFlag
+        : envFlag
+          ? evaluate({ key, ...envFlag }, context)
+          : true;
     }
 
     const flags = await prisma.feature_flags.findMany({
       where: {
         key,
         environment: process.env.NODE_ENV || 'production',
-        OR: [{ store_id: context.storeId || null }, { store_id: null }],
+        OR: [{ store_id: scopedStoreId }, { store_id: 0 }],
       },
       orderBy: { store_id: 'desc' },
       take: 1,
     });
-    return evaluate(flags[0], context);
+    return flags.length ? evaluate(flags[0], context) : true;
   },
 
   async list({ environment = process.env.NODE_ENV || 'production', storeId } = {}) {
@@ -76,32 +81,50 @@ const FeatureFlagService = {
     if (typeof enabled !== 'boolean') throw new AppError('enabled는 boolean이어야 합니다.', 400);
     if (!prisma.feature_flags)
       throw new AppError('Feature Flag 저장소가 준비되지 않았습니다.', 503);
+    if (typeof environment !== 'string' || !environment.trim()) {
+      throw new AppError('environment가 필요합니다.', 400);
+    }
+    const scopedStoreId = Number.parseInt(store_id, 10) || 0;
 
     return prisma.feature_flags.upsert({
-      where: { key: safeKey },
+      where: {
+        key_environment_store_id: {
+          key: safeKey,
+          environment,
+          store_id: scopedStoreId,
+        },
+      },
       create: {
         key: safeKey,
         description,
         enabled,
         rollout_percent: rollout,
         environment,
-        store_id: store_id ? Number.parseInt(store_id, 10) : null,
+        store_id: scopedStoreId,
       },
       update: {
         description,
         enabled,
         rollout_percent: rollout,
         environment,
-        store_id: store_id ? Number.parseInt(store_id, 10) : null,
+        store_id: scopedStoreId,
       },
     });
   },
 
-  async remove(key) {
+  async remove(key, { environment = 'production', storeId = 0 } = {}) {
     validateKey(key);
     if (!prisma.feature_flags)
       throw new AppError('Feature Flag 저장소가 준비되지 않았습니다.', 503);
-    return prisma.feature_flags.delete({ where: { key } });
+    return prisma.feature_flags.delete({
+      where: {
+        key_environment_store_id: {
+          key,
+          environment,
+          store_id: Number.parseInt(storeId, 10) || 0,
+        },
+      },
+    });
   },
 };
 

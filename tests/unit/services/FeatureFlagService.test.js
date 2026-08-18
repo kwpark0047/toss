@@ -45,6 +45,10 @@ describe('FeatureFlagService', () => {
 
     await expect(featureFlagService.list()).resolves.toEqual([]);
     await featureFlagService.remove('new_kds');
-    expect(prisma.feature_flags.delete).toHaveBeenCalledWith({ where: { key: 'new_kds' } });
+    expect(prisma.feature_flags.delete).toHaveBeenCalledWith({
+      where: {
+        key_environment_store_id: { key: 'new_kds', environment: 'production', store_id: 0 },
+      },
+    });
   });
 });
