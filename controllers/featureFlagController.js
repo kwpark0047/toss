@@ -12,7 +12,7 @@ const featureFlagController = {
   },
 
   async remove(req, res) {
-    await featureFlagService.remove(req.params.key);
+    await featureFlagService.remove(req.params.key, req.query);
     res.success(null, 'Feature Flag가 삭제되었습니다.');
   },
 };
