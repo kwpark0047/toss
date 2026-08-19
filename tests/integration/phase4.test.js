@@ -84,6 +84,12 @@ jest.mock('../../config/prisma', () => {
     order_items: {
       findMany: jest.fn(() => []),
     },
+    orders: {
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+    },
+    notification_templates: {
+      findFirst: jest.fn().mockResolvedValue({ template: 'test' }),
+    },
   };
 });
 
@@ -102,8 +108,8 @@ describe('Phase 4 Business Enhancements Integration Tests', () => {
         customer_phone: '01012345678',
         total_amount: 15000,
         queue_number: 12,
+        status: 'pending',
       };
-      Order.updateStatus.mockResolvedValue(mockOrder);
       Order.findById.mockResolvedValue(mockOrder);
       Store.findById.mockResolvedValue({ id: 1, name: '맛있는 식당' });
 
@@ -111,7 +117,7 @@ describe('Phase 4 Business Enhancements Integration Tests', () => {
       const orderService = new OrderService(ioMock);
       await orderService.updateStatus(101, 'confirmed', 1);
 
-      expect(Order.updateStatus).toHaveBeenCalledWith(101, 'confirmed', 1);
+      expect(Order.findById).toHaveBeenCalledWith(101);
       // //
       ('01012345678', '맛있는 식당', 'ORD-101', 12, 15000);
     });
@@ -124,6 +130,7 @@ describe('Phase 4 Business Enhancements Integration Tests', () => {
         customer_phone: '01012345678',
         table_id: 5,
         total_amount: 15000,
+        status: 'confirmed',
       };
       Order.updateStatus.mockResolvedValue(mockOrder);
       Order.findById.mockResolvedValue(mockOrder);

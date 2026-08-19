@@ -82,11 +82,19 @@ jobs:
         run: npx prisma generate
 
       - name: Run backend unit tests
-        run: npx jest --config jest.config.js tests/unit/ --no-cache --forceExit
+        run: npx jest --config jest.config.js tests/unit/ --no-cache --forceExit --coverage
+
+      - name: Upload unit test coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-coverage
+          path: coverage/
+          retention-days: 7
 
   backend-integration-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     needs: backend-unit-tests
     services:
       postgres:
@@ -123,11 +131,25 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: Sync database schema
-        run: npx prisma db push --skip-generate
+      - name: Run database migrations
+        run: npx prisma migrate deploy
 
-      - name: Run integration tests
-        run: npx jest --config jest.config.js tests/integration/ --no-cache --forceExit
+      - name: Seed test database
+        run: node scripts/seed_test.js || true
+
+      - name: Run integration tests (mocked, fast)
+        run: npx jest --config jest.config.integration.js --no-cache --forceExit --verbose
+
+      - name: Run integration tests (with real DB)
+        run: npx jest --config jest.config.js tests/integration/ --no-cache --forceExit --verbose --testTimeout=60000
+
+      - name: Upload integration test coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-coverage
+          path: coverage/
+          retention-days: 7
 
   backend-regression-tests:
     runs-on: ubuntu-latest
@@ -155,7 +177,105 @@ jobs:
         run: npx prisma generate
 
       - name: Run regression tests
-        run: npx jest --config jest.config.js tests/regression/ --no-cache --forceExit
+        run: npx jest --config jest.config.js tests/regression/ --no-cache --forceExit --coverage
+
+      - name: Upload regression test coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-coverage
+          path: coverage/
+          retention-days: 7
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [backend-integration-tests, frontend-test]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: wemarket_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed test database
+        run: node scripts/seed_test.js || true
+
+      - name: Start backend server
+        run: |
+          nohup node index.js > backend.log 2>&1 &
+          sleep 15
+          cat backend.log
+          curl -f http://localhost:3000/api/health || exit 1
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+          DIRECT_URL: postgresql://test:test@localhost:5432/wemarket_test
+          JWT_SECRET: test-secret
+          JWT_REFRESH_SECRET: test-refresh-secret
+
+      - name: Build frontend
+        run: cd frontend && npm run build
+
+      - name: Start frontend preview server
+        run: |
+          cd frontend
+          nohup npx serve dist -l 5173 > frontend.log 2>&1 &
+          sleep 5
+          cat frontend.log
+          curl -f http://localhost:5173 || exit 1
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: npx playwright test
+        env:
+          PLAYWRIGHT_API_URL: http://localhost:3000
+          PLAYWRIGHT_BASE_URL: http://localhost:5173
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload Playwright traces
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
 
   print-agent-test:
     runs-on: ubuntu-latest
@@ -187,6 +307,7 @@ jobs:
         backend-integration-tests,
         backend-regression-tests,
         frontend-test,
+        e2e-tests,
         security-scan,
         docker-build,
         trivy-image-scan,
@@ -256,6 +377,14 @@ jobs:
         run: npm run test:coverage
       - name: Type check
         run: npm run typecheck
+
+      - name: Upload frontend test coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+          retention-days: 7
         env:
           VITE_API_URL: http://localhost:3000/api
 

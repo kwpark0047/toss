@@ -28,7 +28,7 @@
     "test": "jest --config jest.config.js tests/unit tests/routes --coverage",
     "test:unit": "jest --config jest.config.js tests/unit tests/routes",
     "test:routes": "jest --config jest.config.js tests/routes",
-    "test:integration": "jest --config jest.config.js tests/integration",
+    "test:integration": "jest --config jest.config.integration.js",
     "test:regression": "jest --config jest.config.js tests/regression",
     "test:watch": "jest --config jest.config.js --watch",
     "test:coverage": "jest --config jest.config.js tests/unit tests/routes --coverage --coverageReporters=text --coverageReporters=text-summary --coverageReporters=lcov",
