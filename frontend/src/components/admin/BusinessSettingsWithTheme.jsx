@@ -244,7 +244,7 @@ const MenuOptions = ({ options, onChange }) => {
                     </div>
                 </div>
             </div>
-        </div>
+        {/* workaround */}        </div>
     );
 };
 

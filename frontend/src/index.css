@@ -43,9 +43,28 @@
   --color-grey-800: #333d4b;
   --color-grey-900: #191f28;
 
+  /* TDS 브랜드 오렌지/코랄 스케일 (50-900) — 시맨틱 primary 확장 */
+  --color-brand-50: #fff7ed;
+  --color-brand-100: #ffedd5;
+  --color-brand-200: #fed7aa;
+  --color-brand-300: #fdba74;
+  --color-brand-400: #fb923c;
+  --color-brand-500: #f97316;
+  --color-brand-600: #ea580c;
+  --color-brand-700: #c2410c;
+  --color-brand-800: #9a3412;
+  --color-brand-900: #7c2d12;
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+
+  /* TDS 아이콘 토큰 — 크기 3단계 × 스트로크 2단계 */
+  --icon-size-sm: 16px;
+  --icon-size-md: 20px;
+  --icon-size-lg: 24px;
+  --icon-stroke-thin: 2;
+  --icon-stroke-md: 2.5;
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -146,13 +165,19 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 24 95% 53%;
 
-    /* Customer Semantic Tokens — Light (Default) */
+    /* Customer Semantic Tokens — Light (Default) — TDS aligned */
     --customer-bg-base: #f2f4f6;   /* grey-100 */
     --customer-bg-card: #ffffff;
     --customer-text-main: #191f28; /* grey-900 */
     --customer-text-sub: #6b7684;  /* grey-600 */
     --customer-border: #f2f4f6;
     --customer-divider: #f9fafb;
+
+    /* TDS Icon Color Tokens — Light */
+    --icon-color-primary: #f97316;
+    --icon-color-muted: #6b7684;
+    --icon-color-destructive: #ef4444;
+    --icon-color-inverse: #ffffff;
   }
 
   .dark {
@@ -193,6 +218,35 @@
     --sidebar-border: 222 30% 18%;
     --sidebar-ring: 24 95% 53%;
 
+    /* Customer Semantic Tokens — Dark Mode — TDS aligned */
+    --customer-bg-base: #000000;
+    --customer-bg-card: #191f28;   /* grey-900 */
+    --customer-text-main: #f2f4f6; /* grey-100 */
+    --customer-text-sub: #8b95a1;  /* grey-500 */
+    --customer-border: #333d4b;    /* grey-800 */
+    --customer-divider: #191f28;
+
+    /* TDS Icon Color Tokens — Dark */
+    --icon-color-primary: #fb923c;
+    --icon-color-muted: #8b95a1;
+    --icon-color-destructive: #f87171;
+    --icon-color-inverse: #191f28;
+  }
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
+    --ring: 24 95% 53%;
+
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 24 95% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 30% 12%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 30% 18%;
+    --sidebar-ring: 24 95% 53%;
+
     /* Customer Semantic Tokens — Dark Mode */
     --customer-bg-base: #000000;
     --customer-bg-card: #191f28;   /* grey-900 */
@@ -201,26 +255,35 @@
     --customer-border: #333d4b;    /* grey-800 */
     --customer-divider: #191f28;
   }
-}
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--border);
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    background-color: var(--background);
+    color: var(--foreground);
     font-family: 'Noto Sans KR', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-bold tracking-tight;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-md;
+    background-color: var(--card);
+    opacity: 0.8;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    opacity: 0.5;
+    box-shadow: var(--shadow-md);
   }
 
   /* ── 범용 글래스모피즘 패널 (라이트 배경) ── */
@@ -280,7 +343,9 @@
   }
 
   .gradient-text {
-    @apply bg-clip-text text-transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
     background-image: var(--gradient-primary);
   }
 
@@ -298,7 +363,7 @@
   .cust-text-main { color: var(--customer-text-main); }
   .cust-text-sub  { color: var(--customer-text-sub); }
   .cust-border    { border-color: var(--customer-border); }
-  .cust-divide    { @apply divide-y; border-color: var(--customer-divider); }
+  .cust-divide    { border-top: 1px solid var(--customer-divider); }
 }
 
 /* ── prefers-reduced-motion: 전역 애니메이션 제거 ─────────────────────────── */
@@ -364,18 +429,19 @@
   .skeleton { animation: pulse 1.6s ease-in-out infinite; }
 }
 
-/* ── TDS 타입 스케일 — 시맨틱 타이포 유틸 ──────────────────────────────────
-   Toss Product Sans는 웹 배포 불가 → Noto Sans KR로 대체(폴백 유지).
-   화면 전반의 폰트 크기/굵기/자간을 토큰으로 일관화한다. */
-.tds-h1        { font-size: 24px; line-height: 32px; font-weight: 800; letter-spacing: -0.02em; }
-.tds-h2        { font-size: 22px; line-height: 30px; font-weight: 800; letter-spacing: -0.02em; }
-.tds-title     { font-size: 19px; line-height: 27px; font-weight: 700; letter-spacing: -0.02em; }
-.tds-subtitle  { font-size: 17px; line-height: 24px; font-weight: 700; letter-spacing: -0.01em; }
-.tds-body      { font-size: 15px; line-height: 22px; font-weight: 500; }
-.tds-body-strong { font-size: 15px; line-height: 22px; font-weight: 700; }
-.tds-label     { font-size: 13px; line-height: 18px; font-weight: 600; }
-.tds-caption   { font-size: 12px; line-height: 16px; font-weight: 500; }
-.tds-small     { font-size: 11px; line-height: 14px; font-weight: 500; }
+/* ── TDS 타이포그래피 — 일반형(본문) / 포스트형(제목·볼드) 2단계 단순화 ─────────
+   TDS 가이드: Text 에셋은 '일반형(본문)' / '포스트형(제목용 볼드)' 2종만 제공.
+   Toss Product Sans 웹 불가 → Noto Sans KR(본문) + Inter(숫자/영문) 폴백. */
+.tds-text      { font-size: 15px; line-height: 22px; font-weight: 500; letter-spacing: -0.01em; }  /* 일반형: 본문·메뉴명·가격·설명 */
+.tds-text-bold { font-size: 15px; line-height: 22px; font-weight: 700; letter-spacing: -0.02em; }  /* 포스트형: 제목·강조·메뉴명(볼드) */
+.tds-caption   { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: -0.01em; }  /* 캡션: 배지·보조 설명 */
+.tds-small     { font-size: 11px; line-height: 14px; font-weight: 500; letter-spacing: -0.01em; }  /* 스몰: 타임스탬프·메타 */
+
+/* 메뉴판 전용 — 우선순위: 메뉴명 > 가격 > 설명 > 배지 */
+.menu-name      { font-size: 15px; line-height: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--customer-text-main); }      /* 15px bold — 메뉴명 */
+.menu-price     { font-size: 15px; line-height: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--customer-text-main); font-variant-numeric: tabular-nums; } /* 15px bold — 가격(숫자 정렬) */
+.menu-desc      { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: -0.01em; color: var(--customer-text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }     /* 12px regular — 설명 */
+.menu-badge     { font-size: 11px; line-height: 14px; font-weight: 500; letter-spacing: -0.01em; }               /* 11px medium — 배지(NEW/인기) */
 
 /* ── TDS Skeleton (다크) — 관리자 다크 테마용 ────────────────────────────── */
 .skeleton-dark {
@@ -465,3 +531,99 @@ button, [role="button"], a, summary, label { touch-action: manipulation; }
 .admin-light .admin-dark-scope .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05) !important; }
 .admin-light .admin-dark-scope .bg-white\/10 { background-color: rgba(255, 255, 255, 0.1) !important; }
 .admin-light .admin-dark-scope .border-white\/5, .admin-light .admin-dark-scope .border-white\/8, .admin-light .admin-dark-scope .border-white\/10 { border-color: rgba(255, 255, 255, 0.1) !important; }
+
+/* ── TDS Viewport Constraint — 375px 기준 (iPhone 13 mini) ───────────────────
+   TDS 가이드: 모든 화면은 375px 가로 기준. 반응형은 Fill 모드로만 허용. */
+.tds-viewport {
+  width: 100%;
+  max-width: 375px;
+  margin: 0 auto;
+}
+
+/* 고객 메뉴판 전용 — 375px 고정, 중앙 정렬, 세로 스크롤만 */
+.menu-viewport {
+  width: 100%;
+  max-width: 375px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background-color: var(--customer-bg-base);
+  color: var(--customer-text-main);
+}
+
+/* ── TDS Stack Layout 유틸 — 오토레이아웃 gap/padding만으로 간격 제어 ────────────
+   TDS 가이드: 임의 margin/padding 금지. Stack Layout(Fit/Fill/Fixed + Gap/Padding)만 사용. */
+
+/* Stack 방향 */
+.tds-stack { display: flex; flex-direction: column; }
+.tds-stack-h { display: flex; flex-direction: row; }
+
+/* Stack 크기 모드 */
+.tds-stack-fit   { flex: 0 0 auto; }      /* Fit: 내용에 맞게 */
+.tds-stack-fill  { flex: 1 1 auto; }      /* Fill: 화면을 채우게 */
+.tds-stack-fixed { flex: 0 0 auto; }      /* Fixed: 고정 길이 (width/height 별도 지정) */
+
+/* Gap (요소 사이 여백) — TDS 4/8/12/16/24/32/48/64 스케일 */
+.tds-gap-1 { gap: 4px; }   .tds-gap-2 { gap: 8px; }
+.tds-gap-3 { gap: 12px; }  .tds-gap-4 { gap: 16px; }
+.tds-gap-6 { gap: 24px; }  .tds-gap-8 { gap: 32px; }
+.tds-gap-12 { gap: 48px; } .tds-gap-16 { gap: 64px; }
+
+/* Padding (바깥 여백) */
+.tds-p-1 { padding: 4px; }   .tds-p-2 { padding: 8px; }
+.tds-p-3 { padding: 12px; }  .tds-p-4 { padding: 16px; }
+.tds-p-6 { padding: 24px; }  .tds-p-8 { padding: 32px; }
+.tds-p-12 { padding: 48px; } .tds-p-16 { padding: 64px; }
+
+/* 반응형: Fill 모드에서만 flex-wrap 허용 */
+@media (max-width: 375px) {
+  .tds-stack-fill { flex-wrap: wrap; }
+}
+
+/* ── TDS Navigation + Screen 패턴 — 모든 화면 최상단 Navigation 필수 ────────── */
+.tds-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  /* Safe area inset 대응 */
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.tds-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+.dark .tds-nav {
+  background: rgba(25, 31, 40, 0.88);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tds-nav-title {
+  font-size: 15px; line-height: 22px; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--customer-text-main);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.tds-nav-action {
+  font-size: 15px; line-height: 22px; font-weight: 500; letter-spacing: -0.01em;
+  color: var(--customer-text-sub);
+}
+
+/* ── TDS ListRow 배지 — NEW/인기/SPECIAL 통일 ──────────────────────────────── */
+.tds-badge {
+  font-size: 11px; line-height: 14px; font-weight: 500; letter-spacing: -0.01em;
+  padding: 2px 6px; border-radius: 4px;
+}
+.tds-badge-new     { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.tds-badge-popular { background-color: rgba(249, 115, 22, 0.1); color: #f97316; }
+.tds-badge-special { background-color: rgba(234, 88, 12, 0.1); color: #ea580c; }

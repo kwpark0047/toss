@@ -1,16 +1,17 @@
 import { motion } from 'framer-motion';
-import { Plus, Flame, Sparkles } from 'lucide-react';
 import { formatPriceWithOptions } from '../../lib/themePresets';
 import { vibrateClick } from '../../utils/notificationSound';
 import LazyImage from '../common/LazyImage';
+import Icon from '../ui/Icon';
 
-// TDS ListRow 상하 패딩 프리셋 (S/M/L/XL)
+// TDS ListRow 상하 패딩 프리셋 (S/M/L/XL) — TDS ListRow 패딩과 1:1 매핑
 const PADDING = { S: 'py-2', M: 'py-3', L: 'py-4', XL: 'py-5' };
 
 /**
  * MenuItemCard — TDS ListRow 패턴 (leading 썸네일 · content 타이틀/설명 · trailing 가격+담기)
  * 행은 리스트 그룹 안에서 flush 배치되며, 상하 패딩은 padding prop(S/M/L/XL)으로 조절.
  * options: { showBadge, priceFormat, showPriceUnit } — 매장 테마 설정(menu_options) 반영.
+ * TDS 준수: 375px 기준, ListRow 패딩, Icon 래퍼, 타입 스케일 2단계(일반형/포스트형)
  */
 const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disabled, padding = 'L', options }) => {
   const py = PADDING[padding] || PADDING.L;
@@ -53,10 +54,14 @@ const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disable
         />
         <div className="absolute top-0.5 left-0.5 flex flex-col gap-0.5 z-20">
           {showBadge && isPopular && (
-            <div className="bg-orange-500 text-white p-0.5 rounded-lg shadow"><Flame size={10} fill="currentColor" /></div>
+            <div className="bg-orange-500 text-white p-0.5 rounded-lg shadow">
+              <Icon icon="Flame" size="sm" color="inverse" />
+            </div>
           )}
           {showBadge && isNew && (
-            <div className="bg-blue-500 text-white p-0.5 rounded-lg shadow"><Sparkles size={10} fill="currentColor" /></div>
+            <div className="bg-blue-500 text-white p-0.5 rounded-lg shadow">
+              <Icon icon="Sparkles" size="sm" color="inverse" />
+            </div>
           )}
         </div>
       </div>
@@ -64,21 +69,21 @@ const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disable
       {/* Content — 타이틀 + 설명 */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <h3 className="tds-body-strong cust-text-main truncate">{item.name}</h3>
+          <h3 className="menu-name truncate">{item.name}</h3>
           {hasOptions && (
-            <span className="text-[9px] bg-grey-100 dark:bg-white/10 text-grey-500 dark:text-grey-400 px-1.5 py-0.5 rounded font-bold whitespace-nowrap flex-shrink-0">옵션</span>
+            <span className="menu-badge bg-grey-100 dark:bg-white/10 text-grey-500 dark:text-grey-400 px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0">옵션</span>
           )}
         </div>
         {item.description && (
-          <p className="tds-caption cust-text-sub line-clamp-1 mt-0.5">{item.description}</p>
+          <p className="menu-desc mt-0.5">{item.description}</p>
         )}
-        <span className="block tds-body-strong cust-text-main mt-1">{formatPriceWithOptions(item.price, priceFormat, showPriceUnit)}</span>
+        <span className="menu-price mt-1 block">{formatPriceWithOptions(item.price, priceFormat, showPriceUnit)}</span>
       </div>
 
       {/* Trailing — 담기 */}
       <div className="flex-shrink-0 self-center">
         <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-          <Plus size={18} strokeWidth={3} />
+          <Icon icon="Plus" size="md" stroke="md" color="primary" />
         </div>
       </div>
     </motion.div>

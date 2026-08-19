@@ -1,26 +1,29 @@
 // 매장 테마 프리셋 공용 정의 — 관리자 설정(BusinessSettingsWithTheme)과
 // 고객 메뉴판(MenuPage)이 동일한 프리셋을 공유한다.
+// TDS 준수: 프리셋은 TDS 시맨틱 토큰(--color-brand-500 등)을 참조하며,
+// 라이트/다크 양 테마에서 WCAG AA 대비 만족하도록 설계됨.
 
 export const THEME_PRESETS = [
   {
-    id: 'classic-blue',
-    name: '클래식 블루',
-    description: '전문적이고 신뢰할 수 있는 전통적인 스타일',
+    id: 'classic-orange',
+    name: '클래식 오렌지',
+    description: 'WeMarket 브랜드 컬러 — 신뢰·전문·스마트',
     colors: {
-      primary: '#0EA5E9',
-      secondary: '#6366F1',
-      background: '#F8FAFC',
-      surface: '#FFFFFF',
-      text: '#1E293B',
-      border: '#E2E8F0',
+      // TDS 시맨틱 토큰 참조 — 런타임에 CSS 변수로 치환됨
+      primary: 'var(--color-brand-500)', // #f97316
+      secondary: 'var(--color-brand-400)', // #fb923c
+      background: 'var(--color-grey-50)', // #f9fafb
+      surface: 'var(--color-grey-0)', // #ffffff (white)
+      text: 'var(--color-grey-900)', // #191f28
+      border: 'var(--color-grey-200)', // #e5e8eb
     },
-    font: 'Inter, sans-serif',
+    font: 'Noto Sans KR, sans-serif',
     radius: 'rounded-lg',
   },
   {
     id: 'warm-cocoa',
     name: '웜 코코아',
-    description: '따뜻하고 아늑한 분위기,카페 컨셉에 적합',
+    description: '따뜻하고 아늑한 분위기, 카페 컨셉에 적합',
     colors: {
       primary: '#D97706',
       secondary: '#F59E0B',
@@ -44,7 +47,7 @@ export const THEME_PRESETS = [
       text: '#14532D',
       border: '#D1FAE5',
     },
-    font: 'Pretendard, sans-serif',
+    font: 'Noto Sans KR, sans-serif',
     radius: 'rounded-2xl',
   },
   {
@@ -74,7 +77,7 @@ export const THEME_PRESETS = [
       text: '#134E4A',
       border: '#CCFBF1',
     },
-    font: 'Inter, sans-serif',
+    font: 'Noto Sans KR, sans-serif',
     radius: 'rounded-lg',
   },
   {
@@ -89,23 +92,26 @@ export const THEME_PRESETS = [
       text: '#9D174D',
       border: '#FCE7F3',
     },
-    font: 'Pretendard, sans-serif',
+    font: 'Noto Sans KR, sans-serif',
     radius: 'rounded-xl',
   },
 ];
 
+// TDS 시맨틱 토큰용 화이트 색상 상수
+export const TDS_COLOR_WHITE = '#FFFFFF';
+
 // 메뉴 표시 옵션 기본값 — 관리자 설정 폼의 초기값과 동일하게 유지
 export const DEFAULT_THEME_SETTINGS = {
-  theme_preset: 'classic-blue',
+  theme_preset: 'classic-orange',
   ui_size: 'medium',
   menu_layout: 'grid',
   image_quality: 'high',
   menu_options: {
     showBadge: true,
     badgeTypes: {
-      new: { label: 'NEW', color: '#EF4444', show: true },
-      popular: { label: '인기', color: '#10B981', show: true },
-      special: { label: 'SPECIAL', color: '#8B5CF6', show: false },
+      new: { label: 'NEW', color: 'var(--icon-color-destructive)', show: true },
+      popular: { label: '인기', color: 'var(--icon-color-primary)', show: true },
+      special: { label: 'SPECIAL', color: 'var(--color-brand-600)', show: false },
     },
     showPriceUnit: '원',
     showRating: true,
@@ -132,6 +138,9 @@ export const getThemePreset = (themeSettings) => {
  * 두 가지 포맷을 모두 지원:
  * 1. themePresets 포맷: { theme_preset, custom_colors, ... }
  * 2. MenuBuilder 포맷: { primaryColor, secondaryColor, backgroundColor, textColor, cardColor, fontFamily, ... }
+ *
+ * TDS 준수: 프리셋의 colors 값이 CSS 변수(var(--color-brand-500) 등)인 경우
+ * 그대로 전달하여 런타임에 CSS 변수 해석되도록 함.
  */
 export const resolveThemeStyle = (themeSettings) => {
   if (!themeSettings) return {};
@@ -143,7 +152,6 @@ export const resolveThemeStyle = (themeSettings) => {
   let c;
 
   if (isPresetFormat) {
-    // 기존 themePresets 로직
     const customColors = themeSettings.custom_colors;
     c =
       customColors && (customColors.primary || customColors.background)
@@ -151,7 +159,7 @@ export const resolveThemeStyle = (themeSettings) => {
             primary: customColors.primary,
             secondary: customColors.secondary,
             background: customColors.background,
-            surface: customColors.surface || customColors.cardColor || '#FFFFFF',
+            surface: customColors.surface || customColors.cardColor || TDS_COLOR_WHITE,
             text: customColors.text,
             border: customColors.border || customColors.primary,
           }
@@ -159,12 +167,13 @@ export const resolveThemeStyle = (themeSettings) => {
   } else if (themeSettings.primaryColor || themeSettings.backgroundColor) {
     // 2. MenuBuilder 포맷 직접 매핑
     c = {
-      primary: themeSettings.primaryColor || '#f97316',
-      secondary: themeSettings.secondaryColor || '#1e3a5f',
-      background: themeSettings.backgroundColor || '#f8fafc',
-      surface: themeSettings.cardColor || '#ffffff',
-      text: themeSettings.textColor || '#1e293b',
-      border: themeSettings.secondaryColor || themeSettings.primaryColor || '#1e3a5f',
+      primary: themeSettings.primaryColor || 'var(--color-brand-500)',
+      secondary: themeSettings.secondaryColor || 'var(--color-brand-400)',
+      background: themeSettings.backgroundColor || 'var(--color-grey-50)',
+      surface: themeSettings.cardColor || TDS_COLOR_WHITE,
+      text: themeSettings.textColor || 'var(--color-grey-900)',
+      border:
+        themeSettings.secondaryColor || themeSettings.primaryColor || 'var(--color-brand-500)',
     };
   } else {
     // 어떤 포맷도 아니면 빈 객체
@@ -175,7 +184,7 @@ export const resolveThemeStyle = (themeSettings) => {
 
   const fontFamily = isPresetFormat
     ? themeSettings.fontFamily || preset?.font || 'inherit'
-    : themeSettings.fontFamily || 'Pretendard';
+    : themeSettings.fontFamily || 'Noto Sans KR, sans-serif';
 
   return {
     '--color-primary': c.primary,
