@@ -80,6 +80,9 @@ const Menu = ({
     payment_method: "card"
   });
 
+  // 헤더 표시/숨김 상태
+  const [showHeader, setShowHeader] = useState(true);
+
   // 온라인/오프라인 상태 감지
   useEffect(() => {
     const goOnline = () => {
@@ -835,185 +838,38 @@ const Menu = ({
     ...themeStyles
   }}>
       {/* 프리미엄 플로팅 헤더 */}
-      <motion.header initial={{
-      y: -20,
-      opacity: 0
-    }} animate={{
-      y: 0,
-      opacity: 1
-    }} className="glass-header">
-        <div className="px-5 py-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-4">
-              <motion.div whileHover={{
-              scale: 1.05
-            }} whileTap={{
-              scale: 0.95
-            }} className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg ring-4 ring-white/30" style={{
-              background: gradientBg
-            }}>
-                {(theme.logoText || store?.name || "M").charAt(0)}
-              </motion.div>
-              <div>
-                <h1 className="text-xl font-black tracking-tight" style={{
-                color: theme.textColor
-              }}>{theme.logoText || store?.name}</h1>
-                <div className="flex items-center gap-2">
-                  {table && <p className="text-xs font-bold uppercase tracking-widest opacity-60" style={{
-                  color: theme.secondaryColor
-                }}>{table.name}</p>}
-                  <motion.button whileTap={{
-                  scale: 0.9
-                }} onClick={() => setShowCallSheet(true)} className="p-1 px-2 rounded-lg bg-orange-500/10 text-orange-600 text-[10px] font-black border border-orange-500/20 active:bg-orange-500 active:text-white transition-colors flex items-center gap-1">
-                    <BellRing size={10} className="animate-pulse" />
-                    {t('common.call_manager')}
-                  </motion.button>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <motion.button whileTap={{
-              scale: 0.9
-            }} onClick={() => navigate(`/wallet?store_id=${store.id}&phone=${userPhone}`)} className="p-3 rounded-2xl bg-white/50 text-orange-600 border border-white/60 shadow-sm hover:bg-white transition-colors">
-                <CreditCard size={22} />
-              </motion.button>
-              <motion.button whileTap={{
-              scale: 0.9
-            }} onClick={() => navigate('/feed')} className="p-3 rounded-2xl bg-white/50 text-rose-500 border border-white/60 shadow-sm hover:bg-white transition-colors" title="Social Feed">
-                <Star size={22} />
-              </motion.button>
-              <motion.button whileTap={{
-              scale: 0.9
-            }} onClick={() => setShowAiInput(!showAiInput)} className="p-3 rounded-2xl bg-white/50 text-blue-600 border border-white/60 shadow-sm hover:bg-white transition-colors">
-                <Wand2 size={22} />
-              </motion.button>
-              <motion.button whileTap={{
-              scale: 0.9
-            }} onClick={() => setShowReservation(!showReservation)} className="p-3 rounded-2xl bg-white/50 text-emerald-600 border border-white/60 shadow-sm hover:bg-white transition-colors" title="Reservation">
-                <Calendar size={22} />
-              </motion.button>
-              <LanguageSwitcher />
-            </div>
-          </div>
-        </div>
-
-        {/* AI 추천 입력 섹션 */}
-        <AnimatePresence>
-          {showAiInput && <motion.div initial={{
-          height: 0,
-          opacity: 0
-        }} animate={{
-          height: "auto",
-          opacity: 1
-        }} exit={{
-          height: 0,
-          opacity: 0
-        }} className="px-5 pb-5 overflow-hidden">
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-5 shadow-2xl shadow-blue-200">
-                <h3 className="text-white font-bold text-sm mb-3 flex items-center gap-2">
-                  <Sparkles size={16} /> {t('menu.ai_recommend')}
-                </h3>
-                <form onSubmit={handleGetRecommendations} className="relative group">
-                  <input type="text" value={aiPreferences} onChange={e => setAiPreferences(e.target.value)} placeholder={t('common.search_placeholder') || "선호하는 맛이나 메뉴를 입력하세요..."} className="w-full h-14 pl-5 pr-14 rounded-2xl text-sm outline-none bg-white/10 text-white placeholder:text-white/50 border border-white/20 focus:bg-white focus:text-slate-900 focus:placeholder:text-slate-400 transition-all shadow-inner" />
-                  <div className="flex gap-2 mt-4 overflow-x-auto pb-2 scrollbar-hide">
-                    {moodTags.map(tag => <button key={tag.value} type="button" onClick={() => setMood(tag.value)} className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${mood === tag.value ? "bg-white text-blue-600 shadow-lg" : "bg-white/10 text-white border border-white/20"}`}>
-                        <span>{tag.icon}</span>
-                        {tag.label}
-                      </button>)}
-                  </div>
-                  <motion.button whileTap={{
-                scale: 0.9
-              }} type="submit" disabled={aiLoading} className="absolute right-1.5 top-1.5 bottom-1.5 w-11 bg-white text-blue-600 rounded-xl flex items-center justify-center disabled:opacity-50 shadow-lg group-focus-within:bg-blue-600 group-focus-within:text-white transition-colors">
-                    {aiLoading ? <div className="w-5 h-5 border-3 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" /> : <Search size={22} />}
-                  </motion.button>
-                </form>
-              </div>
-            </motion.div>}
-        </AnimatePresence>
-
-        {/* AI 추천 결과 캐러셀 */}
-        <AnimatePresence>
-          {aiRecommendations.length > 0 && <motion.div initial={{
-          x: 50,
-          opacity: 0
-        }} animate={{
-          x: 0,
-          opacity: 1
-        }} className="px-5 pb-5 overflow-x-auto scrollbar-hide">
-              <div className="flex gap-4 pb-2">
-                {aiRecommendations.map((rec, idx) => <motion.div key={rec.id} initial={{
-              scale: 0.9,
-              opacity: 0
-            }} animate={{
-              scale: 1,
-              opacity: 1
-            }} transition={{
-              delay: idx * 0.1
-            }} className="min-w-[300px] glass-panel p-4 flex gap-4 card-hover border-blue-100/50">
-                    <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 shadow-md">
-                      <img src={rec.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200&auto=format&fit=crop'} alt={rec.name} loading="lazy" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                      <div>
-                        <h4 className="font-bold text-base text-gray-900 truncate">{rec.name}</h4>
-                        <p className="text-[12px] text-blue-600 font-bold mt-1 line-clamp-2 leading-snug">✨ {rec.recommend_reason}</p>
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-sm font-black text-gray-900">{formatPrice(rec.price)}</span>
-                        <motion.button whileTap={{
-                    scale: 0.9
-                  }} onClick={() => addToCart(rec)} className="text-[11px] font-bold text-white bg-blue-600 px-3 py-1.5 rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-100">
-                          {t('menu.add_cart')}
-                        </motion.button>
-                      </div>
-                    </div>
-                  </motion.div>)}
-              </div>
-            </motion.div>}
-        </AnimatePresence>
-
-        {/* 카테고리 칩 - m.fooddream.kr 스타일 (이모지 + 가로 스크롤) */}
-        <div className="px-5 pb-4">
-          <div className="flex overflow-x-auto gap-3 scrollbar-hide pb-1">
-            <motion.button layout whileTap={{
-            scale: 0.95
-          }} onClick={() => setSelectedCategory(null)} className="relative px-5 py-3 rounded-2xl text-sm whitespace-nowrap font-bold transition-all border shadow-sm flex-shrink-0" style={selectedCategory === null ? {
-            background: gradientBg,
-            color: "white",
-            borderColor: "transparent"
-          } : {
-            backgroundColor: "white",
-            color: theme.textColor,
-            borderColor: theme.backgroundColor
-          }}>
-              {selectedCategory === null && <motion.div layoutId="activeCat" className="absolute inset-0 rounded-2xl bg-white/10" />}
-              <span className="relative z-10 flex items-center gap-1.5">
-                <span>📋</span> 전체
-              </span>
-            </motion.button>
-            {categories.map(c => {
-            const emoji = categoryEmojis[c.name] || "📂";
-            return <motion.button layout key={c.id} whileTap={{
-              scale: 0.95
-            }} onClick={() => setSelectedCategory(c.id)} className="relative px-5 py-3 rounded-2xl text-sm whitespace-nowrap font-bold transition-all border shadow-sm flex-shrink-0" style={selectedCategory === c.id ? {
-              backgroundColor: theme.primaryColor,
-              color: "white",
-              borderColor: "transparent"
-            } : {
-              backgroundColor: "white",
-              color: theme.secondaryColor,
-              borderColor: theme.backgroundColor
-            }}>
-                  {selectedCategory === c.id && <motion.div layoutId="activeCat" className="absolute inset-0 rounded-2xl bg-white/10" />}
-                  <span className="relative z-10 flex items-center gap-1.5">
-                    <span>{emoji}</span> {c.name}
-                  </span>
-                </motion.button>;
-          })}
-          </div>
-        </div>
       </motion.header>
-
+      {/* TDS MenuHeader with show/hide functionality */}
+      <MenuHeader
+        storeName={theme.logoText || store?.name || "WeMarket"}
+        tableNumber={table?.name}
+        onOrderHistoryClick={() => navigate(-1)}
+        onCallStaffClick={() => setShowCallSheet(true)}
+        showHeader={showHeader}
+        onToggleHeader={() => setShowHeader(!showHeader)}
+        aiPreferences={aiPreferences}
+        setAiPreferences={setAiPreferences}
+        mood={mood}
+        setMood={setMood}
+        aiRecommendations={aiRecommendations}
+        setAiRecommendations={setAiRecommendations}
+        aiLoading={aiLoading}
+        showAiInput={showAiInput}
+        setShowAiInput={setShowAiInput}
+        moodTags={moodTags}
+        handleGetRecommendations={handleGetRecommendations}
+        aiLoading={aiLoading}
+        t={t}
+        gradientBg={gradientBg}
+        theme={theme}
+        table={table}
+        store={store}
+        userPhone={userPhone}
+        navigate={navigate}
+        setShowCallSheet={setShowCallSheet}
+        setShowAiInput={setShowAiInput}
+        setShowReservation={setShowReservation}
+      />
        {/* 메인 배너 슬라이더 - m.fooddream.kr 스타일 */}
        <div className="px-5 pb-6">
          <div className="relative w-full aspect-[21/9] rounded-3xl overflow-hidden shadow-2xl shadow-slate-200/50">

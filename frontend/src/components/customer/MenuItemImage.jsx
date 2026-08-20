@@ -1,25 +1,22 @@
-import { useState } from 'react';
-import { Star } from 'lucide-react';
+import LazyImage from '../common/LazyImage';
 
-const MenuItemImage = ({ src, alt, isMagazine }) => {
-  const [failed, setFailed] = useState(false);
-  const phCls = isMagazine ? 'w-full h-full' : 'w-28 h-28 rounded-[1.5rem]';
-  
-  if (!src || failed) {
-    return (
-      <div className={`${phCls} bg-slate-50 flex items-center justify-center text-slate-300 shrink-0 border border-slate-100`}>
-        <Star size={32} />
-      </div>
-    );
-  }
-  
+/**
+ * MenuItemImage — TDS 이미지 컴포넌트 래퍼
+ * LazyImage와 호환되는 인터페이스로 통일
+ * @param {string} src 이미지 경로
+ * @param {string} alt 이미지 설명
+ * @param {boolean} isMagazine 매거진 모드 여부
+ * @param {string} className 추가 클래스
+  */
+const MenuItemImage = ({ src, alt, isMagazine, className = '' }) => {
   return (
-    <img
+    <LazyImage
       src={src}
       alt={alt}
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className={`${isMagazine ? 'w-full h-full' : 'w-28 h-28 rounded-[1.5rem] ring-4 ring-white'} object-cover shadow-lg group-hover:scale-105 transition-transform duration-700`}
+      ratio={isMagazine ? 'aspect-video' : 'aspect-square'}
+      className={isMagazine ? 'w-full h-full' : 'w-28 h-28 rounded-[1.5rem]'}
+      imgClassName={isMagazine ? 'w-full h-full' : 'rounded-[1.5rem] ring-4 ring-white'}
+      placeholderEmoji="🍽️"
     />
   );
 };

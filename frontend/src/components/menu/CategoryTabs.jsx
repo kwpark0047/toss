@@ -2,11 +2,11 @@ import { motion } from 'framer-motion';
 import { vibrateClick } from '../../utils/notificationSound';
 
 /**
- * CategoryTabs — TDS 카테고리 선택.
+ * CategoryTabs — TDS 카테고리 선택
  * - 카테고리 3개 이하: SegmentedControl (필 슬라이드) — 적은 고정 선택지에 적합
  * - 4개 이상: Tab (언더라인 + 가로 스크롤) — 가변/다수 카테고리에 적합
  * 헤더(h-14=56px) 바로 아래에 sticky 배치.
- * TDS 준수: 타이포그래피(tdds-text-bold/tds-text), 간격(tds-gap), 라운딩
+ * TDS 준수: 타입 스케일, 간격, 아이콘 시스템
  */
 const CategoryTabs = ({ categories, selectedCategory, onSelectCategory }) => {
   const useSegmented = categories.length <= 3;
