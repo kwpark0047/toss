@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ImageOff, Star } from 'lucide-react';
 import Icon from '../ui/Icon';
 
 /**
@@ -13,13 +12,40 @@ import Icon from '../ui/Icon';
  * @param {string} ratio 비율 (aspect-square, aspect-video 등)
  * @param {string} placeholderEmoji 플레이스홀더 이모지
   */
+const SkeletonPlaceholder = ({ placeholderEmoji: _placeholderEmoji }) => (
+  <motion.div 
+    exit={{ opacity: 0 }}
+    className="absolute inset-0 z-10 flex items-center justify-center bg-grey-100 skeleton"
+  >
+    <span className="text-2xl opacity-20 grayscale">🍽️</span>
+  </motion.div>
+);
+
+const ErrorPlaceholder = () => (
+  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-grey-50 text-grey-300">
+    <Icon icon="ImageOff" size="md" color="muted" />
+    <span className="tds-caption font-bold">이미지 없음</span>
+  </div>
+);
+
+const ImageComponent = ({ src, alt, isLoaded, imgClassName, onLoad, onError }) => (
+  <img
+    src={src}
+    alt={alt}
+    onLoad={onLoad}
+    onError={onError}
+    className={`w-full h-full object-cover transition-all duration-700 ${
+      isLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-110 blur-xl'
+    } ${imgClassName}`}
+  />
+);
+
 export default function LazyImage({ 
   src, 
   alt = '', 
   className = '', 
   imgClassName = '', 
   ratio = 'aspect-square',
-  placeholderEmoji = '🍽️'
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
@@ -45,37 +71,6 @@ export default function LazyImage({
   }, []);
 
   const containerClassName = `relative overflow-hidden bg-grey-50 border border-grey-100/50 ${ratio} ${className}`;
-  
-  // TDS 스켈레톤 플레이스홀더
-  const SkeletonPlaceholder = ({ placeholderEmoji }) => (
-    <motion.div 
-      exit={{ opacity: 0 }}
-      className="absolute inset-0 z-10 flex items-center justify-center bg-grey-100 skeleton"
-    >
-      <span className="text-2xl opacity-20 grayscale">{placeholderEmoji}</span>
-    </motion.div>
-  );
-
-  // TDS 에러 플레이스홀더
-  const ErrorPlaceholder = ({ placeholderEmoji }) => (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-grey-50 text-grey-300">
-      <Icon icon="ImageOff" size="md" color="muted" />
-      <span className="tds-caption font-bold">이미지 없음</span>
-    </div>
-  );
-
-  // TDS 이미지 컴포넌트
-  const ImageComponent = ({ isLoaded }) => (
-    <img
-      src={src}
-      alt={alt}
-      onLoad={() => setIsLoaded(true)}
-      onError={() => setError(true)}
-      className={`w-full h-full object-cover transition-all duration-700 ${
-        isLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-110 blur-xl'
-      } ${imgClassName}`}
-    />
-  );
 
   return (
     <div 
@@ -83,17 +78,24 @@ export default function LazyImage({
       className={containerClassName}
     >
       <AnimatePresence>
-        {!isLoaded && !error && !isInView && <SkeletonPlaceholder placeholderEmoji={placeholderEmoji} />}
+        {!isLoaded && !error && !isInView && <SkeletonPlaceholder />}
       </AnimatePresence>
 
       {isInView && !error && (
         <>
-          {!isLoaded && <SkeletonPlaceholder placeholderEmoji={placeholderEmoji} />}
-          <ImageComponent isLoaded={isLoaded} />
+          {!isLoaded && <SkeletonPlaceholder />}
+          <ImageComponent 
+            src={src} 
+            alt={alt} 
+            isLoaded={isLoaded} 
+            imgClassName={imgClassName}
+            onLoad={() => setIsLoaded(true)}
+            onError={() => setError(true)}
+          />
         </>
       )}
 
-      {error && <ErrorPlaceholder placeholderEmoji={placeholderEmoji} />}
+      {error && <ErrorPlaceholder />}
     </div>
   );
 }
