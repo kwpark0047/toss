@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 import {
     Building2, FileText, Shield, CreditCard,
     CheckCircle2, AlertTriangle, Save, RefreshCw, ChevronDown, ChevronUp
-} from 'lucide-react';
 import { legalAPI } from '../../api';
 import Icon from '../ui/Icon';
 
