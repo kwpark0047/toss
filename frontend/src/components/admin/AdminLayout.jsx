@@ -5,12 +5,6 @@ import { NotificationProvider } from '../../contexts/NotificationContext';
 import { AdminThemeProvider, useAdminTheme } from '../../contexts/AdminThemeContext';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Store, LogOut, LayoutDashboard, UtensilsCrossed,
-  Settings, Users, Receipt, Wallet, Palette,
-  Menu as MenuIcon, MessageSquare, LogIn, Smartphone, CalendarCheck, Clock, Sparkles, Package, Bell,
-  UserCircle, ChevronRight, ShoppingBag, Building2, Activity, Scale, Headset, Truck, ChefHat, Award, Megaphone, TrendingUp
-} from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import { TC } from './adminThemes';
 import ThemeSwitcher from './ThemeSwitcher';
@@ -65,7 +59,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
           <div className="tds-p-10">
             <Link to="/admin" className="tds-stack-h tds-gap-4 items-center group">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-500 to-rose-600 tds-stack items-center justify-center shadow-xl shadow-brand-500/20 group-hover:rotate-12 transition-transform">
-                <Icon icon="Store" />
+                <Icon icon="Store" size="md" />
               </div>
               <div>
                 <span className={`tds-text-bold text-xl tracking-tighter block leading-none mb-1 uppercase ${tc.logoText}`}>WeMarket</span>
@@ -105,21 +99,21 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
           <div className="tds-p-8">
             {user ? (
               <div className={`tds-p-5 rounded-[28px] ${tc.profile}`}>
-                {(!user.name || !user.email) && (
-                  <Link
-                    to="/admin/profile"
-                    className={`tds-stack-h tds-gap-2 mb-4 tds-p-3 tds-p-2.5 rounded-xl hover:opacity-80 transition-opacity group ${tc.banner}`}
-                  >
-                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0 ${tc.bannerDot}`} />
-                    <span className={`tds-small font-bold flex-1 leading-tight ${tc.bannerTxt}`}>
-                      {t('completeProfile')}
-                    </span>
-                    <Icon icon="ChevronRight" />
-                  </Link>
+{(!user.name || !user.email) && (
+                      <Link
+                        to="/admin/profile"
+                        className={`tds-stack-h tds-gap-2 mb-4 tds-p-3 tds-p-2.5 rounded-xl hover:opacity-80 transition-opacity group ${tc.banner}`}
+                      >
+                        <div className={`w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0 ${tc.bannerDot}`} />
+                        <span className={`tds-small font-bold flex-1 leading-tight ${tc.bannerTxt}`}>
+                          {t('completeProfile')}
+                        </span>
+                        <Icon icon="ChevronRight" size="md" />
+                      </Link>
                 )}
                 <div className="tds-stack-h tds-gap-4 items-center mb-4">
                   <div className={`w-12 h-12 rounded-2xl tds-stack items-center justify-center font-black shadow-lg ${tc.avatarBg} ${tc.textStrong}`}>
-                    {user.name ? user.name.charAt(0) : <Icon icon="UserCircle" />}
+                    {user.name ? user.name.charAt(0) : <Icon icon="UserCircle" size="md" />}
                   </div>
                   <div className="overflow-hidden flex-1">
                     <p className={`tds-text-bold text-sm truncate ${tc.textStrong}`}>{user.name || t('nameNotSet')}</p>
@@ -131,13 +125,13 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                     to="/admin/profile"
                     className={`flex-1 tds-stack-h tds-gap-1.5 items-center justify-center tds-p-2.5 rounded-xl tds-small font-bold transition-all active:scale-95 ${tc.btnBase}`}
                   >
-                    <Icon icon="UserCircle" /> {t('profile')}
+                    <Icon icon="UserCircle" size="md" /> {t('profile')}
                   </Link>
                   <button
                     onClick={handleLogout}
                     className={`flex-1 tds-stack-h tds-gap-1.5 items-center justify-center tds-p-2.5 rounded-xl tds-small font-bold transition-all active:scale-95 ${tc.btnDanger}`}
                   >
-                    <Icon icon="LogOut" /> {t('logout')}
+                    <Icon icon="LogOut" size="md" /> {t('logout')}
                   </button>
                 </div>
               </div>
@@ -146,7 +140,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                 to="/login"
                 className="w-full tds-stack-h tds-gap-3 items-center justify-center tds-p-4 rounded-2xl bg-white text-slate-950 text-sm font-black hover:shadow-xl hover:shadow-white/10 transition-all active:scale-95"
               >
-                <Icon icon="LogIn" /> {t('login')}
+                <Icon icon="LogIn" size="md" /> {t('login')}
               </Link>
             )}
           </div>
@@ -157,7 +151,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
           <header className={`h-14 lg:h-24 tds-stack-h items-center justify-between tds-p-4 lg:tds-p-10 sticky top-0 z-20 ${tc.header}`}>
             <Link to="/admin" aria-label={t('goToAdminMain')} className="tds-stack-h tds-gap-2.5 lg:hidden">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-500 to-rose-600 tds-stack items-center justify-center shadow-lg shadow-brand-500/30">
-                <Icon icon="Store" />
+<Icon icon="Store" size="md" />
               </div>
               <span className={`tds-text-bold text-sm tracking-tight ${tc.logoText}`}>{t('wemarketAdmin')}</span>
             </Link>
@@ -173,7 +167,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                 className={`tds-p-2 lg:tds-p-3 rounded-2xl transition-all relative group ${tc.statusBox} hover:scale-105 active:scale-95`}
                 aria-label={t('chatInquiry')}
               >
-                <Icon icon="Headset" />
+                <Icon icon="Headset" size="md" />
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-brand-500 rounded-full animate-ping" />
               </button>
               <ThemeSwitcher />
@@ -182,7 +176,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
               <div className={`hidden md:block h-8 w-px mx-1 ${tc.separator}`} />
               <div className={`hidden md:tds-stack-h items-center tds-gap-4 tds-p-5 tds-p-2.5 rounded-[20px] ${tc.statusBox}`}>
                 <div className={`w-9 h-9 rounded-xl tds-stack items-center justify-center text-white shadow-lg ${tc.statusIcon}`}>
-                  <Icon icon="Sparkles" />
+                  <Icon icon="Sparkles" size="md" />
                 </div>
                 <div className="hidden sm:block">
                   <p className={`tds-small font-black uppercase tracking-widest leading-none mb-1 ${tc.statusLabel}`}>{t('status')}</p>
@@ -236,7 +230,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                 className={`flex-1 tds-stack flex-col items-center justify-center tds-gap-0.5 transition-all ${tc.navText}`}
               >
                 <div className="w-9 h-9 rounded-[14px] tds-stack items-center justify-center">
-                  <Icon icon="Menu" />
+                  <Icon icon="Menu" size="md" />
                 </div>
                 <span className="tds-text-bold leading-none" style={{ fontSize: '13.5px' }}>{t('more')}</span>
               </button>
@@ -279,12 +273,12 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                       >
                         <div className={`w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0 ${tc.bannerDot}`} />
                         <span className={`tds-small font-bold flex-1 ${tc.bannerTxt}`}>{t('completeProfile')}</span>
-                        <Icon icon="ChevronRight" />
+<Icon icon="ChevronRight" size="md" />
                       </Link>
                     )}
                     <div className="tds-stack-h tds-gap-3 items-center mb-3">
                       <div className={`w-10 h-10 rounded-xl tds-stack items-center justify-center font-black flex-shrink-0 ${tc.avatarBg} ${tc.textStrong}`}>
-                        {user.name ? user.name.charAt(0) : <Icon icon="UserCircle" />}
+                        {user.name ? user.name.charAt(0) : <Icon icon="UserCircle" size="md" />}
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <p className={`tds-text-bold text-sm truncate ${tc.textStrong}`}>{user.name || t('nameNotSet')}</p>
@@ -294,11 +288,11 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                     <div className="tds-stack-h tds-gap-2">
                       <Link to="/admin/profile" onClick={() => setMoreOpen(false)}
                         className={`flex-1 tds-stack-h tds-gap-1.5 items-center justify-center tds-p-2.5 rounded-xl tds-small font-bold transition-all active:scale-95 ${tc.btnBase}`}>
-                        <Icon icon="UserCircle" /> {t('profile')}
+<Icon icon="UserCircle" size="md" /> {t('profile')}
                       </Link>
                       <button onClick={() => { setMoreOpen(false); handleLogout(); }}
                         className={`flex-1 tds-stack-h tds-gap-1.5 items-center justify-center tds-p-2.5 rounded-xl tds-small font-bold transition-all active:scale-95 ${tc.btnDanger}`}>
-                        <Icon icon="LogOut" /> {t('logout')}
+<Icon icon="LogOut" size="md" /> {t('logout')}
                       </button>
                     </div>
                   </div>
@@ -319,7 +313,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
                       >
                         <Icon icon={item.icon} size="sm" />
                         <span className="flex-1" style={{ fontSize: '24px' }}>{item.label}</span>
-                        {isActive && <Icon icon="ChevronRight" />}
+                        {isActive && <Icon icon="ChevronRight" size="md" />}
                       </Link>
                     );
                   })}
@@ -387,7 +381,7 @@ const AdminLayout = ({ children }) => {
           className="bg-slate-900/50 backdrop-blur-2xl tds-p-12 tds-stack tds-gap-4 text-center max-w-sm w-full mx-4 rounded-[40px] border border-white/10 shadow-2xl relative z-10"
         >
           <div className="w-24 h-24 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-brand-500 to-rose-600 tds-stack items-center justify-center shadow-2xl shadow-brand-500/20">
-            <Icon icon="Store" />
+            <Icon icon="Store" size="md" />
           </div>
           <h2 className="tds-text-bold text-3xl text-white mb-4 tracking-tight">{t('noAccess')}</h2>
           <p className="mb-10 text-slate-400 font-medium">{t('noAccessDesc')}<br />{t('loginAsAdmin')}</p>
