@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { analyticsAPI, ordersAPI } from '../../../api';
 import { formatPrice } from '../../../utils/format';
-import { TrendingUp, ShoppingBag, Clock, Sparkles } from 'lucide-react';
+import Icon from '../../../../ui/Icon';
 import {
   AreaChart,
   Area,
@@ -53,7 +53,7 @@ export const SalesTrendChart = ({ storeId }) => {
     <div>
       <div className="flex items-center justify-between mb-2 px-1">
         <h3 className="text-xs font-black text-white flex items-center gap-1.5">
-          <TrendingUp size={13} className="text-orange-400" /> 매출 추이
+          <Icon icon="TrendingUp" size="md" className="text-orange-400" /> 매출 추이
         </h3>
         <div className="flex bg-white/5 border border-white/10 rounded-lg p-0.5">
           {[
@@ -153,7 +153,7 @@ export const OrderStatusDonut = ({ stats }) => {
   return (
     <div>
       <h3 className="text-xs font-black text-white flex items-center gap-1.5 mb-2 px-1">
-        <ShoppingBag size={13} className="text-emerald-400" /> 주문 상태
+        <Icon icon="ShoppingBag" size="md" className="text-emerald-400" /> 주문 상태
       </h3>
       <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
         <ResponsiveContainer width="100%" height={140}>
@@ -226,7 +226,7 @@ export const PeakHoursBar = ({ storeId }) => {
   return (
     <div>
       <h3 className="text-xs font-black text-white flex items-center gap-1.5 mb-2 px-1">
-        <Clock size={13} className="text-violet-400" /> 피크타임 (최근 7일)
+        <Icon icon="Clock" size="md" className="text-violet-400" /> 피크타임 (최근 7일)
       </h3>
       <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
         <ResponsiveContainer width="100%" height={140}>
@@ -295,7 +295,7 @@ export const SalesForecastWidget = ({ storeId, refreshKey = 0 }) => {
   return (
     <div>
       <h3 className="text-xs font-black text-white flex items-center gap-1.5 mb-2 px-1">
-        <Sparkles size={13} className="text-indigo-400" /> AI 매출 예측
+        <Icon icon="Sparkles" size="md" className="text-indigo-400" /> AI 매출 예측
       </h3>
       <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
         <ResponsiveContainer width="100%" height={140}>
