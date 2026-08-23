@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { notificationTemplatesAPI } from '../../api/notifications';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Plus, Pencil, Trash2, X, ToggleLeft, ToggleRight, Save } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
@@ -245,7 +244,7 @@ const NotificationTemplatesManager = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <Bell className="text-orange-400" /> 알림 템플릿
+            <Icon icon="Bell" size="md" className="text-orange-400" /> 알림 템플릿
           </h1>
           <p className="text-slate-400 mt-1">매장 알림 메시지 템플릿을 관리합니다. 기본 템플릿은 자동으로 적용됩니다.</p>
         </div>
