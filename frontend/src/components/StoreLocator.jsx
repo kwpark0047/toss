@@ -10,6 +10,7 @@ import HighlightBanner from './HighlightBanner';
 import { onOrderUpdated, joinOrderRoom, joinCustomerOrders } from '../utils/socket';
 import { bizLabel } from '../utils/businessType';
 import { isDisplayableStoreName } from '../utils/storeName';
+import Icon from './ui/Icon';
 
 /**
  * StoreLocator — 랜딩 "매장 위치" 섹션.
@@ -209,7 +210,7 @@ export default function StoreLocator() {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
             {/* 지역 */}
             <div className="md:col-span-3 relative">
-              <MapPin size={18} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Icon icon="MapPin" />
               <input value={district} onChange={e => setDistrict(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()}
                 placeholder="지역 (예: 강남구)…" aria-label="지역" name="district" autoComplete="address-level2" spellCheck={false}
                 className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm font-medium outline-none focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-400/50" />
@@ -281,7 +282,7 @@ export default function StoreLocator() {
               {error === 'server_sleeping' ? (
                 <Server className="w-10 h-10 text-amber-400" />
               ) : (
-                <AlertTriangle className="w-10 h-10 text-red-400" />
+                <Icon icon="AlertTriangle" />
               )}
             </div>
             <p className="text-gray-700 font-bold mb-1">
@@ -329,7 +330,7 @@ export default function StoreLocator() {
                       {s.business_type && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{bizLabel(s.business_type)}</span>}
                       {s.distance_km != null && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 flex items-center gap-0.5"><Navigation size={12} aria-hidden="true" /><span className="tabular-nums">{s.distance_km}</span>km</span>}
                     </div>
-                    {s.address && <p className="text-sm text-gray-500 mt-0.5 truncate flex items-center gap-1"><MapPin size={14} className="text-gray-400 shrink-0" />{s.address}</p>}
+                    {s.address && <p className="text-sm text-gray-500 mt-0.5 truncate flex items-center gap-1"><Icon icon="MapPin" />{s.address}</p>}
                   </div>
                   <NaverShareButton
                     url={`${window.location.origin}/menu/${s.id}`}
@@ -391,7 +392,7 @@ export default function StoreLocator() {
                   </div>
                   {s.address && (
                     <p className="text-sm text-gray-500 mt-3 flex items-start gap-1.5">
-                      <MapPin size={14} className="mt-0.5 shrink-0 text-gray-400" /> <span className="line-clamp-1">{s.address}</span>
+                      <Icon icon="MapPin" /> <span className="line-clamp-1">{s.address}</span>
                     </p>
                   )}
                   <div className="flex items-center justify-end mt-3 text-orange-500 text-sm font-black gap-1 group-hover:gap-2 transition-all">

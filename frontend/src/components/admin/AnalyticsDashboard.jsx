@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
 import AdvancedInsights from './AdvancedInsights';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart as RePieChart, Pie, Legend, Line, ComposedChart } from 'recharts';
+import Icon from '../ui/Icon';
 
 /**
  * [정적 유틸리티] 차트용 단축 가격 포맷팅
@@ -220,13 +221,13 @@ const handleForecastDaysChange = async days => {
         {[{
         label: '누적 매출액',
         value: formatPrice(salesData?.summary?.total_sales || 0, true),
-        icon: DollarSign,
+        icon: 'DollarSign',
         color: 'from-orange-500 to-rose-600',
         shadow: 'shadow-orange-500/20'
       }, {
         label: '누적 주문수',
         value: `${salesData?.summary?.total_orders || 0}건`,
-        icon: ShoppingBag,
+        icon: 'ShoppingBag',
         color: 'from-blue-500 to-indigo-600',
         shadow: 'shadow-blue-500/20'
       }, {
@@ -239,7 +240,7 @@ const handleForecastDaysChange = async days => {
       }, {
         label: '객단가 (평균)',
         value: formatPrice(salesData?.summary?.avg_order_amount || 0, true),
-        icon: Zap,
+        icon: 'Zap',
         color: 'from-purple-500 to-fuchsia-600',
         shadow: 'shadow-purple-500/20'
       }].map((stat, idx) => <motion.div key={idx} variants={itemVariants} className="group relative bg-white/5 backdrop-blur-xl rounded-[32px] border border-white/5 p-8 overflow-hidden hover:border-white/10 transition-all">
@@ -328,7 +329,7 @@ const handleForecastDaysChange = async days => {
           {salesData?.summary?.best_day && <motion.div whileHover={{
           y: -5
         }} className="bg-gradient-to-br from-orange-500 to-rose-600 rounded-[40px] p-10 text-white shadow-2xl shadow-orange-500/20">
-              <Award className="mb-6 opacity-50" size={32} />
+              <Icon icon="Award" />
               <p className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em] mb-2">Record High Performance</p>
               <h3 className="text-2xl font-black mb-1">{salesData.summary.best_day.date}</h3>
               <p className="text-4xl font-black tracking-tight">{formatPrice(salesData.summary.best_day.sales, true)}</p>
@@ -467,7 +468,7 @@ const handleForecastDaysChange = async days => {
         <motion.div variants={itemVariants} className="bg-white/5 backdrop-blur-xl rounded-[40px] border border-white/5 p-10 shadow-2xl">
           <div className="flex items-center justify-between mb-10">
             <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-3">
-              <Award className="text-amber-400" size={22} /> TOP 10 실적 메뉴
+              <Icon icon="Award" /> TOP 10 실적 메뉴
             </h2>
             <div className="flex bg-white/5 border border-white/10 rounded-xl p-1">
               {['quantity', 'sales'].map(s => <button key={s} onClick={() => setProductSort(s)} className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${productSort === s ? 'bg-white text-slate-950 shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>
@@ -487,7 +488,7 @@ const handleForecastDaysChange = async days => {
                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{item.total_quantity} UNITS SOLD</p>
                   </div>
                 </div>) : <div className="py-20 text-center opacity-30">
-                <BarChart3 className="mx-auto mb-4" size={48} />
+                <Icon icon="BarChart3" />
                 <p className="text-xs font-black tracking-widest uppercase">No Product Data Available</p>
               </div>}
           </div>
@@ -496,7 +497,7 @@ const handleForecastDaysChange = async days => {
         {/* 직원 성과 */}
         <motion.div variants={itemVariants} className="bg-white/5 backdrop-blur-xl rounded-[40px] border border-white/5 p-10 shadow-2xl">
           <h2 className="text-xl font-black text-white tracking-tight mb-10 flex items-center gap-3">
-            <Users className="text-indigo-400" size={22} /> 직원 퍼포먼스 순위
+            <Icon icon="Users" /> 직원 퍼포먼스 순위
           </h2>
 
           <div className="space-y-4">
@@ -513,7 +514,7 @@ const handleForecastDaysChange = async days => {
                     <p className="text-[10px] font-black text-indigo-500/50 uppercase tracking-widest">{formatPrice(member.total_sales, true)}</p>
                   </div>
                 </div>) : <div className="py-20 text-center flex flex-col items-center">
-                <Users className="text-slate-800 mb-6" size={64} />
+                <Icon icon="Users" />
                 <h4 className="text-slate-600 font-black mb-1">성과 기록이 없습니다</h4>
                 <p className="text-slate-700 text-xs font-bold uppercase tracking-widest">Employee activity will appear here</p>
               </div>}

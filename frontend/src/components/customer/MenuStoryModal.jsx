@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { X, Heart, Quote, Share2 } from 'lucide-react';
 import { aiAPI } from '../../api';
 import { useTranslation } from 'react-i18next';
+import Icon from '../ui/Icon';
 
 const MenuStoryModal = ({ isOpen, onClose, product, storeName }) => {
     const { i18n } = useTranslation();
@@ -108,7 +109,7 @@ const MenuStoryModal = ({ isOpen, onClose, product, storeName }) => {
                                         <Heart size={20} />
                                     </button>
                                     <button className="p-3 bg-gray-50 text-gray-400 rounded-2xl hover:bg-gray-100 hover:text-blue-500 transition-colors">
-                                        <Share2 size={20} />
+                                        <Icon icon="Share2" />
                                     </button>
                                 </div>
                             </div>

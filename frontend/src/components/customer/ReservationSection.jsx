@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, ChevronRight, CheckCircle2, AlertCircle, Phone, Search, XCircle } from 'lucide-react';
 import { reservationsAPI } from '../../api';
+import Icon from '../ui/Icon';
 
 const ReservationSection = ({ storeId }) => {
     const [activeTab, setActiveTab] = useState('register'); // 'register' | 'track'
@@ -311,7 +312,7 @@ const ReservationSection = ({ storeId }) => {
                                                     })}
                                                 </div>
                                                 <div className="flex items-center gap-3 text-sm text-gray-700 font-medium">
-                                                    <Users size={16} className="text-orange-500" />
+                                                    <Icon icon="Users" />
                                                     {res.party_size}명
                                                 </div>
                                             </div>

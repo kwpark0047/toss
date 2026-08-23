@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { productsAPI, storesAPI, aiAPI, uploadsAPI, optionTemplatesAPI } from '../../api';
-import { FileText, Image, Tag, Package, X, Sparkles, AlertTriangle, Upload, Info, Check, Star, RefreshCw, Flame } from 'lucide-react';
+import { FileText, Image, Tag, Package, X, Sparkles, AlertTriangle, Upload, Info, Check, Star, RefreshCw, Flame, Leaf, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { handleApiError } from '../../utils/apiError';
@@ -9,6 +9,7 @@ import { ImagePreview } from './ImagePreview';
 import { formatFileSize } from '../../utils/fileUtils';
 import { SampleImagePicker } from './SampleImagePicker';
 import { VisualOptionEditor } from './VisualOptionEditor';
+import Icon from '../ui/Icon';
 
 export function ProductModal({ storeId, categories, product, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -340,7 +341,7 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
                           : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
                       }`}
                     >
-                      {imageInfo.isLarge ? <AlertTriangle size={14} className="shrink-0" /> : <Check size={14} className="shrink-0" />}
+                      {imageInfo.isLarge ? <Icon icon="AlertTriangle" /> : <Check size={14} className="shrink-0" />}
                       <span className="truncate text-slate-300">{imageInfo.name}</span>
                       <span className="text-slate-600 shrink-0">·</span>
                       <span className="shrink-0">{imageInfo.size}</span>

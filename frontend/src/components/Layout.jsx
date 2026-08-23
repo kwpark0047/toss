@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
-import { Users, LogOut, LogIn, UserPlus } from 'lucide-react';
+import Icon from '../ui/Icon';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -18,7 +18,7 @@ const Layout = ({ children }) => {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <Link to="/" className="flex items-center gap-2 text-xl font-bold text-blue-600">
-                <Users size={24} />
+                <Icon icon="Users" />
                 CRM System
               </Link>
             </div>
@@ -30,7 +30,7 @@ const Layout = ({ children }) => {
                     onClick={handleLogout}
                     className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-red-600"
                   >
-                    <LogOut size={18} />
+                    <Icon icon="LogOut" size="md" />
                     로그아웃
                   </button>
                 </>
@@ -40,14 +40,14 @@ const Layout = ({ children }) => {
                     to="/login"
                     className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-blue-600"
                   >
-                    <LogIn size={18} />
+                    <Icon icon="LogIn" size="md" />
                     로그인
                   </Link>
                   <Link
                     to="/register"
                     className="flex items-center gap-1 px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
                   >
-                    <UserPlus size={18} />
+                    <Icon icon="UserPlus" size="md" />
                     회원가입
                   </Link>
                 </>

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
+import Icon from '../ui/Icon';
 
 // 관리자 다크 테마 톤에 맞춘 게시판 타입 메타
 const BOARD_TYPES = [

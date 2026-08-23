@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { planRequestsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { Crown, CheckCircle, XCircle, Clock, Store, User, MessageSquare, Filter } from 'lucide-react';
+import Icon from '../components/ui/Icon';
 
 // super_admin용 플랜 신청 관리 페이지
 const PlanRequestsManage = () => {
@@ -84,7 +85,7 @@ const PlanRequestsManage = () => {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
-                    <Crown className="mx-auto mb-4 text-gray-300" size={48} />
+                    <Icon icon="Crown" />
                     <p className="text-gray-500">전체 관리자만 접근할 수 있습니다</p>
                 </div>
             </div>
@@ -95,7 +96,7 @@ const PlanRequestsManage = () => {
         <div className="max-w-5xl mx-auto p-6">
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
-                    <Crown className="text-purple-500" size={32} />
+                    <Icon icon="Crown" />
                     <h1 className="text-2xl font-bold text-slate-900">플랜 업그레이드 신청 관리</h1>
                 </div>
 

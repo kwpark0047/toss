@@ -55,12 +55,12 @@ const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disable
         <div className="absolute top-0.5 left-0.5 flex flex-col gap-0.5 z-20">
           {showBadge && isPopular && (
             <div className="bg-orange-500 text-white p-0.5 rounded-lg shadow">
-              <Icon icon="Flame" size="sm" color="inverse" />
+              <Icon icon="Flame" />
             </div>
           )}
           {showBadge && isNew && (
             <div className="bg-blue-500 text-white p-0.5 rounded-lg shadow">
-              <Icon icon="Sparkles" size="sm" color="inverse" />
+              <Icon icon="Sparkles" />
             </div>
           )}
         </div>
@@ -83,7 +83,7 @@ const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disable
       {/* Trailing — 담기 */}
       <div className="flex-shrink-0 self-center">
         <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-          <Icon icon="Plus" size="md" stroke="md" color="primary" />
+          <Icon icon="Plus" />
         </div>
       </div>
     </motion.div>

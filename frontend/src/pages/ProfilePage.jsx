@@ -18,6 +18,7 @@ import {
   Save,
   RefreshCw,
 } from 'lucide-react';
+import Icon from '../components/ui/Icon';
 
 /* ──────────────────────────────────────────────
    유틸

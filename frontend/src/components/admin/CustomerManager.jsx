@@ -6,6 +6,7 @@ import { formatPrice } from '../../utils/format';
 import api from '../../api/index.js';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
+import Icon from '../ui/Icon';
 
 // ── 등급 메타 ─────────────────────────────────────────────────────
 const TIER_META = {
@@ -69,7 +70,7 @@ function StatsBar({ stats, loading }) {
   const cards = [
     { label: '총 단골 고객',   value: `${stats.total_customers.toLocaleString()}명`, icon: Users,       color: 'text-sky-500',    bg: 'bg-sky-50' },
     { label: '이번 달 신규',   value: `+${stats.new_this_month}명`,                  icon: UserCheck,   color: 'text-green-500',  bg: 'bg-green-50' },
-    { label: '평균 방문 횟수', value: `${stats.avg_visit_count}회`,                  icon: TrendingUp,  color: 'text-purple-500', bg: 'bg-purple-50' },
+    { label: '평균 방문 횟수', value: `${stats.avg_visit_count}회`,                  icon: 'TrendingUp',  color: 'text-purple-500', bg: 'bg-purple-50' },
     { label: '평균 객단가',    value: formatPrice(stats.avg_spent),                  icon: Wallet,      color: 'text-amber-500',  bg: 'bg-amber-50' },
     { label: 'VIP 고객',       value: `${vipCount + goldCount}명`,                   icon: Crown,       color: 'text-rose-500',   bg: 'bg-rose-50' },
     { label: '이탈 위험 (30일)', value: `${stats.churned_30d}명`,                    icon: AlertTriangle, color: 'text-orange-500', bg: 'bg-orange-50' },
@@ -102,7 +103,7 @@ function TierProgress({ totalSpent, tiers, currentTier }) {
   if (!next) {
     return (
       <div className="flex items-center gap-2 text-xs text-purple-600">
-        <Crown size={12} /> 최고 등급 달성!
+        <Icon icon="Crown" /> 최고 등급 달성!
       </div>
     );
   }
@@ -321,7 +322,7 @@ function CustomerDrawer({ customer, storeId, onClose }) {
                   {/* 포인트 요약 */}
                   <div className="bg-gradient-to-r from-sky-50 to-blue-50 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <Wallet size={16} className="text-sky-600" />
+                      <Icon icon="Wallet" />
                       <span className="font-semibold text-sky-800">포인트 현황</span>
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-center">
@@ -343,7 +344,7 @@ function CustomerDrawer({ customer, storeId, onClose }) {
                   {/* 등급 진행 */}
                   <div className="bg-white rounded-xl border border-gray-100 p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Crown size={16} className="text-amber-500" />
+                      <Icon icon="Crown" />
                       <span className="font-semibold text-gray-700">등급 현황</span>
                     </div>
                     <TierProgress
@@ -589,7 +590,7 @@ const fetchCustomers = useCallback(async () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-black text-white flex items-center gap-2">
-            <Users size={22} className="text-sky-400" /> 단골고객 관리
+            <Icon icon="Users" /> 단골고객 관리
           </h1>
           <p className="text-sm text-slate-400">방문 이력·포인트·VIP 등급을 한눈에 관리하세요</p>
         </div>
@@ -670,7 +671,7 @@ const fetchCustomers = useCallback(async () => {
       ) : customers.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200">
           <EmptyState
-            icon={<Users size={40} className="text-gray-300" aria-hidden="true" />}
+            icon={<Icon icon="Users" />}
             title={searchTerm ? '검색 결과가 없습니다' : '아직 등록된 단골고객이 없습니다'}
             description={searchTerm ? '다른 검색어로 시도해 보세요.' : '고객이 포인트를 적립하면 여기에 표시됩니다.'}
           />

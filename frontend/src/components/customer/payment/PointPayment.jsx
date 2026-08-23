@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Star, ArrowLeft, Minus, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatPrice } from '../../../utils/format';
+import Icon from '../../ui/Icon';
 
 export default function PointPayment({
   totalAmount,
@@ -54,7 +55,7 @@ export default function PointPayment({
       <div className="p-4 bg-yellow-50 rounded-xl">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Star className="w-5 h-5 text-yellow-500" />
+            <Icon icon="Star" />
             <span className="font-medium">{t('payment.holding_points')}</span>
           </div>
           <span className="text-xl font-bold text-yellow-600">

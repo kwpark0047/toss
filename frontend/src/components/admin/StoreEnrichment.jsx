@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { adminAPI } from '../../api/admin';
 import { useAuth } from '../../contexts/AuthContext';
 import { MapPinned, Play, Square, Loader2, AlertCircle } from 'lucide-react';
+import Icon from '../ui/Icon';
 
 /**
  * StoreEnrichment — 네이버 지역검색 API로 매장 좌표·전화·업종을 보강하는
@@ -149,7 +150,7 @@ export default function StoreEnrichment() {
     <div className="max-w-3xl mx-auto pb-20 text-white">
       <header className="flex items-center gap-4 pt-2 pb-6 border-b border-white/10">
         <div className="w-12 h-12 rounded-2xl bg-orange-500/15 flex items-center justify-center">
-          <MapPinned size={22} className="text-orange-400" aria-hidden="true" />
+          <Icon icon="MapPin" />
         </div>
         <div>
           <h1 className="text-2xl font-black">매장 정보 보강</h1>
@@ -192,7 +193,7 @@ export default function StoreEnrichment() {
             </button>
             <button type="button" onClick={runGeocode} disabled={!geocodeConfigured}
               className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-black hover:bg-emerald-500/25 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-500/15">
-              <MapPinned size={18} aria-hidden="true" /> 주소→좌표 지오코딩
+              <Icon icon="MapPin" /> 주소→좌표 지오코딩
             </button>
           </>
         ) : (

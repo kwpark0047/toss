@@ -12,6 +12,7 @@ import { useParams, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, FileText, Shield, RefreshCw } from 'lucide-react';
 import { legalAPI } from '@/api';
+import Icon from '../components/ui/Icon';
 
 const TYPES = {
     terms:   { label: '이용약관',          icon: FileText, fetch: legalAPI.getTerms },

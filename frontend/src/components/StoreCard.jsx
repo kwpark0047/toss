@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router';
 import { Store, Coffee, Utensils, Cake, Pizza, ShoppingBag, MapPin, Star, BellRing, Heart, Navigation, MessageCircle } from 'lucide-react';
 import { bizLabel } from '../utils/businessType';
+import Icon from './ui/Icon';
 
 const TYPE_ICONS = {
   cafe: Coffee,
@@ -97,7 +98,7 @@ export default function StoreCard({
                     <span className="px-3 py-1 bg-white/5 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest">{bizLabel(store.business_type)}</span>
                   </div>
                   <p className="text-slate-400 font-medium flex items-center gap-2 mb-2 leading-relaxed">
-                    <MapPin className="w-4 h-4 text-orange-500" />
+                    <Icon icon="MapPin" />
                     {store.address || '주소 정보가 없습니다'}
                   </p>
                   {/* 영업시간 표시 */}
@@ -114,7 +115,7 @@ export default function StoreCard({
 
               <div className="flex flex-col items-end gap-2 flex-shrink-0">
                 <div className="flex items-center gap-2 bg-amber-500/10 px-4 py-2 rounded-2xl border border-amber-500/20">
-                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  <Icon icon="Star" />
                   <span className="font-black text-white text-base">{rating}</span>
                 </div>
                 <span className="text-xs font-bold text-slate-500">리뷰 {reviewCount}건</span>
@@ -206,7 +207,7 @@ export default function StoreCard({
           <div className="flex items-start justify-between gap-4 mb-3">
             <h3 className="font-black text-xl text-white group-hover:text-orange-400 transition-colors truncate leading-tight">{store.name}</h3>
             <div className="flex items-center gap-2 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20 flex-shrink-0">
-              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+              <Icon icon="Star" />
               <span className="font-black text-white text-xs">{rating}</span>
             </div>
           </div>

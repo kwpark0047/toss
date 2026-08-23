@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Star, ChevronDown, Filter, ArrowUpDown } from 'lucide-react';
 import { usePoints } from '@/hooks/usePoints';
+import Icon from '../components/ui/Icon';
 
 export default function PointsHistoryPage() {
   const { t } = useTranslation();
@@ -104,7 +105,7 @@ export default function PointsHistoryPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center">
-                <Star className="w-6 h-6 text-white" />
+                <Icon icon="Star" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">{t('points.current_balance')}</p>
@@ -141,7 +142,7 @@ export default function PointsHistoryPage() {
 
         {history.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center">
-            <Star className="mx-auto mb-4 text-gray-300" size={48} />
+            <Icon icon="Star" />
             <p className="text-gray-500 text-lg">{filter === 'all' ? t('points.no_history') : t('points.no_history_filter')}</p>
             <p className="text-gray-400 text-sm mt-1">{t('points.history_empty_hint')}</p>
           </div>

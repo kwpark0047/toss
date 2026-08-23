@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { bulkSmsAPI } from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Smartphone, Filter, Send, Users, Store, MapPin, Zap, MessageSquare, AlertCircle, CheckCircle, RefreshCcw } from 'lucide-react';
+import Icon from '../ui/Icon';
 
 const BulkSMSManager = () => {
     const [options, setOptions] = useState({ stores: [], regions: [], businessTypes: [] });
@@ -107,7 +108,7 @@ const BulkSMSManager = () => {
                     </div>
                     <div className="w-px h-8 bg-slate-100 mx-2"></div>
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                        <Users size={24} />
+                        <Icon icon="Users" />
                     </div>
                 </div>
             </div>
@@ -139,7 +140,7 @@ const BulkSMSManager = () => {
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
-                                    <MapPin size={12} /> Region Group
+                                    <Icon icon="MapPin" /> Region Group
                                 </label>
                                 <select aria-label="지역 필터"
                                     name="region"
@@ -172,7 +173,7 @@ const BulkSMSManager = () => {
                     <section className="glass-panel overflow-hidden border-white/60 shadow-xl min-h-[400px]">
                         <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-white/50">
                             <h2 className="text-lg font-black flex items-center gap-3">
-                                <Users className="text-blue-500" size={24} />
+                                <Icon icon="Users" />
                                 Target List Preview
                                 <span className="text-xs font-bold text-slate-400 px-2 py-0.5 bg-slate-100 rounded-full ml-2">Show 100 max</span>
                             </h2>
@@ -193,7 +194,7 @@ const BulkSMSManager = () => {
                             ) : customers.length === 0 ? (
                                 <div className="p-20 text-center space-y-4">
                                     <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto text-slate-200">
-                                        <Users size={32} />
+                                        <Icon icon="Users" />
                                     </div>
                                     <p className="text-slate-400 font-bold">대상 고객이 없습니다. 필터를 변경해 보세요.</p>
                                 </div>

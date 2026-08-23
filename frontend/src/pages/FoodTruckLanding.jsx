@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } fro
 import { Link, useNavigate } from 'react-router';
 import { MapPin, Search, Navigation, Truck, ArrowRight, Clock, Sparkles, AlertCircle, ShoppingBag, ShieldAlert, Home, CreditCard, BookOpen, Mail, Smartphone, Signal, Fuel, AlertTriangle, Zap } from 'lucide-react';
 import api from '@/api/client';
+import Icon from '../components/ui/Icon';
 
 /* ─── Lazy-load foodtruck-specific marketing pages ─── */
 const FeaturesPage = lazy(() => import('./foodtruck/FoodTruckFeatures'));
@@ -380,7 +381,7 @@ export default function FoodTruckLanding() {
             title: '하트비트',
             desc: '네트워크 끊김 자동 대응'
           }, {
-            icon: Zap,
+            icon: 'Zap',
             title: '스마트 거점',
             desc: 'AI 최적 영업 위치 추천'
           }, {
@@ -497,7 +498,7 @@ export default function FoodTruckLanding() {
                         </span>}
                     </div>
                     <div className="flex items-center gap-1 text-xs text-slate-500">
-                      <MapPin size={13} className="text-slate-400 shrink-0" />
+                      <Icon icon="MapPin" />
                       <span className="truncate font-semibold">{truck.geocoded_address || '주소 정보 없음'}</span>
                     </div>
                     <div className="flex items-center gap-4 text-xs font-bold pt-1">

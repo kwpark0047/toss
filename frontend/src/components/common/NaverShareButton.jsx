@@ -1,4 +1,5 @@
 import { Share2 } from 'lucide-react';
+import Icon from '../ui/Icon';
 
 /**
  * 네이버 공유 API 버튼.
@@ -38,7 +39,7 @@ export default function NaverShareButton({ url, title, size = 'md', className = 
       className={`inline-flex items-center justify-center rounded-lg bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 transition-colors ${sizeClass} ${className}`}
     >
       <span className="font-bold mr-0.5" style={{ fontFamily: 'sans-serif' }}>N</span>
-      <Share2 size={size === 'sm' ? 10 : 12} />
+      <Icon icon="Share2" />
     </button>
   );
 }

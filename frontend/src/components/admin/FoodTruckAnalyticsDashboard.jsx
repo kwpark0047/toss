@@ -14,6 +14,7 @@ import {
     Map
 } from 'lucide-react';
 import api from '@/api/client';
+import Icon from '../ui/Icon';
 
 // 가상 데이터 세팅 (서버 통신 실패 또는 데모 환경용 완벽 세팅)
 const fallbackData = {
@@ -279,7 +280,7 @@ export default function FoodTruckAnalyticsDashboard() {
                     {/* 3. 실제 영업 거점별 매출 배분 */}
                     <div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-lg">
                         <h2 className="text-xs font-mono uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-4">
-                            <MapPin className="h-3.5 w-3.5 text-orange-500" />
+                            <Icon icon="MapPin" />
                             영업 거점별 매출 기여도
                         </h2>
 

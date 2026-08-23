@@ -13,6 +13,7 @@ import { useBrandPay } from '../../../hooks/useBrandPay';
 import PointPayment from './PointPayment';
 import TransferPayment from './TransferPayment';
 import { formatPrice } from '../../../utils/format';
+import Icon from '../../ui/Icon';
 
 // ── 결제수단 정의 ────────────────────────────────────────────────────────────
 // id: 백엔드 payment_method 값
@@ -40,7 +41,7 @@ const ALL_PAYMENT_METHODS = [
         id: 'transfer',
         label: '계좌이체',
         desc: '매장 계좌로 송금 후 직원 확인',
-        icon: Building2,
+        icon: 'Building2',
         color: '#10B981',
         status: 'active'
     },
@@ -264,7 +265,7 @@ export default function PaymentSheet({
                             {points?.total_points > 0 && (
                                 <div className="px-3 py-2 bg-amber-50 rounded-xl flex items-center justify-between border border-amber-100">
                                     <span className="text-xs text-amber-700 flex items-center gap-1.5">
-                                        <Star className="w-3.5 h-3.5" /> 보유 포인트
+                                        <Icon icon="Star" /> 보유 포인트
                                     </span>
                                     <span className="text-sm font-black text-amber-600">{points.total_points.toLocaleString()}P</span>
                                 </div>

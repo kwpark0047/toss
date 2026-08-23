@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { MapPin, Navigation, ZoomIn, ZoomOut } from 'lucide-react';
 import { bizLabel } from '../utils/businessType';
+import Icon from './ui/Icon';
 
 const KakaoMap = ({ stores, onStoreSelect, selectedStore }) => {
   const mapRef = useRef(null);
@@ -184,7 +185,7 @@ const KakaoMap = ({ stores, onStoreSelect, selectedStore }) => {
       <div className="h-full bg-slate-100 rounded-[2.5rem] flex items-center justify-center p-8 border-2 border-dashed border-slate-200">
         <div className="text-center max-w-sm">
           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-6">
-            <MapPin className="w-8 h-8 text-slate-300" />
+            <Icon icon="MapPin" />
           </div>
           <p className="text-slate-900 font-black mb-2">지도를 불러올 수 없습니다</p>
           <p className="text-slate-400 text-sm font-medium mb-6 leading-relaxed">{error}</p>

@@ -12,6 +12,7 @@ import StoreCard from './StoreCard';
 import StoreMapSection from './StoreMapSection';
 import StoreSearchSkeleton from './StoreSearchSkeleton';
 import { Store, Search, X, MessageCircle, AlertTriangle, RefreshCw, Server } from 'lucide-react';
+import Icon from './ui/Icon';
 
 /** 지역 ID → 백엔드 district 문자열 매핑 */
 function regionToDistrict(regionId) {
@@ -317,7 +318,7 @@ const StoreSearch = () => {
                 {error === 'server_sleeping' ? (
                   <Server className="w-16 h-16 text-amber-600/40 relative z-10" />
                 ) : (
-                  <AlertTriangle className="w-16 h-16 text-red-600/40 relative z-10" />
+                  <Icon icon="AlertTriangle" />
                 )}
               </div>
 

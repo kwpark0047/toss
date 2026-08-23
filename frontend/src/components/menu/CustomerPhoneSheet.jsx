@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { customersAPI, pointsAPI } from '@/api';
 import { getSocket } from '@/api';
 import { requestNotificationPermission } from '@/firebase';
+import Icon from '../ui/Icon';
 
 const formatPhone = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -361,7 +362,7 @@ export default function CustomerPhoneSheet({
             >
               <div className="text-center mb-6">
                 <div className="w-14 h-14 mx-auto bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-200 mb-4">
-                  <Star className="w-7 h-7 text-white fill-white" />
+                  <Icon icon="Star" />
                 </div>
                 <h2 className="tds-title text-grey-900">{t('points.thanks')}</h2>
                 <p className="text-sm text-grey-500 mt-1">{t('points.register_subtitle')}</p>
@@ -383,7 +384,7 @@ export default function CustomerPhoneSheet({
                 {[
                   { icon: Bell, text: t('points.real_time_notification') },
                   { icon: Star, text: t('points.points_earn', { rate: estimatedPoints > 0 ? Math.round((estimatedPoints / totalAmount) * 100) : 1 }) },
-                  { icon: Gift, text: t('points.first_visit_coupon') },
+                  { icon: 'Gift', text: t('points.first_visit_coupon') },
                 ].map(({ icon: _Icon, text }) => (
                   <div key={text} className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
@@ -444,7 +445,7 @@ export default function CustomerPhoneSheet({
                 disabled={phone.replace(/\D/g, '').length < 10}
                 className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-black text-base shadow-lg shadow-orange-200 disabled:opacity-40 disabled:shadow-none flex items-center justify-center gap-2 transition-all active:scale-95"
               >
-                <Star className="w-5 h-5 fill-white" />
+                <Icon icon="Star" />
                 {t('points.get_points')}
                 <ChevronRight className="w-5 h-5" />
               </button>

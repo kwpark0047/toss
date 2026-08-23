@@ -22,6 +22,7 @@ import { inventoryAPI } from '../../api';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { toast } from 'react-toastify';
+import Icon from '../ui/Icon';
 
 // 페이지네이션 컴포넌트
 function Pagination({ current, total, onChange }) {
@@ -668,7 +669,7 @@ export default function InventoryManager() {
       {/* 저재고/품절 경고 배너 */}
       {(summary.out_of_stock > 0 || summary.low_stock > 0) && (
         <div className="flex items-center gap-3 px-5 py-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl">
-          <AlertTriangle size={18} className="text-amber-400 flex-shrink-0" />
+          <Icon icon="AlertTriangle" />
           <p className="text-sm text-amber-300 font-bold">
             {summary.out_of_stock > 0 && (
               <span className="text-red-400">{summary.out_of_stock}개 품절</span>

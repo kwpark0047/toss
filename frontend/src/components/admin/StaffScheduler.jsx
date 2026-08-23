@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { staffAPI } from '../../api/staff';
 import { ChevronLeft, ChevronRight, Plus, X, Trash2, Clock, Users } from 'lucide-react';
+import Icon from '../ui/Icon';
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -342,7 +343,7 @@ const StaffScheduler = () => {
         {/* 직원별 행 */}
         {staffList.length === 0 ? (
           <div className="p-12 text-center text-slate-400">
-            <Users className="mx-auto mb-3 text-slate-300" size={32} />
+            <Icon icon="Users" />
             <p className="font-medium">등록된 직원이 없습니다.</p>
             <p className="text-xs mt-1">먼저 직원을 추가해주세요.</p>
           </div>

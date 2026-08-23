@@ -12,6 +12,7 @@ import VisualTableMap from './VisualTableMap';
 import { getSocket } from '../../utils/socket';
 import { buildMenuUrl, buildQrUrl } from '../../utils/site';
 import { handleApiError } from '../../utils/apiError';
+import Icon from '../ui/Icon';
 
 /* ─────────────────────────── 카드 디자인 테마 ─────────────────────────── */
 const DESIGNS = [
@@ -719,7 +720,7 @@ const TableManager = () => {
             className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-5">
             {tables.length === 0 ? (
               <div className="col-span-full py-40 text-center bg-white/5 rounded-[3rem] border border-dashed border-white/10">
-                <Users size={44} className="text-slate-700 mx-auto mb-4" />
+                <Icon icon="Users" />
                 <p className="text-slate-500 font-bold text-sm mb-2">등록된 테이블이 없습니다</p>
                 <p className="text-slate-600 text-xs">테이블을 추가하면 QR코드가 자동 생성됩니다.</p>
               </div>
@@ -731,7 +732,7 @@ const TableManager = () => {
                   <div className="min-w-0">
                     <h3 className="text-base lg:text-xl font-black text-white tracking-tight mb-1 truncate">{getSeatDisplayName(table.table_number || table.name)}</h3>
                     <div className="flex items-center gap-1 text-slate-500">
-                      <Users size={10} />
+                      <Icon icon="Users" />
                       <span className="font-bold text-[10px]">{table.capacity > 0 ? `${table.capacity}인석` : '매장 공통 QR'}</span>
                     </div>
                   </div>
@@ -1019,7 +1020,7 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
             {/* 디자인 선택 */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Palette size={14} className="text-orange-400" />
+                <Icon icon="Palette" />
                 <p className="text-xs font-black text-slate-400 tracking-widest uppercase">카드 디자인</p>
               </div>
               <div className="grid grid-cols-3 gap-3">
@@ -1111,7 +1112,7 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
                   className={`py-3.5 border rounded-2xl font-black text-[11px] flex items-center justify-center gap-1.5 transition-all ${
                     copied ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
                   }`}>
-                  {copied ? <Check size={14} /> : <Share2 size={14} />}
+                  {copied ? <Check size={14} /> : <Icon icon="Share2" />}
                   {copied ? '복사됨!' : 'URL 복사'}
                 </motion.button>
 

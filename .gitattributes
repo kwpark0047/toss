@@ -1,0 +1,6 @@
+# 줄바꿈 정규화 — 저장소는 LF 단일 정책(CRLF 재유입 방지)
+* text=auto eol=lf
+
+# Windows 배치 스크립트만 CRLF 유지
+*.bat text eol=crlf
+*.cmd text eol=crlf

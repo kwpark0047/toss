@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Upload, Coins, Ticket, Loader2, X, Check, AlertTriangle, FileText } from 'lucide-react';
 import { adminAPI } from '../../api/admin';
 import GrantTemplateManager from './GrantTemplateManager';
+import Icon from '../ui/Icon';
 
 export default function BatchIssueModal({ storeId, storeName, onClose }) {
   const [tab, setTab] = useState('points'); // points | coupons
@@ -154,7 +155,7 @@ export default function BatchIssueModal({ storeId, storeName, onClose }) {
           {result && (
             <div className={`rounded-xl p-3 text-xs font-bold ${result.success ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}>
               <div className="flex items-center gap-2 mb-1">
-                {result.success ? <Check size={14} /> : <AlertTriangle size={14} />}
+                {result.success ? <Check size={14} /> : <Icon icon="AlertTriangle" />}
                 {result.success ? `완료: ${result.data?.success || 0}명 성공${result.data?.failed ? `, ${result.data.failed}명 실패` : ''}` : result.error}
               </div>
               {result.success && result.data?.batchId && <p className="text-[10px] text-slate-400">배치 ID: {result.data.batchId}</p>}

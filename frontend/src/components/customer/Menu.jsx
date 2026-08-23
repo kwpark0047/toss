@@ -6,6 +6,7 @@ import { ShoppingCart, Plus, Minus, X, CreditCard, Banknote, Building2, Clock, C
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../common/LanguageSwitcher";
+import MenuHeader from "../menu/MenuHeader";
 import { aiAPI } from "../../api";
 import PaymentSheet from "./payment/PaymentSheet";
 import TogetherPaymentSheet from "./payment/TogetherPaymentSheet"; // 분할 결제 시트
@@ -22,6 +23,7 @@ import { useOfflineSync } from "../../hooks/useOfflineSync";
 import MenuSkeleton from "./MenuSkeleton";
 import MenuProductList from "./MenuProductList";
 import OrderProgressBar from "./OrderProgressBar";
+import Icon from '../ui/Icon';
 const defaultTheme = {
   primaryColor: "#f97316",
   secondaryColor: "#1e3a5f",
@@ -44,7 +46,7 @@ const paymentMethods = [{
 }, {
   id: "transfer",
   label: "계좌이체",
-  icon: Building2,
+  icon: 'Building2',
   desc: "실시간 이체"
 }];
 const Menu = ({
@@ -816,13 +818,13 @@ const Menu = ({
             <p className="font-medium" style={{
             color: theme.textColor
           }}>{store?.name}</p>
-            {store?.address && <p className="flex items-center justify-center gap-1 mt-1"><MapPin size={14} /> {store.address}</p>}
+            {store?.address && <p className="flex items-center justify-center gap-1 mt-1"><Icon icon="MapPin" /> {store.address}</p>}
             {store?.phone && <p className="flex items-center justify-center gap-1 mt-1"><Phone size={14} /> {store.phone}</p>}
           </div>
 
           <div className="space-y-3">
             <button onClick={() => setShowReviewModal(true)} className="w-full py-4 bg-orange-500/10 text-orange-600 rounded-2xl font-black border border-orange-500/20 active:bg-orange-500 active:text-white transition-colors flex items-center justify-center gap-2">
-              <Star size={18} fill="currentColor" />
+              <Icon icon="Star" />
               {t('review.write_review') || '리뷰 작성하고 혜택 받기'}
             </button>
             <button onClick={() => setOrderSuccess(null)} className="w-full py-4 text-white rounded-2xl font-medium shadow-lg" style={{
@@ -936,7 +938,7 @@ const Menu = ({
         }} className="min-w-[140px] bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden">
                  <div className="aspect-square relative">
                    {p.image_url ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-slate-50">
-                       <Star size={24} className="text-slate-300" />
+                       <Icon icon="Star" />
                      </div>}
                    <span className="absolute top-2 left-2 bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded">BEST</span>
                  </div>
@@ -1109,7 +1111,7 @@ const Menu = ({
                     <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="flex items-center gap-5 relative z-10">
                       <div className={`w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center ${kioskMode ? 'w-14 h-14' : ''}`}>
-                        <Users size={kioskMode ? 28 : 24} />
+                        <Icon icon="Users" />
                       </div>
                       <div className="text-left">
                         <p className={`font-black ${kioskMode ? 'text-xl' : 'text-lg'}`}>함께 결제하기 (N분의 1)</p>

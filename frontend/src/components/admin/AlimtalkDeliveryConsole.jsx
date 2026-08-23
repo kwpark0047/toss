@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router';
 import { MessageSquare, CheckCircle2, RefreshCw, DollarSign, BarChart3, Search } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import api from '../../api/client';
+import Icon from '../ui/Icon';
 export default function AlimtalkDeliveryConsole() {
   const {
     storeId
@@ -158,7 +159,7 @@ const summary = useMemo(() => data.summary || {
       <div className="p-6 rounded-3xl bg-slate-900 border border-slate-850 space-y-4 shadow-2xl">
         <div className="space-y-0.5">
           <h3 className="text-sm font-black text-white flex items-center gap-1.5">
-            <BarChart3 className="text-orange-500" size={16} />
+            <Icon icon="BarChart3" />
             실시간 알림톡 전송 로그 대사 레코드
           </h3>
           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Live Alimtalk Transmission History</p>

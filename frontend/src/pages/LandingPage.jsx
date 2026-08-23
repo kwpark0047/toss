@@ -15,6 +15,7 @@ import {
     Heart, Crown, Award, BadgeCheck, CalendarDays, UserPlus,
     Building2, Share2, Megaphone, MapPin, Repeat2, Target,
 } from 'lucide-react';
+import Icon from '../components/ui/Icon';
 
 const LandingPage = () => {
     const { user } = useAuth();
@@ -79,7 +80,7 @@ const LandingPage = () => {
         { icon: Clock,       title: t('features.waitingReservation.title', '대기·예약 관리'),       desc: t('features.waitingReservation.desc', '대기 번호 자동 발급, 사전 예약 관리로 고객 경험을 향상시킵니다.'), color: 'yellow' },
         { icon: BarChart3,   title: t('features.salesAnalysis.title', '매출 분석'),            desc: t('features.salesAnalysis.desc', '일별, 월별, 연도별 매출 통계와 결제 수단별 분석 리포트를 제공합니다.'), color: 'teal' },
         { icon: Heart,       title: t('features.regularCustomers.title', '단골고객 관리리스트'),  desc: t('features.regularCustomers.desc', '방문 이력·포인트·VIP 등급 자동 추적. 개인화 쿠폰과 재방문 메시지로 단골을 키웁니다.'), color: 'rose' },
-        { icon: Building2,   title: t('features.community.title', '지역 커뮤니티'),        desc: t('features.community.desc', '주변 제휴 매장과 연결해 공동 이벤트, 포인트 공유, 지역 피드로 상권 전체를 활성화합니다.'), color: 'sky' },
+        { icon: 'Building2',   title: t('features.community.title', '지역 커뮤니티'),        desc: t('features.community.desc', '주변 제휴 매장과 연결해 공동 이벤트, 포인트 공유, 지역 피드로 상권 전체를 활성화합니다.'), color: 'sky' },
     ];
 
     const steps = [
@@ -566,7 +567,7 @@ const LandingPage = () => {
                                     { icon: Crown,         color:'text-violet-500',bg:'bg-violet-50',title:'VIP 자동 등급 분류',    desc:'방문 횟수·누적 금액 기준으로 일반→단골→VIP→VVIP 자동 승급.' },
                                     { icon: CalendarDays,  color:'text-pink-500',  bg:'bg-pink-50',  title:'생일·기념일 자동 쿠폰', desc:'등록된 생일에 맞춤 혜택을 자동 발송. 단골이 먼저 연락해 옵니다.' },
                                     { icon: UserPlus,      color:'text-emerald-500',bg:'bg-emerald-50',title:'개인화 재방문 유도',  desc:'"오랫동안 못 뵀네요 😊" 장기 미방문 고객에게 자동 메시지 발송.' },
-                                    { icon: TrendingUp,    color:'text-blue-500',  bg:'bg-blue-50',  title:'고객 패턴 분석',       desc:'자주 오는 시간대·선호 메뉴·평균 객단가를 차트로 한눈에.' },
+                                    { icon: 'TrendingUp',    color:'text-blue-500',  bg:'bg-blue-50',  title:'고객 패턴 분석',       desc:'자주 오는 시간대·선호 메뉴·평균 객단가를 차트로 한눈에.' },
                                 ].map((f, i) => (
                                     <motion.div key={i} initial={{ opacity:0, x:-16 }} whileInView={{ opacity:1, x:0 }}
                                         transition={{ delay: i * 0.08 }} viewport={{ once:true }}
@@ -676,7 +677,7 @@ const LandingPage = () => {
                         <motion.div initial={{ opacity:0, x:30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }} className="flex-1">
                             <div className="flex items-center gap-2 mb-5">
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 rounded-full text-xs font-black">
-                                    <Building2 size={14} /> 지역 커뮤니티
+                                    <Icon icon="Building2" /> 지역 커뮤니티
                                 </span>
                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-[10px] font-black">상권 활성화</span>
                             </div>
@@ -696,7 +697,7 @@ const LandingPage = () => {
                                     { icon: Repeat2,    color:'text-indigo-500', bg:'bg-indigo-50',  title:'통합 포인트 공유',       desc:'제휴 매장 어디서나 쌓고 쓸 수 있는 지역 통합 포인트 시스템.' },
                                     { icon: Target,     color:'text-violet-500', bg:'bg-violet-50',  title:'이웃 추천 보상',         desc:'단골이 이웃에게 추천하면 추천인·신규 고객 모두에게 즉시 보상.' },
                                     { icon: MapPin,     color:'text-rose-500',   bg:'bg-rose-50',    title:'지역 검색 우선 노출',    desc:'위마켓 앱과 지도 검색에서 내 매장이 지역 인근 고객에게 먼저 표시.' },
-                                    { icon: Zap,        color:'text-amber-500',  bg:'bg-amber-50',   title:'실시간 지역 피드',       desc:'오늘의 특가, 이벤트, 새 메뉴를 지역 주민에게 실시간으로 푸시.' },
+                                    { icon: 'Zap',        color:'text-amber-500',  bg:'bg-amber-50',   title:'실시간 지역 피드',       desc:'오늘의 특가, 이벤트, 새 메뉴를 지역 주민에게 실시간으로 푸시.' },
                                 ].map((f, i) => (
                                     <motion.div key={i} initial={{ opacity:0, x:16 }} whileInView={{ opacity:1, x:0 }}
                                         transition={{ delay: i * 0.08 }} viewport={{ once:true }}
@@ -740,7 +741,7 @@ const LandingPage = () => {
                             {/* 네트워크 맵 */}
                             <div className="bg-white rounded-3xl border border-gray-100 shadow-xl p-6">
                                 <p className="font-black text-gray-900 text-sm mb-5 flex items-center gap-2">
-                                    <Building2 size={14} className="text-sky-500" /> 동네 제휴 매장 네트워크
+                                    <Icon icon="Building2" /> 동네 제휴 매장 네트워크
                                 </p>
                                 {/* SVG 네트워크 */}
                                 <div className="relative h-52">
@@ -784,7 +785,7 @@ const LandingPage = () => {
                             {/* 지역 피드 */}
                             <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
                                 <div className="px-5 py-3 border-b border-gray-50 flex items-center gap-2">
-                                    <Megaphone size={14} className="text-sky-500" />
+                                    <Icon icon="Megaphone" />
                                     <p className="font-black text-gray-900 text-sm">지역 실시간 피드</p>
                                 </div>
                                 <div className="divide-y divide-gray-50">
@@ -910,7 +911,7 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-center gap-2 px-1 mb-6">
                         <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
-                            <MapPin size={16} className="text-slate-500" />
+                            <Icon icon="MapPin" />
                         </div>
                         <h2 className="font-black text-gray-900 text-lg">전체 매장 위치</h2>
                     </div>
@@ -991,7 +992,7 @@ const LandingPage = () => {
                                 {/* 별점 */}
                                 <div className="flex gap-1 mb-4">
                                     {[...Array(t.rating)].map((_, j) => (
-                                        <Star key={j} size={16} className="fill-amber-400 text-amber-400" />
+                                        <Icon icon="Star" />
                                     ))}
                                 </div>
                                 {/* 본문 */}
@@ -1305,7 +1306,7 @@ const LandingPage = () => {
                 <div className="max-w-4xl mx-auto text-center relative z-10">
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
                         <div className="flex justify-center gap-1 mb-6">
-                            {[...Array(5)].map((_, i) => <Star key={i} size={18} className="fill-amber-400 text-amber-400" />)}
+                            {[...Array(5)].map((_, i) => <Icon icon="Star" />)}
                         </div>
                         <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4 leading-tight text-balance">
                             지금 바로 매장을{' '}

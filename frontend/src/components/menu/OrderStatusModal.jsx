@@ -7,6 +7,7 @@ import { ordersAPI } from '@/api';
 import { joinOrderRoom, onOrderUpdated } from '@/utils/socket';
 import EmptyState from '../common/EmptyState';
 import { vibrateClick, vibrateSuccess } from '../../utils/notificationSound';
+import Icon from '../ui/Icon';
 
 const STEPS_CONFIG = [
   { key: 'pending',   icon: Clock,         color: 'text-amber-500',   bg: 'bg-amber-50',   ring: 'ring-amber-400' },

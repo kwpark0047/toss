@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { analyticsAPI } from '../../api';
 import { formatPrice } from '../../utils/format';
 import { Flame, Repeat, PieChart, Loader2, TrendingUp, BarChart3 } from 'lucide-react';
+import Icon from '../ui/Icon';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 const CAT_COLORS = ['bg-orange-500', 'bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-rose-500', 'bg-amber-500', 'bg-cyan-500', 'bg-fuchsia-500'];
@@ -77,7 +78,7 @@ export default function AdvancedInsights({ storeId, dateRange = 30 }) {
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-black text-white flex items-center gap-2">
-        <Flame size={18} className="text-orange-400" /> 고급 인사이트
+        <Icon icon="Flame" /> 고급 인사이트
         <span className="text-xs font-medium text-slate-500">최근 {dateRange}일 · KST 기준</span>
       </h2>
 
@@ -110,7 +111,7 @@ export default function AdvancedInsights({ storeId, dateRange = 30 }) {
       {/* AI 매출 예측 (7일) */}
       {forecast && forecast.predictions && forecast.predictions.length > 0 && (
         <div className="bg-white/5 border border-white/8 rounded-2xl p-4">
-          <p className="text-sm font-black text-white mb-3 flex items-center gap-1.5"><BarChart3 size={15} className="text-violet-400" /> AI 매출 예측 (7일)</p>
+          <p className="text-sm font-black text-white mb-3 flex items-center gap-1.5"><Icon icon="BarChart3" /> AI 매출 예측 (7일)</p>
           <ForecastChart predictions={forecast.predictions} />
           {forecast.accuracy && (
             <p className="text-[10px] text-slate-500 mt-2">예측 정확도: {Math.round(forecast.accuracy * 100)}%</p>
@@ -120,7 +121,7 @@ export default function AdvancedInsights({ storeId, dateRange = 30 }) {
 
       {/* 요일×시간 히트맵 */}
       <div className="bg-white/5 border border-white/8 rounded-2xl p-4 overflow-x-auto">
-        <p className="text-sm font-black text-white mb-3 flex items-center gap-1.5"><Flame size={15} className="text-orange-400" /> 시간대별 매출 히트맵</p>
+        <p className="text-sm font-black text-white mb-3 flex items-center gap-1.5"><Icon icon="Flame" /> 시간대별 매출 히트맵</p>
         <div className="min-w-[560px]">
           {/* 시간 헤더 */}
           <div className="flex gap-0.5 mb-0.5 pl-7">

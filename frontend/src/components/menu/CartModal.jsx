@@ -1,3 +1,4 @@
+import React from 'react';
 import { formatWon } from '../../utils/format';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { X, Minus, Plus, Trash2, CreditCard, Sparkles, Banknote, Building2, Smartphone, CheckCircle2 } from 'lucide-react';
@@ -92,7 +93,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
             <div className="tds-stack-h tds-gap-4 tds-p-6 tds-p-4 items-center justify-between border-b cust-border">
               <h2 className="tds-text-bold text-xl cust-text-main">{t('cart_modal.title')}</h2>
               <button onClick={onClose} aria-label={t('common.close')} className="tds-p-2 hover:bg-grey-100 dark:hover:bg-white/10 rounded-full transition-colors">
-                <Icon icon="X" size="md" color="muted" />
+                <Icon icon="X" />
               </button>
             </div>
 
@@ -124,7 +125,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                               }}
                               className="text-grey-300 hover:text-red-500 transition-colors flex-shrink-0"
                             >
-                              <Icon icon="Trash2" size="sm" color="muted" />
+                              <Icon icon="Trash2" />
                             </button>
                           </div>
                           {item.selectedOptions?.length > 0 && (
@@ -144,7 +145,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                                 }}
                                 className="w-6 h-6 rounded-full bg-white dark:bg-slate-800 tds-stack items-center justify-center text-grey-600 dark:text-slate-300 shadow-sm active:scale-90 transition-transform"
                               >
-                                <Icon icon="Minus" size="sm" color="muted" />
+                                <Icon icon="Minus" />
                               </button>
                               <span className="tds-small font-black w-3 text-center cust-text-main">{item.quantity}</span>
                               <button 
@@ -154,7 +155,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                                 }}
                                 className="w-6 h-6 rounded-full bg-white dark:bg-slate-800 tds-stack items-center justify-center text-grey-600 dark:text-slate-300 shadow-sm active:scale-90 transition-transform"
                               >
-                                <Icon icon="Plus" size="sm" color="muted" />
+                                <Icon icon="Plus" />
                               </button>
                             </div>
                           </div>
@@ -167,7 +168,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                   {suggestions.length > 0 && (
                     <div className="tds-p-5 tds-p-0 border-t cust-border">
                       <div className="tds-stack-h tds-gap-2 mb-3">
-                        <Icon icon="Sparkles" size="sm" color="warning" />
+                        <Icon icon="Sparkles" />
                         <h4 className="tds-text-bold tds-text cust-text-main">{t('cart_modal.popular_combo')}</h4>
                       </div>
                       <div className="tds-stack-h tds-gap-3 overflow-x-auto tds-p-3 tds-p-2 -mx-2 scrollbar-hide">
@@ -223,7 +224,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
               {/* 알림 받을 번호 */}
               <div className="tds-p-3 cust-bg-card rounded-xl border cust-border">
                 <label htmlFor="notify-phone" className="tds-small font-black cust-text-sub mb-1 block">
-                  <Icon icon="Smartphone" size="xs" color="primary" className="mr-1" /> {t('cart_modal.notify_phone')}
+                  <Icon icon="Smartphone" /> {t('cart_modal.notify_phone')}
                 </label>
                 <input
                   id="notify-phone"
@@ -243,7 +244,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                 <div className="cust-bg-card rounded-xl border cust-border overflow-hidden">
                   <div className="tds-p-3 tds-p-2">
                     <label className="tds-small font-black cust-text-sub block">
-                      <Icon icon="CreditCard" size="xs" color="primary" className="mr-1" /> {t('cart_modal.select_payment')}
+                      <Icon icon="CreditCard" /> {t('cart_modal.select_payment')}
                     </label>
                   </div>
 
@@ -317,7 +318,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                                       animate={{ scale: 1, opacity: 1 }}
                                       transition={{ type: "spring", stiffness: 400, damping: 20 }}
                                     >
-                                      <Icon icon="CheckCircle2" size="sm" color="cust-text-main" />
+                                      <Icon icon="CheckCircle2" />
                                     </motion.span>
                                   )}
                                 </div>
@@ -375,7 +376,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                   if (methodData) {
                     return (<React.Fragment><tds-stack-h tds-gap-2 items-center><Icon icon={methodData.icon} size="md" color="inverse" /><span>{t('cart_modal.order_with_method', { method: methodData.label })}</span></tds-stack-h></React.Fragment>);
                   }
-                  return (<React.Fragment><tds-stack-h tds-gap-2 items-center><Icon icon="CreditCard" size="md" color="inverse" /><span>{t('cart_modal.title')}</span></tds-stack-h></React.Fragment>);
+                  return (<React.Fragment><tds-stack-h tds-gap-2 items-center><Icon icon="CreditCard" /><span>{t('cart_modal.title')}</span></tds-stack-h></React.Fragment>);
                 })()}
               </Button>
             </div>

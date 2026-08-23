@@ -29,6 +29,7 @@ import TableLayoutCard, { CARD_W } from './wizard/TableLayoutCard';
 
 import BusinessTypePicker, { getBtypeLabel } from './wizard/BusinessTypePicker';
 import Step1InlineGuide from './wizard/Step1InlineGuide';
+import Icon from '../ui/Icon';
 
 const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -887,7 +888,7 @@ export default function StoreSetupWizard() {
                     </div>
                     <div>
                       <label className="text-xs font-black text-slate-400 block mb-1.5 flex items-center gap-1">
-                        <MapPin size={12} /> ⑤ 주소 (선택)
+                        <Icon icon="MapPin" /> ⑤ 주소 (선택)
                       </label>
                       <input
                         type="text"

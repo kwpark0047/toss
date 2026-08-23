@@ -5,6 +5,7 @@ import { communityAPI } from '../../api/index.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import api from '../../api/index.js';
 import EmptyState from '../common/EmptyState';
+import Icon from '../ui/Icon';
 
 // ── 상수 ──────────────────────────────────────────────────────────────
 const TYPE_OPTIONS = [
@@ -89,7 +90,7 @@ function PostCard({ post, myStoreIds = [], onDelete, onLike }) {
             </span>
             {isHot && (
               <span className="shrink-0 flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30 font-bold">
-                <Flame size={12} /> HOT
+                <Icon icon="Flame" /> HOT
               </span>
             )}
             {isExpired && (
@@ -451,7 +452,7 @@ function PartnershipModal({ targetStore, myStores, onClose, onSuccess }) {
             disabled={loading}
             className="flex-2 flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-black bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-40 shadow-lg shadow-orange-500/20"
           >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Icon icon="Share2" />}
             신청하기
           </button>
         </div>
@@ -501,7 +502,7 @@ function NearbyStoreCard({ store, alreadySent, onApply }) {
                 {alreadySent ? (
                   <><CheckCircle size={12} /> 신청완료</>
                 ) : (
-                  <><Share2 size={12} /> 제휴신청</>
+                  <><Icon icon="Share2" /> 제휴신청</>
                 )}
               </button>
             </div>
@@ -528,7 +529,7 @@ function NearbyStoreCard({ store, alreadySent, onApply }) {
               <div className="mt-3 pt-3 border-t border-white/5 space-y-1.5">
                 {store.address && (
                   <p className="flex items-center gap-2 text-xs text-slate-500">
-                    <MapPin size={12} className="text-slate-600 shrink-0" /> {store.address}
+                    <Icon icon="MapPin" /> {store.address}
                   </p>
                 )}
                 {(store.open_time || store.close_time) && (
@@ -721,7 +722,7 @@ export default function CommunityPage() {
       <div className="flex items-center justify-between py-4 mb-2">
         <div>
           <h1 className="text-2xl font-black text-white flex items-center gap-2 leading-tight">
-            <Building2 size={24} className="text-sky-400" />
+            <Icon icon="Building2" />
             지역 커뮤니티
           </h1>
           <p className="text-slate-500 text-xs font-medium mt-0.5">
@@ -873,7 +874,7 @@ export default function CommunityPage() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <EmptyState
                 tone="dark"
-                icon={<Megaphone size={40} className="text-slate-600" aria-hidden="true" />}
+                icon={<Icon icon="Megaphone" />}
                 title={searchQuery ? '검색 결과 없음' : '피드 없음'}
                 description={searchQuery
                   ? `"${searchQuery}"에 해당하는 피드가 없습니다`
@@ -940,7 +941,7 @@ export default function CommunityPage() {
           {/* 지역 정보 */}
           {nearbyDistrict && (
             <div className="flex items-center gap-2 mb-3 px-1">
-              <MapPin size={14} className="text-sky-400" />
+              <Icon icon="MapPin" />
               <span className="text-sm font-bold text-sky-400">{nearbyDistrict}</span>
               <span className="text-slate-600 text-sm">· {filteredNearby.length}개 매장</span>
             </div>
@@ -954,7 +955,7 @@ export default function CommunityPage() {
           ) : !selectedStore ? (
             <EmptyState tone="dark" icon={<Store size={40} className="text-slate-600" aria-hidden="true" />} title="매장을 먼저 등록해주세요" />
           ) : !selectedStore.address ? (
-            <EmptyState tone="dark" icon={<MapPin size={40} className="text-slate-600" aria-hidden="true" />} title="매장 주소가 필요해요" description="매장 주소를 등록하면 주변 매장을 찾을 수 있어요." />
+            <EmptyState tone="dark" icon={<Icon icon="MapPin" />} title="매장 주소가 필요해요" description="매장 주소를 등록하면 주변 매장을 찾을 수 있어요." />
           ) : filteredNearby.length === 0 ? (
             <EmptyState
               tone="dark"
@@ -1032,13 +1033,13 @@ export default function CommunityPage() {
                 <motion.div key="sent" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="space-y-3">
                   {(partnerships.sent || []).length === 0 ? (
                     <div className="text-center py-24">
-                      <Share2 size={32} className="text-slate-700 mx-auto mb-3" />
+                      <Icon icon="Share2" />
                       <p className="text-slate-500 text-sm">보낸 제휴 신청이 없습니다.</p>
                       <button
                         onClick={() => setTab('nearby')}
                         className="mt-3 flex items-center gap-1.5 px-4 py-2 bg-sky-500/15 border border-sky-500/30 text-sky-400 text-sm font-bold rounded-xl mx-auto hover:bg-sky-500/25 transition-colors"
                       >
-                        <MapPin size={14} /> 주변 매장 탐색하기 <ChevronRight size={14} />
+                        <Icon icon="MapPin" /> 주변 매장 탐색하기 <ChevronRight size={14} />
                       </button>
                     </div>
                   ) : (

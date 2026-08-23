@@ -23,18 +23,18 @@ describe('themePresets', () => {
   });
 
   it('resolveThemeStyle maps preset colors to customer CSS variables', () => {
-    const style = resolveThemeStyle({ theme_preset: 'classic-blue' });
-    expect(style['--color-primary']).toBe('#0EA5E9');
-    expect(style['--customer-bg-base']).toBe('#F8FAFC');
+    const style = resolveThemeStyle({ theme_preset: 'forest-green' });
+    expect(style['--color-primary']).toBe('#10B981');
+    expect(style['--customer-bg-base']).toBe('#F0FDF4');
     expect(style['--customer-bg-card']).toBe('#FFFFFF');
-    expect(style['--customer-text-main']).toBe('#1E293B');
-    expect(style.fontFamily).toBe('Inter, sans-serif');
-    expect(style.backgroundColor).toBe('#F8FAFC');
+    expect(style['--customer-text-main']).toBe('#14532D');
+    expect(style.fontFamily).toBe('Noto Sans KR, sans-serif');
+    expect(style.backgroundColor).toBe('#F0FDF4');
   });
 
   it('resolveThemeStyle prefers saved custom_colors over preset', () => {
     const style = resolveThemeStyle({
-      theme_preset: 'classic-blue',
+      theme_preset: 'forest-green',
       custom_colors: {
         primary: '#FF0000',
         secondary: '#00FF00',

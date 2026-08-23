@@ -178,7 +178,7 @@ const MenuBuilder = () => {
             <div className="tds-stack-h tds-gap-8 items-center justify-between tds-p-8 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 shrink-0">
                 <div className="tds-stack-h tds-gap-6 items-center">
                     <button onClick={() => navigate(-1)} className="w-10 h-10 tds-stack items-center justify-center text-slate-400 hover:text-slate-900 transition-all rounded-xl">
-                        <Icon icon="ArrowLeft" size="md" />
+                        <Icon icon="ArrowLeft" />
                     </button>
                     <div className="tds-stack tds-gap-1">
                         <h1 className="tds-text-bold text-xl text-slate-900">메뉴판 비주얼 빌더</h1>
@@ -191,7 +191,7 @@ const MenuBuilder = () => {
                         onClick={() => window.open(`/menu/${storeId}`, '_blank')}
                         className="tds-stack-h tds-gap-2 text-slate-400 hover:text-slate-700 tds-small font-black transition-all"
                     >
-                        <Icon icon="ExternalLink" size="sm" /> 실제 메뉴 미리보기
+                        <Icon icon="ExternalLink" /> 실제 메뉴 미리보기
                     </button>
 
                     <div className="tds-stack-h tds-gap-1 bg-slate-50 tds-p-1.5 rounded-2xl flex items-center border border-slate-100">
@@ -217,7 +217,7 @@ const MenuBuilder = () => {
                             disabled={saveLoading}
                             className={`tds-stack-h tds-gap-2 tds-p-4 tds-p-8 rounded-2xl tds-text-bold text-sm shadow-xl transition-all disabled:opacity-50 active:scale-95 ${saved ? 'bg-success text-white shadow-success/20' : 'bg-brand-500 text-white shadow-brand-500/20 hover:bg-brand-600'}`}
                         >
-                            {saved ? <Icon icon="Check" size="md" /> : <Icon icon="Save" size="md" />}
+                            {saved ? <Icon icon="Check" /> : <Icon icon="Save" />}
                             {saved ? '저장 완료!' : saveLoading ? '저장 중...' : '디자인 저장'}
                         </motion.button>
                     </AnimatePresence>
@@ -301,7 +301,7 @@ const MenuBuilder = () => {
                                                 <p className={`tds-text-bold text-sm mb-1 ${theme.layoutMode === option.id ? 'text-brand-600' : 'text-slate-700'}`}>{option.label}</p>
                                                 <p className="tds-small text-slate-400 font-bold leading-relaxed">{option.desc}</p>
                                             </div>
-                                            {theme.layoutMode === option.id && <Icon icon="Check" size="sm" color="primary" className="ml-auto shrink-0 mt-1" />}
+                                            {theme.layoutMode === option.id && <Icon icon="Check" />}
                                         </button>
                                     ))}
                                 </div>
@@ -334,7 +334,7 @@ const MenuBuilder = () => {
 
                             <div className="tds-p-5 bg-amber-50 rounded-[2rem] border border-amber-100">
                                 <div className="tds-stack-h tds-gap-3 mb-2">
-                                    <Icon icon="Info" size="sm" color="warning" className="shrink-0 mt-0.5" />
+                                    <Icon icon="Info" />
                                     <p className="tds-caption text-amber-700 font-black uppercase">레이아웃 팁</p>
                                 </div>
                                 <p className="tds-small text-amber-600/80 font-medium leading-relaxed">매거진 스타일은 고품질 이미지가 등록된 메뉴가 많을 때 가장 돋보입니다.</p>
@@ -376,7 +376,7 @@ const MenuBuilder = () => {
                                                     <div className="w-8 h-8 border-4 border-slate-200 border-t-brand-500 rounded-full animate-spin" />
                                                 ) : (
                                                     <>
-                                                        <Icon icon="Upload" size="lg" color="muted" />
+                                                        <Icon icon="Upload" />
                                                         <span className="tds-small font-black uppercase tracking-widest text-slate-400">배너 이미지 업로드</span>
                                                         <span className="tds-small text-slate-300">또는 URL 입력</span>
                                                     </>
@@ -418,7 +418,7 @@ const MenuBuilder = () => {
 
                             <div className="tds-p-5 bg-brand-50 rounded-2xl border border-brand-100">
                                 <div className="tds-stack-h tds-gap-3">
-                                    <Icon icon="Info" size="sm" color="primary" className="shrink-0 mt-0.5" />
+                                    <Icon icon="Info" />
                                     <p className="tds-small text-brand-600/80 font-medium leading-relaxed">공지사항은 고객 메뉴판 상단에 노란 배너로 표시됩니다. 영업시간 변경, 이벤트 등 중요 안내에 활용하세요.</p>
                                 </div>
                             </div>
@@ -430,7 +430,7 @@ const MenuBuilder = () => {
             {/* 우측 실시간 미리보기 */}
             <main className="flex-1 bg-slate-100 rounded-[3rem] tds-p-12 tds-stack flex-col items-center overflow-hidden">
                 <div className="tds-stack-h tds-gap-2 mb-6 text-slate-400">
-                    <Icon icon="Sparkles" size="sm" color="primary" />
+                    <Icon icon="Sparkles" />
                     <span className="tds-caption font-black uppercase tracking-widest">실시간 미리보기</span>
                     <span className="tds-small text-slate-300 ml-2">· {previewMode === 'mobile' ? '375px' : previewMode === 'tablet' ? '768px' : '전체'}</span>
                 </div>
@@ -453,7 +453,7 @@ const MenuBuilder = () => {
                             {/* 공지사항 */}
                             {theme.announcementActive && theme.announcement && (
                                 <div className="tds-stack-h tds-gap-2 tds-p-4 tds-p-2.5 bg-amber-400 items-center">
-                                    <Icon icon="Bell" size="sm" color="#78350f" className="shrink-0" />
+                                    <Icon icon="Bell" />
                                     <p className="tds-small font-bold text-amber-900 line-clamp-1">{theme.announcement}</p>
                                 </div>
                             )}
@@ -472,7 +472,7 @@ const MenuBuilder = () => {
                                             </div>
                                         </div>
                                         <div className="w-9 h-9 bg-slate-100 rounded-full tds-stack items-center justify-center">
-                                            <Icon icon="Clock" size="sm" color="muted" />
+                                            <Icon icon="Clock" />
                                         </div>
                                     </div>
                                 )}

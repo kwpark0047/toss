@@ -14,6 +14,7 @@ import CartModal from '../menu/CartModal';
 import OptionSelectionModal from '../menu/OptionSelectionModal';
 import TinkerBell from '../ai/TinkerBell';
 import { loadTinkerBellSettings } from '../../utils/tinkerbell';
+import Icon from '../ui/Icon';
 
 const DEMO_LANGS = [
   { code: 'ko', flag: '🇰🇷', label: 'KO' },
@@ -547,7 +548,7 @@ const MenuDemo = () => {
                 {showNotice && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                     <div className="bg-gradient-to-r from-amber-400 to-orange-400 px-4 py-2.5 flex items-center gap-2">
-                      <Megaphone size={12} className="text-amber-900 flex-shrink-0" />
+                      <Icon icon="Megaphone" />
                       <p className="text-xs font-bold text-amber-900 flex-1 leading-tight">{STORE.notice}</p>
                       <button onClick={() => setShowNotice(false)} className="text-amber-900/60 hover:text-amber-900 text-lg leading-none">×</button>
                     </div>
@@ -626,7 +627,7 @@ const MenuDemo = () => {
               <div className="bg-white border-b border-slate-100 px-4 py-3">
                 <p className="text-xs text-slate-600 leading-relaxed">{STORE.desc}</p>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-[11px] text-slate-400">
-                  <div className="flex items-center gap-1"><MapPin size={12} />{STORE.address}</div>
+                  <div className="flex items-center gap-1"><Icon icon="MapPin" />{STORE.address}</div>
                   <div className="flex items-center gap-1"><Clock size={12} />{STORE.hours}</div>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
@@ -635,7 +636,7 @@ const MenuDemo = () => {
                     <span className="text-[10px] font-black text-emerald-600">영업 중</span>
                   </div>
                   <div className="flex items-center gap-1 text-[11px] font-bold text-slate-500">
-                    <Star size={12} className="fill-amber-400 text-amber-400" />
+                    <Icon icon="Star" />
                     {STORE.rating}
                     <span className="text-slate-300 font-normal">({STORE.reviews.toLocaleString()})</span>
                   </div>
@@ -650,7 +651,7 @@ const MenuDemo = () => {
                 {selectedCategory === '전체' && (
                   <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-white border-b border-slate-100 py-5">
                     <div className="px-4 flex items-center gap-2 mb-3">
-                      <Flame size={14} className="text-orange-500 fill-orange-500" />
+                      <Icon icon="Flame" />
                       <h2 className="text-sm font-black text-slate-900">지금 인기 메뉴</h2>
                     </div>
                     <div className="flex gap-3 overflow-x-auto px-4 pb-1 no-scrollbar">

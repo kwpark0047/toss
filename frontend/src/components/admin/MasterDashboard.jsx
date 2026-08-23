@@ -9,6 +9,7 @@ import { formatPrice, formatTime } from '../../utils/format';
 import { format } from 'date-fns';
 import EmptyState from '../common/EmptyState';
 import Skeleton from '../common/Skeleton';
+import Icon from '../ui/Icon';
 
 /* ─── 차트 로딩 스켈레톤 ─── */
 const SkeletonChart = () => <div className="bg-white/5 border border-white/10 rounded-2xl p-3 animate-pulse">
@@ -552,7 +553,7 @@ const MasterDashboard = () => {
   }, {
     label: '정산',
     path: 'settlements',
-    icon: DollarSign,
+    icon: 'DollarSign',
     color: 'from-amber-500 to-yellow-500',
     badge: 0
   }];
@@ -719,7 +720,7 @@ const MasterDashboard = () => {
       <div className="grid grid-cols-2 xs:grid-cols-2 gap-2.5 sm:gap-3 px-1">
         {[{
         title: '총 매출',
-        icon: DollarSign,
+        icon: 'DollarSign',
         color: 'text-orange-400',
         bg: 'bg-orange-500/10',
         value: formatPrice(stats?.total_sales || 0),
@@ -727,7 +728,7 @@ const MasterDashboard = () => {
         accent: 'border-orange-500/20'
       }, {
         title: '총 주문',
-        icon: ShoppingBag,
+        icon: 'ShoppingBag',
         color: 'text-blue-400',
         bg: 'bg-blue-500/10',
         value: `${stats?.total_orders || 0}건`,

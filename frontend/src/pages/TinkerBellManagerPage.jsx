@@ -4,6 +4,7 @@ import { Sparkles, Globe, CloudRain, Sun, Snowflake, Flame, Type, ToggleLeft, To
 import { toast } from 'sonner';
 import { loadTinkerBellSettings, saveTinkerBellSettings } from '../utils/tinkerbell';
 import TinkerBell from '../components/ai/TinkerBell';
+import Icon from '../components/ui/Icon';
 
 // ── 데모용 메뉴 데이터 (미리보기용) ─────────────────────────────────────────
 const PREVIEW_MENU = [
@@ -25,7 +26,7 @@ const PREVIEW_ITEMS = [
 // ── 통계 카드 (목 데이터) ────────────────────────────────────────────────────
 const STATS = [
   { label:'이번 달 추천 건수',    value:'1,247',  delta:'+18%', icon: Sparkles,    color:'from-amber-500 to-orange-500',    bg:'bg-amber-50',    txt:'text-amber-600' },
-  { label:'추천 후 주문 전환율',  value:'64.3%',  delta:'+5.2%',icon: TrendingUp,  color:'from-emerald-500 to-teal-500',   bg:'bg-emerald-50',  txt:'text-emerald-600' },
+  { label:'추천 후 주문 전환율',  value:'64.3%',  delta:'+5.2%',icon: 'TrendingUp',  color:'from-emerald-500 to-teal-500',   bg:'bg-emerald-50',  txt:'text-emerald-600' },
   { label:'평균 추가 주문 메뉴',  value:'1.8개',  delta:'+0.3', icon: ShoppingCart, color:'from-sky-500 to-blue-500',       bg:'bg-sky-50',      txt:'text-sky-600' },
   { label:'큰 글씨 모드 사용',    value:'24.1%',  delta:'+3.1%',icon: Type,         color:'from-purple-500 to-violet-500',  bg:'bg-purple-50',   txt:'text-purple-600' },
 ];

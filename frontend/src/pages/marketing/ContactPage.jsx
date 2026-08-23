@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { AnimatePresence } from 'framer-motion';
 import { Store, Menu, X, Mail, Phone, MapPin, Send, Sparkles } from 'lucide-react';
+import Icon from '../../components/ui/Icon';
 export default function ContactPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -146,7 +147,7 @@ export default function ContactPage() {
 
               <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 p-4 rounded-2xl max-w-sm">
                 <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200 text-orange-500 flex items-center justify-center">
-                  <MapPin className="size-5" />
+                  <Icon icon="MapPin" />
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">본사 위치</p>

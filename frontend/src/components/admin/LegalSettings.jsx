@@ -11,6 +11,7 @@ import {
     CheckCircle2, AlertTriangle, Save, RefreshCw, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { legalAPI } from '../../api';
+import Icon from '../ui/Icon';
 
 // ── 섹션 접기/펼치기 컴포넌트 ──────────────────────────────────────────────
 const Section = ({ icon: Icon, title, subtitle, children, defaultOpen = false }) => {
@@ -158,7 +159,7 @@ export default function LegalSettings() {
             {/* 법 준수 체크리스트 */}
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-1.5">
                 <p className="text-sm font-bold text-amber-800 flex items-center gap-2">
-                    <AlertTriangle size={16} /> 전자상거래 법적 의무 체크리스트
+                    <Icon icon="AlertTriangle" /> 전자상거래 법적 의무 체크리스트
                 </p>
                 {[
                     { label: '사업자등록번호 등록', done: !!form.business_number },
@@ -172,7 +173,7 @@ export default function LegalSettings() {
                     <div key={label} className="flex items-center gap-2 text-sm">
                         {done
                             ? <CheckCircle2 size={14} className="text-emerald-500 flex-shrink-0" />
-                            : <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />}
+                            : <Icon icon="AlertTriangle" />}
                         <span className={done ? 'text-gray-500 line-through' : 'text-amber-800 font-medium'}>
                             {label}
                         </span>

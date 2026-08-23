@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, ShoppingBag, CreditCard, ChevronRight, CheckCircle2, Info } from 'lucide-react';
+import Icon from '../../ui/Icon';
 
 /**
  * [TogetherPaymentSheet]
@@ -106,7 +107,7 @@ const TogetherPaymentSheet = React.memo(({
                     <div className="p-6 border-b flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-10">
                         <div>
                             <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-                                <Users className="text-blue-600" /> 함께 결제하기
+                                <Icon icon="Users" /> 함께 결제하기
                             </h2>
                             <p className="text-sm text-gray-500 font-medium">나누어 결제하면 토스 포인트도 각각 적립돼요!</p>
                         </div>
@@ -156,7 +157,7 @@ const TogetherPaymentSheet = React.memo(({
                                     }`}
                             >
                                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${splitMode === 'EQUAL' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                                    <Users size={24} />
+                                    <Icon icon="Users" />
                                 </div>
                                 <div className="text-center">
                                     <p className={`font-bold ${splitMode === 'EQUAL' ? 'text-blue-900' : 'text-gray-500'}`}>N분의 1</p>
@@ -268,7 +269,7 @@ const TogetherPaymentSheet = React.memo(({
                             className="w-full py-6 text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-500/30 flex items-center justify-center gap-3 overflow-hidden group relative"
                             style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}
                         >
-                            <CreditCard size={24} />
+                            <Icon icon="CreditCard" />
                             내 몫만 결제하기
                             <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" />
                         </motion.button>

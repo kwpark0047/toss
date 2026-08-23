@@ -29,7 +29,7 @@ export default function MenuProductList({
             className="tds-stack items-center justify-center py-20 bg-white/40 rounded-[3rem] border-2 border-dashed border-slate-200 col-span-full"
             style={{ color: theme.textColor + '80' }}
           >
-            <Icon icon="ShoppingCart" size="xl" color="muted" className="mx-auto mb-4 opacity-20" />
+            <Icon icon="ShoppingCart" />
             {t('menu.no_items')}
           </motion.div>
         ) : (
@@ -52,7 +52,7 @@ export default function MenuProductList({
                     />
                     {p.is_best && (
                       <span className="absolute top-2 left-2 tds-badge tds-badge-popular tds-stack-h tds-gap-1 items-center">
-                        <Icon icon="Flame" size="xs" color="inverse" />
+                        <Icon icon="Flame" />
                         베스트
                       </span>
                     )}
@@ -83,7 +83,7 @@ export default function MenuProductList({
                           className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-md"
                           style={{ background: gradientBg }}
                         >
-                          <Icon icon="Plus" size="sm" stroke="md" color="inverse" />
+                          <Icon icon="Plus" />
                         </button>
                       )}
                     </div>
@@ -113,7 +113,7 @@ export default function MenuProductList({
                   <MenuItemImage src={p.image_url} alt={p.name} isMagazine={isMagazine} />
                   {p.is_best && !isMagazine && (
                     <span className="absolute -top-2 -left-2 bg-orange-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg uppercase tracking-tighter flex items-center gap-0.5 tds-badge tds-badge-popular tds-stack-h tds-gap-1 items-center">
-                      <Icon icon="Flame" size="xs" color="inverse" />
+                      <Icon icon="Flame" />
                       BEST
                     </span>
                   )}
@@ -124,7 +124,7 @@ export default function MenuProductList({
                   <div className="tds-stack-h tds-gap-2 items-center">
                     {p.is_best && isMagazine && (
                       <span className="tds-stack-h tds-gap-0.5 tds-caption text-orange-500 uppercase font-black flex items-center">
-                        <Icon icon="Flame" size="xs" color="currentColor" fill="currentColor" />
+                        <Icon icon="Flame" />
                         Featured Menu
                       </span>
                     )}
@@ -145,7 +145,7 @@ export default function MenuProductList({
                   <div className="tds-stack-h tds-gap-2 items-end justify-between mt-auto">
                     <div className="tds-stack tds-gap-1">
                       <div className="tds-stack-h tds-gap-1.5 tds-small font-black text-slate-400 uppercase tracking-tight">
-                        <Icon icon="Timer" size="xs" color="muted" />
+                        <Icon icon="Timer" />
                         <span>Ready in {p.cooking_time || 5} min</span>
                       </div>
                       <p className={`${isMagazine ? 'tds-text-bold text-3xl' : 'tds-text-bold text-2xl'}`} style={{ color: theme.primaryColor }}>
@@ -165,7 +165,7 @@ export default function MenuProductList({
                             onClick={() => { setSelectedStoryProduct(p); setShowStoryModal(true); }}
                             className="tds-p-1 tds-p-2 bg-slate-900 text-white rounded-xl tds-small font-black hover:bg-slate-800 transition-all flex items-center gap-1.5"
                           >
-                            <Icon icon="Sparkles" size="xs" color="primary" />
+                            <Icon icon="Sparkles" />
                             AI Story
                           </motion.button>
                         )}
@@ -176,7 +176,7 @@ export default function MenuProductList({
                           className="w-12 h-12 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 transition-shadow group-hover:shadow-orange-500/50"
                           style={{ background: gradientBg }}
                         >
-                          <Icon icon="Plus" size="md" stroke="md" color="inverse" />
+                          <Icon icon="Plus" />
                         </motion.button>
                       </div>
                     )}

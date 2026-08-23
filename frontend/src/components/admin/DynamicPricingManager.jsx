@@ -6,6 +6,7 @@ import { dynamicPricingAPI } from '@/api/admin';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { formatPrice } from '@/utils/format';
+import Icon from '../ui/Icon';
 const RULE_TYPES = [{
   value: 'TIME_BASED',
   label: '시간대별',
@@ -14,7 +15,7 @@ const RULE_TYPES = [{
 }, {
   value: 'DEMAND_BASED',
   label: '수요 기반',
-  icon: TrendingUp,
+  icon: 'TrendingUp',
   color: 'bg-green-100 text-green-700'
 }, {
   value: 'INVENTORY_BASED',
@@ -24,7 +25,7 @@ const RULE_TYPES = [{
 }, {
   value: 'WEATHER_BASED',
   label: '날씨 기반',
-  icon: Zap,
+  icon: 'Zap',
   color: 'bg-yellow-100 text-yellow-700'
 }, {
   value: 'COMPETITOR_BASED',
@@ -465,7 +466,7 @@ const DynamicPricingManager = ({
     }} className="space-y-4">
           <h3 className="text-lg font-bold">수요 예측</h3>
           {forecasts.length === 0 ? <div className="text-center py-12 bg-slate-50 rounded-2xl">
-              <BarChart3 size={48} className="mx-auto text-slate-300 mb-4" />
+              <Icon icon="BarChart3" />
               <p className="text-slate-500">수요 예측 데이터가 없습니다. 최적화 작업을 실행하면 생성됩니다.</p>
             </div> : <div className="overflow-x-auto">
               <table className="w-full text-sm">

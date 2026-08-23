@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useStoreOperatingHours } from '../../hooks/useStoreOperatingHours';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Save, Palette, Type, Crown, Zap, Building2, Clock, CheckCircle, XCircle, ChefHat, Info, Smartphone, Layout, MapPin, Phone } from 'lucide-react';
+import Icon from '../ui/Icon';
 
 const defaultTheme = {
   primaryColor: '#f97316',
@@ -33,8 +34,8 @@ const presetThemes = [
 ];
 
 const planOptions = [
-  { value: 'free', label: 'Free', desc: '매장 1개, 기본 기능', icon: Building2, color: 'text-slate-400', bg: 'bg-slate-400/10' },
-  { value: 'pro', label: 'Pro', desc: '매장 5개, 고급 분석', icon: Zap, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+  { value: 'free', label: 'Free', desc: '매장 1개, 기본 기능', icon: 'Building2', color: 'text-slate-400', bg: 'bg-slate-400/10' },
+  { value: 'pro', label: 'Pro', desc: '매장 5개, 고급 분석', icon: 'Zap', color: 'text-blue-400', bg: 'bg-blue-400/10' },
   { value: 'enterprise', label: 'Enterprise', desc: '무제한 매장, 전담 지원', icon: Crown, color: 'text-orange-400', bg: 'bg-orange-400/10' }
 ];
 
@@ -214,7 +215,7 @@ const StoreForm = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-4">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                          <Building2 size={14} className="text-orange-500" /> 매장명
+                          <Icon icon="Building2" /> 매장명
                         </label>
                         <input
                           type="text"
@@ -247,7 +248,7 @@ const StoreForm = () => {
 
                     <div className="space-y-4">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                        <MapPin size={14} className="text-orange-500" /> 매장 주소
+                        <Icon icon="MapPin" /> 매장 주소
                       </label>
                       <input
                         type="text"
@@ -343,7 +344,7 @@ const StoreForm = () => {
                           <h3 className="text-4xl font-black text-white uppercase tracking-tight">{form.plan || 'FREE'}</h3>
                         </div>
                         <div className="w-24 h-24 bg-white/5 rounded-3xl border border-white/10 flex items-center justify-center text-orange-500 shadow-2xl">
-                          <Crown size={48} />
+                          <Icon icon="Crown" />
                         </div>
                       </div>
                     </div>

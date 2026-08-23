@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { MapPin, ShieldAlert, Sparkles, Navigation, RefreshCw, Power, AlertTriangle } from 'lucide-react';
 import api from '@/api/client';
+import Icon from '../ui/Icon';
 export default function FoodTruckOwnerDashboard() {
   const {
     storeId
@@ -258,7 +259,7 @@ const handleSpotSelect = (lat, lng, spotName) => {
           <div>
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">현재 한글 주소</span>
             <div className="flex items-center gap-1.5">
-              <MapPin size={14} className="text-orange-500 shrink-0" />
+              <Icon icon="MapPin" />
               <span className="text-xs font-black text-white truncate">
                 {truckInfo?.geocoded_address || '파악되지 않음'}
               </span>
@@ -327,7 +328,7 @@ const handleSpotSelect = (lat, lng, spotName) => {
 
       {/* 6. 운영 실시간 가이드 및 주의사항 공지 */}
       <div className="p-6 rounded-3xl bg-orange-500/5 border border-orange-500/10 flex items-start gap-4">
-        <AlertTriangle className="text-orange-500 shrink-0 mt-0.5 animate-pulse" size={18} />
+        <Icon icon="AlertTriangle" />
         <div className="space-y-1">
           <h4 className="text-xs font-black text-white">푸드트럭 안전 현장 운영 원칙</h4>
           <p className="text-[11px] text-slate-400 font-semibold leading-relaxed">

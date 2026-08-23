@@ -4,6 +4,7 @@ import { reviewsAPI, uploadsAPI } from '../../api';
 import { useTranslation } from 'react-i18next';
 import { Camera, Send, Loader2, CheckCircle, X, Star } from "lucide-react";
 import { compressImage } from '../../utils/imageCompress';
+import Icon from '../ui/Icon';
 
 /**
  * 리뷰 작성 모달 컴포넌트
@@ -107,10 +108,7 @@ const ReviewModal = ({ isOpen, onClose, order, onSuccess }) => {
                                             onClick={() => setRating(s)}
                                             className="transition-transform active:scale-90"
                                         >
-                                            <Star
-                                                size={40}
-                                                className={s <= rating ? "text-orange-400 fill-orange-400" : "text-slate-100"}
-                                            />
+                                            <Icon icon="Star" />
                                         </button>
                                     ))}
                                 </div>

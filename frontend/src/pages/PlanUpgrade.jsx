@@ -4,6 +4,7 @@ import { storesAPI, planRequestsAPI, plansAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { Crown, CheckCircle, XCircle, Clock, Sparkles, Store, TrendingUp, Shield, MessageSquare, Send, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'react-toastify';
+import Icon from '../components/ui/Icon';
 
 export default function PlanUpgrade() {
   const {
@@ -23,7 +24,7 @@ export default function PlanUpgrade() {
 
   const planColors = {
     free: { color: 'from-slate-500 to-slate-700', border: 'border-slate-300', icon: Store },
-    pro: { color: 'from-orange-500 to-rose-600', border: 'border-orange-400', icon: TrendingUp, popular: true },
+    pro: { color: 'from-orange-500 to-rose-600', border: 'border-orange-400', icon: 'TrendingUp', popular: true },
     enterprise: { color: 'from-purple-500 to-indigo-600', border: 'border-purple-400', icon: Crown }
   };
 
@@ -89,7 +90,7 @@ export default function PlanUpgrade() {
       {/* 헤더 */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <Crown className="text-orange-500" size={28} />
+          <Icon icon="Crown" />
           <h1 className="text-2xl font-black text-white">멤버십 &amp; 플랜</h1>
         </div>
         <p className="text-slate-400 text-sm">현재 요금제를 확인하고 업그레이드 신청을 관리합니다</p>

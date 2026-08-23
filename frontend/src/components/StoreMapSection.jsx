@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Star, ChevronDown, Sparkles } from 'lucide-react';
 import StoreMapLeaflet from './StoreMapLeaflet';
 import { bizLabel } from '../utils/businessType';
+import Icon from './ui/Icon';
 
 /**
  * StoreMapSection — 지도 뷰 (Leaflet + 오른쪽 매장 리스트 패널)
@@ -44,7 +45,7 @@ export default function StoreMapSection({ stores, selectedStore, onStoreSelect, 
               <div className="flex items-start justify-between mb-2">
                 <h4 className="font-black text-white group-hover:text-orange-400 transition-colors truncate max-w-[220px]">{store.name}</h4>
                 <div className="flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-xl border border-white/5">
-                  <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  <Icon icon="Star" />
                   <span className="text-[11px] font-black text-white">{ratings?.[store.id]?.rating || '5.0'}</span>
                 </div>
               </div>

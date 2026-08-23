@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Palette, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminTheme, THEMES } from '../../contexts/AdminThemeContext';
+import Icon from '../ui/Icon';
 
 export default function ThemeSwitcher() {
   const { themeId, setTheme } = useAdminTheme();
@@ -30,7 +31,7 @@ export default function ThemeSwitcher() {
         className="w-12 h-12 flex items-center justify-center rounded-2xl border-2 transition-all hover:scale-105 active:scale-95"
         style={{ background: current.color, borderColor: current.accent + '60' }}
       >
-        <Palette size={16} aria-hidden="true" style={{ color: current.accent }} />
+        <Icon icon="Palette" />
       </button>
 
       <AnimatePresence>

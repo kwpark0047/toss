@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Skeleton from '../common/Skeleton';
+import Icon from '../ui/Icon';
 
 const EVENT_TYPES = ['order.created', 'order.updated', 'order.completed'];
 

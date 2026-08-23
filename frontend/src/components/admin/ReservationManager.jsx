@@ -5,6 +5,7 @@ import { CalendarCheck, Clock, Users, Phone, XCircle, CheckCircle } from 'lucide
 import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
+import Icon from '../ui/Icon';
 
 const ReservationManager = () => {
     const { storeId } = useParams();
@@ -189,7 +190,7 @@ const ReservationManager = () => {
                                 </div>
                                 <div className="flex items-center gap-3 text-gray-700 bg-orange-50/30 p-3 rounded-xl text-sm border border-orange-50/50">
                                     <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
-                                        <Users size={16} className="text-orange-600" />
+                                        <Icon icon="Users" />
                                     </div>
                                     <span className="font-black text-orange-900">{res.party_size}명</span>
                                 </div>

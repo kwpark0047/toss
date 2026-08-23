@@ -4,12 +4,13 @@ import { businessAPI, storeAccountAPI } from '../../api';
 import { Palette, Layout, Sliders, Save, RefreshCw, Check, AlertCircle, Info, CreditCard, Store, Building2, BadgeCheck, Banknote, Smartphone, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { THEME_PRESETS, DEFAULT_THEME_SETTINGS } from '../../lib/themePresets';
+import Icon from '../ui/Icon';
 
 // ── 결제수단 옵션 ─────────────────────────────────────────────────────────────
 const PAYMENT_METHOD_OPTIONS = [
     { id: 'cash', label: '현금', desc: '기본 결제수단 (항상 활성)', icon: Banknote, color: '#16A34A', fixed: true },
     { id: 'store_card', label: '매장 카드 단말기', desc: 'POS 단말기 연결 시 활성화', icon: Store, color: '#0EA5E9' },
-    { id: 'transfer', label: '계좌이체', desc: '사업자 계좌 등록 후 활성화', icon: Building2, color: '#10B981' },
+    { id: 'transfer', label: '계좌이체', desc: '사업자 계좌 등록 후 활성화', icon: 'Building2', color: '#10B981' },
     { id: 'kakao', label: '카카오페이', desc: '토스페이먼츠 연동 필요 (개발 중)', icon: Smartphone, color: '#FEE500', dev: true },
     { id: 'naver', label: '네이버페이', desc: '토스페이먼츠 연동 필요 (개발 중)', icon: Smartphone, color: '#03C75A', dev: true },
     { id: 'toss_pay', label: '토스페이먼츠', desc: '개발 키 테스트 중', icon: CreditCard, color: '#0064FF', dev: true },
@@ -257,7 +258,7 @@ const ThemePresetSelector = ({ onSelect, selectedPreset }) => {
     return (
         <div className="space-y-4">
             <div className="p-4 bg-blue-50 rounded-xl flex items-start gap-2">
-                <Palette size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                <Icon icon="Palette" />
                 <p className="text-xs text-blue-700">
                     매장의 전체 테마를 선택하세요. 메뉴, 결제창, 관리자 화면 등 모든 요소의 색상이 변경됩니다.
                 </p>
@@ -278,7 +279,7 @@ const ThemePresetSelector = ({ onSelect, selectedPreset }) => {
                                 className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm"
                                 style={{ backgroundColor: preset.colors.primary }}
                             >
-                                <Palette size={16} />
+                                <Icon icon="Palette" />
                             </div>
                             <div className="text-left flex-1">
                                 <h4 className="font-bold text-gray-900">{preset.name}</h4>
@@ -705,7 +706,7 @@ export default function BusinessSettingsWithTheme() {
                                 className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg"
                                 style={{ backgroundColor: selectedTheme.colors.primary }}
                             >
-                                <Palette size={20} />
+                                <Icon icon="Palette" />
                             </div>
                             <div>
                                 <p className="font-bold text-gray-900">{selectedTheme.name} 선택됨</p>

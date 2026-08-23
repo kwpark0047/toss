@@ -23,7 +23,7 @@ const SkeletonPlaceholder = ({ placeholderEmoji: _placeholderEmoji }) => (
 
 const ErrorPlaceholder = () => (
   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-grey-50 text-grey-300">
-    <Icon icon="ImageOff" size="md" color="muted" />
+    <Icon icon="ImageOff" />
     <span className="tds-caption font-bold">이미지 없음</span>
   </div>
 );

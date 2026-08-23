@@ -6,6 +6,7 @@ import EmptyState from '../common/EmptyState';
 import NaverReviewTab from './NaverReviewTab';
 import LazyImage from '../common/LazyImage';
 import { vibrateClick } from '../../utils/notificationSound';
+import Icon from '../ui/Icon';
 
 // 브라우저별 익명 좋아요 식별자 (로그인 없는 고객용, localStorage에 고정)
 const getLikerId = () => {
@@ -109,7 +110,7 @@ const StoreReviews = ({ storeId }) => {
         </h2>
         {avg && activeTab === 'local' && (
           <div className="flex items-center gap-1 text-sm font-bold cust-text-main">
-            <Star size={15} className="text-orange-400" fill="currentColor" aria-hidden="true" />
+            <Icon icon="Star" />
             {avg} <span className="text-slate-400 font-medium">({reviews.length})</span>
           </div>
         )}
@@ -156,7 +157,7 @@ const StoreReviews = ({ storeId }) => {
                 </div>
                 <div className="flex items-center gap-0.5 mb-2" aria-label={`별점 ${r.rating}점`}>
                   {[1, 2, 3, 4, 5].map(n => (
-                    <Star key={n} size={13} className={n <= r.rating ? 'text-orange-400' : 'text-slate-200 dark:text-slate-700'} fill="currentColor" aria-hidden="true" />
+                    <Icon icon="Star" />
                   ))}
                   {r.is_best && (
                     <span className="ml-2 text-[10px] font-black text-orange-500 bg-orange-50 dark:bg-orange-500/10 px-1.5 py-0.5 rounded">BEST</span>

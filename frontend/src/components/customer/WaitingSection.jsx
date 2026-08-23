@@ -5,6 +5,7 @@ import { waitingAPI } from '../../api';
 import { ordersAPI } from '../../api';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import Icon from '../ui/Icon';
 
 const WaitingSection = ({ store, onClose }) => {
     const { t } = useTranslation();
@@ -163,7 +164,7 @@ const WaitingSection = ({ store, onClose }) => {
 
                 <div className="mb-8">
                     <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-                        <Users className="text-orange-500" />
+                        <Icon icon="Users" />
                         {store.name} <span className="text-orange-500">{t('waiting.title')}</span>
                     </h2>
                     <p className="text-slate-500 font-medium mt-1">{t('waiting.desc')}</p>

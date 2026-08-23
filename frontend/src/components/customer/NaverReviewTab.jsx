@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { ExternalLink, Store, MapPin, ChevronRight } from 'lucide-react';
+import { ExternalLink, Store, MapPin, ChevronRight, AlertCircle, Phone } from 'lucide-react';
 import { naverPlaceAPI } from '../../api/naverPlace';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
+import Icon from '../ui/Icon';
 
 /**
  * 네이버 플레이스 리뷰 탭 — 해당 매장의 네이버 플레이스 정보를 보여주고
@@ -97,7 +98,7 @@ const NaverReviewTab = ({ storeId }) => {
           )}
           {placeInfo.address && (
             <div className="flex items-center gap-2 text-slate-500">
-              <MapPin size={14} className="shrink-0" aria-hidden="true" />
+              <Icon icon="MapPin" />
               <span className="leading-tight">{placeInfo.address}</span>
             </div>
           )}

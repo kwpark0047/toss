@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Sparkles, Tag, Megaphone, Utensils, Flame } from 'lucide-react';
 import { storesAPI } from '../api/stores';
 import { hasCorruptName } from '../utils/storeName';
+import Icon from './ui/Icon';
 
 /** 배너 종류별 스타일/라벨 */
 const META = {

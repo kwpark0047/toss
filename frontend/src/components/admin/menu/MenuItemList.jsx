@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Trash2, Edit, Star, Clock, Image as ImageIcon, ShoppingBag } from 'lucide-react';
 import EmptyState from '../../common/EmptyState';
 import { formatPrice } from '../../../utils/format';
+import Icon from '../../ui/Icon';
 
 export const MenuItemList = ({
   products,
@@ -138,8 +139,8 @@ export const MenuItemList = ({
                     )}
                     {product.is_popular ? (
                       <div className="absolute top-1 left-1 lg:top-4 lg:left-4 bg-amber-400 text-slate-950 p-1 lg:p-2 rounded-lg shadow-lg">
-                        <Star size={9} fill="currentColor" className="lg:hidden" />
-                        <Star size={14} fill="currentColor" className="hidden lg:block" />
+                        <Icon icon="Star" />
+                        <Icon icon="Star" />
                       </div>
                     ) : null}
                   </div>

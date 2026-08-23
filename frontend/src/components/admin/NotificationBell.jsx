@@ -2,15 +2,16 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Bell, Volume2, VolumeX, Check, Trash2, X, RefreshCw, ChevronDown, Wifi, WifiOff, ShoppingBag, Star, Calendar, AlertTriangle, Phone, Banknote, Settings } from 'lucide-react';
 import { useNotifications } from '../../contexts/NotificationContext';
+import Icon from '../ui/Icon';
 
 const TYPE_META = {
-    NEW_ORDER:       { icon: ShoppingBag,   color: 'text-orange-400', bg: 'bg-orange-500/10',  label: '새 주문',   dot: 'bg-orange-400' },
+    NEW_ORDER:       { icon: 'ShoppingBag',   color: 'text-orange-400', bg: 'bg-orange-500/10',  label: '새 주문',   dot: 'bg-orange-400' },
     ORDER_STATUS:    { icon: Check,         color: 'text-blue-400',   bg: 'bg-blue-500/10',    label: '주문 상태', dot: 'bg-blue-400' },
     LOW_STOCK:       { icon: AlertTriangle, color: 'text-red-400',    bg: 'bg-red-500/10',     label: '재고 경고', dot: 'bg-red-400' },
     NEW_REVIEW:      { icon: Star,          color: 'text-amber-400',  bg: 'bg-amber-500/10',   label: '새 리뷰',   dot: 'bg-amber-400' },
     NEW_RESERVATION: { icon: Calendar,      color: 'text-purple-400', bg: 'bg-purple-500/10',  label: '예약',      dot: 'bg-purple-400' },
-    NEW_WAITING:     { icon: Phone,         color: 'text-teal-400',   bg: 'bg-teal-500/10',    label: '대기',      dot: 'bg-teal-400' },
-    MANAGER_CALL:    { icon: Phone,         color: 'text-rose-400',   bg: 'bg-rose-500/10',    label: '호출',      dot: 'bg-rose-400' },
+    NEW_WAITING:     { icon: 'Phone',         color: 'text-teal-400',   bg: 'bg-teal-500/10',    label: '대기',      dot: 'bg-teal-400' },
+    MANAGER_CALL:    { icon: 'Phone',         color: 'text-rose-400',   bg: 'bg-rose-500/10',    label: '호출',      dot: 'bg-rose-400' },
     SETTLEMENT:      { icon: Banknote,      color: 'text-green-400',  bg: 'bg-green-500/10',   label: '정산',      dot: 'bg-green-400' },
     SYSTEM:          { icon: Settings,      color: 'text-slate-400',  bg: 'bg-slate-500/10',   label: '시스템',    dot: 'bg-slate-400' },
 };

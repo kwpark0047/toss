@@ -11,6 +11,7 @@ import { useSEO } from '../../lib/useSEO';
 import MiniBarChart from './MiniBarChart';
 import StoreDetailModal from './StoreDetailModal';
 import StoreEnrichmentModal from './StoreEnrichmentModal';
+import Icon from '../ui/Icon';
 
 const INFO_BADGE = {
   good: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
@@ -101,9 +102,9 @@ export default function SuperAdminDashboard() {
     { label: '전체 매장', value: num(overview.totalStores), icon: Store, color: 'text-orange-400', bg: 'bg-orange-500/10' },
     { label: '활성 매장', value: num(overview.activeStores), icon: Clock, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
     { label: '총 고객', value: num(overview.totalCustomers), icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { label: '총 주문', value: num(overview.totalOrders), icon: ShoppingBag, color: 'text-violet-400', bg: 'bg-violet-500/10' },
-    { label: '발행 포인트', value: num(overview.pointsIssued), icon: Coins, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    { label: '포인트 잔액', value: num(overview.pointsBalance), icon: Gift, color: 'text-rose-400', bg: 'bg-rose-500/10' },
+    { label: '총 주문', value: num(overview.totalOrders), icon: 'ShoppingBag', color: 'text-violet-400', bg: 'bg-violet-500/10' },
+    { label: '발행 포인트', value: num(overview.pointsIssued), icon: 'Coins', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { label: '포인트 잔액', value: num(overview.pointsBalance), icon: 'Gift', color: 'text-rose-400', bg: 'bg-rose-500/10' },
   ] : [];
 
   return (
@@ -113,12 +114,12 @@ export default function SuperAdminDashboard() {
         <div>
           <p className="text-sm text-slate-500 font-medium">플랫폼 운영</p>
           <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2">
-            <Building2 size={26} className="text-orange-400" aria-hidden="true" /> 슈퍼관리자 대시보드
+            <Icon icon="Building2" /> 슈퍼관리자 대시보드
           </h1>
         </div>
         <button type="button" onClick={() => navigate('/admin/enrich-stores')}
           className="inline-flex items-center gap-2 px-5 h-11 rounded-2xl bg-white/5 border border-white/10 font-black text-sm hover:bg-white/10 transition-all">
-          <MapPinned size={16} aria-hidden="true" /> 매장 정보 보강
+          <Icon icon="MapPin" /> 매장 정보 보강
         </button>
       </div>
 
@@ -148,7 +149,7 @@ export default function SuperAdminDashboard() {
         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
           <div className="flex items-center justify-between gap-3 mb-3">
             <h2 className="text-sm font-black flex items-center gap-2">
-              <MapPinned size={15} className="text-orange-400" aria-hidden="true" /> 매장 정보 보강 현황
+              <Icon icon="MapPin" /> 매장 정보 보강 현황
               <span className="text-[11px] bg-white/10 text-slate-300 px-2 py-0.5 rounded-full">평균 완성도 {coverage.overallScore ?? 0}%</span>
             </h2>
             <button type="button" onClick={() => navigate('/admin/enrich-stores')}

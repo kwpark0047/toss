@@ -5,6 +5,7 @@ import {
   ArrowRight, RefreshCw,
 } from 'lucide-react';
 import { adminAPI } from '../../api/admin';
+import Icon from '../ui/Icon';
 
 const CATEGORY_LABELS = {
   basic: '기본 정보',
@@ -128,7 +129,7 @@ export default function StoreEnrichmentModal({ storeId, storeName, onClose, onCh
         <div className="sticky top-0 bg-slate-900/95 backdrop-blur border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
           <div className="min-w-0">
             <h3 className="text-lg font-black truncate flex items-center gap-2">
-              <MapPinned size={18} className="text-orange-400" aria-hidden="true" /> 매장 정보 보강
+              <Icon icon="MapPin" /> 매장 정보 보강
             </h3>
             <p className="text-[11px] text-slate-500 truncate">{storeName || `매장 #${storeId}`}</p>
           </div>
@@ -172,7 +173,7 @@ export default function StoreEnrichmentModal({ storeId, storeName, onClose, onCh
               {/* 우선순위 액션 */}
               {report.priorityActions?.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-black flex items-center gap-1.5"><AlertTriangle size={14} className="text-amber-400" aria-hidden="true" /> 우선 조치</h4>
+                  <h4 className="text-sm font-black flex items-center gap-1.5"><Icon icon="AlertTriangle" /> 우선 조치</h4>
                   {report.priorityActions.map((a, i) => (
                     <div key={i} className={`border rounded-xl px-4 py-3 text-xs ${PRIORITY_STYLE[a.priority] || PRIORITY_STYLE.LOW}`}>
                       <p className="font-black">{a.message}</p>

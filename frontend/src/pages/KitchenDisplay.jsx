@@ -6,6 +6,7 @@ import { Play, CheckCircle2, RefreshCw, Printer, Volume2, VolumeX, Wifi, WifiOff
 import { connectKitchen, getSocket } from '../utils/socket';
 import notificationSound, { vibrateShort, vibrateOrderReady } from '../utils/notificationSound';
 import { usePrinter } from '../hooks/usePrinter';
+import Icon from '../components/ui/Icon';
 export default function KitchenDisplay() {
   const {
     t
@@ -409,7 +410,7 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
 
           {/* AI TTS 라이브 스피커 토글 (48px 터치 영역 충족) */}
           <button onClick={() => setVoiceEnabled(!voiceEnabled)} className={`px-4 h-12 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all active:scale-95 ${voiceEnabled ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
-            <Megaphone className={`size-4 ${voiceEnabled ? 'animate-bounce' : ''}`} />
+            <Icon icon="Megaphone" />
             <span className="font-mono text-xs uppercase font-bold">{voiceEnabled ? 'VOICE ON' : 'VOICE OFF'}</span>
           </button>
 
@@ -675,7 +676,7 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
               {/* 실시간 AI 음성 방송 텍스트 브로드캐스트 현장 모니터 전광판 (UI 결합 추가) */}
               {voiceEnabled && <div className="mt-4 p-4 rounded-2xl bg-white/[0.01] border border-white/5 space-y-3 shrink-0 text-left">
                   <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                    <Megaphone className="size-4 text-rose-400 animate-pulse" />
+                    <Icon icon="Megaphone" />
                     <span className="text-[10px] font-black uppercase tracking-wider text-rose-300">{t('kds.voice.title')}</span>
                   </div>
                   {voiceLogs.length === 0 ? <p className="text-[10px] text-slate-600 font-semibold italic text-center py-2">

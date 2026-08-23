@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useParams } from 'react-router';
 import { Truck, Sparkles, MapPin, Flame, Coffee, Settings, Search, Award, Terminal, ChevronRight, Save, Loader2, CheckCircle2, AlertCircle, Store } from 'lucide-react';
 import api from '@/api/client';
+import Icon from '../components/ui/Icon';
 
 // 콘셉트 테마 정의
 const CONCEPTS = [{
@@ -399,7 +400,7 @@ export default function FoodTruckDesignShowcase() {
                   {/* 트렌디 네비게이션 */}
                   <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Flame size={18} className="text-orange-500" />
+                      <Icon icon="Flame" />
                       <span className="font-bold tracking-tight text-lg">STREET RADAR V2</span>
                     </div>
                     <div className="relative">
@@ -447,7 +448,7 @@ export default function FoodTruckDesignShowcase() {
                               </div>
                               <h4 className="text-base font-bold text-white group-hover:text-orange-400 transition-colors mb-1">{truck.name}{ownerMode && truck.id === 1 && <span className="ml-1.5 text-[9px] font-bold align-middle px-1.5 py-0.5 rounded bg-orange-500/10 border border-orange-500/20 text-orange-400">내 트럭</span>}</h4>
                               <div className="flex items-center gap-2 text-xs text-slate-400 mb-3">
-                                <MapPin size={12} className="text-orange-500" />
+                                <Icon icon="MapPin" />
                                 <span>{currentSpot}</span>
                                 <span className="text-slate-600">|</span>
                                 <span>반경 {truck.distance}</span>
@@ -478,7 +479,7 @@ export default function FoodTruckDesignShowcase() {
                       <span className="font-serif font-bold text-lg tracking-tight text-[#2C3E2B]">Cozy Spot Tracker</span>
                     </div>
                     <div className="text-xs text-[#6E7B6C] font-medium flex items-center gap-1 bg-[#ECE7DE] px-3 py-1 rounded-full">
-                      <MapPin size={12} />
+                      <Icon icon="MapPin" />
                       <span>오늘의 평화로운 거점 탐색</span>
                     </div>
                   </div>
@@ -516,7 +517,7 @@ export default function FoodTruckDesignShowcase() {
                               </div>
                               <h4 className="text-base font-serif font-bold text-[#2C3E2B] mb-1">{truck.name}{ownerMode && truck.id === 1 && <span className="ml-1.5 text-[9px] font-bold align-middle px-1.5 py-0.5 rounded bg-[#E8F0E8] text-[#4E6E4C]">내 트럭</span>}</h4>
                               <div className="flex items-center gap-2 text-xs text-[#6E7B6C] mb-3">
-                                <MapPin size={12} className="text-[#4E6E4C]" />
+                                <Icon icon="MapPin" />
                                 <span>{currentSpot}</span>
                                 <span className="text-[#ECE7DE]">|</span>
                                 <span>{truck.distance} 거리</span>
@@ -668,7 +669,7 @@ export default function FoodTruckDesignShowcase() {
                               </div>
                               <h4 className="text-base font-black text-white mb-1 tracking-tight">{truck.name}{ownerMode && truck.id === 1 && <span className="ml-1.5 text-[9px] font-bold align-middle px-1.5 py-0.5 rounded bg-pink-500/10 border border-pink-500/30 text-pink-400">MINE</span>}</h4>
                               <div className="flex items-center gap-2 text-xs text-slate-400 mb-3">
-                                <MapPin size={12} className="text-pink-500" />
+                                <Icon icon="MapPin" />
                                 <span>{currentSpot}</span>
                                 <span className="text-[#1E043B]">|</span>
                                 <span className="font-mono">{truck.distance}</span>
@@ -695,7 +696,7 @@ export default function FoodTruckDesignShowcase() {
                   {/* 미니멀 헤더 */}
                   <div className="px-8 py-6 border-b border-stone-200 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Award size={18} className="text-stone-900" />
+                      <Icon icon="Award" />
                       <span className="font-serif font-black tracking-tight text-xl">THE POP-UP TRUCK LIST</span>
                     </div>
                     <div className="text-xs text-stone-500 font-serif italic">
@@ -735,7 +736,7 @@ export default function FoodTruckDesignShowcase() {
                               </div>
                               <h4 className="text-lg font-serif font-bold text-stone-900 mb-1">{truck.name}{ownerMode && truck.id === 1 && <span className="ml-1.5 text-[9px] font-bold align-middle px-1.5 py-0.5 rounded bg-stone-900 text-white">MINE</span>}</h4>
                               <div className="flex items-center gap-2 text-xs text-stone-500 mb-4 italic">
-                                <MapPin size={12} className="text-stone-900" />
+                                <Icon icon="MapPin" />
                                 <span>{currentSpot}</span>
                                 <span className="text-stone-300">/</span>
                                 <span>{truck.distance} DISTANCE</span>

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { MessageSquare, Store, MoreHorizontal, Heart, MessageCircle } from 'lucide-react';
 import { reviewsAPI } from '../../api';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../common/LanguageSwitcher';
+import Icon from '../ui/Icon';
 
 const ReviewFeed = () => {
     const { t } = useTranslation();
@@ -168,7 +170,7 @@ const ReviewFeed = () => {
                                     <img src={r.image_url} alt="리뷰 사진" loading="lazy" className="w-full h-full object-cover" />
                                     {r.is_best && (
                                         <div className="absolute top-4 left-4 bg-orange-500 text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg flex items-center gap-1">
-                                            <Star size={10} fill="currentColor" /> {t('review.best')}
+                                            <Icon icon="Star" /> {t('review.best')}
                                         </div>
                                     )}
                                 </div>
@@ -191,16 +193,12 @@ const ReviewFeed = () => {
                                             <MessageCircle size={24} />
                                         </button>
                                         <button className="text-slate-400 hover:text-slate-600">
-                                            <Share2 size={24} />
+                                            <Icon icon="Share2" />
                                         </button>
                                     </div>
                                     <div className="flex gap-0.5">
                                         {[1, 2, 3, 4, 5].map(s => (
-                                            <Star
-                                                key={s}
-                                                size={14}
-                                                className={s <= r.rating ? "text-orange-400 fill-orange-400" : "text-slate-200"}
-                                            />
+                                            <Icon icon="Star" />
                                         ))}
                                     </div>
                                 </div>

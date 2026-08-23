@@ -4,6 +4,7 @@ import { ordersAPI, storesAPI } from '../../api';
 import { ArrowLeft, TrendingUp, DollarSign, ShoppingBag, BarChart3, PieChart, Clock, Award, RefreshCw } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import Skeleton from '../common/Skeleton';
+import Icon from '../ui/Icon';
 
 const SalesStats = () => {
   const { storeId } = useParams();
@@ -228,7 +229,7 @@ const SalesStats = () => {
         <div className="bg-white rounded-2xl shadow-soft p-5 card-hover">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
-              <BarChart3 className="w-6 h-6 text-white" />
+              <Icon icon="BarChart3" />
             </div>
           </div>
           <p className="text-sm text-slate-500 mb-1">완료율</p>
@@ -245,7 +246,7 @@ const SalesStats = () => {
         {/* 일별 매출 차트 */}
         <div className="bg-white rounded-2xl shadow-soft p-6">
           <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-orange-500" />
+            <Icon icon="BarChart3" />
             일별 매출
           </h3>
           {stats?.daily_sales?.length > 0 ? (
@@ -313,7 +314,7 @@ const SalesStats = () => {
         {/* 인기 메뉴 */}
         <div className="bg-white rounded-2xl shadow-soft p-6">
           <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <Award className="w-5 h-5 text-yellow-500" />
+            <Icon icon="Award" />
             인기 메뉴 TOP 10
           </h3>
           {stats?.top_products?.length > 0 ? (

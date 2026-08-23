@@ -4,6 +4,7 @@ import { ordersAPI, storesAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { formatPrice } from '../utils/format';
 import { Users, ShoppingBag, BarChart3, Clock, Settings, ChevronRight, TrendingUp, AlertCircle, Calendar } from 'lucide-react';
+import Icon from '../components/ui/Icon';
 
 // 매니저 뷰 - 주문/직원 관리, 간략 통계
 const ManagerView = () => {
@@ -82,7 +83,7 @@ const ManagerView = () => {
                             to={`/admin/stores/${storeId}/staff`}
                             className="p-3 bg-slate-100 rounded-xl text-slate-600 hover:bg-slate-200 transition-colors"
                         >
-                            <Users size={20} />
+                            <Icon icon="Users" />
                         </Link>
                         <Link
                             to={`/admin/stores/${storeId}/settings`}
@@ -130,7 +131,7 @@ const ManagerView = () => {
                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                         <div className="flex items-center gap-3 mb-3">
                             <div className="p-2 bg-purple-50 rounded-xl text-purple-500">
-                                <BarChart3 size={20} />
+                                <Icon icon="BarChart3" />
                             </div>
                             <span className="text-slate-500 text-sm font-medium">조리 중</span>
                         </div>
@@ -204,7 +205,7 @@ const ManagerView = () => {
                         { label: '주방 화면', to: `/admin/stores/${storeId}/kitchen`, icon: AlertCircle, color: 'orange' },
                         { label: '직원 관리', to: `/admin/stores/${storeId}/staff`, icon: Users, color: 'blue' },
                         { label: '근무표', to: `/admin/stores/${storeId}/schedules`, icon: Calendar, color: 'teal' },
-                        { label: '주문 내역', to: `/admin/stores/${storeId}/orders`, icon: ShoppingBag, color: 'green' },
+                        { label: '주문 내역', to: `/admin/stores/${storeId}/orders`, icon: 'ShoppingBag', color: 'green' },
                         { label: '매출 통계', to: `/admin/stores/${storeId}/stats`, icon: BarChart3, color: 'purple' },
                     ].map((item) => (
                         <Link

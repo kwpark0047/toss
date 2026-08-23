@@ -4,24 +4,25 @@ import { Megaphone, Play, Pause, Trash2, BarChart3, Users, TrendingUp, Gift, Tar
 import { campaignAPI } from '@/api/admin';
 import Skeleton from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
+import Icon from '../ui/Icon';
 
 /* ── 유형별 메타 ─────────────────────────────────────────────── */
 const TRIGGER_META = {
   WELCOME: {
     label: '첫 방문 환영',
-    icon: Gift,
+    icon: 'Gift',
     color: 'text-emerald-600',
     bg: 'bg-emerald-50'
   },
   TIER_UP: {
     label: '등급 승급',
-    icon: TrendingUp,
+    icon: 'TrendingUp',
     color: 'text-purple-600',
     bg: 'bg-purple-50'
   },
   BIRTHDAY: {
     label: '생일 축하',
-    icon: Gift,
+    icon: 'Gift',
     color: 'text-rose-600',
     bg: 'bg-rose-50'
   },
@@ -288,7 +289,7 @@ export default function CampaignDashboard() {
     </div>;
   if (error) return <div className="p-6">
       <div className="rounded-2xl bg-red-50 p-6 text-center border border-red-100">
-        <AlertTriangle size={36} className="mx-auto mb-3 text-red-400" />
+        <Icon icon="AlertTriangle" />
         <p className="text-red-600 font-medium">데이터를 불러오지 못했습니다</p>
         <p className="text-sm text-red-400 mt-1">{error}</p>
         <button onClick={loadAll} className="mt-4 text-sm text-red-600 underline">다시 시도</button>
@@ -307,7 +308,7 @@ export default function CampaignDashboard() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Megaphone size={24} className="text-indigo-600" /> 스마트 마케팅
+            <Icon icon="Megaphone" /> 스마트 마케팅
           </h1>
           <p className="text-sm text-gray-500 mt-1">AI 기반 고객 세그먼트 분석 + 자동 캠페인</p>
         </div>
@@ -330,11 +331,11 @@ export default function CampaignDashboard() {
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-4 mb-6">
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Users size={14} /> 전체 고객</div>
+          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Icon icon="Users" /> 전체 고객</div>
           <p className="text-xl font-bold text-gray-900">{totalCustomers.toLocaleString()}명</p>
         </div>
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Megaphone size={14} /> 활성 캠페인</div>
+          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Icon icon="Megaphone" /> 활성 캠페인</div>
           <p className="text-xl font-bold text-gray-900">{campaigns.filter(c => c.is_active).length}건</p>
         </div>
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
@@ -342,7 +343,7 @@ export default function CampaignDashboard() {
           <p className="text-xl font-bold text-gray-900">{avgSpent.toLocaleString()}원</p>
         </div>
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Target size={14} /> 자동 캠페인</div>
+          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Icon icon="Target" /> 자동 캠페인</div>
           <p className="text-xl font-bold text-gray-900">{campaigns.filter(c => c.trigger_type !== 'MANUAL').length}건</p>
         </div>
       </div>

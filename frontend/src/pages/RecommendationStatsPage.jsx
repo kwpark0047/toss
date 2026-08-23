@@ -6,6 +6,7 @@ import {
   BarChart3, RefreshCw, AlertCircle,
 } from 'lucide-react';
 import { recommendationAPI } from '@/api';
+import Icon from '../components/ui/Icon';
 
 const TYPE_LABELS = {
   ai_personalized: 'AI 개인화 추천',
@@ -139,7 +140,7 @@ export default function RecommendationStatsPage() {
             {/* 추천 유형별 비교 */}
             <div className="bg-white rounded-2xl shadow-sm p-4">
               <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-4">
-                <BarChart3 className="w-5 h-5 text-orange-500" />
+                <Icon icon="BarChart3" />
                 추천 유형별 성과
               </h3>
               <div className="space-y-3">
@@ -222,7 +223,7 @@ export default function RecommendationStatsPage() {
             {daily.length > 0 && (
               <div className="bg-white rounded-2xl shadow-sm p-4">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-4">
-                  <BarChart3 className="w-5 h-5 text-indigo-500" />
+                  <Icon icon="BarChart3" />
                   일별 추천 노출 추세
                 </h3>
                 <div className="flex items-end gap-1 h-32">

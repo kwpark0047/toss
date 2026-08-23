@@ -4,6 +4,7 @@ import { storesAPI, tierSettingsAPI } from '../../api';
 import { Clock, Palette, Save, CheckCircle2, ChevronDown, ChevronUp, Sun, Moon, Store, Type, Layout, Brush, ToggleLeft, ToggleRight, CopyCheck, Award, Plus, Trash2, Edit3 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useSEO } from '../../lib/useSEO';
+import Icon from '../ui/Icon';
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
 const DAYS = [
@@ -516,7 +517,7 @@ export default function StoreSettings() {
         {/* 등급 목록 */}
         {tiers.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-xl mb-4">
-            <Award className="mx-auto mb-2 text-gray-300" size={32} />
+            <Icon icon="Award" />
             <p className="text-sm text-gray-400">등록된 등급이 없습니다</p>
             <p className="text-xs text-gray-300 mt-1">새 등급을 추가해주세요</p>
           </div>
@@ -525,7 +526,7 @@ export default function StoreSettings() {
             {tiers.map((tier) => (
               <div key={tier.tier_name} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center shrink-0">
-                  <Award className="text-white" size={16} />
+                  <Icon icon="Award" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-800 text-sm">{tier.tier_name}</p>

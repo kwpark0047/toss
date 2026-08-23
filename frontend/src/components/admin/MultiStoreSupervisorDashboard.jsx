@@ -18,6 +18,7 @@ import { formatPrice } from '../../utils/format';
 import { toast } from 'react-toastify';
 import { vibrateShort } from '../../utils/notificationSound';
 import { analyticsAPI } from '../../api/misc';
+import Icon from '../ui/Icon';
 export default function MultiStoreSupervisorDashboard() {
   const [data, setData] = useState({
     summary: {
@@ -112,7 +113,7 @@ export default function MultiStoreSupervisorDashboard() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div className="p-2.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-xl">
-              <Building2 className="size-5" />
+              <Icon icon="Building2" />
             </div>
             <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
               통합 브랜드 어드민
@@ -230,7 +231,7 @@ export default function MultiStoreSupervisorDashboard() {
           <h3 className="text-2xl font-black font-mono text-orange-300">{summary.pending_reorders ?? 0}<span className="text-sm ml-1 text-slate-400">건</span></h3>
         </div>
         <div className="p-5 rounded-3xl bg-slate-900 border border-slate-850 shadow-2xl flex flex-col justify-between h-36">
-          <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500">활성 CRM</span><Megaphone className="text-indigo-400" size={18} /></div>
+          <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500">활성 CRM</span><Icon icon="Megaphone" /></div>
           <h3 className="text-2xl font-black font-mono text-indigo-300">{summary.active_campaigns ?? 0}<span className="text-sm ml-1 text-slate-400">건</span></h3>
         </div>
         <div className="p-5 rounded-3xl bg-slate-900 border border-slate-850 shadow-2xl flex flex-col justify-between h-36">

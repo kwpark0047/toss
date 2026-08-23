@@ -5,6 +5,7 @@ import { ArrowLeft, RefreshCw, Star, MessageSquareText, Send, Sparkles, Loader2,
 import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
+import Icon from '../ui/Icon';
 
 // 리뷰 첨부 사진 (로드 실패 폴백)
 const ReviewPhoto = ({ src }) => {
@@ -76,7 +77,7 @@ function ReviewCard({ review, onReplySaved, onReplyDeleted }) {
           </div>
           <div className="flex items-center gap-1 mt-1" aria-label={`별점 ${review.rating}점`}>
             {[1, 2, 3, 4, 5].map(n => (
-              <Star key={n} size={12} className={n <= review.rating ? 'text-orange-400' : 'text-slate-700'} fill="currentColor" aria-hidden="true" />
+              <Icon icon="Star" />
             ))}
             <span className="ml-1 text-[11px] text-slate-500 flex items-center gap-0.5">
               <Heart size={10} className="text-rose-400" fill="currentColor" aria-hidden="true" /> {review._count?.likes ?? 0}

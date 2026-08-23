@@ -1,4 +1,4 @@
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { vibrateClick } from '../../utils/notificationSound';
@@ -146,7 +146,7 @@ const MenuHeader = ({
               onClick={toggleHeader}
               className="tds-stack-h tds-gap-2 tds-p-2 tds-p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-100 dark:border-white/10 shadow-lg shadow-slate-900/10"
             >
-              <Icon icon="Menu" size="sm" color="primary" />
+              <Icon icon="Menu" />
               <span className="tds-small font-bold">{t('menu_header.show_menu')}</span>
             </motion.button>
             <motion.button
@@ -154,7 +154,7 @@ const MenuHeader = ({
               onClick={() => { vibrateClick(); navigate(-1); }}
               className="tds-p-2 tds-p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-100 dark:border-white/10 shadow-lg"
             >
-              <Icon icon="ChevronLeft" size="sm" color="muted" />
+              <Icon icon="ChevronLeft" />
             </motion.button>
           </div>
         </motion.div>
@@ -174,7 +174,7 @@ const MenuHeader = ({
             <div className="px-5 pb-5 overflow-hidden">
               <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-5 shadow-2xl shadow-blue-200">
                 <h3 className="text-white font-bold text-sm mb-3 flex items-center gap-2">
-                  <Icon icon="Sparkles" size="sm" color="inverse" />
+                  <Icon icon="Sparkles" />
                   {t('menu.ai_recommend')}
                 </h3>
                 <form onSubmit={handleGetRecommendations} className="relative group">
@@ -202,7 +202,7 @@ const MenuHeader = ({
                     disabled={aiLoading} 
                     className="absolute right-1.5 top-1.5 bottom-1.5 w-11 bg-white text-blue-600 rounded-xl flex items-center justify-center disabled:opacity-50 shadow-lg group-focus-within:bg-blue-600 group-focus-within:text-white transition-colors"
                   >
-                    {aiLoading ? <div className="w-5 h-5 border-3 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" /> : <Icon icon="Search" size="md" color="primary" />}
+                    {aiLoading ? <div className="w-5 h-5 border-3 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" /> : <Icon icon="Search" />}
                   </motion.button>
                 </form>
               </div>

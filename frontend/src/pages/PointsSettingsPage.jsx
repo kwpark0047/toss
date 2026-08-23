@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Save, AlertCircle, Clock, Star } from 'lucide-react';
 import { pointsAPI } from '@/api';
 import { toast } from 'react-toastify';
+import Icon from '../components/ui/Icon';
 
 const DEFAULT_SETTINGS = {
   is_enabled: true,
@@ -114,7 +115,7 @@ export default function PointsSettingsPage() {
         {/* 적립 설정 */}
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
-            <Star className="w-5 h-5 text-amber-500" />
+            <Icon icon="Star" />
             {t('settings.earn_settings')}
           </h3>
           

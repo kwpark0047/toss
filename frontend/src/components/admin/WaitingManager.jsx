@@ -23,6 +23,7 @@ import {
 import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
+import Icon from '../ui/Icon';
 
 const STATUS_META = {
   waiting: { label: '대기 중', badge: 'bg-amber-100 text-amber-700 border-amber-200' },
@@ -257,7 +258,7 @@ const WaitingManager = () => {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-black text-white flex items-center gap-3">
-                        <Users className="text-blue-400" size={32} />
+                        <Icon icon="Users" />
                         스마트 대기 관리
                     </h1>
                     <p className="mt-2 text-slate-400">
@@ -402,7 +403,7 @@ const WaitingManager = () => {
             {/* 대기 목록 */}
             {visibleEntries.length === 0 ? (
                 <EmptyState
-                    icon={<Users className="w-14 h-14 text-gray-300" />}
+                    icon={<Icon icon="Users" />}
                     title="대기 중인 고객이 없습니다"
                     description="고객이 QR 코드로 웨이팅을 등록하면 실시간으로 표시됩니다."
                 />
@@ -468,7 +469,7 @@ const WaitingCard = ({
                 <div>
                     <p className="font-bold text-gray-800">{entry.customer_name || '이름 없음'}</p>
                     <p className="text-xs text-gray-400 flex items-center gap-1">
-                        <Users size={12} /> {entry.party_size}명 ·{' '}
+                        <Icon icon="Users" /> {entry.party_size}명 ·{' '}
                         <PhoneCall size={12} /> {entry.customer_phone}
                     </p>
                 </div>
@@ -533,7 +534,7 @@ const WaitingCard = ({
                         onClick={onResendCancel}
                         className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl text-sm font-medium transition-colors"
                     >
-                        <AlertTriangle size={14} /> 취소 재발송
+                        <Icon icon="AlertTriangle" /> 취소 재발송
                     </button>
                 </div>
             </div>

@@ -6,6 +6,7 @@ import {
   Sparkles, DollarSign, BadgeCheck, Activity, ArrowUpRight, Zap, ReceiptText,
   ChefHat, BarChart3, MessageSquareText, ArrowLeft, ArrowRight, Play, ChevronRight,
 } from 'lucide-react';
+import Icon from '../ui/Icon';
 
 /**
  * BusinessDemo — 사업자(관리자) 데모 체험.
@@ -23,8 +24,8 @@ const NAV = [
 ];
 
 const STATS = [
-  { title: '총 매출', icon: DollarSign, color: 'text-orange-400', bg: 'bg-orange-500/10', value: '₩1,284,000', trend: 18, accent: 'border-orange-500/20' },
-  { title: '총 주문', icon: ShoppingBag, color: 'text-blue-400', bg: 'bg-blue-500/10', value: '86건', trend: 12, accent: 'border-blue-500/20' },
+  { title: '총 매출', icon: 'DollarSign', color: 'text-orange-400', bg: 'bg-orange-500/10', value: '₩1,284,000', trend: 18, accent: 'border-orange-500/20' },
+  { title: '총 주문', icon: 'ShoppingBag', color: 'text-blue-400', bg: 'bg-blue-500/10', value: '86건', trend: 12, accent: 'border-blue-500/20' },
   { title: '완료율', icon: BadgeCheck, color: 'text-emerald-400', bg: 'bg-emerald-500/10', value: '97%', accent: 'border-emerald-500/20' },
   { title: '매장 상태', icon: Activity, color: 'text-violet-400', bg: 'bg-violet-500/10', value: '대기 3건', accent: 'border-orange-500/40' },
 ];

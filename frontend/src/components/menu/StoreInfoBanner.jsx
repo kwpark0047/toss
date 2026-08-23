@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Phone, Clock, Megaphone } from 'lucide-react';
 import NaverShareButton from '../common/NaverShareButton';
+import Icon from '../ui/Icon';
 
 const StoreInfoBanner = ({ 
   description, 
@@ -24,7 +25,7 @@ const StoreInfoBanner = ({
             className="bg-primary/5 border-b border-primary/10 overflow-hidden"
           >
             <div className="container mx-auto px-4 py-2 flex items-center gap-2 text-primary">
-              <Megaphone className="w-4 h-4 flex-shrink-0" />
+              <Icon icon="Megaphone" />
               <p className="tds-caption font-semibold truncate">{announcement}</p>
             </div>
           </motion.div>
@@ -43,7 +44,7 @@ const StoreInfoBanner = ({
             <div className="flex flex-wrap gap-x-3 gap-y-1.5 tds-label cust-text-sub">
               {address && (
                 <div className="flex items-center gap-1 min-w-0 max-w-full">
-                  <MapPin className="w-3 h-3 flex-shrink-0" />
+                  <Icon icon="MapPin" />
                   <span className="truncate">{address}</span>
                 </div>
               )}

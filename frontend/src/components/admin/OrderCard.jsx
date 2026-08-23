@@ -1,6 +1,7 @@
 import { Eye, Clock, MapPin, User, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
+import Icon from '../ui/Icon';
 
 const STATUS_STYLE = {
   paid:      { bar: 'bg-teal-400',    badge: 'bg-teal-50 text-teal-700 border-teal-200',       btn: 'bg-teal-500 text-white' },
@@ -58,7 +59,7 @@ const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, formatTi
         </span>
         {order.table_name && (
           <span className="flex items-center gap-1">
-            <MapPin size={13} className="text-gray-400" />
+            <Icon icon="MapPin" />
             {order.table_name}
           </span>
         )}

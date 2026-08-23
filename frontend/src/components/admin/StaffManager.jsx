@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
+import Icon from '../ui/Icon';
 
 // ── 역할 정의 ──────────────────────────────────────────────
 const ROLES = {
@@ -511,7 +512,7 @@ const StaffManager = () => {
         </motion.button>
         <div className="flex-1">
           <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
-            HUMAN RESOURCES <Users size={24} className="text-orange-500" />
+            HUMAN RESOURCES <Icon icon="Users" />
           </h1>
           <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">
             {store?.name} — {isSoloStore ? '1인 매장 운영 모드' : '직원 권한 및 근태 관리'}
@@ -540,7 +541,7 @@ const StaffManager = () => {
             className={`px-8 py-3 rounded-xl font-black text-[10px] tracking-widest transition-all flex items-center gap-2 ${
               tab === i ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-slate-500 hover:text-slate-300'
             }`}>
-            {i === 0 && <Users size={14} />}
+            {i === 0 && <Icon icon="Users" />}
             {i === 1 && <Clock size={14} />}
             {i === 2 && <BarChart2 size={14} />}
             {t}

@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router";
 import { pointsAPI } from "@/api";
 import { Wallet as WalletIcon, History, ChevronLeft, QrCode, Search, TrendingUp, TrendingDown, Zap, Trophy, Star, Medal } from "lucide-react";
 import { motion } from "framer-motion";
+import Icon from '../../components/ui/Icon';
 
 const Wallet = () => {
     const [searchParams] = useSearchParams();
@@ -64,7 +65,7 @@ const Wallet = () => {
         return (
             <div className="min-h-screen bg-slate-50 p-6 flex flex-col items-center justify-center">
                 <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-100">
-                    <WalletIcon className="text-white" size={32} />
+                    <Icon icon="Wallet" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900 mb-2">모바일 멤버십 월렛</h1>
                 <p className="text-slate-500 text-center mb-8">휴대폰 번호를 입력하면<br />적립된 포인트와 스탬프를 확인하실 수 있습니다.</p>
@@ -228,7 +229,7 @@ const Wallet = () => {
                     >
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-black text-slate-900 tracking-tight flex items-center gap-2 text-lg">
-                                <Star className="text-orange-500 fill-orange-500" size={20} /> 스탬프 혜택 현황
+                                <Icon icon="Star" /> 스탬프 혜택 현황
                             </h3>
                             <div className="px-4 py-1.5 rounded-2xl bg-orange-500 text-white font-black text-[10px] shadow-lg shadow-orange-100">
                                 {tier_info?.current?.earn_rate || store_settings.earn_rate}% 적립

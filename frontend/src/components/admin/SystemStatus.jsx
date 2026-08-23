@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, Component } from 'react';
 import { Activity, Database, Zap, Shield, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Clock, TrendingUp, Server, Cpu } from 'lucide-react';
 import { useSEO } from '../../lib/useSEO';
 import api from '../../api';
+import Icon from '../ui/Icon';
 
 /**
  * 각 섹션을 독립적으로 감싸는 에러 바운더리
@@ -116,7 +117,7 @@ const MetricCard = ({
         color
       }} />
             </div>
-            {alert && <AlertTriangle size={16} className="text-red-400" />}
+            {alert && <Icon icon="AlertTriangle" />}
         </div>
         <p className="text-2xl font-black text-gray-900 mt-3">{value ?? '—'}</p>
         <p className="text-sm font-bold text-gray-700 mt-0.5">{label}</p>
@@ -221,7 +222,7 @@ export default function SystemStatus() {
             <SectionErrorBoundary sectionName="전체 상태">
                 <div className={`p-5 rounded-2xl border-2 flex items-center gap-4
                     ${overall === 'ok' ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`} role="status" aria-live="polite" aria-label={`전체 시스템 상태: ${overall}`}>
-                    {overall === 'ok' ? <CheckCircle2 size={32} className="text-emerald-500 flex-shrink-0" aria-hidden="true" /> : <AlertTriangle size={32} className="text-red-500 flex-shrink-0" aria-hidden="true" />}
+                    {overall === 'ok' ? <CheckCircle2 size={32} className="text-emerald-500 flex-shrink-0" aria-hidden="true" /> : <Icon icon="AlertTriangle" />}
                     <div>
                         <p className={`text-lg font-black ${overall === 'ok' ? 'text-emerald-700' : 'text-red-700'}`}>
                             {overall === 'ok' ? '모든 시스템 정상 운영 중' : '일부 시스템 이상 감지'}
@@ -505,7 +506,7 @@ export default function SystemStatus() {
                                         <td className="py-2.5 text-right text-gray-500">{row.target}</td>
                                         <td className="py-2.5 text-right font-bold text-gray-900">{row.current ?? '—'}</td>
                                         <td className="py-2.5 text-right">
-                                            {row.ok ? <CheckCircle2 size={16} className="text-emerald-500 inline" aria-label="정상" /> : <AlertTriangle size={16} className="text-red-500 inline" aria-label="위반" />}
+                                            {row.ok ? <CheckCircle2 size={16} className="text-emerald-500 inline" aria-label="정상" /> : <Icon icon="AlertTriangle" />}
                                         </td>
                                     </tr>)}
                             </tbody>

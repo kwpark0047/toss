@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion} from 'framer-motion';
-import { X, Sparkles, Loader2, Check, Upload } from 'lucide-react';
+import { X, Sparkles, Loader2, Check, Upload, AlertCircle, Trash2 } from 'lucide-react';
 import { aiAPI, productsAPI, categoriesAPI } from '../../api';
 import { toast } from 'react-toastify';
 

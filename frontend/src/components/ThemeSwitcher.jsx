@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTheme, THEMES } from '@/contexts/ThemeContext';
 import { Palette, ChevronDown } from 'lucide-react';
+import Icon from './ui/Icon';
 
 export default function ThemeSwitcher() {
   const { themeId, setThemeId } = useTheme();
@@ -26,7 +27,7 @@ export default function ThemeSwitcher() {
         className="flex items-center gap-1.5 px-4 py-3 rounded-full bg-white border border-slate-200 shadow-lg shadow-slate-200/50 text-xs font-bold transition-all hover:shadow-xl hover:border-slate-300 active:scale-95"
         title="테마 변경"
       >
-        <Palette className="w-4 h-4 text-slate-600" />
+        <Icon icon="Palette" />
         <span className="hidden sm:inline">{currentTheme.icon} {currentTheme.name}</span>
         <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>

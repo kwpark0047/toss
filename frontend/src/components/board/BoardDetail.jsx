@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
+import Icon from '../ui/Icon';
 
 const TYPE_LABELS = { notice: '공지사항', free: '자유게시판', qna: '질문/답변', faq: '도움말/FAQ' };
 const TYPE_COLORS = {
@@ -230,7 +231,7 @@ const BoardDetail = () => {
                     )}
                     <button onClick={handleShare}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 text-slate-400 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest transition-all">
-                        <Share2 size={12} /> Share
+                        <Icon icon="Share2" /> Share
                     </button>
                 </div>
             </div>
