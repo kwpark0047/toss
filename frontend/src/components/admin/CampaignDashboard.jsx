@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router';
-import { Megaphone, Play, Pause, Trash2, BarChart3, Users, TrendingUp, Gift, Target, Loader2, DollarSign, AlertTriangle, Sparkles } from 'lucide-react';
 import { campaignAPI } from '@/api/admin';
 import Skeleton from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
@@ -339,7 +338,7 @@ export default function CampaignDashboard() {
           <p className="text-xl font-bold text-gray-900">{campaigns.filter(c => c.is_active).length}건</p>
         </div>
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><DollarSign size={14} /> 객단가</div>
+          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Icon icon="DollarSign" size="md" /> 객단가</div>
           <p className="text-xl font-bold text-gray-900">{avgSpent.toLocaleString()}원</p>
         </div>
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
@@ -379,10 +378,10 @@ export default function CampaignDashboard() {
                       </div>
                       <div className="flex items-center gap-2">
                         <button onClick={() => toggleCampaign(c)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600" title={c.is_active ? '비활성화' : '활성화'}>
-                          {c.is_active ? <Pause size={16} /> : <Play size={16} />}
+                          {c.is_active ? <Icon icon="Pause" size="md" /> : <Icon icon="Play" size="md" />}
                         </button>
                         <button onClick={() => deleteCampaign(c.id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500">
-                          <Trash2 size={16} />
+                          <Icon icon="Trash2" size="md" />
                         </button>
                       </div>
                     </div>
@@ -416,7 +415,7 @@ export default function CampaignDashboard() {
                         </div>
                         <p className="text-[11px] text-gray-400 mt-1">전체의 {pct}%</p>
                         <button onClick={() => sendSmartSms(seg)} disabled={sending} className="mt-2 w-full text-xs py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 disabled:opacity-50 font-medium transition-colors">
-                          {sending ? <Loader2 size={12} className="animate-spin inline" /> : null}
+                          {sending ? <Icon icon="Loader2" size="md" className="animate-spin inline" /> : null}
                           {' '}AI SMS 발송
                         </button>
                       </div>;
@@ -428,23 +427,23 @@ export default function CampaignDashboard() {
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">세그먼트별 추천 액션</h3>
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-50">
-                    <Sparkles size={16} className="text-purple-500 mt-0.5 shrink-0" />
+                    <Icon icon="Sparkles" size="md" className="text-purple-500 mt-0.5 shrink-0" />
                     <div><strong className="text-purple-700">Champions (최우수):</strong> VIP 전용 쿠폰, 단독 이벤트 초대, 감사 메시지로 로열티 강화</div>
                   </div>
                   <div className="flex items-start gap-3 p-3 rounded-xl bg-blue-50">
-                    <Sparkles size={16} className="text-blue-500 mt-0.5 shrink-0" />
+                    <Icon icon="Sparkles" size="md" className="text-blue-500 mt-0.5 shrink-0" />
                     <div><strong className="text-blue-700">Loyal (충성):</strong> 포인트 2배 적립 프로모션, 등급 업데이트 안내로 VIP 전환 유도</div>
                   </div>
                   <div className="flex items-start gap-3 p-3 rounded-xl bg-orange-50">
-                    <Sparkles size={16} className="text-orange-500 mt-0.5 shrink-0" />
+                    <Icon icon="Sparkles" size="md" className="text-orange-500 mt-0.5 shrink-0" />
                     <div><strong className="text-orange-700">At_Risk (이탈 위험):</strong> 할인 쿠폰 + 재방문 유도 SMS로 즉시 액션 필요</div>
                   </div>
                   <div className="flex items-start gap-3 p-3 rounded-xl bg-red-50">
-                    <Sparkles size={16} className="text-red-500 mt-0.5 shrink-0" />
+                    <Icon icon="Sparkles" size="md" className="text-red-500 mt-0.5 shrink-0" />
                     <div><strong className="text-red-700">Lost (이탈):</strong> 강력 할인 쿠폰 + "그리웠어요" 메시지로 재유입 시도</div>
                   </div>
                   <div className="flex items-start gap-3 p-3 rounded-xl bg-green-50">
-                    <Sparkles size={16} className="text-green-500 mt-0.5 shrink-0" />
+                    <Icon icon="Sparkles" size="md" className="text-green-500 mt-0.5 shrink-0" />
                     <div><strong className="text-green-700">New (신규):</strong> 두 번째 방문 유도 쿠폰 발행 + 웰컴 메시지</div>
                   </div>
                 </div>
