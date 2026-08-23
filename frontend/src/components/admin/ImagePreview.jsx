@@ -1,5 +1,4 @@
 import { useState} from 'react';
-import { Loader2, ImageOff, X } from 'lucide-react';
 
 const _formatFileSize = (bytes) => {
   if (bytes < 1024) return `${bytes} B`;
