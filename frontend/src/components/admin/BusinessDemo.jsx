@@ -5,7 +5,6 @@ import {
   Store, LayoutDashboard, UtensilsCrossed, ShoppingBag, Users, Wallet,
   Sparkles, DollarSign, BadgeCheck, Activity, ArrowUpRight, Zap, ReceiptText,
   ChefHat, BarChart3, MessageSquareText, ArrowLeft, ArrowRight, Play, ChevronRight,
-} from 'lucide-react';
 import Icon from '../ui/Icon';
 
 /**
