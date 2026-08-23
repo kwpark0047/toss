@@ -13,7 +13,6 @@ import {
   Package,
   Megaphone,
   Activity,
-} from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import { toast } from 'react-toastify';
 import { vibrateShort } from '../../utils/notificationSound';
