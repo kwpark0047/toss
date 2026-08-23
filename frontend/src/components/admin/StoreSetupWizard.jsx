@@ -18,7 +18,6 @@ import {
   MapPin,
   PartyPopper,
   X,
-} from 'lucide-react';
 import { storesAPI, categoriesAPI, productsAPI, tablesAPI, aiAPI } from '../../api';
 import { useStore } from '../../contexts/StoreContext';
 import { buildMenuUrl, buildQrUrl } from '../../utils/site';
