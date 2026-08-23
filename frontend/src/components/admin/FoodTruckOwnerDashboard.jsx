@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router';
-import { MapPin, ShieldAlert, Sparkles, Navigation, RefreshCw, Power, AlertTriangle } from 'lucide-react';
 import api from '@/api/client';
 import Icon from '../ui/Icon';
 export default function FoodTruckOwnerDashboard() {
