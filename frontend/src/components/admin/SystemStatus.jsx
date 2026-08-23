@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, Component } from 'react';
-import { Activity, Database, Zap, Shield, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Clock, TrendingUp, Server, Cpu } from 'lucide-react';
 import { useSEO } from '../../lib/useSEO';
 import api from '../../api';
 import Icon from '../ui/Icon';
