@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { Palette, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminTheme, THEMES } from '../../contexts/AdminThemeContext';
 import Icon from '../ui/Icon';
@@ -31,7 +30,7 @@ export default function ThemeSwitcher() {
         className="w-12 h-12 flex items-center justify-center rounded-2xl border-2 transition-all hover:scale-105 active:scale-95"
         style={{ background: current.color, borderColor: current.accent + '60' }}
       >
-        <Icon icon="Palette" />
+        <Icon icon="Palette" size="md" />
       </button>
 
       <AnimatePresence>
@@ -60,7 +59,7 @@ export default function ThemeSwitcher() {
                     }}
                   >
                     {themeId === t.id && (
-                      <Check size={14} style={{ color: t.accent }} strokeWidth={3} />
+                      <Icon icon="Check" size="md" stroke="md" style={{ color: t.accent }} />
                     )}
                   </div>
                   <span className={`text-[9px] font-black transition-colors ${
