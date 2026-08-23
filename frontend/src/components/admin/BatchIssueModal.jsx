@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Coins, Ticket, Loader2, X, Check, AlertTriangle, FileText } from 'lucide-react';
 import { adminAPI } from '../../api/admin';
 import GrantTemplateManager from './GrantTemplateManager';
 import Icon from '../ui/Icon';
@@ -77,10 +76,10 @@ export default function BatchIssueModal({ storeId, storeName, onClose }) {
         className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div>
-            <h2 className="text-sm font-black flex items-center gap-2">{tab === 'points' ? <Coins size={16} className="text-amber-400" /> : <Ticket size={16} className="text-amber-400" />} 일괄 발급</h2>
+            <Icon icon="Coins" size="sm" className="text-amber-400" /> 일괄 발급</h2>
             <p className="text-[11px] text-slate-500">{storeName || `매장 #${storeId}`}</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 hover:text-white"><X size={16} /></button>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 hover:text-white"><Icon icon="X" size="md" /></button>
         </div>
 
         <div className="p-4 space-y-3">
@@ -101,7 +100,7 @@ export default function BatchIssueModal({ storeId, storeName, onClose }) {
               {templates.map(t => <option key={t.id} value={t.id} className="bg-slate-900">{t.title}</option>)}
             </select>
             <button onClick={() => setShowTemplateMgr(true)} className="h-9 px-3 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black text-slate-400 hover:text-white flex items-center gap-1">
-              <FileText size={12} /> 관리
+              <Icon icon="FileText" size="md" /> 관리
             </button>
           </div>
 
@@ -134,7 +133,7 @@ export default function BatchIssueModal({ storeId, storeName, onClose }) {
               <textarea value={input} onChange={e => setInput(e.target.value)} placeholder="01012345678, 01087654321" spellCheck={false} rows={2}
                 className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs outline-none focus:border-orange-500/50 resize-none" />
               <button onClick={addPhones} className="shrink-0 h-full px-4 rounded-xl bg-orange-500/15 border border-orange-500/30 text-orange-300 text-[11px] font-black hover:bg-orange-500/25 flex items-center gap-1">
-                <Upload size={12} /> 추가
+                <Icon icon="Upload" size="md" /> 추가
               </button>
             </div>
           </div>
@@ -145,7 +144,7 @@ export default function BatchIssueModal({ storeId, storeName, onClose }) {
               {phones.map(p => (
                 <span key={p} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 text-[11px] font-medium text-slate-300">
                   {p.replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3')}
-                  <button onClick={() => removePhone(p)} className="text-slate-500 hover:text-rose-400"><X size={12} /></button>
+                  <button onClick={() => removePhone(p)} className="text-slate-500 hover:text-rose-400"><Icon icon="X" size="md" /></button>
                 </span>
               ))}
             </div>
@@ -167,7 +166,7 @@ export default function BatchIssueModal({ storeId, storeName, onClose }) {
           <div className="flex gap-2 pt-1">
             <button onClick={submit} disabled={loading || phones.length === 0 || (tab === 'coupons' && !couponId)}
               className="flex-1 h-11 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-600 text-white font-black text-sm shadow-lg shadow-orange-500/20 disabled:opacity-40 flex items-center justify-center gap-2">
-              {loading ? <Loader2 size={16} className="animate-spin" /> : tab === 'points' ? <Coins size={16} /> : <Ticket size={16} />}
+              {loading ? <Icon icon="Loader2" size="md" className="animate-spin" /> : tab === 'points' ? <Icon icon="Coins" size="sm" /> : <Icon icon="Ticket" size="sm" />}
               {loading ? '처리 중...' : `일괄 발급 (${phones.length}명)`}
             </button>
           </div>

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
+import Icon from '../ui/Icon';
 import StoreLocator from '../components/StoreLocator';
 import { storesAPI } from '../api/stores';
 import { getRecentStores } from '../utils/recentStores';
@@ -14,7 +15,6 @@ import {
     TrendingUp, Star, Quote, ShoppingCart,
     Heart, Crown, Award, BadgeCheck, CalendarDays, UserPlus,
     Building2, Share2, Megaphone, MapPin, Repeat2, Target,
-} from 'lucide-react';
 import Icon from '../components/ui/Icon';
 
 const LandingPage = () => {
@@ -176,7 +176,7 @@ const LandingPage = () => {
     // 데모 UX 혁신 3가지
     const demoFeatures = [
         {
-            icon: <Zap size={24} className="text-amber-400" />,
+            icon: <Icon icon="Zap" size="lg" className="text-amber-400" />,
             badge: 'Zero Friction',
             title: '스캔 하나로 바로 주문',
             desc: '회원가입·로그인 없이 QR 스캔만으로 즉시 장바구니 세션 생성. 랜덤 UUID가 실시간으로 할당됩니다.',
@@ -192,7 +192,7 @@ const LandingPage = () => {
             color: 'emerald',
         },
         {
-            icon: <Gift size={24} className="text-purple-400" />,
+            icon: <Icon icon="Gift" size="lg" className="text-purple-400" />,
             badge: '손실 회피',
             title: '60초 타이머로 회원가입 유도',
             desc: '결제 후 포인트가 소멸되기 시작하는 타이머와 사전 입력된 전화번호로 원버튼 가입 완료.',
@@ -249,7 +249,7 @@ const LandingPage = () => {
                     </div>
 
                     <button className="md:hidden p-2 text-gray-600" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-                        {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                        {mobileMenuOpen ? <Icon icon="X" size="lg" /> : <Icon icon="Menu" size="lg" />}
                     </button>
                 </div>
 
@@ -297,7 +297,7 @@ const LandingPage = () => {
                             initial={{ opacity: 0, y: 10, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ duration: 0.5, delay: 0.1 }}
                             className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-6">
-                            <Sparkles size={14} className="animate-pulse" /> 모두의 메뉴판 플랫폼
+                            <Icon icon="Sparkles" size="md" className="animate-pulse" /> 모두의 메뉴판 플랫폼
                         </motion.div>
                         <motion.h1
                             className="text-4xl md:text-6xl font-black leading-[1.15] mb-6 text-gray-900 text-balance [word-break:keep-all]"

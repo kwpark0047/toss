@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, Megaphone, Share2, Heart, Eye, Plus, Trash2, Store, Clock, Phone, CheckCircle, XCircle, Send, Search, Building2, RefreshCw, Loader2, X, ChevronRight, Users, Bell, Globe, MoreHorizontal, ChevronDown, Flame, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Icon from '../ui/Icon';
 import { communityAPI } from '../../api/index.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import api from '../../api/index.js';
@@ -105,7 +105,7 @@ function PostCard({ post, myStoreIds = [], onDelete, onLike }) {
                   onClick={() => setShowMenu(v => !v)}
                   className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
                 >
-                  <MoreHorizontal size={16} />
+                  <<Icon icon="MoreHorizontal" size="md" />
                 </button>
                 <AnimatePresence>
                   {showMenu && (
@@ -119,7 +119,7 @@ function PostCard({ post, myStoreIds = [], onDelete, onLike }) {
                         onClick={() => { onDelete(post.id); setShowMenu(false); }}
                         className="flex items-center gap-2 w-full px-3 py-2 text-sm text-rose-400 hover:bg-white/5 transition-colors"
                       >
-                        <Trash2 size={14} /> 삭제
+                        <Icon icon="Trash2" size="md" /> 삭제
                       </button>
                     </motion.div>
                   )}

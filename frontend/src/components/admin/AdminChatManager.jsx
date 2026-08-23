@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Send, X, Search, ChevronLeft, MessageCircle, RefreshCw } from 'lucide-react';
+import Icon from '../ui/Icon';
 import { chatAPI, getSocket } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 const formatTimeHHMM = dateStr => {
@@ -169,11 +169,11 @@ if (isSuperAdmin) {
             <div className="p-5 border-b border-white/5 bg-gradient-to-r from-slate-800 to-slate-900 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {activeRoom && isSuperAdmin && <button onClick={() => setActiveRoom(null)} className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors">
-                    <ChevronLeft size={20} />
+                    <Icon icon="ChevronLeft" size="md" />
                   </button>}
                 <div>
                   <h3 className="font-black text-lg flex items-center gap-2">
-                    <MessageSquare size={20} className="text-orange-400" />
+                    <Icon icon="MessageSquare" size="md" className="text-orange-400" />
                     {isSuperAdmin ? activeRoom ? activeRoom.users?.name : '사업자 지원 센터' : '플랫폼 운영팀 문의'}
                   </h3>
                   <p className="text-xs text-slate-400">
@@ -182,7 +182,7 @@ if (isSuperAdmin) {
                 </div>
               </div>
               <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400">
-                <X size={20} />
+                <Icon icon="X" size="md" />
               </button>
             </div>
 
@@ -193,17 +193,17 @@ if (isSuperAdmin) {
           <div className="flex flex-col h-full">
                   <div className="p-4">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                      <Icon icon="Search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                       <input type="text" placeholder="사업자명 또는 메시지 검색..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-orange-500/50 transition-colors" />
                     </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto custom-scrollbar">
                     {loading && rooms.length === 0 ? <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
-                        <RefreshCw className="animate-spin" size={24} />
+                        <Icon icon="RefreshCw" size="lg" className="animate-spin" />
                         <p className="text-sm">채팅방을 불러오는 중...</p>
                       </div> : filteredRooms.length === 0 ? <div className="flex flex-col items-center justify-center h-full text-slate-500 p-10 text-center">
-                        <MessageCircle size={40} className="mb-4 opacity-20" />
+                        <Icon icon="MessageCircle" size="lg" className="mb-4 opacity-20" />
                         <p className="text-sm font-medium">참여 중인 대화가 없습니다.</p>
                       </div> : <div className="divide-y divide-white/5">
                         {filteredRooms.map(room => <button key={room.id} onClick={() => {
@@ -236,13 +236,13 @@ if (isSuperAdmin) {
           // 채팅창
           <div className="flex flex-col h-full relative">
                   {loading && messages.length === 0 ? <div className="absolute inset-0 z-10 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center text-orange-400">
-                      <RefreshCw size={24} className="animate-spin" />
+                      <Icon icon="RefreshCw" size="lg" className="animate-spin" />
                     </div> : null}
 
                   <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                     {messages.length === 0 && !loading ? <div className="py-10 text-center">
                         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 text-slate-500 mb-3">
-                          <MessageSquare size={20} />
+                          <Icon icon="MessageSquare" size="md" />
                         </div>
                         <p className="text-sm text-slate-500">상담이 시작되었습니다.<br />문의하실 내용을 입력해 주세요.</p>
                       </div> : messages.map((msg, idx) => {
@@ -274,7 +274,7 @@ if (isSuperAdmin) {
                     <form onSubmit={handleSendMessage} className="flex gap-2">
                       <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder="메시지를 입력하세요..." className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500/50 transition-all placeholder:text-slate-600" />
                       <button type="submit" disabled={!input.trim()} className="p-3 bg-orange-500 text-white rounded-2xl hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-orange-500 transition-all shadow-lg shadow-orange-500/20">
-                        <Send size={20} />
+                        <Icon icon="Send" size="md" />
                       </button>
                     </form>
                     <p className="text-[10px] text-slate-600 mt-2 text-center">

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Wand2, Check, Loader2, FileSpreadsheet, Upload, Download, Info, ChevronDown, ChevronUp, RefreshCw, ImageOff } from 'lucide-react';
+import Icon from '../ui/Icon';
 import { aiAPI, productsAPI, categoriesAPI } from '../../api';
 
 // [번들 최적화 M-5] xlsx 는 gzip 이후에도 ~450KB 로, 정적 import 하면 이 모달을
@@ -225,7 +225,7 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
                 <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
                     <div>
                         <div className="flex items-center gap-2 text-blue-600 mb-1">
-                            <Sparkles size={18} />
+                            <Icon icon="Sparkles" size="md" />
                             <span className="text-[10px] font-black uppercase tracking-widest">AI Power Engine</span>
                         </div>
                         <h2 className="text-2xl font-black text-slate-900 leading-tight tracking-tight">
@@ -233,7 +233,7 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
                         </h2>
                     </div>
                     <button onClick={onClose} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:bg-rose-50 hover:text-rose-500 transition-all">
-                        <X size={22} />
+                        <Icon icon="X" size="md" />
                     </button>
                 </div>
 
@@ -248,7 +248,7 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
                                 <div className="px-6 py-4 border-b border-blue-100/60 flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <div className="p-1.5 bg-blue-600 rounded-lg">
-                                            <Info size={14} className="text-white" />
+                                            <Icon icon="Info" size="md" className="text-white" />
                                         </div>
                                         <span className="font-black text-slate-900 text-sm">사용 가이드</span>
                                     </div>
@@ -256,7 +256,7 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
                                         onClick={downloadSampleExcel}
                                         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black hover:bg-blue-700 transition-all shadow-sm shadow-blue-200"
                                     >
-                                        <Download size={13} />
+                                        <Icon icon="Download" size="md" />
                                         샘플 파일 다운로드
                                     </button>
                                 </div>
@@ -284,10 +284,10 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
                                         className="w-full flex items-center justify-between px-4 py-3 bg-white/60 rounded-2xl border border-blue-100/60 hover:bg-white transition-all text-sm font-black text-slate-700"
                                     >
                                         <div className="flex items-center gap-2">
-                                            <FileSpreadsheet size={16} className="text-blue-500" />
+                                            <Icon icon="FileSpreadsheet" size="md" className="text-blue-500" />
                                             엑셀 파일 컬럼 형식 보기
                                         </div>
-                                        {showColumnGuide ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                                        {showColumnGuide ? <Icon icon="ChevronUp" size="md" className="text-slate-400" /> : <Icon icon="ChevronDown" size="md" className="text-slate-400" />}
                                     </button>
 
                                     <AnimatePresence>
@@ -387,7 +387,7 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
                                     ) : (
                                         <>
                                             <div className="w-16 h-16 bg-white rounded-[20px] shadow-sm flex items-center justify-center text-slate-400 mb-5">
-                                                <FileSpreadsheet size={28} />
+                                                <Icon icon="FileSpreadsheet" size="lg" />
                                             </div>
                                             <p className="font-black text-slate-900 text-sm mb-1">엑셀 / CSV 업로드</p>
                                             <p className="text-slate-400 text-xs font-bold text-center leading-relaxed mb-5">
@@ -403,7 +403,7 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
                                                     onClick={downloadSampleExcel}
                                                     className="text-[10px] font-black text-blue-500 hover:text-blue-600 underline underline-offset-2 flex items-center gap-1 transition-colors"
                                                 >
-                                                    <Download size={11} /> 샘플 파일 받기
+                                                    <Icon icon="Download" size="md" /> 샘플 파일 받기
                                                 </button>
                                             </div>
                                             <div className="mt-3 flex items-center gap-1.5 text-slate-300 text-[9px] font-black uppercase tracking-widest">
@@ -442,7 +442,7 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
                                     transition={{ duration: 1.5, repeat: Infinity }}
                                     className="absolute inset-0 flex items-center justify-center text-blue-600"
                                 >
-                                    <Sparkles size={28} />
+                                    <Icon icon="Sparkles" size="lg" />
                                 </motion.div>
                             </div>
                             <div className="text-center">
@@ -596,7 +596,7 @@ const BulkMenuModal = ({ storeId, existingCategories, onClose, onSave }) => {
                                             className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1.5 bg-red-50 text-red-400 rounded-lg hover:bg-red-100 transition-all text-[10px] font-black"
                                             style={{ position: 'absolute' }}
                                         >
-                                            <X size={12} />
+                                            <Icon icon="X" size="md" />
                                         </button>
                                     </motion.div>
                                 ))}

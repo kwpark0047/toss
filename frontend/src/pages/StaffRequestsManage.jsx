@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { staffRequestsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
-import { Shield, ChefHat, CheckCircle, XCircle, Clock, Store, User, MessageSquare, Filter, Package } from 'lucide-react';
+import Icon from '../ui/Icon';
 
 // super_admin용 스태프 계정 신청 관리 페이지
 const StaffRequestsManage = () => {
@@ -60,20 +60,20 @@ const StaffRequestsManage = () => {
     const getStatusBadge = (status) => {
         switch (status) {
             case 'approved':
-                return <span className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm"><CheckCircle size={14} />승인</span>;
+                return <span className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm"><Icon icon="CheckCircle" size="md" />승인</span>;
             case 'rejected':
-                return <span className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm"><XCircle size={14} />거절</span>;
+                return <span className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm"><Icon icon="XCircle" size="md" />거절</span>;
             default:
-                return <span className="flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm"><Clock size={14} />대기</span>;
+                return <span className="flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm"><Icon icon="Clock" size="md" />대기</span>;
         }
     };
 
     const getRoleBadge = (role) => {
         switch (role) {
             case 'manager':
-                return <span className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-medium"><Shield size={14} />매니저</span>;
+                return <span className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-medium"><Icon icon="Shield" size="md" />매니저</span>;
             case 'kitchen':
-                return <span className="flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-full font-medium"><ChefHat size={14} />주방</span>;
+                return <span className="flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-full font-medium"><Icon icon="ChefHat" size="md" />주방</span>;
             default:
                 return <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full font-medium capitalize">{role}</span>;
         }
@@ -142,7 +142,7 @@ const StaffRequestsManage = () => {
                                         <div>
                                             <h3 className="font-bold text-slate-900">{req.store_name || `매장 #${req.store_id}`}</h3>
                                             <p className="text-sm text-slate-500 flex items-center gap-2 mt-1">
-                                                <User size={14} />
+                                                <Icon icon="User" size="md" />
                                                 {req.user_name || req.user_email}
                                             </p>
                                         </div>
@@ -153,14 +153,14 @@ const StaffRequestsManage = () => {
                                 <div className="flex items-center gap-4 mb-4">
                                     {getRoleBadge(req.role)}
                                     <span className="flex items-center gap-1 text-slate-900 font-bold">
-                                        <Package size={14} /> {req.count}개
+                                        <Icon icon="Package" size="md" /> {req.count}개
                                     </span>
                                 </div>
 
                                 {req.reason && (
                                     <div className="mb-4 p-3 bg-gray-50 rounded-xl">
                                         <p className="text-sm text-slate-500 flex items-center gap-2 mb-1">
-                                            <MessageSquare size={14} />신청 사유
+                                            <Icon icon="MessageSquare" size="md" />신청 사유
                                         </p>
                                         <p className="text-sm text-slate-700">{req.reason}</p>
                                     </div>
@@ -187,7 +187,7 @@ const StaffRequestsManage = () => {
                                                         disabled={processingId === req.id}
                                                         className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:opacity-50"
                                                     >
-                                                        <CheckCircle size={18} />
+                                                        <Icon icon="CheckCircle" size="md" />
                                                         {processingId === req.id ? '처리 중...' : '승인'}
                                                     </button>
                                                     <button
@@ -195,7 +195,7 @@ const StaffRequestsManage = () => {
                                                         disabled={processingId === req.id}
                                                         className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 disabled:opacity-50"
                                                     >
-                                                        <XCircle size={18} />
+                                                        <Icon icon="XCircle" size="md" />
                                                         {processingId === req.id ? '처리 중...' : '거절'}
                                                     </button>
                                                     <button

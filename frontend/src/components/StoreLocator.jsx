@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useSearchParams, useLocation } from 'react-router';
 import { motion } from 'framer-motion';
-import { MapPin, Search, Navigation, Store, ChevronRight, Loader2, Utensils, Map as MapIcon, List, LayoutGrid, CheckCircle2, Clock, Heart, ChefHat, BellRing, XCircle, AlertTriangle, RefreshCw, Server } from 'lucide-react';
 import NaverShareButton from './common/NaverShareButton';
 import { storesAPI } from '../api/stores';
 import { ordersAPI } from '../api/orders';
@@ -194,7 +193,7 @@ export default function StoreLocator() {
                   <p className="text-lg sm:text-2xl font-black leading-none tabular-nums">#{orderNo}</p>
                   {orderEta && (
                     <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold bg-white/20 rounded-full px-2.5 py-1">
-                      <Clock size={12} aria-hidden="true" /> 예상 {orderEta}분
+                      <Icon icon="Clock" size="sm" aria-hidden="true" /> 예상 {orderEta}분
                     </p>
                   )}
                 </div>
@@ -217,7 +216,7 @@ export default function StoreLocator() {
             </div>
             {/* 업종 */}
             <div className="md:col-span-3 relative">
-              <Utensils size={18} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Icon icon="Utensils" size="md" aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <select value={businessType} onChange={e => { setBusinessType(e.target.value); search({ businessType: e.target.value }); }}
                 aria-label="업종"
                 className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm font-medium outline-none focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-400/50 appearance-none">
@@ -227,7 +226,7 @@ export default function StoreLocator() {
             </div>
             {/* 키워드 */}
             <div className="md:col-span-3 relative">
-              <Search size={18} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Icon icon="Search" size="md" aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()}
                 placeholder="매장명 검색…" aria-label="매장명" name="store-name" spellCheck={false}
                 className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-white text-sm font-medium outline-none focus:border-orange-400 focus-visible:ring-2 focus-visible:ring-orange-400/50" />
@@ -236,11 +235,11 @@ export default function StoreLocator() {
             <div className="md:col-span-3 flex gap-2">
               <button type="button" onClick={useMyLocation} disabled={locating} aria-label="내 위치로 주변 매장 찾기"
                 className="flex-1 h-12 flex items-center justify-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 text-orange-600 text-sm font-black hover:bg-orange-100 transition-colors disabled:opacity-50">
-                {locating ? <Loader2 size={16} aria-hidden="true" className="animate-spin" /> : <Navigation size={16} aria-hidden="true" />} 내 주변
+                {locating ? <Icon icon="Loader2" size="md" aria-hidden="true" className="animate-spin" /> : <Navigation size={16} aria-hidden="true" />} 내 주변
               </button>
               <button type="button" onClick={() => search()} aria-label="매장 검색"
                 className="flex-1 h-12 flex items-center justify-center gap-1.5 rounded-xl bg-orange-500 text-white text-sm font-black hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200">
-                <Search size={16} aria-hidden="true" /> 검색
+                <Icon icon="Search" size="md" aria-hidden="true" /> 검색
               </button>
             </div>
           </div>
@@ -322,13 +321,13 @@ export default function StoreLocator() {
                 <Link to={`/menu/${s.id}`}
                   className="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-4 hover:border-orange-200 hover:shadow-md transition-all group">
                   <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shrink-0 shadow-sm">
-                    <Store size={20} className="text-white" />
+                    <Icon icon="Store" size="md" className="text-white" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-black text-gray-900 truncate">{s.name}</h3>
                       {s.business_type && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{bizLabel(s.business_type)}</span>}
-                      {s.distance_km != null && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 flex items-center gap-0.5"><Navigation size={12} aria-hidden="true" /><span className="tabular-nums">{s.distance_km}</span>km</span>}
+                      {s.distance_km != null && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 flex items-center gap-0.5"><Icon icon="Navigation" size="sm" aria-hidden="true" /><span className="tabular-nums">{s.distance_km}</span>km</span>}
                     </div>
                     {s.address && <p className="text-sm text-gray-500 mt-0.5 truncate flex items-center gap-1"><Icon icon="MapPin" />{s.address}</p>}
                   </div>
@@ -360,7 +359,7 @@ export default function StoreLocator() {
                   className="block bg-white border border-gray-100 rounded-2xl p-5 hover:border-orange-200 hover:shadow-lg transition-all group h-full">
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shrink-0 shadow-md">
-<Store size={20} className="text-white" />
+<Icon icon="Store" size="md" className="text-white" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -384,7 +383,7 @@ export default function StoreLocator() {
                         )}
                         {s.distance_km != null && (
                           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 flex items-center gap-0.5">
-                            <Navigation size={12} aria-hidden="true" /> <span className="tabular-nums">{s.distance_km}</span>km
+                            <Icon icon="Navigation" size="sm" aria-hidden="true" /> <span className="tabular-nums">{s.distance_km}</span>km
                           </span>
                         )}
                       </div>

@@ -181,14 +181,14 @@ const handleForecastDaysChange = async days => {
         }} whileTap={{
           scale: 0.9
         }} onClick={() => navigate('/admin')} className="w-14 h-14 bg-white/5 rounded-[20px] border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-2xl backdrop-blur-xl">
-            <ArrowLeft size={24} />
+            <Icon icon="ArrowLeft" size="lg" />
           </motion.button>
           <div>
             <h1 className="text-4xl font-black text-white tracking-tight mb-2">데이터 인사이트</h1>
             <div className="flex items-center gap-3">
               <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                 <p className="text-blue-500 font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5">
-                  <Activity size={12} /> {store?.name}
+                  <Icon icon="Activity" size="sm" /> {store?.name}
                 </p>
               </div>
               <span className="text-slate-600 font-bold text-xs uppercase tracking-tighter">Business Analytics Dashboard</span>
@@ -198,13 +198,13 @@ const handleForecastDaysChange = async days => {
 
         <div className="flex flex-wrap items-center gap-4">
           <div className="relative group">
-            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-orange-500 transition-colors" size={18} />
+            <Icon icon="Calendar" size="md" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-orange-500 transition-colors" />
             <select aria-label="기간 선택" value={dateRange} onChange={e => setDateRange(e.target.value)} className="pl-12 pr-10 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm font-black text-white outline-none focus:border-orange-500/50 appearance-none transition-all">
               <option value="7" className="bg-slate-900">최근 7일</option>
               <option value="30" className="bg-slate-900">최근 30일</option>
               <option value="90" className="bg-slate-900">최근 90일</option>
             </select>
-            <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none rotate-90" size={16} />
+            <Icon icon="ChevronRight" size="md" className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none rotate-90" />
           </div>
 
           <div className="flex bg-white/5 border border-white/10 rounded-2xl p-1.5 backdrop-blur-xl">
@@ -266,7 +266,7 @@ const handleForecastDaysChange = async days => {
           <div className="bg-white/5 backdrop-blur-xl rounded-[40px] border border-white/5 p-10 shadow-2xl relative overflow-hidden">
             <div className="relative z-10">
               <h2 className="text-xl font-black text-white tracking-tight mb-8 flex items-center gap-3">
-                <Clock className="text-orange-500" size={20} /> 기간 성장 분석
+                <Icon icon="Clock" size="md" className="text-orange-500" /> 기간 성장 분석
               </h2>
               
               <div className="space-y-6">
@@ -434,7 +434,7 @@ const handleForecastDaysChange = async days => {
         {/* 요일별 매출 비중 */}
         <motion.div variants={itemVariants} className="bg-white/5 backdrop-blur-xl rounded-[40px] border border-white/5 p-10 shadow-2xl">
           <h3 className="text-xl font-black text-white tracking-tight mb-10 flex items-center gap-3">
-            <PieChart className="text-purple-500" size={20} /> 요일별 매출 포트폴리오
+            <Icon icon="PieChart" size="md" className="text-purple-500" /> 요일별 매출 포트폴리오
           </h3>
           <div className="h-[300px] flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
@@ -531,7 +531,7 @@ const handleForecastDaysChange = async days => {
       <motion.div variants={itemVariants} className="bg-white/5 backdrop-blur-xl rounded-[40px] border border-white/5 p-10 shadow-2xl">
         <div className="flex items-center justify-between mb-10">
           <div className="flex items-center gap-3">
-            <TrendingUp className="text-emerald-400" size={22} />
+            <Icon icon="TrendingUp" size="md" className="text-emerald-400" />
             <h2 className="text-xl font-black text-white tracking-tight">매출 예측</h2>
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
               {forecastData?.confidence > 0 ? `신뢰도 ${Math.round(forecastData.confidence * 100)}%` : '데이터 부족'}
@@ -608,7 +608,7 @@ const handleForecastDaysChange = async days => {
               </ComposedChart>
             </ResponsiveContainer>
           </div> : <div className="py-16 text-center">
-            <Zap className="mx-auto mb-4 text-slate-700" size={48} />
+            <Icon icon="Zap" size="lg" className="mx-auto mb-4 text-slate-700" />
             <h4 className="text-slate-500 font-black mb-1">예측 데이터가 충분하지 않습니다</h4>
             <p className="text-slate-700 text-xs font-bold uppercase tracking-widest">60일 이상의 매출 데이터가 필요합니다</p>
           </div>}
@@ -641,7 +641,7 @@ const handleForecastDaysChange = async days => {
       {/* ── 내보내기 패널 ── */}
       <motion.div variants={itemVariants} className="bg-white/5 backdrop-blur-xl rounded-[40px] border border-white/5 p-10 shadow-2xl">
         <div className="flex items-center gap-3 mb-8">
-          <Download className="text-orange-400" size={22} />
+          <Icon icon="Download" size="md" className="text-orange-400" />
           <h2 className="text-xl font-black text-white tracking-tight">데이터 내보내기</h2>
           <span className="ml-auto text-[10px] font-black text-slate-500 uppercase tracking-widest">조회 기간 {dateRange}일 기준</span>
         </div>
@@ -650,7 +650,7 @@ const handleForecastDaysChange = async days => {
           {/* Excel 카드 */}
           <div className="bg-white/[0.03] border border-white/10 rounded-3xl p-6">
             <div className="flex items-center gap-2 mb-5">
-              <FileSpreadsheet className="text-emerald-400" size={18} />
+              <Icon icon="FileSpreadsheet" size="md" className="text-emerald-400" />
               <span className="text-sm font-black text-white">Excel 다운로드</span>
               <span className="ml-auto text-[9px] bg-emerald-500/20 text-emerald-400 font-black px-2 py-0.5 rounded-full uppercase">.xlsx</span>
             </div>
@@ -712,7 +712,7 @@ const handleForecastDaysChange = async days => {
           {/* PDF 카드 */}
           <div className="bg-white/[0.03] border border-white/10 rounded-3xl p-6">
             <div className="flex items-center gap-2 mb-5">
-              <FileText className="text-orange-400" size={18} />
+              <Icon icon="FileText" size="md" className="text-orange-400" />
               <span className="text-sm font-black text-white">PDF 다운로드</span>
               <span className="ml-auto text-[9px] bg-orange-500/20 text-orange-400 font-black px-2 py-0.5 rounded-full uppercase">.pdf</span>
             </div>

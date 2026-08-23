@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { bulkSmsAPI } from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Smartphone, Filter, Send, Users, Store, MapPin, Zap, MessageSquare, AlertCircle, CheckCircle, RefreshCcw } from 'lucide-react';
 import Icon from '../ui/Icon';
 
 const BulkSMSManager = () => {
@@ -94,7 +93,7 @@ const BulkSMSManager = () => {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
                     <div className="flex items-center gap-3 text-blue-600 mb-2">
-                        <Smartphone size={24} className="animate-bounce" />
+                        <Icon icon="Smartphone" size="lg" className="animate-bounce" />
                         <span className="text-xs font-black uppercase tracking-[0.2em]">Unified Marketing</span>
                     </div>
                     <h1 className="text-4xl font-black text-white tracking-tight">Bulk <span className="text-blue-400">SMS</span> Console</h1>
@@ -118,14 +117,14 @@ const BulkSMSManager = () => {
                 <div className="lg:col-span-2 space-y-6">
                     <section className="glass-panel p-6 border-white/60 shadow-xl overflow-visible">
                         <div className="flex items-center gap-3 mb-6">
-                            <Filter className="text-slate-400" size={20} />
+                            <Icon icon="Filter" size="md" className="text-slate-400" />
                             <h2 className="text-lg font-black text-slate-900">Advanced Filtering</h2>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
-                                    <Store size={12} /> Store Filter
+                                    <Icon icon="Store" size="sm" /> Store Filter
                                 </label>
                                 <select aria-label="매장 필터"
                                     name="storeId"
@@ -155,7 +154,7 @@ const BulkSMSManager = () => {
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
-                                    <Zap size={12} /> Industry Type
+                                    <Icon icon="Zap" size="sm" /> Industry Type
                                 </label>
                                 <select aria-label="업종 필터"
                                     name="businessType"
@@ -181,7 +180,7 @@ const BulkSMSManager = () => {
                                 onClick={fetchCustomers}
                                 className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
                             >
-                                <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
+                                <Icon icon="RefreshCcw" size="md" className={loading ? 'animate-spin' : ''} />
                             </button>
                         </div>
 
@@ -236,7 +235,7 @@ const BulkSMSManager = () => {
                         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl -mr-16 -mt-16 rounded-full"></div>
 
                         <div className="flex items-center gap-3 mb-6 relative z-10">
-                            <MessageSquare className="text-blue-500" size={20} />
+                            <Icon icon="MessageSquare" size="md" className="text-blue-500" />
                             <h2 className="text-lg font-black text-slate-900">SMS Composer</h2>
                         </div>
 
@@ -278,7 +277,7 @@ const BulkSMSManager = () => {
                             </div>
 
                             <div className="p-4 bg-blue-50/50 border border-blue-100/50 rounded-2xl flex gap-3 mt-4">
-                                <AlertCircle className="text-blue-500 shrink-0" size={18} />
+                                <Icon icon="AlertCircle" size="md" className="text-blue-500 shrink-0" />
                                 <p className="text-[10px] text-blue-700 font-medium leading-relaxed uppercase tracking-tighter">
                                     광고성 문자 전항 준수: (광고) 표시와 수신거부 번호가 자동으로 포함됩니다. 발송 비용은 매장별 정산 시 자동 차감됩니다.
                                 </p>
@@ -300,7 +299,7 @@ const BulkSMSManager = () => {
                                 </>
                             ) : (
                                 <>
-                                    <Send size={18} />
+                                    <Icon icon="Send" size="md" />
                                     Launch Bulk SMS
                                 </>
                             )}
@@ -318,7 +317,7 @@ const BulkSMSManager = () => {
                                 <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-[40px]"></div>
                                 <div className="relative z-10 text-center">
                                     <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/30 backdrop-blur-md">
-                                        <CheckCircle size={32} />
+                                        <Icon icon="CheckCircle" size="lg" />
                                     </div>
                                     <h3 className="text-xl font-black mb-2 leading-tight">Batch Sent <br /> Successfully</h3>
                                     <p className="text-[11px] text-emerald-100 font-medium mb-6 uppercase tracking-widest">{sendResult.target_count}명에게 발송 시작됨</p>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Navigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Loader2, AlertCircle } from 'lucide-react';
+import Icon from '../ui/Icon';
 
 // Utility for fetching public menu data
 const fetchStoreDisplayData = async (storeId) => {
@@ -42,7 +42,7 @@ const StoreDisplay = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
-        <Loader2 className="h-12 w-12 animate-spin text-orange-500 mb-4" />
+        <Icon icon="Loader2" size="lg" className="h-12 w-12 animate-spin text-orange-500 mb-4" />
         <h2 className="text-2xl font-bold">메뉴판을 불러오는 중입니다...</h2>
       </div>
     );
@@ -52,7 +52,7 @@ const StoreDisplay = () => {
     return (
       <div className="min-h-screen bg-slate-950 p-8 flex items-center justify-center">
         <div className="max-w-2xl bg-red-950/50 border border-red-900 rounded-lg p-6 flex items-start gap-4 text-red-500">
-          <AlertCircle className="h-8 w-8 shrink-0" />
+          <Icon icon="AlertCircle" className="h-8 w-8 shrink-0" />
           <div>
             <h2 className="text-2xl font-semibold mb-2">에러 발생</h2>
             <div className="text-lg opacity-90">

@@ -3,14 +3,8 @@ import { useParams, useNavigate } from 'react-router';
 import { staffAPI, storesAPI } from '../../api';
 import { formatTime } from '../../utils/format';
 import { handleApiError } from '../../utils/apiError';
+import Icon from '../ui/Icon';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ArrowLeft, Plus, Edit2, Trash2, Users, ChefHat,
-  UserCheck, User, Clock, Calendar, BarChart2, LogIn, LogOut,
-  Sparkles, Check, X, AlertCircle, RefreshCw, Zap,
-  QrCode, Wifi, Timer, Phone, Search, UserPlus, ChevronDown, ChevronUp,
-  CheckCircle2, XCircle, Loader2
-} from 'lucide-react';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
 import Icon from '../ui/Icon';
@@ -131,7 +125,7 @@ const SoloChecklist = ({ storeId }) => {
       {done === SOLO_CHECKLIST_ITEMS.length && (
         <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
           className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2 text-emerald-400 text-xs font-black">
-          <Sparkles size={14} /> 모든 설정이 완료됐습니다! 이제 본격 운영 시작!
+          <Icon icon="Sparkles" size="md" /> 모든 설정이 완료됐습니다! 이제 본격 운영 시작!
         </motion.div>
       )}
     </div>
@@ -175,7 +169,7 @@ const SoloModeBanner = ({ myStaffId, attendance, storeId, onSelfRegister, selfRe
               </div>
             ) : totalToday > 0 ? (
               <div className="flex items-center gap-2 text-blue-400">
-                <Clock size={14} />
+<Icon icon="Clock" size="md" />
                 <span className="font-bold text-sm">오늘 완료: {fmtHours(totalToday)}</span>
               </div>
             ) : null}
@@ -189,18 +183,18 @@ const SoloModeBanner = ({ myStaffId, attendance, storeId, onSelfRegister, selfRe
                     ? 'bg-orange-500 text-white shadow-orange-500/30 hover:scale-105'
                     : 'bg-emerald-500 text-white shadow-emerald-500/30 hover:scale-105'
                 }`}>
-                {isWorking ? <><LogOut size={16} /> 퇴근 처리하기</> : <><LogIn size={16} /> 출근 처리하기</>}
+                {isWorking ? <><Icon icon="LogOut" size="md" /> 퇴근 처리하기</> : <><Icon icon="LogIn" size="md" /> 출근 처리하기</>}
               </button>
             ) : (
               <button onClick={onSelfRegister} disabled={selfRegLoading}
                 className="px-6 py-3 bg-amber-500 text-white rounded-2xl font-black text-xs tracking-widest flex items-center gap-2 hover:scale-105 transition-all shadow-lg shadow-amber-500/30 disabled:opacity-60 disabled:scale-100">
-                <Zap size={14} />
+                <Icon icon="Zap" size="md" />
                 {selfRegLoading ? '활성화 중...' : '셀프 근태 추적 시작'}
               </button>
             )}
             <button onClick={onAddStaff}
               className="px-6 py-3 bg-white/5 border border-white/10 text-slate-400 rounded-2xl font-black text-xs tracking-widest flex items-center gap-2 hover:text-white hover:bg-white/10 transition-all">
-              <Plus size={14} /> 팀원 초대하기
+              <Icon icon="Plus" size="md" /> 팀원 초대하기
             </button>
           </div>
         </div>
@@ -210,7 +204,7 @@ const SoloModeBanner = ({ myStaffId, attendance, storeId, onSelfRegister, selfRe
       {!myStaffId && (
         <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
           className="flex items-start gap-3 p-5 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
-          <AlertCircle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+          <Icon icon="AlertCircle" size="md" className="text-amber-400 shrink-0 mt-0.5" />
           <div>
             <p className="text-amber-400 font-black text-sm">셀프 근태 추적 미활성화</p>
             <p className="text-slate-400 text-xs mt-1">
@@ -250,7 +244,7 @@ const SoloAttendancePanel = ({ myStaffId, attendance, onClockIn, onClockOut }) =
   if (!myStaffId) {
     return (
       <div className="mb-8 p-6 bg-amber-500/10 border border-amber-500/20 rounded-[2rem] flex items-center gap-4">
-        <AlertCircle size={24} className="text-amber-400 shrink-0" />
+        <Icon icon="AlertCircle" size="md" className="text-amber-400 shrink-0" />
         <div>
           <p className="text-amber-400 font-black">셀프 근태 미활성화</p>
           <p className="text-slate-400 text-sm mt-1">팀원 탭에서 "셀프 근태 추적 시작"을 먼저 눌러주세요.</p>
@@ -313,19 +307,19 @@ const SoloAttendancePanel = ({ myStaffId, attendance, onClockIn, onClockOut }) =
                   </button>
                   <button onClick={() => setShowNote(false)}
                     className="w-8 h-8 bg-white/5 text-slate-400 rounded-xl flex items-center justify-center">
-                    <X size={16} />
+                    <Icon icon="X" size="md" />
                   </button>
                 </div>
               ) : (
                 <button onClick={() => setShowNote(true)}
                   className="px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs tracking-widest flex items-center gap-2 hover:scale-105 transition-all shadow-lg shadow-emerald-500/30">
-                  <LogIn size={16} /> 출근 처리
+                  <Icon icon="LogIn" size="md" /> 출근 처리
                 </button>
               )
             ) : (
               <button onClick={onClockOut}
                 className="px-8 py-4 bg-orange-500 text-white rounded-2xl font-black text-xs tracking-widest flex items-center gap-2 hover:scale-105 transition-all shadow-lg shadow-orange-500/30">
-                <LogOut size={16} /> 퇴근 처리
+                <Icon icon="LogOut" size="md" /> 퇴근 처리
               </button>
             )}
           </div>
@@ -338,7 +332,7 @@ const SoloAttendancePanel = ({ myStaffId, attendance, onClockIn, onClockOut }) =
               {todayRecords.map((r, i) => (
                 <div key={r.id ?? i} className="flex items-center gap-3 text-sm flex-wrap">
                   <span className="text-emerald-400 font-bold flex items-center gap-1">
-                    <LogIn size={12} /> {fmt(r.clock_in)}
+                    <Icon icon="LogIn" size="md" /> {fmt(r.clock_in)}
                   </span>
                   {r.clock_out && (
                     <>
@@ -508,7 +502,7 @@ const StaffManager = () => {
         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
           onClick={() => navigate('/admin')}
           className="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white transition-all">
-          <ArrowLeft size={24} />
+          <Icon icon="ArrowLeft" size="lg" />
         </motion.button>
         <div className="flex-1">
           <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
@@ -528,7 +522,7 @@ const StaffManager = () => {
             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
               onClick={() => setShowAddModal(true)}
               className="h-14 px-8 bg-orange-500 text-white rounded-2xl flex items-center gap-3 font-black text-[10px] tracking-widest shadow-2xl shadow-orange-500/30">
-              <Plus size={18} /> ADD STAFF
+              <Icon icon="Plus" size="md" /> ADD STAFF
             </motion.button>
           )
         )}
@@ -542,8 +536,8 @@ const StaffManager = () => {
               tab === i ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-slate-500 hover:text-slate-300'
             }`}>
             {i === 0 && <Icon icon="Users" />}
-            {i === 1 && <Clock size={14} />}
-            {i === 2 && <BarChart2 size={14} />}
+            {i === 1 && <Icon icon="Clock" size="md" />}
+            {i === 2 && <Icon icon="BarChart2" size="md" />}
             {t}
           </button>
         ))}
@@ -656,11 +650,11 @@ const TeamTab = ({ staff, myRole, canManage, onRoleChange, onDelete, isSoloStore
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                     <button onClick={() => { setEditingId(member.id); setPendingRole(member.role); }}
                       className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 hover:text-blue-400 transition-all">
-                      <Edit2 size={16} />
+                      <Icon icon="Edit2" size="md" />
                     </button>
                     <button onClick={() => onDelete(member.id, member.name)}
                       className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 hover:text-rose-400 transition-all">
-                      <Trash2 size={16} />
+                      <Icon icon="Trash2" size="md" />
                     </button>
                   </div>
                 )}
@@ -676,11 +670,11 @@ const TeamTab = ({ staff, myRole, canManage, onRoleChange, onDelete, isSoloStore
                   </select>
                   <button onClick={() => { onRoleChange(member.id, pendingRole); setEditingId(null); }}
                     className="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center text-white">
-                    <Check size={16} />
+                    <Icon icon="Check" size="md" />
                   </button>
                   <button onClick={() => setEditingId(null)}
                     className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-slate-400">
-                    <X size={16} />
+                    <Icon icon="X" size="md" />
                   </button>
                 </div>
               ) : (
@@ -1033,7 +1027,7 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
 
         {error && (
           <div className="mb-5 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center gap-3 text-rose-400 text-sm font-bold">
-            <AlertCircle size={16} /> {error}
+            <Icon icon="AlertCircle" size="md" /> {error}
           </div>
         )}
 
@@ -1106,7 +1100,7 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
           {lookupState === 'alreadyStaff' && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
-              <AlertCircle size={16} className="text-amber-400 shrink-0" />
+              <Icon icon="AlertCircle" size="md" className="text-amber-400 shrink-0" />
               <p className="text-amber-400 text-sm font-bold">이미 이 매장의 팀원입니다.</p>
             </motion.div>
           )}

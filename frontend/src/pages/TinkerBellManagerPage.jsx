@@ -61,7 +61,7 @@ function PhonePreview({ lang, weather, voiceEnabled, largeFont, triggerKey, last
           {/* 헤더 */}
           <div className="bg-white border-b border-slate-100 px-4 py-2.5 flex items-center gap-2 shadow-sm">
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center flex-shrink-0">
-              <Sparkles size={10} className="text-white" />
+              <Icon icon="Sparkles" size="sm" className="text-white" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-black text-slate-900 truncate">위마켓 시그니처 카페</p>
@@ -115,8 +115,8 @@ function Toggle({ on, onChange, label, desc }) {
       </div>
       <button onClick={() => onChange(!on)} className="flex-shrink-0">
         {on
-          ? <ToggleRight size={32} className="text-orange-500" />
-          : <ToggleLeft  size={32} className="text-slate-300"  />}
+          ? <Icon icon="ToggleRight" size="lg" className="text-orange-500" />
+          : <Icon icon="ToggleLeft" size="lg" className="text-slate-300" />}
       </button>
     </div>
   );
@@ -160,7 +160,7 @@ const handleSave = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-              <Sparkles size={20} className="text-white" />
+              <Icon icon="Sparkles" size="md" className="text-white" />
             </div>
             <div>
               <h1 className="text-xl font-black text-slate-900">AI 팅커벨 도우미</h1>
@@ -183,7 +183,7 @@ const handleSave = () => {
               onClick={handleSave}
               disabled={saving}
               className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-black hover:bg-orange-600 transition-colors disabled:opacity-40">
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              {saving ? <Icon icon="Loader2" size="md" className="animate-spin" /> : <Icon icon="Save" size="md" />}
               설정 저장
             </button>
           </div>
@@ -224,7 +224,7 @@ const handleSave = () => {
                   {!enabled && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 overflow-hidden">
                       <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-2xl text-xs text-slate-500 border border-slate-100">
-                        <Info size={13} className="flex-shrink-0" />
+                        <Icon icon="Info" size="md" className="flex-shrink-0" />
                         비활성화 시 고객 메뉴 화면에 팅커벨이 표시되지 않습니다.
                       </div>
                     </motion.div>
@@ -271,7 +271,7 @@ const handleSave = () => {
                     })}
                   </div>
                   <p className="text-xs text-slate-400 mt-3 flex items-center gap-1.5">
-                    <Info size={11} />
+                    <Icon icon="Info" />
                     실제 서비스에서는 날씨 API와 연동하여 자동으로 상황에 맞는 메뉴를 추천합니다.
                   </p>
                 </div>

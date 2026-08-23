@@ -85,7 +85,7 @@ export default function AdvancedInsights({ storeId, dateRange = 30 }) {
       {/* 재구매율 */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white/5 border border-white/8 rounded-2xl p-4">
-          <p className="text-xs text-slate-400 flex items-center gap-1.5 mb-1"><Repeat size={13} /> 재구매율</p>
+          <p className="text-xs text-slate-400 flex items-center gap-1.5 mb-1"><Icon icon="Repeat" size="sm" /> 재구매율</p>
           <p className="text-2xl font-black text-white">{data?.repeat?.rate ?? 0}<span className="text-sm text-slate-400">%</span></p>
         </div>
         <div className="bg-white/5 border border-white/8 rounded-2xl p-4">
@@ -100,7 +100,7 @@ export default function AdvancedInsights({ storeId, dateRange = 30 }) {
 
       {/* 실시간 매출 추세 차트 (SVG 라인 차트) */}
       <div className="bg-white/5 border border-white/8 rounded-2xl p-4">
-        <p className="text-sm font-black text-white mb-3 flex items-center gap-1.5"><TrendingUp size={15} className="text-orange-400" /> 매출 추세 (최근 {dateRange}일)</p>
+        <p className="text-sm font-black text-white mb-3 flex items-center gap-1.5"><Icon icon="TrendingUp" size="md" className="text-orange-400" /> 매출 추세 (최근 {dateRange}일)</p>
         {(!data?.trend || data.trend.length === 0) ? (
           <p className="text-sm text-slate-500 py-4">추세 데이터가 없습니다.</p>
         ) : (
@@ -150,7 +150,7 @@ export default function AdvancedInsights({ storeId, dateRange = 30 }) {
 
       {/* 카테고리별 매출 */}
       <div className="bg-white/5 border border-white/8 rounded-2xl p-4">
-        <p className="text-sm font-black text-white mb-3 flex items-center gap-1.5"><PieChart size={15} className="text-violet-400" /> 카테고리별 매출</p>
+        <p className="text-sm font-black text-white mb-3 flex items-center gap-1.5"><Icon icon="PieChart" size="md" className="text-violet-400" /> 카테고리별 매출</p>
         {(!data?.categories || data.categories.length === 0) ? (
           <p className="text-sm text-slate-500 py-2">해당 기간 판매 데이터가 없습니다.</p>
         ) : (
