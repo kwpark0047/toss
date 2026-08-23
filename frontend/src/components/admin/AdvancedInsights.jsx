@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { analyticsAPI } from '../../api';
 import { formatPrice } from '../../utils/format';
-import { Flame, Repeat, PieChart, Loader2, TrendingUp, BarChart3 } from 'lucide-react';
 import Icon from '../ui/Icon';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -70,7 +69,7 @@ export default function AdvancedInsights({ storeId, dateRange = 30 }) {
   if (loading) {
     return (
       <div className="bg-white/5 border border-white/8 rounded-2xl p-10 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-orange-400" />
+        <Icon icon="Loader2" size="md" className="w-6 h-6 animate-spin text-orange-400" />
       </div>
     );
   }
