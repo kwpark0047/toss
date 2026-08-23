@@ -130,7 +130,7 @@ export default function MultiStoreSupervisorDashboard() {
         {/* 대기 주문 검색 바 및 기간 필터 */}
         <div className="flex items-center gap-2.5 bg-slate-900 border border-slate-850 p-1.5 rounded-2xl flex-wrap">
           <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 font-bold">
-            <Calendar className="size-4" />
+            <Icon icon="Calendar" size="md" className="size-4" />
             <span>분석 기간</span>
           </div>
           <input
