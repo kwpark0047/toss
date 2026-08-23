@@ -1,5 +1,4 @@
 import { useState} from 'react';
-import { Trash2, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function VisualOptionEditor({ value, onChange }) {
@@ -98,7 +97,7 @@ export function VisualOptionEditor({ value, onChange }) {
                   onClick={() => removeGroup(gi)}
                   className="h-11 w-11 flex items-center justify-center bg-white/5 hover:bg-rose-500/10 hover:text-rose-400 text-slate-600 rounded-xl border border-white/10 transition-all"
                 >
-                  <Trash2 size={16} />
+                  <Icon icon="Trash2" size="md" />
                 </button>
               </div>
             </div>
@@ -128,7 +127,7 @@ export function VisualOptionEditor({ value, onChange }) {
                     onClick={() => removeChoice(gi, vi)}
                     className="w-9 h-9 flex items-center justify-center hover:text-rose-400 text-slate-700 rounded-lg transition-all"
                   >
-                    <X size={14} />
+                    <Icon icon="X" size="md" />
                   </button>
                 </div>
               ))}
@@ -137,7 +136,7 @@ export function VisualOptionEditor({ value, onChange }) {
                 onClick={() => addChoice(gi)}
                 className="flex items-center gap-2 text-xs font-black text-slate-600 hover:text-orange-400 transition-colors pl-4 mt-1"
               >
-                <Plus size={14} /> 선택지 추가
+                <Icon icon="Plus" size="md" /> 선택지 추가
               </button>
             </div>
           </motion.div>
@@ -149,7 +148,7 @@ export function VisualOptionEditor({ value, onChange }) {
         onClick={addGroup}
         className="w-full h-12 border-2 border-dashed border-white/5 hover:border-orange-500/30 text-slate-600 hover:text-orange-400 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2"
       >
-        <Plus size={16} /> 옵션 그룹 추가
+        <Icon icon="Plus" size="md" /> 옵션 그룹 추가
       </button>
     </div>
   );
