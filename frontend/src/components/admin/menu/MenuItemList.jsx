@@ -1,5 +1,4 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Trash2, Edit, Star, Clock, Image as ImageIcon, ShoppingBag } from 'lucide-react';
 import EmptyState from '../../common/EmptyState';
 import { formatPrice } from '../../../utils/format';
 import Icon from '../../ui/Icon';
