@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Plus, Edit3, Trash2, Save, X, Loader2, Check } from 'lucide-react';
 import { grantTemplateAPI } from '../../api/admin';
 export default function GrantTemplateManager({
   storeId,
