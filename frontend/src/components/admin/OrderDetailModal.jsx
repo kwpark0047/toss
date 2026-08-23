@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { X, Eye, RefreshCw, Scissors } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import { paymentsAPI } from '../../api';
 
