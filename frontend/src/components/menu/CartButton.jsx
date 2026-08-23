@@ -1,6 +1,6 @@
 import { formatWon } from '../../utils/format';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart } from 'lucide-react';
+import Icon from '../../ui/Icon';
 import Button from '../common/Button';
 import { vibrateClick } from '../../utils/notificationSound';
 
@@ -28,7 +28,7 @@ const CartButton = ({ totalItems, totalPrice, onClick }) => {
           >
             <div className="flex items-center gap-2">
               <div className="relative">
-                <ShoppingCart className="w-5 h-5" />
+                <Icon icon="ShoppingCart" size="md" className="w-5 h-5" />
                 <span className="absolute -top-1.5 -right-1.5 bg-white text-primary text-[9px] w-4 h-4 rounded-full flex items-center justify-center border border-primary">
                   {totalItems}
                 </span>
