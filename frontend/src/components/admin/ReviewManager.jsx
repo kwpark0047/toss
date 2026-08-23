@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
 import { reviewsAPI, storesAPI } from '../../api';
-import { ArrowLeft, RefreshCw, Star, MessageSquareText, Send, Sparkles, Loader2, ImageOff, Heart } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
@@ -175,7 +174,7 @@ export default function ReviewManager() {
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
           <Link to="/admin" className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all">
-            <ArrowLeft className="w-5 h-5" />
+            <Icon icon="ArrowLeft" size="md" className="w-5 h-5" />
           </Link>
           <div>
             <h1 className="text-2xl font-black text-white">리뷰 관리</h1>
