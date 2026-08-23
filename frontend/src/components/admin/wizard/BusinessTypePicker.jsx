@@ -1,7 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ChevronDown, ChevronUp, PenLine } from 'lucide-react';
 
 // ── 1인 사업자 인기 업종
 export const POPULAR_VALUES = ['food_truck', 'cafe', 'korean', 'chicken', 'bakery', 'hair', 'fitness', 'academy'];
@@ -126,7 +125,7 @@ export default function BusinessTypePicker({ value, customValue, onChange, onCus
       {/* 선택된 업종 표시 + 검색 */}
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Icon icon="Search" size="md" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
             value={search}
@@ -165,7 +164,7 @@ export default function BusinessTypePicker({ value, customValue, onChange, onCus
           {/* 전체 업종 보기 토글 */}
           <button type="button" onClick={() => setExpanded(v => !v)}
             className="w-full flex items-center justify-center gap-1 py-1.5 text-xs text-slate-500 hover:text-amber-400 transition-colors font-bold">
-            {expanded ? <><ChevronUp size={12} /> 접기</> : <><ChevronDown size={12} /> 전체 업종 보기</>}
+            {expanded ? <><Icon icon="ChevronUp" size="md" /> 접기</> : <><Icon icon="ChevronDown" size="md" /> 전체 업종 보기</>}
           </button>
 
           {/* 전체 그룹 목록 */}
@@ -191,7 +190,7 @@ export default function BusinessTypePicker({ value, customValue, onChange, onCus
       {!filtered && (
         <div className="border-t border-white/10 pt-2">
           <div className="flex items-center gap-2">
-            <PenLine size={11} className="text-slate-500 flex-shrink-0" />
+            <Icon icon="PenLine" size="md" className="text-slate-500 flex-shrink-0" />
             <input
               type="text"
               value={customValue}
