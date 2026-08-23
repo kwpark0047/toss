@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { productsAPI, storesAPI, aiAPI, uploadsAPI, optionTemplatesAPI } from '../../api';
-import { FileText, Image, Tag, Package, X, Sparkles, AlertTriangle, Upload, Info, Check, Star, RefreshCw, Flame, Leaf, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { handleApiError } from '../../utils/apiError';
