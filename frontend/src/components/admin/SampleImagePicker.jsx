@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { X, Image, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const SAMPLE_IMAGES = {
