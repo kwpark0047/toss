@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, ShoppingBag, Coins, Users, Store, Power, Gift, Loader2, ExternalLink } from 'lucide-react';
 import { adminAPI } from '../../api/admin';
 import { bizLabel } from '../../utils/businessType';
 import MiniBarChart from './MiniBarChart';
