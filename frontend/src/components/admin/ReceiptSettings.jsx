@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { adminAPI } from '../../api';
 import { formatPrice } from '../../utils/format';
-import { Save, Type, Eye, CheckSquare, Square, Store } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const ReceiptSettings = () => {
