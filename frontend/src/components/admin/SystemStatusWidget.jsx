@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Activity, Wifi, WifiOff, Server, Terminal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '@/api/client';
 export default function SystemStatusWidget() {
@@ -70,13 +69,13 @@ export default function SystemStatusWidget() {
   return <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-4">
       <div className="flex items-center justify-between border-b pb-2">
         <h3 className="font-bold text-gray-800 flex items-center gap-2">
-          <Activity className="w-5 h-5 text-indigo-500" />
+          <Icon icon="Activity" size="md" className="w-5 h-5 text-indigo-500" />
           {t('systemStatus.title', '시스템 상태 (System Status)')}
         </h3>
         {status.network ? <span className="flex items-center gap-1 text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full">
-            <Wifi className="w-4 h-4" /> Online
+            <Icon icon="Wifi" size="md" className="w-4 h-4" /> Online
           </span> : <span className="flex items-center gap-1 text-sm text-red-600 bg-red-50 px-2 py-1 rounded-full">
-            <WifiOff className="w-4 h-4" /> Offline
+            <Icon icon="WifiOff" size="md" className="w-4 h-4" /> Offline
           </span>}
       </div>
 
@@ -84,7 +83,7 @@ export default function SystemStatusWidget() {
         {/* API Health */}
         <div className="flex flex-col p-3 bg-gray-50 rounded-lg">
           <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-            <Server className="w-4 h-4" />
+            <Icon icon="Server" size="md" className="w-4 h-4" />
             <span>API 상태</span>
           </div>
           <div className="flex items-center justify-between">
@@ -98,7 +97,7 @@ export default function SystemStatusWidget() {
         {/* Kiosk Health */}
         <div className="flex flex-col p-3 bg-gray-50 rounded-lg">
           <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-            <Terminal className="w-4 h-4" />
+            <Icon icon="Terminal" size="md" className="w-4 h-4" />
             <span>키오스크 연동</span>
           </div>
           <div className="flex items-center justify-between">
