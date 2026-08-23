@@ -5,7 +5,6 @@ import { storesAPI } from '../../api/stores';
 import {
   ArrowLeft, RefreshCw, KeyRound, Webhook, Plus, Trash2, Copy, Check,
   CircleCheck, CircleX, Clock, Loader2, Code2, ScrollText
-} from 'lucide-react';
 import { toast } from 'sonner';
 import Skeleton from '../common/Skeleton';
 import Icon from '../ui/Icon';
