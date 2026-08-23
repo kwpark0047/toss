@@ -1,24 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Store,
-  ChefHat,
-  LayoutGrid,
-  QrCode,
-  Check,
-  Plus,
-  Trash2,
-  Sparkles,
-  ArrowRight,
-  ArrowLeft,
-  Loader2,
-  Clock,
-  Phone,
-  MapPin,
-  PartyPopper,
-  X,
-import { storesAPI, categoriesAPI, productsAPI, tablesAPI, aiAPI } from '../../api';
+import { motion, AnimatePresence } from 'framer-motion';import { storesAPI, categoriesAPI, productsAPI, tablesAPI, aiAPI } from '../../api';
 import { useStore } from '../../contexts/StoreContext';
 import { buildMenuUrl, buildQrUrl } from '../../utils/site';
 
@@ -29,6 +11,7 @@ import TableLayoutCard, { CARD_W } from './wizard/TableLayoutCard';
 import BusinessTypePicker, { getBtypeLabel } from './wizard/BusinessTypePicker';
 import Step1InlineGuide from './wizard/Step1InlineGuide';
 import Icon from '../ui/Icon';
+import { ArrowLeft, ArrowRight, Check, ChefHat, Clock, LayoutGrid, Loader2, PartyPopper, Phone, Plus, QrCode, Sparkles, Store, Trash2, X } from 'lucide-react';
 
 const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 

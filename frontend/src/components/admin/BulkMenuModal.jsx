@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../ui/Icon';
 import { aiAPI, productsAPI, categoriesAPI } from '../../api';
+import { Check, ImageOff, Loader2, RefreshCw, Upload, Wand2 } from 'lucide-react';
 
 // [번들 최적화 M-5] xlsx 는 gzip 이후에도 ~450KB 로, 정적 import 하면 이 모달을
 // 포함한 청크 전체가 무거워진다. 실제로 필요한 시점(샘플 다운로드 / 파일 파싱)에만

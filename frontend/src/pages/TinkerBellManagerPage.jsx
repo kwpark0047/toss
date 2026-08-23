@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Globe, CloudRain, Sun, Snowflake, Flame, Type, ToggleLeft, ToggleRight, RefreshCw, TrendingUp, ShoppingCart, ChevronRight, Info, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { loadTinkerBellSettings, saveTinkerBellSettings } from '../utils/tinkerbell';
 import TinkerBell from '../components/ai/TinkerBell';
 import Icon from '../components/ui/Icon';
+import { ChevronRight, Globe, Info, RefreshCw, Sparkles, Sun, TrendingUp } from 'lucide-react';
 
 // ── 데모용 메뉴 데이터 (미리보기용) ─────────────────────────────────────────
 const PREVIEW_MENU = [

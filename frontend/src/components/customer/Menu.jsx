@@ -836,8 +836,6 @@ const Menu = ({
     background: pageBg,
     ...themeStyles
   }}>
-      {/* 프리미엄 플로팅 헤더 */}
-      </motion.header>
       {/* TDS MenuHeader with show/hide functionality */}
       <MenuHeader
         storeName={theme.logoText || store?.name || "WeMarket"}

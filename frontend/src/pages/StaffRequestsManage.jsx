@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { staffRequestsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import Icon from '../ui/Icon';
+import { Filter, Shield, Store } from 'lucide-react';
 
 // super_admin용 스태프 계정 신청 관리 페이지
 const StaffRequestsManage = () => {

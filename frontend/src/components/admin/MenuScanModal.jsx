@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion} from 'framer-motion';
 import { aiAPI, productsAPI, categoriesAPI } from '../../api';
 import { toast } from 'react-toastify';
+import { AlertCircle, Check, Loader2, Sparkles, Trash2, Upload, X } from 'lucide-react';
 
 const MenuScanModal = ({ storeId, existingCategories, onClose, onSave }) => {
     const [step, setStep] = useState('upload');

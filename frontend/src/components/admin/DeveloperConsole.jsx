@@ -2,12 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
 import { developerAPI } from '../../api/developer';
 import { storesAPI } from '../../api/stores';
-import {
-  ArrowLeft, RefreshCw, KeyRound, Webhook, Plus, Trash2, Copy, Check,
-  CircleCheck, CircleX, Clock, Loader2, Code2, ScrollText
 import { toast } from 'sonner';
 import Skeleton from '../common/Skeleton';
 import Icon from '../ui/Icon';
+import { ArrowLeft, Check, Code2, Copy, KeyRound, Loader2, Plus, RefreshCw, ScrollText, Trash2, Webhook } from 'lucide-react';
 
 const EVENT_TYPES = ['order.created', 'order.updated', 'order.completed'];
 

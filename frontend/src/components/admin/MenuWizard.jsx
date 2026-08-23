@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { aiAPI, productsAPI } from '../../api';
+import { AlertCircle, ArrowLeft, ArrowRight, Check, ImageIcon, ListPlus, Sparkles, Tag, Trash2, Wand2, X } from 'lucide-react';
 
 const MenuWizard = ({ storeId, categories, onClose, onSave }) => {
     const [step, setStep] = useState(1);

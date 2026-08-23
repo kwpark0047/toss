@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { staffAPI } from '../../api/staff';
 import Icon from '../ui/Icon';
+import { ChevronLeft, ChevronRight, Clock, Plus, Trash2, X } from 'lucide-react';
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 

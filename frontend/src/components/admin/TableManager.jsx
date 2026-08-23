@@ -1,10 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { tablesAPI, storesAPI } from '../../api';
-import {
-  ArrowLeft, Plus, Edit, Trash2, QrCode, RefreshCw,
-  Download, FileText, Loader2, LayoutGrid, List,
-  Users, Sparkles, Share2, Printer, Check, X as XIcon, Palette
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import VisualTableMap from './VisualTableMap';
@@ -12,6 +8,7 @@ import { getSocket } from '../../utils/socket';
 import { buildMenuUrl, buildQrUrl } from '../../utils/site';
 import { handleApiError } from '../../utils/apiError';
 import Icon from '../ui/Icon';
+import { Check, Download, FileText, Loader2, Printer, QrCode, Sparkles, XIcon } from 'lucide-react';
 
 /* ─────────────────────────── 카드 디자인 테마 ─────────────────────────── */
 const DESIGNS = [

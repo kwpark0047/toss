@@ -6,6 +6,8 @@ import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
+import Icon from '../ui/Icon';
+import { Bell, Pencil, Plus, Save, ToggleLeft, ToggleRight, Trash2, X } from 'lucide-react';
 
 const NOTIFICATION_TYPES = [
   { value: 'NEW_ORDER', label: '새 주문' },

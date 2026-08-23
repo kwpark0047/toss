@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router';
 import { formatPrice } from '../../utils/format';
 import api from '../../api/client';
 import Icon from '../ui/Icon';
+import { CheckCircle2, DollarSign, MessageSquare, RefreshCw } from 'lucide-react';
 export default function AlimtalkDeliveryConsole() {
   const {
     storeId

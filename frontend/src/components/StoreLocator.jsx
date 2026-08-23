@@ -10,6 +10,7 @@ import { onOrderUpdated, joinOrderRoom, joinCustomerOrders } from '../utils/sock
 import { bizLabel } from '../utils/businessType';
 import { isDisplayableStoreName } from '../utils/storeName';
 import Icon from './ui/Icon';
+import { ChevronRight, Heart, Navigation, RefreshCw, Server } from 'lucide-react';
 
 /**
  * StoreLocator — 랜딩 "매장 위치" 섹션.

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { optionTemplatesAPI } from '../../api';
+import { FileText, Plus, Trash2, X } from 'lucide-react';
 
 const OptionTemplateModal = ({ storeId, onClose }) => {
     const [templates, setTemplates] = useState([]);

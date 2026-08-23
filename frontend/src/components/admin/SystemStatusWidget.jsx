@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '@/api/client';
+import Icon from '../ui/Icon';
 export default function SystemStatusWidget() {
   const {
     t

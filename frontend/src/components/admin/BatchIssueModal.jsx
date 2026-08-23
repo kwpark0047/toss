@@ -76,7 +76,7 @@ export default function BatchIssueModal({ storeId, storeName, onClose }) {
         className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div>
-            <Icon icon="Coins" size="sm" className="text-amber-400" /> 일괄 발급</h2>
+            <h2 className="text-sm font-black flex items-center gap-2">{tab === 'points' ? <Icon icon="Coins" size="sm" className="text-amber-400" /> : <Icon icon="Ticket" size="sm" className="text-amber-400" />} 일괄 발급</h2>
             <p className="text-[11px] text-slate-500">{storeName || `매장 #${storeId}`}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 hover:text-white"><Icon icon="X" size="md" /></button>
@@ -85,10 +85,10 @@ export default function BatchIssueModal({ storeId, storeName, onClose }) {
         <div className="p-4 space-y-3">
           {/* 탭 */}
           <div className="inline-flex bg-white/5 rounded-lg p-0.5">
-            {[['points', '포인트', Coins], ['coupons', '쿠폰', Ticket]].map(([k, l, Icon]) => (
+            {[['points', '포인트', 'Coins'], ['coupons', '쿠폰', 'Ticket']].map(([k, l, ic]) => (
               <button key={k} onClick={() => { setTab(k); setResult(null); }}
                 className={`flex items-center gap-1.5 px-4 h-8 rounded-md text-xs font-black transition-colors ${tab === k ? 'bg-orange-500 text-white' : 'text-slate-400'}`}>
-                <Icon size={14} /> {l}
+                <Icon icon={ic} size="sm" /> {l}
               </button>
             ))}
           </div>
@@ -154,7 +154,7 @@ export default function BatchIssueModal({ storeId, storeName, onClose }) {
           {result && (
             <div className={`rounded-xl p-3 text-xs font-bold ${result.success ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}>
               <div className="flex items-center gap-2 mb-1">
-                {result.success ? <Check size={14} /> : <Icon icon="AlertTriangle" />}
+                {result.success ? <Icon icon="Check" size="sm" /> : <Icon icon="AlertTriangle" size="md" />}
                 {result.success ? `완료: ${result.data?.success || 0}명 성공${result.data?.failed ? `, ${result.data.failed}명 실패` : ''}` : result.error}
               </div>
               {result.success && result.data?.batchId && <p className="text-[10px] text-slate-400">배치 ID: {result.data.batchId}</p>}

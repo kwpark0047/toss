@@ -1,11 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import {
-  X, MapPinned, Loader2, Sparkles, Check, AlertTriangle, ChevronDown,
-  ArrowRight, RefreshCw,
-} from 'lucide-react';
 import { adminAPI } from '../../api/admin';
 import Icon from '../ui/Icon';
+import { ArrowRight, Check, ChevronDown, Loader2, RefreshCw, Sparkles, X } from 'lucide-react';
 
 const CATEGORY_LABELS = {
   basic: '기본 정보',

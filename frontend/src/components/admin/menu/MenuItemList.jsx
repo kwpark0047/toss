@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import EmptyState from '../../common/EmptyState';
 import { formatPrice } from '../../../utils/format';
 import Icon from '../../ui/Icon';
+import { Clock, Edit, ImageIcon, Search, ShoppingBag, Trash2 } from 'lucide-react';
 
 export const MenuItemList = ({
   products,

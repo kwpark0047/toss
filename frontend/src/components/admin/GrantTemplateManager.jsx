@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { grantTemplateAPI } from '../../api/admin';
+import { Check, Edit3, FileText, Loader2, Plus, Save, Trash2, X } from 'lucide-react';
 export default function GrantTemplateManager({
   storeId,
   onClose

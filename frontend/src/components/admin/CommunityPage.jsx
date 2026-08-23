@@ -5,7 +5,7 @@ import { communityAPI } from '../../api/index.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import api from '../../api/index.js';
 import EmptyState from '../common/EmptyState';
-import Icon from '../ui/Icon';
+import { Bell, Calendar, CheckCircle, ChevronDown, ChevronRight, Clock, Eye, Globe, Heart, Loader2, Phone, Plus, RefreshCw, Search, Send, Store, X, XCircle } from 'lucide-react';
 
 // ── 상수 ──────────────────────────────────────────────────────────────
 const TYPE_OPTIONS = [
@@ -105,7 +105,7 @@ function PostCard({ post, myStoreIds = [], onDelete, onLike }) {
                   onClick={() => setShowMenu(v => !v)}
                   className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
                 >
-                  <<Icon icon="MoreHorizontal" size="md" />
+                  <Icon icon="MoreHorizontal" size="md" />
                 </button>
                 <AnimatePresence>
                   {showMenu && (

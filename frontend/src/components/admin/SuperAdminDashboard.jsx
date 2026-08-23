@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
-import {
-  Store, Users, Coins, ShoppingBag, Clock, Search, ChevronLeft, ChevronRight,
-  Settings, Gift, MapPinned, Loader2, Building2, Link2, Check, X, Sparkles,
 import { adminAPI } from '../../api/admin';
 import { bizLabel } from '../../utils/businessType';
 import { useSEO } from '../../lib/useSEO';
@@ -11,6 +8,7 @@ import MiniBarChart from './MiniBarChart';
 import StoreDetailModal from './StoreDetailModal';
 import StoreEnrichmentModal from './StoreEnrichmentModal';
 import Icon from '../ui/Icon';
+import { Check, ChevronLeft, ChevronRight, Gift, Link2, Loader2, Search, Settings, Sparkles, X } from 'lucide-react';
 
 const INFO_BADGE = {
   good: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',

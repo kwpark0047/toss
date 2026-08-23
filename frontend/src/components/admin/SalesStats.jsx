@@ -4,6 +4,7 @@ import { ordersAPI, storesAPI } from '../../api';
 import { formatPrice } from '../../utils/format';
 import Skeleton from '../common/Skeleton';
 import Icon from '../ui/Icon';
+import { RefreshCw } from 'lucide-react';
 
 const SalesStats = () => {
   const { storeId } = useParams();

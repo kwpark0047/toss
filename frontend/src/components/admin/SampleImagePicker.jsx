@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Check, Image, X } from 'lucide-react';
 
 const SAMPLE_IMAGES = {
   '한식': [

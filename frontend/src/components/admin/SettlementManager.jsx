@@ -1,13 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { adminAPI } from '../../api';
-import {
-    Calendar, CreditCard, Download, TrendingUp,
-    AlertCircle, CheckCircle2, DollarSign, Calculator, ChevronRight,
-    X, FileText, RefreshCw, Banknote, Building2, Smartphone, Store, Info
 import { toast } from 'react-toastify';
 import { formatPrice } from '../../utils/format';
 import Icon from '../ui/Icon';
+import { AlertCircle, Calculator, Calendar, CheckCircle2, ChevronRight, Download, FileText, Info, RefreshCw, TrendingUp, X } from 'lucide-react';
 
 // 결제수단 레이블
 const METHOD_LABELS = {

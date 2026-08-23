@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { storesAPI } from '../../api/stores';
 import { toast } from 'sonner';
 import { buildMenuUrl } from '../../utils/site';
+import { ArrowLeft, Download, Loader2, QrCode as QrIcon, RotateCcw, Save } from 'lucide-react';
 
 const DEFAULT_STYLE = { fg: '#0f172a', bg: '#ffffff', logo: '', size: 640 };
 

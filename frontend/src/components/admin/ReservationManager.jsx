@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
 import Icon from '../ui/Icon';
+import { CalendarCheck, CheckCircle, Clock, Phone, XCircle } from 'lucide-react';
 
 const ReservationManager = () => {
     const { storeId } = useParams();

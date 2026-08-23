@@ -1,23 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link } from 'react-router';
-import {
-  Building2,
-  TrendingUp,
-  ShoppingCart,
-  DollarSign,
-  Calendar,
-  RefreshCw,
-  Layers,
-  ChevronRight,
-  Store,
-  Package,
-  Megaphone,
-  Activity,
-import { formatPrice } from '../../utils/format';
+import { Link } from 'react-router';import { formatPrice } from '../../utils/format';
 import { toast } from 'react-toastify';
 import { vibrateShort } from '../../utils/notificationSound';
 import { analyticsAPI } from '../../api/misc';
 import Icon from '../ui/Icon';
+import { Activity, ChevronRight, DollarSign, Layers, Package, RefreshCw, ShoppingCart, Store, TrendingUp } from 'lucide-react';
 export default function MultiStoreSupervisorDashboard() {
   const [data, setData] = useState({
     summary: {

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { Download, Edit, GripVertical, Plus, Settings, Tag, Trash2 } from 'lucide-react';
 
 export const CategoryList = ({
   categories,

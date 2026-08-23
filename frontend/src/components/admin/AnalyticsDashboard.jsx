@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { analyticsAPI, storesAPI, staffAPI, exportAPI } from '../../api';
-import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Users, Award, Clock, BarChart3, PieChart, Calendar, ChevronRight, Activity, Zap, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
 import AdvancedInsights from './AdvancedInsights';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart as RePieChart, Pie, Legend, Line, ComposedChart } from 'recharts';
 import Icon from '../ui/Icon';
+import { ChevronRight, Clock, Download } from 'lucide-react';
 
 /**
  * [정적 유틸리티] 차트용 단축 가격 포맷팅

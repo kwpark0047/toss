@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router';
 import api from '@/api/client';
 import Icon from '../ui/Icon';
+import { Navigation, Power, RefreshCw, ShieldAlert, Sparkles } from 'lucide-react';
 export default function FoodTruckOwnerDashboard() {
   const {
     storeId

@@ -7,7 +7,6 @@ import Button from '../common/Button';
 import EmptyState from '../common/EmptyState';
 import { vibrateClick } from '../../utils/notificationSound';
 import LazyImage from '../common/LazyImage';
-import Icon from '../ui/Icon';
 
 // ── 결제수단 정의 (번역 함수로 생성) ────────────────────────────────
 const getPaymentGroups = (t) => [

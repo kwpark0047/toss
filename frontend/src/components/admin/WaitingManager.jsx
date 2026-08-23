@@ -1,28 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { getSocket, waitingAPI } from '../../api';
-import { useTTS } from '../../hooks/useTTS';
-import {
-  PhoneCall,
-  Users,
-  Clock,
-  UserCheck,
-  XCircle,
-  RefreshCw,
-  ListOrdered,
-  Bell,
-  Volume2,
-  VolumeX,
-  TrendingUp,
-  BarChart2,
-  Send,
-  AlertTriangle,
-  Mic2,
-  Mic,
-import { toast } from 'react-toastify';
+import { useTTS } from '../../hooks/useTTS';import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
 import Icon from '../ui/Icon';
+import { BarChart2, Bell, Clock, ListOrdered, Mic, Mic2, PhoneCall, RefreshCw, Send, TrendingUp, UserCheck, Volume2, VolumeX, XCircle } from 'lucide-react';
 
 const STATUS_META = {
   waiting: { label: '대기 중', badge: 'bg-amber-100 text-amber-700 border-amber-200' },

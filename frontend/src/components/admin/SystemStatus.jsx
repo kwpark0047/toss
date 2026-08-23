@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, Component } from 'react';
 import { useSEO } from '../../lib/useSEO';
 import api from '../../api';
 import Icon from '../ui/Icon';
+import { Activity, CheckCircle2, Database, RefreshCw, Server, Shield, XCircle, Zap } from 'lucide-react';
 
 /**
  * 각 섹션을 독립적으로 감싸는 에러 바운더리

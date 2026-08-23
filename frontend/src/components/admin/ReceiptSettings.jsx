@@ -3,6 +3,7 @@ import { useParams } from 'react-router';
 import { adminAPI } from '../../api';
 import { formatPrice } from '../../utils/format';
 import { toast } from 'react-toastify';
+import { CheckSquare, Eye, Save, Square, Store, Type } from 'lucide-react';
 
 const ReceiptSettings = () => {
     const { storeId } = useParams();

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useNotifications } from '../../contexts/NotificationContext';
 import Icon from '../ui/Icon';
+import { Bell, Check, ChevronDown, RefreshCw, Trash2, Volume2, VolumeX, Wifi, WifiOff, X } from 'lucide-react';
 
 const TYPE_META = {
     NEW_ORDER:       { icon: 'ShoppingBag',   color: 'text-orange-400', bg: 'bg-orange-500/10',  label: '새 주문',   dot: 'bg-orange-400' },

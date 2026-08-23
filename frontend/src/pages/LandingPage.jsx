@@ -8,13 +8,7 @@ import StoreLocator from '../components/StoreLocator';
 import { storesAPI } from '../api/stores';
 import { getRecentStores } from '../utils/recentStores';
 import LanguageSwitcher from '../components/common/LanguageSwitcher';
-import {
-    QrCode, Store, Bell, CreditCard, Clock, BarChart3,
-    Users, Smartphone, Check, ArrowRight, Menu, X, ChevronRight,
-    Zap, Link2, Gift, ShieldCheck, Play, Sparkles,
-    TrendingUp, Star, Quote, ShoppingCart,
-    Heart, Crown, Award, BadgeCheck, CalendarDays, UserPlus,
-    Building2, Share2, Megaphone, MapPin, Repeat2, Target,
+import { CalendarDays, Check, ChevronRight, Clock, Gift, Heart, Quote, ShieldCheck, Sparkles, Store, TrendingUp } from 'lucide-react';
 
 const LandingPage = () => {
     const { user } = useAuth();

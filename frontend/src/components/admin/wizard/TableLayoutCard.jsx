@@ -1,5 +1,6 @@
 import { useRef } from 'react';
-import { Move, X } from 'lucide-react';
+import Icon from '../../ui/Icon';
+import { Move } from 'lucide-react';
 
 export const CARD_W = 130;
 export const CARD_H = 80;
@@ -67,7 +68,7 @@ export default function TableLayoutCard({ table, canvasRef, onMove, onDelete }) 
           onClick={() => onDelete(table.id)}
           className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-rose-500 border-2 border-slate-900 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-400 z-20"
         >
-          <X size={10} className="text-white" />
+          <Icon icon="X" size="md" className="text-white" />
         </button>
       )}
     </div>

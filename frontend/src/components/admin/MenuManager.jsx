@@ -7,6 +7,7 @@ import Skeleton from '../common/Skeleton';
 import { CategoryModal } from './CategoryModal';
 import { CategoryList } from './menu/CategoryList';
 import { MenuItemList } from './menu/MenuItemList';
+import { ArrowLeft, Folders, Plus, Sparkles, Store } from 'lucide-react';
 
 const BulkMenuModal = lazy(() => import('./BulkMenuModal'));
 const MenuScanModal = lazy(() => import('./MenuScanModal'));

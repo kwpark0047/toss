@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Icon from '../../ui/Icon';
 
 // ── 1인 사업자 인기 업종
 export const POPULAR_VALUES = ['food_truck', 'cafe', 'korean', 'chicken', 'bakery', 'hair', 'fitness', 'academy'];

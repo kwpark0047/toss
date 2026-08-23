@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { tablesAPI } from '../../api';
 import { toast } from 'react-toastify';
+import Icon from '../ui/Icon';
+import { Move } from 'lucide-react';
 
 const GRID_SIZE = 20;
 const TABLE_SIZE = 72; // px — 터치 타겟 크기
