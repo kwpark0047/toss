@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Plus, Edit, Trash2, History, Play, BarChart3, Clock, Zap, Package, Users, RefreshCw, CheckCircle, XCircle, PauseCircle, Save, X } from 'lucide-react';
 import { dynamicPricingAPI } from '@/api/admin';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
