@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
-import { Play, CheckCircle2, RefreshCw, Printer, Volume2, VolumeX, Wifi, WifiOff, Clock, User, Hash, XCircle } from 'lucide-react';
 import { connectKitchen, getSocket } from '../../utils/socket';
 import notificationSound, { vibrateShort, vibrateOrderReady } from '../../utils/notificationSound';
 export default function AdvancedKdsDashboard() {
@@ -206,7 +205,7 @@ return () => {
       <header className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
         <div className="flex items-center gap-3">
           <div className="bg-orange-500 text-white p-2 rounded-lg">
-            <Printer className="size-5" />
+            <Icon icon="Printer" size="md" className="size-5" />
           </div>
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2 tracking-tight">
@@ -224,17 +223,17 @@ return () => {
           {/* 소켓 연결 표시등 */}
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono border ${socketStatus === 'CONNECTED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 animate-pulse'}`}>
             {socketStatus === 'CONNECTED' ? <>
-                <Wifi className="size-3.5" />
+                <Icon icon="Wifi" size="md" className="size-3.5" />
                 <span>ONLINE</span>
               </> : <>
-                <WifiOff className="size-3.5" />
+                <Icon icon="WifiOff" size="md" className="size-3.5" />
                 <span>OFFLINE (RETRY)</span>
               </>}
           </div>
 
           {/* 사운드 활성 토글 */}
           <button onClick={() => setSoundEnabled(!soundEnabled)} className={`p-2 rounded-lg border text-sm font-medium flex items-center gap-1.5 transition-all ${soundEnabled ? 'bg-orange-500/10 border-orange-500/30 text-orange-400' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
-            {soundEnabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+            {soundEnabled ? <Icon icon="Volume2" size="md" className="size-4" /> : <Icon icon="VolumeX" size="md" className="size-4" />}
             <span className="font-mono text-xs uppercase">{soundEnabled ? 'ON' : 'MUTED'}</span>
           </button>
 
@@ -267,7 +266,7 @@ return () => {
         <div className="relative max-w-md w-full md:w-80">
           <input type="text" placeholder="주문 번호, 테이블, 고객명 검색..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-orange-500 placeholder-slate-500 transition-all" />
           {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1.5 text-slate-500 hover:text-slate-300">
-              <XCircle className="size-4" />
+              <Icon icon="XCircle" size="md" className="size-4" />
             </button>}
         </div>
       </div>
@@ -332,7 +331,7 @@ return () => {
 
                       {/* 액션 버튼 */}
                       <button onClick={() => handleUpdateStatus(order.id, 'preparing')} disabled={updatingId === order.id} className="w-full mt-2 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 rounded font-bold text-xs flex items-center justify-center gap-1.5 transition-all">
-                        <Play className="size-3.5 fill-current" />
+                        <Icon icon="Play" size="md" className="size-3.5 fill-current" />
                         주문 접수 & 조리 시작
                       </button>
                     </div>
@@ -404,7 +403,7 @@ return () => {
                         </button>
                         
                         <button onClick={() => handleUpdateStatus(order.id, 'ready')} disabled={updatingId === order.id} className="flex-1 py-2 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-slate-950 rounded font-bold text-xs flex items-center justify-center gap-1.5 transition-all">
-                          <CheckCircle2 className="size-3.5" />
+                          <Icon icon="CheckCircle2" size="md" className="size-3.5" />
                           조리 완료 (CALL)
                         </button>
                       </div>
@@ -448,14 +447,14 @@ return () => {
                     <div className="p-3 flex flex-col gap-2">
                       <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850/60 flex flex-col gap-1.5">
                         <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                          <User className="size-3.5" />
+                          <Icon icon="User" size="md" className="size-3.5" />
                           <span>고객 연락처:</span>
                           <span className="font-mono text-slate-200">
                             {order.customer_phone ? '010-****-' + order.customer_phone.slice(-4) : '등록 정보 없음'}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                          <Hash className="size-3.5" />
+                          <Icon icon="Hash" size="md" className="size-3.5" />
                           <span>대기순서:</span>
                           <span className="font-mono text-slate-200">
                             {order.queue_number ? `${order.queue_number}번` : '정보 없음'}
@@ -473,7 +472,7 @@ return () => {
 
                       {/* 액션 버튼 */}
                       <button onClick={() => handleUpdateStatus(order.id, 'completed')} disabled={updatingId === order.id} className="w-full mt-2 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 rounded font-bold text-xs flex items-center justify-center gap-1.5 transition-all">
-                        <CheckCircle2 className="size-3.5" />
+                        <Icon icon="CheckCircle2" size="md" className="size-3.5" />
                         음식 수령 완료
                       </button>
                     </div>
