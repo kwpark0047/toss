@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
-import { MessageSquare, CheckCircle2, RefreshCw, DollarSign, BarChart3, Search } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import api from '../../api/client';
 import Icon from '../ui/Icon';
@@ -74,7 +73,7 @@ const summary = useMemo(() => data.summary || {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div className="p-2.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-xl">
-              <MessageSquare className="size-5" />
+              <Icon icon="MessageSquare" size="md" className="size-5" />
             </div>
             <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
               알림톡 전송 콘솔
@@ -92,7 +91,7 @@ const summary = useMemo(() => data.summary || {
         <div className="flex items-center gap-2.5">
           <div className="relative w-64">
             <input type="text" placeholder="수신 번호, 템플릿, 문구 검색..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-slate-900 border border-slate-850 text-slate-200 rounded-xl px-10 py-2.5 text-xs focus:outline-none focus:border-orange-500 transition-all placeholder-slate-500" />
-            <Search className="size-4 text-slate-500 absolute left-3.5 top-3" />
+            <Icon icon="Search" size="md" className="size-4 text-slate-500 absolute left-3.5 top-3" />
           </div>
           <button onClick={() => fetchAlimtalkHistory(true)} disabled={loading} className="w-10 h-10 rounded-xl border border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center bg-slate-950 active:scale-95">
             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
