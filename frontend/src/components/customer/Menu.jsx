@@ -2,8 +2,8 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router";
 import { storesAPI, categoriesAPI, productsAPI, tablesAPI, ordersAPI, cartAPI, paymentsAPI } from "../../api";
-import { ShoppingCart, Plus, Minus, X, CreditCard, Banknote, Building2, Clock, CheckCircle, ChevronLeft, ChevronRight, MapPin, Phone, Timer, Star, Wand2, Search, Sparkles, BellRing, Users, Calendar, TrendingUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Icon from '../ui/Icon';
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../common/LanguageSwitcher";
 import MenuHeader from "../menu/MenuHeader";
@@ -23,7 +23,6 @@ import { useOfflineSync } from "../../hooks/useOfflineSync";
 import MenuSkeleton from "./MenuSkeleton";
 import MenuProductList from "./MenuProductList";
 import OrderProgressBar from "./OrderProgressBar";
-import Icon from '../ui/Icon';
 const defaultTheme = {
   primaryColor: "#f97316",
   secondaryColor: "#1e3a5f",
@@ -688,9 +687,9 @@ const Menu = ({
   if (error) return <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center" style={{
     background: theme.backgroundColor
   }}>
-      <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mb-6 text-red-500">
-        <X size={40} />
-      </div>
+<div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mb-6 text-red-500">
+        <Icon icon="X" size="lg" />
+</div>
       <h2 className="text-xl font-bold mb-2">데이터 로딩 실패</h2>
       <p className="text-gray-500 mb-8">{error || t('common.error_loading')}</p>
       <button onClick={() => window.location.reload()} className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold shadow-lg">
@@ -717,7 +716,7 @@ const Menu = ({
           <div className="relative z-10 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner" style={{
           backgroundColor: theme.accentColor + "20"
         }}>
-            <motion.div initial={{
+<motion.div initial={{
             scale: 0
           }} animate={{
             scale: 1
@@ -725,10 +724,10 @@ const Menu = ({
             type: "spring",
             damping: 12
           }}>
-              <CheckCircle size={48} style={{
+              <Icon icon="CheckCircle" size="lg" style={{
               color: theme.accentColor
             }} />
-            </motion.div>
+          </motion.div>
           </div>
 
           <h2 className="text-3xl font-black text-center mb-2 tracking-tight" style={{
@@ -752,9 +751,9 @@ const Menu = ({
                 </motion.p>
               </div>}
             {orderSuccess.estimated_minutes && <div className="flex items-center justify-center gap-2 py-2 px-4 bg-white/50 rounded-full w-fit mx-auto shadow-sm border border-white">
-                <Timer size={18} style={{
-              color: theme.secondaryColor
-            }} />
+<Icon icon="Timer" size="md" style={{
+            color: theme.secondaryColor
+          }} />
                 <span className="font-bold text-sm" style={{
               color: theme.secondaryColor
             }}>약 {orderSuccess.estimated_minutes}분 소요</span>
@@ -773,9 +772,7 @@ const Menu = ({
             <div className="flex justify-between items-center mb-3">
               <span className="text-gray-500">{t('order.payment_method')}</span>
               <span className="font-medium flex items-center gap-2">
-                {pInfo && <pInfo.icon size={18} style={{
-                color: theme.secondaryColor
-              }} />}
+                {pInfo && <Icon icon="CreditCard" size="md" style={{ color: theme.secondaryColor }} />}
                 {t(`order.methods.${orderSuccess.payment_method}`)}
               </span>
             </div>
@@ -803,7 +800,7 @@ const Menu = ({
           <div className="flex items-center gap-3 p-4 rounded-xl mb-6" style={{
           backgroundColor: theme.primaryColor + "10"
         }}>
-            <Clock size={20} style={{
+            <Icon icon="Clock" size="md" style={{
             color: theme.primaryColor
           }} />
             <div>
@@ -819,7 +816,7 @@ const Menu = ({
             color: theme.textColor
           }}>{store?.name}</p>
             {store?.address && <p className="flex items-center justify-center gap-1 mt-1"><Icon icon="MapPin" /> {store.address}</p>}
-            {store?.phone && <p className="flex items-center justify-center gap-1 mt-1"><Phone size={14} /> {store.phone}</p>}
+            {store?.phone && <p className="flex items-center justify-center gap-1 mt-1"><Icon icon="Phone" size="md" /> {store.phone}</p>}
           </div>
 
           <div className="space-y-3">
@@ -924,7 +921,7 @@ const Menu = ({
              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{
           backgroundColor: theme.primaryColor + "15"
         }}>
-               <TrendingUp size={18} style={{
+               <Icon icon="TrendingUp" size="md" style={{
             color: theme.primaryColor
           }} />
              </div>
@@ -985,7 +982,7 @@ const Menu = ({
               <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
               <div className="flex items-center gap-4 relative z-10">
                 <div className="relative">
-                  <ShoppingCart size={24} />
+                  <Icon icon="ShoppingCart" size="lg" />
                   <span className="absolute -top-3 -right-3 bg-white text-orange-600 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow-lg">
                     {getTotalItems()}
                   </span>
@@ -1011,7 +1008,7 @@ const Menu = ({
               {orderStep !== "cart" ? <button onClick={() => setOrderStep("cart")} className="flex items-center gap-1 font-bold" style={{
             color: theme.primaryColor
           }}>
-                  <ChevronLeft size={20} />{t('common.back')}
+                  <Icon icon="ChevronLeft" size="md" />{t('common.back')}
                 </button> : <h2 className="text-xl font-black" style={{
             color: theme.textColor
           }}>장바구니</h2>}
@@ -1019,9 +1016,9 @@ const Menu = ({
             setShowCart(false);
             setOrderStep("cart");
           }} className="p-2 bg-slate-100 rounded-full">
-                <X size={24} style={{
-              color: theme.textColor
-            }} />
+                <Icon icon="X" size="lg" style={{
+            color: theme.textColor
+          }} />
               </button>
             </div>
             {/* 주문 진행바 */}
@@ -1044,11 +1041,11 @@ const Menu = ({
                       </div>
                       <div className="flex items-center gap-3 bg-white p-1 rounded-2xl shadow-sm border border-slate-100">
                         <button onClick={() => updateQuantity(i.product_id, -1)} className={`w-12 h-12 rounded-xl flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors ${kioskMode ? 'scale-125' : ''}`}>
-                          <Minus size={kioskMode ? 20 : 16} className="text-slate-600" />
+                          <Icon icon="Minus" size={kioskMode ? 20 : 16} className="text-slate-600" />
                         </button>
                         <span className={`w-8 text-center font-black text-slate-800 ${kioskMode ? 'text-lg' : ''}`}>{i.quantity}</span>
                         <button onClick={() => updateQuantity(i.product_id, 1)} className="w-12 h-12 rounded-xl flex items-center justify-center bg-orange-50 hover:bg-orange-100 transition-colors">
-                          <Plus size={kioskMode ? 20 : 16} className="text-orange-600" />
+                          <Icon icon="Plus" size={kioskMode ? 20 : 16} className="text-orange-600" />
                         </button>
                       </div>
                     </motion.div>)}
@@ -1064,7 +1061,7 @@ const Menu = ({
             }} className="px-6 pb-6">
                       <div className="bg-orange-50 rounded-[2rem] p-5 border border-orange-100/50">
                         <h4 className="text-orange-700 font-black text-sm mb-3 flex items-center gap-2">
-                          <Sparkles size={16} /> 이런 후식은 어떠세요?
+                          <Icon icon="Sparkles" size="md" /> 이런 후식은 어떠세요?
                         </h4>
                         <div className="flex gap-4 overflow-x-auto scrollbar-hide">
                           {dessertRecommendations.map(rec => <motion.div key={rec.id} whileTap={{
@@ -1118,7 +1115,7 @@ const Menu = ({
                         <p className={`opacity-80 font-medium ${kioskMode ? 'text-sm' : 'text-[11px]'}`}>따로 결제하고 포인트도 각자 받으세요!</p>
                       </div>
                     </div>
-                    <ChevronRight size={kioskMode ? 28 : 24} className="opacity-50 group-hover:translate-x-1 transition-transform" />
+                    <Icon icon="ChevronRight" size="md" className="opacity-50 group-hover:translate-x-1 transition-transform" />
                   </motion.button>
 
                   <div className="space-y-3">
@@ -1132,17 +1129,17 @@ const Menu = ({
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${kioskMode ? 'w-14 h-14' : ''}`} style={{
                   backgroundColor: theme.primaryColor + "15"
                 }}>
-                          <m.icon size={kioskMode ? 28 : 24} style={{
-                    color: theme.primaryColor
-                  }} />
+<Icon icon="CreditCard" size="lg" style={{
+            color: theme.primaryColor
+          }} />
                         </div>
                         <div className="text-left flex-1">
                           <p className={`font-bold text-gray-900 ${kioskMode ? 'text-lg' : ''}`}>{m.label}</p>
                           <p className={`text-xs text-gray-400 font-medium ${kioskMode ? 'text-sm' : ''}`}>{m.desc}</p>
                         </div>
-                        {orderForm.payment_method === m.id && <CheckCircle size={kioskMode ? 28 : 24} style={{
+                        {orderForm.payment_method === m.id && <Icon icon="CheckCircle" size="lg" style={{
                   color: theme.primaryColor
-                }} />}
+                }} />}}
                       </button>)}
                   </div>
                 </div>
@@ -1265,7 +1262,7 @@ const Menu = ({
           scale: 0.9
         }} className="w-full max-w-lg relative">
               <button onClick={() => setShowReservation(false)} className="absolute -top-12 right-0 text-white/80 hover:text-white flex items-center gap-1 font-bold">
-                <X size={24} /> 닫기
+                <Icon icon="X" size="lg" /> 닫기
               </button>
               <ReservationSection storeId={store.id} />
             </motion.div>
