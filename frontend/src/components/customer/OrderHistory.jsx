@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { ordersAPI, getSocket } from '../../api';
-import { ChevronLeft, ShoppingBag, Clock, CheckCircle2, XCircle, Calendar, RefreshCw, MoreVertical, ChevronRight, UtensilsCrossed, PackageCheck, BellRing } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ManagerCallSheet from './ManagerCallSheet';
 import ChatDrawer from './ChatDrawer';
@@ -9,6 +8,7 @@ import { formatPrice } from '../../utils/format';
 import ReviewModal from './ReviewModal';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../common/LanguageSwitcher';
+import Icon from "../../ui/Icon";
 
 /**
  * 주문 내역(Order History) 고도화 컴포넌트
@@ -36,12 +36,12 @@ const OrderHistory = () => {
 
     // 주문 상태별 레이블 및 색상 정의
     const statusConfig = {
-        pending: { label: t('status.pending'), color: 'text-orange-600', bg: 'bg-orange-50', icon: Clock, accent: 'bg-orange-600' },
-        confirmed: { label: t('status.confirmed'), color: 'text-blue-600', bg: 'bg-blue-50', icon: CheckCircle2, accent: 'bg-blue-600' },
-        preparing: { label: t('status.preparing'), color: 'text-purple-600', bg: 'bg-purple-50', icon: UtensilsCrossed, accent: 'bg-purple-600' },
-        ready: { label: t('status.ready'), color: 'text-green-600', bg: 'bg-green-50', icon: PackageCheck, accent: 'bg-green-600' },
-        completed: { label: t('status.completed'), color: 'text-slate-600', bg: 'bg-slate-50', icon: CheckCircle2, accent: 'bg-slate-400' },
-        cancelled: { label: t('status.cancelled'), color: 'text-red-600', bg: 'bg-red-50', icon: XCircle, accent: 'bg-red-600' }
+        pending: { label: t('status.pending'), color: 'text-orange-600', bg: 'bg-orange-50', icon: "Clock", accent: 'bg-orange-600' },
+        confirmed: { label: t('status.confirmed'), color: 'text-blue-600', bg: 'bg-blue-50', icon: "CheckCircle2", accent: 'bg-blue-600' },
+        preparing: { label: t('status.preparing'), color: 'text-purple-600', bg: 'bg-purple-50', icon: "UtensilsCrossed", accent: 'bg-purple-600' },
+        ready: { label: t('status.ready'), color: 'text-green-600', bg: 'bg-green-50', icon: "PackageCheck", accent: 'bg-green-600' },
+        completed: { label: t('status.completed'), color: 'text-slate-600', bg: 'bg-slate-50', icon: "CheckCircle2", accent: 'bg-slate-400' },
+        cancelled: { label: t('status.cancelled'), color: 'text-red-600', bg: 'bg-red-50', icon: "XCircle", accent: 'bg-red-600' }
     };
 
     // 데이터 불러오기 함수
@@ -128,7 +128,7 @@ const OrderHistory = () => {
                             onClick={() => navigate(-1)}
                             className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
                         >
-                            <ChevronLeft size={24} className="text-slate-700" />
+                            <Icon icon="ChevronLeft" size="md" className="text-slate-700" />
                         </button>
                         <h1 className="text-xl font-bold text-slate-900">{t('common.history')}</h1>
                     </div>
@@ -138,7 +138,7 @@ const OrderHistory = () => {
                             onClick={() => fetchHistory(true)}
                             className={`p-2 rounded-xl transition-all ${refreshing ? 'animate-spin' : ''}`}
                         >
-                            <RefreshCw size={20} className="text-slate-500" />
+                            <Icon icon="RefreshCw" size="md" className="text-slate-500" />
                         </button>
                     </div>
                 </div>
@@ -148,7 +148,7 @@ const OrderHistory = () => {
                 {orders.length === 0 ? (
                     <div className="py-20 flex flex-col items-center justify-center text-center">
                         <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                            <ShoppingBag size={32} className="text-slate-300" />
+                            <Icon icon="ShoppingBag" size="md" className="text-slate-300" />
                         </div>
                         <h3 className="text-lg font-bold text-slate-800">{t('menu.no_items')}</h3>
                         <p className="text-slate-500 mt-2">{t('common.search_placeholder')}</p>
@@ -167,7 +167,7 @@ const OrderHistory = () => {
                                 <div className="flex items-center justify-between px-1">
                                     <div className="flex items-center gap-2">
                                         <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center">
-                                            <Clock size={16} className="text-orange-600" />
+                                            <Icon icon="Clock" size="md" className="text-orange-600" />
                                         </div>
                                         <h2 className="font-black text-slate-800 tracking-tight text-lg">{t('order.active_status')}</h2>
                                     </div>
@@ -214,7 +214,7 @@ const OrderHistory = () => {
                                                                 }}
                                                                 className="p-1 px-2 rounded-lg bg-orange-500/10 text-orange-600 text-[10px] font-black border border-orange-500/20 transition-colors flex items-center gap-1"
                                                             >
-                                                                <BellRing size={10} className="animate-pulse" />
+                                                                <Icon icon="BellRing" size="md" className="animate-pulse" />
                                                                 {t('common.call_manager')}
                                                             </motion.button>
                                                             <div className={`flex items-center gap-1.5 px-3 py-1 rounded-xl ${config.bg} ${config.color} font-black text-xs ml-auto`}>
@@ -223,11 +223,11 @@ const OrderHistory = () => {
                                                             </div>
                                                         </div>
                                                         <p className="text-xs text-slate-400 flex items-center gap-1.5 font-bold">
-                                                            <Calendar size={12} strokeWidth={3} /> {formatDate(order.created_at)}
+                                                            <Icon icon="Calendar" size="md" strokeWidth="3" /> {formatDate(order.created_at)}
                                                         </p>
                                                     </div>
                                                     <button className="p-2 text-slate-300 hover:text-slate-600 transition-colors">
-                                                        <MoreVertical size={20} />
+                                                        <Icon icon="MoreVertical" size="md" />
                                                     </button>
                                                 </div>
 
@@ -251,7 +251,7 @@ const OrderHistory = () => {
                                                             onClick={() => navigate(`/menu/${order.store_id}`)}
                                                             className="px-6 py-3 bg-slate-900 text-white text-sm font-black rounded-2xl shadow-xl shadow-slate-200 transition-all flex items-center gap-2 group"
                                                         >
-                                                            {t('order.summary')} <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                                                            {t('order.summary')} <Icon icon="ChevronRight" size="md" className="group-hover:translate-x-1 transition-transform" />
                                                         </motion.button>
                                                     </div>
                                                 </div>
@@ -272,7 +272,7 @@ const OrderHistory = () => {
                             <section className="space-y-6">
                                 <div className="flex items-center gap-2 px-1">
                                     <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
-                                        <PackageCheck size={16} />
+                                        <Icon icon="PackageCheck" size="md" />
                                     </div>
                                     <h2 className="font-black text-slate-800 tracking-tight text-lg">{t('order.past_history')}</h2>
                                 </div>
@@ -288,9 +288,9 @@ const OrderHistory = () => {
                                         >
                                             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-inner ${order.status === 'cancelled' ? 'bg-red-50 text-red-300' : 'bg-slate-100 text-slate-400'}`}>
                                                 {order.status === 'cancelled' ? (
-                                                    <XCircle size={28} strokeWidth={1.5} />
+                                                    <Icon icon="XCircle" size="md" strokeWidth="1.5" />
                                                 ) : (
-                                                    <ShoppingBag size={28} strokeWidth={1.5} />
+                                                    <Icon icon="ShoppingBag" size="md" strokeWidth="1.5" />
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -316,7 +316,7 @@ const OrderHistory = () => {
                                                             }}
                                                             className="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95 flex items-center gap-1"
                                                         >
-                                                            <RefreshCw size={10} />
+                                                            <Icon icon="RefreshCw" size="md" />
                                                             다시 주문하기
                                                         </button>
                                                         <button
@@ -336,7 +336,7 @@ const OrderHistory = () => {
                                                 )}
                                             </div>
                                             <div className="p-1 group-hover:translate-x-1 transition-transform">
-                                                <ChevronRight size={20} className="text-slate-200" />
+                                                <Icon icon="ChevronRight" size="md" className="text-slate-200" />
                                             </div>
                                         </motion.div>
                                     ))}
