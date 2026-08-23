@@ -1,4 +1,3 @@
-import { Eye, Clock, MapPin, User, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
 import Icon from '../ui/Icon';
@@ -15,7 +14,7 @@ const STATUS_STYLE = {
 
 const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, formatTime }) => {
   // 알 수 없는 상태(예: 신규 결제완료 'paid' 등)에도 크래시하지 않도록 방어
-  const config = statusConfig[order.status] || statusConfig.pending || { label: order.status, icon: Clock, next: null };
+  const config = statusConfig[order.status] || statusConfig.pending || { label: order.status, icon: 'Clock', next: null };
   const style  = STATUS_STYLE[order.status] || STATUS_STYLE.pending;
   const StatusIcon = config.icon || Clock;
   const isPending = order.status === 'pending' || order.status === 'paid';
@@ -54,18 +53,18 @@ const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, formatTi
       {/* 메타 정보 (시간·테이블·고객) */}
       <div className="px-4 pb-2 flex items-center gap-3 text-sm text-gray-500 font-medium flex-wrap">
         <span className="flex items-center gap-1">
-          <Clock size={13} className="text-gray-400" />
+          <Icon icon="Clock" size="md" className="text-gray-400" />
           {formatTime(order.created_at)}
         </span>
         {order.table_name && (
           <span className="flex items-center gap-1">
-            <Icon icon="MapPin" />
+            <Icon icon="MapPin" size="md" />
             {order.table_name}
           </span>
         )}
         {order.customer_name && (
           <span className="flex items-center gap-1">
-            <User size={13} className="text-gray-400" />
+            <Icon icon="User" size="md" className="text-gray-400" />
             {order.customer_name}
           </span>
         )}
@@ -110,7 +109,7 @@ const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, formatTi
             className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors shrink-0 active:scale-95"
             title="상세보기"
           >
-            <Eye size={18} className="text-gray-600" />
+            <Icon icon="Eye" size="md" className="text-gray-600" />
           </button>
 
           {isPending && (
@@ -128,7 +127,7 @@ const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, formatTi
               className={`h-11 px-5 rounded-xl text-sm font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-transform ${style.btn}`}
             >
               {statusConfig[config.next].label}
-              <ChevronRight size={16} strokeWidth={3} />
+              <Icon icon="ChevronRight" size="md" strokeWidth="md" />
             </button>
           )}
         </div>
