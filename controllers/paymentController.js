@@ -178,15 +178,7 @@ const paymentController = {
   }),
 
   handleTossWebhook: catchAsync(async (req, res) => {
-    const auth = req.headers['authorization'] || '';
-    const expectedRaw = (process.env.TOSS_SECRET_KEY || '') + ':';
-    const expected = 'Basic ' + Buffer.from(expectedRaw).toString('base64');
-    const expectedBuf = Buffer.from(expected);
-    const authBuf = Buffer.from(auth);
-    if (authBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(authBuf, expectedBuf)) {
-      logger.warn('[Webhook/Toss] 서명 검증 실패 - 요청 무시');
-      return res.status(401).end();
-    }
+    // 인증은 tossWebhookAuth 미들웨어에서 계층적 검증(공유 시크릿/IP 화이트리스트/레거시 Basic)으로 수행됨
 
     const eventData = req.body?.data;
     const paymentKey = eventData?.paymentKey;

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const reportPdfController = require('../controllers/reportPdfController');
-const authMiddleware = require('../middleware/auth');
+const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 
 /**
@@ -62,7 +62,7 @@ router.get(
  *       200:
  *         description: 생성 결과
  */
-router.get('/all', authMiddleware, reportPdfController.generateAllStoreReports);
+router.get('/all', authMiddleware, adminOnly, reportPdfController.generateAllStoreReports);
 
 /**
  * @swagger

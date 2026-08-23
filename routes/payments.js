@@ -8,6 +8,7 @@ const paymentController = require('../controllers/paymentController');
 const idempotency = require('../middleware/idempotency');
 const orderCapability = require('../middleware/orderCapability');
 const paymentOrderCapability = require('../middleware/paymentOrderCapability');
+const tossWebhookAuth = require('../middleware/tossWebhookAuth');
 const { paymentCapabilityOrStoreAuth } = paymentOrderCapability;
 
 const storage = multer.diskStorage({
@@ -338,11 +339,24 @@ router.post(
  *   post:
  *     tags: [Payments]
  *     summary: 토스페이먼츠 웹훅 수신
+ *     description: 계층적 검증(공유 시크릿/IP 화이트리스트/레거시 Basic) 적용.
+ *       결제 웹훅은 인증 헤더를 전송하지 않으므로 TOSS_WEBHOOK_SECRET 설정 권장.
+ *     parameters:
+ *       - in: header
+ *         name: x-webhook-secret
+ *         required: false
+ *         schema: { type: string }
+ *       - in: query
+ *         name: secret
+ *         required: false
+ *         schema: { type: string }
  *     responses:
  *       200:
  *         description: 웹훅 처리 완료
+ *       401:
+ *         description: 웹훅 검증 실패
  */
-router.post('/webhooks/toss', paymentController.handleTossWebhook);
+router.post('/webhooks/toss', tossWebhookAuth, paymentController.handleTossWebhook);
 
 /**
  * @swagger

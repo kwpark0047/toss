@@ -440,26 +440,70 @@ describe('[회귀] 품절 동시성 — 재고 체크', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-describe('[회귀] Toss 웹훅 서명 검증', () => {
+describe('[회귀] Toss 웹훅 검증 (계층적)', () => {
+  const WEBHOOK_SECRET = 'whsec_regression_secret';
   const validKey = process.env.TOSS_SECRET_KEY || 'test_sk_123';
   const validAuth = 'Basic ' + Buffer.from(validKey + ':').toString('base64');
 
-  test('서명 없는 웹훅 → 401', async () => {
+  beforeEach(() => {
+    delete process.env.TOSS_WEBHOOK_SECRET;
+    delete process.env.TOSS_WEBHOOK_IPS;
+  });
+  afterEach(() => {
+    delete process.env.TOSS_WEBHOOK_SECRET;
+    delete process.env.TOSS_WEBHOOK_IPS;
+  });
+
+  test('검증 계층 미설정 → 서버측 재검증 단계로 통과(paymentKey 누락 400)', async () => {
+    const res = await request(app)
+      .post('/api/payments/webhooks/toss')
+      .send({ eventType: 'PAYMENT_STATUS_CHANGED', data: { status: 'DONE' } });
+    // 결제 웹훅은 인증 헤더가 없으므로 재검증 단계로 진입해야 함(전 건 401은 버그였음)
+    expect(res.status).toBe(400);
+  });
+
+  test('공유 시크릿 설정 후 헤더 누락·불일치 → 401', async () => {
+    process.env.TOSS_WEBHOOK_SECRET = WEBHOOK_SECRET;
+
+    const missing = await request(app)
+      .post('/api/payments/webhooks/toss')
+      .send({ eventType: 'PAYMENT_STATUS_CHANGED', data: { status: 'DONE' } });
+    expect(missing.status).toBe(401);
+
+    const wrong = await request(app)
+      .post('/api/payments/webhooks/toss')
+      .set('x-webhook-secret', 'wrong-secret')
+      .send({ eventType: 'PAYMENT_STATUS_CHANGED' });
+    expect(wrong.status).toBe(401);
+  });
+
+  test('공유 시크릿 일치(x-webhook-secret) → 재검증 단계 진입(paymentKey 누락 400)', async () => {
+    process.env.TOSS_WEBHOOK_SECRET = WEBHOOK_SECRET;
+    const res = await request(app)
+      .post('/api/payments/webhooks/toss')
+      .set('x-webhook-secret', WEBHOOK_SECRET)
+      .send({ eventType: 'PAYMENT_STATUS_CHANGED', data: { status: 'DONE', orderId: 'ORD_X' } });
+    expect(res.status).toBe(400);
+  });
+
+  test('공유 시크릿 쿼리 파라미터(?secret=) 허용 → 재검증 단계 진입(400)', async () => {
+    process.env.TOSS_WEBHOOK_SECRET = WEBHOOK_SECRET;
+    const res = await request(app)
+      .post('/api/payments/webhooks/toss')
+      .query({ secret: WEBHOOK_SECRET })
+      .send({ eventType: 'PAYMENT_STATUS_CHANGED', data: { status: 'DONE', orderId: 'ORD_X' } });
+    expect(res.status).toBe(400);
+  });
+
+  test('IP 화이트리스트 외부 IP → 401', async () => {
+    process.env.TOSS_WEBHOOK_IPS = '203.0.113.7';
     const res = await request(app)
       .post('/api/payments/webhooks/toss')
       .send({ eventType: 'PAYMENT_STATUS_CHANGED', data: { status: 'DONE' } });
     expect(res.status).toBe(401);
   });
 
-  test('잘못된 서명 → 401', async () => {
-    const res = await request(app)
-      .post('/api/payments/webhooks/toss')
-      .set('Authorization', 'Basic wrongbase64==')
-      .send({ eventType: 'PAYMENT_STATUS_CHANGED' });
-    expect(res.status).toBe(401);
-  });
-
-  test('서명은 유효하나 결제 재검증 실패(paymentKey 누락) → 400', async () => {
+  test('레거시 Basic 시크릿 인증 호환 유지 → 재검증 단계 진입(400)', async () => {
     const res = await request(app)
       .post('/api/payments/webhooks/toss')
       .set('Authorization', validAuth)
