@@ -5,7 +5,6 @@ import {
     Calendar, CreditCard, Download, TrendingUp,
     AlertCircle, CheckCircle2, DollarSign, Calculator, ChevronRight,
     X, FileText, RefreshCw, Banknote, Building2, Smartphone, Store, Info
-} from 'lucide-react';
 import { toast } from 'react-toastify';
 import { formatPrice } from '../../utils/format';
 import Icon from '../ui/Icon';
