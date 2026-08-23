@@ -15,7 +15,6 @@ import {
     TrendingUp, Star, Quote, ShoppingCart,
     Heart, Crown, Award, BadgeCheck, CalendarDays, UserPlus,
     Building2, Share2, Megaphone, MapPin, Repeat2, Target,
-import Icon from '../components/ui/Icon';
 
 const LandingPage = () => {
     const { user } = useAuth();
@@ -71,15 +70,15 @@ const LandingPage = () => {
     ];
 
     const features = [
-        { icon: QrCode,      title: t('features.qrCode.title', 'QR 코드 즉시 생성'),   desc: t('features.qrCode.desc', '테이블마다 고유한 QR 코드를 자동 생성. 출력해서 테이블에 부착하면 바로 사용 가능합니다.'), color: 'orange' },
-        { icon: Store,       title: t('features.storeManagement.title', '매장 통합 관리'),       desc: t('features.storeManagement.desc', '매장 정보, 영업시간, 위치까지 한 곳에서 관리. 지역별 매장 분류도 지원합니다.'), color: 'blue' },
-        { icon: Users,       title: t('features.staffPermissions.title', '직원 권한 관리'),       desc: t('features.staffPermissions.desc', '마스터 관리자부터 테이블 담당, 주방 직원까지 역할별 권한을 세밀하게 분리합니다.'), color: 'green' },
-        { icon: Smartphone,  title: t('features.webOrder.title', '웹앱 기반 주문'),       desc: t('features.webOrder.desc', '앱 설치 없이 브라우저에서 바로 주문. 고객의 진입 장벽을 최소화합니다.'), color: 'purple' },
-        { icon: Bell,        title: t('features.realTimeAlerts.title', '실시간 알림'),          desc: t('features.realTimeAlerts.desc', '주문이 들어오면 담당 직원과 주방에 즉시 알림. 주문 누락을 방지합니다.'), color: 'red' },
-        { icon: CreditCard,  title: t('features.paymentMethods.title', '다양한 결제 수단'),     desc: t('features.paymentMethods.desc', '현금, 계좌이체는 물론 다양한 간편결제까지 지원합니다.'), color: 'indigo' },
-        { icon: Clock,       title: t('features.waitingReservation.title', '대기·예약 관리'),       desc: t('features.waitingReservation.desc', '대기 번호 자동 발급, 사전 예약 관리로 고객 경험을 향상시킵니다.'), color: 'yellow' },
-        { icon: BarChart3,   title: t('features.salesAnalysis.title', '매출 분석'),            desc: t('features.salesAnalysis.desc', '일별, 월별, 연도별 매출 통계와 결제 수단별 분석 리포트를 제공합니다.'), color: 'teal' },
-        { icon: Heart,       title: t('features.regularCustomers.title', '단골고객 관리리스트'),  desc: t('features.regularCustomers.desc', '방문 이력·포인트·VIP 등급 자동 추적. 개인화 쿠폰과 재방문 메시지로 단골을 키웁니다.'), color: 'rose' },
+        { icon: "QrCode",      title: t('features.qrCode.title', 'QR 코드 즉시 생성'),   desc: t('features.qrCode.desc', '테이블마다 고유한 QR 코드를 자동 생성. 출력해서 테이블에 부착하면 바로 사용 가능합니다.'), color: 'orange' },
+        { icon: "Store",       title: t('features.storeManagement.title', '매장 통합 관리'),       desc: t('features.storeManagement.desc', '매장 정보, 영업시간, 위치까지 한 곳에서 관리. 지역별 매장 분류도 지원합니다.'), color: 'blue' },
+        { icon: "Users",       title: t('features.staffPermissions.title', '직원 권한 관리'),       desc: t('features.staffPermissions.desc', '마스터 관리자부터 테이블 담당, 주방 직원까지 역할별 권한을 세밀하게 분리합니다.'), color: 'green' },
+        { icon: "Smartphone",  title: t('features.webOrder.title', '웹앱 기반 주문'),       desc: t('features.webOrder.desc', '앱 설치 없이 브라우저에서 바로 주문. 고객의 진입 장벽을 최소화합니다.'), color: 'purple' },
+        { icon: "Bell",        title: t('features.realTimeAlerts.title', '실시간 알림'),          desc: t('features.realTimeAlerts.desc', '주문이 들어오면 담당 직원과 주방에 즉시 알림. 주문 누락을 방지합니다.'), color: 'red' },
+        { icon: "CreditCard",  title: t('features.paymentMethods.title', '다양한 결제 수단'),     desc: t('features.paymentMethods.desc', '현금, 계좌이체는 물론 다양한 간편결제까지 지원합니다.'), color: 'indigo' },
+        { icon: "Clock",       title: t('features.waitingReservation.title', '대기·예약 관리'),       desc: t('features.waitingReservation.desc', '대기 번호 자동 발급, 사전 예약 관리로 고객 경험을 향상시킵니다.'), color: 'yellow' },
+        { icon: "BarChart3",   title: t('features.salesAnalysis.title', '매출 분석'),            desc: t('features.salesAnalysis.desc', '일별, 월별, 연도별 매출 통계와 결제 수단별 분석 리포트를 제공합니다.'), color: 'teal' },
+        { icon: "Heart",       title: t('features.regularCustomers.title', '단골고객 관리리스트'),  desc: t('features.regularCustomers.desc', '방문 이력·포인트·VIP 등급 자동 추적. 개인화 쿠폰과 재방문 메시지로 단골을 키웁니다.'), color: 'rose' },
         { icon: 'Building2',   title: t('features.community.title', '지역 커뮤니티'),        desc: t('features.community.desc', '주변 제휴 매장과 연결해 공동 이벤트, 포인트 공유, 지역 피드로 상권 전체를 활성화합니다.'), color: 'sky' },
     ];
 
@@ -184,7 +183,7 @@ const LandingPage = () => {
             color: 'amber',
         },
         {
-            icon: <Link2 size={24} className="text-emerald-400" />,
+            icon: <Icon icon="Link2" size="lg" className="text-emerald-400" />,
             badge: '공유 오더',
             title: '동석자와 함께 담는 장바구니',
             desc: '테이블 공유 세션이 자동 활성화. 다른 사람이 담은 메뉴가 내 화면에 실시간으로 반영됩니다.',
@@ -329,21 +328,21 @@ const LandingPage = () => {
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                 onClick={() => navigate('/register')}
                                 className="flex items-center justify-center gap-2 px-8 py-4 bg-orange-500 text-white rounded-full font-bold text-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200">
-                                무료로 시작하기 <ArrowRight size={20} />
+                                무료로 시작하기 <Icon icon="ChevronRight" size="md" />
                             </motion.button>
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                 onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
                                 className="flex items-center justify-center gap-2 px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full font-bold text-lg hover:border-orange-300 hover:text-orange-500 transition-colors">
-                                <Play size={18} className="fill-current" /> 데모 체험하기
+                                <Icon icon="Play" size="md" className="fill-current" /> 데모 체험하기
                             </motion.button>
                         </div>
 
                         {/* 통계 */}
                         <div className="flex gap-8 mt-12 pt-8 border-t border-gray-100">
                             {[
-                                { value: '1,000+', label: '등록 매장', icon: Store },
-                                { value: '500만+', label: '누적 주문', icon: ShoppingCart },
-                                { value: '4.9★',   label: '평균 평점',  icon: Star },
+                                { value: '1,000+', label: '등록 매장', icon: "Store" },
+                                { value: '500만+', label: '누적 주문', icon: "ShoppingCart" },
+                                { value: '4.9★',   label: '평균 평점',  icon: "Star" },
                             ].map(stat => (
                                 <div key={stat.label} className="flex items-center gap-2.5">
                                     <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
@@ -415,7 +414,7 @@ const LandingPage = () => {
                                             <motion.div key="entry-screen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                                 className="bg-gradient-to-br from-orange-500 to-rose-600 p-6 flex flex-col items-center min-h-[320px] justify-center">
                                                 <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
-                                                    <QrCode size={24} className="text-white" strokeWidth={1.5} />
+                                                    <Icon icon="QrCode" size="md" className="text-white" strokeWidth="1.5" />
                                                 </div>
                                                 <p className="text-white font-black text-sm text-center">위마켓 시그니처 카페</p>
                                                 <p className="text-white/60 text-xs mt-1">테이블 A-07</p>
@@ -497,7 +496,7 @@ const LandingPage = () => {
                                 className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
                                 <Link to="/menu/demo"
                                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-full text-xs font-black shadow-lg hover:bg-slate-800 transition-colors">
-                                    <Play size={14} className="fill-current" /> 직접 체험해보기
+                                    <Icon icon="Play" size="md" className="fill-current" /> 직접 체험해보기
                                 </Link>
                             </motion.div>
                         </div>
@@ -586,7 +585,7 @@ const LandingPage = () => {
                             <motion.button whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}
                                 onClick={() => navigate('/register')}
                                 className="inline-flex items-center gap-2 px-7 py-3.5 bg-rose-500 text-white rounded-full font-black text-sm hover:bg-rose-600 transition-colors shadow-lg shadow-rose-200">
-                                단골고객 관리 시작하기 <ArrowRight size={16} />
+                                단골고객 관리 시작하기 <Icon icon="ChevronRight" size="md" />
                             </motion.button>
                         </motion.div>
 
@@ -692,11 +691,11 @@ const LandingPage = () => {
 
                             <div className="space-y-4 mb-10">
                                 {[
-                                    { icon: Share2,     color:'text-sky-500',    bg:'bg-sky-50',     title:'제휴 매장 네트워크',    desc:'주변 매장과 연결해 고객을 서로 추천. 빈 테이블 없는 상권을 만듭니다.' },
-                                    { icon: Megaphone,  color:'text-blue-500',   bg:'bg-blue-50',    title:'공동 이벤트 & 프로모션', desc:'지역 한정 이벤트를 함께 기획해 홍보 비용은 나누고 효과는 극대화.' },
-                                    { icon: Repeat2,    color:'text-indigo-500', bg:'bg-indigo-50',  title:'통합 포인트 공유',       desc:'제휴 매장 어디서나 쌓고 쓸 수 있는 지역 통합 포인트 시스템.' },
-                                    { icon: Target,     color:'text-violet-500', bg:'bg-violet-50',  title:'이웃 추천 보상',         desc:'단골이 이웃에게 추천하면 추천인·신규 고객 모두에게 즉시 보상.' },
-                                    { icon: MapPin,     color:'text-rose-500',   bg:'bg-rose-50',    title:'지역 검색 우선 노출',    desc:'위마켓 앱과 지도 검색에서 내 매장이 지역 인근 고객에게 먼저 표시.' },
+                                    { icon: "Share2",     color:'text-sky-500',    bg:'bg-sky-50',     title:'제휴 매장 네트워크',    desc:'주변 매장과 연결해 고객을 서로 추천. 빈 테이블 없는 상권을 만듭니다.' },
+                                    { icon: "Megaphone",  color:'text-blue-500',   bg:'bg-blue-50',    title:'공동 이벤트 & 프로모션', desc:'지역 한정 이벤트를 함께 기획해 홍보 비용은 나누고 효과는 극대화.' },
+                                    { icon: "Repeat2",    color:'text-indigo-500', bg:'bg-indigo-50',  title:'통합 포인트 공유',       desc:'제휴 매장 어디서나 쌓고 쓸 수 있는 지역 통합 포인트 시스템.' },
+                                    { icon: "Target",     color:'text-violet-500', bg:'bg-violet-50',  title:'이웃 추천 보상',         desc:'단골이 이웃에게 추천하면 추천인·신규 고객 모두에게 즉시 보상.' },
+                                    { icon: "MapPin",     color:'text-rose-500',   bg:'bg-rose-50',    title:'지역 검색 우선 노출',    desc:'위마켓 앱과 지도 검색에서 내 매장이 지역 인근 고객에게 먼저 표시.' },
                                     { icon: 'Zap',        color:'text-amber-500',  bg:'bg-amber-50',   title:'실시간 지역 피드',       desc:'오늘의 특가, 이벤트, 새 메뉴를 지역 주민에게 실시간으로 푸시.' },
                                 ].map((f, i) => (
                                     <motion.div key={i} initial={{ opacity:0, x:16 }} whileInView={{ opacity:1, x:0 }}
@@ -716,7 +715,7 @@ const LandingPage = () => {
                             <motion.button whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}
                                 onClick={() => navigate('/register')}
                                 className="inline-flex items-center gap-2 px-7 py-3.5 bg-sky-500 text-white rounded-full font-black text-sm hover:bg-sky-600 transition-colors shadow-lg shadow-sky-200">
-                                지역 커뮤니티 참여하기 <ArrowRight size={16} />
+                                지역 커뮤니티 참여하기 <Icon icon="ChevronRight" size="md" />
                             </motion.button>
                         </motion.div>
 
@@ -861,7 +860,7 @@ const LandingPage = () => {
                                                     {store.business_type || '일반'}
                                                 </span>
                                                 <span className="text-[11px] font-bold text-orange-500 flex items-center gap-1">
-                                                    <ShoppingCart size={12} />
+                                                    <Icon icon="ShoppingCart" size="md" />
                                                     {store.order_count?.toLocaleString()}회
                                                 </span>
                                             </div>
@@ -1174,7 +1173,7 @@ const LandingPage = () => {
                         <div className="flex gap-3 flex-shrink-0">
                             {/* ZFO 카드 */}
                             <div className="w-36 bg-gradient-to-br from-orange-500 to-rose-600 rounded-2xl p-4 shadow-xl">
-                                <QrCode size={24} className="text-white mb-3" strokeWidth={1.5} />
+                                <Icon icon="QrCode" size="md" className="text-white mb-3" strokeWidth="1.5" />
                                 <p className="text-white font-black text-xs leading-tight">스캔 완료</p>
                                 <p className="text-white/60 text-[9px] mt-1">세션 자동 생성</p>
                                 <div className="mt-3 bg-white/20 rounded-lg px-2 py-1">
@@ -1218,9 +1217,9 @@ const LandingPage = () => {
                                 <Link to="/menu/demo">
                                     <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                         className="inline-flex items-center justify-center gap-2 px-7 py-4 bg-orange-500 text-white rounded-full font-black text-base hover:bg-orange-600 transition-colors shadow-xl shadow-orange-500/30 cursor-pointer">
-                                        <Play size={18} className="fill-current" />
+                                        <Icon icon="Play" size="md" className="fill-current" />
                                         고객 데모 체험
-                                        <ArrowRight size={18} />
+                                        <Icon icon="ChevronRight" size="md" />
                                     </motion.div>
                                 </Link>
                                 <Link to="/demo/business">
@@ -1228,7 +1227,7 @@ const LandingPage = () => {
                                         className="inline-flex items-center justify-center gap-2 px-7 py-4 bg-slate-800 text-white border border-white/15 rounded-full font-black text-base hover:bg-slate-700 transition-colors shadow-xl cursor-pointer">
                                         <Store size={18} />
                                         사업자 데모 체험
-                                        <ArrowRight size={18} />
+                                        <Icon icon="ChevronRight" size="md" />
                                     </motion.div>
                                 </Link>
                             </div>
@@ -1323,12 +1322,12 @@ const LandingPage = () => {
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                 onClick={() => navigate('/register')}
                                 className="px-10 py-4 bg-orange-500 text-white rounded-full font-black text-lg hover:bg-orange-600 transition-colors shadow-xl shadow-orange-200 flex items-center justify-center gap-2">
-                                무료로 시작하기 <ArrowRight size={20} />
+                                무료로 시작하기 <Icon icon="ChevronRight" size="md" />
                             </motion.button>
                             <Link to="/menu/demo">
                                 <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                     className="px-10 py-4 border-2 border-gray-200 bg-white text-gray-700 rounded-full font-black text-lg hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-2 cursor-pointer">
-                                    <Play size={18} className="fill-current" /> 고객 데모 체험하기
+                                    <Icon icon="Play" size="md" className="fill-current" /> 고객 데모 체험하기
                                 </motion.div>
                             </Link>
                         </div>
