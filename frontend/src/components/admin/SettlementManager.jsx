@@ -283,7 +283,7 @@ const SettlementManager = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                     <h1 className="text-2xl font-black text-white flex items-center gap-2">
-                        <DollarSign className="text-emerald-400" /> 정산 관리 시스템
+                        <Icon icon="DollarSign" size="md" className="text-emerald-400" /> 정산 관리 시스템
                     </h1>
                     <p className="text-slate-400 mt-1">매출에서 수수료(공급가액 + 부가세) 차감 후 점주 수취액을 관리합니다.</p>
                 </div>
