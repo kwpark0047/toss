@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { adminAPI } from '../../api/admin';
 import { useAuth } from '../../contexts/AuthContext';
-import { MapPinned, Play, Square, Loader2, AlertCircle } from 'lucide-react';
 import Icon from '../ui/Icon';
 
 /**
