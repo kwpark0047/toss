@@ -19,7 +19,6 @@ import {
   AlertTriangle,
   Mic2,
   Mic,
-} from 'lucide-react';
 import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
