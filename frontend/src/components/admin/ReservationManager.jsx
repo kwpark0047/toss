@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { getSocket, reservationsAPI } from '../../api';
-import { CalendarCheck, Clock, Users, Phone, XCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
