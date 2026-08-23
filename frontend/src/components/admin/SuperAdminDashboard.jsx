@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import {
   Store, Users, Coins, ShoppingBag, Clock, Search, ChevronLeft, ChevronRight,
   Settings, Gift, MapPinned, Loader2, Building2, Link2, Check, X, Sparkles,
-} from 'lucide-react';
 import { adminAPI } from '../../api/admin';
 import { bizLabel } from '../../utils/businessType';
 import { useSEO } from '../../lib/useSEO';
