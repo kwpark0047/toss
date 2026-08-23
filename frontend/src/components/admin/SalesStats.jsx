@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router';
 import { ordersAPI, storesAPI } from '../../api';
-import { ArrowLeft, TrendingUp, DollarSign, ShoppingBag, BarChart3, PieChart, Clock, Award, RefreshCw } from 'lucide-react';
 import { formatPrice } from '../../utils/format';
 import Skeleton from '../common/Skeleton';
 import Icon from '../ui/Icon';
@@ -140,7 +139,7 @@ const SalesStats = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
           <Link to="/admin" className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all">
-            <ArrowLeft className="w-5 h-5" />
+            <Icon icon="ArrowLeft" size="md" className="w-5 h-5" />
           </Link>
           <div>
             <h1 className="text-2xl font-black text-white">매출 통계</h1>
@@ -199,7 +198,7 @@ const SalesStats = () => {
         <div className="bg-white rounded-2xl shadow-soft p-5 card-hover">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-white" />
+              <Icon icon="DollarSign" size="md" className="w-6 h-6 text-white" />
             </div>
           </div>
           <p className="text-sm text-slate-500 mb-1">총 매출</p>
@@ -209,7 +208,7 @@ const SalesStats = () => {
         <div className="bg-white rounded-2xl shadow-soft p-5 card-hover">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-              <ShoppingBag className="w-6 h-6 text-white" />
+              <Icon icon="ShoppingBag" size="md" className="w-6 h-6 text-white" />
             </div>
           </div>
           <p className="text-sm text-slate-500 mb-1">총 주문</p>
@@ -219,7 +218,7 @@ const SalesStats = () => {
         <div className="bg-white rounded-2xl shadow-soft p-5 card-hover">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-white" />
+              <Icon icon="TrendingUp" size="md" className="w-6 h-6 text-white" />
             </div>
           </div>
           <p className="text-sm text-slate-500 mb-1">평균 주문금액</p>
@@ -276,7 +275,7 @@ const SalesStats = () => {
         {/* 시간대별 매출 */}
         <div className="bg-white rounded-2xl shadow-soft p-6">
           <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-blue-500" />
+            <Icon icon="Clock" size="md" className="w-5 h-5 text-blue-500" />
             시간대별 매출
           </h3>
           {stats?.hourly_sales?.length > 0 ? (
@@ -348,7 +347,7 @@ const SalesStats = () => {
         {/* 결제 방법별 통계 */}
         <div className="bg-white rounded-2xl shadow-soft p-6">
           <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <PieChart className="w-5 h-5 text-purple-500" />
+            <Icon icon="PieChart" size="md" className="w-5 h-5 text-purple-500" />
             결제 방법별 통계
           </h3>
           {stats?.payment_stats?.length > 0 ? (
