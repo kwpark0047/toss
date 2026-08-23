@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router';
 import { ordersAPI, storesAPI, paymentsAPI, staffAPI } from '../../api';
-import { ArrowLeft, Clock, CheckCircle, XCircle, ChefHat, Package, RefreshCw, Search, Calendar, Bell, Volume2, VolumeX, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSEO } from '../../lib/useSEO';
 import notificationSound from '../../utils/notificationSound';
@@ -212,7 +211,7 @@ const OrderManager = () => {
             className="fixed top-20 left-1/2 -translate-x-1/2 z-[100]"
           >
             <div className="flex items-center gap-3 px-5 py-3 bg-orange-500 text-white rounded-2xl shadow-xl shadow-orange-500/30">
-              <Bell size={18} className="shrink-0" />
+              <Icon icon="Bell" size="md" className="shrink-0" />
               <div>
                 <p className="font-black text-sm">새 주문 접수!</p>
                 <p className="text-[11px] opacity-80">대기 목록을 확인하세요</p>
@@ -229,7 +228,7 @@ const OrderManager = () => {
             to="/admin"
             className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition-colors"
           >
-            <ArrowLeft size={20} />
+            <Icon icon="ArrowLeft" size="md" />
           </Link>
           <div>
             <h1 className="text-2xl font-black text-white leading-tight flex items-center gap-2">
@@ -253,7 +252,7 @@ const OrderManager = () => {
               soundEnabled ? 'bg-orange-500 text-white' : 'bg-white/10 text-slate-500'
             }`}
           >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            {soundEnabled ? <Icon icon="Volume2" size="md" /> : <Icon icon="VolumeX" size="md" />}
           </button>
           <button
             onClick={() => setAutoRefresh(v => !v)}
