@@ -5,7 +5,6 @@ import {
   ArrowLeft, Plus, Edit, Trash2, QrCode, RefreshCw,
   Download, FileText, Loader2, LayoutGrid, List,
   Users, Sparkles, Share2, Printer, Check, X as XIcon, Palette
-} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import VisualTableMap from './VisualTableMap';
@@ -564,7 +563,7 @@ const TableManager = () => {
             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/admin')}
               className="w-10 h-10 lg:w-12 lg:h-12 bg-white/5 border border-white/10 rounded-xl lg:rounded-2xl flex items-center justify-center text-slate-400 hover:text-white transition-all flex-shrink-0">
-              <ArrowLeft size={18} />
+              <Icon icon="ArrowLeft" size="md" />
             </motion.button>
             <div className="min-w-0">
               <h1 className="text-xl lg:text-3xl font-black text-white tracking-tight flex items-center gap-2">
@@ -578,7 +577,7 @@ const TableManager = () => {
           {/* 테이블 추가 버튼 (우측 고정) */}
           <button onClick={() => { setEditingTable(null); setShowModal(true); }}
             className="flex-shrink-0 h-10 px-4 lg:px-6 bg-orange-500 text-white rounded-xl lg:rounded-2xl flex items-center gap-2 font-black text-xs tracking-wider shadow-lg shadow-orange-500/25 hover:bg-orange-400 transition-all">
-            <Plus size={15} /> 추가
+            <Icon icon="Plus" size="md" /> 추가
           </button>
         </div>
 
@@ -751,12 +750,12 @@ const TableManager = () => {
                 <div className="flex gap-2 mb-3 lg:mb-5">
                   <button onClick={() => setShowQrModal(table)}
                     className="flex-1 h-9 lg:h-11 bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center justify-center gap-1.5 text-orange-400 font-black text-[9px] lg:text-[10px] hover:bg-orange-500 hover:text-white transition-all active:scale-95">
-                    <QrCode size={12} /> QR
+                    <Icon icon="QrCode" size="md" /> QR
                   </button>
                   <button onClick={() => handleRegenerateQr(table.id)}
                     className="w-9 h-9 lg:w-11 lg:h-11 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all active:scale-95"
                     title="QR 재생성">
-                    <RefreshCw size={12} />
+                    <Icon icon="RefreshCw" size="md" />
                   </button>
                 </div>
 
@@ -764,11 +763,11 @@ const TableManager = () => {
                 <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all">
                   <button onClick={() => { setEditingTable(table); setShowModal(true); }}
                     className="w-8 h-8 lg:w-9 lg:h-9 bg-white/5 rounded-lg flex items-center justify-center text-slate-500 hover:text-blue-400 transition-all active:scale-95">
-                    <Edit size={12} />
+                    <Icon icon="Edit" size="md" />
                   </button>
                   <button onClick={() => handleDelete(table.id)}
                     className="w-8 h-8 lg:w-9 lg:h-9 bg-white/5 rounded-lg flex items-center justify-center text-slate-500 hover:text-rose-400 transition-all active:scale-95">
-                    <Trash2 size={12} />
+                    <Icon icon="Trash2" size="md" />
                   </button>
                 </div>
               </motion.div>
