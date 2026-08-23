@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { businessAPI, storeAccountAPI } from '../../api';
-import { Palette, Layout, Sliders, Save, RefreshCw, Check, AlertCircle, Info, CreditCard, Store, Building2, BadgeCheck, Banknote, Smartphone, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { THEME_PRESETS, DEFAULT_THEME_SETTINGS } from '../../lib/themePresets';
 import Icon from '../ui/Icon';
@@ -33,7 +32,7 @@ const SectionHeader = ({ id, icon: Icon, title, desc, active, onToggle }) => (
                 <p className="text-xs text-gray-400">{desc}</p>
             </div>
         </div>
-        {active === id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+        {active === id ? <Icon icon="ChevronUp" size="md" className="text-gray-400" /> : <Icon icon="ChevronDown" size="md" className="text-gray-400" />}
     </button>
 );
 
@@ -57,7 +56,7 @@ const UISOften = ({ uiSize, onUiSizeChange, menuLayout, onMenuLayoutChange, imag
     return (
         <div className="space-y-6">
             <div className="p-4 bg-purple-50 rounded-xl flex items-start gap-2">
-                <Layout size={14} className="text-purple-500 mt-0.5 flex-shrink-0" />
+                <Icon icon="Layout" size="md" className="text-purple-500 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-purple-700">
                     UI 요소의 크기와 레이아웃을 설정하여 매장의 시각적 경험을 최적화하세요.
                 </p>
@@ -141,7 +140,7 @@ const UISOften = ({ uiSize, onUiSizeChange, menuLayout, onMenuLayoutChange, imag
                 >
                     <div className="flex items-center gap-2 mb-2">
                         <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-                            <Store size={14} className="text-white" />
+                            <Icon icon="Store" size="md" className="text-white" />
                         </div>
                         <span className="font-bold text-gray-800">매장명</span>
                     </div>
@@ -161,7 +160,7 @@ const MenuOptions = ({ options, onChange }) => {
     return (
         <div className="space-y-6">
             <div className="p-4 bg-orange-50 rounded-xl flex items-start gap-2">
-                <Sliders size={14} className="text-orange-500 mt-0.5 flex-shrink-0" />
+                <Icon icon="Sliders" size="md" className="text-orange-500 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-orange-700">
                     메뉴 아이템 표시 방식과 옵션을 관리합니다. 이를 통해 고객에게 보여지는 모습을 조정할 수 있습니다.
                 </p>
@@ -471,7 +470,7 @@ export default function BusinessSettingsWithTheme() {
                 {activeSection === 'business' && (
                     <div className="px-5 pb-5 space-y-4 border-t border-gray-50">
                         <div className="mt-4 p-3 bg-blue-50 rounded-xl flex items-start gap-2">
-                            <Info size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                            <Icon icon="Info" size="md" className="text-blue-500 mt-0.5 flex-shrink-0" />
                             <p className="text-xs text-blue-700">
                                 사업자번호 등록 시 세금계산서 발행이 가능합니다. 수수료에 대한 세금계산서는 플랫폼이 점주에게 발행합니다.
                             </p>
@@ -547,7 +546,7 @@ export default function BusinessSettingsWithTheme() {
                 {activeSection === 'account' && (
                     <div className="px-5 pb-5 space-y-4 border-t border-gray-50">
                         <div className="mt-4 p-3 bg-amber-50 rounded-xl flex items-start gap-2">
-                            <AlertCircle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                            <Icon icon="AlertCircle" size="md" className="text-amber-500 mt-0.5 flex-shrink-0" />
                             <p className="text-xs text-amber-700">
                                 사업자 명의 계좌를 등록하세요. 고객이 계좌이체 선택 시 이 계좌가 표시됩니다.
                             </p>
@@ -590,7 +589,7 @@ export default function BusinessSettingsWithTheme() {
                         {accountForm.bank_name && accountForm.account_number && accountForm.account_holder && (
                             <div className="p-4 bg-green-50 rounded-xl border border-green-100">
                                 <p className="text-xs text-green-700 font-bold mb-2 flex items-center gap-1">
-                                    <Check size={12} /> 등록될 계좌 미리보기
+                                    <Icon icon="Check" size="md" /> 등록될 계좌 미리보기
                                 </p>
                                 <p className="text-sm font-black text-green-900">{accountForm.bank_name}</p>
                                 <p className="text-base font-mono font-black text-green-800">{accountForm.account_number}</p>
@@ -644,7 +643,7 @@ export default function BusinessSettingsWithTheme() {
                         })}
                         <button onClick={saveBusiness} disabled={saving}
                             className="w-full py-3 bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-600 disabled:opacity-50 transition-all">
-                            {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
+                            {saving ? <Icon icon="RefreshCw" size="md" className="animate-spin" /> : <Icon icon="Save" size="md" />}
                             결제수단 설정 저장
                         </button>
                     </div>
@@ -696,7 +695,7 @@ export default function BusinessSettingsWithTheme() {
             {/* 미리보기 및 전체 저장 */}
             <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border border-slate-100 p-6">
                 <h3 className="font-black text-slate-800 mb-4 flex items-center gap-2">
-                    <BadgeCheck size={18} className="text-blue-500" /> 설정 저장 및 미리보기
+                    <Icon icon="BadgeCheck" size="md" className="text-blue-500" /> 설정 저장 및 미리보기
                 </h3>
 
                 {selectedTheme && (
