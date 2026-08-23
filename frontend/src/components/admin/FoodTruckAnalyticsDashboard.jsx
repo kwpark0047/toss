@@ -12,7 +12,6 @@ import {
     RefreshCw, 
     ChevronRight,
     Map
-} from 'lucide-react';
 import api from '@/api/client';
 import Icon from '../ui/Icon';
 
