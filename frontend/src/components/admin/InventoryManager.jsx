@@ -17,7 +17,6 @@ import {
   AlertCircle,
   XCircle,
   Download,
-} from 'lucide-react';
 import { inventoryAPI } from '../../api';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
