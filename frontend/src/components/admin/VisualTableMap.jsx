@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { tablesAPI } from '../../api';
-import { Save, Move, MousePointer2, Loader2, RefreshCw, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const GRID_SIZE = 20;
@@ -134,7 +133,7 @@ export default function VisualTableMap({ _storeId, tables, onUpdate }) {
                 disabled={saving}
                 className="h-9 px-3 lg:px-4 bg-orange-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 hover:bg-orange-400 transition-all shadow-lg shadow-orange-500/20 disabled:opacity-60"
               >
-                {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                {saving ? <Icon icon="Loader2" size="md" className="animate-spin" /> : <Icon icon="Save" size="md" />}
                 저장
               </button>
             </>
@@ -143,7 +142,7 @@ export default function VisualTableMap({ _storeId, tables, onUpdate }) {
               onClick={() => setIsEditing(true)}
               className="h-9 px-3 lg:px-4 bg-white/5 border border-white/10 text-slate-300 rounded-xl text-xs font-black flex items-center gap-1.5 hover:bg-white/10 transition-all"
             >
-              <Move size={13} className="text-slate-500" />
+              <Icon icon="Move" size="md" className="text-slate-500" />
               위치 편집
             </button>
           )}
@@ -152,7 +151,7 @@ export default function VisualTableMap({ _storeId, tables, onUpdate }) {
             className="w-9 h-9 bg-white/5 border border-white/10 text-slate-500 rounded-xl flex items-center justify-center hover:text-white hover:bg-white/10 transition-all"
             title="새로고침"
           >
-            <RefreshCw size={14} />
+            <Icon icon="RefreshCw" size="md" />
           </button>
         </div>
       </div>
@@ -245,7 +244,7 @@ export default function VisualTableMap({ _storeId, tables, onUpdate }) {
                     <div className="flex items-center justify-between px-2 pb-1.5 border-b border-slate-100 mb-1">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">상태 변경</span>
                       <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-slate-700">
-                        <X size={12} />
+                        <Icon icon="X" size="md" />
                       </button>
                     </div>
                     {Object.entries(STATUS).map(([key, s]) => (
@@ -273,7 +272,7 @@ export default function VisualTableMap({ _storeId, tables, onUpdate }) {
         {items.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-4">
             <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/8 flex items-center justify-center">
-              <MousePointer2 size={28} className="text-slate-700" />
+              <Icon icon="MousePointer2" size="md" className="text-slate-700" />
             </div>
             <p className="text-slate-600 font-bold text-sm">등록된 테이블이 없습니다</p>
             <p className="text-slate-700 text-xs">우측 상단 테이블 추가 버튼을 눌러보세요</p>
