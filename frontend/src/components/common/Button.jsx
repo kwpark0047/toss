@@ -1,5 +1,5 @@
-import { Loader2 } from 'lucide-react';
 import { vibrateClick } from '../../utils/notificationSound';
+import Icon from '../ui/Icon';
 
 /**
  * Button — TDS Button 계층 공용 컴포넌트.
@@ -51,7 +51,7 @@ export default function Button({
       {...rest}
       onClick={handleClick}
     >
-      {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : children}
+      {loading ? <Icon icon="Loader2" size="md" className="w-5 h-5 animate-spin" /> : children}
     </button>
   );
 }
