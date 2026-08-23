@@ -25,7 +25,6 @@ import WeatherAlertBanner from './WeatherAlertBanner';
 import notificationSound from '../../utils/notificationSound';
 import { onNewOrder, onOrderUpdated, joinDashboard, leaveDashboard, onDashboardOrderStatusChanged, onDashboardForecastUpdate, onConnect } from '../../utils/socket';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Store, ShoppingBag, DollarSign, Clock, Plus, BarChart3, Users, TrendingUp, Activity, Zap, ArrowUpRight, ArrowDownRight, Sparkles, Settings, RefreshCw, Bell, QrCode, LayoutGrid, ReceiptText, BadgeCheck, ChefHat, AlertCircle, CalendarDays, Download, FileSpreadsheet, FileText, Loader2, MessageSquareText, Code2, Handshake, X, ShieldAlert } from 'lucide-react';
 /* ─── 차트 컴포넌트 Lazy Loading (초기 번들 및 FCP 최적화) ─── */
 const SalesTrendChart = lazy(() => import('./dashboard/DashboardCharts').then(m => ({
   default: m.SalesTrendChart
