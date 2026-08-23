@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
 import { boardAPI } from '../../api/board';
-import { ArrowLeft, RefreshCw, Handshake, Send, Inbox, Check, X, Store as StoreIcon, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 const STATUS = {
@@ -81,7 +80,7 @@ export default function PartnershipManager() {
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
           <Link to="/admin" className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white">
-            <ArrowLeft className="w-5 h-5" />
+            <Icon icon="ArrowLeft" size="md" className="w-5 h-5" />
           </Link>
           <div>
             <h1 className="text-2xl font-black text-white flex items-center gap-2"><Handshake size={22} className="text-orange-400" /> 제휴 마케팅</h1>
