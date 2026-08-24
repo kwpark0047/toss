@@ -366,6 +366,8 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+      - name: Validate JSX references
+        run: node scripts/validate-jsx-references.js
       - uses: actions/setup-node@v4
         with:
           node-version: 22.22.0
