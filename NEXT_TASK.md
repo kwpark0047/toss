@@ -1,15 +1,52 @@
 # NEXT_TASK.md - 다음 작업 우선순위
 
 > **작성일**: 2026-07-25  
-> **최종 갱신**: 2026-08-13  
+> **최종 갱신**: 2026-08-24  
 > **작성자**: WeMarket 개발팀  
 > **기준**: 매장 테마 + CI/CD 배포 운영(v1.2.0) 완료 후 다음 단계
 
 ---
 
+## 🚨 현재 차단 이슈 (사용자 조치 필요)
+
+### GitHub Actions 빌링 — CI 전면 중단 (P0)
+- 커밋 `320bb00` 기준 모든 워크플로(CI / Integration Tests / Playwright)가 job 시작 전 실패
+- 원인: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* — 코드 무관, 계정(`kwpark0047-iceu`) 결제/지출 한도 문제
+- 조치: Settings → Billing and plans에서 결제 수단·한도 정리 후 `Re-run failed jobs`
+- 로컬 검증은 전부 통과 상태 (esbuild 스윕 0 실패, test:unit 967 passed, test:regression 21 passed)
+
+---
+
 ## 🎯 즉시 실행 필요 (우선순위: 높음)
 
-*(현재 항목 없음 — 작업 1 완료, 하단 "완료" 섹션 참조)*
+*(현재 항목 없음 — 하단 "완료" 섹션 참조)*
+
+---
+
+## ✅ 완료 (2026-08-24)
+
+### 아이콘 마이그레이션 부분 변환 사고 복구
+- [x] lucide→Icon 대량 치환 과정에서 발생한 누락 import 58개 파일 복원 — 커밋 `320bb00` (61 files, +74/-129)
+- [x] esbuild 전수 스윕 TOTAL_FAIL=0, 미해결 JSX 태그 스캔 0건
+- [x] `npm run test:unit` 116 suites / 967 tests 통과, `npm run test:regression` 21/21 통과
+- [x] 교훈: 파일당 "모든 사용처를 Icon으로 변환한 뒤에야 import 삭제" 순서 준수 필요
+
+### JSX 미해결 참조 가드 도입 (재발 방지)
+- [x] `scripts/validate-jsx-references.js` 신규 추가 — import 없이 사용된 대문자 JSX 태그를 전수 검출 (주석 제거 후 스캔, 오탐 방지 경계 처리 포함)
+- [x] `npm run validate:jsx` 스크립트 등록, 자가 테스트로 위반 감지(exit 1)/정상 통과(exit 0) 확인
+- [x] `.github/workflows/ci.yml` frontend-test 잡에 checkout 직후 게이트 스텝 연결
+
+### 4. Semgrep 보안 스캔 규칙 튜닝 (완료)
+- [x] `security:scan` / `security:scan:frontend`에 `--severity ERROR --error` 적용 — ERROR만 CI 실패, WARNING은 경고만
+- [x] 테스트/커버리지 오탐 제외: `--exclude tests --exclude coverage --exclude __tests__ --exclude **/*.test.js(.*)`
+
+### 5. Docker 멀티스테이지 빌드 (완료 — 이미 구현되어 있었음)
+- [x] 루트 `Dockerfile`: builder(node:22-alpine, prisma generate) → production 스테이지 분리, `npm ci --only=production`, npm CLI 제거, `USER node`, HEALTHCHECK 포함 — 백로그 항목이 낡은 것으로 확인, 추가 작업 불필요
+- [x] `.dockerignore` 존재 및 node_modules/.env/dist 등 제외 정비 완료
+
+### 기타 정리
+- [x] `models/` 디렉토리 실존하지 않음(Prisma 전환 잔재 아님) — 정리 불필요 확정
+- [x] Feature Flags 백로그(#10)는 이미 구현됨 — `FEATURE_FLAGS_JSON` 서비스 + DB 복합 스코프 키(kds_v2 플래그 운영 중), unleash/launchdarkly 도입 불필요
 
 ---
 
@@ -59,24 +96,14 @@
 ## 🔒 보안 강화 (우선순위: 중간)
 
 ### 4. Semgrep 보안 스캔 규칙 튜닝
-| 작업 | 상세 | 예상 시간 |
-|-----|------|-----------|
-| 규칙셋 커스터마이징 | `.github/workflows/ci.yml`에서 `semgrep --config=p/javascript --config=p/nodejs --config=p/secrets --config=p/owasp-top-ten` → 프로젝트 특화 규칙만 선별 | 30분 |
-| False Positive 제거 | 테스트 파일/모킹 코드에서 발생하는 오탐 제외 (`--exclude=**/*.test.js`) | 15분 |
-| CI 실패 임계값 설정 | `--severity=ERROR`만 CI 실패로 처리, WARNING은 경고만 | 10분 |
+*(✅ 완료 — 2026-08-24, 상단 완료 섹션 참조. `--severity ERROR --error` 게이트 및 테스트/커버리지 제외는 `package.json`의 `security:scan`·`security:scan:frontend` 스크립트에 적용됨)*
 
 ---
 
 ## 🐳 인프라 최적화 (우선순위: 중간)
 
 ### 5. Docker 이미지 최적화 (Multi-stage Build)
-| 작업 | 상세 | 예상 시간 |
-|-----|------|-----------|
-| Dockerfile 다단계 빌드 | `builder` 스테이지(빌드) → `runner` 스테이지(실행), `node:22-alpine` 베이스 | 30분 |
-| 불필요한 파일 제외 | `.dockerignore`에 `node_modules`, `.git`, `tests`, `*.md`, `*.log` 추가 | 10분 |
-| 비루트 유저 실행 | `USER node` 또는 전용 유저 생성, `chown -R node:node /app` | 15분 |
-| 이미지 크기 검증 | `docker images` → 200MB 이하 목표 (현재 ~500MB 예상) | 10분 |
-| Trivy 스캔 통과 확인 | CI에서 `trivy image --severity CRITICAL,HIGH --exit-code 1` 통과 | 20분 |
+*(✅ 확인 결과 이미 구현되어 있었음 — 2026-08-24, 상단 완료 섹션 참조. 멀티스테이지 Dockerfile + `.dockerignore` 정비 완료 상태)*
 
 ---
 
@@ -136,18 +163,22 @@ Week 2 (다음 주)
 ## 📌 참고: 현재 브랜치 상태
 
 ```bash
-# 현재 브랜치: main (v1.2.0 커밋됨: 7238e72)
+# 현재 브랜치: main (origin/main 푸시 완료: 320bb00, 2026-08-24)
 # develop 브랜치 없음 → 필요시 생성 권장
 git branch -a
 # * main
-#   remotes/origin/main
+#   remotes/origin/main (46e44ec..320bb00 푸시 완료)
 
-# 최근 커밋: 7238e72 (fix(cloudflare): run worker first so /api proxy actually executes)
+# 최근 커밋: 320bb00 (fix: restore lucide imports and repair JSX broken by partial icon conversion)
 git log --oneline -5
 ```
+
+⚠️ **GitHub Actions 빌링 차단**: `320bb00` 이후 모든 워크플로(CI / Integration Tests / Playwright Tests)가 job 시작 전 실패 중.
+계정 `kwpark0047-iceu`의 결제 실패 또는 spending limit 초과가 원인이며 코드와 무관.
+Settings → Billing and plans에서 조치한 뒤 실패 job들을 Re-run해야 함.
 
 ---
 
 **작성 완료**: 2026-07-25  
-**최종 갱신**: 2026-08-13 (Trivy 취약점 대응 검증 완료 — task #1 완료 반영)  
-**다음 검토**: CI `docker-build` 재실행 통과 후
+**최종 갱신**: 2026-08-24 (JSX 참조 가드 도입 + Semgrep ERROR 게이트/Docker 정리 반영)  
+**다음 검토**: GitHub Actions 빌링 해결 후 전체 워크플로 재실행 통과 확인
