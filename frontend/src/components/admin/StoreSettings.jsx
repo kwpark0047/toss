@@ -3,7 +3,7 @@ import { useParams } from 'react-router';
 import { storesAPI, tierSettingsAPI } from '../../api';
 import { toast } from 'react-toastify';
 import { useSEO } from '../../lib/useSEO';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { Brush, CheckCircle2, ChevronDown, ChevronUp, CopyCheck, Edit3, Layout, Moon, Plus, Save, Store, Sun, ToggleLeft, ToggleRight, Trash2, Type } from 'lucide-react';
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────

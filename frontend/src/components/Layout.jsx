@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();

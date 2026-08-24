@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, Component } from 'react';
 import { useSEO } from '../../lib/useSEO';
 import api from '../../api';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { Activity, CheckCircle2, Database, RefreshCw, Server, Shield, XCircle, Zap } from 'lucide-react';
 
 /**

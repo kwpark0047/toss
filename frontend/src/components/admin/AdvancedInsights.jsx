@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { analyticsAPI } from '../../api';
 import { formatPrice } from '../../utils/format';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 const CAT_COLORS = ['bg-orange-500', 'bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-rose-500', 'bg-amber-500', 'bg-cyan-500', 'bg-fuchsia-500'];

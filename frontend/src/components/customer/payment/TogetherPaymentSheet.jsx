@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, ShoppingBag, CreditCard, ChevronRight, CheckCircle2, Info } from 'lucide-react';
-import Icon from '../../ui/Icon';
+import Icon from '../ui/Icon';
 
 /**
  * [TogetherPaymentSheet]

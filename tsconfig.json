@@ -1,28 +1,58 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "commonjs",
-    "strict": true,
-    "allowJs": false,
-    "noImplicitAny": false,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": ".",
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": false,
-    "types": [
-      "node"
-    ]
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "allowJs": true,
+    "checkJs": false,
+    "noImplicitAny": false,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "allowUnreachableCode": true,
+    "allowUnusedLabels": true,
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "typeRoots": ["./node_modules/@types", "./types"],
+    "types": ["node", "jest", "express"]
   },
   "include": [
-    "utils/**/*.ts",
+    "routes/**/*.ts",
+    "controllers/**/*.ts",
     "services/**/*.ts",
-    "types/**/*.ts"
+    "repositories/**/*.ts",
+    "middleware/**/*.ts",
+    "utils/**/*.ts",
+    "config/**/*.ts",
+    "app/**/*.ts",
+    "scripts/**/*.ts",
+    "index.ts",
+    "app.ts"
   ],
   "exclude": [
     "node_modules",
+    "dist",
     "frontend",
-    "playwright-report",
-    "test-results",
-    "services/AlimtalkService.ts"
+    "tests",
+    "coverage",
+    "*.config.js",
+    "scripts/test-*.js",
+    "*.test.ts"
   ]
 }

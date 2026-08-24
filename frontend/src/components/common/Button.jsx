@@ -1,5 +1,5 @@
 import { vibrateClick } from '../../utils/notificationSound';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 /**
  * Button — TDS Button 계층 공용 컴포넌트.

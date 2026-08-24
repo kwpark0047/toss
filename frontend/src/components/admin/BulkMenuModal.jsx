@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { aiAPI, productsAPI, categoriesAPI } from '../../api';
 import { Check, ImageOff, Loader2, RefreshCw, Upload, Wand2 } from 'lucide-react';
 

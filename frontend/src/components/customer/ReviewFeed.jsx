@@ -4,7 +4,7 @@ import { MessageSquare, Store, MoreHorizontal, Heart, MessageCircle } from 'luci
 import { reviewsAPI } from '../../api';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../common/LanguageSwitcher';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 const ReviewFeed = () => {
     const { t } = useTranslation();

@@ -1,7 +1,7 @@
 import{ useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
 import api from '@/api/client';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { ArrowLeft, Calendar, ChevronRight, Clock, DollarSign, Map, RefreshCw, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react';
 
 // 가상 데이터 세팅 (서버 통신 실패 또는 데모 환경용 완벽 세팅)

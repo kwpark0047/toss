@@ -5,7 +5,7 @@ import { inventoryAPI } from '../../api';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { toast } from 'react-toastify';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { Download, Edit3, History, Minus, Package, Plus, RefreshCw, Search, TrendingDown, TrendingUp, X } from 'lucide-react';
 
 // 페이지네이션 컴포넌트

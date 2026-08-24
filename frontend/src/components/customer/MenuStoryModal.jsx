@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { X, Heart, Quote, Share2 } from 'lucide-react';
 import { aiAPI } from '../../api';
 import { useTranslation } from 'react-i18next';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 const MenuStoryModal = ({ isOpen, onClose, product, storeName }) => {
     const { i18n } = useTranslation();

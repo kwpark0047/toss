@@ -3,7 +3,7 @@ import { ExternalLink, Store, MapPin, ChevronRight, AlertCircle, Phone } from 'l
 import { naverPlaceAPI } from '../../api/naverPlace';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 /**
  * 네이버 플레이스 리뷰 탭 — 해당 매장의 네이버 플레이스 정보를 보여주고

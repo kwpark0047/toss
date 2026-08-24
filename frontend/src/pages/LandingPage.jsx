@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import Icon from '../ui/Icon';
+import Icon from '../components/ui/Icon';
 import StoreLocator from '../components/StoreLocator';
 import { storesAPI } from '../api/stores';
 import { getRecentStores } from '../utils/recentStores';

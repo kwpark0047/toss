@@ -10,7 +10,7 @@ import TableLayoutCard, { CARD_W } from './wizard/TableLayoutCard';
 
 import BusinessTypePicker, { getBtypeLabel } from './wizard/BusinessTypePicker';
 import Step1InlineGuide from './wizard/Step1InlineGuide';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { ArrowLeft, ArrowRight, Check, ChefHat, Clock, LayoutGrid, Loader2, PartyPopper, Phone, Plus, QrCode, Sparkles, Store, Trash2, X } from 'lucide-react';
 
 const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];

@@ -10,7 +10,7 @@ import { handleApiError } from '../../utils/apiError';
 import OrderCard from './OrderCard';
 import OrderDetailModal from './OrderDetailModal';
 import EmptyState from '../common/EmptyState';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { Calendar, Filter, Package, RefreshCw, Search } from 'lucide-react';
 
 const statusConfig = {

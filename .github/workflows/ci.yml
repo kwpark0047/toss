@@ -5,8 +5,27 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  # 수동 트리거로 무거운 잡 실행 가능
+  workflow_dispatch:
+    inputs:
+      job:
+        description: '실행할 잡 선택'
+        required: false
+        type: choice
+        options:
+          - all
+          - backend-integration-tests
+          - e2e-tests
+          - security-scan
+          - deploy
+          - docker-build
+          - trivy-image-scan
+          - bundle-size-check
+          - lighthouse-ci
+          - print-agent-test
 
 jobs:
+  # === 필수 실행 잡 (push/PR마다 실행, 무료 티어 내 유지) ===
   lint-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -35,7 +54,7 @@ jobs:
           npx prisma generate
           npx prisma validate
 
-      - name: Unit & Integration Tests
+      - name: Unit & Integration Tests (light)
         run: npm run test:coverage
 
       - name: Route Validation
@@ -43,6 +62,9 @@ jobs:
 
       - name: API Contract Validation
         run: npm run validate:api
+
+      - name: JSX Reference Validation
+        run: node scripts/validate-jsx-references.js
 
   backend-unit-tests:
     runs-on: ubuntu-latest
@@ -92,7 +114,73 @@ jobs:
           path: coverage/
           retention-days: 7
 
+  backend-regression-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NODE_ENV: test
+      SMS_ENV: dev
+      JWT_SECRET: test-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
+      DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run regression tests
+        run: npx jest --config jest.config.js tests/regression/ --no-cache --forceExit --coverage
+
+      - name: Upload regression test coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-coverage
+          path: coverage/
+          retention-days: 7
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run frontend tests
+        run: npm run test:coverage
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Upload frontend test coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+          retention-days: 7
+        env:
+          VITE_API_URL: http://localhost:3000/api
+
+  # === 수동 트리거 잡 (workflow_dispatch로만 실행) ===
   backend-integration-tests:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: backend-unit-tests
@@ -151,43 +239,8 @@ jobs:
           path: coverage/
           retention-days: 7
 
-  backend-regression-tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    # 회귀 테스트는 Prisma를 mock 처리하므로 Postgres 의존성 없이 샌드박스 단위 테스트처럼 실행된다.
-    # (integration job과 순서를 맞추어 DB 마이그레이션 검증과 병렬 가능하도록 needs 없이 독립 실행)
-    env:
-      NODE_ENV: test
-      SMS_ENV: dev
-      JWT_SECRET: test-secret
-      JWT_REFRESH_SECRET: test-refresh-secret
-      DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.0
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npx prisma generate
-
-      - name: Run regression tests
-        run: npx jest --config jest.config.js tests/regression/ --no-cache --forceExit --coverage
-
-      - name: Upload regression test coverage
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: regression-coverage
-          path: coverage/
-          retention-days: 7
-
   e2e-tests:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [backend-integration-tests, frontend-test]
@@ -278,6 +331,7 @@ jobs:
           retention-days: 7
 
   print-agent-test:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -298,8 +352,25 @@ jobs:
       - name: Run print-agent tests
         run: npx jest --no-cache
 
+  security-scan:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Semgrep
+        run: |
+          pipx install semgrep
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Verify Semgrep installation
+        run: semgrep --version
+      - name: Run Semgrep (backend)
+        run: npm run security:scan
+      - name: Run Semgrep (frontend)
+        run: npm run security:scan:frontend
+
   deploy:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
     needs:
       [
         lint-and-test,
@@ -342,86 +413,9 @@ jobs:
           wranglerVersion: '4.119.0'
           workingDirectory: frontend
 
-  security-scan:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Semgrep
-        run: |
-          pipx install semgrep
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-      - name: Verify Semgrep installation
-        run: semgrep --version
-      - name: Run Semgrep (backend)
-        run: npm run security:scan
-      - name: Run Semgrep (frontend)
-        run: npm run security:scan:frontend
-
-  frontend-test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - name: Validate JSX references
-        run: node scripts/validate-jsx-references.js
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.0
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-      - name: Run frontend tests
-        run: npm run test:coverage
-      - name: Type check
-        run: npm run typecheck
-
-      - name: Upload frontend test coverage
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: frontend-coverage
-          path: frontend/coverage/
-          retention-days: 7
-        env:
-          VITE_API_URL: http://localhost:3000/api
-
-  # 프론트엔드 린트 — 비차단 검토용(advisory) 잡
-  # [배경] 프론트엔드에 pre-existing React 19 strict-mode 규칙 위반(react-hooks/set-state-in-effect)과
-  # unused-vars debt가 100여 건 존재. 이를 하나의 CI 게이트로 끊는 데에는 대규모 리팩터링이 필요해
-  # 차단 없이 보고(advisory) 형태로 운영: 린트 리포트를 아티팩트로 수집·팀가시성 확보.
-  # 목표: 향후 `allow-lint-errors` 임계값(0) 채택 시 차단하도록 전환 가능.
-  frontend-lint:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.0
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-      - name: Run ESLint (advisory)
-        run: |
-          npm run lint > eslint-report.txt 2>&1 || true
-          echo "::warning::Frontend ESLint has pre-existing debt. See eslint-report.txt artifact."
-      - name: Upload ESLint report
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-eslint-report
-          path: frontend/eslint-report.txt
-
   # Docker build and security scan
   docker-build:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs:
@@ -473,6 +467,7 @@ jobs:
 
   # Image vulnerability scan (separate from docker-build)
   trivy-image-scan:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: docker-build
@@ -577,6 +572,7 @@ jobs:
           retention-days: 7
 
   bundle-size-check:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [lint-and-test, backend-unit-tests, frontend-test]
@@ -593,6 +589,7 @@ jobs:
           npm run bundle:check
 
   lighthouse-ci:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: bundle-size-check
@@ -610,3 +607,29 @@ jobs:
         run: sleep 5
       - name: Run Lighthouse CI
         run: npx lhci autorun --config=lighthouserc.js
+
+  # 프론트엔드 린트 — 비차단 검토용(advisory) 잡
+  frontend-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run ESLint (advisory)
+        run: |
+          npm run lint > eslint-report.txt 2>&1 || true
+          echo "::warning::Frontend ESLint has pre-existing debt. See eslint-report.txt artifact."
+      - name: Upload ESLint report
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-eslint-report
+          path: frontend/eslint-report.txt

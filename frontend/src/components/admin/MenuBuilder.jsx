@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router';
 import { storesAPI, categoriesAPI, productsAPI, uploadsAPI } from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 const defaultTheme = {
     primaryColor: '#f97316',

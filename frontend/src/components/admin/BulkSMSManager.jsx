@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { bulkSmsAPI } from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 const BulkSMSManager = () => {
     const [options, setOptions] = useState({ stores: [], regions: [], businessTypes: [] });

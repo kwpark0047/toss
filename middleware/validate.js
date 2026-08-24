@@ -1,58 +1,110 @@
-const Joi = require('joi');
+/**
+ * Zod 입력 검증 미들웨어
+ * 중앙화된 요청 검증 (body, query, params, headers)
+ * 사용법: router.post('/', validate(bodySchema), controller.handler)
+ */
+
+const { ZodError } = require('zod');
+const logger = require('../utils/logger');
 
 /**
- * Joi 스키마를 사용하여 요청 데이터를 검증하는 미들웨어
- * @param {Object} schema - Joi schema object (body, query, params, etc.)
+ * Zod 스키마로 요청 검증 미들웨어 생성
+ * @param {Object} schemas - { body?, query?, params?, headers? } Zod 스키마 객체
+ * @returns {Function} Express 미들웨어
  */
-const validate = (schema) => (req, res, next) => {
-  // 1. 검증 대상 선택 (body > query > params 순서 또는 명시된 것)
-  // 보통 body 검증이 가장 많으므로, schema가 Joi 객체라면 body로 간주
-  // schema가 { body: ..., query: ... } 형태라면 각각 검증
+const validate = (schemas) => {
+  return (req, res, next) => {
+    try {
+      const validated = {};
 
-  // 편의상 schema가 Joi 객체인 경우 req.body를 검증
-  if (Joi.isSchema(schema)) {
-    const { error, value } = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
-    if (error) {
-      const errorMessage = error.details.map((details) => details.message).join(', ');
-      return res.status(400).json({
-        error: 'Validation Error',
-        message: errorMessage,
-        details: error.details,
+      // Body 검증
+      if (schemas.body) {
+        validated.body = schemas.body.parse(req.body);
+        req.body = validated.body; // 정제된 데이터로 교체
+      }
+
+      // Query 검증
+      if (schemas.query) {
+        validated.query = schemas.query.parse(req.query);
+        req.query = validated.query;
+      }
+
+      // Params 검증
+      if (schemas.params) {
+        validated.params = schemas.params.parse(req.params);
+        req.params = validated.params;
+      }
+
+      // Headers 검증
+      if (schemas.headers) {
+        validated.headers = schemas.headers.parse(req.headers);
+      }
+
+      // 검증된 데이터를 req.validated에 저장 (컨트롤러에서 사용)
+      req.validated = validated;
+
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        // Zod v4: error.issues 사용 (v3은 error.errors)
+        const issues = error.issues || error.errors || [];
+        const details = issues.map(err => ({
+          field: err.path?.join('.') || 'unknown',
+          message: err.message,
+          code: err.code,
+          received: err.received,
+        }));
+
+        logger.warn('[Validation] 입력 검증 실패', {
+          path: req.path,
+          method: req.method,
+          errors: details,
+          ip: req.ip,
+        });
+
+        return res.status(400).json({
+          success: false,
+          error: '입력 값 검증에 실패했습니다.',
+          code: 'VALIDATION_ERROR',
+          details,
+        });
+      }
+
+      // 예상치 못한 에러
+      logger.error('[Validation] 예상치 못한 검증 에러', { error: error.message, stack: error.stack });
+      return res.status(500).json({
+        success: false,
+        error: '검증 중 오류가 발생했습니다.',
+        code: 'VALIDATION_INTERNAL_ERROR',
       });
     }
-    req.body = value; // 정제된(Type casting 등) 데이터로 교체
-    return next();
-  }
-
-  // 객체 형태로 전달된 경우 (예: { body: schema, query: schema })
-  const validations = [];
-  if (schema.body) validations.push({ type: 'body', data: req.body, schema: schema.body });
-  if (schema.query) validations.push({ type: 'query', data: req.query, schema: schema.query });
-  if (schema.params) validations.push({ type: 'params', data: req.params, schema: schema.params });
-
-  for (const v of validations) {
-    const { error, value } = v.schema.validate(v.data, { abortEarly: false, stripUnknown: true });
-    if (error) {
-      const errorMessage = error.details.map((details) => details.message).join(', ');
-      return res.status(400).json({
-        error: `Validation Error (${v.type})`,
-        message: errorMessage,
-        details: error.details,
-      });
-    }
-    if (v.type === 'query' || v.type === 'params') {
-      Object.defineProperty(req, v.type, {
-        value,
-        writable: true,
-        enumerable: true,
-        configurable: true,
-      });
-    } else {
-      req[v.type] = value;
-    }
-  }
-
-  next();
+  };
 };
 
-module.exports = validate;
+/**
+ * 단일 스키마로 body만 검증하는 편의 함수
+ * @param {z.ZodSchema} schema
+ * @returns {Function}
+ */
+const validateBody = (schema) => validate({ body: schema });
+
+/**
+ * 단일 스키마로 query만 검증하는 편의 함수
+ * @param {z.ZodSchema} schema
+ * @returns {Function}
+ */
+const validateQuery = (schema) => validate({ query: schema });
+
+/**
+ * 단일 스키마로 params만 검증하는 편의 함수
+ * @param {z.ZodSchema} schema
+ * @returns {Function}
+ */
+const validateParams = (schema) => validate({ params: schema });
+
+module.exports = {
+  validate,
+  validateBody,
+  validateQuery,
+  validateParams,
+};

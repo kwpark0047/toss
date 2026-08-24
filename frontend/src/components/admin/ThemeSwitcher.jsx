@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminTheme, THEMES } from '../../contexts/AdminThemeContext';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 export default function ThemeSwitcher() {
   const { themeId, setTheme } = useAdminTheme();

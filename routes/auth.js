@@ -2,8 +2,16 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { authMiddleware } = require('../middleware/auth');
-const validate = require('../middleware/validate');
-const { auth: schema } = require('../utils/validationSchemas');
+const { validateBody } = require('../middleware/validate');
+const { 
+  loginSchema, 
+  registerSchema, 
+  updateProfileSchema, 
+  changePasswordSchema,
+  refreshTokenSchema,
+  sendVerificationSchema,
+  verifyCodeSchema,
+} = require('../src/validation/schemas');
 
 /**
  * @swagger
@@ -14,75 +22,100 @@ const { auth: schema } = require('../utils/validationSchemas');
 
 /**
  * @swagger
- * /api/auth/send-otp:
+ * /api/auth/send-verification:
  *   post:
  *     tags: [Auth]
- *     summary: OTP 인증번호 발송
+ *     summary: 이메일/전화 인증 코드 발송
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [phone]
+ *             required: [email]
  *             properties:
- *               phone:
+ *               email:
  *                 type: string
+ *                 format: email
+ *               type:
+ *                 type: string
+ *                 enum: [register, reset_password, change_email]
  *     responses:
  *       200:
- *         description: OTP 발송 완료
+ *         description: 인증 코드 발송 완료
  */
-router.post('/send-otp', validate(schema.sendOtp), authController.sendOtp);
+router.post('/send-verification', validateBody(sendVerificationSchema), authController.sendVerification);
 
 /**
  * @swagger
- * /api/auth/verify-otp:
+ * /api/auth/verify-code:
  *   post:
  *     tags: [Auth]
- *     summary: OTP 인증번호 확인
+ *     summary: 인증 코드 확인
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [phone, code]
+ *             required: [email, code]
  *             properties:
- *               phone:
+ *               email:
  *                 type: string
+ *                 format: email
  *               code:
  *                 type: string
+ *                 pattern: '^[0-9]{6}$'
+ *               type:
+ *                 type: string
+ *                 enum: [register, reset_password, change_email]
  *     responses:
  *       200:
- *         description: OTP 확인 완료
+ *         description: 인증 코드 확인 완료
  */
-router.post('/verify-otp', validate(schema.verifyOtp), authController.verifyOtp);
+router.post('/verify-code', validateBody(verifyCodeSchema), authController.verifyCode);
 
 /**
  * @swagger
  * /api/auth/register:
  *   post:
  *     tags: [Auth]
- *     summary: 회원가입
+ *     summary: 회원가입 (이메일 기반)
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [phone, password]
+ *             required: [email, password, passwordConfirm, name, agreeTerms, agreePrivacy]
  *             properties:
- *               phone:
+ *               email:
  *                 type: string
+ *                 format: email
  *               password:
+ *                 type: string
+ *                 minLength: 8
+ *               passwordConfirm:
  *                 type: string
  *               name:
  *                 type: string
+ *               phone:
+ *                 type: string
+ *               businessNumber:
+ *                 type: string
+ *               storeName:
+ *                 type: string
+ *               agreeTerms:
+ *                 type: boolean
+ *               agreePrivacy:
+ *                 type: boolean
+ *               agreeMarketing:
+ *                 type: boolean
  *     responses:
  *       201:
  *         description: 회원가입 완료 (JWT 토큰 발급)
  */
-router.post('/register', validate(schema.register), authController.register);
+router.post('/register', validateBody(registerSchema), authController.register);
 
 /**
  * @swagger
@@ -96,17 +129,20 @@ router.post('/register', validate(schema.register), authController.register);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [phone, password]
+ *             required: [email, password]
  *             properties:
- *               phone:
+ *               email:
  *                 type: string
+ *                 format: email
  *               password:
  *                 type: string
+ *               rememberMe:
+ *                 type: boolean
  *     responses:
  *       200:
  *         description: 로그인 완료 (JWT 토큰 발급)
  */
-router.post('/login', validate(schema.login), authController.login);
+router.post('/login', validateBody(loginSchema), authController.login);
 
 /**
  * @swagger
@@ -139,8 +175,11 @@ router.get('/me', authMiddleware, authController.getMe);
  *             properties:
  *               name:
  *                 type: string
- *               email:
+ *               phone:
  *                 type: string
+ *               profileImage:
+ *                 type: string
+ *                 format: uri
  *     responses:
  *       200:
  *         description: 프로필 수정 완료
@@ -148,7 +187,7 @@ router.get('/me', authMiddleware, authController.getMe);
 router.put(
   '/profile',
   authMiddleware,
-  validate(schema.updateProfile),
+  validateBody(updateProfileSchema),
   authController.updateProfile
 );
 
@@ -166,11 +205,14 @@ router.put(
  *         application/json:
  *           schema:
  *             type: object
- *             required: [currentPassword, newPassword]
+ *             required: [currentPassword, newPassword, newPasswordConfirm]
  *             properties:
  *               currentPassword:
  *                 type: string
  *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *               newPasswordConfirm:
  *                 type: string
  *     responses:
  *       200:
@@ -179,7 +221,7 @@ router.put(
 router.put(
   '/password',
   authMiddleware,
-  validate(schema.changePassword),
+  validateBody(changePasswordSchema),
   authController.changePassword
 );
 
@@ -203,7 +245,7 @@ router.put(
  *       200:
  *         description: 새 토큰 발급
  */
-router.post('/refresh-token', authController.refreshToken);
+router.post('/refresh-token', validateBody(refreshTokenSchema), authController.refreshToken);
 
 /**
  * @swagger

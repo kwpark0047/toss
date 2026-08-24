@@ -4,7 +4,7 @@ import { reviewsAPI, uploadsAPI } from '../../api';
 import { useTranslation } from 'react-i18next';
 import { Camera, Send, Loader2, CheckCircle, X, Star } from "lucide-react";
 import { compressImage } from '../../utils/imageCompress';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 /**
  * 리뷰 작성 모달 컴포넌트

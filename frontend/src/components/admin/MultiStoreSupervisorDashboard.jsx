@@ -3,7 +3,7 @@ import { Link } from 'react-router';import { formatPrice } from '../../utils/for
 import { toast } from 'react-toastify';
 import { vibrateShort } from '../../utils/notificationSound';
 import { analyticsAPI } from '../../api/misc';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { Activity, ChevronRight, DollarSign, Layers, Package, RefreshCw, ShoppingCart, Store, TrendingUp } from 'lucide-react';
 export default function MultiStoreSupervisorDashboard() {
   const [data, setData] = useState({

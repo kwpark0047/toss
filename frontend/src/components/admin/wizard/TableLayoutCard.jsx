@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import Icon from '../../ui/Icon';
+import Icon from "../../ui/Icon";
 import { Move } from 'lucide-react';
 
 export const CARD_W = 130;

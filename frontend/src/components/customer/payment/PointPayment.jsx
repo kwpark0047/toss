@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Star, ArrowLeft, Minus, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatPrice } from '../../../utils/format';
-import Icon from '../../ui/Icon';
+import Icon from '../ui/Icon';
 
 export default function PointPayment({
   totalAmount,

@@ -4,7 +4,7 @@ import { reviewsAPI, storesAPI } from '../../api';
 import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { Heart, ImageOff, Loader2, MessageSquareText, RefreshCw, Send, Sparkles } from 'lucide-react';
 
 // 리뷰 첨부 사진 (로드 실패 폴백)

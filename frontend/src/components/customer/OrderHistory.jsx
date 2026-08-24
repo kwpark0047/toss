@@ -8,7 +8,7 @@ import { formatPrice } from '../../utils/format';
 import ReviewModal from './ReviewModal';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../common/LanguageSwitcher';
-import Icon from "../../ui/Icon";
+import Icon from "../ui/Icon";
 
 /**
  * 주문 내역(Order History) 고도화 컴포넌트

@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import MenuItemImage from './MenuItemImage';
 import { formatPrice } from '../../utils/format';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 export default function MenuProductList({
   filteredProducts,

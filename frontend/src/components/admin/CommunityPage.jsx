@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { communityAPI } from '../../api/index.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import api from '../../api/index.js';

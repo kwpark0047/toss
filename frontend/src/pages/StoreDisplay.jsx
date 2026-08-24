@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Navigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import Icon from '../ui/Icon';
+import Icon from '../components/ui/Icon';
 
 // Utility for fetching public menu data
 const fetchStoreDisplayData = async (storeId) => {

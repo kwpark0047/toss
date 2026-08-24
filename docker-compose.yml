@@ -1,37 +1,232 @@
 version: '3.8'
 
 services:
+  # ===========================================
+  # Infrastructure Services
+  # ===========================================
   postgres:
     image: postgres:16-alpine
-    container_name: wemarket_postgres
+    container_name: wemarket-postgres
     environment:
-      POSTGRES_USER: test
-      POSTGRES_PASSWORD: test
-      POSTGRES_DB: wemarket_test
-    ports:
-      - '5432:5432'
+      POSTGRES_USER: ${POSTGRES_USER:-wemarket}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wemarket}
+      POSTGRES_DB: ${POSTGRES_DB:-wemarket_dev}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    ports:
+      - "5432:5432"
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U test -d wemarket_test']
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wemarket} -d ${POSTGRES_DB:-wemarket_dev}"]
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    networks:
+      - wemarket-network
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    container_name: wemarket_redis
-    ports:
-      - '6379:6379'
-    command: ['redis-server', '--appendonly', 'yes']
+    container_name: wemarket-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
+    ports:
+      - "6379:6379"
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 5s
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 5s
+    networks:
+      - wemarket-network
+    restart: unless-stopped
+
+  localstack:
+    image: localstack/localstack:3.5
+    container_name: wemarket-localstack
+    environment:
+      SERVICES: s3
+      DEBUG: 1
+      AWS_DEFAULT_REGION: ap-northeast-2
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    ports:
+      - "4566:4566"  # LocalStack edge port
+      - "4510-4559:4510-4559"  # External services port range
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - wemarket-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ===========================================
+  # Application Services
+  # ===========================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: wemarket-backend
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-wemarket}:${POSTGRES_PASSWORD:-wemarket}@postgres:5432/${POSTGRES_DB:-wemarket_dev}?schema=public
+      DIRECT_URL: postgresql://${POSTGRES_USER:-wemarket}:${POSTGRES_PASSWORD:-wemarket}@postgres:5432/${POSTGRES_DB:-wemarket_dev}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret-change-in-production}
+      SMS_ENV: ${SMS_ENV:-dev}
+      # External APIs (set in .env.local or CI secrets)
+      TOSS_PAYMENTS_SECRET_KEY: ${TOSS_PAYMENTS_SECRET_KEY:-}
+      TOSS_PAYMENTS_CLIENT_KEY: ${TOSS_PAYMENTS_CLIENT_KEY:-}
+      KAKAO_ALIMTALK_SENDER_KEY: ${KAKAO_ALIMTALK_SENDER_KEY:-}
+      KAKAO_ALIMTALK_API_KEY: ${KAKAO_ALIMTALK_API_KEY:-}
+      KAKAO_ALIMTALK_SECRET_KEY: ${KAKAO_ALIMTALK_SECRET_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      NAVER_PLACE_CLIENT_ID: ${NAVER_PLACE_CLIENT_ID:-}
+      NAVER_PLACE_CLIENT_SECRET: ${NAVER_PLACE_CLIENT_SECRET:-}
+      FIREBASE_ADMIN_SDK: ${FIREBASE_ADMIN_SDK:-}
+      # S3/LocalStack
+      S3_ENDPOINT: http://localstack:4566
+      S3_BUCKET: ${S3_BUCKET:-wemarket-dev}
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: ap-northeast-2
+      AWS_S3_FORCE_PATH_STYLE: "true"
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    networks:
+      - wemarket-network
+    restart: unless-stopped
+    # 개발 모드일 때 소스 코드 마운트 (핫 리로드용)
+    # 프로덕션 빌드 시에는 주석 처리
+    volumes:
+      - ./app:/app/app:cached
+      - ./controllers:/app/controllers:cached
+      - ./services:/app/services:cached
+      - ./repositories:/app/repositories:cached
+      - ./routes:/app/routes:cached
+      - ./middleware:/app/middleware:cached
+      - ./utils:/app/utils:cached
+      - ./config:/app/config:cached
+      - ./socket:/app/socket:cached
+      - ./scripts:/app/scripts:cached
+      - ./prisma:/app/prisma:cached
+      - ./public:/app/public:cached
+      - ./app.js:/app/app.js:cached
+      - ./index.js:/app/index.js:cached
+      - ./package*.json:/app/package*.json:cached
+    command: >
+      sh -c "
+        if [ \"$$NODE_ENV\" = 'development' ]; then
+          npm run dev
+        else
+          node app.js
+        fi
+      "
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: ${NODE_ENV:-development}
+    container_name: wemarket-frontend
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      VITE_API_URL: http://backend:3000/api
+      VITE_WS_URL: ws://backend:3000
+    ports:
+      - "5173:80"  # nginx production port 80
+      - "5174:5173"  # Vite dev server port (development only)
+    depends_on:
+      - backend
+    networks:
+      - wemarket-network
+    restart: unless-stopped
+    # 개발 모드일 때 소스 코드 마운트 + Vite dev server
+    volumes:
+      - ./frontend/src:/app/src:cached
+      - ./frontend/public:/app/public:cached
+      - ./frontend/index.html:/app/index.html:cached
+      - ./frontend/vite.config.*:/app/vite.config.*:cached
+      - ./frontend/package*.json:/app/package*.json:cached
+    command: >
+      sh -c "
+        if [ \"$$NODE_ENV\" = 'development' ]; then
+          npm run dev -- --host 0.0.0.0 --port 5173
+        else
+          nginx -g 'daemon off;'
+        fi
+      "
+
+  # ===========================================
+  # Development Helper Services
+  # ===========================================
+  # Prisma Studio (database GUI)
+  prisma-studio:
+    image: node:22-alpine
+    container_name: wemarket-prisma-studio
+    working_dir: /app
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-wemarket}:${POSTGRES_PASSWORD:-wemarket}@postgres:5432/${POSTGRES_DB:-wemarket_dev}?schema=public
+    volumes:
+      - .:/app:cached
+    ports:
+      - "5555:5555"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - wemarket-network
+    command: >
+      sh -c "
+        npm ci --ignore-scripts &&
+        npx prisma generate &&
+        npx prisma studio --port 5555 --hostname 0.0.0.0
+      "
+    profiles:
+      - tools
+
+  # Mailhog (email testing)
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: wemarket-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - wemarket-network
+    profiles:
+      - tools
+
+networks:
+  wemarket-network:
+    driver: bridge
+    name: wemarket-network
 
 volumes:
   postgres_data:
+    name: wemarket-postgres-data
   redis_data:
+    name: wemarket-redis-data
+  localstack_data:
+    name: wemarket-localstack-data

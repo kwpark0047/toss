@@ -1,0 +1,43 @@
+version: '3.8'
+
+# 개발 환경 전용 오버라이드 (docker-compose -f docker-compose.yml -f docker-compose.override.yml up)
+# 사용법: docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
+
+services:
+  backend:
+    build:
+      target: builder  # 개발용 빌더 스테이지 사용 (소스 마운트 + npm run dev)
+    environment:
+      NODE_ENV: development
+      # 개발용 추가 설정
+      LOG_LEVEL: debug
+      ENABLE_DEV_OPS: "true"
+    # 소스 코드 마운트는 base compose에 정의됨
+    # 개발 시 nodemon 등 핫 리로드 도구 사용 권장
+    command: npm run dev
+    # 포트 포워딩은 base compose에서 처리
+
+  frontend:
+    build:
+      target: builder  # 개발용 빌더 스테이지 (Vite dev server)
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:3000/api
+      VITE_WS_URL: ws://localhost:3000
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    ports:
+      - "5173:5173"  # Vite dev server
+
+  # 개발 도구 프로파일 활성화
+  prisma-studio:
+    profiles: ["tools"]
+    # base compose에서 정의된 설정 상속
+
+  mailhog:
+    profiles: ["tools"]
+    # base compose에서 정의된 설정 상속
+
+# 개발용 네트워크 별칭
+networks:
+  wemarket-network:
+    external: false  # 로컬에서 새로 생성

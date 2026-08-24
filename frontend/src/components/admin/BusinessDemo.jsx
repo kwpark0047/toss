@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronRight, Play, Store, Zap } from 'lucide-react';
 
 /**

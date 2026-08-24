@@ -11,8 +11,56 @@ const {
 } = require('../utils/orderCapability');
 const EtaPredictionService = require('../services/EtaPredictionService');
 
+// ===========================================
+// DataLoader 인스턴스 가져오기 (요청 단위 초기화)
+// ===========================================
+const getLoaders = (req) => {
+  if (!req.dataLoaders) {
+    const { 
+      orderLoader, 
+      orderItemsLoader, 
+      orderPaymentsLoader,
+      storeLoader,
+      productLoader,
+      userLoader,
+    } = require('../utils/dataLoaders');
+    
+    req.dataLoaders = {
+      orderLoader,
+      orderItemsLoader,
+      orderPaymentsLoader,
+      storeLoader,
+      productLoader,
+      userLoader,
+    };
+  }
+  return req.dataLoaders;
+};
+
+/**
+ * DataLoader 캐시 클리어 미들웨어 (요청 종료 시)
+ */
+const clearDataLoaderCache = (req, res, next) => {
+  res.on('finish', () => {
+    if (req.dataLoaders) {
+      Object.values(req.dataLoaders).forEach(loader => {
+        if (loader && typeof loader.clearAll === 'function') {
+          loader.clearAll();
+        }
+      });
+    }
+  });
+  next();
+};
+
 const orderController = {
-  // 주문 생성
+  // 미들웨어: DataLoader 캐시 초기화 + 정리
+  initializeDataLoaders: (req, res, next) => {
+    getLoaders(req);
+    clearDataLoaderCache(req, res, next);
+  },
+
+  // 주문 생성 (기존과 동일 — DataLoader 불필요)
   createOrder: catchAsync(async (req, res) => {
     const orderService = new OrderService(req.app.get('io'));
     const order = await orderService.createOrder(req.body);
@@ -30,36 +78,86 @@ const orderController = {
     );
   }),
 
-  // 고객별 주문 내역 조회
+  // 고객별 주문 내역 조회 — DataLoader로 배치 로딩
   getCustomerHistory: catchAsync(async (req, res) => {
     const capability = verifyCustomerHistoryCapability(req.get('x-customer-history-capability'));
     if (!capability) {
       return res.status(403).json({ error: '고객 주문내역 조회 권한이 없거나 만료되었습니다.' });
     }
-    const orders = await Order.findByCustomer(capability.phone, capability.toss_user_key);
-    res.success(orders);
+    
+    const { orderLoader } = getLoaders(req);
+    const orderIds = await Order.findIdsByCustomer(capability.phone, capability.toss_user_key);
+    const orders = await orderLoader.loadMany(orderIds);
+    const validOrders = orders.filter(o => o !== null);
+    res.success(validOrders);
   }),
 
-  // 매장별 주문 목록 조회
+  // 매장별 주문 목록 조회 — DataLoader로 아이템/결제 일괄 로드
   getStoreOrders: catchAsync(async (req, res) => {
     const { storeId } = req.params;
     const { status, date } = req.query;
     const hasPagination = req.query.page !== undefined || req.query.limit !== undefined;
+    
     const result = await Order.findByStoreId(storeId, status, date, {
       page: req.query.page,
       limit: req.query.limit,
       paginated: hasPagination,
     });
-    if (hasPagination) {
-      return res.paginated(result.items, result, '주문 목록을 조회했습니다.');
+    
+    const orders = hasPagination ? result.items : result;
+    
+    if (orders.length > 0) {
+      const { orderItemsLoader, orderPaymentsLoader } = getLoaders(req);
+      const orderIds = orders.map(o => String(o.id));
+      
+      const [itemsMap, paymentsMap] = await Promise.all([
+        orderItemsLoader.loadMany(orderIds),
+        orderPaymentsLoader.loadMany(orderIds),
+      ]);
+      
+      orders.forEach((order, idx) => {
+        order.items = itemsMap[idx] || [];
+        order.payments = paymentsMap[idx] || [];
+      });
     }
-    res.success(result);
+    
+    if (hasPagination) {
+      return res.paginated(orders, result, '주문 목록을 조회했습니다.');
+    }
+    res.success(orders);
   }),
 
-  // 주문 단일 상세 조회
+  // 주문 단일 상세 조회 — DataLoader로 아이템/결제/매장/상품 일괄 로드
   getOrderDetails: catchAsync(async (req, res) => {
-    const order = await Order.findById(req.params.id);
+    const { orderLoader, orderItemsLoader, orderPaymentsLoader, storeLoader, productLoader } = getLoaders(req);
+    
+    const orderId = String(req.params.id);
+    
+    const [order, items, payments] = await Promise.all([
+      orderLoader.load(orderId),
+      orderItemsLoader.load(orderId),
+      orderPaymentsLoader.load(orderId),
+    ]);
+    
     if (!order) return res.status(404).json({ error: '주문을 찾을 수 없습니다' });
+    
+    if (order.store_id) {
+      order.store = await storeLoader.load(String(order.store_id));
+    }
+    
+    if (items.length > 0) {
+      const productIds = [...new Set(items.map(i => String(i.product_id)))];
+      const products = await productLoader.loadMany(productIds);
+      const productMap = new Map(products.map((p, i) => [productIds[i], p]));
+      
+      items.forEach(item => {
+        item.product = productMap.get(String(item.product_id)) || null;
+      });
+    }
+    
+    order.items = items;
+    order.payments = payments;
+    
     res.success(order);
   }),
 
@@ -71,6 +169,10 @@ const orderController = {
       userId: req.user?.id,
       role: req.user?.role,
     });
+    
+    const { orderLoader } = getLoaders(req);
+    orderLoader.clear(String(req.params.id));
+    
     res.json({ success: true, order: updated, message: '주문 상태가 변경되었습니다' });
   }),
 
@@ -78,27 +180,48 @@ const orderController = {
   cancelOrder: catchAsync(async (req, res) => {
     const orderService = new OrderService(req.app.get('io'));
     const result = await orderService.cancelOrder(req.params.id, req.user?.id, req.user?.role);
+    
+    const { orderLoader, orderItemsLoader, orderPaymentsLoader } = getLoaders(req);
+    const orderId = String(req.params.id);
+    orderLoader.clear(orderId);
+    orderItemsLoader.clear(orderId);
+    orderPaymentsLoader.clear(orderId);
+    
+    res.json(result);
+  }),
+
+  // 주문 반품/교환
+  returnExchange: catchAsync(async (req, res) => {
+    const orderService = new OrderService(req.app.get('io'));
+    const result = await orderService.returnExchange(req.params.id, req.body, req.user?.id, req.user?.role);
+    
+    const { orderLoader, orderItemsLoader, orderPaymentsLoader } = getLoaders(req);
+    const orderId = String(req.params.id);
+    orderLoader.clear(orderId);
+    orderItemsLoader.clear(orderId);
+    orderPaymentsLoader.clear(orderId);
+    
     res.json(result);
   }),
 
   // 주문 삭제
   deleteOrder: catchAsync(async (req, res) => {
-    // 주문 삭제는 취소 완료(cancelled)된 주문에만 허용한다.
-    // 재고가 차감된 상태(preparing/ready 등)의 주문을 삭제하면 재고 정합성이 깨지므로
-    // 먼저 취소하여 재고를 복구한 뒤 삭제해야 한다.
     const orderId = parseInt(req.params.id);
     const order = await Order.findById(orderId);
     if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
     if (order.status !== 'cancelled')
       throw new AppError('취소된 주문만 삭제할 수 있습니다. 활성 주문은 먼저 취소해 주세요.', 400);
     await Order.delete(orderId);
+    
+    const { orderLoader, orderItemsLoader, orderPaymentsLoader } = getLoaders(req);
+    const orderIdStr = String(orderId);
+    orderLoader.clear(orderIdStr);
+    orderItemsLoader.clear(orderIdStr);
+    orderPaymentsLoader.clear(orderIdStr);
+    
     res.success(null, '주문이 삭제되었습니다.');
   }),
 
-  /**
-   * [GET] 주문 예상 소요 시간(ETA) 조회
-   * 현재 주방 상황(대기 주문 수, 메뉴 복잡도) 기반으로 ETA 계산
-   */
   getEta: catchAsync(async (req, res) => {
     const { storeId } = req.params;
     const { items } = req.query;
@@ -114,14 +237,12 @@ const orderController = {
     res.success(eta);
   }),
 
-  // 통계 조회
   getStats: catchAsync(async (req, res) => {
     const { start_date, end_date } = req.query;
     const stats = await Order.getStats(req.params.storeId, start_date, end_date);
     res.success(stats);
   }),
 
-  // 상세 통계 조회
   getDetailedStats: catchAsync(async (req, res) => {
     const { start_date, end_date } = req.query;
     if (!start_date || !end_date) {
@@ -131,9 +252,6 @@ const orderController = {
     res.success(stats);
   }),
 
-  /**
-   * [POST] 고객 모바일 토글 FCM 푸시 토큰 전역 등록 (역방향 알림 온보딩)
-   */
   registerCustomerToken: catchAsync(async (req, res) => {
     const orderId = parseInt(req.params.orderId);
     const { token } = req.body;
@@ -149,13 +267,18 @@ const orderController = {
         .json({ error: 'invalid_request', message: 'FCM 토큰이 제공되지 않았습니다.' });
     }
 
-    // 1. 주문 모델 내 customer_fcm_token 갱신 (역방향 알림 및 픽업 호출 타겟 동기화)
-    const order = await prisma.orders.update({
+    const { orderLoader } = getLoaders(req);
+    const order = await orderLoader.load(String(orderId));
+    
+    if (!order) {
+      return res.status(404).json({ error: '주문을 찾을 수 없습니다.' });
+    }
+
+    const updated = await prisma.orders.update({
       where: { id: orderId },
       data: { customer_fcm_token: token },
     });
 
-    // 2. 해당 주문에 연결된 고객 전화번호가 존재한다면, 단골고객 테이블(store_customers)의 fcm_token도 자동 갱신 (CRM 알림 동기화)
     if (order.customer_phone) {
       await prisma.store_customers.updateMany({
         where: {
@@ -166,6 +289,8 @@ const orderController = {
       });
       logger.info(`[FCM Token] Synced customer PWA push token: Store ${order.store_id}`);
     }
+
+    orderLoader.clear(String(orderId));
 
     res.json({
       success: true,

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { analyticsAPI, ordersAPI } from '../../../api';
 import { formatPrice } from '../../../utils/format';
-import Icon from '../../../../ui/Icon';
+import Icon from '../../ui/Icon';
 import {
   AreaChart,
   Area,

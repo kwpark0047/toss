@@ -2,7 +2,7 @@ import React from 'react';
 import { formatWon } from '../../utils/format';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import Button from '../common/Button';
 import EmptyState from '../common/EmptyState';
 import { vibrateClick } from '../../utils/notificationSound';

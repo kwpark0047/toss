@@ -9,7 +9,7 @@ import { formatPrice, formatTime } from '../../utils/format';
 import { format } from 'date-fns';
 import EmptyState from '../common/EmptyState';
 import Skeleton from '../common/Skeleton';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 /* ─── 차트 로딩 스켈레톤 ─── */
 const SkeletonChart = () => <div className="bg-white/5 border border-white/10 rounded-2xl p-3 animate-pulse">

@@ -2,7 +2,7 @@ import { WifiOff, Wifi, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useOnlineStatus, useConnectionInfo } from '@/hooks/usePWA';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getSyncStats } from '@/lib/offlineQueue';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 export default function OfflineBanner() {
   const { isOnline, isVerified } = useOnlineStatus();

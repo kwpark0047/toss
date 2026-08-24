@@ -1,6 +1,6 @@
 import { useState} from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 export function VisualOptionEditor({ value, onChange }) {
   const [groups, setGroups] = useState(() => { try { return typeof value === 'string' && value.trim() ? JSON.parse(value) : Array.isArray(value) ? value : []; } catch { return []; } });

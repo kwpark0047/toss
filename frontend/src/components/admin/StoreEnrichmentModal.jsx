@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { adminAPI } from '../../api/admin';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { ArrowRight, Check, ChevronDown, Loader2, RefreshCw, Sparkles, X } from 'lucide-react';
 
 const CATEGORY_LABELS = {

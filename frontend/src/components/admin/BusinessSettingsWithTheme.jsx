@@ -3,7 +3,7 @@ import { useParams } from 'react-router';
 import { businessAPI, storeAccountAPI } from '../../api';
 import { toast } from 'react-toastify';
 import { THEME_PRESETS, DEFAULT_THEME_SETTINGS } from '../../lib/themePresets';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { Check, RefreshCw, Save } from 'lucide-react';
 
 // ── 결제수단 옵션 ─────────────────────────────────────────────────────────────

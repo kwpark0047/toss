@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { chatAPI, getSocket } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 const formatTimeHHMM = dateStr => {

@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { formatPriceWithOptions } from '../../lib/themePresets';
 import { vibrateClick } from '../../utils/notificationSound';
 import LazyImage from '../common/LazyImage';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 // TDS ListRow 상하 패딩 프리셋 (S/M/L/XL) — TDS ListRow 패딩과 1:1 매핑
 const PADDING = { S: 'py-2', M: 'py-3', L: 'py-4', XL: 'py-5' };

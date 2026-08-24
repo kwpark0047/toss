@@ -1,5 +1,5 @@
 import { Share2 } from 'lucide-react';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 /**
  * 네이버 공유 API 버튼.

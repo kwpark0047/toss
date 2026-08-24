@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { customersAPI, pointsAPI } from '@/api';
 import { getSocket } from '@/api';
 import { requestNotificationPermission } from '@/firebase';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 const formatPhone = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);

@@ -3,7 +3,7 @@ import { useParams } from 'react-router';
 import { campaignAPI } from '@/api/admin';
 import Skeleton from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 /* ── 유형별 메타 ─────────────────────────────────────────────── */
 const TRIGGER_META = {

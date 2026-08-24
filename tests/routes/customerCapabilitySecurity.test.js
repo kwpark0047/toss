@@ -15,6 +15,8 @@ const mockOrdersController = {
   cancelOrder: jest.fn(),
   deleteOrder: jest.fn(),
   getEta: jest.fn((req, res) => res.json({ success: true })),
+  returnExchange: jest.fn((req, res) => res.json({ success: true })),
+  searchOrders: jest.fn((req, res) => res.json({ success: true })),
 };
 const mockReservationsController = {
   register: jest.fn(),
@@ -40,7 +42,12 @@ jest.mock('../../controllers/orderController', () => mockOrdersController);
 jest.mock('../../controllers/reservationsController', () => mockReservationsController);
 jest.mock('../../controllers/pointsController', () => mockPointsController);
 jest.mock('../../middleware/idempotency', () => () => (req, res, next) => next());
-jest.mock('../../middleware/validate', () => () => (req, res, next) => next());
+jest.mock('../../middleware/validate', () => ({
+  validateBody: () => (req, res, next) => next(),
+  validateQuery: () => (req, res, next) => next(),
+  validateParams: () => (req, res, next) => next(),
+  validate: () => (req, res, next) => next(),
+}));
 jest.mock('../../middleware/validator', () => ({
   validateBody: () => (req, res, next) => next(),
   validateId: () => (req, res, next) => next(),

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
 import { boardAPI } from '../../api/board';
 import { toast } from 'sonner';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { Check, Handshake, Inbox, Loader2, Plus, RefreshCw, Send, StoreIcon, X } from 'lucide-react';
 
 const STATUS = {

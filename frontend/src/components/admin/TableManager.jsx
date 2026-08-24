@@ -7,7 +7,7 @@ import VisualTableMap from './VisualTableMap';
 import { getSocket } from '../../utils/socket';
 import { buildMenuUrl, buildQrUrl } from '../../utils/site';
 import { handleApiError } from '../../utils/apiError';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { Check, Download, FileText, Loader2, Printer, QrCode, Sparkles, XIcon } from 'lucide-react';
 
 /* ─────────────────────────── 카드 디자인 테마 ─────────────────────────── */

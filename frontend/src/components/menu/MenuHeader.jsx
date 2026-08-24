@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { vibrateClick } from '../../utils/notificationSound';
 import LanguageSwitcher from '../common/LanguageSwitcher';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 /**
  * MenuHeader — TDS Top/Navigation 패턴 + 메뉴바 숨기기/펼치기 기능

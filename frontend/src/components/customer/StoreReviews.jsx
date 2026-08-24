@@ -6,7 +6,7 @@ import EmptyState from '../common/EmptyState';
 import NaverReviewTab from './NaverReviewTab';
 import LazyImage from '../common/LazyImage';
 import { vibrateClick } from '../../utils/notificationSound';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 // 브라우저별 익명 좋아요 식별자 (로그인 없는 고객용, localStorage에 고정)
 const getLikerId = () => {

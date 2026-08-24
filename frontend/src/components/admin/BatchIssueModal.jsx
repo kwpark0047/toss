@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { adminAPI } from '../../api/admin';
 import GrantTemplateManager from './GrantTemplateManager';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 export default function BatchIssueModal({ storeId, storeName, onClose }) {
   const [tab, setTab] = useState('points'); // points | coupons

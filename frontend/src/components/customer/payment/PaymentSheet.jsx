@@ -13,7 +13,7 @@ import { useBrandPay } from '../../../hooks/useBrandPay';
 import PointPayment from './PointPayment';
 import TransferPayment from './TransferPayment';
 import { formatPrice } from '../../../utils/format';
-import Icon from '../../ui/Icon';
+import Icon from '../ui/Icon';
 
 // ── 결제수단 정의 ────────────────────────────────────────────────────────────
 // id: 백엔드 payment_method 값

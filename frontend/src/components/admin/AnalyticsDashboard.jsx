@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
 import AdvancedInsights from './AdvancedInsights';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart as RePieChart, Pie, Legend, Line, ComposedChart } from 'recharts';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { ChevronRight, Clock, Download } from 'lucide-react';
 
 /**

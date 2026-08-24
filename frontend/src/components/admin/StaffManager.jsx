@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router';
 import { staffAPI, storesAPI } from '../../api';
 import { formatTime } from '../../utils/format';
 import { handleApiError } from '../../utils/apiError';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { motion, AnimatePresence } from 'framer-motion';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';

@@ -14,7 +14,7 @@ import CartModal from '../menu/CartModal';
 import OptionSelectionModal from '../menu/OptionSelectionModal';
 import TinkerBell from '../ai/TinkerBell';
 import { loadTinkerBellSettings } from '../../utils/tinkerbell';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 const DEMO_LANGS = [
   { code: 'ko', flag: '🇰🇷', label: 'KO' },

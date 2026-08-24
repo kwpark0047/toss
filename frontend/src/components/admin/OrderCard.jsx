@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 const STATUS_STYLE = {
   paid:      { bar: 'bg-teal-400',    badge: 'bg-teal-50 text-teal-700 border-teal-200',       btn: 'bg-teal-500 text-white' },

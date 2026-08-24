@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, ChevronRight, CheckCircle2, AlertCircle, Phone, Search, XCircle } from 'lucide-react';
 import { reservationsAPI } from '../../api';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 const ReservationSection = ({ storeId }) => {
     const [activeTab, setActiveTab] = useState('register'); // 'register' | 'track'

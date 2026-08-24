@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 const TYPE_LABELS = { notice: '공지사항', free: '자유게시판', qna: '질문/답변', faq: '도움말/FAQ' };
 const TYPE_COLORS = {

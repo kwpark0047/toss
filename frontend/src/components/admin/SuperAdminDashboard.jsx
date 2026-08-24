@@ -7,7 +7,7 @@ import { useSEO } from '../../lib/useSEO';
 import MiniBarChart from './MiniBarChart';
 import StoreDetailModal from './StoreDetailModal';
 import StoreEnrichmentModal from './StoreEnrichmentModal';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { Check, ChevronLeft, ChevronRight, Gift, Link2, Loader2, Search, Settings, Sparkles, X } from 'lucide-react';
 
 const INFO_BADGE = {

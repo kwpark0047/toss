@@ -10,13 +10,14 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '../..');
-const APP_SOURCE = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
+const APP_SOURCE = fs.readFileSync(path.join(ROOT, 'app.ts'), 'utf8');
 
-/** routes 맵(`key: require('./routes/x')`)에 등록된 키 목록 */
+/** routes 맵(`key: (await import('./routes/x.js')).default`)에 등록된 키 목록 */
 function getRegisteredRouteKeys(source) {
   const mapMatch = source.match(/const routes = \{([\s\S]*?)\n\};/);
   if (!mapMatch) return [];
-  return [...mapMatch[1].matchAll(/^\s*(\w+):\s*require\(/gm)].map((m) => m[1]);
+  // Match: `key: (await import('./routes/x.js')).default,`
+  return [...mapMatch[1].matchAll(/^\s*(\w+):\s*\(await import\('\.?\/routes\/(\w+)\.js'\)\)/gm)].map((m) => m[1]);
 }
 
 /** app.use(...) 에서 실제 사용된 routes.<key> 목록 */
@@ -50,7 +51,7 @@ describe('app.js 라우트 마운트 정합성', () => {
       .filter((f) => f.endsWith('.js'))
       .map((f) => f.replace(/\.js$/, ''));
 
-    const orphanFiles = routeFiles.filter((name) => !APP_SOURCE.includes(`./routes/${name}'`));
+    const orphanFiles = routeFiles.filter((name) => !APP_SOURCE.includes(`./routes/${name}.js'`));
 
     expect(orphanFiles).toEqual([]);
   });

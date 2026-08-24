@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Phone, Clock, Megaphone } from 'lucide-react';
 import NaverShareButton from '../common/NaverShareButton';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 const StoreInfoBanner = ({ 
   description, 

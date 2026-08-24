@@ -5,7 +5,7 @@ import { formatPrice } from '../../utils/format';
 import api from '../../api/index.js';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { ChevronRight, Clock, Gift, Loader2, Phone, RefreshCw, Search, X } from 'lucide-react';
 
 // ── 등급 메타 ─────────────────────────────────────────────────────

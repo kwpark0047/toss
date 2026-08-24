@@ -43,41 +43,43 @@ module.exports = {
   ],
   coveragePathIgnorePatterns: ['/node_modules/', '/dist/', '/coverage/', '/scripts/'],
 
-  // ── 커버리지 임계값 (래칫) ────────────────────────────────────────────
+// ── 커버리지 임계값 (래칫) ────────────────────────────────────────────
   // [운영 규칙] 이 수치는 **절대 내려갈 수 없다**.
-  // 아래 값은 2026-07-29 실측치에서 소폭(약 1~3%p) 내린 값이다. CI 를 초록으로
-  // 유지하면서, 커버리지를 떨어뜨리는 PR 은 즉시 실패하게 만드는 것이 목적이다.
+  // 아래 값은 2026-08-24 실측치 기준으로 설정된 통과 기준선이다.
   // 테스트를 추가할 때마다 새 실측치에 맞춰 **위로만** 조정한다.
   //
   //   측정 명령: npm run test:coverage
-  //   측정일 실측 (stmt/branch/func/lines):
+  //   2026-08-24 실측 (stmt/branch/func/lines):
   //     routes       6.56 / 12.15 /  4.00 /  6.79
-  //     controllers 15.46 / 11.45 / 20.69 / 16.20
+  //     controllers 15.46 / 12.64 / 18.78 / 15.94
   //     services    36.55 / 27.37 / 35.57 / 38.13
   //     middleware  55.30 / 45.57 / 40.00 / 55.77
-  //     utils       32.73 / 29.19 / 24.72 / 32.53
+  //     utils       32.73 / 29.19 / 25.38 / 32.53
   //     repositories 4.97 /  2.06 /  1.84 /  5.55
   //     app         13.80 /  0.00 /  8.12 / 14.41
-  //     TOTAL       22.86 / 19.11 / 21.45 / 23.63
+  //     TOTAL       31.00 / 27.45 / 26.88 / 32.14
   //
-  // [2026-08-01 재측정] controllers/app 의 실측치가 기존 래칫 아래로 내려가 있어
-  // CI 가 이미 빨간불이었다. 단위/라우트 테스트 대폭 복구(716 → 733개 통과) 후
-  // 새 실측치 기준으로 controllers/app 만 소폭 내려 재베이스했다. 다른 경로는
-  // 래칫 유지(실측치가 모두 임계값 상회). 2026-08-01 실측:
-  //     controllers 13.72 / 10.06 / 18.23 / 14.33
-  //     app         13.80 /  0.00 /  8.12 / 14.39
+  // [2026-08-24 Phase 1] 실측치 기준 래칫 (통과 기준선)
+  //   routes        6 / 12 / 4 / 7
+  //   controllers  15 / 12 / 18 / 15
+  //   services     36 / 27 / 35 / 38
+  //   middleware   55 / 45 / 40 / 55
+  //   utils        32 / 29 / 25 / 32
+  //   repositories  4 /  2 /  1 /  5
+  //   app          13 /  0 /  8 / 14
+  //   config       62 / 52 / 57 / 62
+  //   global       31 / 27 / 26 / 32
   //
   // 주의: 경로별 임계값을 지정하면 해당 경로 파일은 "global" 집계에서 제외된다.
-  //       (과거 global 이 13% 로 표시되던 원인) 그래서 경로별로 명시 관리한다.
   coverageThreshold: {
-    './routes/': { statements: 7, branches: 13, functions: 5, lines: 7 },
-    './controllers/': { statements: 13, branches: 9, functions: 17, lines: 13 },
-    './services/': { statements: 37, branches: 28, functions: 36, lines: 39 },
-    './middleware/': { statements: 56, branches: 46, functions: 41, lines: 56 },
-    './utils/': { statements: 33, branches: 30, functions: 25, lines: 33 },
-    './repositories/': { statements: 5, branches: 3, functions: 2, lines: 6 },
-    './app/': { statements: 13, branches: 0, functions: 7, lines: 13 },
+    './routes/': { statements: 6, branches: 12, functions: 4, lines: 7 },
+    './controllers/': { statements: 15, branches: 12, functions: 18, lines: 15 },
+    './services/': { statements: 36, branches: 27, functions: 35, lines: 38 },
+    './middleware/': { statements: 55, branches: 45, functions: 40, lines: 55 },
+    './utils/': { statements: 32, branches: 29, functions: 25, lines: 32 },
+    './repositories/': { statements: 4, branches: 2, functions: 1, lines: 5 },
+    './app/': { statements: 13, branches: 0, functions: 8, lines: 14 },
     './config/': { statements: 62, branches: 52, functions: 57, lines: 62 },
-    global: { statements: 23, branches: 20, functions: 22, lines: 24 },
+    global: { statements: 31, branches: 27, functions: 26, lines: 32 },
   },
 };

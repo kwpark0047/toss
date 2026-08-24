@@ -4,7 +4,7 @@ import { getSocket, waitingAPI } from '../../api';
 import { useTTS } from '../../hooks/useTTS';import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { BarChart2, Bell, Clock, ListOrdered, Mic, Mic2, PhoneCall, RefreshCw, Send, TrendingUp, UserCheck, Volume2, VolumeX, XCircle } from 'lucide-react';
 
 const STATUS_META = {

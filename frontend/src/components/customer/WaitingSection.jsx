@@ -5,7 +5,7 @@ import { waitingAPI } from '../../api';
 import { ordersAPI } from '../../api';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 const WaitingSection = ({ store, onClose }) => {
     const { t } = useTranslation();

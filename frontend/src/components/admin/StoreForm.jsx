@@ -4,7 +4,7 @@ import { storesAPI, planRequestsAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStoreOperatingHours } from '../../hooks/useStoreOperatingHours';
 import { motion, AnimatePresence } from 'framer-motion';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { ArrowLeft, CheckCircle, ChefHat, Clock, Layout, Phone, Save, Smartphone, Type, XCircle } from 'lucide-react';
 
 const defaultTheme = {

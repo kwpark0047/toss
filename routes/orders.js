@@ -3,9 +3,20 @@ const router = express.Router();
 const orderController = require('../controllers/orderController');
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission, checkStorePermissionForObject } = require('../middleware/storeAuth');
-const validate = require('../middleware/validate');
+const { validateBody, validateQuery, validateParams } = require('../middleware/validate');
 const idempotency = require('../middleware/idempotency');
-const { order: schema } = require('../utils/validationSchemas');
+const { 
+  createOrderSchema,
+  updateOrderStatusSchema,
+  cancelOrderSchema,
+  returnExchangeSchema,
+  createPaymentSchema,
+  confirmPaymentSchema,
+  cancelPaymentSchema,
+  orderSearchQuerySchema,
+  orderIdParamSchema,
+  orderNumberParamSchema,
+} = require('../src/validation/schemas');
 const {
   verifyOrderCapability,
   verifyCustomerHistoryCapability,
@@ -73,14 +84,7 @@ const requireCustomerHistoryCapability = (req, res, next) => {
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [store_id, items, total_amount]
- *             properties:
- *               store_id: { type: integer }
- *               items: { type: array, items: { type: object, properties: { product_id: { type: integer }, quantity: { type: integer }, options: { type: object } } } }
- *               total_amount: { type: integer }
- *               table_number: { type: integer }
- *               coupon_code: { type: string }
+ *             $ref: '#/components/schemas/CreateOrderRequest'
  *     responses:
  *       201:
  *         description: 주문 생성 완료
@@ -92,7 +96,7 @@ const requireCustomerHistoryCapability = (req, res, next) => {
 router.post(
   '/',
   idempotency({ namespace: 'orders:create' }),
-  validate(schema.create),
+  validateBody(createOrderSchema),
   orderController.createOrder
 );
 
@@ -122,6 +126,7 @@ router.post(
 router.post(
   '/:orderId/customer-token',
   authMiddleware.optionalAuth,
+  validateParams(orderIdParamSchema),
   requireOrderCapability,
   orderController.registerCustomerToken
 );
@@ -171,6 +176,7 @@ router.get(
 router.get(
   '/store/:storeId/detailed-stats',
   authMiddleware,
+  validateParams({ params: orderSearchQuerySchema }), // storeId 파라미터용
   checkStorePermission('stats:read'),
   orderController.getDetailedStats
 );
@@ -195,6 +201,7 @@ router.get(
 router.get(
   '/store/:storeId/stats',
   authMiddleware,
+  validateParams({ params: orderSearchQuerySchema }),
   checkStorePermission('stats:read'),
   orderController.getStats
 );
@@ -228,6 +235,7 @@ router.get(
 router.get(
   '/store/:storeId',
   authMiddleware,
+  validateQuery(orderSearchQuerySchema),
   checkStorePermission('order:read'),
   orderController.getStoreOrders
 );
@@ -252,6 +260,7 @@ router.get(
 router.get(
   '/:id',
   authMiddleware.optionalAuth,
+  validateParams(orderIdParamSchema),
   requireOrderCapability,
   orderController.getOrderDetails
 );
@@ -274,15 +283,12 @@ router.get(
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [status]
- *             properties:
- *               status: { type: string, enum: [confirmed, preparing, ready, completed, cancelled] }
+ *             $ref: '#/components/schemas/UpdateOrderStatusRequest'
  *     responses:
  *       200:
  *         description: 상태 변경 완료
  */
-router.put('/:id/status', authMiddleware, checkOrderPermission, orderController.updateStatus);
+router.put('/:id/status', authMiddleware, validateParams(orderIdParamSchema), checkOrderPermission, validateBody(updateOrderStatusSchema), orderController.updateStatus);
 
 /**
  * @swagger
@@ -297,11 +303,42 @@ router.put('/:id/status', authMiddleware, checkOrderPermission, orderController.
  *         name: id
  *         required: true
  *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CancelOrderRequest'
  *     responses:
  *       200:
  *         description: 주문 취소 완료
  */
-router.post('/:id/cancel', authMiddleware, orderController.cancelOrder);
+router.post('/:id/cancel', authMiddleware, validateParams(orderIdParamSchema), validateBody(cancelOrderSchema), orderController.cancelOrder);
+
+/**
+ * @swagger
+ * /api/orders/{id}/return-exchange:
+ *   post:
+ *     tags: [Orders]
+ *     summary: 주문 반품/교환 신청
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ReturnExchangeRequest'
+ *     responses:
+ *       200:
+ *         description: 반품/교환 접수 완료
+ */
+router.post('/:id/return-exchange', authMiddleware, validateParams(orderIdParamSchema), checkOrderPermission, validateBody(returnExchangeSchema), orderController.returnExchange);
 
 /**
  * @swagger
@@ -321,7 +358,7 @@ router.post('/:id/cancel', authMiddleware, orderController.cancelOrder);
  *       200:
  *         description: 주문 삭제 완료
  */
-router.delete('/:id', authMiddleware, checkOrderPermission, orderController.deleteOrder);
+router.delete('/:id', authMiddleware, validateParams(orderIdParamSchema), checkOrderPermission, orderController.deleteOrder);
 
 /**
  * @swagger
@@ -350,6 +387,45 @@ router.delete('/:id', authMiddleware, checkOrderPermission, orderController.dele
  *                 activeOrdersAhead: { type: integer }
  *                 message: { type: string }
  */
-router.get('/store/:storeId/eta', orderController.getEta);
+router.get('/store/:storeId/eta', validateParams({ params: orderSearchQuerySchema }), orderController.getEta);
+
+/**
+ * @swagger
+ * /api/orders/search:
+ *   get:
+ *     tags: [Orders]
+ *     summary: 주문 검색 (관리자용)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: status
+ *         schema: { type: string }
+ *       - in: query
+ *         name: paymentStatus
+ *         schema: { type: string }
+ *       - in: query
+ *         name: paymentMethod
+ *         schema: { type: string }
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *     responses:
+ *       200:
+ *         description: 주문 검색 결과
+ */
+router.get('/search', authMiddleware, validateQuery(orderSearchQuerySchema), orderController.searchOrders);
 
 module.exports = router;

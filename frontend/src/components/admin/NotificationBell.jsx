@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useNotifications } from '../../contexts/NotificationContext';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { Bell, Check, ChevronDown, RefreshCw, Trash2, Volume2, VolumeX, Wifi, WifiOff, X } from 'lucide-react';
 
 const TYPE_META = {

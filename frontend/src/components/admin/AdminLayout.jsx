@@ -11,7 +11,7 @@ import ThemeSwitcher from './ThemeSwitcher';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 import AdminChatManager from './AdminChatManager';
 import { ordersAPI } from '../../api';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 
 function AdminLayoutInner({ children, storeId, user, handleLogout, location, filteredNavItems }) {
   const { themeId } = useAdminTheme();

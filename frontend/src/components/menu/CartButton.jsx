@@ -1,6 +1,6 @@
 import { formatWon } from '../../utils/format';
 import { motion, AnimatePresence } from 'framer-motion';
-import Icon from '../../ui/Icon';
+import Icon from '../ui/Icon';
 import Button from '../common/Button';
 import { vibrateClick } from '../../utils/notificationSound';
 

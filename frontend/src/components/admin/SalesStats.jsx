@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router';
 import { ordersAPI, storesAPI } from '../../api';
 import { formatPrice } from '../../utils/format';
 import Skeleton from '../common/Skeleton';
-import Icon from '../ui/Icon';
+import Icon from '../../components/ui/Icon';
 import { RefreshCw } from 'lucide-react';
 
 const SalesStats = () => {
