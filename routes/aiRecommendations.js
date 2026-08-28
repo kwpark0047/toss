@@ -93,4 +93,22 @@ router.get(
   aiRecommendationsController.getPersonalizationAnalytics
 );
 
+// 실시간 개인화 추천 생성
+router.post(
+  '/store/:storeId/recommendations/personalized',
+  authMiddleware,
+  checkStorePermission('products:write'),
+  createAIRateLimiter('generatePersonalized'),
+  aiRecommendationsController.generatePersonalizedRecommendations
+);
+
+// 고객별 실시간 추천 조회
+router.get(
+  '/store/:storeId/customers/:customerPhone/recommendations',
+  authMiddleware,
+  checkStorePermission('customers:read'),
+  createAIRateLimiter('getCustomerRecs'),
+  aiRecommendationsController.getCustomerRecommendations
+);
+
 module.exports = router;

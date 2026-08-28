@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
 const aiService = require('../services/aiService');
+const recommendationEngine = require('../services/RecommendationEngine');
 const logger = require('../utils/logger');
 
 async function generateProductRecommendations(storeId) {
@@ -126,8 +127,23 @@ const aiRecommendationsController = {
   getRecommendations: async (req, res, next) => {
     try {
       const { storeId } = req.params;
-      const { segmentId, recommendationType, limit = 10 } = req.query;
+      const { segmentId, recommendationType, limit = 10, customerPhone } = req.query;
 
+      // 개인화 추천이 요청된 경우 (customerPhone이 있는 경우)
+      if (customerPhone) {
+        const recommendations = await recommendationEngine.getRecommendationsForCustomer(
+          Number(storeId),
+          customerPhone,
+          {
+            segmentId: segmentId ? Number(segmentId) : null,
+            recommendationType,
+            limit: Number(limit),
+          }
+        );
+        return res.success(recommendations, '개인화 추천 조회 완료');
+      }
+
+      // 기존 방식: 저장된 추천 조회
       const where = { store_id: Number(storeId) };
       if (segmentId) where.segment_id = Number(segmentId);
       if (recommendationType) where.recommendation_type = recommendationType;
@@ -391,6 +407,59 @@ const aiRecommendationsController = {
       });
 
       res.success(analytics, '개인화 분석 조회 완료');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  // 실시간 개인화 추천 생성 및 조회
+  generatePersonalizedRecommendations: async (req, res, next) => {
+    try {
+      const { storeId } = req.params;
+      const {
+        customerPhone,
+        segmentId,
+        recommendationType = 'PERSONALIZED',
+        limit = 10,
+      } = req.body;
+
+      if (!customerPhone) {
+        throw new AppError('customerPhone은 필수입니다.', 400);
+      }
+
+      const recommendations = await recommendationEngine.generateAndStoreRecommendations(
+        Number(storeId),
+        {
+          customerPhone,
+          segmentId: segmentId ? Number(segmentId) : null,
+          recommendationType,
+          limit: Number(limit),
+        }
+      );
+
+      res.success(recommendations, '개인화 추천 생성 완료');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  // 고객별 실시간 추천 조회
+  getCustomerRecommendations: async (req, res, next) => {
+    try {
+      const { storeId, customerPhone } = req.params;
+      const { segmentId, recommendationType, limit = 10 } = req.query;
+
+      const recommendations = await recommendationEngine.getRecommendationsForCustomer(
+        Number(storeId),
+        customerPhone,
+        {
+          segmentId: segmentId ? Number(segmentId) : null,
+          recommendationType,
+          limit: Number(limit),
+        }
+      );
+
+      res.success(recommendations, '고객 맞춤 추천 조회 완료');
     } catch (err) {
       next(err);
     }
