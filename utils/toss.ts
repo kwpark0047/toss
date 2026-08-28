@@ -3,7 +3,7 @@ import { get } from './circuitBreaker.js';
 import logger from '../utils/logger.js';
 
 const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY;
-import logger from '../utils/logger.js';
+
 const tossCircuit = get('toss-api', {
   failureThreshold: 5,
   cooldownMs: 30_000,
@@ -15,13 +15,13 @@ const maskPaymentKey = (paymentKey: string): string => {
   return `****${paymentKey.slice(-8)}`;
 };
 
-if (!process.env.TOSS_SECRET_KEY) {
+if (!TOSS_SECRET_KEY) {
   logger.warn('[Warning] TOSS_SECRET_KEY가 설정되지 않았습니다. 결제 기능이 제한될 수 있습니다.');
 }
 
 // mock_ 키는 명시적 테스트 모드(test + ALLOW_MOCK_PAYMENTS)에서만 허용.
 // 프로덕션에서 위조 키가 실제 API로 안 가고 통과되는 걸 막는다.
-const isMockAllowed = (paymentKey: string) =>
+const isMockAllowed = (paymentKey: string): boolean =>
   process.env.NODE_ENV === 'test' &&
   process.env.ALLOW_MOCK_PAYMENTS === 'true' &&
   typeof paymentKey === 'string' &&
@@ -32,10 +32,54 @@ const isMockAllowed = (paymentKey: string) =>
  */
 const getAuthHeader = () => {
   return {
-    // 시크릿 키 뒤에 콜론(:)을 붙여 Base64로 인코딩해야 함
-    Authorization: `Basic ${Buffer.from(process.env.TOSS_SECRET_KEY + ':').toString('base64')}`,
+    Authorization: `Basic ${Buffer.from(TOSS_SECRET_KEY + ':').toString('base64')}`,
     'Content-Type': 'application/json',
   };
+};
+
+/**
+ * 에러 로깅 시 민감정보 제거
+ */
+const sanitizeError = (error: any): any => {
+  if (!error) return error;
+  const sanitized = { ...error };
+  if (sanitized.response?.data) {
+    sanitized.response.data = sanitizeTossResponse(sanitized.response.data);
+  }
+  if (sanitized.config?.data) {
+    try {
+      const parsed = JSON.parse(sanitized.config.data);
+      sanitized.config.data = sanitizeTossResponse(parsed);
+    } catch {
+      // 데이터가 JSON이 아닌 경우 그대로 유지
+    }
+  }
+  return sanitized;
+};
+
+/**
+ * 토스페이먼츠 응답에서 민감정보 제거
+ */
+const sanitizeTossResponse = (data: any): any => {
+  if (!data || typeof data !== 'object') return data;
+  const cleaned = JSON.parse(JSON.stringify(data));
+  const SENSITIVE_FIELDS = [
+    'card', 'secret', 'customerKey', 'customer_key', 'cardPassword', 'credential',
+    'billingKey', 'customerEmail', 'customerName', 'phoneNumber', 'email', 'name',
+    'cardNumber', 'password', 'cvc', 'expiry', 'authNumber',
+  ];
+  const removeSensitive = (obj: any): void => {
+    if (!obj || typeof obj !== 'object') return;
+    for (const key of Object.keys(obj)) {
+      if (SENSITIVE_FIELDS.some((f) => key.toLowerCase().includes(f.toLowerCase()))) {
+        delete obj[key];
+      } else if (typeof obj[key] === 'object') {
+        removeSensitive(obj[key]);
+      }
+    }
+  };
+  removeSensitive(cleaned);
+  return cleaned;
 };
 
 const TossAPI = {
@@ -44,7 +88,6 @@ const TossAPI = {
    * 결제창 호출 후 발급받은 paymentKey를 이용해 실제 승인을 요청합니다.
    */
   confirmPayment: async (paymentKey: string, orderId: string, amount: number) => {
-    // [테스트 시뮬레이션 모드] mock_ 키는 명시적 테스트 환경에서만 성공 응답 반환
     if (isMockAllowed(paymentKey)) {
       logger.info('[Mock] 결제 승인 시뮬레이션', { paymentKey: maskPaymentKey(paymentKey) });
       return {
@@ -69,7 +112,7 @@ const TossAPI = {
         );
         return response.data;
       } catch (error: any) {
-        logger.error(error);
+        logger.error(sanitizeError(error));
         throw Object.assign(
           new Error(error.response?.data?.message || '결제 승인 중 오류가 발생했습니다.'),
           {
@@ -94,7 +137,7 @@ const TossAPI = {
       );
       return response.data;
     } catch (error: any) {
-      logger.error(error);
+      logger.error(sanitizeError(error));
       throw Object.assign(
         new Error(error.response?.data?.message || '브랜드페이 승인 중 오류가 발생했습니다.'),
         {
@@ -131,7 +174,6 @@ const TossAPI = {
    * 승인된 결제를 전체 또는 부분 취소합니다.
    */
   cancelPayment: async (paymentKey: string, cancelReason: string, cancelAmount: number, idempotencyKey?: string) => {
-    // [테스트 시뮬레이션 모드]
     if (isMockAllowed(paymentKey)) {
       logger.info('[Mock] 결제 취소 시뮬레이션', { paymentKey: maskPaymentKey(paymentKey) });
       return {
@@ -154,6 +196,7 @@ const TossAPI = {
         );
         return response.data;
       } catch (error: any) {
+        logger.error(sanitizeError(error));
         throw Object.assign(
           new Error(error.response?.data?.message || '결제 취소 중 오류가 발생했습니다.'),
           {
@@ -224,7 +267,7 @@ const TossAPI = {
         );
         return response.data;
       } catch (error: any) {
-        logger.error(error);
+        logger.error(sanitizeError(error));
         throw Object.assign(
           new Error(error.response?.data?.message || '빌링키 발급 중 오류가 발생했습니다.'),
           {
@@ -280,7 +323,7 @@ const TossAPI = {
         );
         return response.data;
       } catch (error: any) {
-        logger.error(error);
+        logger.error(sanitizeError(error));
         throw Object.assign(
           new Error(error.response?.data?.message || '빌링키 결제 중 오류가 발생했습니다.'),
           {
@@ -297,7 +340,6 @@ const TossAPI = {
    * 토스 정기결제 API로 주기적 결제 예약
    */
   createSubscription: async (billingKey: string, customerKey: string, plan: any) => {
-    // plan: { interval: 'month'|'year', amount, orderName, executeTime?: '00:00', startDate?: '2024-01-01' }
     try {
       const response = await axios.post(
         'https://api.tosspayments.com/v1/subscriptions',
@@ -316,7 +358,7 @@ const TossAPI = {
       );
       return response.data;
     } catch (error: any) {
-      logger.error(error);
+      logger.error(sanitizeError(error));
       throw Object.assign(new Error(error.response?.data?.message || '정기결제 예약 생성 실패'), {
         code: error.response?.data?.code || 'SUBSCRIPTION_CREATE_ERROR',
         statusCode: error.response?.status || 500,
@@ -354,6 +396,7 @@ const TossAPI = {
       );
       return response.data;
     } catch (error: any) {
+      logger.error(sanitizeError(error));
       throw Object.assign(new Error(error.response?.data?.message || '정기결제 취소 실패'), {
         code: error.response?.data?.code || 'SUBSCRIPTION_CANCEL_ERROR',
         statusCode: error.response?.status || 500,
@@ -373,6 +416,7 @@ const TossAPI = {
       );
       return response.data;
     } catch (error: any) {
+      logger.error(sanitizeError(error));
       throw Object.assign(new Error(error.response?.data?.message || '정기결제 일시정지 실패'), {
         code: error.response?.data?.code || 'SUBSCRIPTION_PAUSE_ERROR',
         statusCode: error.response?.status || 500,
@@ -392,6 +436,7 @@ const TossAPI = {
       );
       return response.data;
     } catch (error: any) {
+      logger.error(sanitizeError(error));
       throw Object.assign(new Error(error.response?.data?.message || '정기결제 재개 실패'), {
         code: error.response?.data?.code || 'SUBSCRIPTION_RESUME_ERROR',
         statusCode: error.response?.status || 500,
@@ -410,75 +455,13 @@ const TossAPI = {
       );
       return response.data;
     } catch (error: any) {
+      logger.error(sanitizeError(error));
       throw Object.assign(new Error(error.response?.data?.message || '정기결제 내역 조회 실패'), {
         code: error.response?.data?.code || 'SUBSCRIPTION_PAYMENTS_ERROR',
         statusCode: error.response?.status || 500,
       });
     }
   },
-};
-
-const maskPaymentKey = (paymentKey: string): string => {
-  if (typeof paymentKey !== 'string' || paymentKey.length <= 8) return '****';
-  return `****${paymentKey.slice(-8)}`;
-};
-
-const getAuthHeader = () => {
-  return {
-    // 시크릿 키 뒤에 콜론(:)을 붙여 Base64로 인코딩해야 함
-    Authorization: `Basic ${Buffer.from(process.env.TOSS_SECRET_KEY + ':').toString('base64')}`,
-    'Content-Type': 'application/json',
-  };
-};
-
-const tossCircuit = cb.get('toss-api', {
-  failureThreshold: 5,
-  cooldownMs: 30_000,
-  timeoutMs: 10_000,
-});
-
-const isMockAllowed = (paymentKey: string) =>
-  process.env.NODE_ENV === 'test' &&
-  process.env.ALLOW_MOCK_PAYMENTS === 'true' &&
-  typeof paymentKey === 'string' &&
-  paymentKey.startsWith('mock_');
-
-const maskPaymentKey = (paymentKey: string): string => {
-  if (typeof paymentKey !== 'string' || paymentKey.length <= 8) return '****';
-  return `****${paymentKey.slice(-8)}`;
-};
-
-const getAuthHeader = () => {
-  return {
-    // 시크릿 키 뒤에 콜론(:)을 붙여 Base64로 인코딩해야 함
-    Authorization: `Basic ${Buffer.from(process.env.TOSS_SECRET_KEY + ':').toString('base64')}`,
-    'Content-Type': 'application/json',
-  };
-};
-
-const tossCircuit = get('toss-api', {
-  failureThreshold: 5,
-  cooldownMs: 30_000,
-  timeoutMs: 10_000,
-});
-
-const isMockAllowed = (paymentKey: string) =>
-  process.env.NODE_ENV === 'test' &&
-  process.env.ALLOW_MOCK_PAYMENTS === 'true' &&
-  typeof paymentKey === 'string' &&
-  paymentKey.startsWith('mock_');
-
-const maskPaymentKey = (paymentKey: string): string => {
-  if (typeof paymentKey !== 'string' || paymentKey.length <= 8) return '****';
-  return `****${paymentKey.slice(-8)}`;
-};
-
-const getAuthHeader = () => {
-  return {
-    // 시크릿 키 뒤에 콜론(:)을 붙여 Base64로 인코딩해야 함
-    Authorization: `Basic ${Buffer.from(process.env.TOSS_SECRET_KEY + ':').toString('base64')}`,
-    'Content-Type': 'application/json',
-  };
 };
 
 export default TossAPI;
