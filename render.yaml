@@ -35,6 +35,12 @@ services:
         sync: false
       - key: TOSS_CLIENT_KEY
         sync: false
+      - key: TOSS_WEBHOOK_SECRET
+        sync: false
+      - key: TOSS_WEBHOOK_SIGNING_SECRET
+        sync: false
+      - key: TOSS_WEBHOOK_IPS
+        sync: false
       # ── 푸시 (Firebase) ──
       - key: FIREBASE_API_KEY
         sync: false

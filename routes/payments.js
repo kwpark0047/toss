@@ -339,11 +339,16 @@ router.post(
  *   post:
  *     tags: [Payments]
  *     summary: 토스페이먼츠 웹훅 수신
- *     description: 계층적 검증(공유 시크릿/IP 화이트리스트/레거시 Basic) 적용.
- *       결제 웹훅은 인증 헤더를 전송하지 않으므로 TOSS_WEBHOOK_SECRET 설정 권장.
+ *     description: 계층적 검증(서명/공유 시크릿/IP 화이트리스트/레거시 Basic) 적용.
+ *       지급대행/매장변경 이벤트는 HMAC-SHA256 서명 검증(tosspayments-webhook-signature).
+ *       결제 웹훅은 공유 시크릿/IP 화이트리스트/레거시 Basic으로 검증.
  *     parameters:
  *       - in: header
  *         name: x-webhook-secret
+ *         required: false
+ *         schema: { type: string }
+ *       - in: header
+ *         name: tosspayments-webhook-signature
  *         required: false
  *         schema: { type: string }
  *       - in: query
@@ -356,7 +361,12 @@ router.post(
  *       401:
  *         description: 웹훅 검증 실패
  */
-router.post('/webhooks/toss', tossWebhookAuth, paymentController.handleTossWebhook);
+router.post(
+  '/webhooks/toss',
+  express.raw({ type: 'application/json' }),
+  tossWebhookAuth,
+  paymentController.handleTossWebhook
+);
 
 /**
  * @swagger

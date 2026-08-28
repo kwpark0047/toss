@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const logger = require('../utils/logger');
 
 // ═════════════════════════════════════════════════════════════════
-// [보안] 토스페이먼츠 웹훅 검증 미들웨어 (계층적 검증)
+// [보안] 토스페이먼츠 웹훅 검증 미들웨어 (계층적 검증 + 서명 검증)
 // ═════════════════════════════════════════════════════════════════
 // 결제 웹훅(PAYMENT_STATUS_CHANGED, DEPOSIT_CALLBACK 등)은 인증 헤더·서명을
 // 전송하지 않는다(tosspayments-webhook-signature는 지급대행 payout.changed/
@@ -10,6 +10,7 @@ const logger = require('../utils/logger');
 //   ① 공유 시크릿   TOSS_WEBHOOK_SECRET  — x-webhook-secret 헤더 또는 ?secret=
 //   ② IP 화이트리스트 TOSS_WEBHOOK_IPS    — 쉼표 구분, IPv4 CIDR 지원
 //   ③ 레거시 호환   Basic base64(TOSS_SECRET_KEY:)
+//   ④ 서명 검증     tosspayments-webhook-signature 헤더 — HMAC-SHA256 (지급대행/매장변경 이벤트용)
 // 어느 계층도 설정되지 않으면 통과시키되, 컨트롤러의 서버측 재검증(결제 조회 API)이
 // 최종 방어선으로 작동한다. 운영 환경에서는 ① 또는 ② 설정을 권장한다.
 // 재전송 폭주 대비 /api 전역 rate limiter가 함께 적용된다.
@@ -27,6 +28,45 @@ const timingSafeEqualStr = (a, b) => {
   const bufB = Buffer.from(String(b));
   if (bufA.length !== bufB.length) return false;
   return crypto.timingSafeEqual(bufA, bufB);
+};
+
+/**
+ * Toss 웹훅 서명 검증 (HMAC-SHA256)
+ * tosspayments-webhook-signature 헤더: v1=<signature>,ts=<timestamp>
+ * 서명 = HMAC-SHA256(TOSS_WEBHOOK_SIGNING_SECRET, `${timestamp}.${rawBody}`)
+ */
+const verifyTossWebhookSignature = (req) => {
+  const signingSecret = process.env.TOSS_WEBHOOK_SIGNING_SECRET;
+  if (!signingSecret) return true; // 서명 검증 미설정 시 통과
+
+  const signatureHeader = req.get('tosspayments-webhook-signature');
+  if (!signatureHeader) return false;
+
+  // v1=<signature>,ts=<timestamp> 파싱
+  const parts = signatureHeader.split(',');
+  let signature = null;
+  let timestamp = null;
+  for (const part of parts) {
+    const [key, value] = part.split('=');
+    if (key === 'v1') signature = value;
+    if (key === 'ts') timestamp = value;
+  }
+  if (!signature || !timestamp) return false;
+
+  // 타임스탬프 검증 (5분 이내)
+  const now = Math.floor(Date.now() / 1000);
+  const ts = parseInt(timestamp, 10);
+  if (isNaN(ts) || Math.abs(now - ts) > 300) return false;
+
+  // Raw body 필요 (express.raw() 미들웨어로 저장되어야 함)
+  const rawBody = req.rawBody || JSON.stringify(req.body);
+  const expectedPayload = `${timestamp}.${rawBody}`;
+  const expectedSignature = crypto
+    .createHmac('sha256', signingSecret)
+    .update(expectedPayload)
+    .digest('hex');
+
+  return timingSafeEqualStr(signature, expectedSignature);
 };
 
 const ipv4ToInt = (ip) => {
@@ -60,6 +100,9 @@ const ipMatchesEntry = (ip, entry) => {
 const tossWebhookAuth = (req, res, next) => {
   const secret = process.env.TOSS_WEBHOOK_SECRET;
   const ipsRaw = process.env.TOSS_WEBHOOK_IPS;
+
+  // ④ 서명 검증 (최우선 - 지급대행/매장변경 이벤트용)
+  if (verifyTossWebhookSignature(req)) return next();
 
   // 검증 계층 미설정: 서버측 재검증에 의존하고 경고 1회 출력
   if (!secret && !ipsRaw) {
