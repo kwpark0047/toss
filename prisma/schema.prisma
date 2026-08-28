@@ -481,17 +481,19 @@ model staff_account_requests {
 }
 
 model store_accounts {
-  id              Int       @id @default(autoincrement())
-  store_id        Int       @unique(map: "uq_store_accounts_store")
+  id              Int                      @id @default(autoincrement())
+  store_id        Int                      @unique(map: "uq_store_accounts_store")
   bank_code       String
   bank_name       String
   account_number  String
   account_holder  String
   toss_account_id String?
-  is_active       Boolean?  @default(true)
-  created_at      DateTime? @default(now())
-  updated_at      DateTime? @default(now())
-  stores          stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  is_active       Boolean?                 @default(true)
+  created_at      DateTime?                @default(now())
+  updated_at      DateTime?                @default(now())
+  stores          stores                   @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  settlement_configs store_settlement_config[]
+
   @@schema("public")
 }
 
@@ -537,103 +539,180 @@ model stores {
   is_active                Boolean?                 @default(true)
   can_send_sms             Boolean                  @default(false)
   created_at               DateTime?                @default(now())
-  business_type            String?
-  open_time                String?
-  close_time               String?
-  business_hours           String?                  // 요일별 영업시간 JSON
   latitude                 Float?
   longitude                Float?
   plan                     String?                  @default("free")
-  // ── 구독/멤버십 ────────────────────────────────────
-  subscription_id          String?                  @unique(map: "uq_stores_subscription_id")
-  billing_cycle            String?                  @default("MONTHLY")     // MONTHLY|YEARLY
-  trial_ends_at            DateTime?
-  plan_expires_at          DateTime?
-  auto_renew               Boolean?                 @default(true)
-  payment_method_id        String?                  // Toss brandpay billingKey
-  last_payment_at          DateTime?
-  next_payment_at          DateTime?
-  // ── 사업자 정보 ──────────────────────────────────
-  business_number          String?                  // 사업자등록번호 (000-00-00000)
-  business_name            String?                  // 법인명/상호명
-  ceo_name                 String?                  // 대표자명
-  tax_invoice_email        String?                  // 세금계산서 수신 이메일
-  // ── 법적 의무 정보 (전자상거래법·통신판매업) ──────────
-  mail_order_number        String?                  // 통신판매업신고번호
-  business_address         String?                  // 사업장 소재지 (도로명)
-  customer_service_phone   String?                  // 고객센터 전화번호
-  customer_service_email   String?                  // 고객센터 이메일
-  pg_company               String?                  @default("토스페이먼츠") // PG사명
-  pg_business_number       String?                  @default("214-88-00591")  // PG사 사업자번호
-  // ── 고객 동의 문서 (자유 텍스트 또는 마크다운) ─────────
-  terms_of_service         String?                  // 이용약관
-  privacy_policy           String?                  // 개인정보처리방침
-  refund_policy            String?                  // 환불·취소 정책
-  // ── 정산 설정 ────────────────────────────────────
-  settlement_cycle         String?                  @default("MONTHLY") // DAILY|WEEKLY|MONTHLY|MANUAL
-  commission_rate          Float?                   @default(0.03)      // 플랫폼 수수료율 (기본 3%)
-  vat_rate                 Float?                   @default(0.10)      // 부가세율 (법정 10%)
-  // ── 활성 결제수단 (JSON 배열) ─────────────────────
-  enabled_payment_methods  String?                  @default("[\"cash\",\"store_card\",\"transfer\"]")
-  // ── 친환경 뱃지 ────────────────────────────────────
-  eco_badge_level          String?                  @default("GREEN_BEGINNER") // GREEN_BEGINNER|ECO_FRIENDLY|ECO_PRO|ECO_MASTER
-  eco_badge_title          String?                  @default("그린 파트너 🌿")
-  eco_carbon_saved_kg      Float?                   @default(0)
-  eco_orders_count         Int?                     @default(0)
-  @@index([is_active], map: "idx_stores_is_active")
-  @@index([business_type], map: "idx_stores_business_type")
-  campaign_settings      campaign_settings[]
-  categories             categories[]
-  chat_rooms             chat_rooms[]
-  coupons                coupons[]
-  ledger                 ledger[]
-  orders                 orders[]
-  payments               payments[]
-  option_templates       option_templates[]
-  plan_requests          plan_requests[]
-  point_transactions     point_transactions[]
-  products               products[]
-  reservations           reservations[]
-  notifications          notifications[]
-  notification_templates notification_templates[]
-  reviews                reviews[]
-  settlements            settlements[]
-  staff                  staff[]
-  staff_attendance       staff_attendance[]
-  staff_account_requests staff_account_requests[]
-  store_accounts         store_accounts?
-  store_customers        store_customers[]
-  store_point_settings   store_point_settings?
-  store_receipt_settings store_receipt_settings?
-  store_tier_settings    store_tier_settings[]
-  users                  users                    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  tables                 tables[]
-  waiting_list           waiting_list[]
-  community_posts        community_posts[]
+  // 핵심 필드만 유지 — 도메인별 정보는 별도 모델로 분리
+  // 구독/멤버십 → store_subscriptions
+  // 사업자/법적 → store_business_info
+  // 법적 문서 → store_legal_documents
+  // 정산 설정 → store_settlement_config
+  // 친환경 뱃지 → store_eco_badge
+  // 영업시간 → store_operating_hours
+  campaign_settings             campaign_settings[]
+  categories                    categories[]
+  chat_rooms                    chat_rooms[]
+  coupons                       coupons[]
+  ledger                        ledger[]
+  orders                        orders[]
+  payments                      payments[]
+  option_templates              option_templates[]
+  plan_requests                 plan_requests[]
+  point_transactions            point_transactions[]
+  products                      products[]
+  reservations                  reservations[]
+  notifications                 notifications[]
+  notification_templates        notification_templates[]
+  reviews                       reviews[]
+  settlements                   settlements[]
+  staff                         staff[]
+  staff_attendance              staff_attendance[]
+  staff_account_requests        staff_account_requests[]
+  store_accounts                store_accounts?
+  store_customers               store_customers[]
+  store_point_settings          store_point_settings?
+  store_receipt_settings        store_receipt_settings?
+  store_tier_settings           store_tier_settings[]
+  store_subscriptions           store_subscriptions?
+  store_business_info           store_business_info?
+  store_legal_documents         store_legal_documents?
+  store_settlement_config       store_settlement_config?
+  store_eco_badge               store_eco_badge?
+  store_operating_hours         store_operating_hours?
+  users                         users                    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tables                        tables[]
+  waiting_list                  waiting_list[]
+  community_posts               community_posts[]
   store_partnerships_as_requester store_partnerships[] @relation("partnerships_requester")
   store_partnerships_as_target    store_partnerships[] @relation("partnerships_target")
-  api_keys                api_keys[]
-  webhook_endpoints       webhook_endpoints[]
-  print_jobs              print_jobs[]
-  store_favorites         store_favorites[]
-  staff_schedules         staff_schedules[]
-  food_trucks             food_trucks?
-  competitor_prices       competitor_prices[]
-  pricing_optimization_jobs pricing_optimization_jobs[]
-  demand_forecasts        demand_forecasts[]
-  dynamic_pricing_rules   dynamic_pricing_rules[]
-  dynamic_price_logs      dynamic_price_logs[]
-  customer_segments       customer_segments[]
-  customer_personalizations customer_personalizations[]
-  ai_recommendations      ai_recommendations[]
-  personalization_analytics personalization_analytics[]
-  grant_templates         grant_templates[]
-  grant_change_logs       grant_change_logs[]
-  point_grant_history     point_grant_history[]
-  coupon_issue_history    coupon_issue_history[]
-  subscription            Subscription?
+  api_keys                       api_keys[]
+  webhook_endpoints              webhook_endpoints[]
+  print_jobs                     print_jobs[]
+  store_favorites                store_favorites[]
+  staff_schedules                staff_schedules[]
+  food_trucks                    food_trucks?
+  competitor_prices              competitor_prices[]
+  pricing_optimization_jobs      pricing_optimization_jobs[]
+  demand_forecasts               demand_forecasts[]
+  dynamic_pricing_rules          dynamic_pricing_rules[]
+  dynamic_price_logs             dynamic_price_logs[]
+  customer_segments              customer_segments[]
+  customer_personalizations      customer_personalizations[]
+  ai_recommendations             ai_recommendations[]
+  personalization_analytics      personalization_analytics[]
+  grant_templates                grant_templates[]
+  grant_change_logs              grant_change_logs[]
+  point_grant_history            point_grant_history[]
+  coupon_issue_history           coupon_issue_history[]
+  subscription                   Subscription?
 
+  @@index([is_active], map: "idx_stores_is_active")
   @@index([user_id], map: "idx_stores_user_id")
+  @@schema("public")
+}
+
+model store_subscriptions {
+  id                Int       @id @default(autoincrement())
+  store_id          Int       @unique(map: "uq_store_subscriptions_store")
+  subscription_id   String?   @unique(map: "uq_store_subscriptions_subscription_id")
+  plan              String?   @default("free")
+  billing_cycle     String?   @default("MONTHLY")
+  trial_ends_at     DateTime?
+  plan_expires_at   DateTime?
+  auto_renew        Boolean?  @default(true)
+  payment_method_id String?
+  last_payment_at   DateTime?
+  next_payment_at   DateTime?
+  created_at        DateTime? @default(now())
+  updated_at        DateTime? @updatedAt
+  stores            stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id], map: "idx_store_subscriptions_store")
+  @@index([subscription_id], map: "idx_store_subscriptions_subscription_id")
+  @@schema("public")
+}
+
+model store_business_info {
+  id                      Int       @id @default(autoincrement())
+  store_id                Int       @unique(map: "uq_store_business_info_store")
+  business_type           String?
+  business_number         String?
+  business_name           String?
+  ceo_name                String?
+  tax_invoice_email       String?
+  mail_order_number       String?
+  business_address        String?
+  customer_service_phone  String?
+  customer_service_email  String?
+  pg_company              String?   @default("토스페이먼츠")
+  pg_business_number      String?   @default("214-88-00591")
+  created_at              DateTime? @default(now())
+  updated_at              DateTime? @updatedAt
+  stores                  stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id], map: "idx_store_business_info_store")
+  @@index([business_number], map: "idx_store_business_info_business_number")
+  @@schema("public")
+}
+
+model store_legal_documents {
+  id                 Int       @id @default(autoincrement())
+  store_id           Int       @unique(map: "uq_store_legal_documents_store")
+  terms_of_service   String?
+  privacy_policy     String?
+  refund_policy      String?
+  created_at         DateTime? @default(now())
+  updated_at         DateTime? @updatedAt
+  stores             stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id], map: "idx_store_legal_documents_store")
+  @@schema("public")
+}
+
+model store_settlement_config {
+  id                        Int       @id @default(autoincrement())
+  store_id                  Int       @unique(map: "uq_store_settlement_config_store")
+  settlement_cycle          String?   @default("MONTHLY")
+  commission_rate           Float?    @default(0.03)
+  vat_rate                  Float?    @default(0.10)
+  enabled_payment_methods   String?   @default("[\"cash\",\"store_card\",\"transfer\"]")
+  store_account_id          Int?
+  created_at                DateTime? @default(now())
+  updated_at                DateTime? @updatedAt
+  stores                    stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  store_accounts            store_accounts? @relation(fields: [store_account_id], references: [id], onDelete: SetNull)
+
+  @@index([store_id], map: "idx_store_settlement_config_store")
+  @@schema("public")
+}
+
+model store_eco_badge {
+  id                Int       @id @default(autoincrement())
+  store_id          Int       @unique(map: "uq_store_eco_badge_store")
+  level             String?   @default("GREEN_BEGINNER")
+  title             String?   @default("그린 파트너 🌿")
+  carbon_saved_kg   Float?    @default(0)
+  orders_count      Int?      @default(0)
+  created_at        DateTime? @default(now())
+  updated_at        DateTime? @updatedAt
+  stores            stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id], map: "idx_store_eco_badge_store")
+  @@schema("public")
+}
+
+model store_operating_hours {
+  id              Int       @id @default(autoincrement())
+  store_id        Int       @unique(map: "uq_store_operating_hours_store")
+  open_time       String?
+  close_time      String?
+  business_hours  String?
+  timezone        String?   @default("Asia/Seoul")
+  created_at      DateTime? @default(now())
+  updated_at      DateTime? @updatedAt
+  stores          stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id], map: "idx_store_operating_hours_store")
   @@schema("public")
 }
 
