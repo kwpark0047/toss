@@ -1,61 +1,14 @@
 const recommendationEngine = require('../../../services/RecommendationEngine');
-const prisma = require('../../../config/prisma');
 
 jest.mock('../../../config/prisma');
 jest.mock('../../../services/aiService');
 
+const prisma = require('../../../config/prisma');
+const aiService = require('../../../services/aiService');
+
 describe('RecommendationEngine', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  describe('generateAndStoreRecommendations', () => {
-    test('상품 데이터가 없으면 빈 배열 반환', async () => {
-      prisma.products.findMany.mockResolvedValue([]);
-
-      const result = await recommendationEngine.generateAndStoreRecommendations(1);
-      expect(result).toEqual([]);
-    });
-
-    test('기본 추천 생성 로직 동작', async () => {
-      // Mock 데이터 설정
-      const mockProducts = [
-        {
-          id: 1,
-          name: '아메리카노',
-          price: 4000,
-          category_id: 1,
-          category: { name: '음료' },
-          description: '',
-          image_url: null,
-        },
-        {
-          id: 2,
-          name: '카페라떼',
-          price: 4500,
-          category_id: 1,
-          category: { name: '음료' },
-          description: '',
-          image_url: null,
-        },
-      ];
-
-      prisma.products.findMany.mockResolvedValue(mockProducts);
-      prisma.orders.findMany.mockResolvedValue([]);
-      prisma.customer_segments.findMany.mockResolvedValue([]);
-      prisma.customer_personalizations.findFirst.mockResolvedValue(null);
-
-      // aiService.recommendMenus mock
-      const aiService = require('../../../services/aiService');
-      aiService.recommendMenus.mockResolvedValue([
-        { id: 1, reason: '인기 메뉴', confidence: 0.8, evidence: ['주문 빈도 높음'] },
-      ]);
-
-      prisma.ai_recommendations.create.mockResolvedValue({ id: 1 });
-
-      const result = await recommendationEngine.generateAndStoreRecommendations(1);
-      expect(result.length).toBeGreaterThanOrEqual(0);
-    });
   });
 
   describe('_analyzeCategoryPreference', () => {
@@ -74,26 +27,70 @@ describe('RecommendationEngine', () => {
         { id: 2, category_id: 2, category: { name: '디저트' } },
       ];
 
-      // private 메서드 테스트를 위해 내부 구현 확인
-      const engine = recommendationEngine;
-      // _analyzeCategoryPreference는 private이므로 generateAndStoreRecommendations를 통해 간접 테스트
-      expect(typeof engine._analyzeCategoryPreference).toBe('function');
+      const result = recommendationEngine._analyzeCategoryPreference(orders, products);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].category).toBe('음료');
+      expect(result[0].count).toBe(3);
+      expect(result[1].category).toBe('디저트');
+      expect(result[1].count).toBe(1);
+    });
+
+    test('주문이 없으면 빈 배열 반환', () => {
+      const result = recommendationEngine._analyzeCategoryPreference([], []);
+      expect(result).toEqual([]);
     });
   });
 
   describe('_getCurrentSeason', () => {
     test('현재 계절 반환', () => {
-      const engine = recommendationEngine;
-      const season = engine._getCurrentSeason();
+      const season = recommendationEngine._getCurrentSeason();
       expect(['spring', 'summer', 'autumn', 'winter']).toContain(season);
     });
   });
 
   describe('_getTimePeriod', () => {
     test('시간대 반환', () => {
-      const engine = recommendationEngine;
-      const period = engine._getTimePeriod();
+      const period = recommendationEngine._getTimePeriod();
       expect(['아침', '점심', '오후', '저녁', '야식']).toContain(period);
+    });
+  });
+
+  describe('_formatPreferences', () => {
+    test('선호도 문자열 포맷팅', () => {
+      const categoryPreference = [
+        { category: '음료', count: 10 },
+        { category: '디저트', count: 5 },
+      ];
+      const preferences = {
+        favorite_categories: ['커피', '케이크'],
+        dietary_restrictions: ['견과류'],
+        spiciness: 2,
+      };
+
+      const result = recommendationEngine._formatPreferences(categoryPreference, preferences);
+
+      expect(result).toContain('음료(10회)');
+      expect(result).toContain('디저트(5회)');
+      expect(result).toContain('커피, 케이크');
+      expect(result).toContain('견과류');
+      expect(result).toContain('맵기 선호도: 2/3');
+    });
+  });
+
+  describe('_getTimePeriod', () => {
+    test('시간대별 기간 반환', () => {
+      const period = recommendationEngine._getTimePeriod();
+      expect(['아침', '점심', '오후', '저녁', '야식']).toContain(period);
+    });
+  });
+
+  describe('generateAndStoreRecommendations', () => {
+    test('상품 데이터가 없으면 빈 배열 반환', async () => {
+      prisma.products.findMany.mockResolvedValue([]);
+
+      const result = await recommendationEngine.generateAndStoreRecommendations(1);
+      expect(result).toEqual([]);
     });
   });
 });
