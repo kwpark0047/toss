@@ -3,44 +3,7 @@ const { AppError } = require('../utils/errorHandler');
 const aiService = require('../services/aiService');
 const logger = require('../utils/logger');
 const dashboardBroadcastService = require('../services/DashboardBroadcastService');
-
-function calculateWeightedDemand(recentOrders) {
-  if (recentOrders.length === 0)
-    return { predicted: 0, confidence: 0.3, trend: 'insufficient_data' };
-
-  const ordersByDay = {};
-  for (const o of recentOrders) {
-    const d = new Date(o.created_at).toISOString().slice(0, 10);
-    ordersByDay[d] = (ordersByDay[d] || 0) + o._count?.order_items || 1;
-  }
-
-  const dailyTotals = Object.values(ordersByDay);
-  const n = dailyTotals.length;
-  if (n === 0) return { predicted: 0, confidence: 0.3, trend: 'insufficient_data' };
-
-  const weights = dailyTotals.map((_, i) => (i + 1) / ((n * (n + 1)) / 2));
-  const weightedAvg = dailyTotals.reduce((sum, v, i) => sum + v * weights[i], 0);
-
-  const firstHalf =
-    dailyTotals.slice(0, Math.floor(n / 2)).reduce((a, b) => a + b, 0) / Math.floor(n / 2) || 1;
-  const secondHalf =
-    dailyTotals.slice(Math.floor(n / 2)).reduce((a, b) => a + b, 0) / (n - Math.floor(n / 2)) || 1;
-  const trend =
-    secondHalf > firstHalf * 1.1
-      ? 'increasing'
-      : secondHalf < firstHalf * 0.9
-        ? 'decreasing'
-        : 'stable';
-  const trendFactor = trend === 'increasing' ? 1.1 : trend === 'decreasing' ? 0.9 : 1.0;
-
-  const mean = dailyTotals.reduce((a, b) => a + b, 0) / n;
-  const variance = dailyTotals.reduce((sum, v) => sum + (v - mean) ** 2, 0) / n;
-  const cv = mean > 0 ? Math.sqrt(variance) / mean : 1;
-  const confidence = Math.min(0.95, Math.max(0.3, 0.5 + (n / 60) * 0.3 - cv * 0.1));
-
-  const predicted = Math.max(0, Math.round(weightedAvg * trendFactor));
-  return { predicted, confidence, trend };
-}
+const demandForecastService = require('../services/DemandForecastService');
 
 const DemandForecastController = {
   getDemandForecasts: async (req, res, next) => {
@@ -66,125 +29,32 @@ const DemandForecastController = {
   generateDemandForecasts: async (req, res, next) => {
     try {
       const { storeId } = req.params;
-      const { productIds } = req.body;
+      const { productIds, horizonDays = 7, useAI = true } = req.body;
 
-      const products = await prisma.products.findMany({
-        where: {
-          store_id: Number(storeId),
-          ...(productIds && { id: { in: productIds.map(Number) } }),
-        },
+      const forecasts = await demandForecastService.generateForecastsForStore(Number(storeId), {
+        productIds,
+        horizonDays,
+        useAI,
       });
 
-      if (products.length === 0) {
-        throw new AppError('예측할 상품을 찾을 수 없습니다.', 404);
-      }
-
-      const results = [];
-      const now = new Date();
-      const forecastDate = new Date(now.getTime() + 7 * 86400000);
-
-      for (const product of products) {
-        try {
-          const recentOrders = await prisma.orders.findMany({
-            where: {
-              store_id: Number(storeId),
-              created_at: { gte: new Date(now.getTime() - 30 * 86400000) },
-              status: { not: 'cancelled' },
-            },
-            include: {
-              order_items: { where: { product_id: product.id }, select: { id: true } },
-            },
-          });
-
-          const dailyOrders = recentOrders.filter((o) => o.order_items.length > 0);
-          const {
-            predicted: baselinePredicted,
-            confidence: baselineConfidence,
-            trend,
-          } = calculateWeightedDemand(dailyOrders);
-
-          let predictedDemand = baselinePredicted;
-          let confidence = baselineConfidence;
-          let aiInsight = '';
-
-          try {
-            const prompt = `다음은 최근 30일간의 특정 메뉴(${product.name}) 일일 주문 건수 패턴입니다: ${dailyOrders.length}건 발생. 트렌드: ${trend}.
-이 데이터를 바탕으로 다음 주 예상 수요량, 신뢰도(0~1), 그리고 매장 운영을 위한 짧은 코멘트(1~2문장)를 JSON으로 제안해주세요. 
-기본 예측치: ${baselinePredicted}, 신뢰도: ${baselineConfidence}.
-형식: {"predicted": 숫자, "confidence": 숫자, "comment": "코멘트"}`;
-            const aiResText = await aiService.generateWithFallback(prompt, {
-              generationConfig: { temperature: 0.3, response_mime_type: 'application/json' },
-            });
-            const aiRes = JSON.parse(aiResText);
-            predictedDemand = aiRes.predicted ?? baselinePredicted;
-            confidence = aiRes.confidence ?? baselineConfidence;
-            aiInsight = aiRes.comment ?? '';
-          } catch (e) {
-            // AI 수요 예측 실패 시 통계 기반(baseline) 값으로 대체 — 서비스 가용성 유지
-            logger.warn(
-              { storeId, productId: product?.id, error: e.message },
-              'AI 수요 예측 생성 중 오류 (베이스라인 사용)'
-            );
-          }
-
-          const weekLater = new Date(now.getTime() + 7 * 86400000);
-          const forecast = await prisma.demand_forecasts.upsert({
-            where: {
-              store_product_date: {
-                store_id: Number(storeId),
-                product_id: product.id,
-                forecast_date: weekLater,
-              },
-            },
-            create: {
-              store_id: Number(storeId),
-              product_id: product.id,
-              forecast_date: weekLater,
-              predicted_demand: predictedDemand,
-              confidence_score: confidence,
-              factors: {
-                dayOfWeek: weekLater.getDay(),
-                trend,
-                dataPoints: dailyOrders.length,
-                holiday: false,
-                aiInsight,
-              },
-              model_version: 'v2.0-weighted',
-            },
-            update: {
-              predicted_demand: predictedDemand,
-              confidence_score: confidence,
-              factors: {
-                dayOfWeek: weekLater.getDay(),
-                trend,
-                dataPoints: dailyOrders.length,
-                holiday: false,
-                aiInsight,
-              },
-              model_version: 'v2.0-gemini',
-              updated_at: new Date(),
-            },
-          });
-          results.push(forecast);
-        } catch (_) {
-          /* continue with next product */
-        }
-      }
+      const forecastDate = new Date();
+      forecastDate.setDate(forecastDate.getDate() + 1);
+      forecastDate.setHours(0, 0, 0, 0);
 
       res.success(
         {
-          forecasts_generated: results.length,
+          forecasts_generated: forecasts.length,
           forecast_date: forecastDate.toISOString(),
-          forecasts: results,
+          forecasts: forecasts,
         },
         '수요 예측 생성 완료'
       );
 
-      // 실시간 대시보드에 수요 예측 결과 브로드캐스트 (store_${storeId}_dashboard 룸)
+      // 실시간 대시보드에 수요 예측 결과 브로드캐스트
       dashboardBroadcastService.notifyForecastUpdate(Number(storeId), {
         store_id: Number(storeId),
         forecast_date: forecastDate.toISOString(),
-        forecasts_generated: results.length,
+        forecasts_generated: forecasts.length,
         updated_at: new Date().toISOString(),
       });
     } catch (err) {
@@ -318,6 +188,42 @@ const DemandForecastController = {
       });
       if (!job) throw new AppError('작업을 찾을 수 없습니다.', 404);
       res.success(job, '작업 상태 조회 완료');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  // 수요 예측 정확도 평가
+  evaluateForecastAccuracy: async (req, res, next) => {
+    try {
+      const { storeId } = req.params;
+      const { productId, days = 30 } = req.query;
+
+      const evaluation = await demandForecastService.evaluateForecastAccuracy(
+        Number(storeId),
+        productId ? Number(productId) : null,
+        Number(days)
+      );
+
+      res.success(evaluation, '예측 정확도 평가 완료');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  // 특정 상품의 향후 수요 예측 조회
+  getProductForecast: async (req, res, next) => {
+    try {
+      const { storeId, productId } = req.params;
+      const { days = 7 } = req.query;
+
+      const forecasts = await demandForecastService.getForecasts(
+        Number(storeId),
+        Number(productId),
+        Number(days)
+      );
+
+      res.success(forecasts, '상품별 수요 예측 조회 완료');
     } catch (err) {
       next(err);
     }
