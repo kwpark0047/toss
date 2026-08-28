@@ -4,14 +4,36 @@
  *   name: Health
  *   description: 서비스 가용성 진단 (Health Check)
  */
-const router = require('express').Router();
-const prisma = require('../config/prisma');
-const cb = require('../utils/circuitBreaker');
-const alerting = require('../utils/alerting');
-const axios = require('axios');
+import { Router, Request, Response, NextFunction } from 'express';
+import prisma from '../config/prisma.js';
+import cb from '../utils/circuitBreaker.js';
+import alerting from '../utils/alerting.js';
+import axios from 'axios';
 
 // CORS 허용 도메인은 단일 모듈(config/domain)에서 관리한다.
-const { getAllowedOrigins, isOriginAllowed } = require('../config/domain');
+import { getAllowedOrigins, isOriginAllowed } from '../config/domain.js';
+
+const router = Router();
+
+// DB 슬립/서버 503 가용성 장애 시에도 브라우저 전송에 필요한 CORS 헤더를 원자적으로 강제 반사 (Workbox fetch 우회 차단 해결)
+router.use((req: Request, res: Response, next: NextFunction) => {
+  const origin = req.headers.origin;
+  const allowed = origin && isOriginAllowed(origin, getAllowedOrigins());
+  if (allowed) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  }
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
+const START_TIME = Date.now();
+// 버전 단일 소스: package.json (npm_package_version은 `node index.js` 직접 실행 시 누락됨)
+const APP_VERSION = (await import('../package.json', { with: { type: 'json' } })).default.version;
 
 // DB 슬립/서버 503 가용성 장애 시에도 브라우저 전송에 필요한 CORS 헤더를 원자적으로 강제 반사 (Workbox fetch 우회 차단 해결)
 router.use((req, res, next) => {
@@ -31,18 +53,18 @@ router.use((req, res, next) => {
 
 const START_TIME = Date.now();
 // 버전 단일 소스: package.json (npm_package_version은 `node index.js` 직접 실행 시 누락됨)
-const APP_VERSION = require('../package.json').version;
+const APP_VERSION = (await import('../package.json', { with: { type: 'json' } })).default.version;
 
 // ── 요청/에러 카운터 (인메모리 슬라이딩 윈도우 5분) ──────────────────────────
-const _req5m = [];
-const _err5m = [];
+const _req5m: number[] = [];
+const _err5m: number[] = [];
 // 응답시간도 5분 윈도우로 관리 — 개수 기반(최근 1000건)이면 콜드스타트 직후의
 // 느린 요청이 트래픽이 적을 때 몇 시간씩 잔류해 P99를 오염시킨다
-const _lat5m = []; // { t, ms }
+const _lat5m: { t: number; ms: number }[] = []; // { t, ms }
 const W = 5 * 60_000;
 const LAT_MAX = 5000; // 고트래픽 시 메모리 상한
 
-const recordReq = (ms, isErr) => {
+const recordReq = (ms: number, isErr: boolean) => {
   const now = Date.now();
   _req5m.push(now);
   if (isErr) _err5m.push(now);
@@ -59,14 +81,14 @@ const latencies = () => {
   return _lat5m.filter((x) => x.t >= cutoff).map((x) => x.ms);
 };
 
-const percentile = (arr, p) => {
+const percentile = (arr: number[], p: number) => {
   if (!arr.length) return 0;
   const sorted = [...arr].sort((a, b) => a - b);
   return sorted[Math.floor((sorted.length * p) / 100)];
 };
 
 // app.js에서 미들웨어로 호출
-const requestTracker = (req, res, next) => {
+export const requestTracker = (req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   res.on('finish', () => recordReq(Date.now() - start, res.statusCode >= 500));
   next();
@@ -278,12 +300,11 @@ router.get('/sla', (req, res) => {
   });
 });
 
-const _formatUptime = (sec) => {
+const _formatUptime = (sec: number): string => {
   const d = Math.floor(sec / 86400);
   const h = Math.floor((sec % 86400) / 3600);
   const m = Math.floor((sec % 3600) / 60);
   return `${d}일 ${h}시간 ${m}분`;
 };
 
-module.exports = router;
-module.exports.requestTracker = requestTracker;
+export default router;

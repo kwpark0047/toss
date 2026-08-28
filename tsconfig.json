@@ -26,6 +26,7 @@
     "noPropertyAccessFromIndexSignature": false,
     "allowUnreachableCode": true,
     "allowUnusedLabels": true,
+    "allowImportingTsExtensions": true,
     "paths": {
       "@/*": ["./*"]
     },
