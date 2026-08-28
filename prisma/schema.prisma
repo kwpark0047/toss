@@ -779,6 +779,8 @@ model users {
   profile_step                                                     Int?                     @default(1)
   password                                                         String
   two_factor_enabled                                               Boolean                  @default(false)
+  two_factor_secret                                                String?
+  two_factor_backup_codes                                          String?
   created_at                                                       DateTime?                @default(now())
   role                                                             String?                  @default("user")
   fcm_token                                                        String?

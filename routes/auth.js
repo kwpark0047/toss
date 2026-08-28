@@ -3,10 +3,10 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { authMiddleware } = require('../middleware/auth');
 const { validateBody } = require('../middleware/validate');
-const { 
-  loginSchema, 
-  registerSchema, 
-  updateProfileSchema, 
+const {
+  loginSchema,
+  registerSchema,
+  updateProfileSchema,
   changePasswordSchema,
   refreshTokenSchema,
   sendVerificationSchema,
@@ -44,7 +44,11 @@ const {
  *       200:
  *         description: 인증 코드 발송 완료
  */
-router.post('/send-verification', validateBody(sendVerificationSchema), authController.sendVerification);
+router.post(
+  '/send-verification',
+  validateBody(sendVerificationSchema),
+  authController.sendVerification
+);
 
 /**
  * @swagger
@@ -263,12 +267,29 @@ router.post('/refresh-token', validateBody(refreshTokenSchema), authController.r
 router.post('/logout', authController.logout);
 
 // ===== 2FA (일반 사용자 공용) =====
-const twoFactorController = require('../controllers/admin2faController');
+const twoFactorController = require('../controllers/twoFactorController');
+const adminTwoFactorController = require('../controllers/admin2faController');
 
-router.post('/2fa/send-login-otp', twoFactorController.sendLoginOtp);
-router.post('/2fa/verify-login-otp', twoFactorController.verifyLoginOtp);
+// TOTP 기반 2FA (일반 사용자용)
 router.get('/2fa/status', authMiddleware, twoFactorController.getStatus);
-router.post('/2fa/send-otp', authMiddleware, twoFactorController.sendSettingsOtp);
-router.post('/2fa/verify', authMiddleware, twoFactorController.verifySettingsOtp);
+
+router.post('/2fa/enable', authMiddleware, twoFactorController.enableSetup);
+router.post('/2fa/enable/verify', authMiddleware, twoFactorController.enableVerify);
+router.post('/2fa/disable', authMiddleware, twoFactorController.disable);
+router.post(
+  '/2fa/backup-codes/regenerate',
+  authMiddleware,
+  twoFactorController.regenerateBackupCodes
+);
+
+// 로그인 시 2FA 검증 (별도 엔드포인트)
+router.post('/2fa/verify-login', twoFactorController.verifyLogin);
+
+// 관리자용 SMS OTP 2FA (기존)
+router.post('/2fa/send-login-otp', adminTwoFactorController.sendLoginOtp);
+router.post('/2fa/verify-login-otp', adminTwoFactorController.verifyLoginOtp);
+router.post('/2fa/send-otp', authMiddleware, adminTwoFactorController.sendSettingsOtp);
+router.post('/2fa/verify', authMiddleware, adminTwoFactorController.verifySettingsOtp);
+router.get('/2fa/status', authMiddleware, adminTwoFactorController.getStatus);
 
 module.exports = router;
