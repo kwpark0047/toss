@@ -27,7 +27,7 @@ export { boardAPI, communityAPI, chatAPI } from './board';
 export { reviewsAPI } from './reviews';
 export { naverPlaceAPI } from './naverPlace';
 export { notificationsAPI } from './notifications';
-export { inventoryAPI } from './inventory';
+export { inventoryAPI, aiAutoOrderAPI } from './inventory';
 export {
   pointsAPI,
   analyticsAPI,

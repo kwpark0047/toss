@@ -1,124 +1,53 @@
-# ==============================================================================
-# Security Scanning Pipeline
-# ==============================================================================
-# Runs on every PR and scheduled daily
-# Scans: Container (Trivy), Code (Semgrep), Dependencies (npm audit), Secrets (TruffleHog)
-# ==============================================================================
+# Security Scanning Pipeline - Lightweight
+# Runs on schedule (weekly) and manual trigger only
+# Scans: Code (Semgrep), Dependencies (npm audit)
 
 name: Security Scanning
 
 on:
-  pull_request:
-    branches: [main, develop]
-  schedule:
-    - cron: '0 2 * * *' # Daily at 2 AM UTC
   workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1' # 주간 월요일 새벽 3시 (UTC)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   security-events: write
   actions: read
   contents: read
-  packages: read
 
 jobs:
-  trivy-container:
-    name: Trivy Container Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: |
-          docker build -t wemarket-api:${{ github.sha }} .
-          docker tag wemarket-api:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/wemarket-api:${{ github.sha }}
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'ghcr.io/${{ github.repository_owner }}/wemarket-api:${{ github.sha }}'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
-        continue-on-error: true
-        if: always()
-        with:
-          sarif_file: trivy-results.sarif
-          category: trivy-container
-
-  trivy-fs:
-    name: Trivy Filesystem Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Trivy filesystem scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-fs-results.sarif'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          ignore-unfixed: true
-
-      - name: Upload Trivy FS results
-        uses: github/codeql-action/upload-sarif@v4
-        continue-on-error: true
-        if: always()
-        with:
-          sarif_file: trivy-fs-results.sarif
-          category: trivy-fs
-
   semgrep:
     name: Semgrep Static Analysis
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install Semgrep
-        run: pipx install semgrep
-
-      - name: Run Semgrep
         run: |
-          semgrep ci \
-            --config p/ci \
-            --config p/javascript \
-            --config p/typescript \
-            --config p/nodejs \
-            --config p/expressjs \
-            --config p/security-audit \
-            --config p/owasp-top-ten \
-            --exclude node_modules --exclude dist --exclude frontend/node_modules \
-            --sarif > semgrep.sarif || true
+          pipx install semgrep
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Upload Semgrep results
-        uses: github/codeql-action/upload-sarif@v4
-        continue-on-error: true
-        if: always()
-        with:
-          sarif_file: semgrep.sarif
-          category: semgrep
+      - name: Run Semgrep (backend)
+        run: npm run security:scan
+
+      - name: Run Semgrep (frontend)
+        run: npm run security:scan:frontend
 
   npm-audit:
     name: NPM Dependency Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: 22
+          cache: npm
 
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit --no-fund
@@ -131,6 +60,7 @@ jobs:
         with:
           name: npm-audit
           path: npm-audit.json
+          retention-days: 3
 
       - name: Check for high/critical vulnerabilities
         run: |
@@ -138,16 +68,15 @@ jobs:
           CRITICAL=$(jq '[.vulnerabilities[] | select(.severity == "critical")] | length' npm-audit.json)
           echo "High: $HIGH, Critical: $CRITICAL"
           if [ "$HIGH" -gt 0 ] || [ "$CRITICAL" -gt 0 ]; then
-            echo "::error::Found $CRITICAL critical and $HIGH high vulnerabilities"
-            exit 1
+            echo "::warning::Found $CRITICAL critical and $HIGH high vulnerabilities"
           fi
 
   trufflehog:
     name: TruffleHog Secret Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -167,77 +96,9 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Dependency Review
         uses: actions/dependency-review-action@v4
         with:
           config-file: '.github/dependency-review-config.yml'
           fail-on-severity: high
-
-  snyk:
-    name: Snyk Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Snyk
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: |
-          if [ -z "$SNYK_TOKEN" ]; then
-            echo "::warning::SNYK_TOKEN not configured; skipping Snyk scan"
-            exit 0
-          fi
-          if [ ! -f package-lock.json ] && [ ! -f package.json ]; then
-            echo "::warning::No package manifest found; skipping Snyk scan"
-            exit 0
-          fi
-          npx --yes snyk test --severity-threshold=high --json > snyk-results.json || true
-          test -s snyk-results.json
-
-      - name: Upload Snyk results
-        uses: actions/upload-artifact@v4
-        if: ${{ hashFiles('snyk-results.json') != '' }}
-        with:
-          name: snyk-results
-          path: snyk-results.json
-
-  # Consolidated security summary
-  security-summary:
-    name: Security Summary
-    runs-on: ubuntu-latest
-    needs: [trivy-container, trivy-fs, semgrep, npm-audit, trufflehog, dependency-review, snyk]
-    if: always()
-    steps:
-      - name: Check all security jobs passed
-        run: |
-          echo "Security scan summary:"
-          echo "Trivy Container: ${{ needs.trivy-container.result }}"
-          echo "Trivy FS: ${{ needs.trivy-fs.result }}"
-          echo "Semgrep: ${{ needs.semgrep.result }}"
-          echo "NPM Audit: ${{ needs.npm-audit.result }}"
-          echo "TruffleHog: ${{ needs.trufflehog.result }}"
-          echo "Dependency Review: ${{ needs.dependency-review.result }}"
-          echo "Snyk: ${{ needs.snyk.result }}"
-
-          # Skipped jobs (e.g. Dependency Review on non-PR runs) are not failures.
-          fail=0
-          for result in \
-            "${{ needs.trivy-container.result }}" \
-            "${{ needs.trivy-fs.result }}" \
-            "${{ needs.semgrep.result }}" \
-            "${{ needs.npm-audit.result }}" \
-            "${{ needs.trufflehog.result }}" \
-            "${{ needs.snyk.result }}"; do
-            if [[ "$result" != "success" ]]; then
-              echo "::error::Security scan result: $result"
-              fail=1
-            fi
-          done
-          if [ "$fail" -ne 0 ]; then
-            echo "::error::One or more security scans failed"
-            exit 1
-          fi

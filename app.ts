@@ -286,6 +286,7 @@ const routes = {
     loyalty: (await import('./routes/loyalty.ts')).default,
     ecoBadge: (await import('./routes/ecoBadge.ts')).default,
     aiOrder: (await import('./routes/aiOrder.ts')).default,
+    aiAutoOrder: (await import('./routes/aiAutoOrder.ts')).default,
     recommendationTracking: (await import('./routes/recommendationTracking.ts')).default,
     reportPdf: (await import('./routes/reportPdf.ts')).default,
     config: (await import('./routes/config.ts')).default,
@@ -354,6 +355,7 @@ app.use(`${API_PREFIX}/franchise`, routes.franchise);
 app.use(`${API_PREFIX}/loyalty`, routes.loyalty);
 app.use(`${API_PREFIX}/eco-badge`, routes.ecoBadge);
 app.use(`${API_PREFIX}/ai-order`, routes.aiOrder);
+app.use(`${API_PREFIX}/ai-auto-order`, routes.aiAutoOrder);
 app.use(`${API_PREFIX}/community`, routes.community);
 app.use(`${API_PREFIX}/legal`, routes.legal);
 app.use(`${API_PREFIX}/naver-place`, routes.naverPlace);

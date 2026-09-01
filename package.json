@@ -104,7 +104,8 @@
     "socket.io": "^4.8.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "zod": "^4.5.4"
   },
   "overrides": {
     "protobufjs": "^7.6.3",
@@ -149,8 +150,9 @@
     "socket.io-client": "^4.8.3",
     "supabase": "^2.111.0",
     "supertest": "^7.2.2",
+    "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
-    "typescript": "^7.0.2",
+    "typescript": "^5.7.3",
     "winston-transport": "^4.9.0"
   }
 }

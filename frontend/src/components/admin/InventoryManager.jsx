@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { inventoryAPI } from '../../api';
+import { inventoryAPI, aiAutoOrderAPI } from '../../api';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { toast } from 'react-toastify';
@@ -518,6 +518,69 @@ export default function InventoryManager() {
     }
   };
 
+  // === AI 자동 발주 추천 상태 ===
+  const [aiRecommendations, setAiRecommendations] = useState([]);
+  const [aiRecommendLoading, setAiRecommendLoading] = useState(false);
+  const [aiRecommendFilter, setAiRecommendFilter] = useState('pending');
+  const [showAiRecommend, setShowAiRecommend] = useState(true);
+
+  const loadAiRecommendations = useCallback(async () => {
+    if (!storeId) return;
+    try {
+      const res = await aiAutoOrderAPI.getRecommendations(storeId, aiRecommendFilter);
+      setAiRecommendations(res?.data || res || []);
+    } catch {
+      setAiRecommendations([]);
+    }
+  }, [storeId, aiRecommendFilter]);
+
+  useEffect(() => {
+    loadAiRecommendations();
+  }, [loadAiRecommendations]);
+
+  const generateAiRecommendations = async () => {
+    setAiRecommendLoading(true);
+    try {
+      const res = await aiAutoOrderAPI.generateRecommendation(storeId, {
+        lookbackDays: 30,
+        leadTimeDays: 3,
+        safetyDays: 2,
+        horizonDays: 7,
+        useAI: true,
+      });
+      toast.success(`AI 발주 추천 ${res?.recommendations?.length || 0}건 생성 완료`);
+      await loadAiRecommendations();
+    } catch {
+      toast.error('AI 자동 발주 추천 생성에 실패했습니다.');
+    } finally {
+      setAiRecommendLoading(false);
+    }
+  };
+
+  const decideAiRecommendation = async (id, status) => {
+    try {
+      await aiAutoOrderAPI.decideRecommendation(storeId, id, status);
+      await loadAiRecommendations();
+      toast.success(
+        status === 'approved' ? 'AI 발주 추천을 승인했습니다.' :
+        status === 'rejected' ? 'AI 발주 추천을 거절했습니다.' :
+        '발주 완료로 처리했습니다.'
+      );
+    } catch {
+      toast.error('AI 발주 추천 처리에 실패했습니다.');
+    }
+  };
+
+  const loadAiStats = useCallback(async () => {
+    if (!storeId) return;
+    try {
+      const res = await aiAutoOrderAPI.getStats(storeId);
+      return res?.data || res;
+    } catch {
+      return null;
+    }
+  }, [storeId]);
+
   const decideReorderCandidate = async (id, status) => {
     try {
       await inventoryAPI.decideReorderCandidate(storeId, id, status);
@@ -702,6 +765,131 @@ export default function InventoryManager() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* AI 자동 발주 추천 */}
+      {showAiRecommend && (
+        <div className="p-5 bg-indigo-500/5 border border-indigo-500/20 rounded-2xl">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-sm font-black text-indigo-200 flex items-center gap-2">
+                <Sparkles size={14} /> AI 자동 발주 추천
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                수요 예측 기반 발주 수량을 추천합니다.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={aiRecommendFilter}
+                onChange={(e) => setAiRecommendFilter(e.target.value)}
+                className="px-2.5 py-1.5 bg-black/10 border border-white/10 rounded-lg text-xs text-slate-300 font-bold focus:outline-none"
+              >
+                <option value="pending">대기</option>
+                <option value="approved">승인됨</option>
+                <option value="rejected">거절됨</option>
+                <option value="ordered">발주됨</option>
+              </select>
+              <button
+                onClick={generateAiRecommendations}
+                disabled={aiRecommendLoading}
+                className="flex items-center gap-2 px-3 py-2 bg-indigo-500/15 border border-indigo-500/25 rounded-lg text-indigo-300 text-xs font-black hover:bg-indigo-500/25 transition-all disabled:opacity-50"
+              >
+                <Sparkles size={13} className={aiRecommendLoading ? 'animate-pulse' : ''} />
+                AI 추천 생성
+              </button>
+            </div>
+          </div>
+
+          {aiRecommendations.length === 0 ? (
+            <p className="text-xs text-slate-500 py-4 text-center">
+              아직 AI 발주 추천이 없습니다. "AI 추천 생성"을 눌러 추천을 받아보세요.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {aiRecommendations.map((rec) => {
+                const shortageLabel =
+                  rec.shortage_level === 'critical'
+                    ? '심각'
+                    : rec.shortage_level === 'high'
+                      ? '높음'
+                      : rec.shortage_level === 'medium'
+                        ? '중간'
+                        : '낮음';
+                const shortageColor =
+                  rec.shortage_level === 'critical'
+                    ? 'text-red-400'
+                    : rec.shortage_level === 'high'
+                      ? 'text-amber-400'
+                      : rec.shortage_level === 'medium'
+                        ? 'text-yellow-400'
+                        : 'text-emerald-400';
+                const statusLabel =
+                  rec.status === 'approved'
+                    ? '승인됨'
+                    : rec.status === 'rejected'
+                      ? '거절됨'
+                      : rec.status === 'ordered'
+                        ? '발주됨'
+                        : '대기';
+                return (
+                  <div
+                    key={rec.id}
+                    className="flex items-center justify-between gap-3 bg-black/10 rounded-xl px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-white truncate">
+                          상품 #{rec.product_id}
+                        </p>
+                        <span className={`text-[10px] font-black ${shortageColor}`}>
+                          {shortageLabel}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400">
+                        현재 {rec.current_stock}개 · 예측 수요 {rec.forecast_demand}개 · 추천{' '}
+                        {rec.recommended_qty}개
+                      </p>
+                      <p className="text-[10px] text-indigo-400/70 mt-0.5">
+                        통계 {rec.statistical_qty}개 · AI {rec.demand_based_qty}개 · 신뢰도{' '}
+                        {Math.round((rec.forecast_confidence || 0) * 100)}%
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="px-2 py-1 rounded-lg bg-white/5 text-slate-400 text-[10px] font-bold">
+                        {statusLabel}
+                      </span>
+                      {rec.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => decideAiRecommendation(rec.id, 'approved')}
+                            className="px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 text-[10px] font-bold"
+                          >
+                            승인
+                          </button>
+                          <button
+                            onClick={() => decideAiRecommendation(rec.id, 'rejected')}
+                            className="px-2 py-1 rounded-lg bg-red-500/15 text-red-300 text-[10px] font-bold"
+                          >
+                            거절
+                          </button>
+                        </>
+                      )}
+                      {rec.status === 'approved' && (
+                        <button
+                          onClick={() => decideAiRecommendation(rec.id, 'ordered')}
+                          className="px-2 py-1 rounded-lg bg-indigo-500/15 text-indigo-300 text-[10px] font-bold"
+                        >
+                          발주 확인
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
