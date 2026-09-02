@@ -6,22 +6,23 @@ const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 
 const FONT_DIR = path.join(__dirname, '../fonts');
+const FONT_EXTENSIONS = ['.ttf', '.woff', '.woff2'];
 const FONTS = {
   ko: {
-    regular: path.join(FONT_DIR, 'NanumGothic-Regular.ttf'),
-    bold: path.join(FONT_DIR, 'NanumGothic-Bold.ttf'),
+    regular: path.join(FONT_DIR, 'NanumGothic-Regular'),
+    bold: path.join(FONT_DIR, 'NanumGothic-Bold'),
   },
   en: {
-    regular: path.join(FONT_DIR, 'NotoSans-Regular.ttf'),
-    bold: path.join(FONT_DIR, 'NotoSans-Regular.ttf'),
+    regular: path.join(FONT_DIR, 'NotoSans-Regular'),
+    bold: path.join(FONT_DIR, 'NotoSans-Regular'),
   },
   ja: {
-    regular: path.join(FONT_DIR, 'NotoSansJP-Regular.ttf'),
-    bold: path.join(FONT_DIR, 'NotoSansJP-Regular.ttf'),
+    regular: path.join(FONT_DIR, 'NotoSansJP-Regular'),
+    bold: path.join(FONT_DIR, 'NotoSansJP-Regular'),
   },
   zh: {
-    regular: path.join(FONT_DIR, 'NotoSansSC-Regular.ttf'),
-    bold: path.join(FONT_DIR, 'NotoSansSC-Regular.ttf'),
+    regular: path.join(FONT_DIR, 'NotoSansSC-Regular'),
+    bold: path.join(FONT_DIR, 'NotoSansSC-Regular'),
   },
 };
 
@@ -36,11 +37,18 @@ class ReportPdfService {
   constructor() {
     this.fontsLoaded = {};
     for (const [lang, fonts] of Object.entries(FONTS)) {
-      const hasFont =
-        fs.existsSync(fonts.regular) &&
-        fs.existsSync(fonts.bold) &&
-        fs.statSync(fonts.regular).size > 1000 &&
-        fs.statSync(fonts.bold).size > 1000;
+      const resolveFontPath = (basePath) => {
+        for (const ext of FONT_EXTENSIONS) {
+          const checkPath = basePath + ext;
+          if (fs.existsSync(checkPath) && fs.statSync(checkPath).size > 1000) {
+            return checkPath;
+          }
+        }
+        return null;
+      };
+      const regularPath = resolveFontPath(fonts.regular);
+      const boldPath = resolveFontPath(fonts.bold);
+      const hasFont = regularPath && boldPath;
       this.fontsLoaded[lang] = hasFont;
       if (hasFont) {
         logger.info(`${lang} font loaded for PDF`);
@@ -59,11 +67,12 @@ class ReportPdfService {
 
   getFonts(lang = 'ko') {
     const fonts = FONTS[lang] || FONTS.ko;
-    const loaded = this.fontsLoaded[lang] || false;
+    const regularPath = this.fontsLoaded[lang] ? fonts.regular : null;
+    const boldPath = this.fontsLoaded[lang] ? fonts.bold : null;
     return {
-      loaded,
-      regular: loaded ? fonts.regular : 'Helvetica',
-      bold: loaded ? fonts.bold : 'Helvetica-Bold',
+      loaded: this.fontsLoaded[lang] || false,
+      regular: regularPath,
+      bold: boldPath,
     };
   }
 
@@ -246,12 +255,14 @@ class ReportPdfService {
 
       // 폰트 등록
       const fonts = this.getFonts(lang);
-      if (fonts.loaded) {
-        doc.registerFont('NotoSans', fonts.regular);
-        doc.registerFont('NotoSans-Bold', fonts.bold);
+      const fontRegularPath = fonts.regular;
+      const fontBoldPath = fonts.bold;
+      if (fonts.loaded && fontRegularPath && fontBoldPath) {
+        doc.registerFont('NanumGothic', fontRegularPath);
+        doc.registerFont('NanumGothic-Bold', fontBoldPath);
       }
-      const fontRegular = fonts.regular;
-      const fontBold = fonts.bold;
+      const fontRegular = fonts.loaded ? fontRegularPath : 'Helvetica';
+      const fontBold = fonts.loaded ? fontBoldPath : 'Helvetica-Bold';
 
       // 페이지 추가
       doc.addPage();
