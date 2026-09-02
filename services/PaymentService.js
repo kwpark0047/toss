@@ -8,8 +8,8 @@ const alerting = require('../utils/alerting');
 const { AppError } = require('../utils/errorHandler');
 const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
 const { encryptPhone } = require('../utils/phoneEncryption');
-const { sanitizeRawResponse } = require('../utils/sanitize');
 const { encryptToken } = require('../utils/tokenEncryption');
+const { sanitizeRawResponse } = require('../utils/sanitize');
 const crypto = require('crypto');
 
 /**
@@ -978,20 +978,28 @@ class PaymentService {
     if (eventType !== 'PAYMENT_STATUS_CHANGED' || data?.status !== 'DONE') return;
 
     const { paymentKey, orderId: tossOrderId } = data;
+    // [보안] 로그 출금 전 카드키 마스킹 - 원본 노출 방지
+    const maskedPaymentKey = maskPaymentKey(paymentKey);
+
     const order = await prisma.orders.findFirst({ where: { order_number: tossOrderId } });
 
     if (!order) {
-      const maskedKey = paymentKey ? `****${paymentKey.slice(-8)}` : null;
-      logger.warn(`[Webhook/Toss] 망취소 감지: paymentKey=${maskedKey}, orderId=${tossOrderId}`);
+      logger.warn(
+        `[Webhook/Toss] 망취소 감지: paymentKey=${maskedPaymentKey}, orderId=${tossOrderId}`
+      );
       try {
         await TossAPI.cancelPayment(paymentKey, '토스측 오류: 주문 미생성으로 인한 자동 취소');
-        logger.info(`[Webhook/Toss] 망취소 완료: paymentKey=${maskedKey}`);
+        logger.info(`[Webhook/Toss] 망취소 완료: paymentKey=${maskedPaymentKey}`);
       } catch (e) {
         logger.error(`[Webhook/Toss] 망취소 API 실패: ${e.message}`);
       }
     } else {
+      // [보안] 웹훅 이벤트 데이터 사전 sanitize - 민감정보( customerKey 등) 사전 제거
+      const sanitizedEvent = sanitizeRawResponse({ eventType, data });
+      logger.info(`[Webhook/Toss] 결제 승인 처리 (Webhook): orderId=${tossOrderId}`, {
+        event: sanitizedEvent,
+      });
       try {
-        logger.info(`[Webhook/Toss] 결제 승인 처리 (Webhook): orderId=${tossOrderId}`);
         const result = await this.processApproval(
           paymentKey,
           tossOrderId,
