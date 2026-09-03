@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { adminAPI } from '../../api/admin';
 import { bizLabel } from '../../utils/businessType';
 import MiniBarChart from './MiniBarChart';
-import { ExternalLink, Gift, Loader2, Power, Store, X } from 'lucide-react';
+import { Clock, ExternalLink, Gift, Loader2, Power, Store, Users, X } from 'lucide-react';
 
 const won = (n) => `₩${Number(n || 0).toLocaleString('ko-KR')}`;
 const num = (n) => Number(n || 0).toLocaleString('ko-KR');

@@ -8,7 +8,7 @@ import { useParams } from 'react-router';
 import { toast } from 'sonner';
 import { legalAPI } from '../../api';
 import Icon from '../../components/ui/Icon';
-import { CheckCircle2, ChevronDown, ChevronUp, RefreshCw, Save } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Coins, RefreshCw, Save, ShoppingBag, Users } from 'lucide-react';
 
 // ── 섹션 접기/펼치기 컴포넌트 ──────────────────────────────────────────────
 const Section = ({ icon: Icon, title, subtitle, children, defaultOpen = false }) => {

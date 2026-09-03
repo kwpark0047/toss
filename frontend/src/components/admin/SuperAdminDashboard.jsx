@@ -8,7 +8,7 @@ import MiniBarChart from './MiniBarChart';
 import StoreDetailModal from './StoreDetailModal';
 import StoreEnrichmentModal from './StoreEnrichmentModal';
 import Icon from '../../components/ui/Icon';
-import { Check, ChevronLeft, ChevronRight, Gift, Link2, Loader2, Search, Settings, Sparkles, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Clock, Gift, Link2, Loader2, Search, Settings, Sparkles, Store, Users, X } from 'lucide-react';
 
 const INFO_BADGE = {
   good: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',

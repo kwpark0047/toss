@@ -4,6 +4,7 @@ import { campaignAPI } from '@/api/admin';
 import Skeleton from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
 import Icon from '../../components/ui/Icon';
+import { Target, Megaphone, BarChart3 } from 'lucide-react';
 
 /* ── 유형별 메타 ─────────────────────────────────────────────── */
 const TRIGGER_META = {

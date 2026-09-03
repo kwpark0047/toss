@@ -4,7 +4,7 @@ import { businessAPI, storeAccountAPI } from '../../api';
 import { toast } from 'react-toastify';
 import { THEME_PRESETS, DEFAULT_THEME_SETTINGS } from '../../lib/themePresets';
 import Icon from '../../components/ui/Icon';
-import { Check, RefreshCw, Save } from 'lucide-react';
+import { BadgeCheck, Banknote, Building2, Check, CreditCard, Palette, RefreshCw, Save, Sliders, Smartphone, Store } from 'lucide-react';
 
 // ── 결제수단 옵션 ─────────────────────────────────────────────────────────────
 const PAYMENT_METHOD_OPTIONS = [

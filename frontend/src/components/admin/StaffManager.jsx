@@ -7,7 +7,7 @@ import Icon from '../../components/ui/Icon';
 import { motion, AnimatePresence } from 'framer-motion';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
-import { AlertCircle, Calendar, Check, CheckCircle2, ChevronDown, ChevronUp, Loader2, LogIn, LogOut, Phone, RefreshCw, Search, UserPlus, X, XCircle } from 'lucide-react';
+import { AlertCircle, Calendar, Check, CheckCircle2, ChefHat, ChevronDown, ChevronUp, Loader2, LogIn, LogOut, Phone, RefreshCw, Search, Sparkles, User, UserCheck, UserPlus, X, XCircle } from 'lucide-react';
 
 // ── 역할 정의 ──────────────────────────────────────────────
 const ROLES = {

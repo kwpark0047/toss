@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
 import Icon from '../../components/ui/Icon';
-import { Heart, ImageOff, Loader2, MessageSquareText, RefreshCw, Send, Sparkles } from 'lucide-react';
+import { Flame, Heart, ImageOff, Loader2, Megaphone, MessageSquareText, RefreshCw, Send, Sparkles, Users } from 'lucide-react';
 
 // 리뷰 첨부 사진 (로드 실패 폴백)
 const ReviewPhoto = ({ src }) => {

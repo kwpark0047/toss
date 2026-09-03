@@ -11,7 +11,7 @@ import OrderCard from './OrderCard';
 import OrderDetailModal from './OrderDetailModal';
 import EmptyState from '../common/EmptyState';
 import Icon from '../../components/ui/Icon';
-import { Calendar, Filter, Package, RefreshCw, Search } from 'lucide-react';
+import { Calendar, CheckCircle, ChefHat, Clock, Filter, Package, RefreshCw, Search } from 'lucide-react';
 
 const statusConfig = {
   paid:      { label: '신규',    color: 'text-teal-500',    bg: 'bg-teal-50',    border: 'border-teal-200',   icon: CheckCircle,  next: 'preparing' },

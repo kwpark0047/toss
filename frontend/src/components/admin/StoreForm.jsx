@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useStoreOperatingHours } from '../../hooks/useStoreOperatingHours';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../components/ui/Icon';
-import { ArrowLeft, CheckCircle, ChefHat, Clock, Layout, Phone, Save, Smartphone, Type, XCircle } from 'lucide-react';
+import { ArrowLeft, Award, CheckCircle, ChefHat, Clock, Crown, Info, Layout, Palette, Phone, Save, Smartphone, Type, XCircle } from 'lucide-react';
 
 const defaultTheme = {
   primaryColor: '#f97316',

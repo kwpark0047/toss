@@ -233,7 +233,7 @@ const handleForecastDaysChange = async days => {
       }, {
         label: '성장률 (전기간)',
         value: `${salesGrowthPositive ? '+' : ''}${comparison?.growth?.sales || 0}%`,
-        icon: salesGrowthPositive ? TrendingUp : TrendingDown,
+        icon: salesGrowthPositive ? 'TrendingUp' : 'TrendingDown',
         color: salesGrowthPositive ? 'from-emerald-500 to-teal-600' : 'from-rose-500 to-red-600',
         shadow: salesGrowthPositive ? 'shadow-emerald-500/20' : 'shadow-rose-500/20',
         isGrowth: true
@@ -247,7 +247,7 @@ const handleForecastDaysChange = async days => {
             <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-10 -mr-16 -mt-16 rounded-full blur-3xl transition-all duration-700`} />
             <div className="relative z-10">
               <div className={`w-14 h-14 bg-gradient-to-br ${stat.color} rounded-2xl flex items-center justify-center text-white mb-6 shadow-2xl ${stat.shadow}`}>
-                <stat.icon size={28} />
+                <Icon icon={stat.icon} size="lg" className="w-7 h-7" />
               </div>
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{stat.label}</span>
               <p className={`text-3xl font-black mt-2 tracking-tight ${stat.isGrowth ? salesGrowthPositive ? 'text-emerald-400' : 'text-rose-400' : 'text-white'}`}>

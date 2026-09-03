@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import Icon from '../../components/ui/Icon';
-import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronRight, Play, Store, Zap } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, BarChart3, ChefHat, ChevronRight, LayoutDashboard, MessageSquareText, Play, ReceiptText, ShoppingBag, Sparkles, Store, Users, UtensilsCrossed, Wallet, Zap } from 'lucide-react';
 
 /**
  * BusinessDemo — 사업자(관리자) 데모 체험.

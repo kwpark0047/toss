@@ -5,7 +5,7 @@ import { storesAPI } from '../../api/stores';
 import { toast } from 'sonner';
 import Skeleton from '../common/Skeleton';
 import Icon from '../../components/ui/Icon';
-import { ArrowLeft, Check, Code2, Copy, KeyRound, Loader2, Plus, RefreshCw, ScrollText, Trash2, Webhook } from 'lucide-react';
+import { ArrowLeft, Check, Code2, Copy, KeyRound, Loader2, Plus, RefreshCw, ScrollText, Trash2, Webhook, CircleCheck, Clock, CircleX } from 'lucide-react';
 
 const EVENT_TYPES = ['order.created', 'order.updated', 'order.completed'];
 

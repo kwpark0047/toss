@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { formatPrice } from '@/utils/format';
 import Icon from '../../components/ui/Icon';
-import { Edit, History, Play, Plus, RefreshCw, Save, Trash2, TrendingUp, X } from 'lucide-react';
+import { Clock, Edit, History, Package, Play, Plus, RefreshCw, Save, Trash2, TrendingUp, X, Users, PauseCircle, CheckCircle, XCircle, BarChart3 } from 'lucide-react';
 const RULE_TYPES = [{
   value: 'TIME_BASED',
   label: '시간대별',

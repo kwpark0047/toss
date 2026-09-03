@@ -5,7 +5,7 @@ import { communityAPI } from '../../api/index.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import api from '../../api/index.js';
 import EmptyState from '../common/EmptyState';
-import { Bell, Calendar, CheckCircle, ChevronDown, ChevronRight, Clock, Eye, Globe, Heart, Loader2, Phone, Plus, RefreshCw, Search, Send, Store, X, XCircle } from 'lucide-react';
+import { Bell, Calendar, CheckCircle, ChevronDown, ChevronRight, Clock, Eye, Flame, Globe, Heart, Loader2, MapPin, Megaphone, Phone, Plus, RefreshCw, Search, Send, Share2, Store, Users, X, XCircle } from 'lucide-react';
 
 // ── 상수 ──────────────────────────────────────────────────────────────
 const TYPE_OPTIONS = [
