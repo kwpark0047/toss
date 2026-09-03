@@ -77,6 +77,7 @@ module.exports = [
       'tests/unit/**/*.js',
       'tests/integration/**/*.js',
       'tests/scripts/**/*.js',
+      'tests/helpers/**/*.js',
       'jest.setup.js',
     ],
     languageOptions: {

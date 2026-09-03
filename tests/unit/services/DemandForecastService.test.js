@@ -1,8 +1,7 @@
-const demandForecastService = require('../../../services/DemandForecastService');
-
-jest.mock('../../../config/prisma');
+jest.mock('../../../config/prisma', () => require('../../../tests/helpers/prismaMock').create());
 jest.mock('../../../services/aiService');
 
+const demandForecastService = require('../../../services/DemandForecastService');
 const prisma = require('../../../config/prisma');
 const aiService = require('../../../services/aiService');
 

@@ -1,8 +1,7 @@
-const recommendationEngine = require('../../../services/RecommendationEngine');
-
-jest.mock('../../../config/prisma');
+jest.mock('../../../config/prisma', () => require('../../../tests/helpers/prismaMock').create());
 jest.mock('../../../services/aiService');
 
+const recommendationEngine = require('../../../services/RecommendationEngine');
 const prisma = require('../../../config/prisma');
 const aiService = require('../../../services/aiService');
 
@@ -88,6 +87,12 @@ describe('RecommendationEngine', () => {
   describe('generateAndStoreRecommendations', () => {
     test('상품 데이터가 없으면 빈 배열 반환', async () => {
       prisma.products.findMany.mockResolvedValue([]);
+      prisma.orders.findMany.mockResolvedValue([]);
+      prisma.customer_segments.findMany.mockResolvedValue([]);
+      prisma.customer_personalizations.findFirst.mockResolvedValue(null);
+      prisma.order_items.findMany.mockResolvedValue([]);
+      prisma.reviews.findMany.mockResolvedValue([]);
+      prisma.stores.findUnique.mockResolvedValue(null);
 
       const result = await recommendationEngine.generateAndStoreRecommendations(1);
       expect(result).toEqual([]);
