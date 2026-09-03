@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const weatherService = require('./weatherService');
+const aiService = require('./aiService');
 
 class DynamicPricingService {
   async getPricingRules(storeId) {
@@ -227,7 +228,7 @@ class DynamicPricingService {
       case 'TIME_BASED':
         return this.applyTimeBased(currentPrice, config);
       case 'DEMAND_BASED':
-        return this.applyDemandBased(currentPrice, config);
+        return this.applyDemandBased(currentPrice, config, product, weatherContext);
       case 'COMPETITOR_BASED':
         return this.applyCompetitorBased(currentPrice, config);
       case 'INVENTORY_BASED':
@@ -247,13 +248,108 @@ class DynamicPricingService {
     return Math.round(currentPrice * slot.multiplier);
   }
 
-  applyDemandBased(currentPrice, config) {
+  applyDemandBased(currentPrice, config, product, weatherContext) {
+    return this._applyDemandBasedAsync(currentPrice, config, product, weatherContext);
+  }
+
+  async _applyDemandBasedAsync(currentPrice, config, product, weatherContext) {
     if (!config || !config.demandThreshold) return currentPrice;
+
+    // 1. 기본 통계적 예측 (이동평균 등)
     const demandScore = config.demandScore || 1.0;
+    let basePrediction = currentPrice;
     if (demandScore > config.demandThreshold) {
-      return Math.round(currentPrice * (1 + (demandScore - config.demandThreshold) * 0.2));
+      basePrediction = Math.round(
+        currentPrice * (1 + (demandScore - config.demandThreshold) * 0.2)
+      );
     }
-    return currentPrice;
+
+    // 2. AI 기반 보정 (Gemini API 활용)
+    const aiAdjusted = await this._aiDemandAdjustment(
+      currentPrice,
+      basePrediction,
+      product,
+      config,
+      weatherContext
+    );
+
+    // 3. 가격 범위 제한 (min/max)
+    const minPrice = config.min_price || 0;
+    const maxPrice = config.max_price || Infinity;
+    const finalPrice = Math.max(minPrice, Math.min(maxPrice, aiAdjusted));
+
+    return Math.round(finalPrice);
+  }
+
+  /**
+   * AI 기반 수요 예측 보정 (Gemini API)
+   */
+  async _aiDemandAdjustment(currentPrice, basePrediction, product, config, weatherContext) {
+    try {
+      // 최근 30일간 판매 데이터 조회 (이미 시스템에 있음)
+      const since90Days = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const recentOrders = await prisma.order_items.findMany({
+        where: {
+          orders: {
+            store_id: Number(product.store_id || 0),
+            created_at: { gte: since90Days },
+            status: { not: 'cancelled' },
+          },
+          product_id: Number(product.id),
+        },
+        select: { quantity: true },
+      });
+
+      const quantities = recentOrders.map((o) => o.quantity);
+      const avgDemand =
+        quantities.length > 0 ? quantities.reduce((sum, q) => sum + q, 0) / quantities.length : 0;
+
+      // AI 프롬프트 엔지니어링: 수요 예측 + 가격 최적화 요청
+      const weatherNote = weatherContext ? `날씨 ${weatherContext.condition}` : '기본';
+      const prompt = [
+        '당신은는 식당 동적 가격 책정 전문가입니다. 다음 조건에서 최적의 가격을 제안해주세요.',
+        '',
+        '[상품 정보]',
+        `- 상품명: ${product.name}`,
+        `- 현재 가격: ${currentPrice}원`,
+        `- 카테고리: ${product.category_id || '미분류'}`,
+        '',
+        '[가격 설정 규칙]',
+        `- 임계치: ${config.demandThreshold}`,
+        `- 기본 수요 점수: ${(config && config.demandScore) || 1.0}`,
+        `- 현재 수요 추세: ${weatherNote}`,
+        '',
+        '[현재 시장 상황]',
+        `- 평균 일일 주문량 (최근 30일): ${Math.round(avgDemand)}개`,
+        `- 현재 가격: ${currentPrice}원`,
+        '',
+        '[요청사항]',
+        '다음 JSON 형식을 반환해주세요:',
+        '{',
+        '  "optimal_price": number,     // 추천 최적 가격 (원)',
+        '  "confidence": 0.0~1.0,       // 신뢰도',
+        '  "reason": "가격 조정이유 (1~2문장, 한국어)",',
+        '  "adjustment_type": "UP|DOWN|MAINTAIN"',
+        '}',
+        '',
+        `위 데이터를 바탕으로 현재 가격 ${currentPrice}원에 대해 수요 예측과 가격 최적화를 고려한 추천 가격을 JSON 형태로 반환해주세요.`,
+      ].join('\n');
+
+      const aiResponse = await aiService.generateWithFallback(prompt, {
+        generationConfig: {
+          temperature: 0.1,
+          response_mime_type: 'application/json',
+        },
+      });
+
+      const cleaned = aiResponse.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+
+      return parsed.optimal_price || basePrediction;
+    } catch (error) {
+      logger.warn({ error: error.message, productId: product.id }, 'AI 수요 예측 보정 실패');
+      return basePrediction;
+    }
   }
 
   applyCompetitorBased(currentPrice, config) {

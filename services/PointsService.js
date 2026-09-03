@@ -50,11 +50,11 @@ class PointsService {
     if (storeId) {
       storeSettings = await Point.getStoreSettings(storeId);
 
-      if (balance.user_id || balance.phone || balance.toss_user_key) {
+      if (identifier.user_id || identifier.phone || identifier.toss_user_key) {
         const userPoint = await prisma.user_points.findFirst({
           where: {
             OR: [
-              { id: balance.id },
+              { user_id: identifier.user_id || undefined },
               { phone: identifier.phone || undefined },
               { toss_user_key: identifier.toss_user_key || undefined },
             ],
