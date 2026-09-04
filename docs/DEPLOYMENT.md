@@ -52,7 +52,7 @@ All secrets must be configured in the deployment platform:
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/kwpark0047-iceu/250105.git
+git clone https://github.com/kwpark0047/250105.git
 cd 250105
 
 # 2. Start all services
@@ -104,8 +104,8 @@ git push origin develop
 ### Manual Deployment
 ```bash
 # Build and push image
-docker build -t ghcr.io/kwpark0047-iceu/wemarket-api:staging .
-docker push ghcr.io/kwpark0047-iceu/wemarket-api:staging
+docker build -t ghcr.io/kwpark0047/wemarket-api:staging .
+docker push ghcr.io/kwpark0047/wemarket-api:staging
 
 # Deploy via Render
 curl -X POST "${RENDER_STAGING_DEPLOY_HOOK}" \
@@ -172,7 +172,7 @@ curl -X POST "${RENDER_PRODUCTION_DEPLOY_HOOK}" \
 
 ```bash
 # Add repository
-helm repo add wemarket https://kwpark0047-iceu.github.io/250105/helm
+helm repo add wemarket https://kwpark0047.github.io/250105/helm
 helm repo update
 
 # Install

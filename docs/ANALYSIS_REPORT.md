@@ -13,7 +13,7 @@
 |------|------|
 | **목적** | QR 메뉴 주문 + 프랜차이즈 매장 관리 SaaS 플랫폼 |
 | **사이트** | https://toss.wemarket.workers.dev (프론트) / https://wemarket-toss.onrender.com (백엔드) |
-| **GitHub** | https://github.com/kwpark0047-iceu/250105 |
+| **GitHub** | https://github.com/kwpark0047/250105 |
 | **DB** | PostgreSQL (Supabase) - 모델 51개, Prisma 스키마 1,033줄 |
 | **배포** | Cloudflare Workers Assets (프론트엔드) + Render (백엔드) |
 | **백엔드** | 41 controllers, 39 services, 46 routes |

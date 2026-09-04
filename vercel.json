@@ -1,0 +1,8 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "frontend/dist",
+  "framework": "nextjs",
+  "env": {
+    "BETTER_AUTH_SECRET": "placeholder-better-auth-secret-change-in-vercel-dashboard"
+  }
+}

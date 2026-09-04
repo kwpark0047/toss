@@ -8,7 +8,7 @@ WeMarket에 기여해 주셔서 감사합니다! 이 문서는 프로젝트에 �
 
 ```bash
 # 저장소 클론
-git clone https://github.com/kwpark0047-iceu/250105.git
+git clone https://github.com/kwpark0047/250105.git
 cd 250105
 
 # 의존성 설치

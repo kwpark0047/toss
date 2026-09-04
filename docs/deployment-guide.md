@@ -86,7 +86,7 @@ curl -X POST "https://api.render.com/v1/services/$SERVICE_ID/deploys" \
 #### Quick Start
 ```bash
 # 1. Clone and configure
-git clone https://github.com/kwpark0047-iceu/250105.git
+git clone https://github.com/kwpark0047/250105.git
 cd 250105
 cp .env.example .env.prod
 # Edit .env.prod with production values
@@ -158,7 +158,7 @@ global:
   environment: production
 
 image:
-  repository: ghcr.io/kwpark0047-iceu/wemarket-api
+  repository: ghcr.io/kwpark0047/wemarket-api
   tag: "1.0.0"
 
 app:
@@ -390,13 +390,13 @@ metadata:
 ### Image Security
 ```bash
 # Scan images in CI
-trivy image ghcr.io/kwpark0047-iceu/wemarket-api:latest
+trivy image ghcr.io/kwpark0047/wemarket-api:latest
 
 # Sign images
-cosign sign ghcr.io/kwpark0047-iceu/wemarket-api:1.0.0
+cosign sign ghcr.io/kwpark0047/wemarket-api:1.0.0
 
 # Verify at deploy
-cosign verify ghcr.io/kwpark0047-iceu/wemarket-api:1.0.0
+cosign verify ghcr.io/kwpark0047/wemarket-api:1.0.0
 ```
 
 ---
