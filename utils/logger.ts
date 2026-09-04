@@ -72,23 +72,52 @@ const logger = winston.createLogger({
   ],
 });
 
-// ── 도메인별 네임드 로거 ────────────────────────────────────────────
-// [배경] 일부 모듈이 `const { apiLogger } = require('../utils/logger')` 형태로
-// 가져다 쓰는데 apiLogger 가 export 되지 않아 `undefined.info(...)` 로 터졌다.
-// (newsController / weatherController 가 500 을 반환하던 원인)
-// 당장은 동일 winston 인스턴스를 재노출해 호환을 보장하고,
-// 추후 child logger(라벨 부착)로 승격한다.
-const namedLoggers = [
-  'apiLogger',
-  'dbLogger',
-  'syncLogger',
-  'webLogger',
-  'authLogger',
-  'notificationLogger',
-];
-for (const name of namedLoggers) {
-  (module.exports as any)[name] = logger;
-}
-
+// [로거 인스턴스 생성] - 타입은 winston.createLogger()가 자동 추론
+// 타입 선언: winston logger 메서드 노출
+/**
+ * Winston logger 인스턴스
+ * - error, warn, info, debug 메서드 제공
+ * - 콘솔 및 파일 출력 지원
+ * - 노드 환경에 따른 레벨 자동 설정
+ */
 export default logger;
-export { logger as apiLogger, logger as dbLogger, logger as syncLogger, logger as webLogger, logger as authLogger, logger as notificationLogger };
+
+/**
+ * logger.error - 에러 레벨 로그 출력
+ * @param message - 로그 메시지 또는 에러 객체
+ * @param meta - 추가 메타 데이터
+ */
+export const error = logger.error.bind(logger);
+/**
+ * logger.warn - 워닝 레벨 로그 출력
+ * @param message - 로그 메시지
+ * @param meta - 추가 메타 데이터
+ */
+export const warn = logger.warn.bind(logger);
+/**
+ * logger.debug - 디버그 레벨 로그 출력 (개발환경 기본)
+ * @param message - 로그 메시지
+ * @param meta - 추가 메타 데이터
+ */
+export const debug = logger.debug.bind(logger);
+/**
+ * logger.info - 인포 레벨 로그 출력
+ * @param message - 로그 메시지
+ * @param meta - 추가 메타 데이터
+ */
+export const info = logger.info.bind(logger);
+
+/**
+ * Named logger exports for module compatibility
+ * 일부 모듈이 `const { apiLogger } = require('../utils/logger')` 형태로
+ * 가져다 쓰는데 apiLogger 가 export 되지 않아 `undefined.info(...)` 로 터났다.
+ * (newsController / weatherController 가 500 을 반환하던 원인)
+ * 당장은 동일 winston 인스턴스를 재노출해 호환을 보장하고,
+ * 추후 child logger(라벨 부착)로 승격한다.
+ */
+export const apiLogger = logger;
+export const dbLogger = logger;
+export const syncLogger = logger;
+export const webLogger = logger;
+export const authLogger = logger;
+export const notificationLogger = logger;

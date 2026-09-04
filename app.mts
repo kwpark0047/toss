@@ -6,18 +6,19 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import 'dotenv/config';
 import logger from './utils/logger.ts';
-import { checkEnv } from './utils/envValidator.ts';
-import responseFormatter from './middleware/responseFormatter.ts';
-import { errorHandler } from './utils/errorHandler.ts';
-import performanceMonitor from './middleware/performanceMonitor.ts';
-import Monitoring from './repositories/Monitoring.ts';
-import { generalLimiter, publicLimiter, orderLimiter, authLimiter, paymentLimiter, } from './middleware/rateLimiter.ts';
-import alerting from './utils/alerting.ts';
-import healthRouter from './routes/health.ts';
-import { requestTracker } from './routes/health.ts';
-import { strictSanitizer } from './middleware/xssSanitizer.ts';
-import { cspNonceMiddleware } from './middleware/cspNonce.ts';
-import { initSentry, Sentry } from './utils/sentry.ts';
+import { checkEnv } from './utils/envValidator.js';
+import responseFormatter from './middleware/responseFormatter.js';
+import { errorHandler } from './utils/errorHandler.js';
+import performanceMonitor from './middleware/performanceMonitor.js';
+import Monitoring from './repositories/Monitoring.js';
+import { initDefaultMetrics, metricsMiddleware } from './metrics/PrometheusMetrics.mts';
+import { generalLimiter, publicLimiter, orderLimiter, authLimiter, paymentLimiter, } from './middleware/rateLimiter.js';
+import alerting from './utils/alerting.js';
+import healthRouter from './routes/health.mts';
+import { requestTracker } from './routes/health.mts';
+import { strictSanitizer } from './middleware/xssSanitizer.js';
+import { cspNonceMiddleware } from './middleware/cspNonce.js';
+import { initSentry, Sentry } from './utils/sentry.js';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
@@ -30,11 +31,13 @@ if (!envCheck.ok) {
 const APP_VERSION = (await import('./package.json', { with: { type: 'json' } })).default.version;
 const sentryClient = initSentry();
 alerting.registerGlobalHandlers();
+// Prometheus 프로세스 기본 메트릭(event loop, 메모리, GC) 등록 (P1 모니터링)
+initDefaultMetrics();
 const app = express();
 const httpServer = createServer(app);
-const notificationService = (await import('./services/notificationService.ts')).default;
-const dashboardBroadcastService = (await import('./services/DashboardBroadcastService.ts')).default;
-const { getAllowedOrigins, isOriginAllowed } = await import('./config/domain.ts');
+const notificationService = (await import('./services/notificationService.js')).default;
+const dashboardBroadcastService = (await import('./services/DashboardBroadcastService.js')).default;
+const { getAllowedOrigins, isOriginAllowed } = await import('./config/domain.js');
 const allowedOrigins = getAllowedOrigins();
 /**
  * 보안 헤더 및 기본 미들웨어
@@ -95,6 +98,7 @@ const { i18nMiddleware } = await import('./utils/i18n.js');
 app.use(i18nMiddleware);
 app.use(performanceMonitor);
 app.use(requestTracker); // SLA 지표 수집
+app.use(metricsMiddleware); // Prometheus HTTP 메트릭 수집 (P1)
 app.use('/api', generalLimiter); // 전체 API 속도 제한
 /**
  * Clean Architecture DI 컨테이너 설정
@@ -108,7 +112,7 @@ let diMiddlewareFn;
 if (isTest) {
     // 테스트 환경: 동기 로드로 즉시 초기화
     try {
-        const { createDIContainer, diMiddleware } = await import('./app/infrastructure/di/container.ts');
+        const { createDIContainer, diMiddleware } = await import('./app/infrastructure/di/container.js');
         diContainer = createDIContainer();
         diMiddlewareFn = diMiddleware;
         app.use(diMiddlewareFn(diContainer));
@@ -187,7 +191,7 @@ app.use('/api/health', healthRouter);
 // 임의 명령 실행을 노출하므로 프로덕션에서는 기본 비활성. 한시적으로 필요할 때만
 // ENABLE_DEV_OPS=true 로 켠다. 라우터 내부에서 SEED_KEY 인증을 강제한다.
 if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEV_OPS) {
-    const devOpsRouter = (await import('./routes/_devOps.ts')).default;
+    const devOpsRouter = (await import('./routes/_devOps.js')).default;
     app.use('/api/_devops', devOpsRouter);
     logger.warn('[app] 운영 편의 엔드포인트(/api/_devops) 활성화됨');
 }
@@ -227,70 +231,70 @@ app.get('/api/config/firebase', (req, res) => {
 // Firebase Messaging Service Worker는 public/firebase-messaging-sw.js로 분리 (CSP 안전)
 // (버전 및 시스템 엔드포인트 최상단으로 이동됨)
 const routes = {
-    auth: (await import('./routes/auth.ts')).default,
-    stores: (await import('./routes/stores.ts')).default,
-    storeInfoEnhancement: (await import('./routes/storeInfoEnhancement.ts')).default,
-    products: (await import('./routes/products.ts')).default,
-    orders: (await import('./routes/orders.ts')).default,
-    tables: (await import('./routes/tables.ts')).default,
-    payments: (await import('./routes/payments.ts')).default,
-    notifications: (await import('./routes/notifications.ts')).default,
-    categories: (await import('./routes/categories.ts')).default,
-    admin: (await import('./routes/admin.ts')).default,
-    points: (await import('./routes/points.ts')).default,
-    plans: (await import('./routes/plans.ts')).default,
-    auditLogs: (await import('./routes/auditLogs.ts')).default,
-    featureFlags: (await import('./routes/featureFlags.ts')).default,
-    orderEvents: (await import('./routes/orderEvents.ts')).default,
-    planRequests: (await import('./routes/planRequests.ts')).default,
-    adminPlans: (await import('./routes/adminPlans.ts')).default,
-    staffRequests: (await import('./routes/staffRequests.ts')).default,
-    optionTemplates: (await import('./routes/optionTemplates.ts')).default,
-    boards: (await import('./routes/boards.ts')).default,
-    ai: (await import('./routes/ai.ts')).default,
-    analytics: (await import('./routes/analytics.ts')).default,
-    chat: (await import('./routes/chat.ts')).default,
-    cart: (await import('./routes/cart.ts')).default,
-    waiting: (await import('./routes/waiting.ts')).default,
-    reviews: (await import('./routes/reviews.ts')).default,
-    customers: (await import('./routes/customers.ts')).default,
-    coupons: (await import('./routes/coupons.ts')).default,
-    reservations: (await import('./routes/reservations.ts')).default,
-    staff: (await import('./routes/staff.ts')).default,
-    notificationTemplates: (await import('./routes/notificationTemplates.ts')).default,
-    uploads: (await import('./routes/uploads.ts')).default,
-    crm: (await import('./routes/crm.ts')).default,
-    menuOptimization: (await import('./routes/menuOptimization.ts')).default,
-    staffGamification: (await import('./routes/staffGamification.ts')).default,
-    aiAssistant: (await import('./routes/aiAssistant.ts')).default,
-    aiPrompts: (await import('./routes/aiPrompts.ts')).default,
-    aiUsage: (await import('./routes/aiUsage.ts')).default,
-    export: (await import('./routes/export.ts')).default,
-    inventory: (await import('./routes/inventory.ts')).default,
-    community: (await import('./routes/community.ts')).default,
-    legal: (await import('./routes/legal.ts')).default,
-    naverPlace: (await import('./routes/naverPlace.ts')).default,
-    foodTrucks: (await import('./routes/foodTrucks.ts')).default,
-    kds: (await import('./routes/kds.ts')).default,
-    alimtalk: (await import('./routes/alimtalk.ts')).default,
-    weather: (await import('./routes/weather.ts')).default,
-    news: (await import('./routes/news.ts')).default,
-    sse: (await import('./routes/sse.ts')).default,
-    printJobs: (await import('./routes/printJobs.ts')).default,
-    dynamicPricing: (await import('./routes/dynamicPricing.ts')).default,
-    aiRecommendations: (await import('./routes/aiRecommendations.ts')).default,
-    demandForecast: (await import('./routes/demandForecast.ts')).default,
-    socialAuth: (await import('./routes/socialAuth.ts')).default,
-    adminAuth: (await import('./routes/adminAuth.ts')).default,
-    franchise: (await import('./routes/franchise.ts')).default,
-    loyalty: (await import('./routes/loyalty.ts')).default,
-    ecoBadge: (await import('./routes/ecoBadge.ts')).default,
-    aiOrder: (await import('./routes/aiOrder.ts')).default,
-    aiAutoOrder: (await import('./routes/aiAutoOrder.ts')).default,
-    recommendationTracking: (await import('./routes/recommendationTracking.ts')).default,
-    reportPdf: (await import('./routes/reportPdf.ts')).default,
-    config: (await import('./routes/config.ts')).default,
-    swagger: (await import('./routes/swagger.ts')).default,
+    auth: (await import('./routes/auth.js')).default,
+    stores: (await import('./routes/stores.js')).default,
+    storeInfoEnhancement: (await import('./routes/storeInfoEnhancement.js')).default,
+    products: (await import('./routes/products.js')).default,
+    orders: (await import('./routes/orders.js')).default,
+    tables: (await import('./routes/tables.js')).default,
+    payments: (await import('./routes/payments.js')).default,
+    notifications: (await import('./routes/notifications.js')).default,
+    categories: (await import('./routes/categories.js')).default,
+    admin: (await import('./routes/admin.js')).default,
+    points: (await import('./routes/points.js')).default,
+    plans: (await import('./routes/plans.js')).default,
+    auditLogs: (await import('./routes/auditLogs.js')).default,
+    featureFlags: (await import('./routes/featureFlags.js')).default,
+    orderEvents: (await import('./routes/orderEvents.js')).default,
+    planRequests: (await import('./routes/planRequests.js')).default,
+    adminPlans: (await import('./routes/adminPlans.js')).default,
+    staffRequests: (await import('./routes/staffRequests.js')).default,
+    optionTemplates: (await import('./routes/optionTemplates.js')).default,
+    boards: (await import('./routes/boards.js')).default,
+    ai: (await import('./routes/ai.js')).default,
+    analytics: (await import('./routes/analytics.js')).default,
+    chat: (await import('./routes/chat.js')).default,
+    cart: (await import('./routes/cart.js')).default,
+    waiting: (await import('./routes/waiting.js')).default,
+    reviews: (await import('./routes/reviews.js')).default,
+    customers: (await import('./routes/customers.js')).default,
+    coupons: (await import('./routes/coupons.js')).default,
+    reservations: (await import('./routes/reservations.js')).default,
+    staff: (await import('./routes/staff.js')).default,
+    notificationTemplates: (await import('./routes/notificationTemplates.js')).default,
+    uploads: (await import('./routes/uploads.js')).default,
+    crm: (await import('./routes/crm.js')).default,
+    menuOptimization: (await import('./routes/menuOptimization.js')).default,
+    staffGamification: (await import('./routes/staffGamification.js')).default,
+    aiAssistant: (await import('./routes/aiAssistant.js')).default,
+    aiPrompts: (await import('./routes/aiPrompts.js')).default,
+    aiUsage: (await import('./routes/aiUsage.js')).default,
+    export: (await import('./routes/export.js')).default,
+    inventory: (await import('./routes/inventory.js')).default,
+    community: (await import('./routes/community.js')).default,
+    legal: (await import('./routes/legal.js')).default,
+    naverPlace: (await import('./routes/naverPlace.js')).default,
+    foodTrucks: (await import('./routes/foodTrucks.js')).default,
+    kds: (await import('./routes/kds.js')).default,
+    alimtalk: (await import('./routes/alimtalk.js')).default,
+    weather: (await import('./routes/weather.js')).default,
+    news: (await import('./routes/news.js')).default,
+    sse: (await import('./routes/sse.js')).default,
+    printJobs: (await import('./routes/printJobs.js')).default,
+    dynamicPricing: (await import('./routes/dynamicPricing.js')).default,
+    aiRecommendations: (await import('./routes/aiRecommendations.js')).default,
+    demandForecast: (await import('./routes/demandForecast.js')).default,
+    socialAuth: (await import('./routes/socialAuth.js')).default,
+    adminAuth: (await import('./routes/adminAuth.js')).default,
+    franchise: (await import('./routes/franchise.js')).default,
+    loyalty: (await import('./routes/loyalty.js')).default,
+    ecoBadge: (await import('./routes/ecoBadge.js')).default,
+    aiOrder: (await import('./routes/aiOrder.js')).default,
+    aiAutoOrder: (await import('./routes/aiAutoOrder.js')).default,
+    recommendationTracking: (await import('./routes/recommendationTracking.js')).default,
+    reportPdf: (await import('./routes/reportPdf.js')).default,
+    config: (await import('./routes/config.js')).default,
+    swagger: (await import('./routes/swagger.js')).default,
 };
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
 if (process.env.NODE_ENV !== 'production') {
@@ -305,8 +309,8 @@ if (process.env.NODE_ENV !== 'production') {
 // [API 라우트 명시적 그룹화 등록]
 const API_PREFIX = '/api';
 // ── Open Commerce Hub: 개발자 포털(내부 인증) + Open API v1(API 키 인증) ──
-app.use(`${API_PREFIX}/developer`, (await import('./routes/developer.ts')).default);
-app.use(`${API_PREFIX}/v1`, (await import('./routes/v1.ts')).default);
+app.use(`${API_PREFIX}/developer`, (await import('./routes/developer.js')).default);
+app.use(`${API_PREFIX}/v1`, (await import('./routes/v1.js')).default);
 app.use(`${API_PREFIX}/auth`, authLimiter, routes.auth);
 app.use(`${API_PREFIX}/auth/social`, authLimiter, routes.socialAuth);
 app.use(`${API_PREFIX}/stores`, publicLimiter, routes.stores);
@@ -375,7 +379,9 @@ app.use(`${API_PREFIX}/swagger`, routes.swagger);
 app.use(`${API_PREFIX}/news`, publicLimiter, routes.news);
 // Clean Architecture: 모니터링은 DI 컨테이너 기반 라우터가 단독 담당한다.
 // (구 routes/monitoring.js 는 중복 구현이라 제거됨 — M-2)
-app.use(`${API_PREFIX}/monitoring`, (await import('./app/interfaces/http/monitoringRouter.ts')).default);
+app.use(`${API_PREFIX}/monitoring`, (await import('./app/interfaces/http/monitoringRouter.js')).default);
+// Prometheus /metrics 스크랩 엔드포인트 (P1, 인증 없이 표준 텍스트 반환)
+app.use(`${API_PREFIX}/metrics`, (await import('./metrics/metricsRouter.mts')).default);
 // 정적 파일 서빙
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'frontend/dist')));
@@ -400,8 +406,8 @@ const io = new Server(httpServer, {
         credentials: true,
     },
 });
-const { registerSocketHandlers } = await import('./socket/handlers.ts');
-const { authenticateSocket } = await import('./socket/auth.ts');
+const { registerSocketHandlers } = await import('./socket/handlers.js');
+const { authenticateSocket } = await import('./socket/auth.js');
 io.use(authenticateSocket);
 // 모든 Socket.IO 이벤트는 단일 connection 핸들러에서 등록한다.
 registerSocketHandlers(io);
@@ -410,7 +416,7 @@ notificationService.init(io);
 dashboardBroadcastService.init(io);
 app.set('io', io);
 // Swagger API 문서
-const swaggerSetup = (await import('./docs/swagger.ts')).default;
+const swaggerSetup = (await import('./docs/swagger.js')).default;
 swaggerSetup(app);
 // CORS 안전망 - 라우트 매칭 전에 실패해도 CORS 헤더 보장
 app.use((req, res, next) => {
@@ -446,7 +452,7 @@ if (sentryClient) {
     Sentry.setupExpressErrorHandler(app);
 }
 app.use(errorHandler);
-const { startNewsCron } = await import('./services/newsCrawlerService.ts');
+const { startNewsCron } = await import('./services/newsCrawlerService.js');
 if (process.env.NODE_ENV !== 'test') {
     startNewsCron();
 }

@@ -27,6 +27,7 @@
     "allowUnreachableCode": true,
     "allowUnusedLabels": true,
     "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "paths": {
       "@/*": ["./*"]
     },
@@ -41,10 +42,11 @@
     "middleware/**/*.ts",
     "utils/**/*.ts",
     "config/**/*.ts",
+    "metrics/**/*.ts",
     "app/**/*.ts",
     "scripts/**/*.ts",
-    "index.ts",
-    "app.ts"
+    "index.mts",
+    "app.mts"
   ],
   "exclude": [
     "node_modules",

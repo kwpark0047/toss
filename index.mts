@@ -1,10 +1,10 @@
 import 'dotenv/config';
-import { httpServer, io } from './app.ts';
+import { httpServer, io } from './app.mts';
 import logger from './utils/logger.ts';
-import alerting from './utils/alerting.ts';
-import prisma from './config/prisma.ts';
+import alerting from './utils/alerting.js';
+import prisma from './config/prisma.js';
 import cron from 'node-cron';
-import { startKeepAlive } from './utils/keepAlive.ts';
+import { startKeepAlive } from './utils/keepAlive.js';
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, async () => {
     logger.info(`[서버] WeMarket API 서버 실행 중: http://localhost:${PORT}`);
@@ -12,20 +12,20 @@ httpServer.listen(PORT, async () => {
     logger.info(`[버전] v${(await import('./package.json', { with: { type: 'json' } })).default.version}`);
     // Socket.IO Redis Adapter setup for horizontal scaling
     try {
-        const { setupSocketRedisAdapter } = await import('./socket/adapter.ts');
+        const { setupSocketRedisAdapter } = await import('./socket/adapter.js');
         await setupSocketRedisAdapter(io);
     }
     catch (err) {
         logger.warn('[서버] Socket.IO Redis Adapter 초기화 실패', { error: err.message });
     }
     // 주간 매출 리포트 스케줄러 (매주 월요일 09:00 KST)
-    (await import('./services/weeklyReportService.ts')).default.start();
+    (await import('./services/weeklyReportService.js')).default.start();
     // Open Commerce Hub 웹훅 재시도 스케줄러
-    (await import('./services/webhookDispatcher.ts')).default.startRetryScheduler();
+    (await import('./services/webhookDispatcher.js')).default.startRetryScheduler();
     // 결제 대사 스케줄러 (매시간 정각)
-    (await import('./services/PaymentReconciliationService.ts')).default.startScheduler();
+    (await import('./services/PaymentReconciliationService.js')).default.startScheduler();
     // 네이버 뉴스 자동 수집 스케줄러 (매일 07:00 KST)
-    const { collectAndPost } = await import('./services/newsCollectorService.ts');
+    const { collectAndPost } = await import('./services/newsCollectorService.js');
     cron.schedule('0 7 * * *', async () => {
         logger.info('[뉴스수집] 스케줄러 시작 — 매일 07:00 KST 뉴스 수집');
         try {
@@ -37,14 +37,14 @@ httpServer.listen(PORT, async () => {
         }
     }, { timezone: 'Asia/Seoul' });
     logger.info('[뉴스수집] 스케줄러 등록 완료 (매일 07:00 KST)');
-    const archiveLogs = (await import('./scripts/archiveLogs.ts')).default;
+    const archiveLogs = (await import('./scripts/archiveLogs.js')).default;
     cron.schedule('0 4 1 * *', async () => {
         logger.info('[아카이빙] 월간 데이터 정리 시작');
         await archiveLogs();
     }, { timezone: 'Asia/Seoul' });
     logger.info('[아카이빙] 스케줄러 등록 완료 (매월 1일 04:00 KST)');
     // 동적 가격 규칙 스케줄러 (매시간 정각) — 날씨/시간대 기반 자동 가격 조정
-    const { activateAllStores } = await import('./services/DynamicPricingService.ts');
+    const { activateAllStores } = await import('./services/DynamicPricingService.js');
     cron.schedule('0 * * * *', async () => {
         logger.info('[동적가격] 스케줄러 시작 — 매시간 정각 가격 규칙 적용');
         try {
@@ -56,9 +56,9 @@ httpServer.listen(PORT, async () => {
     }, { timezone: 'Asia/Seoul' });
     logger.info('[동적가격] 스케줄러 등록 완료 (매시간 정각 KST)');
     // 이상 매출 감지 스케줄러 (매 15분) — 매출 급감/폭증 실시간 경보
-const { checkSalesAnomaly } = await import('./services/AnomalyDetectionService.ts');
-const prismaAnomaly = (await import('./config/prisma.ts')).default;
-const { io: ioAnomaly } = await import('./app.ts');
+const { checkSalesAnomaly } = await import('./services/AnomalyDetectionService.js');
+const prismaAnomaly = (await import('./config/prisma.js')).default;
+const { io: ioAnomaly } = await import('./app.js');
     cron.schedule('*/15 * * * *', async () => {
         logger.info('[이상감지] 스케줄러 시작 — 매 15분 매출 변동성 검사');
         try {

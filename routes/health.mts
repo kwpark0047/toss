@@ -4,7 +4,8 @@
  *   name: Health
  *   description: 서비스 가용성 진단 (Health Check)
  */
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import prisma from '../config/prisma.js';
 import cb from '../utils/circuitBreaker.js';
 import alerting from '../utils/alerting.js';
@@ -17,26 +18,6 @@ const router = Router();
 
 // DB 슬립/서버 503 가용성 장애 시에도 브라우저 전송에 필요한 CORS 헤더를 원자적으로 강제 반사 (Workbox fetch 우회 차단 해결)
 router.use((req: Request, res: Response, next: NextFunction) => {
-  const origin = req.headers.origin;
-  const allowed = origin && isOriginAllowed(origin, getAllowedOrigins());
-  if (allowed) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  }
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
-  next();
-});
-
-const START_TIME = Date.now();
-// 버전 단일 소스: package.json (npm_package_version은 `node index.js` 직접 실행 시 누락됨)
-const APP_VERSION = (await import('../package.json', { with: { type: 'json' } })).default.version;
-
-// DB 슬립/서버 503 가용성 장애 시에도 브라우저 전송에 필요한 CORS 헤더를 원자적으로 강제 반사 (Workbox fetch 우회 차단 해결)
-router.use((req, res, next) => {
   const origin = req.headers.origin;
   const allowed = origin && isOriginAllowed(origin, getAllowedOrigins());
   if (allowed) {
