@@ -1,6 +1,7 @@
 const { AppError } = require('../utils/errorHandler');
 const twoFactorService = require('../services/TwoFactorService');
 const prisma = require('../config/prisma');
+const { normalizePhone } = require('../utils/phoneEncryption');
 
 const twoFactorController = {
   /**
@@ -249,6 +250,38 @@ const twoFactorController = {
       }
 
       res.success({ userId: user.id }, '2FA 검증 완료');
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * TOTP 2FA 토큰 검증 (일반 로그인/인증용)
+   * POST /api/auth/2fa/verify
+   * Body: { phone, totp }
+   * 일반 사용자용 TOTP 검증 - 로그인 후 최종 인증 완료
+   */
+  verify2fa: async (req, res, next) => {
+    try {
+      const { phone, totp } = req.body;
+      if (!phone || !totp)
+        return next(new AppError('핸드폰 번호와 TOTP 토큰을 입력해주세요.', 400));
+
+      const normalized = normalizePhone(phone);
+      const user = await prisma.users.findFirst({
+        where: { phone: normalized },
+        select: { id: true, two_factor_enabled: true, two_factor_secret: true },
+      });
+
+      if (!user) return next(new AppError('사용자를 찾을 수 없습니다.', 404));
+      if (!user.two_factor_enabled)
+        return next(new AppError('2FA가 활성화되어 있지 않습니다.', 400));
+      if (!user.two_factor_secret) return next(new AppError('2FA 비밀키가 없습니다.', 400));
+
+      const isValid = twoFactorService.verifyToken(String(totp), user.two_factor_secret);
+      if (!isValid) return next(new AppError('TOTP 토큰이 일치하지 않습니다.', 400));
+
+      res.success({ userId: user.id }, '2FA 인증이 완료되었습니다.');
     } catch (error) {
       next(error);
     }

@@ -3,8 +3,10 @@ const jwt = require('jsonwebtoken');
 const userRepository = require('../app/lib/repositories/user.repository');
 const prisma = require('../config/prisma'); // 다른 모델 접근을 위해 필요
 const logger = require('../utils/logger');
+const otplib = require('otplib');
 const { AppError } = require('../utils/errorHandler');
 const { sendSms } = require('../utils/smsService');
+const { generate2faSecret, verify2faToken } = require('../services/TwoFactorService');
 const {
   normalizePhone,
   encryptPhone,
@@ -107,6 +109,35 @@ const verifyOtp = async (req, res, next) => {
     });
 
     res.success({ verified: true, phone: normalized }, '인증이 완료되었습니다.');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ *this points to non-existent page 384. Let me use read toTwoFactorVerification { phone, totp }
+ */
+const verify2fa = async (req, res, next) => {
+  try {
+    const { phone, totp } = req.body;
+    if (!phone || !totp) return next(new AppError('핸드폰 번호와 TOTP 토큰을 입력해주세요.', 400));
+
+    const normalized = normalizePhone(phone);
+    const user = await userRepository.findByPhone([normalized]);
+
+    if (!user) return next(new AppError('사용자를 찾을 수 없습니다.', 404));
+
+    if (!user.two_factor_enabled) return next(new AppError('2FA가 활성화되어 있지 않습니다.', 400));
+
+    const secret = user.two_factor_secret;
+    if (!secret) return next(new AppError('2FA 비밀키가 없습니다. 설정을 다시 진행해주세요.', 400));
+
+    const isValid = otplib.verify(String(totp), secret);
+    if (!isValid) return next(new AppError('TOTP 토큰이 일치하지 않습니다.', 400));
+
+    const { token, refreshToken } = signTokens(user);
+    setTokenCookies(res, token, refreshToken);
+    res.success({ token, refreshToken, user: safeUser(user) }, '2FA 인증이 완료되었습니다.');
   } catch (error) {
     next(error);
   }
@@ -370,4 +401,5 @@ module.exports = {
   changePassword,
   refreshToken,
   logout,
+  verify2fa,
 };

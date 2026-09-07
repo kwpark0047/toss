@@ -285,6 +285,9 @@ router.post(
 // 로그인 시 2FA 검증 (별도 엔드포인트)
 router.post('/2fa/verify-login', twoFactorController.verifyLogin);
 
+// 일반 사용자용 TOTP 2FA 검증 (로그인 완료용)
+router.post('/2fa/verify', twoFactorController.verify2fa);
+
 // 관리자용 SMS OTP 2FA (기존)
 router.post('/2fa/send-login-otp', adminTwoFactorController.sendLoginOtp);
 router.post('/2fa/verify-login-otp', adminTwoFactorController.verifyLoginOtp);
