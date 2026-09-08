@@ -25,7 +25,7 @@ import WeatherAlertBanner from './WeatherAlertBanner';
 import notificationSound from '../../utils/notificationSound';
 import { onNewOrder, onOrderUpdated, joinDashboard, leaveDashboard, onDashboardOrderStatusChanged, onDashboardForecastUpdate, onConnect } from '../../utils/socket';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, ArrowDownRight, ArrowUpRight, Bell, CalendarDays, ChefHat, Clock, Download, Loader2, MessageSquareText, Plus, RefreshCw, Settings, ShieldAlert, ShoppingBag, Sparkles, Store, TrendingUp, X, Zap } from 'lucide-react';
+import { Activity, AlertCircle, ArrowDownRight, ArrowUpRight, BadgeCheck, BarChart3, Bell, CalendarDays, ChefHat, Clock, Code2, DollarSign, Download, FileSpreadsheet, FileText, Handshake, LayoutGrid, Loader2, MessageSquareText, Plus, QrCode, ReceiptText, RefreshCw, Settings, ShieldAlert, ShoppingBag, Sparkles, Store, TrendingUp, Users, X, Zap } from 'lucide-react';
 /* ─── 차트 컴포넌트 Lazy Loading (초기 번들 및 FCP 최적화) ─── */
 const SalesTrendChart = lazy(() => import('./dashboard/DashboardCharts').then(m => ({
   default: m.SalesTrendChart
@@ -553,7 +553,7 @@ const MasterDashboard = () => {
   }, {
     label: '정산',
     path: 'settlements',
-    icon: 'DollarSign',
+    icon: DollarSign,
     color: 'from-amber-500 to-yellow-500',
     badge: 0
   }];
@@ -720,7 +720,7 @@ const MasterDashboard = () => {
       <div className="grid grid-cols-2 xs:grid-cols-2 gap-2.5 sm:gap-3 px-1">
         {[{
         title: '총 매출',
-        icon: 'DollarSign',
+        icon: DollarSign,
         color: 'text-orange-400',
         bg: 'bg-orange-500/10',
         value: formatPrice(stats?.total_sales || 0),
@@ -728,7 +728,7 @@ const MasterDashboard = () => {
         accent: 'border-orange-500/20'
       }, {
         title: '총 주문',
-        icon: 'ShoppingBag',
+        icon: ShoppingBag,
         color: 'text-blue-400',
         bg: 'bg-blue-500/10',
         value: `${stats?.total_orders || 0}건`,

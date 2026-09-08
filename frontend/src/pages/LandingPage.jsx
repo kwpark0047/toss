@@ -8,7 +8,7 @@ import StoreLocator from '../components/StoreLocator';
 import { storesAPI } from '../api/stores';
 import { getRecentStores } from '../utils/recentStores';
 import LanguageSwitcher from '../components/common/LanguageSwitcher';
-import { CalendarDays, Check, ChevronRight, Clock, Gift, Heart, Quote, ShieldCheck, Sparkles, Store, TrendingUp } from 'lucide-react';
+import { Award, BadgeCheck, CalendarDays, Check, ChevronRight, Clock, Crown, Gift, Heart, Quote, ShieldCheck, Sparkles, Store, TrendingUp, UserPlus } from 'lucide-react';
 
 const LandingPage = () => {
     const { user } = useAuth();
@@ -560,7 +560,7 @@ const LandingPage = () => {
                                     { icon: Crown,         color:'text-violet-500',bg:'bg-violet-50',title:'VIP 자동 등급 분류',    desc:'방문 횟수·누적 금액 기준으로 일반→단골→VIP→VVIP 자동 승급.' },
                                     { icon: CalendarDays,  color:'text-pink-500',  bg:'bg-pink-50',  title:'생일·기념일 자동 쿠폰', desc:'등록된 생일에 맞춤 혜택을 자동 발송. 단골이 먼저 연락해 옵니다.' },
                                     { icon: UserPlus,      color:'text-emerald-500',bg:'bg-emerald-50',title:'개인화 재방문 유도',  desc:'"오랫동안 못 뵀네요 😊" 장기 미방문 고객에게 자동 메시지 발송.' },
-                                    { icon: 'TrendingUp',    color:'text-blue-500',  bg:'bg-blue-50',  title:'고객 패턴 분석',       desc:'자주 오는 시간대·선호 메뉴·평균 객단가를 차트로 한눈에.' },
+                                    { icon: TrendingUp,    color:'text-blue-500',  bg:'bg-blue-50',  title:'고객 패턴 분석',       desc:'자주 오는 시간대·선호 메뉴·평균 객단가를 차트로 한눈에.' },
                                 ].map((f, i) => (
                                     <motion.div key={i} initial={{ opacity:0, x:-16 }} whileInView={{ opacity:1, x:0 }}
                                         transition={{ delay: i * 0.08 }} viewport={{ once:true }}
