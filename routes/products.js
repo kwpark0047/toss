@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const { validateBody, validateQuery, validateParams } = require('../middleware/validate');
-const { checkStorePermission } = require('../middleware/storeAuth');
+const { checkStorePermissionForObject } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const productsController = require('../controllers/productsController');
-const { 
+const {
   createProductSchema,
   updateProductSchema,
   productStatusSchema,
@@ -37,7 +37,11 @@ const {
  *       200:
  *         description: 상품 목록 (60초 캐시)
  */
-router.get('/store/:storeId', validateParams({ params: productSearchQuerySchema }), catchAsync(productsController.getStoreProducts));
+router.get(
+  '/store/:storeId',
+  validateParams({ params: productSearchQuerySchema }),
+  catchAsync(productsController.getStoreProducts)
+);
 
 /**
  * @swagger
@@ -54,7 +58,11 @@ router.get('/store/:storeId', validateParams({ params: productSearchQuerySchema 
  *       200:
  *         description: 상품 상세 정보
  */
-router.get('/:id', validateParams(productIdParamSchema), catchAsync(productsController.getProductById));
+router.get(
+  '/:id',
+  validateParams(productIdParamSchema),
+  catchAsync(productsController.getProductById)
+);
 
 /**
  * @swagger
@@ -74,7 +82,12 @@ router.get('/:id', validateParams(productIdParamSchema), catchAsync(productsCont
  *       201:
  *         description: 상품 생성 완료
  */
-router.post('/', authMiddleware, validateBody(createProductSchema), catchAsync(productsController.createProduct));
+router.post(
+  '/',
+  authMiddleware,
+  validateBody(createProductSchema),
+  catchAsync(productsController.createProduct)
+);
 
 /**
  * @swagger
@@ -99,7 +112,14 @@ router.post('/', authMiddleware, validateBody(createProductSchema), catchAsync(p
  *       200:
  *         description: 수정 완료
  */
-router.put('/:id', authMiddleware, validateParams(productIdParamSchema), checkStorePermission('items:update'), validateBody(updateProductSchema), catchAsync(productsController.updateProduct));
+router.put(
+  '/:id',
+  authMiddleware,
+  validateParams(productIdParamSchema),
+  checkStorePermissionForObject('products'),
+  validateBody(updateProductSchema),
+  catchAsync(productsController.updateProduct)
+);
 
 /**
  * @swagger
@@ -118,7 +138,13 @@ router.put('/:id', authMiddleware, validateParams(productIdParamSchema), checkSt
  *       200:
  *         description: 삭제 완료
  */
-router.delete('/:id', authMiddleware, validateParams(productIdParamSchema), checkStorePermission('items:delete'), catchAsync(productsController.deleteProduct));
+router.delete(
+  '/:id',
+  authMiddleware,
+  validateParams(productIdParamSchema),
+  checkStorePermissionForObject('products'),
+  catchAsync(productsController.deleteProduct)
+);
 
 /**
  * @swagger
@@ -191,7 +217,14 @@ router.post('/import', authMiddleware, catchAsync(productsController.importFromS
  *       200:
  *         description: 상태 변경 완료
  */
-router.patch('/:id/status', authMiddleware, validateParams(productIdParamSchema), checkStorePermission('items:update'), validateBody(productStatusSchema), catchAsync(productsController.updateStatus));
+router.patch(
+  '/:id/status',
+  authMiddleware,
+  validateParams(productIdParamSchema),
+  checkStorePermissionForObject('products'),
+  validateBody(productStatusSchema),
+  catchAsync(productsController.updateStatus)
+);
 
 /**
  * @swagger
@@ -216,7 +249,14 @@ router.patch('/:id/status', authMiddleware, validateParams(productIdParamSchema)
  *       201:
  *         description: 옵션 생성 완료
  */
-router.post('/:id/options', authMiddleware, validateParams(productIdParamSchema), checkStorePermission('items:update'), validateBody(productOptionSchema), catchAsync(productsController.createOption));
+router.post(
+  '/:id/options',
+  authMiddleware,
+  validateParams(productIdParamSchema),
+  checkStorePermissionForObject('products'),
+  validateBody(productOptionSchema),
+  catchAsync(productsController.createOption)
+);
 
 /**
  * @swagger
@@ -245,7 +285,14 @@ router.post('/:id/options', authMiddleware, validateParams(productIdParamSchema)
  *       200:
  *         description: 옵션 수정 완료
  */
-router.put('/:id/options/:optionId', authMiddleware, validateParams(productIdParamSchema), checkStorePermission('items:update'), validateBody(productOptionSchema), catchAsync(productsController.updateOption));
+router.put(
+  '/:id/options/:optionId',
+  authMiddleware,
+  validateParams(productIdParamSchema),
+  checkStorePermissionForObject('products'),
+  validateBody(productOptionSchema),
+  catchAsync(productsController.updateOption)
+);
 
 /**
  * @swagger
@@ -268,7 +315,13 @@ router.put('/:id/options/:optionId', authMiddleware, validateParams(productIdPar
  *       200:
  *         description: 옵션 삭제 완료
  */
-router.delete('/:id/options/:optionId', authMiddleware, validateParams(productIdParamSchema), checkStorePermission('items:delete'), catchAsync(productsController.deleteOption));
+router.delete(
+  '/:id/options/:optionId',
+  authMiddleware,
+  validateParams(productIdParamSchema),
+  checkStorePermissionForObject('products'),
+  catchAsync(productsController.deleteOption)
+);
 
 /**
  * @swagger
@@ -297,7 +350,14 @@ router.delete('/:id/options/:optionId', authMiddleware, validateParams(productId
  *       201:
  *         description: 옵션 항목 생성 완료
  */
-router.post('/:id/option-items', authMiddleware, validateParams(productIdParamSchema), checkStorePermission('items:update'), validateBody(productOptionItemSchema), catchAsync(productsController.createOptionItem));
+router.post(
+  '/:id/option-items',
+  authMiddleware,
+  validateParams(productIdParamSchema),
+  checkStorePermissionForObject('products'),
+  validateBody(productOptionItemSchema),
+  catchAsync(productsController.createOptionItem)
+);
 
 /**
  * @swagger
@@ -322,7 +382,14 @@ router.post('/:id/option-items', authMiddleware, validateParams(productIdParamSc
  *       200:
  *         description: 재고 조정 완료
  */
-router.patch('/:id/stock', authMiddleware, validateParams(productIdParamSchema), checkStorePermission('items:update'), validateBody(adjustStockSchema), catchAsync(productsController.adjustStock));
+router.patch(
+  '/:id/stock',
+  authMiddleware,
+  validateParams(productIdParamSchema),
+  checkStorePermissionForObject('products'),
+  validateBody(adjustStockSchema),
+  catchAsync(productsController.adjustStock)
+);
 
 /**
  * @swagger
@@ -353,6 +420,11 @@ router.patch('/:id/stock', authMiddleware, validateParams(productIdParamSchema),
  *       200:
  *         description: 검색 결과
  */
-router.get('/search', authMiddleware, validateQuery(productSearchQuerySchema), catchAsync(productsController.searchProducts));
+router.get(
+  '/search',
+  authMiddleware,
+  validateQuery(productSearchQuerySchema),
+  catchAsync(productsController.searchProducts)
+);
 
 module.exports = router;

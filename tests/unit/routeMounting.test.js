@@ -4,13 +4,13 @@
  * 배경: `routes/news.js` 는 routes 맵에 require 되어 있었지만 app.use 로 마운트되지
  *       않아 프론트엔드의 /api/news 호출이 전부 404 였다. 같은 유형의 실수를 막는다.
  *
- * app.js 를 실제로 로드하면 DB/Socket 등 부작용이 크므로 소스를 정적 분석한다.
+ * app.mts 를 실제로 로드하면 DB/Socket 등 부작용이 크므로 소스를 정적 분석한다.
  */
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '../..');
-const APP_SOURCE = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
+const APP_SOURCE = fs.readFileSync(path.join(ROOT, 'app.mts'), 'utf8');
 
 /** routes 맵(`key: (await import('./routes/x.js')).default`)에 등록된 키 목록 */
 function getRegisteredRouteKeys(source) {
@@ -27,7 +27,7 @@ function getMountedRouteKeys(source) {
   return [...source.matchAll(/app\.use\([^)]*routes\.(\w+)/g)].map((m) => m[1]);
 }
 
-describe('app.js 라우트 마운트 정합성', () => {
+describe('app.mts 라우트 마운트 정합성', () => {
   test('routes 맵에 등록된 모든 라우터가 실제로 마운트되어 있다', () => {
     const registered = getRegisteredRouteKeys(APP_SOURCE);
     const mounted = new Set(getMountedRouteKeys(APP_SOURCE));

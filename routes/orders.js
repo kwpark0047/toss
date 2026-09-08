@@ -5,7 +5,7 @@ const authMiddleware = require('../middleware/auth');
 const { checkStorePermission, checkStorePermissionForObject } = require('../middleware/storeAuth');
 const { validateBody, validateQuery, validateParams } = require('../middleware/validate');
 const idempotency = require('../middleware/idempotency');
-const { 
+const {
   createOrderSchema,
   updateOrderStatusSchema,
   cancelOrderSchema,
@@ -16,6 +16,7 @@ const {
   orderSearchQuerySchema,
   orderIdParamSchema,
   orderNumberParamSchema,
+  customerTokenParamSchema,
 } = require('../src/validation/schemas');
 const {
   verifyOrderCapability,
@@ -43,7 +44,7 @@ const requireOrderCapability = (req, res, next) => {
   }
 
   if (req.user?.role === 'super_admin' || req.user?.role === 'staff') {
-    const middleware = checkStorePermissionForObject();
+    const middleware = checkStorePermissionForObject('orders');
     return middleware(req, res, next);
   }
 
@@ -126,7 +127,7 @@ router.post(
 router.post(
   '/:orderId/customer-token',
   authMiddleware.optionalAuth,
-  validateParams(orderIdParamSchema),
+  validateParams(customerTokenParamSchema),
   requireOrderCapability,
   orderController.registerCustomerToken
 );
@@ -288,7 +289,14 @@ router.get(
  *       200:
  *         description: 상태 변경 완료
  */
-router.put('/:id/status', authMiddleware, validateParams(orderIdParamSchema), checkOrderPermission, validateBody(updateOrderStatusSchema), orderController.updateStatus);
+router.put(
+  '/:id/status',
+  authMiddleware,
+  validateParams(orderIdParamSchema),
+  checkOrderPermission,
+  validateBody(updateOrderStatusSchema),
+  orderController.updateStatus
+);
 
 /**
  * @swagger
@@ -313,7 +321,13 @@ router.put('/:id/status', authMiddleware, validateParams(orderIdParamSchema), ch
  *       200:
  *         description: 주문 취소 완료
  */
-router.post('/:id/cancel', authMiddleware, validateParams(orderIdParamSchema), validateBody(cancelOrderSchema), orderController.cancelOrder);
+router.post(
+  '/:id/cancel',
+  authMiddleware,
+  validateParams(orderIdParamSchema),
+  validateBody(cancelOrderSchema),
+  orderController.cancelOrder
+);
 
 /**
  * @swagger
@@ -338,7 +352,14 @@ router.post('/:id/cancel', authMiddleware, validateParams(orderIdParamSchema), v
  *       200:
  *         description: 반품/교환 접수 완료
  */
-router.post('/:id/return-exchange', authMiddleware, validateParams(orderIdParamSchema), checkOrderPermission, validateBody(returnExchangeSchema), orderController.returnExchange);
+router.post(
+  '/:id/return-exchange',
+  authMiddleware,
+  validateParams(orderIdParamSchema),
+  checkOrderPermission,
+  validateBody(returnExchangeSchema),
+  orderController.returnExchange
+);
 
 /**
  * @swagger
@@ -358,7 +379,13 @@ router.post('/:id/return-exchange', authMiddleware, validateParams(orderIdParamS
  *       200:
  *         description: 주문 삭제 완료
  */
-router.delete('/:id', authMiddleware, validateParams(orderIdParamSchema), checkOrderPermission, orderController.deleteOrder);
+router.delete(
+  '/:id',
+  authMiddleware,
+  validateParams(orderIdParamSchema),
+  checkOrderPermission,
+  orderController.deleteOrder
+);
 
 /**
  * @swagger
@@ -387,7 +414,11 @@ router.delete('/:id', authMiddleware, validateParams(orderIdParamSchema), checkO
  *                 activeOrdersAhead: { type: integer }
  *                 message: { type: string }
  */
-router.get('/store/:storeId/eta', validateParams({ params: orderSearchQuerySchema }), orderController.getEta);
+router.get(
+  '/store/:storeId/eta',
+  validateParams({ params: orderSearchQuerySchema }),
+  orderController.getEta
+);
 
 /**
  * @swagger
@@ -426,6 +457,11 @@ router.get('/store/:storeId/eta', validateParams({ params: orderSearchQuerySchem
  *       200:
  *         description: 주문 검색 결과
  */
-router.get('/search', authMiddleware, validateQuery(orderSearchQuerySchema), orderController.searchOrders);
+router.get(
+  '/search',
+  authMiddleware,
+  validateQuery(orderSearchQuerySchema),
+  orderController.searchOrders
+);
 
 module.exports = router;
