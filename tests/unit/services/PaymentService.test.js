@@ -937,3 +937,29 @@ describe('PaymentService', () => {
     });
   });
 });
+
+describe('maskCardNumber (front6-back4 정책)', () => {
+  const maskCardNumber = PaymentService.maskCardNumber;
+
+  test('앞 6자리 + 뒤 4자리 유지, 중간 6자리 은폐 (123456******1234)', () => {
+    expect(maskCardNumber('1234567890123456')).toBe('123456******3456');
+  });
+
+  test('공백/하이픈 등 비숫자를 제거한 뒤 마스킹', () => {
+    expect(maskCardNumber('1234-5678-9012-3456')).toBe('123456******3456');
+    expect(maskCardNumber('1234 5678 9012 3456')).toBe('123456******3456');
+  });
+
+  test('null/undefined는 null 반환', () => {
+    expect(maskCardNumber(null)).toBeNull();
+    expect(maskCardNumber(undefined)).toBeNull();
+  });
+
+  test('숫자 10자 미만이면 뒤 4자리만 은폐 형태로 유지', () => {
+    expect(maskCardNumber('123456789')).toBe('****6789');
+  });
+
+  test('이미 마스킹된 짧은 값(**** 등)은 null 반환 (평문 저장 방지)', () => {
+    expect(maskCardNumber('****')).toBeNull();
+  });
+});

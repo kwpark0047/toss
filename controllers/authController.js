@@ -15,6 +15,7 @@ const {
   phoneSearchCandidates,
 } = require('../utils/phoneEncryption');
 const { setTokenCookies } = require('../utils/tokenCookies');
+const { OTP_EXPIRY_MS } = require('../config/authConstants');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET;
@@ -65,7 +66,7 @@ const sendOtp = async (req, res, next) => {
     });
 
     const otp = String(Math.floor(100000 + Math.random() * 900000));
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5분
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS); // 기본 5분 (config/authConstants)
 
     await prisma.phone_otps.create({
       data: { phone: normalized, otp, expires_at: expiresAt },

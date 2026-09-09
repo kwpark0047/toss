@@ -10,6 +10,7 @@ const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
 const { encryptPhone } = require('../utils/phoneEncryption');
 const { encryptToken } = require('../utils/tokenEncryption');
 const { sanitizeRawResponse } = require('../utils/sanitize');
+const { maskCardNumber, maskPaymentKey } = require('../utils/cardMask');
 const crypto = require('crypto');
 
 /**
@@ -33,18 +34,6 @@ class PaymentTransitionConflictError extends AppError {
     this.orderNumber = orderNumber;
     this.paymentId = paymentId;
   }
-}
-
-function maskCardNumber(cardNumber) {
-  if (!cardNumber) return null;
-  const digits = cardNumber.replace(/\D/g, '');
-  const lastFour = digits.slice(-4);
-  return `****-****-****-${lastFour}`;
-}
-
-function maskPaymentKey(paymentKey) {
-  if (typeof paymentKey !== 'string' || paymentKey.length <= 8) return '****';
-  return `****${paymentKey.slice(-8)}`;
 }
 
 /**
@@ -1248,3 +1237,4 @@ class PaymentService {
 
 module.exports = PaymentService;
 module.exports.PaymentAmountMismatchError = PaymentAmountMismatchError;
+module.exports.maskCardNumber = maskCardNumber;

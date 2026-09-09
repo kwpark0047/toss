@@ -1,14 +1,7 @@
 require('dotenv').config();
 const prisma = require('../config/prisma');
 const { dbLogger: logger } = require('../utils/logger');
-
-function maskCardNumber(cardNumber) {
-  if (!cardNumber) return null;
-  const digits = String(cardNumber).replace(/\D/g, '');
-  if (digits.length < 4) return null;
-  const lastFour = digits.slice(-4);
-  return `****-****-****-${lastFour}`;
-}
+const { maskCardNumber } = require('../utils/cardMask');
 
 async function backfillMaskCardNumbers() {
   const apply = process.argv.includes('--apply');
@@ -53,7 +46,12 @@ async function backfillMaskCardNumbers() {
   let alreadyMasked = 0;
 
   for (const row of raw) {
-    if (/^\*{4}-\*{4}-\*{4}-\d{4}$/.test(String(row.card_number))) {
+    // 이미 마스킹된 값(레거시 ****-****-****-1234 또는 신규 123456******1234)은 건너뛴다
+    if (/^\*{4}-\*{4}-\*{4}-(\d{4}|.*)$/.test(String(row.card_number))) {
+      alreadyMasked++;
+      continue;
+    }
+    if (/^\d{6}\*{6}\d{4}$/.test(String(row.card_number))) {
       alreadyMasked++;
       continue;
     }

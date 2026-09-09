@@ -2,13 +2,7 @@ const prisma = require('../config/prisma');
 const { encryptPhone } = require('../utils/phoneEncryption');
 const { encryptToken } = require('../utils/tokenEncryption');
 const { sanitizeRawResponse } = require('../utils/sanitize');
-
-function maskCardNumber(cardNumber) {
-  if (!cardNumber) return null;
-  const digits = String(cardNumber).replace(/\D/g, '');
-  const lastFour = digits.slice(-4);
-  return `****-****-****-${lastFour}`;
-}
+const { maskCardNumber } = require('../utils/cardMask');
 
 /**
  * 결제 모델 (Prisma 기반)

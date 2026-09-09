@@ -1,3 +1,5 @@
+const { maskCardNumber } = require('../../../utils/cardMask');
+
 class Payment {
   constructor(data) {
     this.id = data.id;
@@ -22,7 +24,7 @@ class Payment {
       APPROVED: 'approved',
       CANCELLED: 'cancelled',
       FAILED: 'failed',
-      REFUNDED: 'refunded'
+      REFUNDED: 'refunded',
     };
   }
 
@@ -35,10 +37,7 @@ class Payment {
   }
 
   maskCardNumber() {
-    if (!this.card_number) return null;
-    const digits = this.card_number.replace(/\D/g, '');
-    const lastFour = digits.slice(-4);
-    return `****-****-****-${lastFour}`;
+    return maskCardNumber(this.card_number);
   }
 }
 

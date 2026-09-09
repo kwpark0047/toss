@@ -1,6 +1,15 @@
 // [수정] 모듈마다 new PrismaClient() 를 만들면 커넥션 풀이 중복 생성되어
 // 서버리스/컨테이너 환경에서 DB 연결 수가 폭증한다. 공유 싱글턴을 사용한다.
 const prisma = require('../../../config/prisma');
+const { maskCardNumber } = require('../../../utils/cardMask');
+
+// [보안] 저장 시 card_number는 즉시 마스킹한다(원본 객체는 변형하지 않는다).
+function maskCardNumberIfPresent(data) {
+  if (!data || data.card_number == null || typeof data.card_number !== 'string') {
+    return data;
+  }
+  return { ...data, card_number: maskCardNumber(data.card_number) };
+}
 
 class PaymentRepository {
   async findById(id) {
@@ -41,14 +50,14 @@ class PaymentRepository {
 
   async create(paymentData) {
     return await prisma.payments.create({
-      data: paymentData,
+      data: maskCardNumberIfPresent(paymentData),
     });
   }
 
   async update(id, paymentData) {
     return await prisma.payments.update({
       where: { id },
-      data: paymentData,
+      data: maskCardNumberIfPresent(paymentData),
     });
   }
 

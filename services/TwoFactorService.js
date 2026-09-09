@@ -4,6 +4,7 @@ const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
 const { decryptPhone } = require('../utils/phoneEncryption');
 const { sendSms } = require('../utils/smsService');
+const { OTP_EXPIRY_MS } = require('../config/authConstants');
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
@@ -146,7 +147,7 @@ class TwoFactorService {
 
     const phone = decryptPhone(user.phone);
     const otp = String(Math.floor(100000 + Math.random() * 900000));
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS); // 기본 5분 (config/authConstants)
 
     await prisma.admin_otps.create({
       data: { user_id: userId, otp, purpose, expires_at: expiresAt },

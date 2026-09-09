@@ -4,6 +4,7 @@ const { AppError } = require('../utils/errorHandler');
 const { sendSms } = require('../utils/smsService');
 const { decryptPhone } = require('../utils/phoneEncryption');
 const { setTokenCookies } = require('../utils/tokenCookies');
+const { OTP_EXPIRY_MS } = require('../config/authConstants');
 const userRepository = require('../app/lib/repositories/user.repository');
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -67,7 +68,7 @@ const sendLoginOtp = async (req, res, next) => {
 
     const phone = decryptPhone(user.phone);
     const otp = String(Math.floor(100000 + Math.random() * 900000));
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS); // config/authConstants (기본 5분)
 
     await prisma.admin_otps.create({
       data: { user_id: user.id, otp, purpose: 'LOGIN', expires_at: expiresAt },
@@ -161,7 +162,7 @@ const sendSettingsOtp = async (req, res, next) => {
 
     const phone = decryptPhone(user.phone);
     const otp = String(Math.floor(100000 + Math.random() * 900000));
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS); // config/authConstants (기본 5분)
 
     await prisma.admin_otps.create({
       data: { user_id: user.id, otp, purpose, expires_at: expiresAt },
