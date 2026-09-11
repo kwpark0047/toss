@@ -2,6 +2,8 @@
 # Stage 1: Builder
 FROM node:22-alpine AS builder
 
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # Copy package files
@@ -17,8 +19,13 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
+# Build frontend for SPA fallback
+RUN cd frontend && npm install --legacy-peer-deps && npm run build
+
 # Stage 2: Production runtime
 FROM node:22-alpine AS production
+
+RUN apk add --no-cache openssl
 
 # Use the node user/group bundled with the official node image
 # (newer Alpine adduser/addgroup changed -S handling; the built-in node user avoids that)
@@ -49,8 +56,10 @@ COPY --from=builder /app/docs ./docs
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/app.js ./app.js
-COPY --from=builder /app/index.js ./index.js
+COPY --from=builder /app/app.mts ./app.mts
+COPY --from=builder /app/index.mts ./index.mts
+COPY --from=builder /app/metrics ./metrics
+COPY --from=builder /app/frontend/dist ./frontend/dist
 COPY --from=builder /app/.env.example ./.env.example
 
 # Copy Prisma client from builder (custom output is relative to schema dir: prisma/app/generated)
