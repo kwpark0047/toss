@@ -5,8 +5,12 @@
 const { z } = require('zod');
 
 // 공통
-const businessNumberSchema = z.string().regex(/^\d{3}-\d{2}-\d{5}$/, '사업자등록번호 형식: 123-45-67890');
-const phoneSchema = z.string().regex(/^01[0-9][0-9]{7,8}$/, '유효하지 않은 한국 전화번호 형식입니다.');
+const businessNumberSchema = z
+  .string()
+  .regex(/^\d{3}-\d{2}-\d{5}$/, '사업자등록번호 형식: 123-45-67890');
+const phoneSchema = z
+  .string()
+  .regex(/^01[0-9][0-9]{7,8}$/, '유효하지 않은 한국 전화번호 형식입니다.');
 const accountNumberSchema = z.string().regex(/^\d{10,14}$/, '계좌번호는 10~14자리 숫자입니다.');
 const bankCodeSchema = z.string().min(2).max(20);
 
@@ -15,7 +19,10 @@ const createStoreSchema = z.object({
   name: z.string().min(1, '매장명은 필수입니다.').max(200),
   address: z.string().max(500).optional(),
   detailAddress: z.string().max(500).optional(),
-  zipCode: z.string().regex(/^\d{5}$/, '우편번호는 5자리입니다.').optional(),
+  zipCode: z
+    .string()
+    .regex(/^\d{5}$/, '우편번호는 5자리입니다.')
+    .optional(),
   phone: phoneSchema.optional(),
   businessNumber: businessNumberSchema.optional(),
   category: z.string().max(100).optional(),
@@ -30,7 +37,11 @@ const updateStoreSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   address: z.string().max(500).optional().nullable(),
   detailAddress: z.string().max(500).optional().nullable(),
-  zipCode: z.string().regex(/^\d{5}$/).optional().nullable(),
+  zipCode: z
+    .string()
+    .regex(/^\d{5}$/)
+    .optional()
+    .nullable(),
   phone: phoneSchema.optional().nullable(),
   businessNumber: businessNumberSchema.optional().nullable(),
   category: z.string().max(100).optional().nullable(),
@@ -49,11 +60,18 @@ const businessInfoSchema = z.object({
   businessItem: z.string().max(200).optional(),
   address: z.string().max(500).optional(),
   detailAddress: z.string().max(500).optional(),
-  zipCode: z.string().regex(/^\d{5}$/).optional(),
+  zipCode: z
+    .string()
+    .regex(/^\d{5}$/)
+    .optional(),
   phone: phoneSchema.optional(),
   fax: z.string().max(20).optional().nullable(),
   email: z.string().email().max(255).optional().nullable(),
-  establishedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  establishedDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .nullable(),
 });
 
 // 정산 계좌
@@ -67,10 +85,26 @@ const accountSchema = z.object({
 
 // 매장 설정
 const storeSettingsSchema = z.object({
-  openingTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional().nullable(),
-  closingTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional().nullable(),
-  breakStartTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional().nullable(),
-  breakEndTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional().nullable(),
+  openingTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional()
+    .nullable(),
+  closingTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional()
+    .nullable(),
+  breakStartTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional()
+    .nullable(),
+  breakEndTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional()
+    .nullable(),
   minOrderAmount: z.number().int().min(0).max(1000000).optional(),
   deliveryFee: z.number().int().min(0).max(100000).optional(),
   freeDeliveryThreshold: z.number().int().min(0).max(1000000).optional(),
@@ -89,8 +123,14 @@ const storeSettingsSchema = z.object({
   kdsEnabled: z.boolean().optional(),
   kdsAutoPrint: z.boolean().optional(),
   theme: z.enum(['default', 'modern', 'classic', 'minimal', 'food_truck']).optional(),
-  primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  primaryColor: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
+  secondaryColor: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
   logoUrl: z.string().url().optional().nullable(),
   bannerUrl: z.string().url().optional().nullable(),
 });
@@ -118,8 +158,14 @@ const storeSearchQuerySchema = z.object({
 // 매장 테마 설정
 const storeThemeSchema = z.object({
   theme: z.enum(['default', 'modern', 'classic', 'minimal', 'food_truck']),
-  primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  primaryColor: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
+  secondaryColor: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
   fontFamily: z.string().max(50).optional(),
   borderRadius: z.number().int().min(0).max(50).optional(),
   customCSS: z.string().max(5000).optional().nullable(),
@@ -128,13 +174,15 @@ const storeThemeSchema = z.object({
 // 푸드트럭 디자인 테마
 const foodTruckDesignSchema = z.object({
   designTheme: z.enum(['concept1', 'concept2', 'concept3', 'concept4', 'concept5']),
-  customColors: z.object({
-    primary: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
-    secondary: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
-    accent: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
-    background: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
-    text: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
-  }).optional(),
+  customColors: z
+    .object({
+      primary: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+      secondary: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+      accent: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+      background: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+      text: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+    })
+    .optional(),
   logoUrl: z.string().url().optional().nullable(),
   bannerImageUrl: z.string().url().optional().nullable(),
   customMessage: z.string().max(200).optional().nullable(),
@@ -143,6 +191,36 @@ const foodTruckDesignSchema = z.object({
 // 매장 ID 파라미터 (params용)
 const storeIdParamSchema = z.object({
   id: z.string().regex(/^\d+$/, '매장 ID는 숫자여야 합니다.').transform(Number),
+});
+
+// 구독 결제수단 등록 (배달 정기결제 빌링키 발급)
+const subscriptionPaymentMethodSchema = z.object({
+  plan_id: z.string().min(1, '플랜 ID가 필요합니다.'),
+  method: z.enum(['CARD', 'EASYPAY']).default('CARD'),
+  card: z
+    .object({
+      company: z.string().min(1),
+      number: z.string().regex(/^\d{4,20}$/, '카드번호 형식이 올바르지 않습니다.'),
+      installmentPlanMonths: z.number().int().min(0).max(36).optional(),
+      useFreeInstallmentPlan: z.boolean().optional(),
+      useCardPoint: z.boolean().optional(),
+    })
+    .optional(),
+  easy_pay: z
+    .object({
+      provider: z.enum([
+        'TOSSPAY',
+        'SAMSUNGPAY',
+        'APPLEPAY',
+        'NAVERPAY',
+        'KAKAOPAY',
+        'LGPAY',
+        'PAYCO',
+        'SSGPAY',
+      ]),
+      discountCode: z.string().optional(),
+    })
+    .optional(),
 });
 
 module.exports = {
@@ -156,6 +234,7 @@ module.exports = {
   storeThemeSchema,
   foodTruckDesignSchema,
   storeIdParamSchema,
+  subscriptionPaymentMethodSchema,
   businessNumberSchema,
   phoneSchema,
   accountNumberSchema,

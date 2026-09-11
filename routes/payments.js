@@ -363,7 +363,11 @@ router.post(
  */
 router.post(
   '/webhooks/toss',
-  express.raw({ type: 'application/json' }),
+  express.json({
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
   tossWebhookAuth,
   paymentController.handleTossWebhook
 );

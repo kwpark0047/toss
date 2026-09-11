@@ -8,6 +8,7 @@ const catchAsync = require('../utils/catchAsync');
 const { AppError } = require('../utils/errorHandler');
 const logger = require('../utils/logger');
 const { getStoreRole } = require('../middleware/storeAuth');
+const { handleSubscriptionWebhook } = require('../handlers/subscriptionWebhook');
 
 const maskPaymentKey = (paymentKey) => {
   if (typeof paymentKey !== 'string' || paymentKey.length <= 8) return '****';
@@ -179,6 +180,24 @@ const paymentController = {
 
   handleTossWebhook: catchAsync(async (req, res) => {
     // 인증은 tossWebhookAuth 미들웨어에서 계층적 검증(공유 시크릿/IP 화이트리스트/레거시 Basic)으로 수행됨
+
+    // [정기결제] Subscription.* 이벤트는 결제(paymentKey) 재검증 대상이 아니다.
+    // subscriptionId 기반 구독 상태 동기화 핸들러로 조기 라우팅한다.
+    const eventType = req.body?.eventType;
+    if (typeof eventType === 'string' && eventType.startsWith('Subscription.')) {
+      try {
+        const result = await handleSubscriptionWebhook(eventType, req.body?.data);
+        return res.status(200).json({ success: true, ...result });
+      } catch (e) {
+        // 인프라 오류(예: DB 장애)일 때만 처리 실패를 반환해 토스가 재전송하게 한다.
+        // 역매핑 실패 등 영구 조건은 핸들러 내부에서 handled:false로 처리(200)되므로 재전송이 없다.
+        logger.error('[Webhook/Toss] 정기결제 웹훅 처리 실패', {
+          eventType,
+          error: e.message,
+        });
+        return res.status(500).end();
+      }
+    }
 
     const eventData = req.body?.data;
     const paymentKey = eventData?.paymentKey;

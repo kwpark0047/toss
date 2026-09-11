@@ -4,8 +4,9 @@ const authMiddleware = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const storeController = require('../controllers/storeController');
+const subscriptionController = require('../controllers/subscriptionController');
 const { validateBody, validateQuery, validateParams } = require('../middleware/validate');
-const { 
+const {
   createStoreSchema,
   updateStoreSchema,
   businessInfoSchema,
@@ -15,10 +16,14 @@ const {
   storeSearchQuerySchema,
   storeThemeSchema,
   foodTruckDesignSchema,
+  subscriptionPaymentMethodSchema,
   storeIdParamSchema,
 } = require('../src/validation/schemas');
 
-const bridgeStoreId = (req, _res, next) => { req.storeId = req.params.id; next(); };
+const bridgeStoreId = (req, _res, next) => {
+  req.storeId = req.params.id;
+  next();
+};
 
 /**
  * @swagger
@@ -54,7 +59,11 @@ router.get('/', validateQuery(storeSearchQuerySchema), catchAsync(storeControlle
  *       200:
  *         description: 검색 결과
  */
-router.get('/search', validateQuery(storeSearchQuerySchema), catchAsync(storeController.searchStores));
+router.get(
+  '/search',
+  validateQuery(storeSearchQuerySchema),
+  catchAsync(storeController.searchStores)
+);
 
 /**
  * @swagger
@@ -173,10 +182,15 @@ router.get('/my', authMiddleware, catchAsync(storeController.getMyStores));
  *       201:
  *         description: 매장 생성 완료
  */
-router.post('/', authMiddleware, validateBody(createStoreSchema), catchAsync(async (req, res) => {
+router.post(
+  '/',
+  authMiddleware,
+  validateBody(createStoreSchema),
+  catchAsync(async (req, res) => {
     const io = req.app.get('io');
     await storeController.createStore(req, res, io);
-}));
+  })
+);
 
 /**
  * @swagger
@@ -193,13 +207,17 @@ router.post('/', authMiddleware, validateBody(createStoreSchema), catchAsync(asy
  *       200:
  *         description: 매장 상세 정보
  */
-router.get('/:id', validateParams(storeIdParamSchema), catchAsync(async (req, res) => {
+router.get(
+  '/:id',
+  validateParams(storeIdParamSchema),
+  catchAsync(async (req, res) => {
     const cache = require('../utils/cache');
     const cacheKey = `store:${req.params.id}:profile`;
     const cached = cache.get(cacheKey);
     if (cached) return res.success(cached);
     await storeController.getStore(req, res);
-}));
+  })
+);
 
 /**
  * @swagger
@@ -224,7 +242,15 @@ router.get('/:id', validateParams(storeIdParamSchema), catchAsync(async (req, re
  *       200:
  *         description: 수정 완료
  */
-router.put('/:id', authMiddleware, validateParams(storeIdParamSchema), bridgeStoreId, checkStorePermission('store:update'), validateBody(updateStoreSchema), catchAsync(storeController.updateStore));
+router.put(
+  '/:id',
+  authMiddleware,
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('store:update'),
+  validateBody(updateStoreSchema),
+  catchAsync(storeController.updateStore)
+);
 
 /**
  * @swagger
@@ -243,7 +269,14 @@ router.put('/:id', authMiddleware, validateParams(storeIdParamSchema), bridgeSto
  *       200:
  *         description: 삭제 완료
  */
-router.delete('/:id', authMiddleware, validateParams(storeIdParamSchema), bridgeStoreId, checkStorePermission('store:delete'), catchAsync(storeController.deleteStore));
+router.delete(
+  '/:id',
+  authMiddleware,
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('store:delete'),
+  catchAsync(storeController.deleteStore)
+);
 
 /**
  * @swagger
@@ -262,7 +295,14 @@ router.delete('/:id', authMiddleware, validateParams(storeIdParamSchema), bridge
  *       200:
  *         description: 사업자 정보
  */
-router.get('/:id/business', authMiddleware, validateParams(storeIdParamSchema), bridgeStoreId, checkStorePermission('settings:read'), catchAsync(storeController.getBusinessInfo));
+router.get(
+  '/:id/business',
+  authMiddleware,
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('settings:read'),
+  catchAsync(storeController.getBusinessInfo)
+);
 
 /**
  * @swagger
@@ -287,7 +327,15 @@ router.get('/:id/business', authMiddleware, validateParams(storeIdParamSchema), 
  *       200:
  *         description: 수정 완료
  */
-router.put('/:id/business', authMiddleware, validateParams(storeIdParamSchema), bridgeStoreId, checkStorePermission('settings:write'), validateBody(businessInfoSchema), catchAsync(storeController.updateBusinessInfo));
+router.put(
+  '/:id/business',
+  authMiddleware,
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('settings:write'),
+  validateBody(businessInfoSchema),
+  catchAsync(storeController.updateBusinessInfo)
+);
 
 /**
  * @swagger
@@ -306,7 +354,14 @@ router.put('/:id/business', authMiddleware, validateParams(storeIdParamSchema), 
  *       200:
  *         description: 정산 계좌 정보
  */
-router.get('/:id/account', authMiddleware, validateParams(storeIdParamSchema), bridgeStoreId, checkStorePermission('settings:read'), catchAsync(storeController.getAccount));
+router.get(
+  '/:id/account',
+  authMiddleware,
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('settings:read'),
+  catchAsync(storeController.getAccount)
+);
 
 /**
  * @swagger
@@ -331,7 +386,15 @@ router.get('/:id/account', authMiddleware, validateParams(storeIdParamSchema), b
  *       200:
  *         description: 수정 완료
  */
-router.put('/:id/account', authMiddleware, validateParams(storeIdParamSchema), bridgeStoreId, checkStorePermission('settings:write'), validateBody(accountSchema), catchAsync(storeController.upsertAccount));
+router.put(
+  '/:id/account',
+  authMiddleware,
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('settings:write'),
+  validateBody(accountSchema),
+  catchAsync(storeController.upsertAccount)
+);
 
 /**
  * @swagger
@@ -348,7 +411,11 @@ router.put('/:id/account', authMiddleware, validateParams(storeIdParamSchema), b
  *       200:
  *         description: 공개 정산 계좌
  */
-router.get('/:id/account/public', validateParams(storeIdParamSchema), catchAsync(storeController.getPublicAccount));
+router.get(
+  '/:id/account/public',
+  validateParams(storeIdParamSchema),
+  catchAsync(storeController.getPublicAccount)
+);
 
 /**
  * @swagger
@@ -367,7 +434,14 @@ router.get('/:id/account/public', validateParams(storeIdParamSchema), catchAsync
  *       200:
  *         description: 매장 설정
  */
-router.get('/:id/settings', authMiddleware, validateParams(storeIdParamSchema), bridgeStoreId, checkStorePermission('settings:read'), catchAsync(storeController.getSettings));
+router.get(
+  '/:id/settings',
+  authMiddleware,
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('settings:read'),
+  catchAsync(storeController.getSettings)
+);
 
 /**
  * @swagger
@@ -392,7 +466,15 @@ router.get('/:id/settings', authMiddleware, validateParams(storeIdParamSchema), 
  *       200:
  *         description: 설정 수정 완료
  */
-router.put('/:id/settings', authMiddleware, validateParams(storeIdParamSchema), bridgeStoreId, checkStorePermission('settings:write'), validateBody(storeSettingsSchema), catchAsync(storeController.updateSettings));
+router.put(
+  '/:id/settings',
+  authMiddleware,
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('settings:write'),
+  validateBody(storeSettingsSchema),
+  catchAsync(storeController.updateSettings)
+);
 
 /**
  * @swagger
@@ -417,7 +499,15 @@ router.put('/:id/settings', authMiddleware, validateParams(storeIdParamSchema), 
  *       200:
  *         description: QR 코드 생성 완료
  */
-router.post('/:id/qr', authMiddleware, validateParams(storeIdParamSchema), bridgeStoreId, checkStorePermission('settings:write'), validateBody(generateQRSchema), catchAsync(storeController.generateQR));
+router.post(
+  '/:id/qr',
+  authMiddleware,
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('settings:write'),
+  validateBody(generateQRSchema),
+  catchAsync(storeController.generateQR)
+);
 
 /**
  * @swagger
@@ -459,7 +549,52 @@ router.get('/:id/theme', validateParams(storeIdParamSchema), catchAsync(storeCon
  *       200:
  *         description: 테마 수정 완료
  */
-router.put('/:id/theme', authMiddleware, validateParams(storeIdParamSchema), bridgeStoreId, checkStorePermission('settings:write'), validateBody(storeThemeSchema), catchAsync(storeController.updateTheme));
+router.put(
+  '/:id/theme',
+  authMiddleware,
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('settings:write'),
+  validateBody(storeThemeSchema),
+  catchAsync(storeController.updateTheme)
+);
+
+/**
+ * @swagger
+ * /api/stores/{id}/subscription/payment-method:
+ *   post:
+ *     tags: [Stores]
+ *     summary: 구독 결제수단 등록
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SubscriptionPaymentMethodRequest'
+ *     responses:
+ *       201:
+ *         description: 결제수단 등록 완료
+ *       404:
+ *         description: 플랜을 찾을 수 없음
+ *       502:
+ *         description: 빌링키 발급 실패
+ */
+router.post(
+  '/:id/subscription/payment-method',
+  authMiddleware,
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('settings:write'),
+  validateBody(subscriptionPaymentMethodSchema),
+  catchAsync(subscriptionController.registerPaymentMethod)
+);
 
 /**
  * @swagger
@@ -476,7 +611,11 @@ router.put('/:id/theme', authMiddleware, validateParams(storeIdParamSchema), bri
  *       200:
  *         description: 디자인 테마
  */
-router.get('/:id/foodtruck-design', validateParams(storeIdParamSchema), catchAsync(storeController.getFoodTruckDesign));
+router.get(
+  '/:id/foodtruck-design',
+  validateParams(storeIdParamSchema),
+  catchAsync(storeController.getFoodTruckDesign)
+);
 
 /**
  * @swagger
@@ -501,6 +640,14 @@ router.get('/:id/foodtruck-design', validateParams(storeIdParamSchema), catchAsy
  *       200:
  *         description: 디자인 수정 완료
  */
-router.put('/:id/foodtruck-design', authMiddleware, validateParams(storeIdParamSchema), bridgeStoreId, checkStorePermission('settings:write'), validateBody(foodTruckDesignSchema), catchAsync(storeController.updateFoodTruckDesign));
+router.put(
+  '/:id/foodtruck-design',
+  authMiddleware,
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('settings:write'),
+  validateBody(foodTruckDesignSchema),
+  catchAsync(storeController.updateFoodTruckDesign)
+);
 
 module.exports = router;
