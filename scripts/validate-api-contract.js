@@ -16,8 +16,12 @@ const CRITICAL_CONTRACTS = [
   { file: 'featureFlags.js', mount: 'admin', paths: ['/feature-flags'] },
 ];
 
+const APP_ENTRY_FILES = ['app.js', 'app.mts'];
+
 const validateApiContract = ({ root = ROOT } = {}) => {
-  const appContent = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+  const entryFile = APP_ENTRY_FILES.find((name) => fs.existsSync(path.join(root, name)));
+  if (!entryFile) throw new Error(`app entry file not found in ${root}`);
+  const appContent = fs.readFileSync(path.join(root, entryFile), 'utf8');
   const failures = [];
 
   for (const contract of CRITICAL_CONTRACTS) {
