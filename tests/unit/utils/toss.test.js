@@ -9,7 +9,7 @@ describe('TossAPI mock payment guard', () => {
       get: jest.fn(),
     }));
     jest.doMock('../../../utils/circuitBreaker', () => ({
-      get: () => ({ call: fn => fn() }),
+      get: () => ({ call: (fn) => fn() }),
     }));
     jest.doMock('../../../utils/logger', () => ({
       info: jest.fn(),
@@ -27,7 +27,7 @@ describe('TossAPI mock payment guard', () => {
     process.env.ALLOW_MOCK_PAYMENTS = 'true';
 
     const axios = require('axios');
-    const TossAPI = require('../../../utils/toss');
+    const TossAPI = require('../../../utils/toss').default;
     const result = await TossAPI.confirmPayment('mock_forged', 'ORDER-1', 1000);
 
     expect(axios.post).toHaveBeenCalledWith(
@@ -43,7 +43,7 @@ describe('TossAPI mock payment guard', () => {
     process.env.ALLOW_MOCK_PAYMENTS = 'true';
 
     const axios = require('axios');
-    const TossAPI = require('../../../utils/toss');
+    const TossAPI = require('../../../utils/toss').default;
     const result = await TossAPI.confirmPayment('mock_allowed', 'ORDER-2', 2000);
 
     expect(axios.post).not.toHaveBeenCalled();
@@ -54,7 +54,7 @@ describe('TossAPI mock payment guard', () => {
     process.env.NODE_ENV = 'production';
 
     const axios = require('axios');
-    const TossAPI = require('../../../utils/toss');
+    const TossAPI = require('../../../utils/toss').default;
     await TossAPI.cancelPayment('pay-key', '부분 환불', 1000, 'refund-key');
 
     expect(axios.post).toHaveBeenCalledWith(

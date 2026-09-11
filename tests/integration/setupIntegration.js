@@ -172,17 +172,25 @@ jest.mock('../../middleware/storeAuth', () => ({
 }));
 
 jest.mock('../../middleware/validate', () => {
-  const Joi = require('joi');
+  const isZodSchema = (s) => typeof s?.safeParse === 'function';
+  const parseSchema = (schema, data) => {
+    const result = schema.safeParse(data);
+    return {
+      success: result.success,
+      data: result.success ? result.data : data,
+      issues: result.success ? [] : result.error.issues,
+    };
+  };
   const validate = (schema) => (req, res, next) => {
-    if (Joi.isSchema(schema)) {
-      const { error, value } = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
-      if (error) {
-        const errorMessage = error.details.map((d) => d.message).join(', ');
+    if (isZodSchema(schema)) {
+      const r = parseSchema(schema, req.body);
+      if (!r.success) {
+        const errorMessage = r.issues.map((i) => i.message).join(', ');
         return res
           .status(400)
-          .json({ error: 'Validation Error', message: errorMessage, details: error.details });
+          .json({ error: 'Validation Error', message: errorMessage, details: r.issues });
       }
-      req.body = value;
+      req.body = r.data;
       return next();
     }
     const validations = [];
@@ -191,16 +199,16 @@ jest.mock('../../middleware/validate', () => {
     if (schema.params)
       validations.push({ type: 'params', data: req.params, schema: schema.params });
     for (const v of validations) {
-      const { error, value } = v.schema.validate(v.data, { abortEarly: false, stripUnknown: true });
-      if (error) {
-        const errorMessage = error.details.map((d) => d.message).join(', ');
+      const r = parseSchema(v.schema, v.data);
+      if (!r.success) {
+        const errorMessage = r.issues.map((i) => i.message).join(', ');
         return res.status(400).json({
           error: `Validation Error (${v.type})`,
           message: errorMessage,
-          details: error.details,
+          details: r.issues,
         });
       }
-      req[v.type] = value;
+      req[v.type] = r.data;
     }
     next();
   };

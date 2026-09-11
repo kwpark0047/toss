@@ -20,6 +20,23 @@ module.exports = {
     '/node_modules/(?!(sanitize-html|htmlparser2|dom-serializer|domelementtype|domhandler|entities|domexception|abort-controller|node-fetch|buffer|stream/web|worker_threads)/)',
   ],
 
+  // ── TS/TSX/MTS 변환 (babel-jest + preset-typescript) ──────────────────
+  // ts-jest(29) 는 jest(30) 과 버전 불일치로 사용 불가 → babel-jest(30, jest 내장)
+  // + @babel/preset-typescript 로 TS 구문 제거 및 ESM→CJS 변환.
+  moduleFileExtensions: ['js', 'cjs', 'jsx', 'mjs', 'ts', 'tsx', 'mts', 'json', 'node'],
+  transform: {
+    '^.+\\.(js|mjs|cjs|jsx)$': 'babel-jest',
+    '^.+\\.(ts|tsx|mts)$': [
+      'babel-jest',
+      {
+        presets: [
+          ['@babel/preset-env', { targets: { node: 'current' }, modules: 'commonjs' }],
+          '@babel/preset-typescript',
+        ],
+      },
+    ],
+  },
+
   // ── 커버리지 수집 범위 (M-1) ──────────────────────────────────────────
   // [배경] collectCoverageFrom 이 없으면 Jest 는 "테스트가 require 한 파일"만
   // 계측한다. 그 결과 테스트가 전혀 없는 라우트 계층이 분모에서 통째로 빠져
@@ -43,7 +60,7 @@ module.exports = {
   ],
   coveragePathIgnorePatterns: ['/node_modules/', '/dist/', '/coverage/', '/scripts/'],
 
-// ── 커버리지 임계값 (래칫) ────────────────────────────────────────────
+  // ── 커버리지 임계값 (래칫) ────────────────────────────────────────────
   // [운영 규칙] 이 수치는 **절대 내려갈 수 없다**.
   // 아래 값은 2026-08-24 실측치 기준으로 설정된 통과 기준선이다.
   // 테스트를 추가할 때마다 새 실측치에 맞춰 **위로만** 조정한다.
