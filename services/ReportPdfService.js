@@ -9,8 +9,8 @@ const FONT_DIR = path.join(__dirname, '../fonts');
 const FONT_EXTENSIONS = ['.ttf', '.woff', '.woff2'];
 const FONTS = {
   ko: {
-    regular: path.join(FONT_DIR, 'NanumGothic-Regular'),
-    bold: path.join(FONT_DIR, 'NanumGothic-Bold'),
+    regular: path.join(FONT_DIR, 'NotoSans-Regular'),
+    bold: path.join(FONT_DIR, 'NotoSans-Regular'),
   },
   en: {
     regular: path.join(FONT_DIR, 'NotoSans-Regular'),
@@ -36,6 +36,7 @@ const chartCallback = (ChartJS) => {
 class ReportPdfService {
   constructor() {
     this.fontsLoaded = {};
+    this.fontPaths = {};
     for (const [lang, fonts] of Object.entries(FONTS)) {
       const resolveFontPath = (basePath) => {
         for (const ext of FONT_EXTENSIONS) {
@@ -50,6 +51,7 @@ class ReportPdfService {
       const boldPath = resolveFontPath(fonts.bold);
       const hasFont = regularPath && boldPath;
       this.fontsLoaded[lang] = hasFont;
+      this.fontPaths[lang] = { regular: regularPath, bold: boldPath };
       if (hasFont) {
         logger.info(`${lang} font loaded for PDF`);
       } else {
@@ -66,13 +68,13 @@ class ReportPdfService {
   }
 
   getFonts(lang = 'ko') {
-    const fonts = FONTS[lang] || FONTS.ko;
-    const regularPath = this.fontsLoaded[lang] ? fonts.regular : null;
-    const boldPath = this.fontsLoaded[lang] ? fonts.bold : null;
+    const effectiveLang = FONTS[lang] ? lang : 'ko';
+    const loaded = this.fontsLoaded[effectiveLang] || false;
+    const paths = this.fontPaths[effectiveLang] || { regular: null, bold: null };
     return {
-      loaded: this.fontsLoaded[lang] || false,
-      regular: regularPath,
-      bold: boldPath,
+      loaded,
+      regular: loaded ? paths.regular : null,
+      bold: loaded ? paths.bold : null,
     };
   }
 
