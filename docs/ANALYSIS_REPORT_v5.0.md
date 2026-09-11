@@ -2,7 +2,7 @@
 
 **분석일**: 2026-09-11
 **프로젝트**: WeMarket - SaaS QR Menu & Store Management Platform
-**버전**: v1.3.0 (커밋 `8255195` 기준, 미커밋 워크트리 22파일 포함)
+**버전**: v1.3.0 (커밋 `599b1af` 기준 — 워크트리 A~F 기능별 커밋 분리 완료)
 **스택**: Express 5.2 / Prisma / PostgreSQL (Supabase) + Vite 7 + React 19 + Tailwind 4
 **형식**: 진행 상황 / 문제점 / 추가 기능 제안 3축
 
