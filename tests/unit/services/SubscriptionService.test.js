@@ -17,6 +17,7 @@ jest.mock('../../../repositories/Plan', () => ({
 
 jest.mock('../../../config/prisma', () => ({
   stores: { update: jest.fn() },
+  store_subscriptions: { upsert: jest.fn() },
   subscription: { count: jest.fn(), groupBy: jest.fn() },
   plan: { findMany: jest.fn() },
 }));
@@ -49,7 +50,12 @@ describe('SubscriptionService', () => {
       );
       expect(prisma.stores.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: expect.objectContaining({ plan: 'pro', subscription_id: 5 }),
+        data: { plan: 'pro' },
+      });
+      expect(prisma.store_subscriptions.upsert).toHaveBeenCalledWith({
+        where: { store_id: 1 },
+        create: expect.objectContaining({ plan: 'pro', subscription_id: 5 }),
+        update: expect.objectContaining({ plan: 'pro', subscription_id: 5 }),
       });
     });
 
@@ -100,7 +106,12 @@ describe('SubscriptionService', () => {
       expect(result.id).toBe(1);
       expect(prisma.stores.update).toHaveBeenCalledWith({
         where: { id: 3 },
-        data: expect.objectContaining({ plan: 'pro', payment_method_id: 'pm_new' }),
+        data: { plan: 'pro' },
+      });
+      expect(prisma.store_subscriptions.upsert).toHaveBeenCalledWith({
+        where: { store_id: 3 },
+        create: expect.objectContaining({ plan: 'pro', payment_method_id: 'pm_new' }),
+        update: expect.objectContaining({ plan: 'pro', payment_method_id: 'pm_new' }),
       });
     });
   });
@@ -123,9 +134,11 @@ describe('SubscriptionService', () => {
       const result = await service.cancelSubscription(1, true);
       expect(result.status).toBe('canceled');
       expect(SubscriptionRepository.cancel).toHaveBeenCalledWith(1, periodEnd);
-      expect(prisma.stores.update).toHaveBeenCalledWith({
-        where: { id: 2 },
-        data: expect.objectContaining({ auto_renew: false }),
+      expect(prisma.stores.update).not.toHaveBeenCalled();
+      expect(prisma.store_subscriptions.upsert).toHaveBeenCalledWith({
+        where: { store_id: 2 },
+        create: expect.objectContaining({ auto_renew: false, plan_expires_at: periodEnd }),
+        update: expect.objectContaining({ auto_renew: false, plan_expires_at: periodEnd }),
       });
     });
 
@@ -251,7 +264,12 @@ describe('SubscriptionService', () => {
       expect(SubscriptionRepository.updateStatus).toHaveBeenCalledWith(1, 'past_due');
       expect(prisma.stores.update).toHaveBeenCalledWith({
         where: { id: 2 },
-        data: expect.objectContaining({ plan: 'free' }),
+        data: { plan: 'free' },
+      });
+      expect(prisma.store_subscriptions.upsert).toHaveBeenCalledWith({
+        where: { store_id: 2 },
+        create: expect.objectContaining({ plan: 'free', auto_renew: false }),
+        update: expect.objectContaining({ plan: 'free', auto_renew: false }),
       });
     });
 
@@ -264,6 +282,7 @@ describe('SubscriptionService', () => {
       await service.processOverdueSubscriptions();
       expect(SubscriptionRepository.updateStatus).toHaveBeenCalledWith(1, 'past_due');
       expect(prisma.stores.update).not.toHaveBeenCalled();
+      expect(prisma.store_subscriptions.upsert).not.toHaveBeenCalled();
     });
 
     test('개별 실패는 흡수', async () => {

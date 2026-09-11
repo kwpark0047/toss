@@ -10,6 +10,25 @@ const { AppError } = require('../utils/errorHandler');
  */
 class SubscriptionService {
   /**
+   * [내부 헬퍼] stores ↔ store_subscriptions 동기화
+   * - plan이 전달되면 stores.plan에도 반영 (여러 소비처가 stores.plan을 읽음)
+   * - 구독 세부 필드는 store_subscriptions에 upsert
+   */
+  async _syncStoreSubscription(storeId, data) {
+    const { plan } = data;
+
+    if (plan !== undefined) {
+      await prisma.stores.update({ where: { id: storeId }, data: { plan } });
+    }
+
+    await prisma.store_subscriptions.upsert({
+      where: { store_id: storeId },
+      create: { store_id: storeId, ...data },
+      update: { ...data },
+    });
+  }
+
+  /**
    * 구독 생성 (첫 결제 후)
    */
   async createSubscription(
@@ -41,18 +60,15 @@ class SubscriptionService {
       payment_method_id: paymentMethodId,
     });
 
-    // stores 테이블의 플랜/구독 정보도 업데이트
-    await prisma.stores.update({
-      where: { id: storeId },
-      data: {
-        plan: plan.name,
-        subscription_id: subscription.id,
-        billing_cycle: billingCycle,
-        trial_ends_at: trialDays > 0 ? periodStart : null,
-        plan_expires_at: periodEnd,
-        auto_renew: true,
-        payment_method_id: paymentMethodId,
-      },
+    // store_subscriptions에 구독 정보 upsert (plan은 stores에도 반영)
+    await this._syncStoreSubscription(storeId, {
+      plan: plan.name,
+      subscription_id: subscription.id,
+      billing_cycle: billingCycle,
+      trial_ends_at: trialDays > 0 ? periodStart : null,
+      plan_expires_at: periodEnd,
+      auto_renew: true,
+      payment_method_id: paymentMethodId,
     });
 
     logger.info({ storeId, planId, billingCycle }, '구독 생성됨');
@@ -95,16 +111,13 @@ class SubscriptionService {
       paymentMethodId
     );
 
-    // stores 테이블 업데이트
-    await prisma.stores.update({
-      where: { id: subscription.store_id },
-      data: {
-        plan: plan.name,
-        plan_expires_at: periodEnd,
-        last_payment_at: new Date(),
-        next_payment_at: periodEnd,
-        payment_method_id: paymentMethodId || subscription.payment_method_id,
-      },
+    // 갱신된 구독 정보 upsert (plan은 stores에도 반영)
+    await this._syncStoreSubscription(subscription.store_id, {
+      plan: plan.name,
+      plan_expires_at: periodEnd,
+      last_payment_at: new Date(),
+      next_payment_at: periodEnd,
+      payment_method_id: paymentMethodId || subscription.payment_method_id,
     });
 
     logger.info({ subscriptionId, storeId: subscription.store_id }, '구독 갱신됨');
@@ -124,13 +137,10 @@ class SubscriptionService {
 
     const canceled = await SubscriptionRepository.cancel(subscriptionId, cancelAt);
 
-    // stores 테이블 업데이트
-    await prisma.stores.update({
-      where: { id: subscription.store_id },
-      data: {
-        auto_renew: false,
-        plan_expires_at: cancelAt,
-      },
+    // 취소 상태 upsert (plan 미포함 → stores.plan은 변경하지 않음)
+    await this._syncStoreSubscription(subscription.store_id, {
+      auto_renew: false,
+      plan_expires_at: cancelAt,
     });
 
     logger.info(
@@ -176,13 +186,10 @@ class SubscriptionService {
         updated_at: new Date(),
       });
 
-      // stores 업데이트
-      await prisma.stores.update({
-        where: { id: subscription.store_id },
-        data: {
-          plan: newPlan.name,
-          plan_expires_at: periodEnd,
-        },
+      // 변경된 플랜 upsert (plan은 stores에도 반영)
+      await this._syncStoreSubscription(subscription.store_id, {
+        plan: newPlan.name,
+        plan_expires_at: periodEnd,
       });
 
       logger.info(
@@ -222,9 +229,9 @@ class SubscriptionService {
       updated_at: new Date(),
     });
 
-    await prisma.stores.update({
-      where: { id: subscription.store_id },
-      data: { payment_method_id: billingKey },
+    // 결제 수단 변경 upsert (plan 미포함 → stores.plan은 변경하지 않음)
+    await this._syncStoreSubscription(subscription.store_id, {
+      payment_method_id: billingKey,
     });
 
     logger.info({ subscriptionId }, '결제 수단 업데이트됨');
@@ -247,9 +254,9 @@ class SubscriptionService {
 
         if (daysOverdue >= 7) {
           await SubscriptionRepository.updateStatus(sub.id, 'past_due');
-          await prisma.stores.update({
-            where: { id: sub.store_id },
-            data: { plan: 'free', auto_renew: false },
+          await this._syncStoreSubscription(sub.store_id, {
+            plan: 'free',
+            auto_renew: false,
           });
           logger.warn({ subscriptionId: sub.id, daysOverdue }, '구독 정지 (7일 연체)');
         } else {
