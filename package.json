@@ -10,6 +10,7 @@
     "start": "node index.mts",
     "build": "npx prisma generate && cd frontend && npm install --legacy-peer-deps && npm run build",
     "cloudflare-build": "cd frontend && npm install && npm run build",
+    "vercel-build": "cd frontend && npm run build",
     "db:push": "node scripts/guard-db-push.js && npx prisma db push",
     "db:push:force": "node scripts/guard-db-push.js && npx prisma db push --accept-data-loss",
     "db:migrate": "npx prisma migrate dev",
