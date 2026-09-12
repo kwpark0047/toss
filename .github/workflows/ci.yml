@@ -377,6 +377,7 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VITE_SOCKET_URL: https://wemarket.onrender.com
 
       - name: Smoke test (backend + frontend)
         run: node scripts/smoke-deploy.js --backend=https://wemarket.onrender.com --frontend=https://wemarket.vercel.app
