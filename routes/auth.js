@@ -9,8 +9,6 @@ const {
   updateProfileSchema,
   changePasswordSchema,
   refreshTokenSchema,
-  sendVerificationSchema,
-  verifyCodeSchema,
 } = require('../src/validation/schemas');
 
 /**
@@ -19,65 +17,6 @@ const {
  *   name: Auth
  *   description: 인증 및 사용자 관리 API
  */
-
-/**
- * @swagger
- * /api/auth/send-verification:
- *   post:
- *     tags: [Auth]
- *     summary: 이메일/전화 인증 코드 발송
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email]
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               type:
- *                 type: string
- *                 enum: [register, reset_password, change_email]
- *     responses:
- *       200:
- *         description: 인증 코드 발송 완료
- */
-router.post(
-  '/send-verification',
-  validateBody(sendVerificationSchema),
-  authController.sendVerification
-);
-
-/**
- * @swagger
- * /api/auth/verify-code:
- *   post:
- *     tags: [Auth]
- *     summary: 인증 코드 확인
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, code]
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               code:
- *                 type: string
- *                 pattern: '^[0-9]{6}$'
- *               type:
- *                 type: string
- *                 enum: [register, reset_password, change_email]
- *     responses:
- *       200:
- *         description: 인증 코드 확인 완료
- */
-router.post('/verify-code', validateBody(verifyCodeSchema), authController.verifyCode);
 
 /**
  * @swagger

@@ -79,5 +79,5 @@ export async function sendSms(phone: string, text: string): Promise<any> {
   }
 }
 
-export { sendSms, sendViaCoolsms };
+export { sendViaCoolsms };
 export default { sendSms, sendViaCoolsms };

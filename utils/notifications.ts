@@ -250,45 +250,6 @@ export async function sendReservationNotification(reservation: any, newStatus: s
   });
 }
 
-/**
- * @deprecated notificationService.sendPush() 사용
- */
-function deprecationWarning(fnName: string): void {
-  logger.warn(
-    `[Deprecated] utils/notifications.ts의 ${fnName}()이(가) 호출되었습니다. notificationService.js로 이전하세요.`
-  );
-}
-
-let messaging: any = null;
-try {
-  // firebase-admin v14 모듈러 API — 초기화는 utils/firebaseAdmin 이 단독 담당
-  const { getMessagingClient } = await import('./firebaseAdmin.js');
-  messaging = await getMessagingClient();
-} catch {
-  logger.warn('[Notification] Firebase Admin SDK를 로드할 수 없습니다. 푸시 알림이 제한됩니다.');
-}
-
-/** @deprecated notificationService.sendPush() 사용 */
-export async function sendFCMNotification(token: string, payload: { title: string; body: string; data?: Record<string, any> }): Promise<void> {
-  if (!messaging || !token) return;
-
-  try {
-    const message = {
-      notification: {
-        title: payload.title,
-        body: payload.body,
-      },
-      data: payload.data || {},
-      token: token,
-    };
-
-    const response = await messaging.send(message);
-    logger.info('[FCM] 알림 발송 성공:', response);
-  } catch (error) {
-    logger.error('[FCM] 알림 발송 실패:', error);
-  }
-}
-
 export default {
   sendOrderReadyNotification,
   sendNewOrderNotification,

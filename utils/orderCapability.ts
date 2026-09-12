@@ -133,23 +133,3 @@ export function verifyWalletCapability(token: string): { type: string; customer_
     return null;
   }
 }
-
-function getSecret(): string {
-  return (
-    process.env.ORDER_CAPABILITY_SECRET || process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET
-  );
-}
-
-export {
-  createOrderCapability,
-  verifyOrderCapability,
-  createCustomerHistoryCapability,
-  verifyCustomerHistoryCapability,
-  createReservationCapability,
-  verifyReservationCapability,
-  createWalletCapability,
-  verifyWalletCapability,
-  createWaitingCapability,
-  verifyWaitingCapability,
-  verifyWalletCapability,
-};

@@ -2,7 +2,7 @@ import prisma from '../config/prisma.js';
 import logger from '../utils/logger.js';
 import { AppError } from '../utils/errorHandler.js';
 
-const rolePermissions = {
+export const rolePermissions = {
   owner: [
     'store:update',
     'store:delete',
@@ -108,66 +108,6 @@ export const checkStorePermission = (requiredPermission: string) => {
       } else {
         return res.status(403).json({ error: `권한이 부족합니다 (${requiredPermission})` });
       }
-    } catch (error) {
-      logger.error(error);
-      res.status(500).json({ error: '권한 검증 중 서버 오류가 발생했습니다' });
-    }
-  };
-};
-
-/**
- * 객체 뮤테이션에 대한 테넌트 권한 검증 미들웨어.
- * 요청된 리소스의 store_id 를 DB에서 조회한 뒤 소유자/직원 권한을 확인한다.
- * - super_admin 은 항상 통과
- * - 검증된 주문/예약 capability 보유자는 통과 (req.orderCapability / req.capability)
- */
-export const checkStorePermissionForObject = (model: string) => {
-  return async (req: any, res: any, next: Function) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ error: '인증이 필요합니다' });
-      }
-
-      // super_admin 은 항상 통과
-      if (req.user.role === 'super_admin') {
-        return next();
-      }
-
-      // 검증된 주문/예약 capability 보유자는 통과 (req.orderCapability / req.capability)
-      if (req.orderCapability || req.capability) {
-        return next();
-      }
-
-      // 검증 대상 리소스 ID 추출
-      const id = Number(req.params.id);
-      if (isNaN(id) || id <= 0) {
-        return res.status(400).json({ error: '유효하지 않은 ID입니다.' });
-      }
-
-      // 리소스 조회 및 store_id 확인
-      const object = await prisma[model as any].findUnique({
-        where: { id },
-        select: { store_id: true },
-      });
-
-      if (!object) {
-        return next(new AppError('대상을 찾을 수 없습니다.', 404));
-      }
-      if (object.store_id == null) {
-        return next();
-      }
-
-      // 소유자/직원 권한 확인
-      const role = await getStoreRole(req.user.id, object.store_id);
-      if (!role) {
-        return res
-          .status(403)
-          .json({ error: '해당 매장에 대한 권한이 없거나 존재하지 않는 매장입니다' });
-      }
-
-      req.storeId = object.store_id;
-      req.storeRole = role;
-      next();
     } catch (error) {
       logger.error(error);
       res.status(500).json({ error: '권한 검증 중 서버 오류가 발생했습니다' });
@@ -399,41 +339,3 @@ export function checkResourcePermission(
     }
   };
 }
-
-export const rolePermissions = {
-  owner: [
-    'store:update',
-    'store:delete',
-    'items:manage',
-    'orders:manage',
-    'staff:manage',
-    'stats:read',
-    'order:read',
-  ],
-  manager: [
-    'store:read',
-    'store:update',
-    'settings:read',
-    'settings:write',
-    'settings:update',
-    'items:manage',
-    'products:write',
-    'products:manage',
-    'orders:read',
-    'orders:update',
-    'orders:manage',
-    'customers:read',
-    'customers:write',
-    'staff:manage',
-    'stats:read',
-    'order:read',
-  ],
-  staff: ['orders:manage', 'order:read'],
-  kitchen: ['orders:read', 'orders:update', 'orders:manage', 'order:read'],
-} as const;
-
-export type StoreRole = keyof typeof rolePermissions;
-export type Permission = (typeof rolePermissions)[StoreRole][number];
-
-export { getStoreRole, checkStorePermission, checkStorePermissionForObject, checkStorePermissionForObjectBatch, checkUniformStoreMutation, checkResourcePermission, rolePermissions };
-export type { StoreRole, Permission };

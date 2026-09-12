@@ -88,4 +88,4 @@ export function clearTokenCookies(res: any): void {
   res.clearCookie('refreshToken', { path: AUTH_COOKIE_PATH });
 }
 
-export { isCookieMode, AUTH_COOKIE_PATH };
+export { AUTH_COOKIE_PATH };

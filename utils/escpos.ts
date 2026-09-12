@@ -82,7 +82,6 @@ export function buildKitchenReceipt(order: any, items: any[], store: any = {}): 
     .toLocaleString('ko-KR', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   // 헤더
-  const b = new EscPosBuilder().init();
   b.align('center').bold(true).size(1, 2).line('[ 주 방 주 문 ]').size(1, 1).bold(false);
   if (store.name) b.line(store.name);
   b.hr('=');
@@ -121,4 +120,4 @@ export function buildKitchenReceipt(order: any, items: any[], store: any = {}): 
   return b.build();
 }
 
-export { EscPosBuilder, buildKitchenReceipt, padRow };
+export { EscPosBuilder, padRow };

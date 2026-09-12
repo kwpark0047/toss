@@ -61,5 +61,3 @@ export const adminOnly = (req: any, res: any, next: Function) => {
   }
   next();
 };
-
-export { authMiddleware, optionalAuth, adminOnly };

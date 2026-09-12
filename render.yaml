@@ -12,7 +12,7 @@ services:
     plan: free
     branch: main
     buildCommand: npm install && npx prisma migrate deploy && npx prisma generate
-    startCommand: node index.mts
+    startCommand: node --import tsx index.mts
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:

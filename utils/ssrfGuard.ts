@@ -60,5 +60,3 @@ export async function validateWebhookUrl(rawUrl: string): Promise<{ ok: boolean;
     return { ok: false, reason: '호스트를 해석할 수 없습니다.' };
   }
 }
-
-export { isPrivateAddress };

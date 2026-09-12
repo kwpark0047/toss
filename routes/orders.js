@@ -420,48 +420,4 @@ router.get(
   orderController.getEta
 );
 
-/**
- * @swagger
- * /api/orders/search:
- *   get:
- *     tags: [Orders]
- *     summary: 주문 검색 (관리자용)
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: storeId
- *         schema: { type: integer }
- *       - in: query
- *         name: status
- *         schema: { type: string }
- *       - in: query
- *         name: paymentStatus
- *         schema: { type: string }
- *       - in: query
- *         name: paymentMethod
- *         schema: { type: string }
- *       - in: query
- *         name: startDate
- *         schema: { type: string, format: date }
- *       - in: query
- *         name: endDate
- *         schema: { type: string, format: date }
- *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1 }
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 20 }
- *     responses:
- *       200:
- *         description: 주문 검색 결과
- */
-router.get(
-  '/search',
-  authMiddleware,
-  validateQuery(orderSearchQuerySchema),
-  orderController.searchOrders
-);
-
 module.exports = router;

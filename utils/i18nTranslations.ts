@@ -13,7 +13,7 @@
  *   common.{key}                    — 공통 문구
  */
 
-const translations = {
+export const translations = {
   ko: {
     alimtalk: {
       WAITING_REG: {
@@ -391,13 +391,6 @@ const translations = {
   },
 };
 
-export const translations = {
-  ko,
-  en,
-  ja,
-  zh,
-};
-
 /**
  * 번역 함수
  * @param {string} key  - 점(.)으로 구분된 키 (예: "alimtalk.WAITING_REG")
@@ -455,5 +448,3 @@ export function getNotificationTemplate(type: string, lang: string = 'ko', vars:
     message: t(`${baseKey}.message`, lang, vars),
   };
 }
-
-export const translations: typeof translations;

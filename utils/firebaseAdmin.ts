@@ -57,7 +57,6 @@ export async function getMessagingClient(deps: { firebaseApp?: any; firebaseMess
       logger.info('[Firebase] Admin SDK 초기화 완료');
     }
 
-    const { getMessaging } = await import('firebase-admin/messaging');
     _messaging = getMessaging();
     return _messaging;
   } catch (error: any) {
@@ -88,30 +87,6 @@ export async function shutdownFirebase(deps: { firebaseApp?: any } = {}): Promis
 export function _resetForTests(): void {
   _messaging = null;
   _initialized = false;
-}
-
-function loadServiceAccount(): any {
-  const inlineJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  if (inlineJson) {
-    try {
-      return JSON.parse(inlineJson);
-    } catch (e) {
-      logger.error(`[Firebase] FIREBASE_SERVICE_ACCOUNT_JSON 파싱 실패: ${e.message}`);
-      return null;
-    }
-  }
-
-  const filePath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-  if (filePath) {
-    try {
-      return require(path.resolve(filePath));
-    } catch (e) {
-      logger.error(`[Firebase] 서비스 계정 파일 로드 실패(${filePath}): ${e.message}`);
-      return null;
-    }
-  }
-
-  return null;
 }
 
 export default { getMessagingClient, shutdownFirebase, loadServiceAccount, _resetForTests };

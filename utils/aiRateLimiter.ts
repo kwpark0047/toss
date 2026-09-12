@@ -252,4 +252,4 @@ function createAnalyticsRateLimiter() {
     });
 }
 
-export { createAIRateLimiter, createAnalyticsRateLimiter, AI_RATE_LIMITS, ANALYTICS_RATE_LIMIT };
+export { createAIRateLimiter, createAnalyticsRateLimiter, ANALYTICS_RATE_LIMIT };

@@ -128,5 +128,3 @@ export function checkEnv(): { ok: boolean; warnings: string[] } {
 
   return { ok: true, warnings };
 }
-
-export { checkEnv };

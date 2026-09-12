@@ -335,5 +335,3 @@ export const legacyCacheAdapter = {
     connected: getRedisCache().isConnected,
   }),
 };
-
-export { RedisCache, getRedisCache };

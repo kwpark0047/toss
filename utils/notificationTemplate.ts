@@ -2,7 +2,7 @@ import prisma from '../config/prisma.js';
 import logger from './logger.js';
 
 /** `{{var}}` 치환 (값 없으면 빈 문자열) */
-function render(str: string, vars: Record<string, any> = {}): string {
+export function render(str: string, vars: Record<string, any> = {}): string {
   return String(str || '').replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) =>
     vars[key] != null ? String(vars[key]) : ''
   );
@@ -32,11 +32,5 @@ export async function resolveTemplate(storeId: number | string, type: string, va
     return null; // 실패 시 기본 문구로 폴백
   }
 }
-
-export const render = (str: string, vars: Record<string, any> = {}): string => {
-  return String(str || '').replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) =>
-    vars[key] != null ? String(vars[key]) : ''
-  );
-};
 
 export default { resolveTemplate, render };

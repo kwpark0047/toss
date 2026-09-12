@@ -219,5 +219,3 @@ export const logError = (data: {
     }
   });
 };
-
-export { AppError, errorHandler, errorTypes, logError };

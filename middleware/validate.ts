@@ -96,5 +96,3 @@ export const validateQuery = (schema: any) => validate({ query: schema });
  * @returns {Function}
  */
 export const validateParams = (schema: any) => validate({ params: schema });
-
-export { validate, validateBody, validateQuery, validateParams };

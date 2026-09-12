@@ -161,4 +161,3 @@ export class CircuitBreakerError extends Error {
   }
 }
 
-export { get, allStats, CircuitBreaker };

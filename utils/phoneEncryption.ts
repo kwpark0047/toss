@@ -32,7 +32,7 @@ const LEGACY_HMAC_KEY = '[object ArrayBuffer]';
 
 const PREFIX = 'enc:';
 
-const isEncrypted = (v: string): boolean => typeof v === 'string' && v.startsWith(PREFIX);
+export const isEncrypted = (v: string): boolean => typeof v === 'string' && v.startsWith(PREFIX);
 
 // 전화번호에서 숫자만 남긴다 (여러 모듈에 흩어져 있던 정규화 로직 통합)
 export const normalizePhone = (phone: string): string => String(phone || '').replace(/[^0-9]/g, '');
@@ -110,7 +110,3 @@ export const decryptPhoneFields = (obj: any, fields: string[] = ['phone', 'custo
     }
     return result;
 };
-
-export const isEncrypted = (v: string): boolean => typeof v === 'string' && v.startsWith('enc:');
-export const normalizePhone = (phone: string): string => String(phone || '').replace(/[^0-9]/g, '');
-export { encryptPhone, decryptPhone, encryptPhoneForSearch, phoneSearchCandidates, decryptPhoneFields, isEncrypted };

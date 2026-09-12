@@ -17,7 +17,7 @@ const hkdf = (info: string) =>
 const ENC_KEY = hkdf('token-enc');
 const PREFIX = 'tenc:';
 
-const isEncrypted = (v: string): boolean => typeof v === 'string' && v.startsWith(PREFIX);
+export const isEncrypted = (v: string): boolean => typeof v === 'string' && v.startsWith(PREFIX);
 
 export const encryptToken = (token: string): string => {
   if (!token || isEncrypted(token)) return token;
@@ -42,7 +42,5 @@ export const decryptToken = (stored: string): string => {
     return stored;
   }
 };
-
-export const isEncrypted = (v: string): boolean => typeof v === 'string' && v.startsWith(PREFIX);
 
 export default { encryptToken, decryptToken, isEncrypted };

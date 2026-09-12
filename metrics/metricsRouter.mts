@@ -5,7 +5,7 @@
  * (네트워크 노출 제한은 인프라 계층에서 담당 — 내부망/VPC 또는 스크랩 허용 IP)
  */
 import { Router } from 'express';
-import { registry } from './PrometheusMetrics.js';
+import { registry } from './PrometheusMetrics.mts';
 
 const router = Router();
 

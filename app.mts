@@ -7,7 +7,7 @@ import { Server } from 'socket.io';
 import 'dotenv/config';
 import logger from './utils/logger.ts';
 import { checkEnv } from './utils/envValidator.js';
-import responseFormatter from './middleware/responseFormatter.js';
+const { default: responseFormatter } = await import('./middleware/responseFormatter.js');
 import { errorHandler } from './utils/errorHandler.js';
 import performanceMonitor from './middleware/performanceMonitor.js';
 import Monitoring from './repositories/Monitoring.js';

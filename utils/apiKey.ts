@@ -1,7 +1,7 @@
 import { Request } from 'express';
 import crypto from 'crypto';
 
-const PREFIX = 'wm_live_';
+export const PREFIX = 'wm_live_';
 
 /** 새 API 키 발급 — { plaintext, prefix, hash } */
 export const generateApiKey = () => {
@@ -26,5 +26,3 @@ export const extractApiKey = (req: { headers: Record<string, string | string[] |
     if (x && String(x).startsWith(PREFIX)) return String(x).trim();
     return null;
 };
-
-export const PREFIX: string;

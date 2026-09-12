@@ -15,5 +15,4 @@ export const createLoader = <T, K extends string | number>(
 };
 
 // Export all loaders
-export const createLoader = createLoader;
 export { default as db } from '../config/prisma.js';

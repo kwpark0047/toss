@@ -43,8 +43,3 @@ export const assertOrderStatusTransition = (currentStatus: string, nextStatus: s
 
 export const assertKdsOrderStatusTransition = (currentStatus: string, nextStatus: string): void =>
   assertTransition(KDS_STATUS_TRANSITIONS, currentStatus, nextStatus, 'KDS 주문');
-
-export const ORDER_STATUS_TRANSITIONS: Record<string, string[]>;
-export const KDS_STATUS_TRANSITIONS: Record<string, string[]>;
-export const assertOrderStatusTransition: typeof assertOrderStatusTransition;
-export const assertKdsOrderStatusTransition: typeof assertKdsOrderStatusTransition;

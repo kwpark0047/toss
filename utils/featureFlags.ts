@@ -20,7 +20,7 @@ const parseFlags = (): Record<string, boolean | FeatureFlag> => {
   }
 };
 
-const rolloutBucket = (key: string, subject: string): number => {
+export const rolloutBucket = (key: string, subject: string): number => {
   const digest = crypto.createHash('sha256').update(`${key}:${subject}`).digest();
   return digest.readUInt32BE(0) % 100;
 };
@@ -38,10 +38,5 @@ export const isEnabled = (key: string, { userId = 'anonymous', storeId = 'global
 };
 
 export const getAll = (): Record<string, boolean | FeatureFlag> => parseFlags();
-
-export const rolloutBucket = (key: string, subject: string): number => {
-  const digest = crypto.createHash('sha256').update(`${key}:${subject}`).digest();
-  return digest.readUInt32BE(0) % 100;
-};
 
 export default { isEnabled, getAll, rolloutBucket };

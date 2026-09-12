@@ -67,5 +67,3 @@ export function tmToWgs84(x: number, y: number): { lat: number; lng: number } | 
 
   return { lat: lat * 180 / Math.PI, lng: lng * 180 / Math.PI };
 }
-
-export { tmToWgs84 };

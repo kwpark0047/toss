@@ -82,7 +82,7 @@ function createSupabaseDriver() {
     );
   }
 
-  const { createClient } = await import('@supabase/supabase-js');
+  const { createClient } = require('@supabase/supabase-js');
   const client = createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -130,7 +130,6 @@ export function getDriver() {
 
   if (requested === 'supabase') {
     try {
-      const { createSupabaseDriver } = await import('./storageSupabase.js');
       _driver = createSupabaseDriver();
       logger.info(`[storage] Supabase Storage 드라이버 활성화 (bucket=${_driver.bucket})`);
       return _driver;
@@ -157,4 +156,4 @@ export function _resetForTests(): void {
   _driver = null;
 }
 
-export { buildObjectKey, isSafeKey, ALLOWED_EXTENSIONS, LOCAL_UPLOAD_DIR, _resetForTests };
+export { ALLOWED_EXTENSIONS, LOCAL_UPLOAD_DIR };

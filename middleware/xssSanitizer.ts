@@ -113,47 +113,6 @@ const sanitizeDeep = (input: any, depth = 0, counter = { n: 0 }): any => {
   return Object.assign({}, out);
 };
 
-// Custom sanitize options for rich text fields (if needed)
-const richTextSanitizeOptions = {
-  allowedTags: ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'a'],
-  allowedAttributes: {
-    a: ['href', 'target', 'rel'],
-  },
-  allowedSchemes: ['http', 'https', 'mailto'],
-  allowedSchemesAppliedToAttributes: ['href'],
-  allowedSchemesByTag: {},
-  selfClosing: ['br'],
-  allowedClasses: {
-    '*': [
-      'text-*',
-      'font-*',
-      'bg-*',
-      'border-*',
-      'rounded-*',
-      'p-*',
-      'm-*',
-      'flex',
-      'grid',
-      'w-*',
-      'h-*',
-    ],
-  },
-  transformTags: {
-    script: sanitizeHtml.simpleTransform('p'),
-    iframe: sanitizeHtml.simpleTransform('p'),
-    object: sanitizeHtml.simpleTransform('p'),
-    embed: sanitizeHtml.simpleTransform('p'),
-    form: sanitizeHtml.simpleTransform('p'),
-    input: sanitizeHtml.simpleTransform('p'),
-    button: sanitizeHtml.simpleTransform('p'),
-  },
-};
-
-/**
- * Advanced HTML sanitization for rich text fields
- * Use this middleware on routes that accept HTML content (e.g., product descriptions, reviews)
- * @param {string[]} fields - Array of field names to sanitize (default: ['description', 'content', 'html'])
- */
 export const htmlSanitizer = (fields = ['description', 'content', 'html', 'body', 'description_html']) => {
   return (req: any, res: any, next: Function) => {
     if (!req.body || typeof req.body !== 'object') {
@@ -240,7 +199,4 @@ export {
   sanitizeDeep,
   richTextSanitizeOptions,
   sanitizeHtml,
-  htmlSanitizer,
-  strictSanitizer,
-  basicXssProtection,
 };
