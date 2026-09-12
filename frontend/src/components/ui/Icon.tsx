@@ -1,4 +1,5 @@
 import { forwardRef } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 
 type LucideIconName = keyof typeof LucideIcons;
@@ -40,15 +41,15 @@ const colorMap = {
  */
 export const Icon = forwardRef<SVGSVGElement, IconProps>(
   ({ icon, size = 'md', stroke = 'md', color = 'inherit', className, ...props }, ref) => {
-    const LucideIcon = LucideIcons[icon];
+    const IconComponent = LucideIcons[icon] as LucideIcon | undefined;
 
-    if (!LucideIcon) {
+    if (!IconComponent) {
       console.warn(`[Icon] 알 수 없는 아이콘: "${icon}". lucide-react에서 내보내지 않음.`);
       return null;
     }
 
     return (
-      <LucideIcon
+      <IconComponent
         ref={ref}
         width={sizeMap[size]}
         height={sizeMap[size]}
