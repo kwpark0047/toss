@@ -368,24 +368,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Deploy to Render (backend)
         run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
 
-      - name: Build frontend
-        run: npm run cloudflare-build
+      - name: Deploy to Vercel (frontend, production)
+        run: npx --yes vercel@latest deploy --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-      - name: Deploy to Cloudflare Workers (frontend)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: '4'
-          workingDirectory: frontend
+      - name: Smoke test (backend + frontend)
+        run: node scripts/smoke-deploy.js --backend=https://wemarket.onrender.com --frontend=https://wemarket.vercel.app
 
   # Docker build and security scan (스케줄/수동만)
   docker-build:
