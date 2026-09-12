@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC, CSSProperties } from 'react';
 
 /**
  * Avatar - TDS Avatar 컴포넌트.
@@ -20,7 +20,7 @@ export const Avatar: FC<{
   /** 사용자 정의 클래스명 */
   className?: string;
   /** 사용자 정의 스타일 객체 */
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   /** 테두리 표시 여부 */
   withBorder?: boolean;
   /** 테두리 색상 (브랜드 primary 등) */

@@ -855,7 +855,6 @@ const Menu = ({
         setShowAiInput={setShowAiInput}
         moodTags={moodTags}
         handleGetRecommendations={handleGetRecommendations}
-        aiLoading={aiLoading}
         t={t}
         gradientBg={gradientBg}
         theme={theme}
@@ -864,7 +863,6 @@ const Menu = ({
         userPhone={userPhone}
         navigate={navigate}
         setShowCallSheet={setShowCallSheet}
-        setShowAiInput={setShowAiInput}
         setShowReservation={setShowReservation}
       />
        {/* 메인 배너 슬라이더 - m.fooddream.kr 스타일 */}
@@ -1137,7 +1135,7 @@ const Menu = ({
                         </div>
                         {orderForm.payment_method === m.id && <Icon icon="CheckCircle" size="lg" style={{
                   color: theme.primaryColor
-                }} />}}
+                }} />}
                       </button>)}
                   </div>
                 </div>

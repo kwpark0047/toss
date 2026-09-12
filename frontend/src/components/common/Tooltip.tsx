@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC, CSSProperties, ReactNode } from 'react';
 
 /**
  * Tooltip - TDS Tooltip 컴포넌트.
@@ -8,7 +8,7 @@ import { FC } from 'react';
  */
 export const Tooltip: FC<{
   /** 툴팁에 표시할 텍스트 */
-  children: React.ReactNode;
+  children: ReactNode;
   /** 툴팁 트리거가 될 요소 */
   trigger?: 'hover' | 'focus' | 'click';
   /** 툴팁 위치 (top | bottom | left | right) */
@@ -20,7 +20,7 @@ export const Tooltip: FC<{
   /** 사용자 정의 클래스명 */
   className?: string;
   /** 사용자 정의 스타일 객체 */
-  style?: React.CSSProperties;
+  style?: CSSProperties;
 }> = ({
   children,
   trigger = 'hover',

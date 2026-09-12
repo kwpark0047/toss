@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC, CSSProperties, ReactNode } from 'react';
 
 /**
  * Badge - TDS Badge 컴포넌트.
@@ -9,13 +9,13 @@ import { FC } from 'react';
  */
 export const Badge: FC<{
   /** 뱃지 라벨 텍스트 */
-  children: React.ReactNode;
+  children: ReactNode;
   /** 뱃지 변형/타입 (new, popular, special, sold-out 등) */
   variant?: 'new' | 'popular' | 'special' | 'sold-out' | 'custom';
   /** 사용자 정의 클래스명 */
   className?: string;
   /** 사용자 정의 스타일 객체 */
-  style?: React.CSSProperties;
+  style?: CSSProperties;
 }> = ({
   children,
   variant = 'custom',
@@ -28,7 +28,7 @@ export const Badge: FC<{
     new: 'bg-red-100 text-red-800',
     popular: 'bg-yellow-100 text-yellow-800',
     special: 'bg-purple-100 text-purple-800',
-    sold-out: 'bg-gray-100 text-gray-700',
+    'sold-out': 'bg-gray-100 text-gray-700',
     custom: 'bg-primary/10 text-primary',
   }[variant];
 
@@ -61,7 +61,7 @@ export const Avatar: FC<{
   /** 사용자 정의 클래스명 */
   className?: string;
   /** 사용자 정의 스타일 객체 */
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   /** 테두리 표시 여부 */
   withBorder?: boolean;
 }> = ({

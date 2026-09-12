@@ -1,6 +1,7 @@
 module.exports = {
   maxWorkers: 1,
   testEnvironment: 'node',
+  extensionsToTreatAsEsm: ['.mts'],
   clearMocks: true,
   setupFiles: ['./jest.setup.js'],
   setupFilesAfterEnv: ['./tests/setupAfterEnv.js'],
