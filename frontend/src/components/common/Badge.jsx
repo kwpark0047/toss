@@ -1,5 +1,3 @@
-import { FC } from 'react';
-
 /**
  * Badge - TDS Badge 컴포넌트.
  * - 토스트·알림·상품 뱃지 등 다양한 문맥에서 사용
@@ -7,16 +5,7 @@ import { FC } from 'react';
  * - 타입: new · popular · special · sold-out · etc
  * - 오토레이아웃 gap만 사용 (임의 margin/padding 금지)
  */
-export const Badge: FC<{
-  /** 뱃지 라벨 텍스트 */
-  children: React.ReactNode;
-  /** 뱃지 변형/타입 (new, popular, special, sold-out 등) */
-  variant?: 'new' | 'popular' | 'special' | 'sold-out' | 'custom';
-  /** 사용자 정의 클래스명 */
-  className?: string;
-  /** 사용자 정의 스타일 객체 */
-  style?: React.CSSProperties;
-}> = ({
+export const Badge = ({
   children,
   variant = 'custom',
   className,
@@ -28,7 +17,7 @@ export const Badge: FC<{
     new: 'bg-red-100 text-red-800',
     popular: 'bg-yellow-100 text-yellow-800',
     special: 'bg-purple-100 text-purple-800',
-    sold-out: 'bg-gray-100 text-gray-700',
+    'sold-out': 'bg-gray-100 text-gray-700',
     custom: 'bg-primary/10 text-primary',
   }[variant];
 
@@ -49,22 +38,7 @@ export const Badge: FC<{
  * - 상태: 기본/초점/비활성화
  * - 대체 텍스트 지원 (이니셜 표시)
  */
-export const Avatar: FC<{
-  /** 프로필 이미지 URL (선택사항) */
-  src?: string;
-  /** 알트 텍스트 (이미지 로드 실패 시 표시될 텍스트) */
-  alt?: string;
-  /** 크기 (sm | md | lg) */
-  size?: 'sm' | 'md' | 'lg';
-  /** 사용자 이름 (이미지가 없을 때 표시될 이니셜) */
-  name?: string;
-  /** 사용자 정의 클래스명 */
-  className?: string;
-  /** 사용자 정의 스타일 객체 */
-  style?: React.CSSProperties;
-  /** 테두리 표시 여부 */
-  withBorder?: boolean;
-}> = ({
+export const Avatar = ({
   src,
   alt = '',
   size = 'md',
@@ -90,7 +64,7 @@ export const Avatar: FC<{
       className={`relative flex ${sizeMap[size]} items-center justify-center ${withBorder ? 'border-2 border-white' : ''} ${className || ''}`}
       style={{
         ...style,
-        backgroundColor: bgColorMap[size as keyof typeof bgColorMap],
+        backgroundColor: bgColorMap[size],
       }}
     >
       {src ? (

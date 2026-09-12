@@ -1,5 +1,3 @@
-import { FC } from 'react';
-
 /**
  * Avatar - TDS Avatar 컴포넌트.
  * - 사용자 프로필 이미지 또는 이니셜 표시
@@ -8,24 +6,7 @@ import { FC } from 'react';
  * - 대체 텍스트 지원 (이니셜 표시)
  * - 오토레이아웃 gap만 사용 (임의 margin/padding 금지)
  */
-export const Avatar: FC<{
-  /** 프로필 이미지 URL (필수 아님, 이니셜 표시를 위해 사용) */
-  src?: string;
-  /** 대체 텍스트 (이미지 로드 실패 시 표시될 텍스트, 기본값: '') */
-  alt?: string;
-  /** 크기 (sm | md | lg) */
-  size?: 'sm' | 'md' | 'lg';
-  /** 사용자 이름 (이미지가 없을 때 표시될 이니셜) */
-  name?: string;
-  /** 사용자 정의 클래스명 */
-  className?: string;
-  /** 사용자 정의 스타일 객체 */
-  style?: React.CSSProperties;
-  /** 테두리 표시 여부 */
-  withBorder?: boolean;
-  /** 테두리 색상 (브랜드 primary 등) */
-  borderColor?: string;
-}> = ({
+export const Avatar = ({
   src,
   alt = '',
   size = 'md',
@@ -59,15 +40,15 @@ export const Avatar: FC<{
     lg: 'font-semibold',
   };
 
-  const dimension = sizeToPx[size as keyof typeof sizeToPx];
+  const dimension = sizeToPx[size];
 
   return (
     <div
-      className={`relative w-${dimension} h-${dimension} ${radiusMap[size as keyof typeof radiusMap]} flex items-center justify-center ${withBorder ? `border-2 border-${borderColor || 'primary'}` : ''} ${className || ''}`}
+      className={`relative w-${dimension} h-${dimension} ${radiusMap[size]} flex items-center justify-center ${withBorder ? `border-2 border-${borderColor || 'primary'}` : ''} ${className || ''}`}
       style={{
         ...style,
-        fontSize: fontSizeMap[size as keyof typeof fontSizeMap],
-        fontWeight: fontWeightMap[size as keyof typeof fontWeightMap],
+        fontSize: fontSizeMap[size],
+        fontWeight: fontWeightMap[size],
         backgroundColor: 'var(--color-primary)',
         color: 'var(--color-grey-100)',
       }}
