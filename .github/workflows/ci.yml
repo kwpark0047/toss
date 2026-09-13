@@ -36,8 +36,9 @@ jobs:
     timeout-minutes: 12
     env:
       NODE_ENV: test
-      # prisma generate/validate 가 env("DATABASE_URL") 을 참조하므로 (오프라인 검증, DB 연결 불필요)
+      # prisma generate/validate 가 env("DATABASE_URL") / env("DIRECT_URL") 를 참조하므로 (오프라인 검증, DB 연결 불필요)
       DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+      DIRECT_URL: postgresql://test:test@localhost:5432/wemarket_test?schema=public
       # .mts(ESM) 를 로드하는 테스트(PrometheusMetrics 등)를 위해 Jest ESM 런타임 활성화
       NODE_OPTIONS: --experimental-vm-modules
       JWT_SECRET: test-secret
