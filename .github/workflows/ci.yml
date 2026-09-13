@@ -379,7 +379,12 @@ jobs:
           node-version: 22
 
       - name: Deploy to Render (backend)
+        if: secrets.RENDER_DEPLOY_HOOK_URL != ''
         run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+
+      - name: Report missing Render deploy hook
+        if: secrets.RENDER_DEPLOY_HOOK_URL == ''
+        run: echo "::warning::RENDER_DEPLOY_HOOK_URL is not configured; skipped Render deploy (Render still auto-deploys on push to main if Git-connected)"
 
       - name: Deploy to Vercel (frontend, production)
         run: npx --yes vercel@latest deploy --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
