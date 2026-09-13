@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router-dom';
 import { MapPin, Search, Navigation, Truck, ArrowRight, Clock, Sparkles, AlertCircle, ShoppingBag, ShieldAlert, Home, CreditCard, BookOpen, Mail, Smartphone, Signal, Fuel, AlertTriangle, Zap } from 'lucide-react';
 import api from '@/api/client';
 import Icon from '../components/ui/Icon';

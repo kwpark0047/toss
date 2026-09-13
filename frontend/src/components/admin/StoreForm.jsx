@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router-dom';
 import { storesAPI, planRequestsAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStoreOperatingHours } from '../../hooks/useStoreOperatingHours';

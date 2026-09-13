@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams } from 'react-router-dom';
 import { Truck, Sparkles, MapPin, Flame, Coffee, Settings, Search, Award, Terminal, ChevronRight, Save, Loader2, CheckCircle2, AlertCircle, Store } from 'lucide-react';
 import api from '@/api/client';
 import Icon from '../components/ui/Icon';

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { inventoryAPI, aiAutoOrderAPI } from '../../api';
 import EmptyState from '../common/EmptyState';

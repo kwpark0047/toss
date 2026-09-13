@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate } from 'react-router-dom';
 import { analyticsAPI, storesAPI, staffAPI, exportAPI } from '../../api';
 import { motion } from 'framer-motion';
 import { formatPrice } from '../../utils/format';

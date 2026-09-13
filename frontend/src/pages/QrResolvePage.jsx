@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate } from 'react-router-dom';
 import { tablesAPI, wakeupServer } from '@/api';
 import { Loader2, QrCode, AlertCircle, RefreshCw, Wifi, Server } from 'lucide-react';
 import { useSystemDark } from '@/hooks/useSystemDark';

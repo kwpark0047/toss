@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link } from 'react-router-dom';
 import { formatPrice } from '../../utils/format';
 import api from '../../api/client';
 import Icon from '../../components/ui/Icon';

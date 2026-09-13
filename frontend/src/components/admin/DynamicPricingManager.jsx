@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dynamicPricingAPI } from '@/api/admin';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

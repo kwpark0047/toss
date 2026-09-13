@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import KdsOrderProgressBar from '../components/customer/KdsOrderProgressBar';
 import { Play, CheckCircle2, RefreshCw, Printer, Volume2, VolumeX, Wifi, WifiOff, Clock, User, Hash, XCircle, Keyboard, Megaphone, Bluetooth } from 'lucide-react';

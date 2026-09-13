@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { ordersAPI, getSocket } from '../../api';
 import { motion } from 'framer-motion';
 import ManagerCallSheet from './ManagerCallSheet';

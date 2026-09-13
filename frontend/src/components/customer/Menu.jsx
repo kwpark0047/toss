@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { storesAPI, categoriesAPI, productsAPI, tablesAPI, ordersAPI, cartAPI, paymentsAPI } from "../../api";
 import { motion, AnimatePresence } from "framer-motion";
 import Icon from '../../components/ui/Icon';

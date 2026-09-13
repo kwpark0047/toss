@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link } from 'react-router-dom';
 import { ordersAPI, storesAPI, paymentsAPI, staffAPI } from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSEO } from '../../lib/useSEO';

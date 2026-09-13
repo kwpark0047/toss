@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { Store, Menu, X, ChevronDown, ChevronUp, Search, BookOpen, QrCode, Smartphone } from 'lucide-react';
 export default function GuidesPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
