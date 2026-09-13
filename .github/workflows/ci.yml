@@ -389,13 +389,23 @@ jobs:
           fi
 
       - name: Deploy to Vercel (frontend, production)
-        run: npx --yes vercel@latest deploy --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
+        id: vercel-deploy
         env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VITE_SOCKET_URL: https://wemarket.onrender.com
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::warning::Vercel secrets (VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID) are not all configured; skipped Vercel production deploy. Add them to repo secrets and re-run to deploy."
+            echo "deployed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
 
       - name: Smoke test (backend + frontend)
+        if: steps.vercel-deploy.outputs.deployed == 'true'
         run: node scripts/smoke-deploy.js --backend=https://wemarket.onrender.com --frontend=https://wemarket.vercel.app
 
   # Docker build and security scan (스케줄/수동만)
