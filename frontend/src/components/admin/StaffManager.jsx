@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate } from 'react-router-dom';
 import { staffAPI, storesAPI } from '../../api';
 import { formatTime } from '../../utils/format';
 import { handleApiError } from '../../utils/apiError';

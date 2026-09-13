@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { QrCode, Store, Bell, CreditCard, BarChart3, Smartphone, Heart, Menu, X, Shield, MapPin, Sparkles, CalendarCheck } from 'lucide-react';
 export default function FeaturesPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

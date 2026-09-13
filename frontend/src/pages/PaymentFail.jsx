@@ -1,4 +1,4 @@
-import { useSearchParams, useNavigate } from 'react-router';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AlertCircle, RefreshCw, Home } from 'lucide-react';
 import { useSystemDark } from '@/hooks/useSystemDark';
 

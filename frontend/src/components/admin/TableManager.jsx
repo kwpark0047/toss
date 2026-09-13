@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate } from 'react-router-dom';
 import { tablesAPI, storesAPI } from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';

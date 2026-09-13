@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link } from 'react-router-dom';
 import { boardAPI } from '../../api/board';
 import { toast } from 'sonner';
 import Icon from '../../components/ui/Icon';

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 import api from '@/api/client';
 import Icon from '../../components/ui/Icon';
 import { Navigation, Power, RefreshCw, ShieldAlert, Sparkles } from 'lucide-react';

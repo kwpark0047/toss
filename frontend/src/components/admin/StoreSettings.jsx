@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 import { storesAPI, tierSettingsAPI } from '../../api';
 import { toast } from 'react-toastify';
 import { useSEO } from '../../lib/useSEO';

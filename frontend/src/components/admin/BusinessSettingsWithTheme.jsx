@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 import { businessAPI, storeAccountAPI } from '../../api';
 import { toast } from 'react-toastify';
 import { THEME_PRESETS, DEFAULT_THEME_SETTINGS } from '../../lib/themePresets';
