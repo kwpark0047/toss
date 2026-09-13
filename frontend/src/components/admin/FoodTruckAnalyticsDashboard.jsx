@@ -1,5 +1,5 @@
 import{ useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link } from 'react-router-dom';
 import api from '@/api/client';
 import Icon from '../../components/ui/Icon';
 import { ArrowLeft, Calendar, ChevronRight, Clock, DollarSign, Map, RefreshCw, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react';

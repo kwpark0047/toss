@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link } from 'react-router';import { formatPrice } from '../../utils/format';
+import { Link } from 'react-router-dom';import { formatPrice } from '../../utils/format';
 import { toast } from 'react-toastify';
 import { vibrateShort } from '../../utils/notificationSound';
 import { analyticsAPI } from '../../api/misc';

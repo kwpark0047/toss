@@ -1,6 +1,7 @@
 module.exports = {
   maxWorkers: 1,
   testEnvironment: 'node',
+  extensionsToTreatAsEsm: ['.mts'],
   clearMocks: true,
   setupFiles: ['./jest.setup.js'],
   setupFilesAfterEnv: ['./tests/setupAfterEnv.js'],
@@ -26,11 +27,35 @@ module.exports = {
   moduleFileExtensions: ['js', 'cjs', 'jsx', 'mjs', 'ts', 'tsx', 'mts', 'json', 'node'],
   transform: {
     '^.+\\.(js|mjs|cjs|jsx)$': 'babel-jest',
-    '^.+\\.(ts|tsx|mts)$': [
+    // .ts/.tsx: TS 구문 제거 후 CJS 로 변환 (기존)
+    // (app.mts 를 require() 로 로드하면 top-level await 때문에
+    //  "await is only valid in async functions" SyntaxError 발생 → .mts 는 아래 ESM 유지)
+    '^.+\\.(ts|tsx)$': [
       'babel-jest',
       {
         presets: [
-          ['@babel/preset-env', { targets: { node: 'current' }, modules: 'commonjs' }],
+          // modules: commonjs 상태에서 dynamic import() 를 require() 로 컴파일하면
+          // Node 22 의 require(ESM) 불가지(must-use-import) 때문에 .mts 동적 로드가 실패한다.
+          // → dynamic-import 변환만 제외해 native import() 를 유지한다
+          //   (Jest ESM 런타임 + --experimental-vm-modules 로 .mts 를 비동기 로드).
+          [
+            '@babel/preset-env',
+            {
+              targets: { node: 'current' },
+              modules: 'commonjs',
+              exclude: ['@babel/plugin-transform-dynamic-import'],
+            },
+          ],
+          '@babel/preset-typescript',
+        ],
+      },
+    ],
+    // .mts: ESM 구문 그대로 유지 (modules: false) → Jest native ESM 런타임에서 top-level await 허용
+    '^.+\\.mts$': [
+      'babel-jest',
+      {
+        presets: [
+          ['@babel/preset-env', { targets: { node: 'current' }, modules: false }],
           '@babel/preset-typescript',
         ],
       },

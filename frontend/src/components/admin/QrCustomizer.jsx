@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { storesAPI } from '../../api/stores';
 import { toast } from 'sonner';

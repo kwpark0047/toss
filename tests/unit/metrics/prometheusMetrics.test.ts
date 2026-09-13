@@ -9,14 +9,27 @@
  *  - registry 로부터 표준 메트릭명 노출 확인
  */
 import { NextFunction, Request, Response } from 'express';
-const {
-  registry,
-  normalizeRoute,
-  metricsMiddleware,
-  initDefaultMetrics,
-  httpRequestsInFlight,
-  httpRequestDurationSeconds,
-} = require('../../../metrics/PrometheusMetrics');
+
+// PrometheusMetrics.mts 는 ESM 모듈이라 Node 22 의 동기 require(ESM) 로 로드할 수 없다
+// (Jest 는 Node v24.9+ 에서만 동기 vm 모듈 API 를 노출). 회귀 테스트와 동일하게
+// beforeAll 에서 동적 import() 로 로드한다.
+let registry: any;
+let normalizeRoute: any;
+let metricsMiddleware: any;
+let initDefaultMetrics: any;
+let httpRequestsInFlight: any;
+let httpRequestDurationSeconds: any;
+
+beforeAll(async () => {
+  ({
+    registry,
+    normalizeRoute,
+    metricsMiddleware,
+    initDefaultMetrics,
+    httpRequestsInFlight,
+    httpRequestDurationSeconds,
+  } = await import('../../../metrics/PrometheusMetrics.mts'));
+});
 
 /**
  * Express res 객체를 흉내 낸다. `on`/`once`로 등록된 finish/close

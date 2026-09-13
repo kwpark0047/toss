@@ -130,10 +130,10 @@ let prisma;
 let Order;
 let Payment;
 
-beforeAll(() => {
+beforeAll(async () => {
   process.env.JWT_SECRET = 'test-secret-key-that-is-long-enough';
   process.env.NODE_ENV = 'test';
-  ({ app } = require('../../app'));
+  ({ app } = await import('../../app.mts'));
   prisma = require('../../config/prisma');
   Order = require('../../repositories/Order');
   Payment = require('../../repositories/Payment');

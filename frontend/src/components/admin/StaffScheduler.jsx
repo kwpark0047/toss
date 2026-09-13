@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 import { staffAPI } from '../../api/staff';
 import Icon from '../../components/ui/Icon';
 import { ChevronLeft, ChevronRight, Clock, Plus, Trash2, X } from 'lucide-react';

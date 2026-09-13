@@ -40,7 +40,9 @@ const colorMap = {
  */
 export const Icon = forwardRef<SVGSVGElement, IconProps>(
   ({ icon, size = 'md', stroke = 'md', color = 'inherit', className, ...props }, ref) => {
-    const LucideIcon = LucideIcons[icon];
+    const LucideIcon = LucideIcons[icon] as
+      | React.ForwardRefExoticComponent<Omit<React.SVGAttributes<SVGSVGElement>, 'ref'> & React.RefAttributes<SVGSVGElement>>
+      | undefined;
 
     if (!LucideIcon) {
       console.warn(`[Icon] 알 수 없는 아이콘: "${icon}". lucide-react에서 내보내지 않음.`);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { Store, Menu, X, Check, Sparkles } from 'lucide-react';
 export default function PricingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

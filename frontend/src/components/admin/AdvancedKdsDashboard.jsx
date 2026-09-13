@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link } from 'react-router-dom';
 import { connectKitchen, getSocket } from '../../utils/socket';
 import notificationSound, { vibrateShort, vibrateOrderReady } from '../../utils/notificationSound';
 import Icon from '../../components/ui/Icon';

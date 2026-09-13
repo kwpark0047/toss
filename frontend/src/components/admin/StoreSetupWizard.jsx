@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';import { storesAPI, categoriesAPI, productsAPI, tablesAPI, aiAPI } from '../../api';
 import { useStore } from '../../contexts/StoreContext';
 import { buildMenuUrl, buildQrUrl } from '../../utils/site';

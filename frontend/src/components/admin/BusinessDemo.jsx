@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import Icon from '../../components/ui/Icon';
 import { Activity, ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, BarChart3, ChefHat, ChevronRight, LayoutDashboard, MessageSquareText, Play, ReceiptText, ShoppingBag, Sparkles, Store, Users, UtensilsCrossed, Wallet, Zap } from 'lucide-react';
 

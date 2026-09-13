@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { Truck, Menu, X, Smartphone, QrCode, Navigation, ChevronDown, ChevronUp, Sparkles, Fuel, AlertTriangle } from 'lucide-react';
 export default function FoodTruckGuides() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

@@ -36,6 +36,11 @@ jobs:
     timeout-minutes: 12
     env:
       NODE_ENV: test
+      # prisma generate/validate 가 env("DATABASE_URL") / env("DIRECT_URL") 를 참조하므로 (오프라인 검증, DB 연결 불필요)
+      DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+      DIRECT_URL: postgresql://test:test@localhost:5432/wemarket_test?schema=public
+      # .mts(ESM) 를 로드하는 테스트(PrometheusMetrics 등)를 위해 Jest ESM 런타임 활성화
+      NODE_OPTIONS: --experimental-vm-modules
       JWT_SECRET: test-secret
       JWT_REFRESH_SECRET: test-refresh-secret
     steps:
@@ -84,6 +89,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
       NODE_ENV: test
+      # .mts(ESM) 를 로드하는 테스트(PrometheusMetrics 등)를 위해 Jest ESM 런타임 활성화
+      NODE_OPTIONS: --experimental-vm-modules
       SMS_ENV: dev
       JWT_SECRET: test-secret
       JWT_REFRESH_SECRET: test-refresh-secret
@@ -117,6 +124,8 @@ jobs:
     timeout-minutes: 12
     env:
       NODE_ENV: test
+      # app.mts(ESM, top-level await) 를 동적 로드하는 회귀 테스트를 위해 Jest ESM 런타임 활성화
+      NODE_OPTIONS: --experimental-vm-modules
       SMS_ENV: dev
       JWT_SECRET: test-secret
       JWT_REFRESH_SECRET: test-refresh-secret
@@ -368,24 +377,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Deploy to Render (backend)
         run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
 
-      - name: Build frontend
-        run: npm run cloudflare-build
+      - name: Deploy to Vercel (frontend, production)
+        run: npx --yes vercel@latest deploy --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VITE_SOCKET_URL: https://wemarket.onrender.com
 
-      - name: Deploy to Cloudflare Workers (frontend)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: '4'
-          workingDirectory: frontend
+      - name: Smoke test (backend + frontend)
+        run: node scripts/smoke-deploy.js --backend=https://wemarket.onrender.com --frontend=https://wemarket.vercel.app
 
   # Docker build and security scan (스케줄/수동만)
   docker-build:

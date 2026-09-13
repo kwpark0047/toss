@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { MapPin, Navigation, Truck, Smartphone, Menu, X, Sparkles, Signal, Fuel, AlertTriangle } from 'lucide-react';
 export default function FoodTruckFeatures() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

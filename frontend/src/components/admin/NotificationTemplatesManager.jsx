@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 import { notificationTemplatesAPI } from '../../api/notifications';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';

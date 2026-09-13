@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Store, Menu, X, Mail, Phone, MapPin, Send, Sparkles } from 'lucide-react';
 import Icon from '../../components/ui/Icon';

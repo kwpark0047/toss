@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link } from 'react-router-dom';
 import { reviewsAPI, storesAPI } from '../../api';
 import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';

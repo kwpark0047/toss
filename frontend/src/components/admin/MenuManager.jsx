@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useMenuManager } from '../../hooks/useMenuManager';
 import { motion } from 'framer-motion';
 import { lazy, Suspense } from 'react';

@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/static-components */
 import { motion } from 'framer-motion';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { Store, Coffee, Utensils, Cake, Pizza, ShoppingBag, MapPin, Star, BellRing, Heart, Navigation, MessageCircle } from 'lucide-react';
 import { bizLabel } from '../utils/businessType';
 import Icon from './ui/Icon';

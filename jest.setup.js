@@ -120,3 +120,18 @@ jest.mock('sanitize-html', () => {
   fn.simpleTransform = (tagName) => (x) => `<${tagName}>${x}</${tagName}>`;
   return fn;
 });
+
+// otplib → @otplib/plugin-base32-scure → @scure/base (pure ESM) 체인은
+// Node 22 + Jest require(ESM) 미지원으로 로드 불가 → otplib 자체를 mock 한다.
+// 회귀 테스트는 2FA/OTP 흐름을 실행하지 않으므로 stub 정도면 충분하다.
+// TwoFactorService가 require 시점에 otplib.TOTP.options 를 재설정하므로
+// TOTP(변경 가능한 빈 객체)와 generateSecret/generateURI/verify stub 을 제공한다.
+jest.mock('otplib', () => {
+  const totp = {};
+  return {
+    TOTP: totp,
+    generateSecret: jest.fn(() => 'TESTBASE32SECRET'),
+    generateURI: jest.fn(() => 'otpauth://totp/WeMarket:test?secret=TEST&issuer=WeMarket'),
+    verify: jest.fn(() => true),
+  };
+});

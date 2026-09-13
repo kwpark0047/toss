@@ -33,7 +33,7 @@
     "test:integration": "jest --config jest.config.integration.js",
     "test:regression": "jest --config jest.config.js tests/regression",
     "test:watch": "jest --config jest.config.js --watch",
-    "test:coverage": "jest --config jest.config.js tests/unit tests/routes --coverage --coverageReporters=text --coverageReporters=text-summary --coverageReporters=lcov",
+    "test:coverage": "jest --config jest.config.js tests/unit tests/routes --coverage --coverageReporters=text --coverageReporters=text-summary --coverageReporters=lcov --forceExit",
     "test:coverage:c8": "c8 --reporter=text --reporter=lcov --all --include='routes/' --include='models/' --include='services/' --include='utils/' jest --config jest.config.js --detectOpenHandles",
     "test:e2e": "npx playwright test",
     "test:e2e:chrome": "npx playwright test --project=chromium-desktop",

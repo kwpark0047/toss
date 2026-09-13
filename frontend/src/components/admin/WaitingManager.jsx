@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 import { getSocket, waitingAPI } from '../../api';
 import { useTTS } from '../../hooks/useTTS';import { toast } from 'react-toastify';
 import Skeleton from '../common/Skeleton';

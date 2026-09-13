@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { inventoryAPI, aiAutoOrderAPI } from '../../api';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { toast } from 'react-toastify';
 import Icon from '../../components/ui/Icon';
-import { AlertCircle, CheckCircle, Download, Edit3, History, Minus, Package, Plus, RefreshCw, Search, TrendingDown, TrendingUp, X, XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Download, Edit3, History, Minus, Package, Plus, RefreshCw, Search, Sparkles, TrendingDown, TrendingUp, X, XCircle } from 'lucide-react';
 
 // 페이지네이션 컴포넌트
 function Pagination({ current, total, onChange }) {

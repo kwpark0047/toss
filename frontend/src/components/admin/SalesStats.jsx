@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link } from 'react-router-dom';
 import { ordersAPI, storesAPI } from '../../api';
 import { formatPrice } from '../../utils/format';
 import Skeleton from '../common/Skeleton';

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle2, Loader2, Sparkles, ShoppingBag, ArrowRight, Bell, Smartphone, Share, Info } from 'lucide-react';
 import { paymentsAPI } from '../api';
 import { requestNotificationPermission } from '../firebase';
