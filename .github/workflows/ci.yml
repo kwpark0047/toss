@@ -401,7 +401,7 @@ jobs:
             echo "deployed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
+          cd frontend && npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
           echo "deployed=true" >> "$GITHUB_OUTPUT"
 
       - name: Smoke test (backend + frontend)
