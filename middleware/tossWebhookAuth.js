@@ -34,10 +34,13 @@ const timingSafeEqualStr = (a, b) => {
  * Toss 웹훅 서명 검증 (HMAC-SHA256)
  * tosspayments-webhook-signature 헤더: v1=<signature>,ts=<timestamp>
  * 서명 = HMAC-SHA256(TOSS_WEBHOOK_SIGNING_SECRET, `${timestamp}.${rawBody}`)
+ * 반환: true=서명 유효(통과), false=서명 실패(거부), 'unconfigured'=검증 미설정(다음 계층 진행)
  */
 const verifyTossWebhookSignature = (req) => {
   const signingSecret = process.env.TOSS_WEBHOOK_SIGNING_SECRET;
-  if (!signingSecret) return true; // 서명 검증 미설정 시 통과
+  // 서명 검증 미설정 → 서명 계층 미적용(① ② ③ 계층으로 계속 진행). true 를 반환해
+  // 뒤의 공유 시크릿/IP 화이트리스트 검증을 우회하면 안 된다.
+  if (!signingSecret) return 'unconfigured';
 
   const signatureHeader = req.get('tosspayments-webhook-signature');
   if (!signatureHeader) return false;
@@ -102,7 +105,13 @@ const tossWebhookAuth = (req, res, next) => {
   const ipsRaw = process.env.TOSS_WEBHOOK_IPS;
 
   // ④ 서명 검증 (최우선 - 지급대행/매장변경 이벤트용)
-  if (verifyTossWebhookSignature(req)) return next();
+  const signatureResult = verifyTossWebhookSignature(req);
+  if (signatureResult === true) return next();
+  if (signatureResult === false) {
+    logger.warn('[Webhook/Toss] 웹훅 서명 검증 실패 - 요청 거부', { ip: normalizeIp(req.ip) });
+    return res.status(401).end();
+  }
+  // 서명 검증 미설정(unconfigured) → ① ② ③ 계층으로 계속 진행
 
   // 검증 계층 미설정: 서버측 재검증에 의존하고 경고 1회 출력
   if (!secret && !ipsRaw) {
