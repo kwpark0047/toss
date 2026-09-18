@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 질문 및 논의
+    url: https://github.com/kwpark0047-iceu/250105/discussions
+    about: 사용법 질문이나 아이디어 논의는 Discussions를 이용해주세요.
+  - name: 📖 기여 가이드
+    url: https://github.com/kwpark0047-iceu/250105/blob/main/CONTRIBUTING.md
+    about: 브랜치 전략, 커밋 컨벤션, PR 프로세스는 CONTRIBUTING.md를 확인해주세요.
+  - name: ✉️ 이메일 문의
+    url: mailto:team@wemarket.kr
+    about: GitHub로 논의하기 어려운 사안은 이메일로 문의해주세요.
