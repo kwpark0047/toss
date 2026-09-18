@@ -38,7 +38,7 @@
 - [x] StoreSetupWizard TableLayoutCard import 누락 → 메뉴 저장 후 ReferenceError 수정 (0eda95d)
 - [ ] Render 백엔드 CI 자동 배포 확인 (enum migration 후 재배포)
 - [x] `StoreSetupWizard` → `TableLayoutCard` import 누락 수정 (메뉴 저장 후 `ReferenceError` 수정)
-- [ ] Google Fonts woff2 preload 404 수정 (critical-css 플러그인 이슈, 빌드에 영향 없음 — fonts 정상 로딩)
+- [x] Google Fonts woff2 preload 404 수정 (critical-css 플러그인 이슈, 빌드에 영향 없음 — fonts 정상 로딩) — 원인: checked-in dist가 최신 소스로 빌드된 산출물이 아님. 신선한 빌드(dist-probe)에서는 woff2/font preload가 생성되지 않으며, 라이브 gstatic woff2 URL 124×5 UA 전부 200 응답. 코드 수정 불필요, 재빌드/재배포로 해소.
 
 ### Medium Priority
 - [ ] 로컬 통합 테스트 환경: PostgreSQL Docker + `npm run test`

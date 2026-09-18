@@ -4,7 +4,7 @@
 > **최종 갱신**: 2026-08-07  
 > **작성자**: WeMarket 개발팀  
 > **버전**: v1.2.0  
-> **상태**: 매장 테마 기능 + `/api` 프록시 + CI/CD 배포 파이프라인 운영 완료
+> **상태**: 매장 테마 기능 + CI/CD 배포 파이프라인(Vercel + Render) 운영 완료
 
 ---
 
@@ -15,7 +15,7 @@
 | **프로젝트명** | WeMarket (QR 메뉴 & 스마트 매장 관리 플랫폼) |
 | **레포지토리** | https://github.com/kwpark0047-iceu/250105 |
 | **현재 버전** | v1.2.0 (매장 테마 + CI/CD 배포 운영) |
-| **배포 환경** | 백엔드: Render (`wemarket.onrender.com`), 프론트엔드: Cloudflare Workers (`toss.wemarket.workers.dev`) |
+| **배포 환경** | 백엔드: Render (`wemarket.onrender.com`), 프론트엔드: Vercel (`wemarket.vercel.app`) |
 | **데이터베이스** | PostgreSQL (Supabase) + Prisma ORM |
 
 ---
@@ -26,7 +26,7 @@
 |------|-----------|
 | **Backend** | Node.js 18+, Express 5, Socket.IO, Prisma ORM, PostgreSQL |
 | **Frontend** | React 19, Vite 7, React Router 7, react-i18next (4개 언어) |
-| **Infra** | Cloudflare Workers (Static Assets + `/api` 프록시), Render, Supabase, GitHub Actions |
+| **Infra** | Vercel, Render, Supabase, GitHub Actions |
 | **Testing** | Jest (Backend), Vitest (Frontend), Playwright (E2E) |
 | **CI/CD** | GitHub Actions (8개 Job 병렬 실행) |
 
@@ -209,7 +209,7 @@ Jobs (병렬 실행):
 - [x] NEXT_TASK.md 생성 (별도 파일)
 - [x] GitHub Secrets 설정 (DATABASE_URL, JWT_SECRET, CLOUDFLARE_API_TOKEN 등)
 - [x] GitHub Actions CI 실행 검증 (deploy job success — run `31116379511`)
-- [ ] PR 템플릿/이슈 템플릿 추가 (`.github/`)
+- [x] PR 템플릿/이슈 템플릿 추가 (`.github/`)
 
 ---
 

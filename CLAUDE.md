@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 WeMarket QR 메뉴 플랫폼 — 식당/카페 운영자가 QR 코드 기반 디지털 메뉴, 주문, 결제(Toss Payments), 재고, CRM을 통합 관리하는 SaaS 서비스. 백엔드(Express + Prisma/PostgreSQL)와 프론트엔드(React + Vite)가 단일 레포에 공존한다.
 
-**배포 토폴로지**: 백엔드 API는 Render(`https://wemarket.onrender.com`)에서 운영하고, 프론트엔드는 Cloudflare Workers Static Assets(`https://toss.wemarket.workers.dev`)에서 제공한다. Cloudflare Worker가 `/api/*`를 백엔드로 프록시한다.
+**배포 토폴로지**: 백엔드 API는 Render(`https://wemarket.onrender.com`)에서 운영하고, 프론트엔드는 Vercel(`https://wemarket.vercel.app`)에서 제공한다. 프론트가 `VITE_API_URL`(`https://wemarket.onrender.com/api`)로 Render API를 직접 호출한다 (Cloudflare Worker `/api` 프록시는 레거시).
 
 ## Commands
 
