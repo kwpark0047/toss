@@ -12,7 +12,7 @@ export const fetchFirebaseConfig = async () => {
       apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
       projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
       messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-      appId: import.meta.env.VITE_FIREBASE_APP_ID
+      appId: import.meta.env.VITE_FIREBASE_APP_ID,
     };
   }
 };
@@ -43,7 +43,7 @@ export const requestNotificationPermission = async () => {
     if (permission === 'granted') {
       const messagingInstance = await getFirebaseMessaging();
       const token = await getToken(messagingInstance, {
-        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
+        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
       });
       return token;
     }
@@ -52,6 +52,21 @@ export const requestNotificationPermission = async () => {
     console.error('An error occurred while requesting notification permission. ', error);
     return null;
   }
+};
+
+export const useNotificationPermission = () => {
+  const [isGranted, setIsGranted] = useState(false);
+  const [requestPermission, setRequestPermission] = useState(false);
+
+  useEffect(() => {
+    const checkPermission = async () => {
+      const permission = await Notification.requestPermission();
+      setIsGranted(permission === 'granted');
+    };
+    checkPermission();
+  }, []);
+
+  return { isGranted, requestPermission };
 };
 
 export const onMessageListener = async () => {
