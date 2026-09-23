@@ -1,7 +1,31 @@
 # Changelog
 
 > WeMarket QR Menu Platform — SaaS for Small Business
-> 최신 버전: v1.3.0 (2026-08-18)
+> 최신 버전: v1.3.1 (2026-09-23)
+
+---
+
+## v1.3.1 (2026-09-23)
+
+### 웹훅 보안 deny-by-default · 테스트 확대 · PDF 폰트 정합화
+
+#### 🛡️ 토스 웹훅 검증 deny-by-default (`middleware/tossWebhookAuth.js`)
+- **프로덕션에서 검증 계층 미설정 시 503 + `Retry-After: 60`으로 거부** (토스 재전송으로 결제 유실 없음)
+- 일시 마이그레이션용 옵트아웃 `TOSS_WEBHOOK_ALLOW_UNSIGNED=true` 추가
+- 설정 판정에 레거시 `TOSS_SECRET_KEY` 포함 (기존 운영 설정은 검증 계층으로 인정)
+- ⚠️ 배포 시 `TOSS_WEBHOOK_SECRET`(토스 콘솔 웹훅 보안키) 또는 `TOSS_WEBHOOK_IPS` 설정 필수
+
+#### 🧪 테스트 확대 (신규 23개, 전체 973개 / 112 스위트 통과)
+- `tossWebhookAuth.test.js` (16개): HMAC 서명(표준만료·파싱불가)·deny-by-default(prod 503/옵트아웃/dev)·공유 시크릿·IP CIDR(::ffff: 정규화)·레거시 Basic
+- `rateLimiter.test.js` (7개): express-rate-limit v7을 supertest 통합으로 검증 — generalLimiter(health skip·429)·orderLimiter(스토어 키 분리)·authLimiter(skipSuccessfulRequests)·paymentLimiter
+
+#### 🖋️ PDF 폰트 정합화 (`services/ReportPdfService.js`)
+- 등록명 `NanumGothic` → 실제 계열 `NotoSans`로 통일
+- 볼드 파일 미보유 시 전체 Helvetica(한글 깨짐) 폴백되는 잠재 버그 수정 → regular 폴백(fake bold)
+
+#### 🧹 프론트 정리
+- `firebase.js`: `useState`/`useEffect` **React import 누락 수정** (잠재 ReferenceError 예방)
+- 죽은 주석 로그 2줄 제거
 
 ---
 

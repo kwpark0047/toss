@@ -11,8 +11,12 @@ const logger = require('../utils/logger');
 //   ② IP 화이트리스트 TOSS_WEBHOOK_IPS    — 쉼표 구분, IPv4 CIDR 지원
 //   ③ 레거시 호환   Basic base64(TOSS_SECRET_KEY:)
 //   ④ 서명 검증     tosspayments-webhook-signature 헤더 — HMAC-SHA256 (지급대행/매장변경 이벤트용)
-// 어느 계층도 설정되지 않으면 통과시키되, 컨트롤러의 서버측 재검증(결제 조회 API)이
-// 최종 방어선으로 작동한다. 운영 환경에서는 ① 또는 ② 설정을 권장한다.
+//
+// [deny-by-default] 운영 환경에서 검증 계층 ①~④가 하나도 설정되지 않은 요청은
+// 거부한다(503 — 토스가 재전송하므로 결제 유실 없음). 일시 마이그레이션이 필요하면
+// TOSS_WEBHOOK_ALLOW_UNSIGNED=true 로 옵트아웃한다. 개발/테스트 환경에서는
+// 경고 1회 후 통과시킨다(로컬 Swagger·테스트 목적).
+// 컨트롤러의 서버측 재검증(결제 조회 API)이 최종 방어선으로 작동한다.
 // 재전송 폭주 대비 /api 전역 rate limiter가 함께 적용된다.
 
 let warnedUnconfigured = false;
@@ -103,6 +107,7 @@ const ipMatchesEntry = (ip, entry) => {
 const tossWebhookAuth = (req, res, next) => {
   const secret = process.env.TOSS_WEBHOOK_SECRET;
   const ipsRaw = process.env.TOSS_WEBHOOK_IPS;
+  const legacyKey = process.env.TOSS_SECRET_KEY;
 
   // ④ 서명 검증 (최우선 - 지급대행/매장변경 이벤트용)
   const signatureResult = verifyTossWebhookSignature(req);
@@ -113,8 +118,26 @@ const tossWebhookAuth = (req, res, next) => {
   }
   // 서명 검증 미설정(unconfigured) → ① ② ③ 계층으로 계속 진행
 
-  // 검증 계층 미설정: 서버측 재검증에 의존하고 경고 1회 출력
-  if (!secret && !ipsRaw) {
+  // 검증 계층 미설정:
+  //  - 프로덕션: deny-by-default (503 → 토스 재전송). TOSS_WEBHOOK_ALLOW_UNSIGNED=true 로 옵트아웃 가능
+  //  - 개발/테스트: 경고 1회 출력 후 통과 (서버측 재검증 방어선 유지)
+  const hasAnyConfig = Boolean(secret || ipsRaw || legacyKey);
+  if (!hasAnyConfig) {
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.TOSS_WEBHOOK_ALLOW_UNSIGNED !== 'true'
+    ) {
+      logger.error(
+        '[Webhook/Toss] 프로덕션에서 웹훅 검증 계층 미설정으로 요청 거부 - ' +
+          'TOSS_WEBHOOK_SECRET, TOSS_WEBHOOK_IPS, TOSS_WEBHOOK_SIGNING_SECRET 또는 ' +
+          'TOSS_WEBHOOK_ALLOW_UNSIGNED 설정 필요',
+        { ip: normalizeIp(req.ip) }
+      );
+      return res
+        .status(503)
+        .set('Retry-After', '60')
+        .json({ success: false, error: 'Webhook verification is not configured.' });
+    }
     if (!warnedUnconfigured && process.env.NODE_ENV === 'production') {
       logger.warn(
         '[Webhook/Toss] 검증 계층 미설정 - TOSS_WEBHOOK_SECRET 또는 TOSS_WEBHOOK_IPS 설정 권장'
@@ -143,7 +166,6 @@ const tossWebhookAuth = (req, res, next) => {
   }
 
   // ③ 레거시 호환: 기존 Basic 인증 연동 도구 허용
-  const legacyKey = process.env.TOSS_SECRET_KEY;
   if (legacyKey) {
     const expectedLegacy = 'Basic ' + Buffer.from(legacyKey + ':').toString('base64');
     const auth = req.headers['authorization'] || '';

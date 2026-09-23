@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
@@ -73,7 +74,6 @@ export const onMessageListener = async () => {
   const messagingInstance = await getFirebaseMessaging();
   return new Promise((resolve) => {
     onMessage(messagingInstance, (payload) => {
-      // console.log('Message received. ', payload);
       resolve(payload);
     });
   });

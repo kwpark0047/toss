@@ -39,7 +39,6 @@ const TogetherPaymentSheet = React.memo(({
         if (!socket || !tableId) return;
 
         const handleSplitUpdate = (data) => {
-            // console.log('[Together] 정산 현황 업데이트 수신:', data);
             setSplitStatus(data);
         };
 

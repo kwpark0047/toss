@@ -7,14 +7,17 @@ const logger = require('../utils/logger');
 
 const FONT_DIR = path.join(__dirname, '../fonts');
 const FONT_EXTENSIONS = ['.ttf', '.woff', '.woff2'];
+// PDFKit 에 등록하는 폰트 패밀리 이름 — 실제 파일 계열(NotoSans)과 일치시킨다.
+const NotoFontFamily = 'NotoSans';
+// 볼드 파일이 없으면 loadFonts 에서 regular 로 폴백(fake bold)한다.
 const FONTS = {
   ko: {
     regular: path.join(FONT_DIR, 'NotoSans-Regular'),
-    bold: path.join(FONT_DIR, 'NotoSans-Regular'),
+    bold: path.join(FONT_DIR, 'NotoSans-Bold'),
   },
   en: {
     regular: path.join(FONT_DIR, 'NotoSans-Regular'),
-    bold: path.join(FONT_DIR, 'NotoSans-Regular'),
+    bold: path.join(FONT_DIR, 'NotoSans-Bold'),
   },
   ja: {
     regular: path.join(FONT_DIR, 'NotoSansJP-Regular'),
@@ -48,8 +51,10 @@ class ReportPdfService {
         return null;
       };
       const regularPath = resolveFontPath(fonts.regular);
-      const boldPath = resolveFontPath(fonts.bold);
-      const hasFont = regularPath && boldPath;
+      // 볼드 파일이 없으면 regular 로 폴백 — 일부 글꼴 미보유로 전체가 Helvetica(한글 깨짐)로
+      // 빠지는 것을 방지
+      const boldPath = resolveFontPath(fonts.bold) || regularPath;
+      const hasFont = Boolean(regularPath);
       this.fontsLoaded[lang] = hasFont;
       this.fontPaths[lang] = { regular: regularPath, bold: boldPath };
       if (hasFont) {
@@ -260,8 +265,8 @@ class ReportPdfService {
       const fontRegularPath = fonts.regular;
       const fontBoldPath = fonts.bold;
       if (fonts.loaded && fontRegularPath && fontBoldPath) {
-        doc.registerFont('NanumGothic', fontRegularPath);
-        doc.registerFont('NanumGothic-Bold', fontBoldPath);
+        doc.registerFont(NotoFontFamily, fontRegularPath);
+        doc.registerFont(`${NotoFontFamily}-Bold`, fontBoldPath);
       }
       const fontRegular = fonts.loaded ? fontRegularPath : 'Helvetica';
       const fontBold = fonts.loaded ? fontBoldPath : 'Helvetica-Bold';
