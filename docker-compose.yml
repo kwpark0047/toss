@@ -30,24 +30,6 @@ services:
       - wemarket-network
     restart: unless-stopped
 
-  redis:
-    image: redis:7-alpine
-    container_name: wemarket-redis
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    volumes:
-      - redis_data:/data
-    ports:
-      - '6379:6379'
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
-    networks:
-      - wemarket-network
-    restart: unless-stopped
-
   localstack:
     image: localstack/localstack:3.5
     container_name: wemarket-localstack
@@ -87,7 +69,7 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-wemarket}:${POSTGRES_PASSWORD:-wemarket}@postgres:5432/${POSTGRES_DB:-wemarket_dev}?schema=public
       DIRECT_URL: postgresql://${POSTGRES_USER:-wemarket}:${POSTGRES_PASSWORD:-wemarket}@postgres:5432/${POSTGRES_DB:-wemarket_dev}?schema=public
-      REDIS_URL: redis://redis:6379
+
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret-change-in-production}
       SMS_ENV: ${SMS_ENV:-dev}
@@ -112,8 +94,6 @@ services:
       - '3000:3000'
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
       localstack:
         condition: service_healthy
@@ -231,7 +211,5 @@ networks:
 volumes:
   postgres_data:
     name: wemarket-postgres-data
-  redis_data:
-    name: wemarket-redis-data
   localstack_data:
     name: wemarket-localstack-data

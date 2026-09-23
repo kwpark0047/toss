@@ -1,9 +1,14 @@
 jest.mock('../../../config/prisma', () => require('../../../tests/helpers/prismaMock').create());
 jest.mock('../../../services/aiService');
+jest.mock('../../../services/weatherService', () => ({
+  getStationByCoords: jest.fn().mockReturnValue('108'),
+  getCurrentWeather: jest.fn().mockResolvedValue({ temp: 20, condition: 'Clear' }),
+}));
 
 const recommendationEngine = require('../../../services/RecommendationEngine');
 const prisma = require('../../../config/prisma');
 const aiService = require('../../../services/aiService');
+const WeatherService = require('../../../services/weatherService');
 
 describe('RecommendationEngine', () => {
   beforeEach(() => {
@@ -81,6 +86,57 @@ describe('RecommendationEngine', () => {
     test('시간대별 기간 반환', () => {
       const period = recommendationEngine._getTimePeriod();
       expect(['아침', '점심', '오후', '저녁', '야식']).toContain(period);
+    });
+  });
+
+  describe('_getWeatherContext', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      WeatherService.getStationByCoords.mockReturnValue('108');
+      WeatherService.getCurrentWeather.mockResolvedValue({ temp: 20, condition: 'Clear' });
+    });
+
+    test('매장 좌표 기반 실측 날씨 반영', async () => {
+      prisma.stores.findUnique.mockResolvedValue({ id: 1, latitude: 37.5665, longitude: 126.978 });
+      WeatherService.getCurrentWeather.mockResolvedValue({ temp: 15, condition: 'Rain' });
+
+      const result = await recommendationEngine._getWeatherContext(1);
+
+      expect(prisma.stores.findUnique).toHaveBeenCalledWith({
+        where: { id: 1 },
+        select: { latitude: true, longitude: true },
+      });
+      expect(WeatherService.getStationByCoords).toHaveBeenCalledWith(37.5665, 126.978);
+      expect(WeatherService.getCurrentWeather).toHaveBeenCalledWith('108');
+      expect(result).toMatchObject({ temperature: 15, condition: 'rain' });
+      expect(['spring', 'summer', 'autumn', 'winter']).toContain(result.season);
+    });
+
+    test('매장 좌표가 없으면 기본값 폴백 (외부 API 호출 없음)', async () => {
+      prisma.stores.findUnique.mockResolvedValue(null);
+
+      const result = await recommendationEngine._getWeatherContext(1);
+
+      expect(WeatherService.getCurrentWeather).not.toHaveBeenCalled();
+      expect(result).toMatchObject({ temperature: 20, condition: 'clear' });
+    });
+
+    test('날씨 서비스 실패 시 기본값 폴백', async () => {
+      prisma.stores.findUnique.mockResolvedValue({ id: 1, latitude: 35.1796, longitude: 129.0756 });
+      WeatherService.getCurrentWeather.mockRejectedValue(new Error('KMA API down'));
+
+      const result = await recommendationEngine._getWeatherContext(1);
+
+      expect(result).toMatchObject({ temperature: 20, condition: 'clear' });
+    });
+
+    test('날씨 데이터에 기온 없으면 기본값 폴백', async () => {
+      prisma.stores.findUnique.mockResolvedValue({ id: 1, latitude: 37.5665, longitude: 126.978 });
+      WeatherService.getCurrentWeather.mockResolvedValue({ temp: null, condition: 'Rain' });
+
+      const result = await recommendationEngine._getWeatherContext(1);
+
+      expect(result).toMatchObject({ temperature: 20, condition: 'clear' });
     });
   });
 

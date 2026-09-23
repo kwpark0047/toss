@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const aiService = require('./aiService');
+const WeatherService = require('./weatherService');
 const logger = require('../utils/logger');
 
 /**
@@ -153,8 +154,8 @@ class RecommendationEngine {
       // 인기 상품 (주문 빈도 기준)
       this._getTrendingProducts(storeId, since30Days),
 
-      // 현재 날씨 컨텍스트 (가능한 경우)
-      this._getWeatherContext(),
+      // 현재 날씨 컨텍스트 (매장 좌표 기반 실측)
+      this._getWeatherContext(storeId),
     ]);
 
     return {
@@ -263,15 +264,44 @@ class RecommendationEngine {
   }
 
   /**
-   * 날씨 컨텍스트 가져오기 (외부 API 연동 시 확장 가능)
+   * 날씨 컨텍스트 가져오기 (매장 좌표 기반 실제 관측소 데이터 연동)
+   * 매장에 위도/경도가 없거나 조회 실패 시 안전 기본값으로 폴백한다.
+   * (weatherService가 내부적으로 10분 캐시를 관리하므로 반복 요청에 안전)
    */
-  async _getWeatherContext() {
-    // TODO: 실제 날씨 API 연동 시 구현
-    return {
+  async _getWeatherContext(storeId) {
+    const fallback = () => ({
       temperature: 20,
       condition: 'clear',
       season: this._getCurrentSeason(),
-    };
+    });
+
+    try {
+      const store = await prisma.stores.findUnique({
+        where: { id: storeId },
+        select: { latitude: true, longitude: true },
+      });
+
+      // 좌표가 없는 매장은 기존 기본값 사용 (외부 API 호출 자체를 피함)
+      if (!store || store.latitude == null || store.longitude == null) {
+        return fallback();
+      }
+
+      const stn = WeatherService.getStationByCoords(store.latitude, store.longitude);
+      const weather = await WeatherService.getCurrentWeather(stn);
+
+      if (!weather || weather.temp == null) {
+        return fallback();
+      }
+
+      return {
+        temperature: weather.temp,
+        condition: (weather.condition || 'clear').toLowerCase(),
+        season: this._getCurrentSeason(),
+      };
+    } catch (error) {
+      logger.warn({ storeId, error: error.message }, '날씨 컨텍스트 조회 실패, 기본값 사용');
+      return fallback();
+    }
   }
 
   _getCurrentSeason() {

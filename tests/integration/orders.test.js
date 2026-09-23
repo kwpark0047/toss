@@ -78,9 +78,9 @@ jest.mock('../../config/prisma', () => {
 
 // App을 지연 로드 (모든 모의가 설정된 후)
 let app;
-const getApp = () => {
+const getApp = async () => {
   if (!app) {
-    app = require('../../app').app;
+    app = (await import('../../app')).app;
   }
   return app;
 };
@@ -108,7 +108,7 @@ describe('Orders Integration Tests', () => {
       };
       mockOrderRepository.findById.mockResolvedValue(mockOrder);
 
-      const res = await request(getApp())
+      const res = await request(await getApp())
         .get(`${baseUrl}/101`)
         .set('x-order-capability', '101')
         .expect(200);
@@ -153,7 +153,7 @@ describe('Orders Integration Tests', () => {
         confirmed: 0,
       });
 
-      const res = await request(getApp())
+      const res = await request(await getApp())
         .get(`${baseUrl}/store/1`)
         .query({ page: 1, limit: 10 })
         .set('Authorization', 'Bearer test-token')
@@ -175,7 +175,7 @@ describe('Orders Integration Tests', () => {
       };
       mockOrderRepository.getStats.mockResolvedValue(mockStats);
 
-      const res = await request(getApp())
+      const res = await request(await getApp())
         .get(`${baseUrl}/store/1/stats`)
         .set('Authorization', 'Bearer test-token')
         .expect(200);
@@ -196,7 +196,7 @@ describe('Orders Integration Tests', () => {
       };
       mockOrderServiceInstance.createOrder.mockResolvedValue(newOrder);
 
-      const res = await request(getApp())
+      const res = await request(await getApp())
         .post(`${baseUrl}`)
         .set('Authorization', 'Bearer test-token')
         .send({
@@ -225,7 +225,7 @@ describe('Orders Integration Tests', () => {
       const updatedOrder = { id: 1, status: 'confirmed', updated_at: new Date().toISOString() };
       mockOrderServiceInstance.updateStatus.mockResolvedValue(updatedOrder);
 
-      const res = await request(getApp())
+      const res = await request(await getApp())
         .put(`${baseUrl}/1/status`)
         .set('Authorization', 'Bearer test-token')
         .send({ status: 'confirmed' })
@@ -243,7 +243,7 @@ describe('Orders Integration Tests', () => {
         message: '주문이 취소되었습니다',
       });
 
-      const res = await request(getApp())
+      const res = await request(await getApp())
         .post(`${baseUrl}/1/cancel`)
         .set('Authorization', 'Bearer test-token')
         .expect(200);
@@ -267,7 +267,7 @@ describe('Orders Integration Tests', () => {
         message: '주문이 삭제되었습니다',
       });
 
-      const res = await request(getApp())
+      const res = await request(await getApp())
         .delete(`${baseUrl}/1`)
         .set('Authorization', 'Bearer test-token')
         .set('x-order-capability', '1')

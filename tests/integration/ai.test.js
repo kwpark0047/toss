@@ -1,5 +1,9 @@
 const request = require('supertest');
-const { app } = require('../../app');
+let app;
+
+beforeAll(async () => {
+  ({ app } = await import('../../app'));
+});
 const aiService = require('../../services/aiService');
 const Product = require('../../repositories/Product');
 const Order = require('../../repositories/Order');

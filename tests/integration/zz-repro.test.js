@@ -1,4 +1,6 @@
-require('../../app');
+beforeAll(async () => {
+  await import('../../app');
+});
 
 describe('repro', () => {
   it('trivial', () => {

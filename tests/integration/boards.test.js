@@ -1,5 +1,9 @@
 const request = require('supertest');
-const { app } = require('../../app');
+let app;
+
+beforeAll(async () => {
+  ({ app } = await import('../../app'));
+});
 const { Post, Comment } = require('../../repositories/Board');
 
 let mockUser = { id: 1, name: '홍길동', role: 'user' };

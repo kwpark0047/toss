@@ -8,6 +8,9 @@ class WeatherService {
     this.cachedWeather = null;
     this.lastFetchTime = null;
     this.CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
+    // 인스턴스에서도 static getStationByCoords 접근 가능하도록 바인딩
+    // (module.exports가 인스턴스라 static 메서드는 원래 인스턴스에서 보이지 않는다)
+    this.getStationByCoords = WeatherService.getStationByCoords;
   }
 
   /**

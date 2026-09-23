@@ -1,5 +1,9 @@
 const request = require('supertest');
-const { app } = require('../../app');
+let app;
+
+beforeAll(async () => {
+  ({ app } = await import('../../app'));
+});
 const prisma = require('../../config/prisma');
 const OrderRepository = require('../../repositories/Order');
 
@@ -147,7 +151,7 @@ describe('Franchise Supervisor Analytics Integration Tests', () => {
             expect(res.body.data.summary.slow_query_ratio).toBe(50); // 1/2 = 50%
             expect(res.body.data.logs).toHaveLength(2);
             expect(res.body.data.logs[0].query).toBe('SELECT * FROM stores');
-            
+
             expect(prisma.getQueryLogs).toHaveBeenCalled();
         });
     });

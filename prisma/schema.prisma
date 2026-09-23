@@ -599,6 +599,7 @@ model stores {
   customer_segments              customer_segments[]
   customer_personalizations      customer_personalizations[]
   ai_recommendations             ai_recommendations[]
+  ai_usage_logs                  ai_usage_logs[]
   personalization_analytics      personalization_analytics[]
   grant_templates                grant_templates[]
   grant_change_logs              grant_change_logs[]
@@ -1479,6 +1480,30 @@ model personalization_analytics {
 
   @@unique([store_id, segment_id, date])
   @@index([store_id, date(sort: Desc)], map: "idx_personalization_analytics_store_date")
+  @@schema("public")
+}
+
+// AI 사용량 추적 테이블 — aiService의 모든 AI 호출(generateWithFallback)에서 기록
+model ai_usage_logs {
+  id               Int       @id @default(autoincrement())
+  provider         String    // openai, google, anthropic 등
+  endpoint         String    // 호출된 AI 엔드포인트
+  promptTokens     Int?      @map("prompt_tokens")
+  completionTokens Int?      @map("completion_tokens")
+  totalTokens      Int?      @map("total_tokens")
+  costUsd          Float?    @map("cost_usd")
+  statusCode       Int?      @map("status_code")
+  durationMs       Int?      @map("duration_ms")
+  cacheHit         Boolean   @default(false) @map("cache_hit")
+  fallbackUsed     Boolean   @default(false) @map("fallback_used")
+  storeId          Int?      @map("store_id")
+  ipAddress        String?   @map("ip_address")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  stores stores? @relation(fields: [storeId], references: [id], onDelete: SetNull)
+
+  @@index([storeId, createdAt(sort: Desc)], map: "idx_ai_usage_logs_store_created")
+  @@index([provider, createdAt(sort: Desc)], map: "idx_ai_usage_logs_provider_created")
   @@schema("public")
 }
 

@@ -1,5 +1,9 @@
 jest.mock('https', () => ({ get: jest.fn() }));
 
+jest.mock('../../../utils/aiUsageTracker', () => ({
+  track: jest.fn().mockResolvedValue(undefined),
+}));
+
 const mockGenerateContent = jest.fn();
 
 jest.mock('@google/generative-ai', () => ({

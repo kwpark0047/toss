@@ -1,5 +1,9 @@
 const request = require('supertest');
-const { app } = require('../../app');
+let app;
+
+beforeAll(async () => {
+  ({ app } = await import('../../app'));
+});
 
 it('csp header includes a per-request nonce', async () => {
   const r1 = await request(app).get('/api/health').timeout({ response: 3000 });

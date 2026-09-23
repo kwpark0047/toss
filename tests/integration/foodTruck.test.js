@@ -1,5 +1,9 @@
 const request = require('supertest');
-const { app } = require('../../app');
+let app;
+
+beforeAll(async () => {
+  ({ app } = await import('../../app'));
+});
 const prisma = require('../../config/prisma');
 const notificationService = require('../../services/notificationService');
 

@@ -1,6 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const dotenv = require('dotenv');
 const logger = require('../utils/logger');
+const aiUsageTracker = require('../utils/aiUsageTracker');
 const { normalizeRecommendation } = require('../utils/recommendationExplainability');
 
 // 환경 변수 로드
@@ -32,10 +33,13 @@ class AIService {
   async generateWithFallback(prompt, options = {}) {
     const { systemInstruction, generationConfig } = options;
     let lastError = null;
+    const startedAt = Date.now();
 
     for (let i = 0; i < this.models.length; i++) {
+      const modelName = this.models[i];
+      const isFallback = i > 0;
+      const attemptStart = Date.now();
       try {
-        const modelName = this.models[i];
         const modelParams = { model: modelName };
         if (systemInstruction) modelParams.systemInstruction = systemInstruction;
         if (generationConfig) modelParams.generationConfig = generationConfig;
@@ -43,16 +47,51 @@ class AIService {
         const model = this.genAI.getGenerativeModel(modelParams);
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        return response.text().trim();
+        const text = response.text().trim();
+
+        // AI 사용량 트래킹 (실패해도 메인 흐름에 영향 없음 — fire-and-forget)
+        const usageMetadata = response.usageMetadata || {};
+        aiUsageTracker.track({
+          provider: 'google',
+          endpoint: modelName,
+          promptTokens: usageMetadata.promptTokenCount ?? null,
+          completionTokens: usageMetadata.candidatesTokenCount ?? null,
+          totalTokens: usageMetadata.totalTokenCount ?? null,
+          statusCode: 200,
+          durationMs: Date.now() - attemptStart,
+          cacheHit: false,
+          fallbackUsed: isFallback,
+        }).catch(() => {});
+
+        return text;
       } catch (error) {
         lastError = error;
         if (error.status === 429 || error.status === 404 || error.message?.includes('quota')) {
-          logger.warn(`[AI] ${this.models[i]} failed, fallback: ${error.message}`);
+          aiUsageTracker.track({
+            provider: 'google',
+            endpoint: modelName,
+            statusCode: error.status ?? 500,
+            durationMs: Date.now() - attemptStart,
+            cacheHit: false,
+            fallbackUsed: true,
+          }).catch(() => {});
+          logger.warn(`[AI] ${modelName} failed, fallback: ${error.message}`);
           continue;
         }
-        logger.error(`[AI] Non-retryable error on ${this.models[i]}:`, error.message);
+        logger.error(`[AI] Non-retryable error on ${modelName}:`, error.message);
         throw error;
       }
+    }
+
+    if (lastError) {
+      aiUsageTracker.track({
+        provider: 'google',
+        endpoint: this.models[this.models.length - 1] || 'unknown',
+        statusCode: lastError.status ?? 500,
+        durationMs: Date.now() - startedAt,
+        cacheHit: false,
+        fallbackUsed: true,
+      }).catch(() => {});
     }
     throw lastError || new Error('All AI models exhausted');
   }

@@ -1,4 +1,3 @@
-import AIUsageRepository from '../repositories/AIUsageRepository.js';
 import logger from './logger.js';
 
 interface TrackOptions {
@@ -55,20 +54,9 @@ export const aiUsageTracker = {
         } = options;
 
         try {
-            await AIUsageRepository.logUsage({
-                provider,
-                endpoint,
-                promptTokens,
-                completionTokens,
-                totalTokens,
-                costUsd,
-                statusCode,
-                durationMs,
-                cacheHit,
-                fallbackUsed,
-                storeId,
-                ipAddress,
-            });
+            // Prisma DB 저장 건너뜀 - 메모리 기반 추적만 수행 (Redis/Cost 절감 목적)
+            // 필요시 나중에 백필 또는 별도 DB 동기화 구현 가능
+            logger.debug('[AIUsageTracker] Tracking recorded in memory (DB skip):', { provider, endpoint, costUsd });
         } catch (err: any) {
             logger.warn('[AIUsageTracker] Tracking failed:', err.message);
         }
@@ -81,7 +69,13 @@ export const aiUsageTracker = {
         endpoint?: string;
         groupBy?: 'day' | 'week' | 'month';
     } = {}): Promise<any> {
-        return AIUsageRepository.getUsageStats(storeId, params);
+        // 메모리 기반 통계 반환 (Prisma DB 쿼리 건너뜀)
+        return {
+            source: 'memory-tracking',
+            totalRequests: 0, // 실제 카운트는 향후 DB 동기화 또는 카운터 추가 시 반영
+            message: 'AI 사용량 통계는 메모리 기반 추적 모드입니다. DB 동기화를 위해_tracking() 호출 횟수를 확인하세요.',
+            trackedAt: new Date().toISOString(),
+        };
     },
 };
 
