@@ -5,6 +5,7 @@ jest.mock('../../../utils/toss', () => ({
   confirmPayment: jest.fn(),
   cancelPayment: jest.fn(),
   confirmBrandPay: jest.fn(),
+  getPayment: jest.fn(),
 }));
 
 jest.mock('../../../utils/notifications', () => ({
@@ -534,12 +535,92 @@ describe('PaymentService', () => {
         owner_phone: null,
       });
 
+      TossAPI.getPayment.mockResolvedValue({
+        status: 'DONE',
+        totalAmount: 30000,
+      });
+
       await service.handleTossWebhook({
         eventType: 'PAYMENT_STATUS_CHANGED',
         data: { status: 'DONE', paymentKey: 'key_wh', orderId: 'ORD-001', totalAmount: 30000 },
       });
 
       expect(TossAPI.confirmPayment).toHaveBeenCalledWith('key_wh', 'ORD-001', 30000);
+    });
+
+    // ─────────────────────────────────────────────────────────
+    // [P0-보안] 재조회 재검증(revalidation) — 재검증 실패 시 승인 거부 (deny-by-default)
+    // 웹훅 body의 totalAmount·status는 변조 가능 → 서버측 TossAPI.getPayment 재조회 후
+    // status==='DONE' AND 금액 일치일 때만 processApproval 진행. 아래 3케이스는 재검증이
+    // 실패하는 상황으로, 승인(confirmPayment)이 실행되지 않아야 한다.
+    // ─────────────────────────────────────────────────────────
+    test('재검증 거부: 재조회 status가 DONE이 아니면 승인 진행 안 함', async () => {
+      mockTx.orders.findFirst.mockResolvedValue({
+        id: 1,
+        store_id: 1,
+        order_number: 'ORD-001',
+        total_amount: 30000,
+        customer_phone: '010-1111-2222',
+        customer_name: '테스트',
+        toss_user_key: null,
+      });
+      TossAPI.getPayment.mockResolvedValue({
+        status: 'READY', // 재조회 결과 DONE 아님 → 승인 거부
+        totalAmount: 30000,
+      });
+
+      await service.handleTossWebhook({
+        eventType: 'PAYMENT_STATUS_CHANGED',
+        data: { status: 'DONE', paymentKey: 'key_wh', orderId: 'ORD-001', totalAmount: 30000 },
+      });
+
+      expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
+      expect(mockTx.orders.findUnique).not.toHaveBeenCalled(); // processApproval 스킵
+    });
+
+    test('재검증 거부: 재조회 금액이 웹훅 금액과 다르면 승인 진행 안 함', async () => {
+      mockTx.orders.findFirst.mockResolvedValue({
+        id: 1,
+        store_id: 1,
+        order_number: 'ORD-001',
+        total_amount: 30000,
+        customer_phone: '010-1111-2222',
+        customer_name: '테스트',
+        toss_user_key: null,
+      });
+      TossAPI.getPayment.mockResolvedValue({
+        status: 'DONE',
+        totalAmount: 29999, // 웹훅(30000)과 불일치 → 승인 거부
+      });
+
+      await service.handleTossWebhook({
+        eventType: 'PAYMENT_STATUS_CHANGED',
+        data: { status: 'DONE', paymentKey: 'key_wh', orderId: 'ORD-001', totalAmount: 30000 },
+      });
+
+      expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
+      expect(mockTx.orders.findUnique).not.toHaveBeenCalled();
+    });
+
+    test('재검증 거부: 재조회 실패(오류) 시 승인 진행 안 함 (deny-by-default)', async () => {
+      mockTx.orders.findFirst.mockResolvedValue({
+        id: 1,
+        store_id: 1,
+        order_number: 'ORD-001',
+        total_amount: 30000,
+        customer_phone: '010-1111-2222',
+        customer_name: '테스트',
+        toss_user_key: null,
+      });
+      TossAPI.getPayment.mockRejectedValue(new Error('재조회 네트워크 오류'));
+
+      await service.handleTossWebhook({
+        eventType: 'PAYMENT_STATUS_CHANGED',
+        data: { status: 'DONE', paymentKey: 'key_wh', orderId: 'ORD-001', totalAmount: 30000 },
+      });
+
+      expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
+      expect(mockTx.orders.findUnique).not.toHaveBeenCalled();
     });
   });
 

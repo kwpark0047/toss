@@ -989,6 +989,18 @@ class PaymentService {
         event: sanitizedEvent,
       });
       try {
+        // [P0-보안] 웹훅 본문 신뢰 금지 — 토스 서버측 재조회(getPayment)로 재검증 (토스 공식 가이드)
+        // 웹훅 body의 totalAmount·status는 공격자·운영 오류로 변조될 수 있으므로,
+        // 서버측에서 Toss 결제 상태를 재조회(DONE) + 금액 일치를 재검증한 뒤에만 승인을 진행한다.
+        const reFetched = await TossAPI.getPayment(paymentKey);
+        const reFetchedAmount = Number(reFetched?.totalAmount);
+        const webhookAmount = Number(data?.totalAmount);
+        if (reFetched?.status !== 'DONE' || reFetchedAmount !== webhookAmount) {
+          logger.error(
+            `[Webhook/Toss] 재조회 재검증 실패 — 결제 승인 거부: paymentKey=${maskedPaymentKey}, orderId=${tossOrderId} (재조회status=${reFetched?.status}, 재조회금액=${reFetchedAmount}, 웹훅금액=${webhookAmount})`
+          );
+          return;
+        }
         const result = await this.processApproval(
           paymentKey,
           tossOrderId,
