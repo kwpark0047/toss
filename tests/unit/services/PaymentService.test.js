@@ -1,4 +1,5 @@
 const { AppError } = require('../../../utils/errorHandler');
+const sentryUtils = require('../../../utils/sentry');
 
 // ── Manual mocks ──────────────────────────────────────────
 jest.mock('../../../utils/toss', () => ({
@@ -17,6 +18,14 @@ jest.mock('../../../utils/logger', () => ({
   warn: jest.fn(),
   error: jest.fn(),
   debug: jest.fn(),
+}));
+
+// [①추가기능①] 결제 승인 감사(audit) 이벤트 — _emitPaymentAudit가 utils/sentry.captureMessage를 호출하는지 검증
+jest.mock('../../../utils/sentry', () => ({
+  captureMessage: jest.fn(),
+  captureException: jest.fn(),
+  initSentry: jest.fn(),
+  Sentry: {},
 }));
 
 jest.mock('../../../services/PointsService', () => ({
@@ -546,6 +555,18 @@ describe('PaymentService', () => {
       });
 
       expect(TossAPI.confirmPayment).toHaveBeenCalledWith('key_wh', 'ORD-001', 30000);
+      // [①추가기능①] 재검증 통과 시 감사(audit) 이벤트가 Sentry로 캡처된다
+      expect(sentryUtils.captureMessage).toHaveBeenCalled();
+      expect(sentryUtils.captureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('[PaymentAudit]'),
+        'info',
+        expect.objectContaining({
+          store_id: 1,
+          order_number: 'ORD-001',
+          verified: true,
+          event: 'payment-audit',
+        })
+      );
     });
 
     // ─────────────────────────────────────────────────────────
@@ -576,6 +597,8 @@ describe('PaymentService', () => {
 
       expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
       expect(mockTx.orders.findUnique).not.toHaveBeenCalled(); // processApproval 스킵
+      // [①추가기능①] 재검증 실패 시 감사(audit) 이벤트는 발화되지 않는다 (deny-by-default 유지)
+      expect(sentryUtils.captureMessage).not.toHaveBeenCalled();
     });
 
     test('재검증 거부: 재조회 금액이 웹훅 금액과 다르면 승인 진행 안 함', async () => {
@@ -600,6 +623,8 @@ describe('PaymentService', () => {
 
       expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
       expect(mockTx.orders.findUnique).not.toHaveBeenCalled();
+      // [①추가기능①] 재검증 실패(금액 불일치) 시 감사 이벤트는 발화되지 않는다
+      expect(sentryUtils.captureMessage).not.toHaveBeenCalled();
     });
 
     test('재검증 거부: 재조회 실패(오류) 시 승인 진행 안 함 (deny-by-default)', async () => {
@@ -621,6 +646,8 @@ describe('PaymentService', () => {
 
       expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
       expect(mockTx.orders.findUnique).not.toHaveBeenCalled();
+      // [①추가기능①] 재검증 실패(오류) 시 감사 이벤트는 발화되지 않는다
+      expect(sentryUtils.captureMessage).not.toHaveBeenCalled();
     });
   });
 

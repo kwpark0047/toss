@@ -88,6 +88,21 @@ class PaymentService {
     });
   }
 
+  // [①구현 추가기능①] 결제 승인 '감사(audit)' 이벤트 — 재검증을 통과한 결제(승인 직전)의 감사 기록을
+  // Sentry 감사 캡처로 남긴다. 기존 _emitPaymentSuccess(결제완료=고객·매장 소켓)와 별개로,
+  // 내부 감사·모니터링용이며 order_number·금액은 그대로, 민감정보(paymentKey 등)는 절대 포함하지 않는다.
+  _emitPaymentAudit(storeId, orderId, orderNumber, amount, verified) {
+    if (!this.sentry) this.sentry = require('../utils/sentry');
+    this.sentry.captureMessage(`[PaymentAudit] 결제 승인 감사 (재검증 ${verified ? '통과' : '실패'})`, 'info', {
+      store_id: storeId,
+      order_id: orderId,
+      order_number: orderNumber,
+      amount,
+      verified,
+      event: 'payment-audit',
+    });
+  }
+
   _emitSplitUpdate(tableId, order, totalPaid, isFullyPaid, payer) {
     if (!this.io || !tableId) return;
     this.io.to(`table - ${tableId}`).emit('split-payment-update', {
@@ -1001,6 +1016,8 @@ class PaymentService {
           );
           return;
         }
+        // [추가기능①] 재검증을 통과한 결제 — 승인 진행 직전에 감사(audit) 이벤트 캡처 (Sentry)
+        this._emitPaymentAudit(order?.store_id, order?.id, order?.order_number, data.totalAmount, true);
         const result = await this.processApproval(
           paymentKey,
           tossOrderId,
