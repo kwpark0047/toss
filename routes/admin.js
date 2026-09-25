@@ -46,6 +46,31 @@ router.get(
 
 /**
  * @swagger
+ * /api/admin/stores/{storeId}/settlements/summary:
+ *   get:
+ *     tags: [Admin]
+ *     summary: 정산 대시보드 요약 조회 (상태별 건수·수취액)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 정산 요약 반환
+ */
+router.get(
+  '/stores/:storeId/settlements/summary',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  settlementController.getSettlementSummary
+);
+
+/**
+ * @swagger
  * /api/admin/stores/{storeId}/settlements/generate:
  *   post:
  *     tags: [Admin]

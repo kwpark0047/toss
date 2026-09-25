@@ -79,6 +79,12 @@ const settlementController = {
     res.success(list);
   }),
 
+  // 매장별 정산 대시보드 요약 조회
+  getSettlementSummary: catchAsync(async (req, res) => {
+    const summary = await Settlement.getSummary(req.params.storeId);
+    res.success(summary);
+  }),
+
   // 정산 생성 (관리자용)
   generateSettlement: catchAsync(async (req, res) => {
     const { period_start, period_end } = req.body;

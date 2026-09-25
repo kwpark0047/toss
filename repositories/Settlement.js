@@ -158,6 +158,49 @@ const Settlement = {
   },
 
   /**
+   * 매장별 정산 대시보드 요약 조회
+   * 상태별 건수·수취액 합계 및 전체/최근 정산 정보를 한 번에 집계한다.
+   */
+  getSummary: async (storeId) => {
+    const sid = parseInt(storeId);
+
+    const [grouped, latest] = await Promise.all([
+      prisma.settlements.groupBy({
+        by: ['status'],
+        where: { store_id: sid },
+        _count: { _all: true },
+        _sum: { net_amount: true },
+      }),
+      prisma.settlements.findFirst({
+        where: { store_id: sid },
+        orderBy: { period_end: 'desc' },
+      }),
+    ]);
+
+    const statusCounts = { PENDING: 0, COMPLETED: 0, PAID: 0, CANCELLED: 0 };
+    let totalCount = 0;
+    let totalNet = 0;
+    let pendingNet = 0;
+
+    for (const row of grouped) {
+      const count = row._count._all || 0;
+      const sum = row._sum.net_amount || 0;
+      totalCount += count;
+      totalNet += sum;
+      if (row.status in statusCounts) statusCounts[row.status] = count;
+      if (row.status === 'PENDING') pendingNet += sum;
+    }
+
+    return {
+      statusCounts,
+      totalCount,
+      totalNet,
+      pendingNet,
+      latest,
+    };
+  },
+
+  /**
    * 정산 상태 업데이트
    */
   updateStatus: async (id, status) => {
