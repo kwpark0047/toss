@@ -17,6 +17,29 @@ const WEBHOOK_URL = process.env.ALERT_WEBHOOK_URL || '';
 const _cooldowns = new Map();
 const COOLDOWN_MS = 5 * 60 * 1000;
 
+// ── Sentry 배선 (지연 로드 — 순환참조 방지: sentry는 alerting을 요구하지 않음) ──
+let _sentry = null;
+const _sentryModule = () => {
+    if (_sentry !== null) return _sentry;
+    try {
+        _sentry = require('./sentry');
+    } catch (_) {
+        _sentry = false; // 라이브러리 부재 등 — 재시도하지 않고 로그로만 처리
+    }
+    return _sentry;
+};
+
+const _capture = (err, source, level = 'error') => {
+    const s = _sentryModule();
+    if (s && typeof s.captureException === 'function') {
+        try {
+            s.captureException(err, { tags: { source }, level });
+        } catch (e) {
+            logger.warn(`[Alerting] Sentry 전송 실패: ${e.message}`);
+        }
+    }
+};
+
 /**
  * @param {{ level: 'info'|'warn'|'critical', title: string, message: string, meta?: object }} opts
  */
@@ -100,12 +123,14 @@ const trackError = (err, context = {}) => {
 const registerGlobalHandlers = () => {
     process.on('uncaughtException', (err) => {
         logger.error('[uncaughtException]', { message: err.message, stack: err.stack });
+        _capture(err, 'uncaughtException', 'fatal');
         send({ level: 'critical', title: '서버 미처리 예외 (uncaughtException)', message: err.message, meta: { stack: err.stack?.split('\n')[1] } });
     });
 
     process.on('unhandledRejection', (reason) => {
         const msg = reason instanceof Error ? reason.message : String(reason);
         logger.error('[unhandledRejection]', { reason: msg });
+        _capture(reason instanceof Error ? reason : new Error(String(reason)), 'unhandledRejection', 'warning');
         send({ level: 'warn', title: '미처리 Promise 거부 (unhandledRejection)', message: msg });
     });
 };

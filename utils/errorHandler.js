@@ -1,4 +1,5 @@
 const logger = require('./logger');
+const sentry = require('./sentry');
 
 class AppError extends Error {
   constructor(message, statusCode, code, details = {}) {
@@ -193,6 +194,22 @@ const errorHandler = (err, req, res, _next) => {
     user: req.user ? req.user.id : 'anonymous',
     ip: req.ip
   });
+
+  // 5. 서버 오류(5xx)만 Sentry로 전송
+  //    4xx는 클라이언트 책임(비즈니스/검증 오류)이라 전송하지 않아 이벤트 폭주를 방지한다.
+  //    이 미들웨어가 Express 5xx 캡처의 유일 지점이다 (app.mts의 setupExpressErrorHandler 제거).
+  if (error.status >= 500 && typeof sentry?.captureException === 'function') {
+    sentry.captureException(err, {
+      tags: {
+        route: req.originalUrl || 'unknown',
+        method: req.method,
+        code: String(error.code),
+        status: String(error.status),
+      },
+      user: req.user && req.user.id ? { id: String(req.user.id) } : undefined,
+      level: 'error',
+    });
+  }
 
   res.status(error.status).json(error);
 };

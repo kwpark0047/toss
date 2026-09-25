@@ -8,7 +8,7 @@ import 'dotenv/config';
 import logger from './utils/logger.ts';
 import { checkEnv } from './utils/envValidator.js';
 const { default: responseFormatter } = await import('./middleware/responseFormatter.js');
-import { errorHandler } from './utils/errorHandler.js';
+import { errorHandler, errorTypes } from './utils/errorHandler.js';
 import performanceMonitor from './middleware/performanceMonitor.js';
 import Monitoring from './repositories/Monitoring.js';
 import { initDefaultMetrics, metricsMiddleware } from './metrics/PrometheusMetrics.mts';
@@ -18,7 +18,7 @@ import healthRouter from './routes/health.mts';
 import { requestTracker } from './routes/health.mts';
 import { strictSanitizer } from './middleware/xssSanitizer.js';
 import { cspNonceMiddleware } from './middleware/cspNonce.js';
-import { initSentry, Sentry } from './utils/sentry.js';
+import { initSentry } from './utils/sentry.js';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
@@ -29,7 +29,7 @@ if (!envCheck.ok) {
     process.exit(1);
 }
 const APP_VERSION = (await import('./package.json', { with: { type: 'json' } })).default.version;
-const sentryClient = initSentry();
+initSentry(); // 에러 캡처·트레이스 초기화 (반환값은 Express 오류 핸들러 단일화로 미사용)
 alerting.registerGlobalHandlers();
 // Prometheus 프로세스 기본 메트릭(event loop, 메모리, GC) 등록 (P1 모니터링)
 initDefaultMetrics();
@@ -440,6 +440,7 @@ app.use((req, res, next) => {
         logger.error(`[CRITICAL 404] Unmatched API Path: ${req.method} ${req.originalUrl}`);
         return res.status(404).json({
             success: false,
+            code: errorTypes.NOT_FOUND.code,
             message: `요청하신 API 경로를 찾을 수 없습니다: ${req.method} ${req.originalUrl}.`,
             timestamp: new Date().toISOString(),
         });
@@ -447,10 +448,8 @@ app.use((req, res, next) => {
     next();
 });
 // 에러 핸들러 (반드시 모든 라우트 등록 후 마지막에 위치)
-// Sentry v10: setupExpressErrorHandler()가 requestHandler + errorHandler를 대체
-if (sentryClient) {
-    Sentry.setupExpressErrorHandler(app);
-}
+// Sentry 캡처 단일화: setupExpressErrorHandler(중복 캡처) 대신
+// errorHandler 내부의 status>=500 조건부 캡처가 유일한 5xx 전송 지점이다.
 app.use(errorHandler);
 const { startNewsCron } = await import('./services/newsCrawlerService.js');
 if (process.env.NODE_ENV !== 'test') {
