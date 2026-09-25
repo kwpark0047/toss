@@ -20,6 +20,8 @@ httpServer.listen(PORT, async () => {
     }
     // 주간 매출 리포트 스케줄러 (매주 월요일 09:00 KST)
     (await import('./services/weeklyReportService.js')).default.start();
+    // 정산 자동화 스케줄러 (매장 정산 주기에 따라 직전 기간 정산 자동 생성)
+    (await import('./services/settlementAutomationService.js')).default.start();
     // Open Commerce Hub 웹훅 재시도 스케줄러
     (await import('./services/webhookDispatcher.js')).default.startRetryScheduler();
     // 결제 대사 스케줄러 (매시간 정각)
