@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { adminAPI } from '../../api/admin';
+import { adminAPI, plansAPI } from '../../api/admin';
 import { bizLabel } from '../../utils/businessType';
 import { useSEO } from '../../lib/useSEO';
 import MiniBarChart from './MiniBarChart';
@@ -27,6 +27,7 @@ export default function SuperAdminDashboard() {
   const navigate = useNavigate();
   useSEO({ title: '플랫폼 관리 | 위마켓', description: '위마켓 플랫폼의 매장, 고객, 주문을 관리합니다.' });
   const [overview, setOverview] = useState(null);
+  const [subStats, setSubStats] = useState(null);
   const [rows, setRows] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -56,6 +57,7 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     adminAPI.platformOverview().then(r => setOverview(r?.data || r)).catch(() => {});
     adminAPI.platformTrend(14).then(r => setTrend((r?.data || r)?.daily || [])).catch(() => {});
+    plansAPI.getStats().then(r => setSubStats(r?.data || r)).catch(() => {});
     loadLinkReqs();
     loadCoverage();
   }, [loadLinkReqs, loadCoverage]);
@@ -140,6 +142,75 @@ export default function SuperAdminDashboard() {
           {[...Array(6)].map((_, i) => <div key={i} className="skeleton-dark h-28 rounded-2xl" />)}
         </div>
       )}
+
+      {/* 구독 · MRR 현황 */}
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h2 className="text-sm font-black flex items-center gap-2">
+            <Icon icon="CreditCard" /> 구독 · MRR 현황
+          </h2>
+          {subStats && (
+            <span className="text-[11px] bg-white/10 text-slate-300 px-2 py-0.5 rounded-full">
+              활성 구독 <span className="tabular-nums text-white font-black">{num(subStats.active)}</span> · 결제 구독 <span className="tabular-nums text-white font-black">{num(subStats.mrr?.paying_subscribers ?? 0)}</span>
+            </span>
+          )}
+        </div>
+
+        {subStats ? (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+              {[
+                { label: '월 반복 매출 (MRR)', value: won(subStats.mrr?.total), sub: 'trialing·미결제 제외', color: 'text-orange-300' },
+                { label: '연 환산 (ARR)', value: won(subStats.mrr?.arr), sub: 'MRR × 12', color: 'text-emerald-300' },
+                { label: '구독당 평균 매출 (ARPU)', value: won(subStats.mrr?.arpu), sub: 'MRR ÷ 결제 구독', color: 'text-blue-300' },
+                { label: '총 결제 구독자', value: num(subStats.mrr?.paying_subscribers ?? 0), sub: '활성 중 유료', color: 'text-violet-300' },
+              ].map(m => (
+                <div key={m.label} className="bg-white/5 border border-white/10 rounded-xl p-3">
+                  <p className="text-[10px] text-slate-500 font-bold">{m.label}</p>
+                  <p className={`text-lg font-black tabular-nums leading-tight mt-0.5 ${m.color}`}>{m.value}</p>
+                  <p className="text-[10px] text-slate-600 font-medium">{m.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+              {[
+                { label: '신규 MRR (30일)', value: won(subStats.flows?.new_mrr), delta: `+${num(subStats.flows?.new_subscriptions ?? 0)}건`, color: 'text-emerald-300' },
+                { label: '취소 MRR (30일)', value: won(subStats.flows?.canceled_mrr), delta: `-${num(subStats.flows?.canceled_subscriptions ?? 0)}건`, color: 'text-rose-300' },
+                { label: '순 MRR 증감 (30일)', value: won(subStats.flows?.net_mrr), delta: '신규 − 취소', color: 'text-orange-300' },
+                { label: '예정 하향 변경', value: won(subStats.flows?.scheduled_contraction_mrr), delta: `${num(subStats.flows?.scheduled_contractions ?? 0)}건`, color: 'text-amber-300' },
+              ].map(m => (
+                <div key={m.label} className="bg-white/5 border border-white/10 rounded-xl p-3">
+                  <p className="text-[10px] text-slate-500 font-bold">{m.label}</p>
+                  <p className={`text-base font-black tabular-nums leading-tight mt-0.5 ${m.color}`}>{m.value}</p>
+                  <p className="text-[10px] text-slate-600 font-medium">{m.delta}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-white/10">
+              <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-2 bg-white/5 text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                <div className="col-span-6">플랜</div>
+                <div className="col-span-3 text-right">구독</div>
+                <div className="col-span-3 text-right">MRR</div>
+              </div>
+              {(subStats.by_plan || []).map((p, i) => (
+                <div key={p.plan_id || i} className="grid grid-cols-2 sm:grid-cols-12 gap-2 items-center px-3 py-2 border-t border-white/5 first:border-t-0">
+                  <div className="col-span-2 sm:col-span-6 min-w-0">
+                    <p className="text-xs font-black truncate">{p.display_name || p.plan_name}</p>
+                  </div>
+                  <div className="col-span-1 sm:col-span-3 text-right text-xs font-bold tabular-nums">{num(p.count)}</div>
+                  <div className="col-span-1 sm:col-span-3 text-right text-xs font-bold tabular-nums text-orange-300">{won(p.mrr)}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[...Array(4)].map((_, i) => <div key={i} className="skeleton-dark h-20 rounded-xl" />)}
+          </div>
+        )}
+      </div>
 
       {/* 매장 정보 커버리지 위젯 */}
       {coverage && (

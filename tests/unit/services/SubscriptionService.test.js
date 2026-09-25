@@ -18,7 +18,7 @@ jest.mock('../../../repositories/Plan', () => ({
 jest.mock('../../../config/prisma', () => ({
   stores: { update: jest.fn() },
   store_subscriptions: { upsert: jest.fn() },
-  subscription: { count: jest.fn(), groupBy: jest.fn() },
+  subscription: { count: jest.fn(), groupBy: jest.fn(), findMany: jest.fn() },
   plan: { findMany: jest.fn() },
 }));
 
@@ -29,7 +29,7 @@ const service = require('../../../services/SubscriptionService');
 
 describe('SubscriptionService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   describe('createSubscription', () => {
@@ -308,7 +308,7 @@ describe('SubscriptionService', () => {
   });
 
   describe('getStats', () => {
-    test('구독 통계 집계', async () => {
+    test('구독 통계 집계 (counts + MRR + flows)', async () => {
       prisma.subscription.count
         .mockResolvedValueOnce(10)
         .mockResolvedValueOnce(5)
@@ -317,14 +317,200 @@ describe('SubscriptionService', () => {
         .mockResolvedValueOnce(1)
         .mockResolvedValueOnce(1);
       prisma.subscription.groupBy.mockResolvedValue([{ plan_id: 1, _count: { plan_id: 3 } }]);
-      prisma.plan.findMany.mockResolvedValue([{ id: 1, name: 'pro', display_name: '프로' }]);
+      prisma.subscription.findMany
+        .mockResolvedValueOnce([
+          {
+            plan_id: 1,
+            billing_cycle: 'MONTHLY',
+            current_period_start: new Date(),
+            metadata: {},
+            plan: { id: 1, name: 'pro', display_name: '프로', price_monthly: 10000, price_yearly: 0 },
+          },
+        ])
+        .mockResolvedValueOnce([]);
+      prisma.plan.findMany.mockResolvedValue([
+        { id: 1, name: 'pro', display_name: '프로', price_monthly: 10000, price_yearly: 0 },
+      ]);
 
       const stats = await service.getStats();
       expect(stats.total).toBe(10);
       expect(stats.active).toBe(5);
+      expect(stats.trialing).toBe(2);
+      expect(stats.mrr).toEqual({
+        total: 10000,
+        arr: 120000,
+        arpu: 10000,
+        paying_subscribers: 1,
+      });
       expect(stats.by_plan).toEqual([
-        { plan_id: 1, plan_name: 'pro', display_name: '프로', count: 3 },
+        { plan_id: 1, plan_name: 'pro', display_name: '프로', count: 3, mrr: 10000 },
       ]);
+      expect(stats.flows).toMatchObject({
+        new_mrr: 10000,
+        new_subscriptions: 1,
+        canceled_mrr: 0,
+        canceled_subscriptions: 0,
+        net_mrr: 10000,
+        scheduled_contraction_mrr: 0,
+        scheduled_contractions: 0,
+      });
+    });
+  });
+
+  describe('getStats - MRR 지표', () => {
+    const now = new Date();
+    const monthAgo = new Date();
+    monthAgo.setDate(monthAgo.getDate() - 30);
+
+    const countChain = (values) => {
+      prisma.subscription.count
+        .mockResolvedValueOnce(values.total)
+        .mockResolvedValueOnce(values.active)
+        .mockResolvedValueOnce(values.trialing)
+        .mockResolvedValueOnce(values.past_due)
+        .mockResolvedValueOnce(values.canceled)
+        .mockResolvedValueOnce(values.expired);
+    };
+
+    test('active MONTHLY/YEARLY 혼합하여 MRR·ARR·ARPU 집계', async () => {
+      const plans = [
+        { id: 'p_pro', name: 'pro', display_name: '프로', price_monthly: 10000, price_yearly: 0 },
+        { id: 'p_ent', name: 'enterprise', display_name: '엔터프라이즈', price_monthly: 0, price_yearly: 240000 },
+      ];
+      const activeSubs = [
+        {
+          plan_id: 'p_pro',
+          billing_cycle: 'MONTHLY',
+          current_period_start: now,
+          metadata: {},
+          plan: plans[0],
+        },
+        {
+          plan_id: 'p_ent',
+          billing_cycle: 'YEARLY',
+          current_period_start: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
+          metadata: {},
+          plan: plans[1],
+        },
+      ];
+
+      countChain({ total: 5, active: 2, trialing: 1, past_due: 1, canceled: 1, expired: 0 });
+      prisma.subscription.groupBy.mockResolvedValue([
+        { plan_id: 'p_pro', _count: { plan_id: 1 } },
+        { plan_id: 'p_ent', _count: { plan_id: 1 } },
+      ]);
+      prisma.subscription.findMany.mockResolvedValueOnce(activeSubs).mockResolvedValueOnce([]);
+      prisma.plan.findMany.mockResolvedValue(plans);
+
+      const stats = await service.getStats();
+      // pro 10,000 + enterprise 240,000/12 = 20,000
+      expect(stats.mrr.total).toBe(30000);
+      expect(stats.mrr.arr).toBe(360000);
+      expect(stats.mrr.arpu).toBe(15000);
+      expect(stats.mrr.paying_subscribers).toBe(2);
+      expect(stats.by_plan).toEqual([
+        expect.objectContaining({ plan_id: 'p_pro', count: 1, mrr: 10000 }),
+        expect.objectContaining({ plan_id: 'p_ent', count: 1, mrr: 20000 }),
+      ]);
+    });
+
+    test('무료 플랜(단가 0)은 paying_subscribers에서 제외되고 MRR 0', async () => {
+      const freePlan = { id: 'p_free', name: 'free', display_name: '무료', price_monthly: 0, price_yearly: 0 };
+      prisma.subscription.findMany
+        .mockResolvedValueOnce([
+          {
+            plan_id: 'p_free',
+            billing_cycle: 'MONTHLY',
+            current_period_start: now,
+            metadata: {},
+            plan: freePlan,
+          },
+        ])
+        .mockResolvedValueOnce([]);
+      countChain({ total: 2, active: 1, trialing: 0, past_due: 0, canceled: 1, expired: 0 });
+      prisma.subscription.groupBy.mockResolvedValue([]);
+      prisma.plan.findMany.mockResolvedValue([freePlan]);
+
+      const stats = await service.getStats();
+      expect(stats.mrr.total).toBe(0);
+      expect(stats.mrr.arpu).toBe(0);
+      expect(stats.mrr.paying_subscribers).toBe(0);
+    });
+
+    test('flows: 30일 신규 유입 · 취소 손실 · 예약 다운그레이드 소실 집계', async () => {
+      const plans = [
+        { id: 'p_pro', name: 'pro', display_name: '프로', price_monthly: 10000, price_yearly: 0 },
+        { id: 'p_ent', name: 'enterprise', display_name: '엔터프라이즈', price_monthly: 100000, price_yearly: 0 },
+      ];
+      const activeSubs = [
+        // 30일 내 신규 시작 → MRR 유입
+        {
+          plan_id: 'p_pro',
+          billing_cycle: 'MONTHLY',
+          current_period_start: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+          metadata: {},
+          plan: plans[0],
+        },
+        // 기간 만료 시 다운그레이드 예약 → 소실 예정 MRR 100,000 - 10,000
+        {
+          plan_id: 'p_ent',
+          billing_cycle: 'MONTHLY',
+          current_period_start: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
+          metadata: { pending_plan_change: { plan_id: 'p_pro' } },
+          plan: plans[1],
+        },
+      ];
+      const canceledSubs = [
+        {
+          billing_cycle: 'MONTHLY',
+          canceled_at: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+          plan: plans[1],
+        },
+      ];
+
+      countChain({ total: 3, active: 2, trialing: 0, past_due: 0, canceled: 1, expired: 0 });
+      prisma.subscription.groupBy.mockResolvedValue([]);
+      prisma.subscription.findMany.mockResolvedValueOnce(activeSubs).mockResolvedValueOnce(canceledSubs);
+      prisma.plan.findMany.mockResolvedValue(plans);
+
+      const stats = await service.getStats();
+      expect(stats.mrr.total).toBe(110000);
+      expect(stats.flows).toEqual({
+        new_mrr: 10000,
+        new_subscriptions: 1,
+        canceled_mrr: 100000,
+        canceled_subscriptions: 1,
+        net_mrr: -90000,
+        scheduled_contraction_mrr: 90000,
+        scheduled_contractions: 1,
+      });
+    });
+
+    test('YEARLY 구독의 예약 다운그레이드 소실도 월등가 기준으로 산출', async () => {
+      const plans = [
+        { id: 'p_ent', name: 'enterprise', display_name: '엔터프라이즈', price_monthly: 0, price_yearly: 240000 },
+        { id: 'p_pro', name: 'pro', display_name: '프로', price_monthly: 10000, price_yearly: 0 },
+      ];
+      prisma.subscription.findMany
+        .mockResolvedValueOnce([
+          {
+            plan_id: 'p_ent',
+            billing_cycle: 'YEARLY',
+            current_period_start: new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000),
+            metadata: { pending_plan_change: { plan_id: 'p_pro' } },
+            plan: plans[0],
+          },
+        ])
+        .mockResolvedValueOnce([]);
+      countChain({ total: 1, active: 1, trialing: 0, past_due: 0, canceled: 0, expired: 0 });
+      prisma.subscription.groupBy.mockResolvedValue([]);
+      prisma.plan.findMany.mockResolvedValue(plans);
+
+      const stats = await service.getStats();
+      // 240,000/12=20,000 → pro 10,000 (월등가 delta)
+      expect(stats.mrr.total).toBe(20000);
+      expect(stats.flows.scheduled_contraction_mrr).toBe(10000);
+      expect(stats.flows.scheduled_contractions).toBe(1);
     });
   });
 });
