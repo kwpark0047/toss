@@ -63,6 +63,11 @@ jest.mock('../../../services/webhookDispatcher', () => ({
 jest.mock('../../../services/printService', () => ({
   createKitchenJob: jest.fn().mockResolvedValue({}),
 }));
+jest.mock('../../../services/PointsService', () => ({
+  calculateEarnPoints: jest.fn(),
+  earn: jest.fn(),
+  revertOnOrderCancel: jest.fn(),
+}));
 jest.mock('../../../services/AlimtalkService', () => ({
   sendOrderConfirmed: jest.fn().mockResolvedValue({}),
   sendFoodReady: jest.fn().mockResolvedValue({}),
@@ -98,6 +103,7 @@ const Table = require('../../../repositories/Table');
 const Product = require('../../../repositories/Product');
 const Store = require('../../../repositories/Store');
 const prisma = require('../../../config/prisma');
+const PointsService = require('../../../services/PointsService');
 
 describe('OrderService', () => {
   let svc;
@@ -492,6 +498,25 @@ describe('OrderService', () => {
       expect(result.success).toBe(true);
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
+
+    test('적립 내역이 있는 주문 취소 시 포인트 회수', async () => {
+      Order.findById.mockResolvedValue({ id: 5, status: 'pending', store_id: 1 });
+      Order.updateStatus.mockResolvedValue({ id: 5, status: 'cancelled' });
+      prisma.point_transactions.findFirst.mockResolvedValue({ id: 1 });
+      const tx = {
+        point_transactions: {
+          findMany: jest.fn().mockResolvedValue([]),
+          create: jest.fn(),
+        },
+        user_points: {
+          findFirst: jest.fn(),
+          update: jest.fn(),
+        },
+      };
+      prisma.$transaction.mockImplementation(async (fn) => fn(tx));
+      await svc.cancelOrder(5, 'admin1', 'super_admin');
+      expect(PointsService.revertOnOrderCancel).toHaveBeenCalledWith(5, tx);
+    });
   });
 
   describe('_processLoyaltyPoints', () => {
@@ -517,26 +542,9 @@ describe('OrderService', () => {
       expect(prisma.store_customers.findFirst).not.toHaveBeenCalled();
     });
 
-    test('포인트 설정 비활성화 시 스킵', async () => {
-      prisma.store_point_settings.findUnique.mockResolvedValue({ is_enabled: false });
-      const tx = mockTx();
-      prisma.$transaction.mockImplementation(async (fn) => fn(tx));
-      await svc._processLoyaltyPoints({
-        customer_phone: 'enc_01012345678',
-        store_id: 1,
-        total_amount: 10000,
-        id: 1,
-        order_number: 'ORD-001',
-      });
-      expect(tx.user_points.findFirst).not.toHaveBeenCalled();
-    });
-
-    test('최소 주문 미달 시 스킵', async () => {
-      prisma.store_point_settings.findUnique.mockResolvedValue({
-        is_enabled: true,
-        min_earn_amount: 10000,
-        earn_rate: 5,
-      });
+    test('적립 포인트 0이면 스킵 (설정 비활성/최소 금액 미달)', async () => {
+      prisma.point_transactions.findFirst.mockResolvedValue(null);
+      PointsService.calculateEarnPoints.mockResolvedValue(0);
       const tx = mockTx();
       prisma.$transaction.mockImplementation(async (fn) => fn(tx));
       await svc._processLoyaltyPoints({
@@ -544,9 +552,49 @@ describe('OrderService', () => {
         store_id: 1,
         total_amount: 5000,
         id: 1,
+        order_number: 'ORD-001',
+      });
+      expect(PointsService.earn).not.toHaveBeenCalled();
+      expect(tx.point_transactions.create).not.toHaveBeenCalled();
+    });
+
+    test('이미 포인트 트랜잭션이 있는 주문이면 스킵', async () => {
+      prisma.point_transactions.findFirst.mockResolvedValue({ id: 9 });
+      await svc._processLoyaltyPoints({
+        customer_phone: 'enc_01012345678',
+        store_id: 1,
+        total_amount: 10000,
+        id: 1,
         order_number: 'ORD-002',
       });
-      expect(tx.user_points.findFirst).not.toHaveBeenCalled();
+      expect(PointsService.calculateEarnPoints).not.toHaveBeenCalled();
+      expect(PointsService.earn).not.toHaveBeenCalled();
+    });
+
+    test('적립 실행 — PointsService.earn 재사용', async () => {
+      prisma.point_transactions.findFirst.mockResolvedValue(null);
+      PointsService.calculateEarnPoints.mockResolvedValue(132);
+      const tx = mockTx();
+      prisma.$transaction.mockImplementation(async (fn) => fn(tx));
+      await svc._processLoyaltyPoints({
+        customer_phone: 'enc_01012345678',
+        store_id: 1,
+        total_amount: 10000,
+        id: 7,
+        order_number: 'ORD-007',
+      });
+      expect(PointsService.calculateEarnPoints).toHaveBeenCalledWith(10000, 1, {
+        phone: '01012345678',
+      });
+      expect(PointsService.earn).toHaveBeenCalledWith(
+        7,
+        null,
+        1,
+        'ORD-007',
+        '01012345678',
+        132,
+        tx
+      );
     });
   });
 });

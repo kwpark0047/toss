@@ -383,61 +383,87 @@ class PointsService {
     });
 
     for (const pt of pointTxs) {
-      if (pt.type === 'earn') {
-        const user = await tx.user_points.findFirst({
-          where: { id: pt.user_point_id },
+      await this._revertEntry(tx, pt);
+    }
+  }
+
+  /**
+   * 주문 취소 시 해당 주문의 포인트 적립/사용분을 회수·복구합니다 (트랜잭션 내에서 사용).
+   * PaymentService 경로가 아닌 OrderService 경로로 적립된 (payment_id 없음) 내역도 반전됩니다.
+   * @param {number} orderId
+   * @param {import('@prisma/client').PrismaTransactionClient} tx
+   */
+  async revertOnOrderCancel(orderId, tx) {
+    const pointTxs = await tx.point_transactions.findMany({
+      where: { order_id: parseInt(orderId) },
+    });
+
+    for (const pt of pointTxs) {
+      await this._revertEntry(tx, pt, '주문 취소');
+    }
+  }
+
+  /**
+   * 포인트 트랜잭션 1건을 반전 처리합니다 ('cancel_earn'/'cancel_use'는 건너뛰어 재호출 멱등 보장).
+   * @param {import('@prisma/client').PrismaTransactionClient} tx
+   * @param {object} pt
+   * @param {string} [reason] - 반전 설명에 사용할 사유 (기본: 결제 취소)
+   */
+  async _revertEntry(tx, pt, reason = '결제 취소') {
+    if (pt.type === 'earn') {
+      const user = await tx.user_points.findFirst({
+        where: { id: pt.user_point_id },
+      });
+      if (user) {
+        const newBalance = Math.max(0, user.total_points - pt.amount);
+        await tx.user_points.update({
+          where: { id: user.id },
+          data: {
+            total_points: newBalance,
+            lifetime_earned: { decrement: pt.amount },
+            updated_at: new Date(),
+          },
         });
-        if (user) {
-          const newBalance = Math.max(0, user.total_points - pt.amount);
-          await tx.user_points.update({
-            where: { id: user.id },
-            data: {
-              total_points: newBalance,
-              lifetime_earned: { decrement: pt.amount },
-              updated_at: new Date(),
-            },
-          });
-          await tx.point_transactions.create({
-            data: {
-              user_point_id: user.id,
-              store_id: pt.store_id,
-              order_id: pt.order_id,
-              payment_id: pt.payment_id,
-              type: 'cancel_earn',
-              amount: -pt.amount,
-              balance_after: newBalance,
-              description: '결제 취소 포인트 회수',
-            },
-          });
-        }
-      } else if (pt.type === 'use') {
-        const usedAmount = Math.abs(pt.amount);
-        const user = await tx.user_points.findFirst({
-          where: { id: pt.user_point_id },
+        await tx.point_transactions.create({
+          data: {
+            user_point_id: user.id,
+            store_id: pt.store_id,
+            order_id: pt.order_id,
+            payment_id: pt.payment_id,
+            type: 'cancel_earn',
+            amount: -pt.amount,
+            balance_after: newBalance,
+            description: `${reason} 포인트 회수`,
+          },
         });
-        if (user) {
-          const newBalance = user.total_points + usedAmount;
-          await tx.user_points.update({
-            where: { id: user.id },
-            data: {
-              total_points: newBalance,
-              lifetime_used: { decrement: usedAmount },
-              updated_at: new Date(),
-            },
-          });
-          await tx.point_transactions.create({
-            data: {
-              user_point_id: user.id,
-              store_id: pt.store_id,
-              order_id: pt.order_id,
-              payment_id: pt.payment_id,
-              type: 'cancel_use',
-              amount: usedAmount,
-              balance_after: newBalance,
-              description: '결제 취소 포인트 복구',
-            },
-          });
-        }
+      }
+    } else if (pt.type === 'use') {
+      const usedAmount = Math.abs(pt.amount);
+      const user = await tx.user_points.findFirst({
+        where: { id: pt.user_point_id },
+      });
+      if (user) {
+        const newBalance = user.total_points + usedAmount;
+        await tx.user_points.update({
+          where: { id: user.id },
+          data: {
+            total_points: newBalance,
+            lifetime_used: { decrement: usedAmount },
+            updated_at: new Date(),
+          },
+        });
+        await tx.point_transactions.create({
+          data: {
+            user_point_id: user.id,
+            store_id: pt.store_id,
+            order_id: pt.order_id,
+            payment_id: pt.payment_id,
+            type: 'cancel_use',
+            amount: usedAmount,
+            balance_after: newBalance,
+            description: `${reason} 포인트 복구`,
+          },
+        });
       }
     }
   }

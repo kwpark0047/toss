@@ -142,4 +142,122 @@ describe('PointsService', () => {
       );
     });
   });
+
+  describe('revertOnOrderCancel', () => {
+    const baseTx = () => ({
+      point_transactions: {
+        findMany: jest.fn(),
+        create: jest.fn().mockResolvedValue({}),
+      },
+      user_points: {
+        findFirst: jest.fn(),
+        update: jest.fn().mockResolvedValue({}),
+      },
+    });
+
+    test('적립 포인트를 회수하고 cancel_earn을 기록한다', async () => {
+      const tx = baseTx();
+      tx.point_transactions.findMany.mockResolvedValue([
+        { id: 10, user_point_id: 1, store_id: 2, order_id: 5, payment_id: null, type: 'earn', amount: 100 },
+      ]);
+      tx.user_points.findFirst.mockResolvedValue({ id: 1, total_points: 1000, lifetime_earned: 1000 });
+
+      await pointsService.revertOnOrderCancel(5, tx);
+
+      expect(tx.point_transactions.findMany).toHaveBeenCalledWith({
+        where: { order_id: 5 },
+      });
+      expect(tx.user_points.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            total_points: 900,
+            lifetime_earned: { decrement: 100 },
+          }),
+        })
+      );
+      expect(tx.point_transactions.create.mock.calls[0][0].data).toMatchObject({
+        type: 'cancel_earn',
+        amount: -100,
+        balance_after: 900,
+        order_id: 5,
+        description: '주문 취소 포인트 회수',
+      });
+    });
+
+    test('사용 포인트를 복구하고 cancel_use를 기록한다', async () => {
+      const tx = baseTx();
+      tx.point_transactions.findMany.mockResolvedValue([
+        { id: 11, user_point_id: 1, store_id: 2, order_id: 5, payment_id: 90, type: 'use', amount: -300 },
+      ]);
+      tx.user_points.findFirst.mockResolvedValue({ id: 1, total_points: 700, lifetime_used: 300 });
+
+      await pointsService.revertOnOrderCancel(5, tx);
+
+      expect(tx.user_points.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            total_points: 1000,
+            lifetime_used: { decrement: 300 },
+          }),
+        })
+      );
+      expect(tx.point_transactions.create.mock.calls[0][0].data).toMatchObject({
+        type: 'cancel_use',
+        amount: 300,
+        balance_after: 1000,
+        order_id: 5,
+        description: '주문 취소 포인트 복구',
+      });
+    });
+
+    test('이미 반전된 트랜잭션(cancel_*)은 건너뛴다', async () => {
+      const tx = baseTx();
+      tx.point_transactions.findMany.mockResolvedValue([
+        { type: 'cancel_earn', amount: -100 },
+        { type: 'cancel_use', amount: 100 },
+      ]);
+
+      await pointsService.revertOnOrderCancel(5, tx);
+
+      expect(tx.user_points.findFirst).not.toHaveBeenCalled();
+      expect(tx.point_transactions.create).not.toHaveBeenCalled();
+    });
+
+    test('해당 주문 트랜잭션이 없으면 아무것도 하지 않는다', async () => {
+      const tx = baseTx();
+      tx.point_transactions.findMany.mockResolvedValue([]);
+
+      await pointsService.revertOnOrderCancel(5, tx);
+
+      expect(tx.user_points.findFirst).not.toHaveBeenCalled();
+      expect(tx.point_transactions.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('revertOnCancel (리팩터 후 동작 보존)', () => {
+    test('payment_id 기반 회수 — 기존 취소 설명 유지', async () => {
+      const tx = {
+        point_transactions: {
+          findMany: jest.fn().mockResolvedValue([
+            { id: 1, user_point_id: 1, store_id: 2, order_id: 3, payment_id: 9, type: 'earn', amount: 50 },
+          ]),
+          create: jest.fn().mockResolvedValue({}),
+        },
+        user_points: {
+          findFirst: jest.fn().mockResolvedValue({ id: 1, total_points: 500, lifetime_earned: 500 }),
+          update: jest.fn().mockResolvedValue({}),
+        },
+      };
+
+      await pointsService.revertOnCancel(9, tx);
+
+      expect(tx.point_transactions.findMany).toHaveBeenCalledWith({
+        where: { payment_id: 9 },
+      });
+      expect(tx.point_transactions.create.mock.calls[0][0].data).toMatchObject({
+        type: 'cancel_earn',
+        description: '결제 취소 포인트 회수',
+      });
+    });
+  });
 });

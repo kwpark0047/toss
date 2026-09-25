@@ -337,6 +337,10 @@ class OrderService {
     if (order.status !== 'pending') {
       await this._restoreInventory(orderId);
     }
+    // 주문 단위 포인트 회수 (PaymentService 결제취소 경로를 거치지 않은 적립/사용분 포함)
+    await this._revertPointsOnCancel(orderId).catch((e) =>
+      logger.error('[Point Revert Error] ' + e.message)
+    );
     this._sendOrderAlimtalk(order, 'cancelled').catch((e) => logger.error(e));
 
     if (this.io) {
@@ -470,6 +474,19 @@ class OrderService {
     });
   }
 
+  async _revertPointsOnCancel(orderId) {
+    const existingTx = await prisma.point_transactions.findFirst({
+      where: { order_id: orderId },
+      select: { id: true },
+    });
+    if (!existingTx) return;
+
+    const PointsService = require('./PointsService');
+    await prisma.$transaction(async (tx) => {
+      await PointsService.revertOnOrderCancel(orderId, tx);
+    });
+  }
+
   async _processLoyaltyPoints(order) {
     if (!order.customer_phone) return;
 
@@ -492,14 +509,7 @@ class OrderService {
       logger.error('[StoreCustomer Upsert Error]:', err);
     });
 
-    // Store point settings
-    const settings = await prisma.store_point_settings.findUnique({
-      where: { store_id: order.store_id },
-    });
-    if (!settings || !settings.is_enabled) return;
-    if (order.total_amount < settings.min_earn_amount) return;
-
-    // Tier-aware 적립 포인트 계산
+    // Tier-aware 적립 포인트 계산 (설정 비활성/최소 금액 미달 시 0 반환)
     const PointsService = require('./PointsService');
     const earnedPoints = await PointsService.calculateEarnPoints(
       order.total_amount,
@@ -508,46 +518,17 @@ class OrderService {
     );
     if (earnedPoints <= 0) return;
 
-    // 포인트 적립
+    // PointsService.earn 재사용 — balance_after 이중계산 방지 + 표준 type('earn')/만료일(기본 365d) 통일
     await prisma.$transaction(async (tx) => {
-      let userPoint = await tx.user_points.findFirst({
-        where: { phone: phoneStr },
-      });
-
-      if (!userPoint) {
-        userPoint = await tx.user_points.create({
-          data: {
-            phone: phoneStr,
-            total_points: earnedPoints,
-            lifetime_earned: earnedPoints,
-            lifetime_used: 0,
-          },
-        });
-      } else {
-        await tx.user_points.update({
-          where: { id: userPoint.id },
-          data: {
-            total_points: userPoint.total_points + earnedPoints,
-            lifetime_earned: userPoint.lifetime_earned + earnedPoints,
-          },
-        });
-      }
-
-      await tx.point_transactions.create({
-        data: {
-          user_point_id: userPoint.id,
-          store_id: order.store_id,
-          order_id: order.id,
-          payment_id: null, // OrderService 경로: payment_id 없음 (PaymentService 경유 시에는 existingTx 체크로 skip)
-          type: 'EARN',
-          amount: earnedPoints,
-          balance_after: (userPoint.total_points || 0) + earnedPoints,
-          description: `주문 적립 (${order.order_number})`,
-          expires_at: settings.expiry_days
-            ? new Date(Date.now() + settings.expiry_days * 24 * 60 * 60 * 1000)
-            : null,
-        },
-      });
+      await PointsService.earn(
+        order.id,
+        null,
+        order.store_id,
+        order.order_number,
+        phoneStr,
+        earnedPoints,
+        tx
+      );
     });
   }
 
