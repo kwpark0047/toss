@@ -199,6 +199,7 @@ function SettlementDetailModal({ settlement, onClose, onTaxInvoice, storeId }) {
 const SettlementManager = () => {
     const { storeId } = useParams();
     const [settlements, setSettlements] = useState([]);
+    const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showGenerate, setShowGenerate] = useState(false);
     const [period, setPeriod] = useState({
@@ -218,7 +219,19 @@ const SettlementManager = () => {
         }
     }, [storeId]);
 
-    useEffect(() => { fetchSettlements(); }, [fetchSettlements]);
+    const fetchSummary = useCallback(async () => {
+        try {
+            const res = await adminAPI.getSettlementSummary(storeId);
+            setSummary(res.data || res);
+        } catch {
+            setSummary(null);
+        }
+    }, [storeId]);
+
+    useEffect(() => {
+        fetchSettlements();
+        fetchSummary();
+    }, [fetchSettlements, fetchSummary]);
 
     const openDetail = async (s) => {
         try {
@@ -250,6 +263,7 @@ const SettlementManager = () => {
             toast.success('신규 정산 데이터가 생성되었습니다.');
             setShowGenerate(false);
             fetchSettlements();
+            fetchSummary();
         } catch (err) {
             if (err.response?.data?.error?.includes('겹칩니다')) {
                 toast.error('이미 처리된 기간과 정산 기간이 겹칩니다.');
@@ -272,8 +286,8 @@ const SettlementManager = () => {
 
     if (loading) return <div className="p-10 text-center text-gray-400">자금을 집계하는 중...</div>;
 
-    const totalPending = settlements.filter(s => s.status === 'PENDING').length;
-    const totalNet     = settlements.reduce((acc, s) => acc + (s.net_amount || 0), 0);
+    const totalPending = summary?.statusCounts?.PENDING ?? 0;
+    const totalNet     = summary?.totalNet ?? 0;
 
     return (
         <div className="max-w-6xl mx-auto p-6 max-h-[calc(100vh-80px)] overflow-y-auto">
