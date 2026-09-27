@@ -266,4 +266,30 @@ describe('auth middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
   });
+
+  describe('refreshTokenAuth', () => {
+    test('access 토큰이어도 refresh 토큰인 경우 401 반환', () => {
+      isCookieMode.mockReturnValue(false);
+      jwt.verify.mockReturnValue({ type: 'refresh' });
+      req.headers.authorization = 'Bearer access-looks-like-refresh';
+
+      auth.authMiddleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ error: '액세스 토큰이 필요합니다.' });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('refresh 토큰 단독으로 인증 시도 시 401 반환', () => {
+      isCookieMode.mockReturnValue(false);
+      jwt.verify.mockReturnValue({ type: 'refresh' });
+      req.headers.authorization = 'Bearer pure-refresh-token';
+
+      auth.authMiddleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ error: '액세스 토큰이 필요합니다.' });
+      expect(next).not.toHaveBeenCalled();
+    });
+  });
 });
