@@ -46,21 +46,24 @@ httpServer.listen(PORT, async () => {
     }, { timezone: 'Asia/Seoul' });
     logger.info('[아카이빙] 스케줄러 등록 완료 (매월 1일 04:00 KST)');
     // 동적 가격 규칙 스케줄러 (매시간 정각) — 날씨/시간대 기반 자동 가격 조정
-    const { activateAllStores } = await import('./services/DynamicPricingService.js');
+    // 주의: module.exports = new DynamicPricingService() 이므로 .default로 접근해야 한다
+    const dynamicPricingService = (await import('./services/DynamicPricingService.js')).default;
     cron.schedule('0 * * * *', async () => {
         logger.info('[동적가격] 스케줄러 시작 — 매시간 정각 가격 규칙 적용');
         try {
-            await activateAllStores();
+            await dynamicPricingService.activateAllStores();
         }
         catch (err) {
             logger.error('[동적가격] 스케줄러 오류', { error: err.message });
         }
     }, { timezone: 'Asia/Seoul' });
     logger.info('[동적가격] 스케줄러 등록 완료 (매시간 정각 KST)');
+    // 가격 최적화 잡 워커 (매 10분) — 대기 중인 PENDING 잡 소비 (수요 예측/가격 최적화)
+    (await import('./services/pricingOptimizationService.js')).default.startScheduler();
     // 이상 매출 감지 스케줄러 (매 15분) — 매출 급감/폭증 실시간 경보
 const { checkSalesAnomaly } = await import('./services/AnomalyDetectionService.js');
 const prismaAnomaly = (await import('./config/prisma.js')).default;
-const { io: ioAnomaly } = await import('./app.js');
+const { io: ioAnomaly } = await import('./app.mjs');
     cron.schedule('*/15 * * * *', async () => {
         logger.info('[이상감지] 스케줄러 시작 — 매 15분 매출 변동성 검사');
         try {

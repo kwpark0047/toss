@@ -587,6 +587,7 @@ model stores {
   store_partnerships_as_target    store_partnerships[] @relation("partnerships_target")
   api_keys                       api_keys[]
   webhook_endpoints              webhook_endpoints[]
+  webhook_deliveries             webhook_deliveries[]
   print_jobs                     print_jobs[]
   store_favorites                store_favorites[]
   staff_schedules                staff_schedules[]
@@ -1166,21 +1167,77 @@ model notification_templates {
 }
 
 model webhook_deliveries {
-  id              Int       @id @default(autoincrement())
-  endpoint_id     Int
-  event_type      String
-  payload         Json
-  status          String    @default("pending")
-  attempts        Int       @default(0)
-  response_status Int?
-  last_error      String?
-  created_at      DateTime? @default(now())
-  delivered_at    DateTime?
-  next_retry_at   DateTime?
-  endpoint        webhook_endpoints @relation(fields: [endpoint_id], references: [id], onDelete: Cascade)
+  id                  Int       @id @default(autoincrement())
+  endpoint_id         Int?
+  event_type          String?
+  type                String?   @default("default") // payment, order, notification, default
+  url                 String?
+  payload             Json
+  headers             Json?
+  idempotency_key     String?   @unique
+  store_id            Int?
+  max_retries         Int       @default(3)
+  retry_config        Json?
+  secret              String?
+  status              String    @default("pending")
+  attempt             Int       @default(0)
+  response_status     Int?
+  last_response       Json?
+  last_error          String?
+  last_latency        Int?
+  next_retry_at       DateTime?
+  dlq_at              DateTime?
+  completed_at        DateTime?
+  created_at          DateTime? @default(now())
+  updated_at          DateTime? @updatedAt
+  delivered_at        DateTime?
+  endpoint            webhook_endpoints? @relation(fields: [endpoint_id], references: [id], onDelete: Cascade)
+  store               stores?      @relation(fields: [store_id], references: [id], onDelete: Cascade)
 
   @@index([endpoint_id], map: "idx_webhook_deliveries_endpoint")
+  @@index([store_id, status], map: "idx_webhook_deliveries_store_status")
   @@index([status, next_retry_at], map: "idx_webhook_deliveries_retry")
+  @@index([idempotency_key], map: "idx_webhook_deliveries_idem")
+  @@schema("public")
+}
+
+model webhook_dlq {
+  id                    Int       @id @default(autoincrement())
+  delivery_id           Int       @unique
+  url                   String
+  payload               Json
+  headers               Json?
+  type                  String?
+  store_id              Int?
+  attempts              Int
+  last_status_code      Int?
+  last_error            String?
+  last_response         Json?
+  original_created_at   DateTime
+  retried_at            DateTime?
+  retried_delivery_id   Int?
+  created_at            DateTime  @default(now())
+
+  @@index([store_id, original_created_at], map: "idx_webhook_dlq_store_time")
+  @@index([type, original_created_at], map: "idx_webhook_dlq_type_time")
+  @@schema("public")
+}
+
+model ab_tests {
+  id                  Int       @id @default(autoincrement())
+  name                String    @unique
+  flag_key            String
+  variants            Json      // [{ key, value, trafficSplit }]
+  traffic_split       Json      // { variantKey: percentage }
+  start_date          DateTime
+  end_date            DateTime?
+  success_metric      String
+  status              String    @default("running") // running, completed, stopped
+  created_by          Int?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  @@index([status, start_date], map: "idx_ab_tests_status_date")
   @@schema("public")
 }
 
@@ -1733,15 +1790,22 @@ model audit_logs {
 }
 
 model feature_flags {
-  id              Int      @id @default(autoincrement())
-  key             String
-  description     String?
-  enabled         Boolean  @default(false)
-  rollout_percent Int      @default(100)
-  environment     String   @default("production")
-  store_id        Int      @default(0)
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  key                String
+  description        String?
+  enabled            Boolean  @default(false)
+  value              Json     @default("true") // Can be boolean, string, number, object
+  default_value      Json     @default("false")
+  rollout_percent    Int      @default(100)
+  environment        String   @default("production")
+  store_id           Int      @default(0)
+  type               String   @default("boolean") // boolean, string, number, json
+  targeting          Json?    // { roles: [], userIds: [], segments: [], attributes: {} }
+  store_overrides    Json?    // { storeId: { enabled: bool, value: any } }
+  created_by         Int?
+  updated_by         Int?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
 
   @@index([environment, enabled], map: "idx_feature_flags_environment_enabled")
   @@unique([key, environment, store_id], map: "uq_feature_flags_scope")

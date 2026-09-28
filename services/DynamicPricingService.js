@@ -124,7 +124,7 @@ class DynamicPricingService {
       if (!product) continue;
 
       const currentPrice = product.price;
-      const newPrice = this.applyRule(
+      const newPrice = await this.applyRule(
         currentPrice,
         rule.rule_type,
         rule.config,

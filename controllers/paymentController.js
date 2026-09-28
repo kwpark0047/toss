@@ -77,10 +77,12 @@ const paymentController = {
 
   getBrandPayConfig: catchAsync(async (req, res) => {
     const customerKey = crypto.createHash('sha256').update(req.user.id.toString()).digest('hex');
-    res.success({
-      customerKey,
-      clientKey: process.env.TOSS_CLIENT_KEY || 'test_ck_D54YPdW9w8NE198759v8Vj7ByY6f',
-    });
+    const clientKey = process.env.TOSS_CLIENT_KEY;
+    if (!clientKey) {
+      // 테스트 키로의 fallback 없이 명시적으로 차단 (fail-closed)
+      throw new AppError('Toss 결제 연동이 설정되지 않았습니다. 잠시 후 다시 시도해 주세요.', 503);
+    }
+    res.success({ customerKey, clientKey });
   }),
 
   cancelByOrderId: catchAsync(async (req, res) => {

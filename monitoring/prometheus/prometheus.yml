@@ -20,38 +20,8 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # WeMarket API Application
+  # WeMarket API Application (Docker Compose)
   - job_name: 'wemarket-api'
-    kubernetes_sd_configs:
-      - role: pod
-        namespaces:
-          names:
-            - wemarket-prod
-            - wemarket-staging
-    relabel_configs:
-      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-        action: keep
-        regex: true
-      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-        action: replace
-        target_label: __metrics_path__
-        regex: (.+)
-      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-        action: replace
-        regex: ([^:]+)(?::\d+)?;(\d+)
-        replacement: $1:$2
-        target_label: __address__
-      - action: labelmap
-        regex: __meta_kubernetes_pod_label_(.+)
-      - source_labels: [__meta_kubernetes_namespace]
-        action: replace
-        target_label: kubernetes_namespace
-      - source_labels: [__meta_kubernetes_pod_name]
-        action: replace
-        target_label: kubernetes_pod_name
-
-  # WeMarket API (static for Docker Compose)
-  - job_name: 'wemarket-api-compose'
     static_configs:
       - targets: ['app:3000']
         labels:
@@ -69,109 +39,18 @@ scrape_configs:
     static_configs:
       - targets: ['cadvisor:8080']
 
-  # Nginx
-  - job_name: 'nginx'
-    static_configs:
-      - targets: ['nginx:8080']
-    metrics_path: '/metrics'
-
-  # PostgreSQL
+  # PostgreSQL Exporter (if deployed)
   - job_name: 'postgres'
     static_configs:
       - targets: ['postgres-exporter:9187']
 
-  # Redis
+  # Redis Exporter (if deployed)
   - job_name: 'redis'
     static_configs:
       - targets: ['redis-exporter:9121']
 
-  # Kubernetes API Server
-  - job_name: 'kubernetes-apiservers'
-    kubernetes_sd_configs:
-      - role: endpoints
-    scheme: https
-    tls_config:
-      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-    relabel_configs:
-      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
-        action: keep
-        regex: default;kubernetes;https
-
-  # Kubernetes Nodes
-  - job_name: 'kubernetes-nodes'
-    kubernetes_sd_configs:
-      - role: node
-    scheme: https
-    tls_config:
-      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-    relabel_configs:
-      - action: labelmap
-        regex: __meta_kubernetes_node_label_(.+)
-
-  # Kubernetes Pods
-  - job_name: 'kubernetes-pods'
-    kubernetes_sd_configs:
-      - role: pod
-    relabel_configs:
-      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-        action: keep
-        regex: true
-      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-        action: replace
-        target_label: __metrics_path__
-        regex: (.+)
-      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-        action: replace
-        regex: ([^:]+)(?::\d+)?;(\d+)
-        replacement: $1:$2
-        target_label: __address__
-      - action: labelmap
-        regex: __meta_kubernetes_pod_label_(.+)
-      - source_labels: [__meta_kubernetes_namespace]
-        action: replace
-        target_label: kubernetes_namespace
-      - source_labels: [__meta_kubernetes_pod_name]
-        action: replace
-        target_label: kubernetes_pod_name
-
-  # Kubernetes Services
-  - job_name: 'kubernetes-services'
-    kubernetes_sd_configs:
-      - role: service
-    relabel_configs:
-      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
-        action: keep
-        regex: true
-      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
-        action: replace
-        target_label: __metrics_path__
-        regex: (.+)
-      - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
-        action: replace
-        regex: ([^:]+)(?::\d+)?;(\d+)
-        replacement: $1:$2
-        target_label: __address__
-      - action: labelmap
-        regex: __meta_kubernetes_service_label_(.+)
-      - source_labels: [__meta_kubernetes_namespace]
-        action: replace
-        target_label: kubernetes_namespace
-      - source_labels: [__meta_kubernetes_service_name]
-        action: replace
-        target_label: kubernetes_service_name
-
-  # Kubernetes Ingress
-  - job_name: 'kubernetes-ingress'
-    kubernetes_sd_configs:
-      - role: ingress
-    relabel_configs:
-      - action: labelmap
-        regex: __meta_kubernetes_ingress_annotation_(.+)
-      - source_labels: [__meta_kubernetes_namespace]
-        action: replace
-        target_label: kubernetes_namespace
-      - source_labels: [__meta_kubernetes_ingress_name]
-        action: replace
-        target_label: kubernetes_ingress_name
+  # Nginx (if deployed with metrics)
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:8080']
+    metrics_path: '/metrics'

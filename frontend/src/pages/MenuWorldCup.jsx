@@ -15,7 +15,7 @@ const STAGE = {
 const MenuWorldCup = () => {
     const navigate = useNavigate();
     const { storeId } = useParams();
-    const { _user } = useAuth();
+    const { user } = useAuth();
 
     const [stage, setStage] = useState(STAGE.SETUP);
     const [products, setProducts] = useState([]);

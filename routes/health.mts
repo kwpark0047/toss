@@ -20,8 +20,12 @@ const router = Router();
 router.use((req: Request, res: Response, next: NextFunction) => {
   const origin = req.headers.origin;
   const allowed = origin && isOriginAllowed(origin, getAllowedOrigins());
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   if (allowed) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');

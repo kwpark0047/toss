@@ -39,6 +39,22 @@ const notificationService = (await import('./services/notificationService.js')).
 const dashboardBroadcastService = (await import('./services/DashboardBroadcastService.js')).default;
 const { getAllowedOrigins, isOriginAllowed } = await import('./config/domain.js');
 const allowedOrigins = getAllowedOrigins();
+
+// CORS must be present even for early health/initialization/error paths.
+// Keep this before helmet/rate-limit/router middleware so Render cold-start probes
+// and Vercel-origin browser fetches always receive Access-Control-Allow-Origin.
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (isOriginAllowed(origin, allowedOrigins)) {
+        res.setHeader('Access-Control-Allow-Origin', origin || '*');
+        if (origin) res.setHeader('Vary', 'Origin');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-Requested-With, Idempotency-Key, X-Idempotency-Key');
+    }
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    next();
+});
 /**
  * 보안 헤더 및 기본 미들웨어
  */
@@ -295,6 +311,7 @@ const routes = {
     reportPdf: (await import('./routes/reportPdf.js')).default,
     config: (await import('./routes/config.js')).default,
     swagger: (await import('./routes/swagger.js')).default,
+    featureFlags: (await import('./routes/featureFlags.js')).default,
 };
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
 if (process.env.NODE_ENV !== 'production') {

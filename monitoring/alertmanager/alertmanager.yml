@@ -3,7 +3,7 @@ global:
   smtp_smarthost: 'smtp.gmail.com:587'
   smtp_from: 'alerts@wemarket.com'
   smtp_auth_username: 'alerts@wemarket.com'
-  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_auth_password: '{{ .Env.SMTP_PASSWORD }}'
 
 route:
   group_by: ['alertname', 'severity', 'team']
@@ -32,7 +32,7 @@ receivers:
       - to: 'team@wemarket.com'
         send_resolved: true
     slack_configs:
-      - api_url: '${SLACK_WEBHOOK_URL}'
+      - api_url: '{{ .Env.SLACK_WEBHOOK_URL }}'
         channel: '#wemarket-alerts'
         title: 'WeMarket Alert'
         text: '{{ range .Alerts }}*{{ .Labels.alertname }}* ({{ .Labels.severity }})\n{{ .Annotations.summary }}\n{{ .Annotations.description }}\n{{ end }}'
@@ -43,19 +43,19 @@ receivers:
       - to: 'oncall@wemarket.com'
         send_resolved: true
     slack_configs:
-      - api_url: '${SLACK_WEBHOOK_URL}'
+      - api_url: '{{ .Env.SLACK_WEBHOOK_URL }}'
         channel: '#wemarket-critical'
         title: '🚨 CRITICAL: WeMarket Alert'
         text: '{{ range .Alerts }}*{{ .Labels.alertname }}*\n{{ .Annotations.summary }}\n{{ .Annotations.description }}\nRunbook: https://runbooks.wemarket.com/{{ .Labels.alertname }}\n{{ end }}'
         send_resolved: true
     pagerduty_configs:
-      - service_key: '${PAGERDUTY_KEY}'
+      - service_key: '{{ .Env.PAGERDUTY_KEY }}'
         severity: critical
         description: '{{ .GroupLabels.alertname }}'
 
   - name: 'business-alerts'
     slack_configs:
-      - api_url: '${SLACK_WEBHOOK_URL}'
+      - api_url: '{{ .Env.SLACK_WEBHOOK_URL }}'
         channel: '#wemarket-business'
         title: '📊 Business Alert'
         text: '{{ range .Alerts }}*{{ .Labels.alertname }}*\n{{ .Annotations.summary }}\n{{ .Annotations.description }}\n{{ end }}'
@@ -63,7 +63,7 @@ receivers:
 
   - name: 'platform-alerts'
     slack_configs:
-      - api_url: '${SLACK_WEBHOOK_URL}'
+      - api_url: '{{ .Env.SLACK_WEBHOOK_URL }}'
         channel: '#wemarket-platform'
         title: '⚙️ Platform Alert'
         text: '{{ range .Alerts }}*{{ .Labels.alertname }}*\n{{ .Annotations.summary }}\n{{ .Annotations.description }}\n{{ end }}'

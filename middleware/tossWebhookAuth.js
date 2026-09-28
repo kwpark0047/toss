@@ -121,7 +121,11 @@ const tossWebhookAuth = (req, res, next) => {
   // 검증 계층 미설정:
   //  - 프로덕션: deny-by-default (503 → 토스 재전송). TOSS_WEBHOOK_ALLOW_UNSIGNED=true 로 옵트아웃 가능
   //  - 개발/테스트: 경고 1회 출력 후 통과 (서버측 재검증 방어선 유지)
-  const hasAnyConfig = Boolean(secret || ipsRaw || legacyKey);
+  // ③ 레거시(Basic)는 결제 API 키(TOSS_SECRET_KEY)가 항상 설정되어 있어 단독으로는
+  // 검증 계층으로 치지 못한다 — 무인증 Toss 결제 웹훅 통과를 보존하려면 요청에
+  // Authorization 헤더가 실제 존재할 때만 계층 설정으로 간주한다.
+  const legacyAuthPresent = !!(req.headers && req.headers['authorization']);
+  const hasAnyConfig = Boolean(secret || ipsRaw || (legacyKey && legacyAuthPresent));
   if (!hasAnyConfig) {
     if (
       process.env.NODE_ENV === 'production' &&

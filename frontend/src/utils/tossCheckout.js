@@ -1,5 +1,7 @@
-const TOSS_CLIENT_KEY =
-  import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_ck_D54YPdW9w8NE198759v8Vj7ByY6f';
+import { paymentsAPI } from '../api';
+
+// 토스페이먼츠 클라이언트 키 (env 미설정 시 서버 설정에서 조회, 없으면 결제 차단)
+const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY;
 
 async function loadTossPayments() {
   if (window.TossPayments) return window.TossPayments;
@@ -46,7 +48,18 @@ export async function requestTossCheckout({
   }
 
   const metadata = new URLSearchParams({ payment_id: String(paymentId) });
-  await TossPayments(TOSS_CLIENT_KEY).requestPayment('카드', {
+
+  // env 미설정 시 서버 결제 설정에서 클라이언트 키를 획득 (테스트 키 fallback 없음)
+  let clientKey = TOSS_CLIENT_KEY;
+  if (!clientKey) {
+    const { data: config } = await paymentsAPI.getBrandPayConfig();
+    clientKey = config?.clientKey;
+  }
+  if (!clientKey) {
+    throw new Error('결제 시스템 설정이 완료되지 않았습니다. 관리자에게 문의해 주세요.');
+  }
+
+  await TossPayments(clientKey).requestPayment('카드', {
     amount,
     orderId,
     orderName,

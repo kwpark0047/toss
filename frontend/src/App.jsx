@@ -10,7 +10,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { logError } from "@/lib/errorUtils";
 
 // Lazy imports
-import { Index, MenuPage, PaymentSuccess, PaymentFail, QrResolvePage, MenuDemo, BusinessDemo, AuthPage, Register, StoreSearchPage, NotFound, KioskPage, ProfilePage, KitchenDisplayPage, LegalPage, StoreDisplay, FoodTruckLanding, FoodTruckDesignShowcase, FeaturesPage, PricingPage, GuidesPage, NewsPage, ContactPage, BoardList, BoardDetail, BoardWrite, PlanUpgrade, PointsHistoryPage, PointsSettingsPage, RecommendationStatsPage, AdminLayout, MasterDashboard, MultiStoreSupervisorDashboard, StoreSetupWizard, StoreForm, OrderManager, MenuManager, MenuBuilder, StaffManager, SalesStats, ReviewManager, AnalyticsDashboard, SettlementManager, BusinessSettingsWithTheme, SystemStatus, ReceiptSettings, CustomerManager, CampaignDashboard, ReservationManager, WaitingManager, BulkSMSManager, StoreEnrichment, InventoryManager, TableManager, StoreSettings, LegalSettings, NotificationTemplatesManager, DeveloperConsole, QrCustomizer, PartnershipManager, StaffScheduler, FoodTruckOwnerDashboard, FoodTruckAnalyticsDashboard, AlimtalkDeliveryConsole, CommunityPage, TinkerBellManagerPage, PlanRequestsManage, DynamicPricingManager, Wallet, OrderHistory, ManagerView, MenuWorldCup } from "@/routes/lazyImports";
+import { Index, MenuPage, PaymentSuccess, PaymentFail, QrResolvePage, MenuDemo, BusinessDemo, AuthPage, Register, StoreSearchPage, NotFound, KioskPage, ProfilePage, KitchenDisplayPage, LegalPage, StoreDisplay, FoodTruckLanding, FoodTruckDesignShowcase, FeaturesPage, PricingPage, GuidesPage, NewsPage, ContactPage, BoardList, BoardDetail, BoardWrite, PlanUpgrade, PointsHistoryPage, PointsSettingsPage, RecommendationStatsPage, AdminLayout, MasterDashboard, MultiStoreSupervisorDashboard, StoreSetupWizard, StoreForm, OrderManager, MenuManager, MenuBuilder, StaffManager, SalesStats, ReviewManager, AnalyticsDashboard, SettlementManager, BusinessSettingsWithTheme, SystemStatus, ReceiptSettings, CustomerManager, CampaignDashboard, ReservationManager, WaitingManager, BulkSMSManager, StoreEnrichment, InventoryManager, TableManager, StoreSettings, LegalSettings, NotificationTemplatesManager, DeveloperConsole, QrCustomizer, PartnershipManager, StaffScheduler, FoodTruckOwnerDashboard, FoodTruckAnalyticsDashboard, AlimtalkDeliveryConsole, CommunityPage, TinkerBellManagerPage, PlanRequestsManage, DynamicPricingManager, Wallet, OrderHistory, ManagerView, MenuWorldCup, RealTimeAnalyticsDashboard } from "@/routes/lazyImports";
 import PWAInstallBanner from "@/components/common/PWAInstallBanner";
 import PWAUpdateNotification from "@/components/common/PWAUpdateNotification";
 import OfflineBanner from "@/components/common/OfflineBanner";
@@ -181,6 +181,7 @@ const AppRoutes = memo(() => <Routes>
     <Route path="/admin/stores/:storeId/tinkerbell" element={<AdminPage><ValidStoreRoute><AdminSuspense><TinkerBellManagerPage /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/system-status" element={<AdminPage><AdminSuspense><SystemStatus /></AdminSuspense></AdminPage>} />
     <Route path="/admin/plan-requests" element={<AdminPage><AdminSuspense><PlanRequestsManage /></AdminSuspense></AdminPage>} />
+    <Route path="/admin/analytics/realtime" element={<AdminPage><AdminSuspense><RealTimeAnalyticsDashboard /></AdminSuspense></AdminPage>} />
     <Route path="/admin/bulk-sms" element={<RoleBasedRoute allowedRoles={['super_admin']}><AdminSuspense><AdminLayout><BulkSMSManager /></AdminLayout></AdminSuspense></RoleBasedRoute>} />
     <Route path="/admin/community" element={<AdminPage><AdminSuspense><CommunityPage /></AdminSuspense></AdminPage>} />
     <Route path="/admin/stores/:storeId/plan" element={<AdminPage><ValidStoreRoute><AdminSuspense><PlanUpgrade /></AdminSuspense></ValidStoreRoute></AdminPage>} />
@@ -218,17 +219,18 @@ const App = () => {
       <BrowserRouter>
         <ThemeProvider>
           <AuthProvider>
-            <TooltipProvider>
+<TooltipProvider>
               <Toaster />
               <Sonner />
-              <ErrorBoundary onError={logError} FallbackComponent={ErrorFallback} />
-              {!isOnline && <OfflineBanner />}
-              <PWAInstallBanner />
-               <PWAUpdateNotification />
-               <StoreProvider>
-                 <AppRoutes />
-               </StoreProvider>
-            </TooltipProvider>
+              <ErrorBoundary onError={logError} FallbackComponent={ErrorFallback}>
+                {!isOnline && <OfflineBanner />}
+                <PWAInstallBanner />
+                <PWAUpdateNotification />
+                <StoreProvider>
+                  <AppRoutes />
+                </StoreProvider>
+              </ErrorBoundary>
+             </TooltipProvider>
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>

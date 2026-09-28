@@ -8,6 +8,7 @@ import criticalCss from 'vite-plugin-critical-css';
 
 const isCI = !!process.env.CI;
 const isTest = process.env.VITEST === 'true';
+const enableCriticalCss = process.env.ENABLE_CRITICAL_CSS === 'true';
 const BUILD_TIMESTAMP = Date.now();
 
 export default defineConfig({
@@ -47,14 +48,14 @@ export default defineConfig({
             gzipSize: true,
             brotliSize: true,
           }),
-          isCI
-            ? {}
-            : criticalCss({
+          enableCriticalCss && !isCI
+            ? criticalCss({
                 include: ['/'],
                 minify: true,
                 height: 800,
                 width: 1280,
-              }),
+              })
+            : {},
           VitePWA({
             registerType: 'autoUpdate', // 새 버전 배포 시 SW 자동 교체
             injectRegister: 'auto',
@@ -69,10 +70,13 @@ export default defineConfig({
 
               // 런타임 캐시 전략
               runtimeCaching: [
-                // API — Network First with Stale-While-Revalidate fallback for better perceived performance
-                // Use NetworkFirst for critical API, with stale-while-revalidate behavior
+                // Same-origin API only. The production API lives on Render, so cross-origin
+                // requests must bypass Workbox entirely to avoid CORS/no-response loops.
                 {
-                  urlPattern: /^https?:\/\/.+\/api\//,
+                  urlPattern: ({ url, sameOrigin }) =>
+                    sameOrigin &&
+                    url.pathname.startsWith('/api/') &&
+                    !url.pathname.startsWith('/api/health'),
                   handler: 'NetworkFirst',
                   options: {
                     cacheName: 'wemarket-api',
@@ -83,10 +87,12 @@ export default defineConfig({
                     },
                   },
                 },
-                // API — Stale-While-Revalidate for non-critical GET requests (search, listings)
+                // Same-origin non-critical API only (search, listings)
                 {
-                  urlPattern: ({ url }) =>
+                  urlPattern: ({ url, sameOrigin }) =>
+                    sameOrigin &&
                     url.pathname.startsWith('/api/') &&
+                    !url.pathname.startsWith('/api/health') &&
                     (url.searchParams.has('list') ||
                       url.searchParams.has('search') ||
                       url.pathname.includes('/list')),
@@ -185,7 +191,7 @@ export default defineConfig({
     outDir: 'dist',
     cssCodeSplit: true,
     define: {
-      '__BUILD_TIMESTAMP__': JSON.stringify(BUILD_TIMESTAMP),
+      __BUILD_TIMESTAMP__: JSON.stringify(BUILD_TIMESTAMP),
     },
     rollupOptions: {
       output: {

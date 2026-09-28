@@ -206,4 +206,76 @@ describe('DynamicPricingService', () => {
       expect(result).toBe(13000);
     });
   });
+
+  describe('activatePricingRules', () => {
+    test('DEMAND_BASED 규칙이 await 누락으로 NaN으로 기록되던 회귀 버그를 방지한다', async () => {
+      mockAiService.generateWithFallback.mockResolvedValueOnce(
+        JSON.stringify({
+          optimal_price: 11500,
+          confidence: 0.8,
+          reason: '수요 상승으로 소폭 인상',
+          adjustment_type: 'UP',
+        })
+      );
+
+      prisma.dynamic_pricing_rules.findMany.mockResolvedValue([
+        {
+          id: 10,
+          store_id: 1,
+          rule_name: '수요 기반 가격',
+          rule_type: 'DEMAND_BASED',
+          is_active: true,
+          min_price: 9000,
+          max_price: 13000,
+          config: { demandThreshold: 0.5, demandScore: 0.8 },
+          products: { id: 5, name: '아메리카노', store_id: 1, price: 10000 },
+        },
+      ]);
+      prisma.dynamic_price_logs.create.mockResolvedValue({ id: 'log-1' });
+      prisma.products.update.mockResolvedValue({ id: 5, price: 11500 });
+
+      const results = await dynamicPricingService.activatePricingRules(1);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].new_price).toBe(11500);
+      expect(Number.isNaN(results[0].new_price)).toBe(false);
+      expect(prisma.dynamic_price_logs.create).toHaveBeenCalledTimes(1);
+      expect(prisma.products.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 5 }, data: { price: 11500 } })
+      );
+    });
+
+    test('DEMAND_BASED 규칙의 min/max 상한이 최종 가격에 반영된다', async () => {
+      mockAiService.generateWithFallback.mockResolvedValueOnce(
+        JSON.stringify({
+          optimal_price: 20000,
+          confidence: 0.9,
+          reason: '매우 높은 수요',
+          adjustment_type: 'UP',
+        })
+      );
+
+      prisma.dynamic_pricing_rules.findMany.mockResolvedValue([
+        {
+          id: 11,
+          store_id: 1,
+          rule_name: '상한 제한',
+          rule_type: 'DEMAND_BASED',
+          is_active: true,
+          min_price: 9000,
+          max_price: 13000,
+          config: { demandThreshold: 0.5, demandScore: 1.5 },
+          products: { id: 6, name: '카페라떼', store_id: 1, price: 10000 },
+        },
+      ]);
+      prisma.dynamic_price_logs.create.mockResolvedValue({ id: 'log-2' });
+      prisma.products.update.mockResolvedValue({ id: 6, price: 13000 });
+
+      const results = await dynamicPricingService.activatePricingRules(1);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].new_price).toBe(13000);
+      expect(Number.isNaN(results[0].new_price)).toBe(false);
+    });
+  });
 });

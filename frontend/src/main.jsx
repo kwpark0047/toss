@@ -1,3 +1,4 @@
+/* global __BUILD_TIMESTAMP__ */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
@@ -6,6 +7,52 @@ import './i18n';
 import { wakeupServer } from './api/wakeup.js';
 import { initWebVitals } from './utils/webVitals';
 import { initSentry } from './lib/sentry.js';
+
+const purgeServiceWorkerAndReload = async (reason) => {
+  const flag = `wm-sw-purge:${reason}`;
+  try {
+    if (sessionStorage.getItem(flag) === '1') return;
+    sessionStorage.setItem(flag, '1');
+  } catch {
+    // sessionStorage may be unavailable in privacy mode; still attempt recovery.
+  }
+
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+    }
+  } catch (error) {
+    console.warn('[SW] stale cache purge failed', error);
+  } finally {
+    const url = new URL(window.location.href);
+    url.searchParams.set('_wm_cache_bust', String(Date.now()));
+    window.location.replace(url.toString());
+  }
+};
+
+const isRouterContextError = (error) => {
+  const message = String(error?.message || error?.reason?.message || error || '');
+  return message.includes('useLocation() may be used only in the context of a <Router>');
+};
+
+window.addEventListener('error', (event) => {
+  if (isRouterContextError(event.error || event.message)) {
+    event.preventDefault();
+    purgeServiceWorkerAndReload('router-context');
+  }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  if (isRouterContextError(event.reason)) {
+    event.preventDefault();
+    purgeServiceWorkerAndReload('router-context');
+  }
+});
 
 // Sentry 에러 추적 (운영 환경에서만 지연 로드 — main chunk에서 제외)
 initSentry();
@@ -71,7 +118,7 @@ if ('serviceWorker' in navigator) {
       const match = html.match(/build-timestamp["\s:]+(\d+)/);
       if (match && match[1] !== BUILD_TIME) {
         console.log('[SW] Build timestamp mismatch — forcing reload');
-        window.location.reload();
+        purgeServiceWorkerAndReload('build-timestamp');
       }
     })
     .catch(() => {});

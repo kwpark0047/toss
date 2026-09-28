@@ -16,7 +16,8 @@ const fetchStoreDisplayData = async (storeId) => {
 };
 
 const StoreDisplay = () => {
-  const { storeId } = useParams();
+  const { slug } = useParams();
+  const storeId = slug;
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Update clock every minute

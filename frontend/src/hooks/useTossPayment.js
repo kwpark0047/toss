@@ -6,9 +6,8 @@ const isTossApp = () => {
   return typeof window !== 'undefined' && window.TossApp !== undefined;
 };
 
-// 토스페이먼츠 클라이언트 키 (기본 테스트 키 제공)
-const TOSS_CLIENT_KEY =
-  import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_ck_D54YPdW9w8NE198759v8Vj7ByY6f';
+// 토스페이먼츠 클라이언트 키 (미설정 시 서버 설정을 조회하고, 없으면 결제 차단)
+const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY;
 
 // 토스페이먼츠 웹 SDK 동적 로드 헬퍼
 const loadTossPayments = () => {
@@ -119,7 +118,17 @@ export function useTossPayment() {
             throw new Error('Toss Payments SDK를 활성화할 수 없습니다.');
           }
 
-          const tossPayments = TossPayments(TOSS_CLIENT_KEY);
+          // env 미설정 시 서버 결제 설정에서 클라이언트 키를 획득 (테스트 키 fallback 없음)
+          let clientKey = TOSS_CLIENT_KEY;
+          if (!clientKey) {
+            const { data: config } = await paymentsAPI.getBrandPayConfig();
+            clientKey = config?.clientKey;
+          }
+          if (!clientKey) {
+            throw new Error('결제 시스템 설정이 완료되지 않았습니다. 관리자에게 문의해 주세요.');
+          }
+
+          const tossPayments = TossPayments(clientKey);
 
           // 성공 및 실패 시 리다이렉트 쿼리 파라미터 조립
           try {

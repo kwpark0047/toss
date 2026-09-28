@@ -55,6 +55,32 @@ services:
       retries: 10
       start_period: 30s
 
+  # Redis (Cache, Sessions, Queues, Rate Limiting)
+  redis:
+    image: redis:7-alpine
+    container_name: wemarket-redis
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    volumes:
+      - redis_data:/data
+    ports:
+      - '6379:6379'
+    networks:
+      - wemarket-network
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
   # ===========================================
   # Application Services
   # ===========================================
@@ -115,8 +141,8 @@ services:
       - ./scripts:/app/scripts:cached
       - ./prisma:/app/prisma:cached
       - ./public:/app/public:cached
-      - ./app.js:/app/app.js:cached
-      - ./index.js:/app/index.js:cached
+      - ./app.mts:/app/app.mts:cached
+      - ./index.mts:/app/index.mts:cached
       - ./package.json:/app/package.json:cached
       - ./package-lock.json:/app/package-lock.json:cached
     command: >
@@ -124,7 +150,7 @@ services:
         if [ \"$$NODE_ENV\" = 'development' ]; then
           npm run dev
         else
-          node app.js
+          node app.mjs
         fi
       "
 
@@ -203,6 +229,53 @@ services:
     profiles:
       - tools
 
+  # Postgres Exporter (for Prometheus metrics)
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: wemarket-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-wemarket}:${POSTGRES_PASSWORD:-wemarket}@postgres:5432/${POSTGRES_DB:-wemarket_dev}?sslmode=disable
+      PG_EXPORTER_WEB_LISTEN_ADDRESS: ':9187'
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: 'false'
+      PG_EXPORTER_ENABLED_METRICS: 'all'
+    ports:
+      - '9187:9187'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - wemarket-network
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9187/metrics']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Redis Exporter (for Prometheus metrics)
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.61.0
+    container_name: wemarket-redis-exporter
+    environment:
+      REDIS_ADDR: redis://redis:6379
+      REDIS_EXPORTER_WEB_LISTEN_ADDRESS: ':9121'
+      REDIS_EXPORTER_CHECK_KEYS: 'true'
+      REDIS_EXPORTER_CHECK_SINGLE_KEYS: 'wemarket:*'
+    ports:
+      - '9121:9121'
+    depends_on:
+      - redis
+    networks:
+      - wemarket-network
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9121/metrics']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 networks:
   wemarket-network:
     driver: bridge
@@ -213,3 +286,5 @@ volumes:
     name: wemarket-postgres-data
   localstack_data:
     name: wemarket-localstack-data
+  redis_data:
+    name: wemarket-redis-data
