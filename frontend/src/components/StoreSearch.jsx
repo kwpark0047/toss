@@ -286,7 +286,7 @@ const StoreSearch = () => {
       />
 
       {/* 메인 콘텐츠 */}
-      <main className={`relative overflow-x-hidden ${viewMode === 'map' ? 'h-[calc(100vh-190px)]' : 'max-w-[1600px] mx-auto px-6 sm:px-10 py-16 min-h-screen'}`}>
+      <main className={`relative overflow-x-hidden ${viewMode === 'map' ? 'h-[calc(100vh-190px)]' : 'max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-8 sm:py-12 min-h-screen pb-28 sm:pb-16'}`}>
         <AnimatePresence mode="wait">
           {loading ? (
             <motion.div
@@ -466,7 +466,8 @@ const StoreSearch = () => {
           if (!targetStore) return;
           setShowChatDrawer(true);
         }}
-        className="fixed bottom-10 right-10 w-20 h-20 bg-white text-slate-950 rounded-[28px] shadow-2xl shadow-white/5 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 group"
+        className="fixed bottom-6 right-6 sm:bottom-10 sm:right-10 w-16 h-16 sm:w-20 sm:h-20 bg-white text-slate-950 rounded-[28px] shadow-2xl shadow-white/5 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 group pb-safe"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         aria-label="고객지원 채팅">
         <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-rose-600 rounded-[28px] scale-0 group-hover:scale-100 transition-transform duration-500" />
         <MessageCircle className="relative z-10 w-8 h-8 group-hover:text-white transition-colors" />

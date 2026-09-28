@@ -1,9 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Store, QrCode, Smartphone, ArrowRight, Zap, ShieldCheck, Star, Sparkles, TrendingUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Store, QrCode, Smartphone, ArrowRight, Zap, ShieldCheck, Star, Sparkles, TrendingUp, Menu, X } from 'lucide-react';
 
 const Landing = () => {
-  const [_mobileMenuOpen, _setMobileMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  useEffect(() => {
+    const handleScroll = () => closeMobileMenu();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const stats = [
     { label: '활성 매장', value: '1,200+', icon: Store },
@@ -44,9 +53,77 @@ const Landing = () => {
             <Link to="/register" className="px-6 py-2.5 bg-white text-black rounded-xl font-black text-xs hover:bg-orange-500 hover:text-white transition-all shadow-xl shadow-white/5 active:scale-95">
               GET STARTED
             </Link>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-white"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
+              aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Menu Panel */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            id="mobile-menu"
+            initial={{ opacity: 0, x: '100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="fixed inset-0 z-40 lg:hidden bg-[#0A0C10]/95 backdrop-blur-xl"
+          >
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between p-6 border-b border-white/5">
+                <span className="text-xl font-black text-white tracking-tighter uppercase">WeMarket</span>
+                <button
+                  onClick={closeMobileMenu}
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-white"
+                  aria-label="메뉴 닫기"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <nav className="flex-1 py-8 px-6 overflow-y-auto">
+                <ul className="flex flex-col gap-4">
+                  {['Services', 'Platform', 'Pricing', 'Demo'].map(item => (
+                    <li key={item}>
+                      <a
+                        href={`#${item.toLowerCase()}`}
+                        onClick={closeMobileMenu}
+                        className="block text-2xl font-bold text-slate-400 hover:text-white transition-colors tracking-wide"
+                      >
+                        {item}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-10 flex flex-col gap-4">
+                  <Link
+                    to="/login"
+                    onClick={closeMobileMenu}
+                    className="text-center text-lg font-bold text-white hover:text-orange-500 transition-colors"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={closeMobileMenu}
+                    className="text-center px-6 py-3 bg-white text-black rounded-xl font-black text-sm hover:bg-orange-500 hover:text-white transition-all shadow-xl shadow-white/5 active:scale-95"
+                  >
+                    GET STARTED
+                  </Link>
+                </div>
+              </nav>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Hero Section */}
       <section className="relative pt-40 pb-20 px-6 z-10 overflow-hidden">
