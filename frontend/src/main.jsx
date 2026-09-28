@@ -24,13 +24,12 @@ initWebVitals({
   }
 });
 
-// Service Worker 강제 업데이트
-// iOS/Android PWA는 SW를 자동으로 갱신하지 않아 구 버전(navigateFallback: offline.html)이
-// 계속 동작하며 어드민 경로를 offline.html로 서빙하는 버그 발생.
-// 페이지 로드마다 update()를 호출해 최신 SW를 즉시 적용한다.
+// Service Worker 강제 업데이트 + 스테일 캐시 감지
+// 배포 후 구버전 청크가 로드되어 useLocation 등 라우터 훅 에러 발생 방지
 if ('serviceWorker' in navigator) {
-  // 새 SW가 컨트롤러가 되면 즉시 새로고침
   let _swReloading = false;
+
+  // 1) 새 SW가 컨트롤러가 되면 즉시 새로고침
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!_swReloading) {
       _swReloading = true;
@@ -38,13 +37,41 @@ if ('serviceWorker' in navigator) {
     }
   });
 
-  // 준비된 SW 등록 후 최신 버전 확인 요청
+  // 2) 등록된 SW가 있으면 즉시 업데이트 체크 + skipWaiting
   navigator.serviceWorker.ready
     .then(registration => {
       registration.update();
-      // waiting 상태인 새 SW가 있으면 즉시 활성화
       if (registration.waiting) {
         registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+
+      // 3) 주기적 업데이트 체크 (30초마다)
+      setInterval(() => registration.update(), 30_000);
+
+      // 4) 업데이트 발견 시 즉시 skipWaiting + 리로드
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+              window.location.reload();
+            }
+          });
+        }
+      });
+    })
+    .catch(() => {});
+
+  // 5) 배포 버전 변경 감지: HTML의 build-timestamp와 비교해 스테일 캐시면 강제 리로드
+  const BUILD_TIME = __BUILD_TIMESTAMP__; // vite define으로 빌드 시 주입
+  fetch(window.location.href, { cache: 'no-store', headers: { 'Accept': 'text/html' } })
+    .then(res => res.text())
+    .then(html => {
+      const match = html.match(/build-timestamp["\s:]+(\d+)/);
+      if (match && match[1] !== BUILD_TIME) {
+        console.log('[SW] Build timestamp mismatch — forcing reload');
+        window.location.reload();
       }
     })
     .catch(() => {});

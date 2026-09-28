@@ -8,6 +8,7 @@ import criticalCss from 'vite-plugin-critical-css';
 
 const isCI = !!process.env.CI;
 const isTest = process.env.VITEST === 'true';
+const BUILD_TIMESTAMP = Date.now();
 
 export default defineConfig({
   test: {
@@ -22,6 +23,13 @@ export default defineConfig({
 
   plugins: [
     react(),
+    // HTML template transform: inject build timestamp into index.html
+    {
+      name: 'html-transform',
+      transformIndexHtml(html) {
+        return html.replace('__BUILD_TIMESTAMP__', JSON.stringify(BUILD_TIMESTAMP));
+      },
+    },
     ...(isTest
       ? []
       : [
@@ -176,6 +184,9 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     cssCodeSplit: true,
+    define: {
+      '__BUILD_TIMESTAMP__': JSON.stringify(BUILD_TIMESTAMP),
+    },
     rollupOptions: {
       output: {
         manualChunks: {
