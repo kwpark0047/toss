@@ -1,4 +1,3 @@
-import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import logger from '../utils/logger.js';
 
@@ -41,13 +40,12 @@ export const validate = (schemas: { body?: any; query?: any; params?: any; heade
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        // Zod v4: error.issues 사용 (v3은 error.errors)
-        const issues = error.issues || error.errors || [];
+        // Zod v4: error.issues 사용
+        const issues = error.issues || [];
         const details = issues.map(err => ({
           field: err.path?.join('.') || 'unknown',
           message: err.message,
           code: err.code,
-          received: err.received,
         }));
 
         logger.warn('[Validation] 입력 검증 실패', {
@@ -66,7 +64,9 @@ export const validate = (schemas: { body?: any; query?: any; params?: any; heade
       }
 
       // 예상치 못한 에러
-      logger.error('[Validation] 예상치 못한 검증 에러', { error: error.message, stack: error.stack });
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      logger.error('[Validation] 예상치 못한 검증 에러', { error: message, stack });
       return res.status(500).json({
         success: false,
         error: '검증 중 오류가 발생했습니다.',

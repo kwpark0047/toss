@@ -48,7 +48,14 @@
     "refresh": "Refresh Page",
     "store_name_default": "WeMarket",
     "kiosk_hint": "Touch screen to switch to full-screen kiosk mode",
-    "table": "Table {{number}}"
+    "table": "Table {{number}}",
+    "display_loading": "Loading the menu board...",
+    "invalid_store": "Invalid store ID.",
+    "display_fetch_error": "An error occurred while loading data.",
+    "display_empty_desc": "Please add menu items from the admin page.",
+    "on_sale": "On Sale",
+    "currency_won": "KRW",
+    "display_footer_notice": "This is the WeMarket digital menu board. Please order at the counter."
   },
   "order": {
     "title": "Place Order",

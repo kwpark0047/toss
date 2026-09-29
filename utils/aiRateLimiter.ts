@@ -199,7 +199,7 @@ class RedisStore {
 function createAIRateLimiter(endpoint: string) {
     const config = AI_RATE_LIMITS[endpoint] || { windowMs: 60_000, max: 30 };
 
-    const store = process.env.REDIS_URL ? new RedisStore() : undefined;
+    const store = process.env.REDIS_URL ? (new RedisStore() as any) : undefined;
 
     return rateLimit({
         windowMs: config.windowMs,
@@ -227,7 +227,7 @@ function createAIRateLimiter(endpoint: string) {
 function createAnalyticsRateLimiter() {
     const config = ANALYTICS_RATE_LIMIT;
 
-    const store = process.env.REDIS_URL ? new RedisStore() : undefined;
+    const store = process.env.REDIS_URL ? (new RedisStore() as any) : undefined;
 
     return rateLimit({
         windowMs: config.windowMs,

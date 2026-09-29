@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import Icon from '../components/ui/Icon';
 
 // Utility for fetching public menu data
-const fetchStoreDisplayData = async (storeId) => {
-  if (!storeId || storeId === 'undefined') throw new Error('유효하지 않은 매장 ID입니다.');
+const fetchStoreDisplayData = async (storeId, invalidStoreMessage) => {
+  if (!storeId || storeId === 'undefined') throw new Error(invalidStoreMessage);
   
   // Try fetching public store info and menu. 
   // Assuming a public endpoint exists like `/api/stores/${storeId}/public` or similar.
@@ -17,8 +18,15 @@ const fetchStoreDisplayData = async (storeId) => {
 
 const StoreDisplay = () => {
   const { slug } = useParams();
+  const { t, i18n } = useTranslation();
   const storeId = slug;
   const [currentTime, setCurrentTime] = useState(new Date());
+  const locale = {
+    ko: 'ko-KR',
+    en: 'en-US',
+    ja: 'ja-JP',
+    zh: 'zh-CN',
+  }[i18n.resolvedLanguage || i18n.language] || 'ko-KR';
 
   // Update clock every minute
   useEffect(() => {
@@ -29,7 +37,7 @@ const StoreDisplay = () => {
   // Fetch Menu Data
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['storeDisplay', storeId],
-    queryFn: () => fetchStoreDisplayData(storeId),
+    queryFn: () => fetchStoreDisplayData(storeId, t('menu.invalid_store')),
     refetchInterval: 300000, // Refresh every 5 minutes automatically
     retry: 2,
     enabled: !!storeId && storeId !== 'undefined'
@@ -44,7 +52,7 @@ const StoreDisplay = () => {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
         <Icon icon="Loader2" size="lg" className="h-12 w-12 animate-spin text-orange-500 mb-4" />
-        <h2 className="text-2xl font-bold">메뉴판을 불러오는 중입니다...</h2>
+        <h2 className="text-2xl font-bold">{t('menu.display_loading')}</h2>
       </div>
     );
   }
@@ -55,15 +63,15 @@ const StoreDisplay = () => {
         <div className="max-w-2xl bg-red-950/50 border border-red-900 rounded-lg p-6 flex items-start gap-4 text-red-500">
           <Icon icon="AlertCircle" className="h-8 w-8 shrink-0" />
           <div>
-            <h2 className="text-2xl font-semibold mb-2">에러 발생</h2>
+            <h2 className="text-2xl font-semibold mb-2">{t('common.error')}</h2>
             <div className="text-lg opacity-90">
-              {error instanceof Error ? error.message : '데이터를 불러오는 중 오류가 발생했습니다.'}
+              {error instanceof Error ? error.message : t('menu.display_fetch_error')}
               <br />
               <button 
                 onClick={() => window.location.reload()}
                 className="mt-6 px-6 py-3 bg-red-900/50 hover:bg-red-800/50 rounded-lg transition-colors"
               >
-                다시 시도
+                {t('common.retry')}
               </button>
             </div>
           </div>
@@ -72,7 +80,7 @@ const StoreDisplay = () => {
     );
   }
 
-  const { storeName = '우리 매장', categories = [], items = [] } = data || {};
+  const { storeName = t('menu.store_name_default'), categories = [], items = [] } = data || {};
 
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-orange-500/30 overflow-hidden flex flex-col">
@@ -87,10 +95,10 @@ const StoreDisplay = () => {
         </div>
         <div className="text-right">
           <div className="text-3xl font-bold text-slate-100 tabular-nums tracking-wider">
-            {currentTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+            {currentTime.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false })}
           </div>
           <div className="text-sm font-medium text-slate-400 mt-1 uppercase tracking-widest">
-            {currentTime.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' })}
+            {currentTime.toLocaleDateString(locale, { month: 'short', day: 'numeric', weekday: 'short' })}
           </div>
         </div>
       </header>
@@ -99,8 +107,8 @@ const StoreDisplay = () => {
       <main className="flex-1 overflow-y-auto p-8 scrollbar-hide">
         {categories.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-500">
-            <p className="text-2xl font-bold">등록된 메뉴가 없습니다.</p>
-            <p className="mt-2">관리자 페이지에서 메뉴를 등록해 주세요.</p>
+            <p className="text-2xl font-bold">{t('menu.empty')}</p>
+            <p className="mt-2">{t('menu.display_empty_desc')}</p>
           </div>
         ) : (
           <div className="max-w-[1920px] mx-auto space-y-16">
@@ -151,11 +159,11 @@ const StoreDisplay = () => {
                         
                         <div className="mt-auto pt-4 border-t border-slate-800 flex items-end justify-between">
                           <div className="text-slate-500 text-sm font-medium">
-                            {item.isSoldOut ? '품절' : '판매중'}
+                            {item.isSoldOut ? t('menu.sold_out') : t('menu.on_sale')}
                           </div>
                           <div className={`text-3xl font-black tabular-nums ${item.isSoldOut ? 'text-slate-600 line-through' : 'text-white'}`}>
                             {item.price?.toLocaleString()}
-                            <span className="text-lg font-medium text-slate-500 ml-1">원</span>
+                            <span className="text-lg font-medium text-slate-500 ml-1">{t('menu.currency_won')}</span>
                           </div>
                         </div>
                       </div>
@@ -171,9 +179,9 @@ const StoreDisplay = () => {
       {/* Footer Ticker / Notice Area */}
       <footer className="h-12 bg-orange-500 text-white flex items-center px-4 overflow-hidden shrink-0">
         <div className="flex whitespace-nowrap animate-marquee">
-          <span className="mx-4 font-semibold">WeMarket 디지털 메뉴보드 솔루션입니다. 카운터에서 주문해 주세요.</span>
-          <span className="mx-4 font-semibold">WeMarket 디지털 메뉴보드 솔루션입니다. 카운터에서 주문해 주세요.</span>
-          <span className="mx-4 font-semibold">WeMarket 디지털 메뉴보드 솔루션입니다. 카운터에서 주문해 주세요.</span>
+          <span className="mx-4 font-semibold">{t('menu.display_footer_notice')}</span>
+          <span className="mx-4 font-semibold">{t('menu.display_footer_notice')}</span>
+          <span className="mx-4 font-semibold">{t('menu.display_footer_notice')}</span>
         </div>
       </footer>
     </div>

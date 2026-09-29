@@ -20,9 +20,11 @@ export const hashApiKey = (plaintext: string): string =>
 
 /** 요청 헤더에서 API 키 추출 (Authorization: Bearer 또는 X-API-Key) */
 export const extractApiKey = (req: { headers: Record<string, string | string[] | undefined> }): string | null => {
-    const auth = req.headers['authorization'] || '';
+    const authHeader = req.headers['authorization'];
+    const auth = Array.isArray(authHeader) ? authHeader[0] || '' : authHeader || '';
     if (auth.startsWith('Bearer ') && auth.slice(7).startsWith(PREFIX)) return auth.slice(7).trim();
-    const x = req.headers['x-api-key'];
+    const rawX = req.headers['x-api-key'];
+    const x = Array.isArray(rawX) ? rawX[0] : rawX;
     if (x && String(x).startsWith(PREFIX)) return String(x).trim();
     return null;
 };

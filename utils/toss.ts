@@ -6,7 +6,7 @@ const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY;
 
 const tossCircuit = get('toss-api', {
   failureThreshold: 5,
-  cooldownMs: 30_000,
+  timeout: 30_000,
   timeoutMs: 10_000,
 });
 
@@ -256,7 +256,7 @@ const TossAPI = {
 
     return tossCircuit.call(async () => {
       try {
-        const body = { customerKey, method };
+        const body: { customerKey: string; method: string; card?: any; easyPay?: any } = { customerKey, method };
         if (card) body.card = card;
         if (easyPay) body.easyPay = easyPay;
 

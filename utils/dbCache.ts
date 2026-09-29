@@ -1,6 +1,8 @@
 import NodeCache from 'node-cache';
-import redisCache from './redisCache.js';
+import { getRedisCache } from './redisCache.js';
 import logger from './logger.js';
+
+const redisCache = getRedisCache();
 
 class DbCache {
   private ttl: number;
@@ -64,7 +66,7 @@ class DbCache {
       logger.info(`[DbCache] Flushed ${storeKeys.length} cached query buffers for Store ${storeId}`);
     }
     if (this.redisReady) {
-      redisCache.flushByStore(storeId).catch(() => {});
+      redisCache.invalidateByTags([`store:${storeId}`]).catch(() => {});
     }
   }
 
@@ -72,7 +74,7 @@ class DbCache {
     logger.info('[DbCache] Complete Flush All.');
     this.nodeCache.flushAll();
     if (this.redisReady) {
-      redisCache.flushAll().catch(() => {});
+      redisCache.invalidateByPattern('*').catch(() => {});
     }
   }
 }

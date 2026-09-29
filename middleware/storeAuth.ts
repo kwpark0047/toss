@@ -98,7 +98,7 @@ export const checkStorePermission = (requiredPermission: string) => {
           .json({ error: '해당 매장에 대한 권한이 없거나 존재하지 않는 매장입니다' });
       }
 
-      const permissions = rolePermissions[role as StoreRole] || [];
+      const permissions = (rolePermissions[role as StoreRole] || []) as readonly string[];
 
       // 소유자(owner)이거나 명시적 권한이 포함된 경우 통과
       if (role === 'owner' || permissions.includes(requiredPermission)) {
@@ -151,7 +151,7 @@ export const checkStorePermissionForObject = (model: string) => {
       });
 
       if (!object) {
-        return next(new AppError('대상을 찾을 수 없습니다.', 404));
+        return next(new AppError('대상을 찾을 수 없습니다.', 404, 'NOT_FOUND'));
       }
       if (object.store_id == null) {
         return next();
@@ -194,7 +194,7 @@ export const checkStorePermissionForObjectBatch = (model: string) => {
 
       const id = Number(req.params.id);
       if (isNaN(id) || id <= 0) {
-        return next(new AppError('유효하지 않은 ID입니다.', 400));
+        return next(new AppError('유효하지 않은 ID입니다.', 400, 'INVALID_ID'));
       }
 
       const rows = await prisma[model as any].findMany({
@@ -203,7 +203,7 @@ export const checkStorePermissionForObjectBatch = (model: string) => {
       });
 
       if (!rows.length) {
-        return next(new AppError('대상을 찾을 수 없습니다.', 404));
+        return next(new AppError('대상을 찾을 수 없습니다.', 404, 'NOT_FOUND'));
       }
 
       const role = await getStoreRole(req.user.id, rows[0].store_id);
@@ -237,10 +237,10 @@ export const checkUniformStoreMutation = (model: string) => {
       const items = req.body.orders || req.body.items || [];
       const ids = items
         .map((item) => Number(item && item.id))
-        .filter((n) => Number.isInteger(n) && n > 0);
+        .filter((n): n is number => Number.isInteger(n) && n > 0);
 
       if (!ids.length) {
-        return next(new AppError('유효한 대상이 없습니다.', 400));
+        return next(new AppError('유효한 대상이 없습니다.', 400, 'INVALID_TARGET'));
       }
 
       const rows = await prisma[model as any].findMany({
@@ -248,7 +248,7 @@ export const checkUniformStoreMutation = (model: string) => {
         select: { id: true, store_id: true },
       });
 
-      const storeIds = [...new Set(rows.map((row) => row.store_id))];
+      const storeIds = [...new Set(rows.map((row: any) => row.store_id))] as Array<string | number>;
       if (storeIds.length !== 1) {
         return res.status(400).json({ error: '모든 대상은 동일한 매장에 속해야 합니다.' });
       }
@@ -323,7 +323,7 @@ export function checkResourcePermission(
           .json({ error: '해당 매장에 대한 권한이 없거나 존재하지 않는 매장입니다' });
       }
 
-      const permissions = rolePermissions[role as StoreRole] || [];
+      const permissions = (rolePermissions[role as StoreRole] || []) as readonly string[];
 
       // 소유자(owner)이거나 명시적 권한이 포함된 경우 통과
       if (role === 'owner' || permissions.includes(requiredPermission)) {

@@ -5,7 +5,7 @@ export class RedisCache {
   private options: any;
   private client: any;
   private subscriber: any;
-  private isConnected: boolean;
+  public isConnected: boolean;
   private localCache: Map<string, any>;
   private localCacheMaxSize: number;
 

@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import { Request, Response, NextFunction } from 'express';
 import logger from '../utils/logger.js';
 import { isCookieMode } from '../utils/tokenCookies.js';
 
@@ -22,13 +21,16 @@ const extractToken = (req: any) => {
   return authHeader.substring(7);
 };
 
+const isAccessTokenPayload = (decoded: string | jwt.JwtPayload): decoded is jwt.JwtPayload & { type: 'access' } =>
+  typeof decoded === 'object' && decoded !== null && decoded.type === 'access';
+
 export const authMiddleware = (req: any, res: any, next: Function) => {
   try {
     const token = extractToken(req);
     if (!token) return res.status(401).json({ error: '인증 토큰이 필요합니다.' });
 
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.type !== 'access') {
+    const decoded = jwt.verify(token, JWT_SECRET || 'dev-secret');
+    if (!isAccessTokenPayload(decoded)) {
       return res.status(401).json({ error: '액세스 토큰이 필요합니다.' });
     }
 
@@ -46,8 +48,8 @@ export const optionalAuth = (req: any, res: any, next: Function) => {
   try {
     const token = extractToken(req);
     if (token) {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      if (decoded.type === 'access') req.user = decoded;
+      const decoded = jwt.verify(token, JWT_SECRET || 'dev-secret');
+      if (isAccessTokenPayload(decoded)) req.user = decoded;
     }
     next();
   } catch {

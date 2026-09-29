@@ -48,7 +48,14 @@
     "refresh": "페이지 새로고침",
     "store_name_default": "위마켓",
     "kiosk_hint": "화면을 터치하면 전체화면 키오스크 모드로 전환됩니다",
-    "table": "{{number}}번 테이블"
+    "table": "{{number}}번 테이블",
+    "display_loading": "메뉴판을 불러오는 중입니다...",
+    "invalid_store": "유효하지 않은 매장 ID입니다.",
+    "display_fetch_error": "데이터를 불러오는 중 오류가 발생했습니다.",
+    "display_empty_desc": "관리자 페이지에서 메뉴를 등록해 주세요.",
+    "on_sale": "판매중",
+    "currency_won": "원",
+    "display_footer_notice": "WeMarket 디지털 메뉴보드 솔루션입니다. 카운터에서 주문해 주세요."
   },
   "order": {
     "title": "주문하기",

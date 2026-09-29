@@ -41,6 +41,9 @@ All secrets must be configured in the deployment platform:
 | `GEMINI_API_KEY` | Google Generative AI API key | Yes |
 | `OMNIROUTE_API_KEY` | OmniRoute API key | Yes |
 | `TOSS_SECRET_KEY` | Toss Payments secret key | Yes |
+| `TOSS_WEBHOOK_SECRET` | Toss Payments webhook signing secret | Production: Yes |
+| `TOSS_WEBHOOK_SIGNING_SECRET` | Legacy/alternate Toss webhook signing secret | Optional fallback |
+| `TOSS_WEBHOOK_IPS` | Comma-separated Toss webhook source IP allowlist | Production: Yes if signature secret is not set |
 | `FIREBASE_SERVICE_ACCOUNT` | Firebase admin SDK JSON | Yes |
 | `CORS_ORIGIN` | Allowed CORS origins | Yes |
 
@@ -280,6 +283,7 @@ argocd app rollback wemarket 3
 ### Post-Deploy Validation Checklist
 - [ ] API health endpoint returns 200
 - [ ] Deep health check shows all dependencies OK
+- [ ] `/api/health/deep` includes `checks.operationalConfig.tossWebhook.hasSecret` or `hasIpAllowlist` as `true` in production
 - [ ] Frontend loads without console errors
 - [ ] Authentication flow works (login/register)
 - [ ] Order flow completes end-to-end
@@ -293,7 +297,26 @@ argocd app rollback wemarket 3
 ```bash
 # Run smoke tests against deployed environment
 npm run test:e2e -- --project=smoke
+
+# Render/Vercel production smoke check, including /api/health/deep
+BACKEND_URL=https://wemarket.onrender.com \
+FRONTEND_URL=https://wemarket.vercel.app \
+npm run smoke:deploy
 ```
+
+### Render Toss Webhook Environment Check
+Use this check before enabling or rotating Toss Payments webhooks in production.
+
+1. Open Render Dashboard → WeMarket backend service → Environment.
+2. Confirm `TOSS_SECRET_KEY` is set for payment API calls.
+3. Confirm at least one webhook trust control is set:
+   - `TOSS_WEBHOOK_SECRET` or `TOSS_WEBHOOK_SIGNING_SECRET` for signature verification.
+   - `TOSS_WEBHOOK_IPS` only when signature verification cannot be enabled yet.
+4. Redeploy the backend after changing any of the variables above.
+5. Run `npm run smoke:deploy` with `BACKEND_URL=https://wemarket.onrender.com`.
+6. Verify `/api/health/deep` returns `status: "ok"` or `"degraded"` and includes `checks.operationalConfig.tossWebhook` with secret or IP allowlist enabled.
+
+Do not log secret values in GitHub Actions, Render logs, screenshots, or issue comments. The health endpoint only reports booleans and intentionally never returns secret contents.
 
 ---
 

@@ -37,7 +37,7 @@ const purgeServiceWorkerAndReload = async (reason) => {
 
 const isRouterContextError = (error) => {
   const message = String(error?.message || error?.reason?.message || error || '');
-  return message.includes('useLocation() may be used only in the context of a <Router>');
+  return message.includes('useLocation() may be used only') && message.includes('Router');
 };
 
 window.addEventListener('error', (event) => {

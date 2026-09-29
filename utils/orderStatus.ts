@@ -21,7 +21,7 @@ export type OrderStatus = keyof typeof ORDER_STATUS_TRANSITIONS;
 export type KdsOrderStatus = keyof typeof KDS_STATUS_TRANSITIONS;
 
 const assertTransition = (
-  transitions: Record<string, string[]>,
+  transitions: Record<string, readonly string[]>,
   currentStatus: string,
   nextStatus: string,
   label: string
@@ -30,11 +30,11 @@ const assertTransition = (
     !Object.prototype.hasOwnProperty.call(transitions, nextStatus) ||
     !Object.prototype.hasOwnProperty.call(transitions, currentStatus)
   ) {
-    throw new AppError(`유효하지 않은 ${label} 상태입니다.`, 400);
+    throw new AppError(`유효하지 않은 ${label} 상태입니다.`, 400, 'INVALID_STATUS');
   }
   if (currentStatus === nextStatus) return;
   if (!transitions[currentStatus].includes(nextStatus)) {
-    throw new AppError(`현재 ${currentStatus} 상태에서는 ${nextStatus}로 변경할 수 없습니다.`, 400);
+    throw new AppError(`현재 ${currentStatus} 상태에서는 ${nextStatus}로 변경할 수 없습니다.`, 400, 'INVALID_STATUS_TRANSITION');
   }
 };
 

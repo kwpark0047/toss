@@ -1,4 +1,5 @@
 import express from 'express';
+import type { RequestHandler } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
@@ -7,7 +8,8 @@ import { Server } from 'socket.io';
 import 'dotenv/config';
 import logger from './utils/logger.ts';
 import { checkEnv } from './utils/envValidator.js';
-const { default: responseFormatter } = await import('./middleware/responseFormatter.js');
+const responseFormatterModule = await import('./middleware/responseFormatter.js');
+const responseFormatter = (responseFormatterModule.default ?? responseFormatterModule) as unknown as RequestHandler;
 import { errorHandler, errorTypes } from './utils/errorHandler.js';
 import performanceMonitor from './middleware/performanceMonitor.js';
 import Monitoring from './repositories/Monitoring.js';
@@ -53,7 +55,7 @@ app.use((req, res, next) => {
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-Requested-With, Idempotency-Key, X-Idempotency-Key');
     }
     if (req.method === 'OPTIONS') return res.sendStatus(204);
-    next();
+    return next();
 });
 /**
  * 보안 헤더 및 기본 미들웨어
@@ -184,8 +186,8 @@ app.use((req, res, next) => {
                         method: req.method,
                         response_time: responseTime,
                         status_code: res.statusCode,
-                        store_id: req.storeId || null,
-                        user_id: req.user?.id || null,
+                        store_id: (req as any).storeId || null,
+                        user_id: (req as any).user?.id || null,
                     });
                 }
                 catch (_e) {
@@ -216,6 +218,7 @@ app.get('/api/version', (req, res) => {
     const info = {
         version: APP_VERSION,
         environment: process.env.NODE_ENV || 'production',
+        deployedAt: undefined as string | undefined,
     };
     if (process.env.NODE_ENV !== 'production') {
         info.deployedAt = new Date().toISOString();
@@ -311,7 +314,6 @@ const routes = {
     reportPdf: (await import('./routes/reportPdf.js')).default,
     config: (await import('./routes/config.js')).default,
     swagger: (await import('./routes/swagger.js')).default,
-    featureFlags: (await import('./routes/featureFlags.js')).default,
 };
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
 if (process.env.NODE_ENV !== 'production') {
@@ -449,7 +451,7 @@ app.use((req, res, next) => {
         res.setHeader('Access-Control-Max-Age', '3600');
         return res.sendStatus(204);
     }
-    next();
+    return next();
 });
 // 404 핸들러 (매칭되는 라우트가 없을 경우 상세 로깅 및 응답 보장)
 app.use((req, res, next) => {
@@ -462,7 +464,7 @@ app.use((req, res, next) => {
             timestamp: new Date().toISOString(),
         });
     }
-    next();
+    return next();
 });
 // 에러 핸들러 (반드시 모든 라우트 등록 후 마지막에 위치)
 // Sentry 캡처 단일화: setupExpressErrorHandler(중복 캡처) 대신

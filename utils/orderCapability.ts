@@ -6,6 +6,9 @@ function getSecret(): string {
   );
 }
 
+const isPayload = (payload: string | jwt.JwtPayload): payload is jwt.JwtPayload =>
+  typeof payload === 'object' && payload !== null;
+
 export function createOrderCapability(order: { id: number; store_id: number }): string {
   const secret = getSecret();
   if (!secret) throw new Error('Order capability secret is not configured');
@@ -21,7 +24,9 @@ export function verifyOrderCapability(token: string): { type: string; orderId: n
   if (!secret || !token) return null;
   try {
     const payload = jwt.verify(token, secret);
-    return payload.type === 'order_capability' ? payload : null;
+    return isPayload(payload) && payload.type === 'order_capability'
+      ? payload as { type: string; orderId: number; storeId: number }
+      : null;
   } catch {
     return null;
   }
@@ -47,7 +52,9 @@ export function verifyCustomerHistoryCapability(token: string): { type: string; 
   if (!secret || !token) return null;
   try {
     const payload = jwt.verify(token, secret);
-    return payload.type === 'customer_history_capability' ? payload : null;
+    return isPayload(payload) && payload.type === 'customer_history_capability'
+      ? payload as { type: string; phone: string | null; toss_user_key: string | null }
+      : null;
   } catch {
     return null;
   }
@@ -74,7 +81,9 @@ export function verifyReservationCapability(token: string): { type: string; id: 
   if (!secret || !token) return null;
   try {
     const payload = jwt.verify(token, secret);
-    return payload.type === 'reservation_capability' ? payload : null;
+    return isPayload(payload) && payload.type === 'reservation_capability'
+      ? payload as { type: string; id: number; storeId: number; customer_phone: string }
+      : null;
   } catch {
     return null;
   }
@@ -117,7 +126,9 @@ export function verifyWaitingCapability(token: string): { type: string; id: numb
   if (!secret || !token) return null;
   try {
     const payload = jwt.verify(token, secret);
-    return payload.type === 'waiting_capability' ? payload : null;
+    return isPayload(payload) && payload.type === 'waiting_capability'
+      ? payload as { type: string; id: number; storeId: number; customer_phone: string }
+      : null;
   } catch {
     return null;
   }
@@ -128,7 +139,9 @@ export function verifyWalletCapability(token: string): { type: string; customer_
   if (!secret || !token) return null;
   try {
     const payload = jwt.verify(token, secret);
-    return payload.type === 'wallet_capability' ? payload : null;
+    return isPayload(payload) && payload.type === 'wallet_capability'
+      ? payload as { type: string; customer_phone: string; toss_user_key: string | null; store_id: number | null }
+      : null;
   } catch {
     return null;
   }

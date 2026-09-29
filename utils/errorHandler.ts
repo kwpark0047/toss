@@ -7,7 +7,7 @@ export class AppError extends Error {
   public readonly details: Record<string, unknown>;
   public readonly isOperational = true;
 
-  constructor(message: string, statusCode: number, code: string, details: Record<string, unknown> = {}) {
+  constructor(message: string, statusCode: number, code = 'APP_ERROR', details: Record<string, unknown> = {}) {
     super(message);
     this.statusCode = statusCode;
     this.code = code;
@@ -168,7 +168,7 @@ export const errorHandler = (err: any, req: any, res: any, _next: Function) => {
       message: '입력값 검증에 실패했습니다.',
       code: 'VALIDATION_ERROR',
       status: 400,
-      details: err.details || (err.errors ? Object.values(err.errors).map(e => e.message) : err.message)
+      details: err.details || (err.errors ? Object.values(err.errors).map((e: any) => e.message) : err.message)
     };
   } else if (err.code === 'P2002') {
     // Prisma Unique Constraint Violation

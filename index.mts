@@ -5,6 +5,7 @@ import alerting from './utils/alerting.js';
 import prisma from './config/prisma.js';
 import cron from 'node-cron';
 import { startKeepAlive } from './utils/keepAlive.js';
+const prismaClient = prisma as any;
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, async () => {
     logger.info(`[서버] WeMarket API 서버 실행 중: http://localhost:${PORT}`);
@@ -61,9 +62,8 @@ httpServer.listen(PORT, async () => {
     // 가격 최적화 잡 워커 (매 10분) — 대기 중인 PENDING 잡 소비 (수요 예측/가격 최적화)
     (await import('./services/pricingOptimizationService.js')).default.startScheduler();
     // 이상 매출 감지 스케줄러 (매 15분) — 매출 급감/폭증 실시간 경보
-const { checkSalesAnomaly } = await import('./services/AnomalyDetectionService.js');
-const prismaAnomaly = (await import('./config/prisma.js')).default;
-const { io: ioAnomaly } = await import('./app.mjs');
+    const { checkSalesAnomaly } = await import('./services/AnomalyDetectionService.js');
+    const prismaAnomaly = (await import('./config/prisma.js')).default as any;
     cron.schedule('*/15 * * * *', async () => {
         logger.info('[이상감지] 스케줄러 시작 — 매 15분 매출 변동성 검사');
         try {
@@ -72,7 +72,7 @@ const { io: ioAnomaly } = await import('./app.mjs');
                 select: { id: true },
             });
             for (const { id } of stores) {
-                await checkSalesAnomaly(id, ioAnomaly).catch((err) => {
+                await checkSalesAnomaly(id, io).catch((err) => {
                     logger.error(`[이상감지] Store ${id} 오류: ${err.message}`);
                 });
             }
@@ -111,11 +111,11 @@ const STORE_LINK_TEMPLATES = [
 async function initStoreLinkTemplates() {
     for (const tpl of STORE_LINK_TEMPLATES) {
         try {
-            const existing = await prisma.notification_templates.findFirst({
+            const existing = await prismaClient.notification_templates.findFirst({
                 where: { type: tpl.type, store_id: null },
             });
             if (!existing) {
-                await prisma.notification_templates.create({
+                await prismaClient.notification_templates.create({
                     data: {
                         type: tpl.type,
                         title: tpl.title,
@@ -137,38 +137,65 @@ async function initStoreLinkTemplates() {
 // Render는 배포/재시작 전 SIGTERM을 보낸다.
 // 진행 중인 요청을 최대 30초 동안 완료한 후 종료.
 let isShuttingDown = false;
+const closeHttpServer = () => new Promise((resolve) => {
+    httpServer.close((err) => {
+        if (err) {
+            logger.error('[Shutdown] HTTP 서버 종료 실패', { error: err.message });
+        }
+        else {
+            logger.info('[Shutdown] HTTP 서버 닫힘');
+        }
+        resolve(undefined);
+    });
+});
+
+const closeSocketServer = () => new Promise((resolve) => {
+    io.close(() => {
+        logger.info('[Shutdown] Socket.IO 닫힘');
+        resolve(undefined);
+    });
+});
+
 const shutdown = async (signal) => {
     if (isShuttingDown)
         return;
     isShuttingDown = true;
     logger.warn(`[Shutdown] ${signal} 수신 — Graceful Shutdown 시작`);
-    await alerting.send({
-        level: 'warn',
-        title: `서버 종료 시작 (${signal})`,
-        message: 'Graceful Shutdown — 30초 이내 재시작 예정',
-    });
-    // 1. 신규 연결 차단
-    httpServer.close(async () => {
-        logger.info('[Shutdown] HTTP 서버 닫힘');
-    });
-    // 2. Socket.io 연결 종료
-    io.close(() => {
-        logger.info('[Shutdown] Socket.IO 닫힘');
-    });
-    // 3. Prisma 연결 해제
-    try {
-        await prisma.$disconnect();
-        logger.info('[Shutdown] Prisma 연결 해제');
-    }
-    catch (e) {
-        logger.error('[Shutdown] Prisma 해제 실패', e.message);
-    }
-    // 4. 최대 30초 대기 후 강제 종료
     const forceExit = setTimeout(() => {
         logger.error('[Shutdown] 강제 종료 (타임아웃 30초)');
         process.exit(1);
     }, 30_000);
     forceExit.unref(); // 타이머가 프로세스 종료를 막지 않도록
+
+    try {
+        await alerting.send({
+            level: 'warn',
+            title: `서버 종료 시작 (${signal})`,
+            message: 'Graceful Shutdown — 30초 이내 재시작 예정',
+        });
+    }
+    catch (e) {
+        logger.warn('[Shutdown] 종료 알림 전송 실패', { error: e.message });
+    }
+
+    try {
+        await Promise.all([
+            closeHttpServer(),
+            closeSocketServer(),
+            prismaClient.$disconnect().then(() => {
+                logger.info('[Shutdown] Prisma 연결 해제');
+            }).catch((e) => {
+                logger.error('[Shutdown] Prisma 해제 실패', { error: e.message });
+            }),
+        ]);
+        clearTimeout(forceExit);
+        logger.info('[Shutdown] Graceful Shutdown 완료');
+    }
+    catch (e) {
+        logger.error('[Shutdown] Graceful Shutdown 실패', { error: e.message });
+        process.exit(1);
+    }
+
     process.exit(0);
 };
 process.on('SIGTERM', () => shutdown('SIGTERM'));

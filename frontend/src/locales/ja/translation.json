@@ -48,7 +48,14 @@
     "refresh": "ページを更新",
     "store_name_default": "위마켓",
     "kiosk_hint": "画面をタッチするとフルスクリーンキオスクモードに切り替わります",
-    "table": "テーブル{{number}}"
+    "table": "テーブル{{number}}",
+    "display_loading": "メニューボードを読み込み中です...",
+    "invalid_store": "無効な店舗IDです。",
+    "display_fetch_error": "データの読み込み中にエラーが発生しました。",
+    "display_empty_desc": "管理者ページからメニューを登録してください。",
+    "on_sale": "販売中",
+    "currency_won": "ウォン",
+    "display_footer_notice": "WeMarketデジタルメニューボードです。カウンターでご注文ください。"
   },
   "order": {
     "title": "注文する",

@@ -48,7 +48,14 @@
     "refresh": "刷新页面",
     "store_name_default": "위마켓",
     "kiosk_hint": "点击屏幕切换至全屏自助点餐模式",
-    "table": "{{number}}号桌"
+    "table": "{{number}}号桌",
+    "display_loading": "菜单板加载中...",
+    "invalid_store": "无效的店铺 ID。",
+    "display_fetch_error": "加载数据时发生错误。",
+    "display_empty_desc": "请在管理员页面添加菜单。",
+    "on_sale": "销售中",
+    "currency_won": "韩元",
+    "display_footer_notice": "这里是 WeMarket 数字菜单板。请在柜台点餐。"
   },
   "order": {
     "title": "点餐",

@@ -63,7 +63,7 @@ export const captureException = (err: any, context: Record<string, unknown> = {}
  */
 export const captureMessage = (message: string, level: 'info' | 'warning' | 'error' | 'fatal' = 'info', context: Record<string, unknown> = {}) => {
   if (initialized) {
-    Sentry.captureMessage(message, level, { extra: context });
+    Sentry.captureMessage(message, { level, extra: context });
   }
 };
 

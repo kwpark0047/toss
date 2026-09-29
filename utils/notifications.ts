@@ -21,12 +21,14 @@ function deprecationWarning(fnName: string) {
 }
 
 let messaging: any = null;
-try {
-  // firebase-admin v14 모듈러 API — 초기화는 utils/firebaseAdmin 이 단독 담당
-  messaging = (await import('./firebaseAdmin.js')).default?.getMessagingClient?.() || null;
-} catch {
-  logger.warn('[Notification] Firebase Admin SDK를 로드할 수 없습니다. 푸시 알림이 제한됩니다.');
-}
+void import('./firebaseAdmin.js')
+  .then((module) => {
+    // firebase-admin v14 모듈러 API — 초기화는 utils/firebaseAdmin 이 단독 담당
+    messaging = module.default?.getMessagingClient?.() || null;
+  })
+  .catch(() => {
+    logger.warn('[Notification] Firebase Admin SDK를 로드할 수 없습니다. 푸시 알림이 제한됩니다.');
+  });
 
 /** @deprecated notificationService.sendPush() 사용 */
 export async function sendFCMNotification(token: string, payload: { title: string; body: string; data?: any }): Promise<void> {

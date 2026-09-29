@@ -20,10 +20,22 @@ async function check(url, expected) {
 }
 
 async function main() {
-  const backendOk = await check(`${backendUrl.replace(/\/$/, '')}/api/health`, (body) => {
+  const normalizedBackendUrl = backendUrl.replace(/\/$/, '');
+  const backendOk = await check(`${normalizedBackendUrl}/api/health`, (body) => {
     try {
       const payload = JSON.parse(body);
       return payload.status === 'ok' || payload.status === 'degraded';
+    } catch {
+      return false;
+    }
+  });
+
+  const deepHealthOk = await check(`${normalizedBackendUrl}/api/health/deep`, (body) => {
+    try {
+      const payload = JSON.parse(body);
+      const statusOk = payload.status === 'ok' || payload.status === 'degraded';
+      const checks = payload.checks || {};
+      return Boolean(statusOk && checks.database && checks.operationalConfig);
     } catch {
       return false;
     }
@@ -33,7 +45,7 @@ async function main() {
     ? await check(frontendUrl, (body) => /<html[\s>]/i.test(body))
     : true;
 
-  if (!backendOk || !frontendOk) process.exitCode = 1;
+  if (!backendOk || !deepHealthOk || !frontendOk) process.exitCode = 1;
 }
 
 main().catch((error) => {

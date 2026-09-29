@@ -13,6 +13,7 @@ import axios from 'axios';
 
 // CORS 허용 도메인은 단일 모듈(config/domain)에서 관리한다.
 import { getAllowedOrigins, isOriginAllowed } from '../config/domain.js';
+const prismaClient = prisma as any;
 
 const router = Router();
 
@@ -33,7 +34,7 @@ router.use((req: Request, res: Response, next: NextFunction) => {
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
   }
-  next();
+  return next();
 });
 
 const START_TIME = Date.now();
@@ -72,6 +73,22 @@ const percentile = (arr: number[], p: number) => {
   return sorted[Math.floor((sorted.length * p) / 100)];
 };
 
+const buildOperationalConfigCheck = () => {
+  const tossWebhook = {
+    hasSecret: !!(process.env.TOSS_WEBHOOK_SECRET || process.env.TOSS_WEBHOOK_SIGNING_SECRET),
+    hasIpAllowlist: !!process.env.TOSS_WEBHOOK_IPS,
+  };
+  const tossWebhookConfigured = tossWebhook.hasSecret || tossWebhook.hasIpAllowlist;
+
+  return {
+    status: tossWebhookConfigured ? 'ok' : 'warn',
+    tossWebhook,
+    message: tossWebhookConfigured
+      ? 'Toss webhook verification is configured.'
+      : 'Set at least one of TOSS_WEBHOOK_SECRET, TOSS_WEBHOOK_SIGNING_SECRET, or TOSS_WEBHOOK_IPS before production webhook traffic.',
+  };
+};
+
 // app.js에서 미들웨어로 호출
 export const requestTracker = (req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
@@ -97,7 +114,7 @@ router.get('/', async (req, res) => {
   let dbOk = false;
   try {
     await Promise.race([
-      prisma.$queryRaw`SELECT 1`,
+      prismaClient.$queryRaw`SELECT 1`,
       new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 3000)),
     ]);
     dbOk = true;
@@ -130,7 +147,7 @@ router.get('/', async (req, res) => {
  *         description: 점검 항목 중 이상 감지
  */
 router.get('/deep', async (req, res) => {
-  const checks = {};
+  const checks: Record<string, any> = {};
   let overallOk = true;
 
   // 1. DB — 3초 초과 지연은 장애 전조로 warn 표시 (overall은 유지)
@@ -138,7 +155,7 @@ router.get('/deep', async (req, res) => {
   const t0 = Date.now();
   try {
     await Promise.race([
-      prisma.$queryRaw`SELECT 1`,
+      prismaClient.$queryRaw`SELECT 1`,
       new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 5000)),
     ]);
     const latencyMs = Date.now() - t0;
@@ -169,7 +186,14 @@ router.get('/deep', async (req, res) => {
   };
   if (tossCB.state === 'OPEN') overallOk = false;
 
-  // 4. OmniRoute (AI fallback gateway) — 연결 가능 여부 확인
+  // 4. 운영 필수 설정 — 비밀값은 노출하지 않고 설정 여부만 점검한다.
+  const operationalConfig = buildOperationalConfigCheck();
+  checks.operationalConfig = operationalConfig;
+  if (process.env.NODE_ENV === 'production' && operationalConfig.status !== 'ok') {
+    overallOk = false;
+  }
+
+  // 5. OmniRoute (AI fallback gateway) — 연결 가능 여부 확인
   const omniUrl = process.env.OMNIROUTE_BASE_URL || 'http://localhost:20128/v1';
   let omniOk = false;
   let omniLatencyMs = null;
@@ -190,7 +214,7 @@ router.get('/deep', async (req, res) => {
     latencyMs: omniLatencyMs,
   };
 
-  // 5. SLA 지표
+  // 6. SLA 지표
   const uptimeSec = Math.floor((Date.now() - START_TIME) / 1000);
   const errorRate = _req5m.length ? ((_err5m.length / _req5m.length) * 100).toFixed(1) : '0.0';
   checks.sla = {
