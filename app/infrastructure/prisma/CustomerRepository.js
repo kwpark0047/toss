@@ -193,7 +193,7 @@ class CustomerRepository {
   }
 
   async getNearbyStores(lat, lng) {
-    const { haversineKm } = require('../../utils/geo');
+    const { haversineKm } = require('../../../utils/geo.js');
     const NEARBY_DISTANCE_KM = 0.5;
 
     const activeStores = await prisma.stores.findMany({

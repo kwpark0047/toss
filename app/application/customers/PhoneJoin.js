@@ -6,7 +6,7 @@ class PhoneJoin {
   }
 
   async execute({ phone, store_id, order_id, total_amount }) {
-    const { normalizePhone } = require('../../utils/phoneEncryption');
+    const { normalizePhone } = require('../../../utils/phoneEncryption.js');
     const normalizedPhone = normalizePhone(phone);
     const storeId = parseInt(store_id);
     const amount = parseInt(total_amount) || 0;
@@ -34,9 +34,10 @@ class PhoneJoin {
       last_visit_at: new Date(),
     });
 
-    const earnPoints = amount > 0
-      ? await this.pointService.calculateEarnPoints(amount, storeId, { phone: normalizedPhone })
-      : 0;
+    const earnPoints =
+      amount > 0
+        ? await this.pointService.calculateEarnPoints(amount, storeId, { phone: normalizedPhone })
+        : 0;
 
     let pointResult = null;
     let totalPoints = 0;
@@ -66,9 +67,10 @@ class PhoneJoin {
     }
 
     const allTiers = await this.storeTierService.getTiers(storeId);
-    const nextTier = allTiers
-      .filter((t) => t.min_spent > newTotalSpent)
-      .sort((a, b) => a.min_spent - b.min_spent)[0] || null;
+    const nextTier =
+      allTiers
+        .filter((t) => t.min_spent > newTotalSpent)
+        .sort((a, b) => a.min_spent - b.min_spent)[0] || null;
 
     return {
       is_new_customer: isNewCustomer,
@@ -79,7 +81,9 @@ class PhoneJoin {
       visit_count: customer.visit_count,
       total_spent: customer.total_spent,
       welcome_coupon: welcomeCoupon,
-      next_tier: nextTier ? { name: nextTier.tier_name, remaining: nextTier.min_spent - newTotalSpent } : null,
+      next_tier: nextTier
+        ? { name: nextTier.tier_name, remaining: nextTier.min_spent - newTotalSpent }
+        : null,
       socket_channel: `customer-orders-${normalizedPhone}`,
     };
   }

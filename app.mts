@@ -37,6 +37,15 @@ alerting.registerGlobalHandlers();
 initDefaultMetrics();
 const app = express();
 const httpServer = createServer(app);
+const lazyRouter = (loader: () => Promise<{ default: RequestHandler }>) => {
+    const router = express.Router();
+    let routerPromise: Promise<RequestHandler> | null = null;
+    router.use((req, res, next) => {
+        routerPromise ??= loader().then((module) => module.default);
+        routerPromise.then((handler) => handler(req, res, next)).catch(next);
+    });
+    return router;
+};
 const notificationService = (await import('./services/notificationService.js')).default;
 const dashboardBroadcastService = (await import('./services/DashboardBroadcastService.js')).default;
 const { getAllowedOrigins, isOriginAllowed } = await import('./config/domain.js');
@@ -250,70 +259,70 @@ app.get('/api/config/firebase', (req, res) => {
 // Firebase Messaging Service Worker는 public/firebase-messaging-sw.js로 분리 (CSP 안전)
 // (버전 및 시스템 엔드포인트 최상단으로 이동됨)
 const routes = {
-    auth: (await import('./routes/auth.js')).default,
-    stores: (await import('./routes/stores.js')).default,
-    storeInfoEnhancement: (await import('./routes/storeInfoEnhancement.js')).default,
-    products: (await import('./routes/products.js')).default,
-    orders: (await import('./routes/orders.js')).default,
-    tables: (await import('./routes/tables.js')).default,
-    payments: (await import('./routes/payments.js')).default,
-    notifications: (await import('./routes/notifications.js')).default,
-    categories: (await import('./routes/categories.js')).default,
-    admin: (await import('./routes/admin.js')).default,
-    points: (await import('./routes/points.js')).default,
-    plans: (await import('./routes/plans.js')).default,
-    auditLogs: (await import('./routes/auditLogs.js')).default,
-    featureFlags: (await import('./routes/featureFlags.js')).default,
-    orderEvents: (await import('./routes/orderEvents.js')).default,
-    planRequests: (await import('./routes/planRequests.js')).default,
-    adminPlans: (await import('./routes/adminPlans.js')).default,
-    staffRequests: (await import('./routes/staffRequests.js')).default,
-    optionTemplates: (await import('./routes/optionTemplates.js')).default,
-    boards: (await import('./routes/boards.js')).default,
-    ai: (await import('./routes/ai.js')).default,
-    analytics: (await import('./routes/analytics.js')).default,
-    chat: (await import('./routes/chat.js')).default,
-    cart: (await import('./routes/cart.js')).default,
-    waiting: (await import('./routes/waiting.js')).default,
-    reviews: (await import('./routes/reviews.js')).default,
-    customers: (await import('./routes/customers.js')).default,
-    coupons: (await import('./routes/coupons.js')).default,
-    reservations: (await import('./routes/reservations.js')).default,
-    staff: (await import('./routes/staff.js')).default,
-    notificationTemplates: (await import('./routes/notificationTemplates.js')).default,
-    uploads: (await import('./routes/uploads.js')).default,
-    crm: (await import('./routes/crm.js')).default,
-    menuOptimization: (await import('./routes/menuOptimization.js')).default,
-    staffGamification: (await import('./routes/staffGamification.js')).default,
-    aiAssistant: (await import('./routes/aiAssistant.js')).default,
-    aiPrompts: (await import('./routes/aiPrompts.js')).default,
-    aiUsage: (await import('./routes/aiUsage.js')).default,
-    export: (await import('./routes/export.js')).default,
-    inventory: (await import('./routes/inventory.js')).default,
-    community: (await import('./routes/community.js')).default,
-    legal: (await import('./routes/legal.js')).default,
-    naverPlace: (await import('./routes/naverPlace.js')).default,
-    foodTrucks: (await import('./routes/foodTrucks.js')).default,
-    kds: (await import('./routes/kds.js')).default,
-    alimtalk: (await import('./routes/alimtalk.js')).default,
-    weather: (await import('./routes/weather.js')).default,
-    news: (await import('./routes/news.js')).default,
-    sse: (await import('./routes/sse.js')).default,
-    printJobs: (await import('./routes/printJobs.js')).default,
-    dynamicPricing: (await import('./routes/dynamicPricing.js')).default,
-    aiRecommendations: (await import('./routes/aiRecommendations.js')).default,
-    demandForecast: (await import('./routes/demandForecast.js')).default,
-    socialAuth: (await import('./routes/socialAuth.js')).default,
-    adminAuth: (await import('./routes/adminAuth.js')).default,
-    franchise: (await import('./routes/franchise.js')).default,
-    loyalty: (await import('./routes/loyalty.js')).default,
-    ecoBadge: (await import('./routes/ecoBadge.js')).default,
-    aiOrder: (await import('./routes/aiOrder.js')).default,
-    aiAutoOrder: (await import('./routes/aiAutoOrder.js')).default,
-    recommendationTracking: (await import('./routes/recommendationTracking.js')).default,
-    reportPdf: (await import('./routes/reportPdf.js')).default,
-    config: (await import('./routes/config.js')).default,
-    swagger: (await import('./routes/swagger.js')).default,
+    auth: lazyRouter(() => import('./routes/auth.js')),
+    stores: lazyRouter(() => import('./routes/stores.js')),
+    storeInfoEnhancement: lazyRouter(() => import('./routes/storeInfoEnhancement.js')),
+    products: lazyRouter(() => import('./routes/products.js')),
+    orders: lazyRouter(() => import('./routes/orders.js')),
+    tables: lazyRouter(() => import('./routes/tables.js')),
+    payments: lazyRouter(() => import('./routes/payments.js')),
+    notifications: lazyRouter(() => import('./routes/notifications.js')),
+    categories: lazyRouter(() => import('./routes/categories.js')),
+    admin: lazyRouter(() => import('./routes/admin.js')),
+    points: lazyRouter(() => import('./routes/points.js')),
+    plans: lazyRouter(() => import('./routes/plans.js')),
+    auditLogs: lazyRouter(() => import('./routes/auditLogs.js')),
+    featureFlags: lazyRouter(() => import('./routes/featureFlags.js')),
+    orderEvents: lazyRouter(() => import('./routes/orderEvents.js')),
+    planRequests: lazyRouter(() => import('./routes/planRequests.js')),
+    adminPlans: lazyRouter(() => import('./routes/adminPlans.js')),
+    staffRequests: lazyRouter(() => import('./routes/staffRequests.js')),
+    optionTemplates: lazyRouter(() => import('./routes/optionTemplates.js')),
+    boards: lazyRouter(() => import('./routes/boards.js')),
+    ai: lazyRouter(() => import('./routes/ai.js')),
+    analytics: lazyRouter(() => import('./routes/analytics.js')),
+    chat: lazyRouter(() => import('./routes/chat.js')),
+    cart: lazyRouter(() => import('./routes/cart.js')),
+    waiting: lazyRouter(() => import('./routes/waiting.js')),
+    reviews: lazyRouter(() => import('./routes/reviews.js')),
+    customers: lazyRouter(() => import('./routes/customers.js')),
+    coupons: lazyRouter(() => import('./routes/coupons.js')),
+    reservations: lazyRouter(() => import('./routes/reservations.js')),
+    staff: lazyRouter(() => import('./routes/staff.js')),
+    notificationTemplates: lazyRouter(() => import('./routes/notificationTemplates.js')),
+    uploads: lazyRouter(() => import('./routes/uploads.js')),
+    crm: lazyRouter(() => import('./routes/crm.js')),
+    menuOptimization: lazyRouter(() => import('./routes/menuOptimization.js')),
+    staffGamification: lazyRouter(() => import('./routes/staffGamification.js')),
+    aiAssistant: lazyRouter(() => import('./routes/aiAssistant.js')),
+    aiPrompts: lazyRouter(() => import('./routes/aiPrompts.js')),
+    aiUsage: lazyRouter(() => import('./routes/aiUsage.js')),
+    export: lazyRouter(() => import('./routes/export.js')),
+    inventory: lazyRouter(() => import('./routes/inventory.js')),
+    community: lazyRouter(() => import('./routes/community.js')),
+    legal: lazyRouter(() => import('./routes/legal.js')),
+    naverPlace: lazyRouter(() => import('./routes/naverPlace.js')),
+    foodTrucks: lazyRouter(() => import('./routes/foodTrucks.js')),
+    kds: lazyRouter(() => import('./routes/kds.js')),
+    alimtalk: lazyRouter(() => import('./routes/alimtalk.js')),
+    weather: lazyRouter(() => import('./routes/weather.js')),
+    news: lazyRouter(() => import('./routes/news.js')),
+    sse: lazyRouter(() => import('./routes/sse.js')),
+    printJobs: lazyRouter(() => import('./routes/printJobs.js')),
+    dynamicPricing: lazyRouter(() => import('./routes/dynamicPricing.js')),
+    aiRecommendations: lazyRouter(() => import('./routes/aiRecommendations.js')),
+    demandForecast: lazyRouter(() => import('./routes/demandForecast.js')),
+    socialAuth: lazyRouter(() => import('./routes/socialAuth.js')),
+    adminAuth: lazyRouter(() => import('./routes/adminAuth.js')),
+    franchise: lazyRouter(() => import('./routes/franchise.js')),
+    loyalty: lazyRouter(() => import('./routes/loyalty.js')),
+    ecoBadge: lazyRouter(() => import('./routes/ecoBadge.js')),
+    aiOrder: lazyRouter(() => import('./routes/aiOrder.js')),
+    aiAutoOrder: lazyRouter(() => import('./routes/aiAutoOrder.js')),
+    recommendationTracking: lazyRouter(() => import('./routes/recommendationTracking.js')),
+    reportPdf: lazyRouter(() => import('./routes/reportPdf.js')),
+    config: lazyRouter(() => import('./routes/config.js')),
+    swagger: lazyRouter(() => import('./routes/swagger.js')),
 };
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
 if (process.env.NODE_ENV !== 'production') {
@@ -328,8 +337,8 @@ if (process.env.NODE_ENV !== 'production') {
 // [API 라우트 명시적 그룹화 등록]
 const API_PREFIX = '/api';
 // ── Open Commerce Hub: 개발자 포털(내부 인증) + Open API v1(API 키 인증) ──
-app.use(`${API_PREFIX}/developer`, (await import('./routes/developer.js')).default);
-app.use(`${API_PREFIX}/v1`, (await import('./routes/v1.js')).default);
+app.use(`${API_PREFIX}/developer`, lazyRouter(() => import('./routes/developer.js')));
+app.use(`${API_PREFIX}/v1`, lazyRouter(() => import('./routes/v1.js')));
 app.use(`${API_PREFIX}/auth`, authLimiter, routes.auth);
 app.use(`${API_PREFIX}/auth/social`, authLimiter, routes.socialAuth);
 app.use(`${API_PREFIX}/stores`, publicLimiter, routes.stores);
@@ -398,9 +407,9 @@ app.use(`${API_PREFIX}/swagger`, routes.swagger);
 app.use(`${API_PREFIX}/news`, publicLimiter, routes.news);
 // Clean Architecture: 모니터링은 DI 컨테이너 기반 라우터가 단독 담당한다.
 // (구 routes/monitoring.js 는 중복 구현이라 제거됨 — M-2)
-app.use(`${API_PREFIX}/monitoring`, (await import('./app/interfaces/http/monitoringRouter.js')).default);
+app.use(`${API_PREFIX}/monitoring`, lazyRouter(() => import('./app/interfaces/http/monitoringRouter.js')));
 // Prometheus /metrics 스크랩 엔드포인트 (P1, 인증 없이 표준 텍스트 반환)
-app.use(`${API_PREFIX}/metrics`, (await import('./metrics/metricsRouter.mts')).default);
+app.use(`${API_PREFIX}/metrics`, lazyRouter(() => import('./metrics/metricsRouter.mts')));
 // 정적 파일 서빙
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'frontend/dist')));
@@ -437,8 +446,15 @@ notificationService.init(io);
 dashboardBroadcastService.init(io);
 app.set('io', io);
 // Swagger API 문서
-const swaggerSetup = (await import('./docs/swagger.js')).default;
-swaggerSetup(app);
+if (process.env.NODE_ENV !== 'test') {
+    setImmediate(() => {
+        import('./docs/swagger.js')
+            .then(({ default: swaggerSetup }) => {
+            swaggerSetup(app);
+        })
+            .catch((err) => logger.warn('[Swagger] 초기화 지연 실패', { error: err.message }));
+    });
+}
 // CORS 안전망 - 라우트 매칭 전에 실패해도 CORS 헤더 보장
 app.use((req, res, next) => {
     const origin = req.headers.origin;
@@ -472,8 +488,11 @@ app.use((req, res, next) => {
 // Sentry 캡처 단일화: setupExpressErrorHandler(중복 캡처) 대신
 // errorHandler 내부의 status>=500 조건부 캡처가 유일한 5xx 전송 지점이다.
 app.use(errorHandler);
-const { startNewsCron } = await import('./services/newsCrawlerService.js');
 if (process.env.NODE_ENV !== 'test') {
-    startNewsCron();
+    setImmediate(() => {
+        import('./services/newsCrawlerService.js')
+            .then(({ startNewsCron }) => startNewsCron())
+            .catch((err) => logger.warn('[NewsCron] 초기화 지연 실패', { error: err.message }));
+    });
 }
 export { app, io, httpServer };
