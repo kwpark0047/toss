@@ -427,9 +427,11 @@ const io = new Server(httpServer, {
 });
 const { registerSocketHandlers } = await import('./socket/handlers.js');
 const { authenticateSocket } = await import('./socket/auth.js');
+const { default: socketEmitter } = await import('./socket/emitter.js');
 io.use(authenticateSocket);
 // 모든 Socket.IO 이벤트는 단일 connection 핸들러에서 등록한다.
 registerSocketHandlers(io);
+socketEmitter.setSocketServer(io);
 // 알림 서비스 초기화 (Socket.io 인스턴스 주입)
 notificationService.init(io);
 dashboardBroadcastService.init(io);

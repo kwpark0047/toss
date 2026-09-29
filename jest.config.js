@@ -16,6 +16,7 @@ module.exports = {
     '<rootDir>/toss-miniapp-examples/',
     '<rootDir>/wemarket-miniapp/',
     '<rootDir>/miniapp/',
+    '<rootDir>/dist/',
   ],
   transformIgnorePatterns: [
     '/node_modules/(?!(sanitize-html|htmlparser2|dom-serializer|domelementtype|domhandler|entities|domexception|abort-controller|node-fetch|buffer|stream/web|worker_threads)/)',

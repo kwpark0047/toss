@@ -198,14 +198,18 @@ function buildSwaggerSpec() {
     if (!paths[route.path]) paths[route.path] = {};
 
     const jsdoc = route.jsdoc || {};
+    const tags = Array.isArray(jsdoc.tags) ? jsdoc.tags : [];
+    const parameters = Array.isArray(jsdoc.parameters) ? jsdoc.parameters : [];
+    const responses = jsdoc.responses || {};
+    const security = Array.isArray(jsdoc.security) ? jsdoc.security : [];
     paths[route.path][route.method.toLowerCase()] = {
       summary: jsdoc.summary || `${route.method} ${route.path}`,
       description: jsdoc.description || '',
-      tags: jsdoc.tags.length > 0 ? jsdoc.tags : [route.file.replace('.js', '')],
-      parameters: jsdoc.parameters || [],
+      tags: tags.length > 0 ? tags : [route.file.replace('.js', '')],
+      parameters,
       responses:
-        Object.keys(jsdoc.responses).length > 0
-          ? jsdoc.responses
+        Object.keys(responses).length > 0
+          ? responses
           : {
               200: { description: 'Success' },
               400: {
@@ -221,8 +225,7 @@ function buildSwaggerSpec() {
                 content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
               },
             },
-      security:
-        jsdoc.security.length > 0 ? jsdoc.security.map((s) => ({ [s]: [] })) : [{ bearerAuth: [] }],
+      security: security.length > 0 ? security.map((s) => ({ [s]: [] })) : [{ bearerAuth: [] }],
     };
   }
 
