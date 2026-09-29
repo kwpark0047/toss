@@ -2,6 +2,16 @@ import * as Sentry from '@sentry/node';
 import logger from './logger.js';
 
 let initialized = false;
+let buffer: Array<{ type: 'exception' | 'message'; args: any[] }> = [];
+
+/**
+ * Sentry 초기화 전 예외/메시지 버퍼에 담아두었다가 initSentry() 호출 시 flush함.
+ * captureException/captureMessage는 initialized가 true일 경우 즉시 전송하고,
+ * false일 경우 버퍼에 쌓았다가 initSentry()가 성공하면 flush한다.
+ */
+function bufferCall(type: 'exception' | 'message', args: any[]) {
+  buffer.push({ type, args });
+}
 
 /**
  * Sentry를 초기화한다.
@@ -10,10 +20,14 @@ let initialized = false;
  */
 export const initSentry = (): typeof Sentry | null => {
   if (initialized) return Sentry;
-  if (process.env.NODE_ENV === 'test') return null;
+  if (process.env.NODE_ENV === 'test') {
+    buffer = [];
+    return null;
+  }
 
   const dsn = process.env.SENTRY_DSN;
   if (!dsn) {
+    buffer = [];
     logger.info('[Sentry] SENTRY_DSN이 설정되지 않아 Sentry가 비활성화되었습니다.');
     return null;
   }
@@ -40,6 +54,18 @@ export const initSentry = (): typeof Sentry | null => {
   });
 
   initialized = true;
+
+  // 버퍼된 예외/메시지 flush
+  buffer.forEach(({ type, args }) => {
+    if (type === 'exception' && typeof Sentry.captureException === 'function') {
+      Sentry.captureException(args[0], { extra: args[1] });
+    }
+    if (type === 'message' && typeof Sentry.captureMessage === 'function') {
+      Sentry.captureMessage(args[0], { level: args[1], extra: args[2] });
+    }
+  });
+  buffer = [];
+
   logger.info('[Sentry] 초기화 완료');
   return Sentry;
 };
@@ -52,6 +78,8 @@ export const initSentry = (): typeof Sentry | null => {
 export const captureException = (err: any, context: Record<string, unknown> = {}) => {
   if (initialized) {
     Sentry.captureException(err, { extra: context });
+  } else {
+    bufferCall('exception', [err, context]);
   }
 };
 
@@ -64,6 +92,8 @@ export const captureException = (err: any, context: Record<string, unknown> = {}
 export const captureMessage = (message: string, level: 'info' | 'warning' | 'error' | 'fatal' = 'info', context: Record<string, unknown> = {}) => {
   if (initialized) {
     Sentry.captureMessage(message, { level, extra: context });
+  } else {
+    bufferCall('message', [message, level, context]);
   }
 };
 
