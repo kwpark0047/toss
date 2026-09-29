@@ -18,8 +18,9 @@ class RedisCache {
       db: options.db || parseInt(process.env.REDIS_DB) || 0,
       keyPrefix: options.keyPrefix || 'wemarket:',
       // 연결 풀 설정
-      maxRetriesPerRequest: 3,
-      retryStrategy: (times) => Math.min(times * 50, 2000),
+      connectTimeout: 1000,
+      maxRetriesPerRequest: 1,
+      retryStrategy: null,
       enableReadyCheck: true,
       lazyConnect: true,
       ...options,
@@ -56,19 +57,31 @@ class RedisCache {
       logger.warn('[RedisCache] Connection closed');
     });
 
-    // 태그 무효화용 Pub/Sub 구독
-    await this.subscriber.subscribe('wemarket:cache:invalidate', (err) => {
-      if (err) logger.error('[RedisCache] Subscribe error', { error: err.message });
-    });
+    try {
+      await Promise.race([
+        Promise.all([this.client.connect(), this.subscriber.connect()]),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Redis connection timeout')), 1000)
+        ),
+      ]);
 
-    this.subscriber.on('message', (channel, message) => {
-      if (channel === 'wemarket:cache:invalidate') {
-        this.handleInvalidationMessage(message);
-      }
-    });
+      // 태그 무효화용 Pub/Sub 구독
+      await this.subscriber.subscribe('wemarket:cache:invalidate', (err) => {
+        if (err) logger.error('[RedisCache] Subscribe error', { error: err.message });
+      });
 
-    await this.client.connect();
-    return this.client;
+      this.subscriber.on('message', (channel, message) => {
+        if (channel === 'wemarket:cache:invalidate') {
+          this.handleInvalidationMessage(message);
+        }
+      });
+
+      return this.client;
+    } catch (err) {
+      logger.warn('[RedisCache] Redis unavailable, using local cache only', { error: err.message });
+      await this.disconnect();
+      return null;
+    }
   }
 
   /**
@@ -78,7 +91,7 @@ class RedisCache {
     try {
       const { tags, pattern } = JSON.parse(message);
       if (tags) {
-        tags.forEach(tag => this.invalidateLocalCacheByTag(tag));
+        tags.forEach((tag) => this.invalidateLocalCacheByTag(tag));
       }
       if (pattern) {
         this.invalidateLocalCacheByPattern(pattern);
@@ -173,9 +186,9 @@ class RedisCache {
     if (tags.length === 0) return true;
 
     // 태그-키 매핑 저장
-    const tagKeys = tags.map(tag => this.buildTagKey(tag));
+    const tagKeys = tags.map((tag) => this.buildTagKey(tag));
     const pipeline = this.client.pipeline();
-    tagKeys.forEach(tagKey => {
+    tagKeys.forEach((tagKey) => {
       pipeline.sadd(tagKey, key);
       pipeline.expire(tagKey, ttlSeconds + 60); // 태그 키는 데이터보다 조금 더 길게
     });
@@ -190,7 +203,7 @@ class RedisCache {
   async invalidateByTags(tags) {
     if (tags.length === 0) return 0;
 
-    const tagKeys = tags.map(tag => this.buildTagKey(tag));
+    const tagKeys = tags.map((tag) => this.buildTagKey(tag));
     let totalInvalidated = 0;
 
     for (const tagKey of tagKeys) {
@@ -206,7 +219,7 @@ class RedisCache {
     await this.publishInvalidation({ tags });
 
     // 로컬 캐시도 무효화
-    tags.forEach(tag => this.invalidateLocalCacheByTag(tag));
+    tags.forEach((tag) => this.invalidateLocalCacheByTag(tag));
 
     logger.info('[RedisCache] Invalidated by tags', { tags, count: totalInvalidated });
     return totalInvalidated;
@@ -288,7 +301,7 @@ class RedisCache {
     if (this.localCache.has(key)) return true;
     if (!this.isConnected) return false;
     try {
-      return await this.client.exists(key) === 1;
+      return (await this.client.exists(key)) === 1;
     } catch {
       return false;
     }
@@ -301,7 +314,7 @@ class RedisCache {
     this.localCache.delete(key);
     if (!this.isConnected) return false;
     try {
-      return await this.client.del(key) > 0;
+      return (await this.client.del(key)) > 0;
     } catch {
       return false;
     }
@@ -313,7 +326,7 @@ class RedisCache {
   async expire(key, ttlSeconds) {
     if (!this.isConnected) return false;
     try {
-      return await this.client.expire(key, ttlSeconds) === 1;
+      return (await this.client.expire(key, ttlSeconds)) === 1;
     } catch {
       return false;
     }
@@ -354,11 +367,11 @@ class RedisCache {
    */
   async disconnect() {
     if (this.client) {
-      await this.client.quit();
+      this.client.disconnect();
       this.client = null;
     }
     if (this.subscriber) {
-      await this.subscriber.quit();
+      this.subscriber.disconnect();
       this.subscriber = null;
     }
     this.isConnected = false;
