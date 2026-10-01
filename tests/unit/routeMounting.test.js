@@ -16,9 +16,11 @@ const APP_SOURCE = fs.readFileSync(path.join(ROOT, 'app.mts'), 'utf8');
 function getRegisteredRouteKeys(source) {
   const mapMatch = source.match(/const routes = \{([\s\S]*?)\n\};/);
   if (!mapMatch) return [];
-  // Match: `key: (await import('./routes/x.js')).default,`
+  // Match: `key: lazyRouter(() => import('./routes/x.js')),` 및 옛 `key: (await import('./routes/x.js')).default,`
   return [
-    ...mapMatch[1].matchAll(/^\s*(\w+):\s*\(await import\('\.?\/routes\/(\w+)\.js'\)\)/gm),
+    ...mapMatch[1].matchAll(
+      /^\s*(\w+):\s*(?:lazyRouter\(\(\)\s*=>\s*import|\(await import)\('\.?\/routes\/(\w+)\.js'\)\)/gm
+    ),
   ].map((m) => m[1]);
 }
 

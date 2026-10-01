@@ -48,6 +48,11 @@ declare global {
       };
       /** 아이디empotency 키 */
       idempotencyKey?: string;
+      /**
+       * JSON 원본 바디 (전역 express.json verify 캡처).
+       * webhook 서명 검증 등 원문 HMAC이 필요한 곳에서 사용.
+       */
+      rawBody?: Buffer;
     }
 
     interface Response {

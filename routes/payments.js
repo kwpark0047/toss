@@ -9,6 +9,7 @@ const idempotency = require('../middleware/idempotency');
 const orderCapability = require('../middleware/orderCapability');
 const paymentOrderCapability = require('../middleware/paymentOrderCapability');
 const tossWebhookAuth = require('../middleware/tossWebhookAuth');
+const { rawBodyJsonParser } = require('../middleware/rawBodyJson');
 const { paymentCapabilityOrStoreAuth } = paymentOrderCapability;
 
 const storage = multer.diskStorage({
@@ -363,11 +364,7 @@ router.post(
  */
 router.post(
   '/webhooks/toss',
-  express.json({
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
+  rawBodyJsonParser,
   tossWebhookAuth,
   paymentController.handleTossWebhook
 );

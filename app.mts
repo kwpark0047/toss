@@ -20,6 +20,9 @@ import healthRouter from './routes/health.mts';
 import { requestTracker } from './routes/health.mts';
 import { strictSanitizer } from './middleware/xssSanitizer.js';
 import { cspNonceMiddleware } from './middleware/cspNonce.js';
+const { rawBodyJsonParser } = (await import('./middleware/rawBodyJson.js')) as unknown as {
+    rawBodyJsonParser: RequestHandler;
+};
 import { initSentry } from './utils/sentry.js';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
@@ -111,7 +114,10 @@ app.use((req, res, next) => {
     }
     next();
 });
-app.use(express.json());
+// 원본 바디 캡처: webhook 서명 검증(HMAC)이 파싱된 객체가 아닌 실제 요청 바이트로
+// 계산되어야 하므로 공유 파서(middleware/rawBodyJson.js)가 verify 훅에서 rawBody를 보존한다.
+// 라우트(routes/payments.js)와 동일한 파서 인스턴스/설정을 사용해 운영-테스트 간 불일치를 없앤다.
+app.use(rawBodyJsonParser);
 // Sentry v10+: requestHandler 통합됨 (별도 미들웨어 불필요)
 // HttpOnly Cookie 기반 인증 (USE_HTTPONLY_COOKIE=true 시 활성화)
 app.use(cookieParser());
