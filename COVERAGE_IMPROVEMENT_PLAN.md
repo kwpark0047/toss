@@ -21,8 +21,8 @@
 
 | 파일 | 현재 | 목표 | 예상 테스트 수 |
 |------|------|------|----------------|
-| middleware/validate.ts | 0% | 90% | 15 |
-| middleware/rateLimiter.ts | 45% | 90% | 10 |
+| middleware/validate.js | 0% | 90% | 15 |
+| middleware/rateLimiter.js | 45% | 90% | 10 |
 | middleware/auth.ts | 50% | 90% | 12 |
 | middleware/cspNonce.ts | 0% | 80% | 8 |
 | utils/redisCache.ts | 11% | 80% | 20 |
@@ -56,10 +56,10 @@
 
 ## 즉시 실행 가능한 테스트 추가 (Quick Wins)
 
-### 1. middleware/validate.ts - Zod 검증 미들웨어
+### 1. middleware/validate.js - Zod 검증 미들웨어
 
 ```typescript
-// tests/middleware/validate.test.ts
+// tests/unit/middleware/validate.test.js
 describe('validate middleware', () => {
   it('유효한 body로 통과', async () => { ... });
   it('잘못된 email로 400 반환', async () => { ... });
@@ -105,7 +105,7 @@ describe('DataLoader', () => {
 npm run test:coverage
 
 # 특정 파일 커버리지
-npm run test:coverage -- --collectCoverageFrom="middleware/validate.ts"
+npm run test:coverage -- --collectCoverageFrom="middleware/validate.js"
 
 # 커버리지 리포트 상세
 npm run test:coverage -- --coverageReporters=text-summary --coverageReporters=lcov

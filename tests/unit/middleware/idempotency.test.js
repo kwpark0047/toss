@@ -289,6 +289,118 @@ describe('idempotency 미들웨어', () => {
     });
   });
 
+  describe('Redis 경로', () => {
+    /** Redis를 인메모리 맵으로 대체해 실제 Redis 연결 시 동작을 모사한다 */
+    function useFakeRedis() {
+      const store = new Map();
+      redisCache.isConnected = true;
+      redisCache.get.mockImplementation(async (k) => (store.has(k) ? store.get(k) : null));
+      redisCache.set.mockImplementation(async (k, v) => {
+        store.set(k, v);
+        return 'OK';
+      });
+      redisCache.del.mockImplementation(async (k) => {
+        store.delete(k);
+        return 1;
+      });
+      return store;
+    }
+
+    test('Redis 연결 시 완료된 요청을 Redis에서 읽어 재생한다', async () => {
+      const store = useFakeRedis();
+      const mw = idempotency({ namespace: 'orders:create' });
+      const key = 'redis-uuid-1111';
+
+      const res1 = makeRes();
+      await runWithHandler(mw, makeReq({ headers: { 'idempotency-key': key } }), res1, (_r, r) => {
+        r.statusCode = 201;
+        r.json({ success: true, order_id: 99 });
+      });
+
+      // 응답 payload가 Redis에 실제로 기록되어야 한다 (인메모리 폴백이 아님)
+      const cachedRaw = [...store.entries()].find(
+        ([k]) => k.startsWith('idempotency:orders:create:7:') && !k.includes(':inflight')
+      );
+      expect(cachedRaw).toBeDefined();
+      expect(JSON.parse(cachedRaw[1])).toMatchObject({ status: 201, body: { order_id: 99 } });
+
+      // 2회차: Redis 히트 → 핸들러 미실행 + 재생
+      const handler2 = jest.fn();
+      const res2 = makeRes();
+      await runWithHandler(mw, makeReq({ headers: { 'idempotency-key': key } }), res2, handler2);
+
+      expect(handler2).not.toHaveBeenCalled();
+      expect(res2.statusCode).toBe(201);
+      expect(res2.body).toEqual({ success: true, order_id: 99 });
+      expect(res2.headers['Idempotency-Replayed']).toBe('true');
+    });
+
+    test('Redis 연결 시 본문이 다르면 422 로 거절한다 (bodyHash 대조)', async () => {
+      useFakeRedis();
+      const mw = idempotency({ namespace: 'orders:create' });
+      const key = 'redis-uuid-2222';
+
+      const res1 = makeRes();
+      await runWithHandler(mw, makeReq({ headers: { 'idempotency-key': key } }), res1, (_r, r) => {
+        r.statusCode = 201;
+        r.json({ ok: 1 });
+      });
+
+      const next2 = jest.fn();
+      const res2 = makeRes();
+      await runWithHandler(
+        mw,
+        makeReq({ headers: { 'idempotency-key': key }, body: { store_id: 1, total_amount: 555 } }),
+        res2,
+        next2
+      );
+
+      expect(res2.statusCode).toBe(422);
+      expect(next2).not.toHaveBeenCalled();
+    });
+
+    test('Redis 연결 시 in-flight 중복은 409 로 거절한다', async () => {
+      useFakeRedis();
+      const mw = idempotency({ namespace: 'orders:create' });
+      const key = 'redis-uuid-3333';
+
+      await mw(makeReq({ headers: { 'idempotency-key': key } }), makeRes(), jest.fn());
+
+      const next2 = jest.fn();
+      const res2 = makeRes();
+      await runWithHandler(mw, makeReq({ headers: { 'idempotency-key': key } }), res2, next2);
+
+      expect(res2.statusCode).toBe(409);
+      expect(next2).not.toHaveBeenCalled();
+    });
+
+    test('Redis 장애로 연결이 끊기면 인메모리 폴백으로 멱등성을 유지한다', async () => {
+      const store = useFakeRedis();
+      const mw = idempotency({ namespace: 'orders:create' });
+      const key = 'redis-outage-5555';
+
+      // Redis 정상 상태에서 1차 처리
+      const res1 = makeRes();
+      await runWithHandler(mw, makeReq({ headers: { 'idempotency-key': key } }), res1, (_r, r) => {
+        r.statusCode = 201;
+        r.json({ order_id: 7 });
+      });
+
+      // Redis 장애 — Redis에 저장된 응답은 이제 읽을 수 없다.
+      // 인메모리 폴백 레코드가 없다면 중복 주문이 그대로 통과해버린다.
+      store.clear();
+      redisCache.isConnected = false;
+
+      const handler2 = jest.fn();
+      const res2 = makeRes();
+      await runWithHandler(mw, makeReq({ headers: { 'idempotency-key': key } }), res2, handler2);
+
+      expect(handler2).not.toHaveBeenCalled();
+      expect(res2.headers['Idempotency-Replayed']).toBe('true');
+      expect(res2.statusCode).toBe(201);
+    });
+  });
+
   describe('저장소 장애 내성', () => {
     test('Redis 조회가 실패해도 요청을 막지 않는다 (가용성 우선)', async () => {
       redisCache.isConnected = true;

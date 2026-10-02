@@ -38,7 +38,9 @@ describe('auth middleware', () => {
 
       auth.authMiddleware(req, res, next);
 
-      expect(jwt.verify).toHaveBeenCalledWith('valid-jwt-token', 'test-secret');
+      expect(jwt.verify).toHaveBeenCalledWith('valid-jwt-token', 'test-secret', {
+        algorithms: ['HS256'],
+      });
       expect(req.user).toEqual(decoded);
       expect(next).toHaveBeenCalled();
     });
@@ -51,7 +53,9 @@ describe('auth middleware', () => {
 
       auth.authMiddleware(req, res, next);
 
-      expect(jwt.verify).toHaveBeenCalledWith('cookie-jwt-token', 'test-secret');
+      expect(jwt.verify).toHaveBeenCalledWith('cookie-jwt-token', 'test-secret', {
+        algorithms: ['HS256'],
+      });
       expect(req.user).toEqual(decoded);
       expect(next).toHaveBeenCalled();
     });
@@ -146,7 +150,9 @@ describe('auth middleware', () => {
       auth.authMiddleware(req, res, next);
 
       // Should have used the cookie value, not the header value
-      expect(jwt.verify).toHaveBeenCalledWith('cookie-token', 'test-secret');
+      expect(jwt.verify).toHaveBeenCalledWith('cookie-token', 'test-secret', {
+        algorithms: ['HS256'],
+      });
       expect(next).toHaveBeenCalled();
     });
   });

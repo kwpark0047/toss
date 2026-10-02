@@ -3,6 +3,7 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { authMiddleware } = require('../middleware/auth');
 const { validateBody } = require('../middleware/validate');
+const { ensureCsrfToken } = require('../middleware/csrf');
 const {
   loginSchema,
   registerSchema,
@@ -167,6 +168,28 @@ router.put(
   validateBody(changePasswordSchema),
   authController.changePassword
 );
+
+/**
+ * @swagger
+ * /api/auth/csrf-token:
+ *   get:
+ *     tags: [Auth]
+ *     summary: CSRF double-submit 토큰 발급
+ *     description: >
+ *       쿠키 인증 모드(USE_HTTPONLY_COOKIE=true)에서 변경 요청에 필요한
+ *       CSRF 토큰을 발급한다. 프런트(vercel.app)와 API(render.com)가 다른
+ *       도메인이므로 프런트 JS 는 API 도메인의 쿠키를 document.cookie 로
+ *       읽을 수 없다. 따라서 토큰 값을 응답 본문으로 함께 돌려주어
+ *       X-CSRF-Token 헤더로 되돌려 보낼 수 있게 한다.
+ *       인증 불필요 — 로그인 요청 자체가 변경 요청이므로 토큰이 먼저 필요하다.
+ *     responses:
+ *       200:
+ *         description: CSRF 토큰 발급
+ */
+router.get('/csrf-token', (req, res) => {
+  const csrfToken = ensureCsrfToken(req, res);
+  return res.success({ csrfToken });
+});
 
 /**
  * @swagger

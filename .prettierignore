@@ -6,3 +6,5 @@ frontend/dist
 frontend/node_modules
 *.md
 pnpm-lock.yaml
+# CRLF 로 저장된 파일: prettier 정규화 시 diff 가 200줄 넘게 뒤섞인다
+controllers/bulkSmsController.js

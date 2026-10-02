@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { extractErrorMessage } from '@/lib/errorUtils';
+import { attachCsrfToken, shouldRetryWithFreshToken } from '@/lib/csrf';
 
 const getApiUrl = () => {
   // 1순위: 환경변수 (VITE_API_URL)
@@ -36,13 +37,16 @@ const api = axios.create({
 });
 
 // 요청 인터셉터 - 토큰 추가 (쿠키 모드 아니면 Authorization 헤더 사용)
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
   if (!USE_COOKIE) {
     const token = localStorage.getItem('token');
     // 2FA 임시 토큰처럼 요청별로 명시적으로 설정된 Authorization은 우선시한다
     if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+  } else {
+    // 쿠키 인증은 브라우저가 자동으로 첨부하므로 CSRF 토큰으로 보완한다.
+    await attachCsrfToken(config, API_URL);
   }
   return config;
 });
@@ -74,6 +78,13 @@ api.interceptors.response.use(
       console.warn(
         `${CLIENT_ERROR_LOG} ${error.config?.method?.toUpperCase()} ${error.config?.url} → ${error.response.status}: ${summary}`
       );
+    }
+
+    // ── CSRF 토큰 회전/만료 복구: 토큰을 버리고 1회만 재시도 ──
+    if (shouldRetryWithFreshToken(error)) {
+      // 이전 시도의 헤더를 지워야 인터셉터가 새 토큰을 붙인다
+      if (originalRequest.headers) delete originalRequest.headers['X-CSRF-Token'];
+      return api(originalRequest);
     }
 
     // 401 에러 처리 - 토큰 갱신

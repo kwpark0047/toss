@@ -35,20 +35,33 @@ const bulkSmsController = {
         if (region) storeWhere.address = { startsWith: region };
         if (businessType) storeWhere.business_type = businessType;
 
-        const customers = await prisma.store_customers.findMany({
-            where: {
-                ...where,
-                stores: Object.keys(storeWhere).length > 0 ? storeWhere : undefined
-            },
-            include: {
-                stores: { select: { name: true, address: true, business_type: true } }
-            },
-            orderBy: { created_at: 'desc' }
-        });
+        // [성능] 이 엔드포인트는 화면용 미리보기이므로 최대 100건만 반환한다.
+        // 이전 구현은 take 없이 전체 고객을 조회한 뒤 slice(0, 100) 으로 버려,
+        // 고객 수가 많으면 DB→Node 메모리→폐기 구간에서 OOM/지연이 발생했다.
+        // take 로 DB 레벨에서 제한하고, 총 건수는 별도 count 로 정확히 산출한다.
+        const CUSTOMER_PREVIEW_LIMIT = 100;
+
+        const customerWhere = {
+            ...where,
+            stores: Object.keys(storeWhere).length > 0 ? storeWhere : undefined
+        };
+
+        const [customers, totalCount] = await Promise.all([
+            prisma.store_customers.findMany({
+                where: customerWhere,
+                include: {
+                    stores: { select: { name: true, address: true, business_type: true } }
+                },
+                orderBy: { created_at: 'desc' },
+                take: CUSTOMER_PREVIEW_LIMIT
+            }),
+            prisma.store_customers.count({ where: customerWhere })
+        ]);
 
         res.success({
-            count: customers.length,
-            customers: customers.slice(0, 100)
+            count: totalCount,
+            hasMore: totalCount > CUSTOMER_PREVIEW_LIMIT,
+            customers
         });
     }),
 

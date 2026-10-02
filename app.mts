@@ -12,6 +12,7 @@ const responseFormatterModule = await import('./middleware/responseFormatter.js'
 const responseFormatter = (responseFormatterModule.default ?? responseFormatterModule) as unknown as RequestHandler;
 import { errorHandler, errorTypes } from './utils/errorHandler.js';
 import performanceMonitor from './middleware/performanceMonitor.js';
+import { csrfProtection } from './middleware/csrf.js';
 import Monitoring from './repositories/Monitoring.js';
 import { initDefaultMetrics, metricsMiddleware } from './metrics/PrometheusMetrics.mts';
 import { generalLimiter, publicLimiter, orderLimiter, authLimiter, paymentLimiter, } from './middleware/rateLimiter.js';
@@ -64,7 +65,7 @@ app.use((req, res, next) => {
         if (origin) res.setHeader('Vary', 'Origin');
         res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-Requested-With, Idempotency-Key, X-Idempotency-Key');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-Requested-With, Idempotency-Key, X-Idempotency-Key, X-CSRF-Token');
     }
     if (req.method === 'OPTIONS') return res.sendStatus(204);
     return next();
@@ -104,6 +105,7 @@ app.use(cors({
         'X-Requested-With',
         'Idempotency-Key',
         'X-Idempotency-Key',
+        'X-CSRF-Token',
     ],
     maxAge: 3600,
 }));
@@ -121,6 +123,9 @@ app.use(rawBodyJsonParser);
 // Sentry v10+: requestHandler 통합됨 (별도 미들웨어 불필요)
 // HttpOnly Cookie 기반 인증 (USE_HTTPONLY_COOKIE=true 시 활성화)
 app.use(cookieParser());
+// CSRF double-submit: 쿠키 인증 경로(USE_HTTPONLY_COOKIE=true)에서만 강제한다.
+// 서버 간 호출(Toss 웹훅)과 헬스체크/메트릭은 미들웨어 내부에서 제외된다.
+app.use(csrfProtection);
 // Security middleware - XSS protection
 // (xss-clean 제거됨 — strictSanitizer 가 body + query 를 모두 살균한다)
 app.use(strictSanitizer); // Strict sanitization for all inputs

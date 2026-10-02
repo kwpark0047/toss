@@ -59,7 +59,10 @@
 - [ ] i18n 완성 (일본어/중국어 번역 보강)
 
 ### Known Issues
-- `responseFormatter` 기본 HTTP 상태 200 (201 누락)
-- jest@^25.5.4 (구버전, 느린 실행)
-- 테스트 커버리지 불균일
+- ~~`responseFormatter` 기본 HTTP 상태 200 (201 누락)~~ → **해소됨**: `res.created()`(201) 헬퍼 이미 존재 (`middleware/responseFormatter.js:12-19`)
+- ~~jest@^25.5.4 (구버전, 느린 실행)~~ → **해소됨**: jest 30.4.2 사용 중
+- ~~DB 인덱스 최적화 (슬로우 쿼리 분석)~~ → **대부분 해소됨**: `prisma/schema.prisma`에 89 models / 162 indexes 선언됨
+- 테스트 커버리지 불균일 — `middleware/idempotency.js`의 Redis 경로는 커버리지 0이었으나 회귀 테스트 4건 추가로 해소
 - 일부 middleware/utils 10줄 미만 → 통합 필요
+- GitHub Actions: 계정 결제 실패(spending limit)로 job 시작 전 중단 — 외부 Billing 설정 필요
+- `/api/_devops` 운영 편의 엔드포인트는 `NODE_ENV=production` + `ENABLE_DEV_OPS` 동시 설정 시에만 마운트됨 (`app.mts:226`)
