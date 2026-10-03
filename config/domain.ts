@@ -13,11 +13,11 @@ export const isProduction = process.env.NODE_ENV === 'production';
 
 // ── 프론트엔드 URL ──────────────────────────────────────────
 // 고객용 QR 메뉴 페이지, 점주 대시보드 등
-export const FRONTEND_URL = process.env.FRONTEND_URL || 'https://toss.wemarket.workers.dev';
+export const FRONTEND_URL = process.env.FRONTEND_URL || 'https://toss-hazel.vercel.app';
 
 // ── 백엔드 URL ──────────────────────────────────────────────
 // API 서버, Socket.IO 엔드포인트
-export const BACKEND_URL = process.env.BACKEND_URL || 'https://wemarket-toss.onrender.com';
+export const BACKEND_URL = process.env.BACKEND_URL || 'https://wemarket.onrender.com';
 
 // ── CORS 허용 오리진 목록 ──────────────────────────────────────
 // 프로덕션: FRONTEND_URL + BACKEND_URL + CORS_ORIGIN 환경변수
@@ -28,6 +28,7 @@ export function getAllowedOrigins(): string[] {
     FRONTEND_URL,
     BACKEND_URL,
     // 현재 운영 프론트엔드 도메인 (CORS 허용 안전망)
+    'https://toss-hazel.vercel.app',
     'https://toss.wemarket.workers.dev',
     // 기존 배포 도메인 (하위 호환)
     'https://frontend-gamma-ten-89.vercel.app',
