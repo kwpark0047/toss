@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { tablesAPI, wakeupServer } from '@/api';
-import { Loader2, QrCode, AlertCircle, RefreshCw, Wifi, Server } from 'lucide-react';
+import { Loader2, QrCode, AlertCircle, RefreshCw, Wifi } from 'lucide-react';
 import { useSystemDark } from '@/hooks/useSystemDark';
 
 const MAX_WAIT_MS = 60000;      // 총 대기 시간 (wakeupServer와 동일 60초)
@@ -17,22 +17,26 @@ export default function QrResolvePage() {
   const [serverReady, setServerReady] = useState(false);
   const startTime = useRef(Date.now());
   const retryCount = useRef(0);
-  const cancelled = useRef(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     if (!qrCode) return;
+    let cancelled = false;
+    startTime.current = Date.now();
+    retryCount.current = 0;
+    setServerReady(false);
 
     const run = async () => {
       /* 1. Render 서버 웨이크업 */
       setStatus('wakeup');
       try {
         await wakeupServer();
-        if (!cancelled.current) setServerReady(true);
+        if (!cancelled) setServerReady(true);
       } catch { /* ignore */ }
 
       /* 2. QR 코드 resolve (지수 백오프 재시도) */
       let retryMs = BASE_RETRY_MS;
-      while (Date.now() - startTime.current < MAX_WAIT_MS && !cancelled.current) {
+      while (Date.now() - startTime.current < MAX_WAIT_MS && !cancelled) {
         setStatus('resolving');
         setAttempt(retryCount.current + 1);
 
@@ -41,30 +45,31 @@ export default function QrResolvePage() {
           const table = res?.data || res;
 
           if (table?.store_id) {
-            if (!cancelled.current) {
+            if (!cancelled) {
               const tableParam = encodeURIComponent(table.table_number || table.name || '');
               navigate(`/menu/${table.store_id}?table=${tableParam}`, { replace: true });
             }
             return;
           }
-        } catch {
+        } catch (error) {
+          if ([400, 404, 410].includes(error?.response?.status)) break;
           /* 서버 아직 준비 중 — 재시도 */
         }
 
         retryCount.current += 1;
 
-        if (Date.now() - startTime.current < MAX_WAIT_MS && !cancelled.current) {
+        if (Date.now() - startTime.current < MAX_WAIT_MS && !cancelled) {
           await new Promise(r => setTimeout(r, retryMs));
           retryMs = Math.min(retryMs * 1.5, MAX_RETRY_MS); // 지수 백오프
         }
       }
 
-      if (!cancelled.current) setStatus('error');
+      if (!cancelled) setStatus('error');
     };
 
     run();
-    return () => { cancelled.current = true; };
-  }, [qrCode, navigate]);
+    return () => { cancelled = true; };
+  }, [qrCode, navigate, retryKey]);
 
   /* ── 에러 화면 ── */
   if (status === 'error') {
@@ -82,7 +87,7 @@ export default function QrResolvePage() {
             </p>
           </div>
           <button
-            onClick={() => { cancelled.current = false; retryCount.current = 0; startTime.current = Date.now(); setStatus('wakeup'); setServerReady(false); }}
+            onClick={() => setRetryKey(key => key + 1)}
             className="w-full py-3 bg-orange-500 hover:bg-orange-400 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all"
           >
             <RefreshCw size={16} /> 다시 시도
@@ -119,7 +124,7 @@ export default function QrResolvePage() {
         <div className="w-full cust-border rounded-full h-1.5 overflow-hidden">
           <div
             className="h-full bg-orange-500 rounded-full transition-all duration-1000"
-            style={{ width: `${Math.min(((Date.now() - startTime.current) / MAX_WAIT_MS) * 100, 95)}%` }}
+            style={{ width: `${Math.min(attempt * 15, 95)}%` }}
           />
         </div>
 

@@ -6,6 +6,8 @@ import { toast } from 'react-toastify';
 import VisualTableMap from './VisualTableMap';
 import { getSocket } from '../../utils/socket';
 import { buildMenuUrl, buildQrUrl } from '../../utils/site';
+import { createQrImage } from '../../utils/tableQr';
+import { readApiList } from '../../lib/apiList';
 import { handleApiError } from '../../utils/apiError';
 import Icon from '../../components/ui/Icon';
 import { Check, Download, FileText, LayoutGrid, List, Loader2, Printer, QrCode, Sparkles, XIcon } from 'lucide-react';
@@ -275,10 +277,8 @@ async function drawCard(canvas, designId, storeName, tableName, capacity) {
   ctx.stroke();
 
   /* QR 이미지 로드 */
-  const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(canvas._qrData || '')}&bgcolor=ffffff&color=${d.qrFg}&margin=4`;
-  let qrImg;
-  try { qrImg = await loadImg(qrImgUrl); } catch { /* fallback */ }
-  if (qrImg) ctx.drawImage(qrImg, QR_CX + QR_PAD, QR_CY + QR_PAD, QR_SIZE, QR_SIZE);
+  const qrImg = await loadImg(await createQrImage(canvas._qrData, 900, `#${d.qrFg}`));
+  ctx.drawImage(qrImg, QR_CX + QR_PAD, QR_CY + QR_PAD, QR_SIZE, QR_SIZE);
 
   /* 코너 브라켓 장식 */
   drawBrackets(ctx, QR_CX - 6, QR_CY - 6, QR_CW + 12, QR_CW + 12,
@@ -390,25 +390,27 @@ const TableManager = () => {
   const [editingTable, setEditingTable] = useState(null);
   const [showQrModal, setShowQrModal]   = useState(null);
   const [pdfLoading, setPdfLoading]     = useState(false);
-  const [viewMode, setViewMode] = useState('map');
+  const [viewMode, setViewMode] = useState('list');
+  const [dataError, setDataError] = useState('');
   const [activeFloor, setActiveFloor]   = useState('5층');
   const [searchQuery, setSearchQuery]   = useState('');
 
   const fetchData = useCallback(async () => {
+    setDataError('');
     try {
       const [storeRes, tablesRes] = await Promise.all([
         storesAPI.getById(storeId),
         tablesAPI.getByStore(storeId),
       ]);
-      setStore(storeRes.data);
-      setTables(tablesRes.data);
+      setStore(storeRes.data || storeRes);
+      setTables(readApiList(tablesRes));
     } catch (e) {
       handleApiError(e, '데이터 로딩 실패');
-      navigate('/admin');
+      setDataError('테이블 정보를 불러오지 못했습니다. 다시 조회해 주세요.');
     } finally {
       setLoading(false);
     }
-  }, [storeId, navigate]);
+  }, [storeId]);
 
   useEffect(() => {
     fetchData();
@@ -433,13 +435,8 @@ const TableManager = () => {
     catch (e) { handleApiError(e, 'QR 재생성 실패'); }
   };
 
-  /* QR에 담길 URL — 백엔드 없이 메뉴 직접 경로 인코딩
-   * Render 콜드스타트 우회: /menu/{storeId}?table={번호} 로 QrResolvePage 완전 제거 */
+  // Stable public domain + stored token keeps revocation and table changes effective.
   const getMenuUrl = (table) => table?.qr_code ? buildQrUrl(table.qr_code) : buildMenuUrl(storeId, table.table_number || table.name || '');
-
-  /* QR 이미지 서비스 URL (margin=4 로 quiet zone 확보) */
-  const getQrImageUrl = (menuUrl, size = 200) =>
-    `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(menuUrl)}&bgcolor=ffffff&color=0f172a&margin=4`;
 
   /* 전체 PDF 생성 */
   const generatePDF = async () => {
@@ -552,6 +549,12 @@ const TableManager = () => {
 
   return (
     <div className="max-w-7xl mx-auto pb-24 px-3 lg:px-4">
+      {dataError && <div role="alert" className="mb-4 rounded-xl border border-rose-500/30 p-4 text-rose-400">{dataError} <button onClick={fetchData} className="underline">다시 조회</button></div>}
+      <div className="mb-4 rounded-xl border border-orange-500/20 bg-orange-500/5 p-4 text-sm text-slate-400">
+        <strong className="text-orange-400">테이블 QR 주문 연결</strong>
+        <p className="mt-1 break-all">운영 주소: {buildMenuUrl(storeId)}</p>
+        <p className="mt-1">이전 도메인으로 출력한 QR은 새 카드로 교체하세요. 주소 변경만으로는 QR 재생성이 필요하지 않습니다.</p>
+      </div>
       {/* 헤더 */}
       <div className="flex flex-col gap-4 mb-6 lg:mb-10">
         {/* 타이틀 행 */}
@@ -564,7 +567,7 @@ const TableManager = () => {
             </motion.button>
             <div className="min-w-0">
               <h1 className="text-xl lg:text-3xl font-black text-white tracking-tight flex items-center gap-2">
-                좌석 관리
+                테이블 · QR 관리
                 <Sparkles size={16} className="text-orange-500 animate-pulse" />
               </h1>
               <p className="text-slate-500 text-[10px] font-bold mt-0.5 uppercase tracking-widest truncate">{store?.name}</p>
@@ -781,7 +784,6 @@ const TableManager = () => {
         {showQrModal && (
           <QrModal table={showQrModal} store={store}
             qrUrl={getMenuUrl(showQrModal)}
-            getQrImageUrl={getQrImageUrl}
             onClose={() => setShowQrModal(null)} />
         )}
       </AnimatePresence>
@@ -790,7 +792,7 @@ const TableManager = () => {
 };
 
 /* ─────────────────────────── QR 카드 모달 ─────────────────────────── */
-const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
+const QrModal = ({ table, store, qrUrl, onClose }) => {
   const [design, setDesign]         = useState('dark');
   const [printMode, setPrintMode]   = useState('a6'); // 'a6' or 'a4_4'
   const [downloading, setDownloading] = useState(false);
@@ -799,7 +801,20 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
   const d = DESIGNS.find(x => x.id === design) || DESIGNS[0];
 
   const tableName = table.name || table.table_number || '';
-  const qrImgUrl  = getQrImageUrl(qrUrl, 400);
+  const [qrImgUrl, setQrImgUrl] = useState('');
+  const [qrError, setQrError] = useState('');
+  useEffect(() => {
+    let cancelled = false;
+    setQrImgUrl(''); setQrError('');
+    createQrImage(qrUrl, 600).then(image => { if (!cancelled) setQrImgUrl(image); })
+      .catch(() => { if (!cancelled) setQrError('QR 생성에 실패했습니다. 창을 닫고 다시 열어 주세요.'); });
+    return () => { cancelled = true; };
+  }, [qrUrl]);
+  useEffect(() => {
+    const handleKey = event => { if (event.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onClose]);
 
   /* PNG 다운로드 */
   const handleDownload = async () => {
@@ -824,6 +839,9 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
 
   /* 브라우저 인쇄 */
   const handlePrint = async () => {
+    const win = window.open('', '_blank', 'width=800,height=900');
+    if (!win) { toast.error('인쇄 창이 차단되었습니다. 팝업을 허용해 주세요.'); return; }
+    win.document.body.textContent = 'QR 인쇄 준비 중…';
     setPrinting(true);
     try {
       const canvas = document.createElement('canvas');
@@ -833,8 +851,8 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
       await drawCard(canvas, design, store?.name || '', tableName, table.capacity);
       const imgSrc = canvas.toDataURL('image/png');
 
-      const win = window.open('', '_blank', 'width=800,height=900');
       const doc = win.document;
+      doc.body.textContent = '';
 
       /* 스타일 */
       const style = doc.createElement('style');
@@ -876,17 +894,12 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
         doc.body.appendChild(img);
       }
 
-      const imgs = doc.querySelectorAll('img');
-      let loaded = 0;
-      imgs.forEach(img => {
-        img.onload = () => {
-          loaded++;
-          if (loaded === imgs.length) {
-            setTimeout(() => { win.print(); win.close(); }, 500);
-          }
-        };
-      });
+      await Promise.all(Array.from(doc.querySelectorAll('img'), img => img.decode()));
+      win.focus();
+      win.onafterprint = () => win.close();
+      win.print();
     } catch (err) {
+      win.close();
       console.error(err);
       toast.error('인쇄 준비에 실패했습니다.');
     } finally {
@@ -900,7 +913,7 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
       setCopied(true);
       toast.success('주문 URL이 복사되었습니다.');
       setTimeout(() => setCopied(false), 2000);
-    });
+    }).catch(() => toast.error('주소 복사에 실패했습니다. 표시된 주문 주소를 직접 복사해 주세요.'));
   };
 
   return (
@@ -909,7 +922,8 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
       onClick={e => e.target === e.currentTarget && onClose()}>
       <motion.div initial={{ scale: 0.92, opacity: 0, y: 24 }} animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.92, opacity: 0, y: 24 }} transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-        className="bg-slate-900 border border-white/10 rounded-[2.5rem] w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
+        role="dialog" aria-modal="true" aria-label={`${tableName} QR 카드`}
+        className="bg-slate-900 border border-white/10 rounded-[2.5rem] w-full max-w-4xl shadow-2xl overflow-y-auto flex flex-col md:flex-row max-h-[90vh]">
 
         {/* ── 왼쪽: 카드 미리보기 ── */}
         <div className="md:w-[320px] flex-shrink-0 flex flex-col items-center justify-center p-6 lg:p-8 border-b md:border-b-0 md:border-r border-white/5 relative overflow-hidden"
@@ -958,7 +972,7 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
               ))}
               <div className="bg-white rounded-xl p-2.5 shadow-xl"
                 style={{ boxShadow: `0 8px 24px rgba(0,0,0,0.30), 0 0 0 1.5px ${d.qrBorderColor}` }}>
-                <img src={qrImgUrl} alt="QR" className="w-full rounded-sm" crossOrigin="anonymous" />
+                {qrImgUrl ? <img src={qrImgUrl} alt={`${tableName} 주문 QR 코드`} className="w-full rounded-sm" /> : <p role="status" className="p-4 text-xs text-slate-700">{qrError || 'QR 생성 중…'}</p>}
               </div>
             </div>
 
@@ -1006,7 +1020,7 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
               <h3 className="text-2xl font-black text-white">{tableName}</h3>
               <p className="text-slate-500 text-xs mt-0.5">QR 카드 생성 및 출력</p>
             </div>
-            <button onClick={onClose}
+            <button onClick={onClose} aria-label="QR 카드 닫기"
               className="w-10 h-10 rounded-xl bg-white/5 text-slate-500 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center">
               <XIcon size={18} />
             </button>
@@ -1055,7 +1069,7 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
               <div>
                 <span className="text-slate-500 text-xs block mb-1.5">메뉴판 URL</span>
                 <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/5">
-                  <span className="text-emerald-400 text-[10px] font-mono flex-1 truncate">{qrUrl}</span>
+                  <a href={qrUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-400 text-xs font-mono flex-1 break-all select-all">{qrUrl}</a>
                 </div>
                 <p className="text-slate-600 text-[10px] mt-1.5 ml-1">
                   위 URL이 QR코드에 담겨있습니다. 테스트 버튼으로 확인하세요.
@@ -1113,7 +1127,7 @@ const QrModal = ({ table, store, qrUrl, getQrImageUrl, onClose }) => {
                 </motion.button>
 
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={() => window.open(qrUrl, '_blank')}
+                  onClick={() => window.open(qrUrl, '_blank', 'noopener,noreferrer')}
                   className="py-3.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white rounded-2xl font-black text-[11px] flex items-center justify-center gap-1.5 transition-all">
                   <QrCode size={14} /> 테스트
                 </motion.button>

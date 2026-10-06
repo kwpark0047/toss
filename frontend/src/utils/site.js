@@ -2,8 +2,10 @@
  * site.js - 배포 도메인 관련 공용 상수/헬퍼
  */
 
-// 고객 메뉴판이 서빙되는 배포 도메인 (Cloudflare Pages 동적 라우팅 지원)
-export const SITE_ORIGIN = 'https://toss-a1hoyzqr5-kwpark0047-8227s-projects.vercel.app';
+// Stable public customer domain; never use a deployment-specific preview URL.
+export const SITE_ORIGIN = (
+  import.meta.env.VITE_PUBLIC_SITE_URL || 'https://wemarket-saas.vercel.app'
+).replace(/\/+$/, '');
 
 /**
  * 매장 메뉴판 URL 생성.
@@ -12,8 +14,8 @@ export const SITE_ORIGIN = 'https://toss-a1hoyzqr5-kwpark0047-8227s-projects.ver
  */
 export const buildMenuUrl = (storeId, table) =>
   table != null && table !== ''
-    ? `${SITE_ORIGIN}/menu/${storeId}?table=${encodeURIComponent(table)}`
-    : `${SITE_ORIGIN}/menu/${storeId}`;
+    ? `${SITE_ORIGIN}/menu/${encodeURIComponent(storeId)}?table=${encodeURIComponent(table)}`
+    : `${SITE_ORIGIN}/menu/${encodeURIComponent(storeId)}`;
 
 /**
  * 테이블 고유 QR코드 라우팅 URL 생성.
