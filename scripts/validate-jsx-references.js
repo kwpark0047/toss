@@ -92,6 +92,12 @@ function findJsxTags(code) {
     const line = code.slice(0, idx).split('\n').length;
     tags.push({ name: m[1], line });
   }
+  // Icon values in configuration objects and props also execute as identifiers.
+  const iconRef =
+    /\bicon\s*(?::\s*([A-Z][A-Za-z0-9]*)\s*(?=[,}])|=\s*\{\s*([A-Z][A-Za-z0-9]*)\s*\})/g;
+  while ((m = iconRef.exec(code)) !== null) {
+    tags.push({ name: m[1] || m[2], line: code.slice(0, m.index).split('\n').length });
+  }
   return tags;
 }
 

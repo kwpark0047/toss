@@ -4,25 +4,25 @@ import { campaignAPI } from '@/api/admin';
 import Skeleton from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
 import Icon from '../../components/ui/Icon';
-import { Target, Megaphone, BarChart3 } from 'lucide-react';
+import { Target, Megaphone, BarChart3, Gift, TrendingUp } from 'lucide-react';
 
 /* ── 유형별 메타 ─────────────────────────────────────────────── */
 const TRIGGER_META = {
   WELCOME: {
     label: '첫 방문 환영',
-    icon: 'Gift',
+    icon: Gift,
     color: 'text-emerald-600',
     bg: 'bg-emerald-50'
   },
   TIER_UP: {
     label: '등급 승급',
-    icon: 'TrendingUp',
+    icon: TrendingUp,
     color: 'text-purple-600',
     bg: 'bg-purple-50'
   },
   BIRTHDAY: {
     label: '생일 축하',
-    icon: 'Gift',
+    icon: Gift,
     color: 'text-rose-600',
     bg: 'bg-rose-50'
   },
@@ -350,18 +350,15 @@ export default function CampaignDashboard() {
 
       {/* ── TAB: 캠페인 목록 ─────────────────────────────── */}
       {tab === 'campaigns' && <>
-          {campaigns.length === 0 ? <EmptyState icon={Megaphone} title="등록된 캠페인이 없습니다" description="자동 마케팅 캠페인을 만들어 고객 방문을 유도하세요." action={{
-        label: '캠페인 만들기',
-        onClick: () => setTab('create')
-      }} /> : <div className="space-y-3">
+          {campaigns.length === 0 ? <EmptyState icon={<Megaphone size={40} />} title="등록된 캠페인이 없습니다" description="자동 마케팅 캠페인을 만들어 고객 방문을 유도하세요." action={<button type="button" onClick={() => setTab('create')} className="px-4 py-2 rounded-xl bg-orange-500 text-white">캠페인 만들기</button>} /> : <div className="space-y-3">
               {campaigns.map(c => {
           const meta = TRIGGER_META[c.trigger_type] || TRIGGER_META.MANUAL;
-          const Icon = meta.icon;
+          const TriggerIcon = meta.icon;
           return <div key={c.id} className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-all">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4">
                         <div className={`p-2.5 rounded-xl ${meta.bg} ${meta.color}`}>
-                          <Icon size={20} />
+                          <TriggerIcon size={20} />
                         </div>
                         <div>
                           <div className="flex items-center gap-2 mb-1">
@@ -449,7 +446,7 @@ export default function CampaignDashboard() {
                   </div>
                 </div>
               </div>
-            </> : <EmptyState icon={BarChart3} title="RFM 분석 데이터 없음" description="고객 방문 기록이 쌓이면 자동으로 세그먼트가 분석됩니다." />}
+            </> : <EmptyState icon={<BarChart3 size={40} />} title="RFM 분석 데이터 없음" description="고객 방문 기록이 쌓이면 자동으로 세그먼트가 분석됩니다." />}
         </>}
 
       {tab === 'automation' && <div className="space-y-4">
@@ -464,7 +461,7 @@ export default function CampaignDashboard() {
             </div>
             <p className="text-xs text-gray-400 mt-2">후보 생성 후 승인해야 실제 SMS가 발송됩니다.</p>
           </div>
-          {automationRuns.length === 0 ? <EmptyState icon={Megaphone} title="승인 대기 캠페인이 없습니다" description="세그먼트를 선택해 발송 후보를 생성하세요." /> : <div className="space-y-3">
+          {automationRuns.length === 0 ? <EmptyState icon={<Megaphone size={40} />} title="승인 대기 캠페인이 없습니다" description="세그먼트를 선택해 발송 후보를 생성하세요." /> : <div className="space-y-3">
             {automationRuns.map((run) => <div key={run.id} className="rounded-2xl border bg-white p-5 shadow-sm flex items-center justify-between gap-4">
               <div>
                 <p className="font-semibold text-gray-900">{run.segment_name} · {run.target_count}명</p>
@@ -489,13 +486,13 @@ export default function CampaignDashboard() {
               <label className="text-xs font-medium text-gray-600 mb-1.5 block">트리거 유형</label>
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(TRIGGER_META).map(([key, meta]) => {
-              const Icon = meta.icon;
+              const TriggerIcon = meta.icon;
               return <button key={key} onClick={() => setForm(p => ({
                 ...p,
                 trigger_type: key
               }))} className={`flex items-center gap-2 p-3 rounded-xl border text-sm transition-all
                         ${form.trigger_type === key ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                      <Icon size={16} /> {meta.label}
+                      <TriggerIcon size={16} /> {meta.label}
                     </button>;
             })}
               </div>

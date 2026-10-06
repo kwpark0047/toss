@@ -164,7 +164,7 @@ export default function StoreLocator() {
             cancelled: { gradient: 'from-rose-500 to-pink-600',     icon: XCircle,      title: '주문이 취소되었어요',               subtitle: '도움이 필요하면 매장에 문의해주세요' },
           };
           const cfg = configs[dispStatus] || configs.pending;
-          const Icon = cfg.icon;
+          const ScopedIcon = cfg.icon;
           return (
             <motion.div
               key={dispStatus}
@@ -182,7 +182,7 @@ export default function StoreLocator() {
                     transition={{ type: 'spring', stiffness: 300, damping: 15 }}
                     className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shrink-0"
                   >
-                    <Icon size={24} aria-hidden="true" />
+                    <ScopedIcon size={24} aria-hidden="true" />
                   </motion.div>
                   <div className="min-w-0">
                     <p className="text-lg sm:text-xl font-black leading-tight">{cfg.title}</p>
@@ -194,7 +194,7 @@ export default function StoreLocator() {
                   <p className="text-lg sm:text-2xl font-black leading-none tabular-nums">#{orderNo}</p>
                   {orderEta && (
                     <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold bg-white/20 rounded-full px-2.5 py-1">
-                      <Icon icon="Clock" size="sm" aria-hidden="true" /> 예상 {orderEta}분
+                      <Icon icon="Clock" size={16} aria-hidden="true" /> 예상 {orderEta}분
                     </p>
                   )}
                 </div>

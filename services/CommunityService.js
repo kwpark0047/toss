@@ -96,7 +96,14 @@ class CommunityService {
       prisma.community_posts.findMany({
         where,
         include: {
-          stores: { select: { id: true, name: true, business_type: true, address: true } },
+          stores: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+              store_business_info: { select: { business_type: true } },
+            },
+          },
         },
         orderBy: { created_at: 'desc' },
         skip,
@@ -105,7 +112,24 @@ class CommunityService {
       prisma.community_posts.count({ where }),
     ]);
 
-    return { posts, total, district: targetDistrict, page: pageNumber, limit: limitNumber };
+    const feedPosts = posts.map((post) => ({
+      ...post,
+      stores: post.stores
+        ? {
+            id: post.stores.id,
+            name: post.stores.name,
+            address: post.stores.address,
+            business_type: post.stores.store_business_info?.business_type ?? null,
+          }
+        : null,
+    }));
+    return {
+      posts: feedPosts,
+      total,
+      district: targetDistrict,
+      page: pageNumber,
+      limit: limitNumber,
+    };
   }
 
   /**

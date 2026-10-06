@@ -7,7 +7,7 @@ import Icon from '../../components/ui/Icon';
 import { motion, AnimatePresence } from 'framer-motion';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
-import { AlertCircle, Calendar, Check, CheckCircle2, ChefHat, ChevronDown, ChevronUp, Loader2, LogIn, LogOut, Phone, RefreshCw, Search, Sparkles, User, UserCheck, UserPlus, X, XCircle } from 'lucide-react';
+import { AlertCircle, Calendar, Check, CheckCircle2, ChefHat, ChevronDown, ChevronUp, Loader2, LogIn, LogOut, Phone, RefreshCw, Search, Sparkles, User, UserCheck, UserPlus, X, XCircle, QrCode, Timer, Wifi } from 'lucide-react';
 
 // ── 역할 정의 ──────────────────────────────────────────────
 const ROLES = {
@@ -630,7 +630,7 @@ const TeamTab = ({ staff, myRole, canManage, onRoleChange, onDelete, isSoloStore
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {staff.map(member => {
           const role = ROLES[member.role] || ROLES.staff;
-          const Icon = role.icon;
+          const ScopedIcon = role.icon;
           const canEdit = canManage && (myRole === 'owner' || member.role !== 'manager');
           const isEditing = editingId === member.id;
 
@@ -650,11 +650,11 @@ const TeamTab = ({ staff, myRole, canManage, onRoleChange, onDelete, isSoloStore
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                     <button onClick={() => { setEditingId(member.id); setPendingRole(member.role); }}
                       className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 hover:text-blue-400 transition-all">
-                      <Icon icon="Edit2" size="md" />
+                      <Icon icon="Edit2" size={20} />
                     </button>
                     <button onClick={() => onDelete(member.id, member.name)}
                       className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 hover:text-rose-400 transition-all">
-                      <Icon icon="Trash2" size="md" />
+                      <Icon icon="Trash2" size={20} />
                     </button>
                   </div>
                 )}
@@ -670,17 +670,17 @@ const TeamTab = ({ staff, myRole, canManage, onRoleChange, onDelete, isSoloStore
                   </select>
                   <button onClick={() => { onRoleChange(member.id, pendingRole); setEditingId(null); }}
                     className="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center text-white">
-                    <Icon icon="Check" size="md" />
+                    <Icon icon="Check" size={20} />
                   </button>
                   <button onClick={() => setEditingId(null)}
                     className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-slate-400">
-                    <Icon icon="X" size="md" />
+                    <Icon icon="X" size={20} />
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center justify-between">
                   <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${role.border} bg-white/5`}>
-                    <Icon size={12} className={role.text} />
+                    <ScopedIcon size={12} className={role.text} />
                     <span className={`font-black text-[10px] tracking-widest uppercase ${role.text}`}>{role.label}</span>
                   </div>
                   <div className="flex flex-wrap gap-1 justify-end">

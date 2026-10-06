@@ -118,7 +118,7 @@ export default function OfflineBanner() {
             disabled={retrying}
             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-full text-xs font-bold transition-colors disabled:opacity-60"
           >
-            <RefreshCw size="md" className={retrying ? 'animate-spin' : ''} />
+            <RefreshCw size={20} className={retrying ? 'animate-spin' : ''} />
             {retrying ? '확인 중' : '재시도'}
           </button>
         )}

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, Component } from 'react';
 import { useSEO } from '../../lib/useSEO';
 import api from '../../api';
 import Icon from '../../components/ui/Icon';
-import { Activity, AlertTriangle, Building2, CheckCircle2, CreditCard, Database, FileText, RefreshCw, Server, Shield, XCircle, Zap } from 'lucide-react';
+import { Activity, AlertTriangle, Building2, CheckCircle2, CreditCard, Database, FileText, RefreshCw, Server, Shield, XCircle, Zap, TrendingUp, Clock, Cpu } from 'lucide-react';
 
 /**
  * 각 섹션을 독립적으로 감싸는 에러 바운더리
@@ -102,7 +102,7 @@ const StatusBadge = ({
         </span>;
 };
 const MetricCard = ({
-  icon: Icon,
+  icon: ScopedIcon,
   label,
   value,
   sub,
@@ -113,7 +113,7 @@ const MetricCard = ({
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{
       backgroundColor: color + '20'
     }}>
-                <Icon size={18} style={{
+                <ScopedIcon size={18} style={{
         color
       }} />
             </div>

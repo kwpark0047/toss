@@ -17,6 +17,7 @@ const {
   orderIdParamSchema,
   orderNumberParamSchema,
   customerTokenParamSchema,
+  storeRouteParamSchema,
 } = require('../src/validation/schemas');
 const {
   verifyOrderCapability,
@@ -177,7 +178,7 @@ router.get(
 router.get(
   '/store/:storeId/detailed-stats',
   authMiddleware,
-  validateParams({ params: orderSearchQuerySchema }), // storeId 파라미터용
+  validateParams(storeRouteParamSchema), // storeId 파라미터용
   checkStorePermission('stats:read'),
   orderController.getDetailedStats
 );
@@ -202,7 +203,7 @@ router.get(
 router.get(
   '/store/:storeId/stats',
   authMiddleware,
-  validateParams({ params: orderSearchQuerySchema }),
+  validateParams(storeRouteParamSchema),
   checkStorePermission('stats:read'),
   orderController.getStats
 );
@@ -414,10 +415,6 @@ router.delete(
  *                 activeOrdersAhead: { type: integer }
  *                 message: { type: string }
  */
-router.get(
-  '/store/:storeId/eta',
-  validateParams({ params: orderSearchQuerySchema }),
-  orderController.getEta
-);
+router.get('/store/:storeId/eta', validateParams(storeRouteParamSchema), orderController.getEta);
 
 module.exports = router;

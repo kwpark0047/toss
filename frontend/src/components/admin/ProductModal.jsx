@@ -9,7 +9,7 @@ import { formatFileSize } from '../../utils/fileUtils';
 import { SampleImagePicker } from './SampleImagePicker';
 import { VisualOptionEditor } from './VisualOptionEditor';
 import Icon from '../../components/ui/Icon';
-import { Check, Image, Info, Leaf, Package, RefreshCw, Settings, Sparkles, Upload, X } from 'lucide-react';
+import { Check, Image, Info, Leaf, Package, RefreshCw, Settings, Sparkles, Upload, X, FileText, Tag, Star, Flame, AlertTriangle } from 'lucide-react';
 
 export function ProductModal({ storeId, categories, product, onClose, onSave }) {
   const [form, setForm] = useState({

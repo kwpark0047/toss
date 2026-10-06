@@ -1,3 +1,4 @@
+import { readApiList } from '../../lib/apiList';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { formatPrice } from '@/utils/format';
 import Icon from '../../components/ui/Icon';
-import { Clock, Edit, History, Package, Play, Plus, RefreshCw, Save, Trash2, TrendingUp, X, Users, PauseCircle, CheckCircle, XCircle, BarChart3 } from 'lucide-react';
+import { Clock, Edit, History, Package, Play, Plus, RefreshCw, Save, Trash2, TrendingUp, X, Users, PauseCircle, CheckCircle, XCircle, BarChart3, Zap } from 'lucide-react';
 const RULE_TYPES = [{
   value: 'TIME_BASED',
   label: '시간대별',
@@ -15,7 +16,7 @@ const RULE_TYPES = [{
 }, {
   value: 'DEMAND_BASED',
   label: '수요 기반',
-  icon: 'TrendingUp',
+  icon: TrendingUp,
   color: 'bg-green-100 text-green-700'
 }, {
   value: 'INVENTORY_BASED',
@@ -25,7 +26,7 @@ const RULE_TYPES = [{
 }, {
   value: 'WEATHER_BASED',
   label: '날씨 기반',
-  icon: 'Zap',
+  icon: Zap,
   color: 'bg-yellow-100 text-yellow-700'
 }, {
   value: 'COMPETITOR_BASED',
@@ -117,29 +118,35 @@ const DynamicPricingManager = ({
 
   const {
     data: rulesData,
+    error: rulesError,
+    refetch: refetchrules,
   } = useQuery({
     queryKey: ['pricing-rules', storeId],
-    queryFn: () => dynamicPricingAPI.getRules(storeId).then(res => res),
+    queryFn: () => dynamicPricingAPI.getRules(storeId).then(readApiList),
     staleTime: 60000
   });
 
   // 가격 변경 이력 조회
   const {
     data: logsData,
+    error: logsError,
+    refetch: refetchlogs,
   } = useQuery({
     queryKey: ['pricing-logs', storeId],
     queryFn: () => dynamicPricingAPI.getPriceLogs(storeId, {
       limit: 100
-    }).then(res => res),
+    }).then(readApiList),
     staleTime: 60000,
     enabled: activeTab === 'logs'
   });
 
   const {
     data: jobsData,
+    error: jobsError,
+    refetch: refetchjobs,
   } = useQuery({
     queryKey: ['pricing-jobs', storeId],
-    queryFn: () => dynamicPricingAPI.getJobs(storeId).then(res => res),
+    queryFn: () => dynamicPricingAPI.getJobs(storeId).then(readApiList),
     staleTime: 60000,
     enabled: activeTab === 'jobs'
   });
@@ -147,16 +154,18 @@ const DynamicPricingManager = ({
   // 수요 예측 조회
   const {
     data: forecastsData,
+    error: forecastsError,
+    refetch: refetchforecasts,
   } = useQuery({
     queryKey: ['pricing-forecasts', storeId],
-    queryFn: () => dynamicPricingAPI.getForecasts(storeId).then(res => res),
+    queryFn: () => dynamicPricingAPI.getForecasts(storeId).then(readApiList),
     staleTime: 60000,
     enabled: activeTab === 'forecasts'
   });  // 뮤테이션
   const deleteRuleMutation = useMutation({
     mutationFn: ruleId => dynamicPricingAPI.deleteRule(storeId, ruleId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['pricing-rules', storeId]);
+      queryClient.invalidateQueries({ queryKey: ['pricing-rules', storeId] });
     }
   });
   const runOptimizationMutation = useMutation({
@@ -164,13 +173,13 @@ const DynamicPricingManager = ({
       jobType
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['pricing-jobs', storeId]);
+      queryClient.invalidateQueries({ queryKey: ['pricing-jobs', storeId] });
     }
   });
   const applyManualPriceMutation = useMutation({
     mutationFn: data => dynamicPricingAPI.applyManualPrice(storeId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['pricing-logs', storeId]);
+      queryClient.invalidateQueries({ queryKey: ['pricing-logs', storeId] });
       setShowPriceModal(false);
       setSelectedProduct(null);
     }
@@ -178,7 +187,7 @@ const DynamicPricingManager = ({
   const createRuleMutation = useMutation({
     mutationFn: data => dynamicPricingAPI.createRule(storeId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['pricing-rules', storeId]);
+      queryClient.invalidateQueries({ queryKey: ['pricing-rules', storeId] });
       setShowRuleModal(false);
       setEditingRule(null);
     }
@@ -189,15 +198,15 @@ const DynamicPricingManager = ({
       data
     }) => dynamicPricingAPI.updateRule(storeId, ruleId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['pricing-rules', storeId]);
+      queryClient.invalidateQueries({ queryKey: ['pricing-rules', storeId] });
       setShowRuleModal(false);
       setEditingRule(null);
     }
   });
-  const rules = rulesData?.items || rulesData || [];
-  const logs = logsData?.items || logsData || [];
-  const jobs = jobsData || [];
-  const forecasts = forecastsData || [];
+  const rules = readApiList(rulesData);
+  const logs = readApiList(logsData);
+  const jobs = readApiList(jobsData);
+  const forecasts = readApiList(forecastsData);
   const handleDeleteRule = async ruleId => {
     if (window.confirm('이 가격 규칙을 삭제하시겠습니까?')) {
       await deleteRuleMutation.mutateAsync(ruleId);
@@ -275,6 +284,7 @@ const DynamicPricingManager = ({
   };
   const getRuleTypeConfig = type => RULE_TYPES.find(r => r.value === type) || RULE_TYPES[0];
   return <div className="space-y-6">
+      {(rulesError || logsError || jobsError || forecastsError) && <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-800">가격 데이터를 불러오지 못했습니다.<button type="button" className="ml-3 underline" onClick={() => { const refresh = { rules: refetchrules, logs: refetchlogs, jobs: refetchjobs, forecasts: refetchforecasts }; refresh[activeTab]?.(); }}>다시 조회</button></div>}
       {/* 탭 네비게이션 */}
       <div className="flex gap-2 border-b border-slate-200">
         {[{

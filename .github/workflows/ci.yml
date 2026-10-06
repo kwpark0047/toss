@@ -221,6 +221,8 @@ jobs:
         run: node scripts/smoke-frontend-browser.cjs
       - name: Verify desktop and mobile dashboard states
         run: node scripts/smoke-dashboard-browser.cjs
+      - name: Admin page runtime smoke
+        run: node scripts/smoke-admin-pages.cjs
 
   # === 수동/스케줄 트리거 잡 (push/PR에서는 실행 안 함) ===
   backend-integration-tests:

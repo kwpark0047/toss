@@ -35,12 +35,12 @@ const defaultTheme = {
 const paymentMethods = [{
   id: "card",
   label: "카드결제",
-  icon: CreditCard,
+  icon: 'CreditCard',
   desc: "신용/체크카드"
 }, {
   id: "cash",
   label: "현금결제",
-  icon: Banknote,
+  icon: 'Banknote',
   desc: "카운터 결제"
 }, {
   id: "transfer",
@@ -1125,7 +1125,7 @@ const Menu = ({
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${kioskMode ? 'w-14 h-14' : ''}`} style={{
                   backgroundColor: theme.primaryColor + "15"
                 }}>
-<Icon icon="CreditCard" size="lg" style={{
+<Icon icon={m.icon} size="lg" style={{
             color: theme.primaryColor
           }} />
                         </div>

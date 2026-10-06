@@ -6,7 +6,7 @@ import api from '../../api/index.js';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
 import Icon from '../../components/ui/Icon';
-import { Award, ChevronRight, Clock, Crown, Gift, Loader2, Phone, RefreshCw, Search, Star, Users, X, UserCheck, Wallet, AlertTriangle, BarChart2, Tag } from 'lucide-react';
+import { Award, ChevronRight, Clock, Crown, Gift, Loader2, Phone, RefreshCw, Search, Star, Users, X, UserCheck, Wallet, AlertTriangle, BarChart2, Tag, History, TrendingUp } from 'lucide-react';
 
 // ── 등급 메타 ─────────────────────────────────────────────────────
 const TIER_META = {
@@ -70,7 +70,7 @@ function StatsBar({ stats, loading }) {
   const cards = [
     { label: '총 단골 고객',   value: `${stats.total_customers.toLocaleString()}명`, icon: Users,       color: 'text-sky-500',    bg: 'bg-sky-50' },
     { label: '이번 달 신규',   value: `+${stats.new_this_month}명`,                  icon: UserCheck,   color: 'text-green-500',  bg: 'bg-green-50' },
-    { label: '평균 방문 횟수', value: `${stats.avg_visit_count}회`,                  icon: 'TrendingUp',  color: 'text-purple-500', bg: 'bg-purple-50' },
+    { label: '평균 방문 횟수', value: `${stats.avg_visit_count}회`,                  icon: TrendingUp,  color: 'text-purple-500', bg: 'bg-purple-50' },
     { label: '평균 객단가',    value: formatPrice(stats.avg_spent),                  icon: Wallet,      color: 'text-amber-500',  bg: 'bg-amber-50' },
     { label: 'VIP 고객',       value: `${vipCount + goldCount}명`,                   icon: Crown,       color: 'text-rose-500',   bg: 'bg-rose-50' },
     { label: '이탈 위험 (30일)', value: `${stats.churned_30d}명`,                    icon: AlertTriangle, color: 'text-orange-500', bg: 'bg-orange-50' },

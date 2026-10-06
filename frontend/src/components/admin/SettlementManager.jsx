@@ -4,18 +4,18 @@ import { adminAPI } from '../../api';
 import { toast } from 'react-toastify';
 import { formatPrice } from '../../utils/format';
 import Icon from '../../components/ui/Icon';
-import { AlertCircle, Calculator, Calendar, CheckCircle2, ChevronRight, Download, FileText, Info, RefreshCw, TrendingUp, X } from 'lucide-react';
+import { AlertCircle, Calculator, Calendar, CheckCircle2, ChevronRight, Download, FileText, Info, RefreshCw, TrendingUp, X, Banknote, Store, Smartphone, CreditCard, Building2, DollarSign } from 'lucide-react';
 
 // 결제수단 레이블
 const METHOD_LABELS = {
     cash: { label: '현금', icon: Banknote, color: '#16A34A' },
     store_card: { label: '매장 카드', icon: Store, color: '#0EA5E9' },
-    transfer: { label: '계좌이체', icon: 'Building2', color: '#10B981' },
+    transfer: { label: '계좌이체', icon: Building2, color: '#10B981' },
     kakao: { label: '카카오페이', icon: Smartphone, color: '#FEE500' },
     naver: { label: '네이버페이', icon: Smartphone, color: '#03C75A' },
     toss_pay: { label: '토스페이먼츠', icon: CreditCard, color: '#0064FF' },
-    point: { label: '포인트', icon: 'DollarSign', color: '#F59E0B' },
-    mixed: { label: '혼합', icon: 'DollarSign', color: '#8B5CF6' },
+    point: { label: '포인트', icon: DollarSign, color: '#F59E0B' },
+    mixed: { label: '혼합', icon: DollarSign, color: '#8B5CF6' },
 };
 
 const STATUS_STYLES = {
@@ -147,13 +147,13 @@ function SettlementDetailModal({ settlement, onClose, onTaxInvoice, storeId }) {
                             <p className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider">결제수단별 매출 분해</p>
                             <div className="space-y-2">
                                 {Object.entries(breakdown).map(([method, amount]) => {
-                                    const m = METHOD_LABELS[method] || { label: method, icon: 'DollarSign', color: '#6B7280' };
-                                    const Icon = m.icon;
+                                    const m = METHOD_LABELS[method] || { label: method, icon: DollarSign, color: '#6B7280' };
+                                    const MethodIcon = m.icon;
                                     return (
                                         <div key={method} className="flex items-center justify-between py-1.5">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: m.color + '20' }}>
-                                                    <Icon size={13} style={{ color: m.color }} />
+                                                    <MethodIcon size={13} style={{ color: m.color }} />
                                                 </div>
                                                 <span className="text-sm text-gray-700">{m.label}</span>
                                             </div>

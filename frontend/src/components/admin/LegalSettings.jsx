@@ -8,7 +8,7 @@ import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { legalAPI } from '../../api';
 import Icon from '../../components/ui/Icon';
-import { CheckCircle2, ChevronDown, ChevronUp, Coins, RefreshCw, Save, ShoppingBag, Users } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Coins, RefreshCw, Save, ShoppingBag, Users, Building2, CreditCard, FileText, Shield, AlertTriangle } from 'lucide-react';
 
 // ── 섹션 접기/펼치기 컴포넌트 ──────────────────────────────────────────────
 const Section = ({ icon: Icon, title, subtitle, children, defaultOpen = false }) => {
@@ -84,7 +84,7 @@ export default function LegalSettings() {
     useEffect(() => {
         if (!storeId) return;
         legalAPI.adminGet(storeId)
-            .then(res => setForm(prev => ({ ...prev, ...res.data?.data })))
+            .then(res => setForm(prev => ({ ...prev, ...(res.data || res) })))
             .catch(() => toast.error('법적 정보를 불러오지 못했습니다.'))
             .finally(() => setLoading(false));
     }, [storeId]);
@@ -99,8 +99,9 @@ export default function LegalSettings() {
         if (!form.business_number) return;
         try {
             const res = await legalAPI.verifyBizNum(storeId, form.business_number);
-            setBizValid(res.data?.data?.valid);
-            toast[res.data?.data?.valid ? 'success' : 'error'](res.data?.data?.message);
+            const result = res.data || res;
+            setBizValid(result.valid);
+            toast[result.valid ? 'success' : 'error'](result.message);
         } catch {
             toast.error('검증 중 오류가 발생했습니다.');
         }

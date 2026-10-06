@@ -10,7 +10,7 @@ import { BadgeCheck, Banknote, Building2, Check, CreditCard, Palette, RefreshCw,
 const PAYMENT_METHOD_OPTIONS = [
     { id: 'cash', label: '현금', desc: '기본 결제수단 (항상 활성)', icon: Banknote, color: '#16A34A', fixed: true },
     { id: 'store_card', label: '매장 카드 단말기', desc: 'POS 단말기 연결 시 활성화', icon: Store, color: '#0EA5E9' },
-    { id: 'transfer', label: '계좌이체', desc: '사업자 계좌 등록 후 활성화', icon: 'Building2', color: '#10B981' },
+    { id: 'transfer', label: '계좌이체', desc: '사업자 계좌 등록 후 활성화', icon: Building2, color: '#10B981' },
     { id: 'kakao', label: '카카오페이', desc: '토스페이먼츠 연동 필요 (개발 중)', icon: Smartphone, color: '#FEE500', dev: true },
     { id: 'naver', label: '네이버페이', desc: '토스페이먼츠 연동 필요 (개발 중)', icon: Smartphone, color: '#03C75A', dev: true },
     { id: 'toss_pay', label: '토스페이먼츠', desc: '개발 키 테스트 중', icon: CreditCard, color: '#0064FF', dev: true },
@@ -19,14 +19,14 @@ const PAYMENT_METHOD_OPTIONS = [
 
 // ── 섹션 헤더 (아코디언) ─────────────────────────────────────────────────────────
 // 모듈 레벨 컴포넌트: 부모 렌더마다 재생성되지 않도록 밖으로 추출 (react-best-practices: rerender-no-inline-components)
-const SectionHeader = ({ id, icon: Icon, title, desc, active, onToggle }) => (
+const SectionHeader = ({ id, icon: SectionIcon, title, desc, active, onToggle }) => (
     <button
         onClick={() => onToggle(active === id ? null : id)}
         className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
     >
         <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                <Icon size={18} className="text-white" />
+                <SectionIcon size={18} className="text-white" />
             </div>
             <div className="text-left">
                 <p className="font-bold text-gray-900">{title}</p>

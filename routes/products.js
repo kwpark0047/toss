@@ -10,6 +10,7 @@ const {
   updateProductSchema,
   productSearchQuerySchema,
   productIdParamSchema,
+  storeRouteParamSchema,
 } = require('../src/validation/schemas');
 
 /**
@@ -35,7 +36,7 @@ const {
  */
 router.get(
   '/store/:storeId',
-  validateParams({ params: productSearchQuerySchema }),
+  validateParams(storeRouteParamSchema),
   catchAsync(productsController.getStoreProducts)
 );
 

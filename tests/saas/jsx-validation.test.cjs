@@ -14,3 +14,10 @@ test('JSX validation still detects undeclared object values', () => {
   assert.equal(defined.has('MissingIcon'), false);
   assert.ok(findJsxTags(code).some(tag => tag.name === 'MissingIcon'));
 });
+
+test('JSX validation checks icon metadata values and component props', () => {
+  const code = "const methods = [{ icon: Banknote }]; const View = () => <Section icon={Building2} />;";
+  const names = findJsxTags(code).map(tag => tag.name);
+  assert.ok(names.includes('Banknote'));
+  assert.ok(names.includes('Building2'));
+});

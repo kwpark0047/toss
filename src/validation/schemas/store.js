@@ -202,6 +202,7 @@ const subscriptionPaymentMethodSchema = z
   .strict();
 
 module.exports = {
+  storeRouteParamSchema: z.object({ storeId: z.coerce.number().int().positive() }),
   createStoreSchema,
   updateStoreSchema,
   businessInfoSchema,
