@@ -233,11 +233,18 @@ const errorHandler = (err, req, res, _next) => {
   };
 
   // 2. 에러 타입별 상세 처리
-  if (err instanceof AppError) {
+  if (
+    err instanceof AppError ||
+    (err instanceof Error &&
+      err.isOperational === true &&
+      Number.isInteger(err.statusCode) &&
+      err.statusCode >= 400 &&
+      err.statusCode <= 599)
+  ) {
     error = {
       success: false,
       message: err.message,
-      code: err.code,
+      code: err.code ?? 'APP_ERROR',
       status: err.statusCode,
       details: err.details,
     };

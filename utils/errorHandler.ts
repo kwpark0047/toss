@@ -135,6 +135,12 @@ export const errorTypes = {
   },
 };
 
+const isOperationalError = (err: any): err is AppError => err instanceof AppError || (
+  err instanceof Error && (err as AppError).isOperational === true &&
+  Number.isInteger((err as AppError).statusCode) &&
+  (err as AppError).statusCode >= 400 && (err as AppError).statusCode <= 599
+);
+
 // next는 미사용이지만 Express가 4-인자 시그니처로 에러 미들웨어를 인식하므로 유지
 export const errorHandler = (err: any, req: any, res: any, _next: Function) => {
   // 1. 에러 로그 기록 (Winston 사용)
@@ -154,11 +160,11 @@ export const errorHandler = (err: any, req: any, res: any, _next: Function) => {
   };
 
   // 2. 에러 타입별 상세 처리
-  if (err instanceof AppError) {
+  if (isOperationalError(err)) {
     error = {
       success: false,
       message: err.message,
-      code: err.code,
+      code: err.code ?? 'APP_ERROR',
       status: err.statusCode,
       details: err.details
     };

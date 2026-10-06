@@ -22,9 +22,35 @@ describe('errorHandler — Sentry 단일 캡처 지점(status>=500)', () => {
     jest.clearAllMocks();
   });
 
+  it('다른 런타임에서 생성된 operational 인증 오류도 401을 유지한다', () => {
+    const err = Object.assign(new Error('Invalid credentials'), {
+      isOperational: true,
+      statusCode: 401,
+    });
+    const req = { method: 'POST', originalUrl: '/api/auth/login', ip: '127.0.0.1' };
+    const res = createRes();
+    errorHandler(err, req, res, jest.fn());
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'APP_ERROR' }));
+    expect(sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it('operational 표시 없는 일반 오류는 임의 statusCode를 사용하지 않는다', () => {
+    const err = Object.assign(new Error('Unexpected'), { statusCode: 401 });
+    const req = { method: 'POST', originalUrl: '/api/auth/login', ip: '127.0.0.1' };
+    const res = createRes();
+    errorHandler(err, req, res, jest.fn());
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+
   it('5xx 오류만 Sentry로 전송하고 컨텍스트 태그를 부착한다', () => {
     const err = new AppError('데이터베이스 연결 실패', 500, 5001);
-    const req = { method: 'GET', originalUrl: '/api/admin/stats', ip: '1.2.3.4', user: { id: 'u1', role: 'admin' } };
+    const req = {
+      method: 'GET',
+      originalUrl: '/api/admin/stats',
+      ip: '1.2.3.4',
+      user: { id: 'u1', role: 'admin' },
+    };
     const res = createRes();
 
     errorHandler(err, req, res, jest.fn());
@@ -33,7 +59,12 @@ describe('errorHandler — Sentry 단일 캡처 지점(status>=500)', () => {
     expect(sentry.captureException).toHaveBeenCalledWith(
       err,
       expect.objectContaining({
-        tags: expect.objectContaining({ route: '/api/admin/stats', method: 'GET', code: '5001', status: '500' }),
+        tags: expect.objectContaining({
+          route: '/api/admin/stats',
+          method: 'GET',
+          code: '5001',
+          status: '500',
+        }),
         level: 'error',
         user: { id: 'u1' },
       })

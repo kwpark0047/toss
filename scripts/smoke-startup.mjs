@@ -22,6 +22,7 @@ for (const key of [
 // Suppress background metric writes; database readiness is tested separately.
 const require = createRequire(import.meta.url);
 require('../repositories/Monitoring.js').Metrics.record = async () => {};
+require('../app/lib/repositories/user.repository.js').findByEmail = async () => null;
 const { httpServer, shutdown } = await import('../index.mts');
 if (!httpServer.listening) await once(httpServer, 'listening');
 const { port } = httpServer.address();
@@ -50,6 +51,13 @@ try {
   });
   assert.equal(invalidLogin.status, 400, 'auth router must load and reject invalid input');
   await invalidLogin.arrayBuffer();
+  const unknownLogin = await fetch(`http://127.0.0.1:${port}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'nonexistent@invalid.example', password: 'InvalidPassword!2026' }),
+  });
+  assert.equal(unknownLogin.status, 401, 'CJS auth errors must retain their status in the ESM app');
+  await unknownLogin.arrayBuffer();
   const preflight = await fetch(`http://127.0.0.1:${port}/api/payments`, {
     method: 'OPTIONS',
     headers: {
