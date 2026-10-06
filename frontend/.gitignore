@@ -2,3 +2,7 @@
 .env*.local
 bundle-analysis.html
 bundle-analysis.html
+
+.env*
+!.env.production
+!.env.example
