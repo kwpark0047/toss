@@ -9,6 +9,9 @@ const isTest = process.env.VITEST === 'true';
 const BUILD_TIMESTAMP = Date.now();
 
 export default defineConfig({
+  define: {
+    __BUILD_TIMESTAMP__: JSON.stringify(BUILD_TIMESTAMP),
+  },
   test: {
     globals: true,
     environment: 'jsdom',
@@ -166,9 +169,25 @@ export default defineConfig({
   ],
 
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+    alias: [
+      { find: '@', replacement: path.resolve(__dirname, './src') },
+      // Both entry points must share the same ESM router and React contexts.
+      {
+        find: /^react-router-dom$/,
+        replacement: path.resolve(
+          __dirname,
+          './node_modules/react-router/dist/development/index.mjs'
+        ),
+      },
+      {
+        find: /^react-router$/,
+        replacement: path.resolve(
+          __dirname,
+          './node_modules/react-router/dist/development/index.mjs'
+        ),
+      },
+    ],
+    dedupe: ['react', 'react-dom', 'react-router', 'react-router-dom'],
   },
 
   server: {
@@ -179,9 +198,6 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     cssCodeSplit: true,
-    define: {
-      __BUILD_TIMESTAMP__: JSON.stringify(BUILD_TIMESTAMP),
-    },
     rollupOptions: {
       output: {
         manualChunks: {

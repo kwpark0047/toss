@@ -194,6 +194,32 @@ jobs:
         env:
           VITE_API_URL: http://localhost:3000/api
 
+  frontend-browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+      DIRECT_URL: postgresql://test:test@localhost:5432/wemarket_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+      - name: Install dependencies
+        run: |
+          npm ci --no-audit --no-fund
+          npm --prefix frontend ci --no-audit --no-fund
+      - name: Build production frontend
+        run: npm --prefix frontend run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify rendered production routes
+        run: node scripts/smoke-frontend-browser.cjs
+
   # === 수동/스케줄 트리거 잡 (push/PR에서는 실행 안 함) ===
   backend-integration-tests:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
@@ -381,7 +407,14 @@ jobs:
   deploy:
     if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
     needs:
-      [lint-and-test, backend-unit-tests, backend-regression-tests, frontend-test, security-scan]
+      [
+        lint-and-test,
+        backend-unit-tests,
+        backend-regression-tests,
+        frontend-test,
+        frontend-browser-smoke,
+        security-scan,
+      ]
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
