@@ -38,6 +38,8 @@ async function main() {
         let data = [];
         if (u.pathname === '/api/stores/my') data = [store];
         else if (u.pathname === '/api/stores/3') data = store;
+        else if (u.pathname === '/api/products/store/3') data = [{ id: 1, name: '검증 아메리카노', price: 4000, category_id: 1, is_sold_out: false }];
+        else if (u.pathname === '/api/categories/store/3') data = [{ id: 1, name: '음료' }];
         else if (u.pathname === '/api/tables/store/3') data = [table, { ...table, id: 2, table_number: '2번', qr_code: null }];
         else if (u.pathname.startsWith('/api/tables/qr/')) {
           if (invalid) return route.fulfill({ status: 404, json: { message: 'invalid fixture' } });
@@ -68,11 +70,16 @@ async function main() {
       const pdfEvent = page.waitForEvent('download'); await page.getByRole('button', { name: 'PDF', exact: true }).click();
       const pdf = await pdfEvent; assert.equal(fs.readFileSync(await pdf.path()).subarray(0, 4).toString(), '%PDF');
       await page.goto(base + '/qr/fixture-token'); await page.waitForURL('**/menu/3?table=*');
+      await page.getByText('검증 아메리카노', { exact: true }).first().waitFor();
+      assert.ok(await page.locator('header').first().isVisible());
       assert.equal(new URL(page.url()).searchParams.get('table'), '창가 & 1');
       invalid = true; await page.goto(base + '/qr/invalid-token');
       await page.getByRole('heading', { name: '메뉴판을 불러올 수 없습니다' }).waitFor();
       invalid = false; await page.getByRole('button', { name: '다시 시도', exact: true }).click();
       await page.waitForURL('**/menu/3?table=*');
+      await page.getByText('검증 아메리카노', { exact: true }).first().waitFor();
+      await page.goto(base + '/menu/3?table=2');
+      await page.getByText('검증 아메리카노', { exact: true }).first().waitFor();
       assert.equal(externalQr, 0); assert.equal(errors.length, 0, errors.join(';'));
       results.push({ width, fixtureData: true, png: true, pdf: true, retry: true, externalQrRequests: externalQr, errors });
       await context.close();

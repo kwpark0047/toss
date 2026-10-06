@@ -227,6 +227,9 @@ jobs:
         run: node scripts/smoke-menu-management.cjs
       - name: Table QR workflow smoke
         run: node scripts/smoke-table-qr.cjs
+      - name: Customer menu header references
+        working-directory: frontend
+        run: npx eslint src/components/menu/MenuHeader.jsx --quiet
 
   # === 수동/스케줄 트리거 잡 (push/PR에서는 실행 안 함) ===
   backend-integration-tests:
