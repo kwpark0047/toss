@@ -29,6 +29,13 @@ try {
   const live = await fetch(`http://127.0.0.1:${port}/api/health/live`);
   assert.equal(live.status, 200);
   await live.arrayBuffer();
+  const ready = await fetch(`http://127.0.0.1:${port}/api/health`);
+  assert.equal(ready.status, 503, 'unavailable test DB must fail readiness');
+  assert.equal((await ready.json()).db, 'unreachable');
+  const deep = await fetch(`http://127.0.0.1:${port}/api/health/deep`);
+  const databaseError = (await deep.json()).checks.database.error;
+  assert.doesNotMatch(databaseError, /not a function/i, 'Prisma method must resolve');
+  assert.match(databaseError, /database server|timeout/i, 'failure must come from the DB probe');
   const protectedRoute = await fetch(`http://127.0.0.1:${port}/api/subscriptions/1`);
   assert.equal(
     protectedRoute.status,
@@ -46,7 +53,7 @@ try {
   assert.equal(preflight.status, 204);
   assert.match(preflight.headers.get('access-control-allow-headers'), /X-Order-Capability/i);
   await preflight.arrayBuffer();
-  console.log('Startup smoke passed: actual app, protected subscription route, capability CORS.');
+  console.log('Startup smoke passed: actual app, Prisma readiness binding, protected subscription route, capability CORS.');
   shutdown();
 } catch (error) {
   console.error(error.message);

@@ -6,14 +6,16 @@
  */
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import prisma from '../config/prisma.js';
+import { createRequire } from 'node:module';
 import cb from '../utils/circuitBreaker.js';
 import alerting from '../utils/alerting.js';
 import axios from 'axios';
 
 // CORS 허용 도메인은 단일 모듈(config/domain)에서 관리한다.
 import { getAllowedOrigins, isOriginAllowed } from '../config/domain.js';
-const prismaClient = prisma as any;
+const require = createRequire(import.meta.url);
+const prismaModule = require('../config/prisma.js');
+const prismaClient = typeof prismaModule.$queryRaw === 'function' ? prismaModule : prismaModule.default;
 
 const router = Router();
 router.get('/live', (_req: Request, res: Response) => res.json({ status: 'ok' }));
