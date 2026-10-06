@@ -43,6 +43,13 @@ try {
     'real subscription router must be reachable and protected'
   );
   await protectedRoute.arrayBuffer();
+  const invalidLogin = await fetch(`http://127.0.0.1:${port}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'invalid', password: '' }),
+  });
+  assert.equal(invalidLogin.status, 400, 'auth router must load and reject invalid input');
+  await invalidLogin.arrayBuffer();
   const preflight = await fetch(`http://127.0.0.1:${port}/api/payments`, {
     method: 'OPTIONS',
     headers: {

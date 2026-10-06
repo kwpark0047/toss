@@ -48,6 +48,7 @@ COPY --from=builder /app/routes ./routes
 COPY --from=builder /app/middleware ./middleware
 COPY --from=builder /app/utils ./utils
 COPY --from=builder /app/config ./config
+COPY --from=builder /app/src ./src
 COPY --from=builder /app/socket ./socket
 COPY --from=builder /app/docs ./docs
 COPY --from=builder /app/scripts ./scripts
@@ -58,6 +59,9 @@ COPY --from=builder /app/app.mts ./app.mts
 COPY --from=builder /app/index.mts ./index.mts
 COPY --from=builder /app/metrics ./metrics
 COPY --from=builder /app/.env.example ./.env.example
+
+# Fail the image build if shared route validation modules are absent or unloadable.
+RUN node -e "require('./src/validation/schemas')"
 
 # Copy Prisma client from builder (custom output is relative to schema dir: prisma/app/generated)
 COPY --from=builder /app/prisma/app/generated ./prisma/app/generated
