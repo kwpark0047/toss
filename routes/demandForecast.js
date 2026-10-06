@@ -4,6 +4,13 @@ const demandForecastController = require('../controllers/demandForecastControlle
 const { authMiddleware } = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const { createAIRateLimiter } = require('../utils/aiRateLimiter');
+const { requirePlanFeature } = require('../middleware/planFeatures');
+router.use(
+  '/store/:storeId',
+  authMiddleware,
+  checkStorePermission('stats:read'),
+  requirePlanFeature('aiRecommendations')
+);
 
 /**
  * @swagger

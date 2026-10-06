@@ -17,7 +17,7 @@ services:
     buildCommand: npm ci --include=dev && npx prisma migrate deploy && npx prisma generate
     startCommand: node --import tsx index.mts
     healthCheckPath: /api/health
-    autoDeploy: true
+    autoDeploy: false
     envVars:
       - key: NODE_ENV
         value: production
@@ -33,6 +33,10 @@ services:
         sync: false
       - key: PHONE_ENC_KEY
         sync: false
+      - key: BILLING_SCHEDULER_ENABLED
+        value: false
+      - key: SUPABASE_PRIVATE_BUCKET
+        value: payment-proofs
       # ── 결제 (Toss) ──
       - key: TOSS_SECRET_KEY
         sync: false

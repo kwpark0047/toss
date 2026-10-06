@@ -90,6 +90,7 @@ const PaymentService = require('../../../services/PaymentService');
 
 // ── Shared mocks ──────────────────────────────────────────
 const mockTx = {
+  $queryRaw: jest.fn().mockResolvedValue([]),
   products: { findUnique: jest.fn(), findMany: jest.fn() },
   orders: { create: jest.fn(), update: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn() },
   payments: {
@@ -208,111 +209,43 @@ describe('PaymentService', () => {
   // processDirectPayment — cash / point / store_card
   // ─────────────────────────────────────────────────────────
   describe('processDirectPayment', () => {
-    const baseInput = {
-      store_id: '1',
-      items: [{ product_id: 10, product_name: '아메리카노', quantity: 2, price: 3000 }],
-      total_amount: '6000',
-      payment_method: 'cash',
-    };
-
-    test('creates order + payment for cash and marks DONE', async () => {
-      mockTx.products.findMany.mockResolvedValue([
-        {
-          id: 10,
-          store_id: 1,
-          name: '아메리카노',
-          price: 3000,
-          is_sold_out: false,
-          is_active: true,
-        },
-      ]);
-      mockTx.orders.create.mockResolvedValue({
+    const input = { order_id: 100, store_id: 1, total_amount: 6000, payment_method: 'cash' };
+    beforeEach(() => {
+      mockTx.orders.findUnique.mockResolvedValue({
         id: 100,
-        order_number: '20260720-0001',
         store_id: 1,
         total_amount: 6000,
+        order_number: 'ONE',
+        status: 'pending',
       });
-      mockTx.payments.create.mockResolvedValue({ id: 200, status: 'DONE', order_id: 100 });
-      mockTx.store_customers.upsert.mockResolvedValue({});
-      pointService.use.mockResolvedValue({});
-      pointService.calculateEarnPoints.mockResolvedValue(60);
-      pointService.earn.mockResolvedValue({});
-      ledgerService.recordIncome.mockResolvedValue({});
-      mockTx.orders.update.mockResolvedValue({});
-
-      const result = await service.processDirectPayment(baseInput);
-
-      expect(prisma.$transaction).toHaveBeenCalled();
-      // Order created inside transaction
-      expect(mockTx.orders.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ store_id: 1, status: 'pending', total_amount: 6000 }),
-        })
-      );
-      // Payment created as DONE for cash
-      expect(mockTx.payments.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ status: 'DONE' }) })
-      );
-      // IO events
-      expect(mockIo.to).toHaveBeenCalledWith('store - 1');
-      expect(result.order_id).toBe(100);
-      expect(result.status).toBe('DONE');
+      mockTx.payments.findFirst.mockResolvedValue(null);
+      mockTx.payments.create.mockImplementation(async ({ data }) => ({ id: 200, ...data }));
     });
-
-    test('throws AppError when items array is empty', async () => {
-      await expect(service.processDirectPayment({ ...baseInput, items: [] })).rejects.toThrow(
+    test('cash attaches to the existing order and remains READY until collection', async () => {
+      const result = await service.processDirectPayment(input);
+      expect(mockTx.orders.create).not.toHaveBeenCalled();
+      expect(ledgerService.recordIncome).not.toHaveBeenCalled();
+      expect(result.status).toBe('READY');
+      expect(result.order_id).toBe(100);
+    });
+    test('requires an existing order ID', async () => {
+      await expect(service.processDirectPayment({ ...input, order_id: undefined })).rejects.toThrow(
         AppError
       );
     });
-
-    test('throws AppError when product is sold out', async () => {
-      mockTx.products.findMany.mockResolvedValue([
-        {
-          id: 10,
-          store_id: 1,
-          name: '아메리카노',
-          price: 3000,
-          is_sold_out: true,
-          is_active: true,
-        },
-      ]);
-      await expect(service.processDirectPayment(baseInput)).rejects.toThrow(AppError);
+    test('rejects forged remaining amounts', async () => {
+      await expect(service.processDirectPayment({ ...input, total_amount: 1 })).rejects.toThrow(
+        /잔액/
+      );
+      expect(mockTx.payments.create).not.toHaveBeenCalled();
     });
-
-    test('throws AppError when product is inactive', async () => {
-      mockTx.products.findMany.mockResolvedValue([
-        {
-          id: 10,
-          store_id: 1,
-          name: '아메리카노',
-          price: 3000,
-          is_sold_out: false,
-          is_active: false,
-        },
-      ]);
-      await expect(service.processDirectPayment(baseInput)).rejects.toThrow(AppError);
+    test('rejects an order belonging to another store', async () => {
+      await expect(service.processDirectPayment({ ...input, store_id: 2 })).rejects.toThrow(/매장/);
     });
-
-    test('rejects forged client prices and totals', async () => {
-      mockTx.products.findMany.mockResolvedValue([
-        {
-          id: 10,
-          store_id: 1,
-          name: '아메리카노',
-          price: 3000,
-          is_sold_out: false,
-          is_active: true,
-        },
-      ]);
-
+    test('requires a verified wallet for points', async () => {
       await expect(
-        service.processDirectPayment({
-          ...baseInput,
-          items: [{ ...baseInput.items[0], price: 1 }],
-          total_amount: 2,
-        })
-      ).rejects.toThrow(/가격이 변경/);
-      expect(mockTx.orders.create).not.toHaveBeenCalled();
+        service.processDirectPayment({ ...input, payment_method: 'point', point_amount: 6000 })
+      ).rejects.toThrow(/소유권/);
     });
   });
 
@@ -1006,42 +939,53 @@ describe('PaymentService', () => {
   // ─────────────────────────────────────────────────────────
   describe('confirmStoreCard', () => {
     test('confirms store card with transaction array', async () => {
-      prisma.orders.findUnique.mockResolvedValue({
+      mockTx.orders.findUnique.mockResolvedValue({
         id: 5,
         store_id: 1,
         payment_status: 'pending',
         total_amount: 20000,
         order_number: 'ORD-005',
       });
+      mockTx.payments.findFirst.mockResolvedValue({ id: 51, amount: 20000 });
+      mockTx.payments.aggregate.mockResolvedValue({ _sum: { amount: 20000 } });
 
       const result = await service.confirmStoreCard(5, 'T12345');
 
       expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
-      expect(result).toEqual({ store_id: 1, order_id: 5 });
+      expect(result).toEqual(
+        expect.objectContaining({ store_id: 1, order_id: 5, alreadyPaid: false })
+      );
     });
 
     test('returns alreadyPaid when order already paid', async () => {
-      prisma.orders.findUnique.mockResolvedValue({ id: 5, payment_status: 'paid' });
+      mockTx.orders.findUnique.mockResolvedValue({ id: 5, store_id: 1, payment_status: 'paid' });
+      mockTx.payments.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 51, status: 'DONE' });
       const result = await service.confirmStoreCard(5, 'T12345');
-      expect(result).toEqual({ alreadyPaid: true });
-      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(result).toEqual(expect.objectContaining({ alreadyPaid: true }));
+      expect(ledgerService.recordIncome).not.toHaveBeenCalled();
     });
   });
 
   describe('confirmTransfer', () => {
     test('confirms transfer payment', async () => {
-      prisma.orders.findUnique.mockResolvedValue({
+      mockTx.orders.findUnique.mockResolvedValue({
         id: 7,
         store_id: 2,
         payment_status: 'pending',
         total_amount: 50000,
         order_number: 'ORD-007',
       });
+      mockTx.payments.findFirst.mockResolvedValue({ id: 71, amount: 50000 });
+      mockTx.payments.aggregate.mockResolvedValue({ _sum: { amount: 50000 } });
 
       const result = await service.confirmTransfer(7, 'REF001', '김철수');
 
       expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
-      expect(result).toEqual({ store_id: 2, order_id: 7 });
+      expect(result).toEqual(
+        expect.objectContaining({ store_id: 2, order_id: 7, alreadyPaid: false })
+      );
     });
   });
 });

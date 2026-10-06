@@ -52,7 +52,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install --prefer-offline --no-audit --no-fund
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
@@ -64,6 +64,15 @@ jobs:
 
       - name: Unit & Integration Tests (light)
         run: npm run test:coverage
+
+      - name: SaaS Financial Regression Tests
+        run: npm run test:saas
+
+      - name: Backend Type Check
+        run: npm run typecheck:backend
+
+      - name: Actual Server Startup Smoke
+        run: npm run smoke:startup
 
       - name: Route Validation
         run: npm run validate:routes
@@ -103,7 +112,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install --prefer-offline --no-audit --no-fund
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Generate Prisma client
         run: npx prisma generate
@@ -139,7 +148,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install --prefer-offline --no-audit --no-fund
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Generate Prisma client
         run: npx prisma generate
@@ -216,7 +225,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install --prefer-offline --no-audit --no-fund
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Generate Prisma client
         run: npx prisma generate
@@ -264,7 +273,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install --prefer-offline --no-audit --no-fund
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Install frontend dependencies
         run: cd frontend && npm ci --prefer-offline --no-audit --no-fund
@@ -280,7 +289,7 @@ jobs:
 
       - name: Start backend server
         run: |
-          nohup node index.js > backend.log 2>&1 &
+          nohup node --import tsx index.mts > backend.log 2>&1 &
           sleep 10
           cat backend.log
           curl -f http://localhost:3000/api/health || exit 1
@@ -350,7 +359,6 @@ jobs:
         run: npx jest --no-cache
 
   security-scan:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -365,10 +373,15 @@ jobs:
         run: npm run security:scan
       - name: Run Semgrep (frontend)
         run: npm run security:scan:frontend
+      - name: Audit backend dependencies
+        run: npm audit --audit-level=high
+      - name: Audit frontend dependencies
+        run: npm --prefix frontend audit --audit-level=high
 
   deploy:
     if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
-    needs: [lint-and-test, backend-unit-tests, backend-regression-tests, frontend-test]
+    needs:
+      [lint-and-test, backend-unit-tests, backend-regression-tests, frontend-test, security-scan]
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -548,7 +561,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm install --prefer-offline --no-audit --no-fund
+      - run: npm ci --prefer-offline --no-audit --no-fund
       - run: npm run cloudflare-build
       - name: Check bundle size
         run: npm run bundle:check
@@ -564,7 +577,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm install --prefer-offline --no-audit --no-fund
+      - run: npm ci --prefer-offline --no-audit --no-fund
       - run: npm run cloudflare-build
       - name: Serve built site
         run: npx serve frontend/dist -l 5173 &
@@ -588,7 +601,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
-        run: npm install --prefer-offline --no-audit --no-fund
+        run: npm ci --prefer-offline --no-audit --no-fund
       - name: Run ESLint (advisory)
         run: |
           npm run lint > eslint-report.txt 2>&1 || true

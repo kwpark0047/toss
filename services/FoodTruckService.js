@@ -331,90 +331,136 @@ ${message}
     const syncedOrders = [];
 
     for (const tx of offlineTransactions) {
-      // 1. 중복 제거 멱등성 검증 (동일 주문번호가 이미 처리되었는지 판단)
-      const existing = await prisma.orders.findUnique({
-        where: { order_number: tx.order_number },
-      });
-      if (existing) {
-        logger.warn(
-          { order_number: tx.order_number },
-          '[FoodTruck Offline Sync] Duplicate order ignored for idempotency'
-        );
-        continue;
-      }
+      if (
+        !Number.isSafeInteger(Number(tx.total_amount)) ||
+        Number(tx.total_amount) <= 0 ||
+        !['cash', 'transfer', 'store_card'].includes(String(tx.method || 'cash').toLowerCase())
+      )
+        throw new Error('유효한 현장 수납 내역이 필요합니다.');
+      if (
+        !Array.isArray(tx.items) ||
+        tx.items.length === 0 ||
+        tx.items.some(
+          (item) =>
+            !Number.isSafeInteger(Number(item.quantity)) ||
+            Number(item.quantity) <= 0 ||
+            !Number.isSafeInteger(Number(item.price)) ||
+            Number(item.price) < 0
+        )
+      )
+        throw new AppError('유효한 주문 품목이 필요합니다.', 400);
+      if (
+        tx.items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0) !==
+        Number(tx.total_amount)
+      )
+        throw new AppError('품목 합계와 수납 금액이 일치하지 않습니다.', 400);
+      const synced = await prisma.$transaction(async (db) => {
+        await db.$queryRaw`SELECT id FROM public.stores WHERE id = ${parsedStoreId} FOR UPDATE`;
+        // 1. 중복 제거 멱등성 검증 (동일 주문번호가 이미 처리되었는지 판단)
+        const existing = await db.orders.findUnique({
+          where: { order_number: tx.order_number },
+        });
+        if (existing) {
+          if (existing.store_id !== parsedStoreId) throw new Error('다른 매장의 주문 번호입니다.');
+          logger.warn(
+            { order_number: tx.order_number },
+            '[FoodTruck Offline Sync] Duplicate order ignored for idempotency'
+          );
+          return null;
+        }
 
-      // 2. 오프라인 트랜잭션 원래 시점에 맞춰 Order 레코드 복원
-      const order = await prisma.orders.create({
-        data: {
-          store_id: parsedStoreId,
-          order_number: tx.order_number,
-          customer_name: tx.customer_name || '비회원',
-          customer_phone: tx.customer_phone || null,
-          total_amount: parseInt(tx.total_amount || 0),
-          method: tx.method || 'cash',
-          status: 'completed',
-          payment_status: 'paid',
-          created_at: tx.created_at ? new Date(tx.created_at) : new Date(),
-          order_items: {
-            create: (tx.items || []).map((item) => ({
-              product_id: item.product_id ? parseInt(item.product_id) : null,
-              product_name: item.product_name,
-              price: parseInt(item.price || 0),
-              quantity: parseInt(item.quantity || 1),
-              subtotal: parseInt(item.subtotal || 0),
-            })),
+        await require('../utils/planQuota').assertPlanQuota(db, parsedStoreId, 'ordersPerMonth');
+        // Quotas count the ingestion month; preserve the original time in notes.
+        const order = await db.orders.create({
+          data: {
+            store_id: parsedStoreId,
+            order_number: tx.order_number,
+            customer_name: tx.customer_name || '비회원',
+            customer_phone: tx.customer_phone || null,
+            total_amount: parseInt(tx.total_amount || 0),
+            method: tx.method || 'cash',
+            status: 'completed',
+            payment_status: 'paid',
+            created_at: new Date(),
+            notes: tx.created_at
+              ? `[오프라인 수납 시각] ${String(tx.created_at).slice(0, 100)}`
+              : null,
+            order_items: {
+              create: (tx.items || []).map((item) => ({
+                product_id: item.product_id ? parseInt(item.product_id) : null,
+                product_name: item.product_name,
+                price: parseInt(item.price || 0),
+                quantity: parseInt(item.quantity || 1),
+                subtotal: Number(item.price) * Number(item.quantity),
+              })),
+            },
           },
-        },
-      });
+        });
 
-      // 3. 대칭되는 완료형 Payment 생성 및 연동
-      await prisma.payments.create({
-        data: {
-          order_id: order.id,
-          store_id: parsedStoreId,
-          status: 'DONE',
-          amount: parseInt(tx.total_amount || 0),
-          method: tx.method || 'cash',
-          created_at: order.created_at,
-          completed_at: order.created_at,
-        },
-      });
+        // 3. 대칭되는 완료형 Payment 생성 및 연동
+        const payment = await db.payments.create({
+          data: {
+            order_id: order.id,
+            store_id: parsedStoreId,
+            status: 'DONE',
+            amount: parseInt(tx.total_amount || 0),
+            method: tx.method || 'cash',
+            created_at: order.created_at,
+            approved_at: order.created_at,
+          },
+        });
+        await require('./LedgerService').recordIncome(
+          {
+            storeId: parsedStoreId,
+            orderId: order.id,
+            paymentId: payment.id,
+            amount: Number(tx.total_amount),
+            method: String(tx.method || 'cash').toUpperCase(),
+            description: `오프라인 수납: ${tx.order_number}`,
+          },
+          db
+        );
 
-      // 4. [공유 핵심 엔진 통합] 품목별 재고 감산 및 이력 로깅 자동화
-      for (const item of tx.items || []) {
-        if (item.product_id) {
-          const productId = parseInt(item.product_id);
-          const qty = parseInt(item.quantity || 1);
+        // 4. [공유 핵심 엔진 통합] 품목별 재고 감산 및 이력 로깅 자동화
+        for (const item of tx.items || []) {
+          if (item.product_id) {
+            const productId = parseInt(item.product_id);
+            const qty = parseInt(item.quantity || 1);
 
-          const product = await prisma.products.findUnique({
-            where: { id: productId },
-          });
-
-          if (product && product.stock_quantity !== null) {
-            const newQty = Math.max(0, product.stock_quantity - qty);
-
-            // 재고 감산
-            await prisma.products.update({
+            const product = await db.products.findUnique({
               where: { id: productId },
-              data: { stock_quantity: newQty },
             });
 
-            // 재고 이력 로깅
-            await prisma.stock_history.create({
-              data: {
-                product_id: productId,
-                store_id: parsedStoreId,
-                change: -qty,
-                qty_after: newQty,
-                reason: 'ORDER',
-                note: `[오프라인 동기화] 주문번호: ${tx.order_number}`,
-              },
-            });
+            if (!product || product.store_id !== parsedStoreId)
+              throw new AppError('다른 매장의 상품을 사용할 수 없습니다.', 403);
+            if (product.stock_quantity !== null) {
+              // 재고 감산
+              const change = await db.products.updateMany({
+                where: { id: productId, stock_quantity: { gte: qty } },
+                data: { stock_quantity: { decrement: qty } },
+              });
+              if (change.count !== 1)
+                throw new AppError('재고가 부족합니다. 오프라인 내역을 확인해 주세요.', 409);
+              const updated = await db.products.findUnique({ where: { id: productId } });
+
+              // 재고 이력 로깅
+              await db.stock_history.create({
+                data: {
+                  product_id: productId,
+                  store_id: parsedStoreId,
+                  change: -qty,
+                  qty_after: updated.stock_quantity,
+                  reason: 'ORDER',
+                  note: `[오프라인 동기화] 주문번호: ${tx.order_number}`,
+                },
+              });
+            }
           }
         }
-      }
 
-      syncedOrders.push(order);
+        return order;
+      });
+      if (synced) syncedOrders.push(synced);
     }
 
     // 5. 매장 태블릿 및 대시보드 실시간 동기화 브로드캐스팅

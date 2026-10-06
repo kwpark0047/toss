@@ -261,6 +261,7 @@ model Subscription {
   plan_id           String
   status            String   @default("active") // active|trialing|past_due|canceled|expired
   billing_cycle     String   @default("MONTHLY") // MONTHLY|YEARLY
+  auto_renew        Boolean  @default(false)
   current_period_start DateTime  @default(now())
   current_period_end   DateTime
   trial_ends_at         DateTime?
@@ -275,9 +276,52 @@ model Subscription {
 
   plan                  Plan      @relation(fields: [plan_id], references: [id])
   store                 stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  invoices              BillingInvoice[]
 
   @@index([status], map: "idx_subscription_status")
   @@index([plan_id], map: "idx_subscription_plan")
+  @@schema("public")
+}
+
+model BillingInvoice {
+  id              String   @id @default(cuid())
+  subscription_id String
+  store_id        Int
+  plan_id         String
+  billing_cycle   String
+  order_id        String   @unique
+  amount          Int
+  currency        String   @default("KRW")
+  status          String   @default("pending")
+  period_start    DateTime
+  period_end      DateTime
+  attempts        Int      @default(0)
+  next_retry_at   DateTime?
+  claimed_at      DateTime?
+  payment_key     String?
+  receipt_url     String?
+  failure_code    String?
+  paid_at         DateTime?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  subscription    Subscription @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
+
+  @@unique([subscription_id, period_start])
+  @@index([status, next_retry_at])
+  @@index([store_id, created_at])
+  @@schema("public")
+}
+
+model IdempotencyRecord {
+  id          String   @id
+  body_hash   String
+  status      String   @default("processing")
+  status_code Int?
+  response    Json?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([created_at])
   @@schema("public")
 }
 
@@ -292,6 +336,7 @@ model point_transactions {
   balance_after Int
   description   String?
   reference_id  String?
+  reversal_of   Int? @unique
   expires_at    DateTime?
   created_at    DateTime?   @default(now())
   payments      payments?   @relation(fields: [payment_id], references: [id], onUpdate: NoAction)

@@ -26,6 +26,7 @@ const { rawBodyJsonParser } = (await import('./middleware/rawBodyJson.js')) as u
 };
 import { initSentry } from './utils/sentry.js';
 import cookieParser from 'cookie-parser';
+import { CORS_HEADERS } from './config/corsHeaders.js';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,7 +66,7 @@ app.use((req, res, next) => {
         if (origin) res.setHeader('Vary', 'Origin');
         res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-Requested-With, Idempotency-Key, X-Idempotency-Key, X-CSRF-Token');
+        res.setHeader('Access-Control-Allow-Headers', CORS_HEADERS.join(', '));
     }
     if (req.method === 'OPTIONS') return res.sendStatus(204);
     return next();
@@ -98,15 +99,7 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'X-API-Key',
-        'X-Requested-With',
-        'Idempotency-Key',
-        'X-Idempotency-Key',
-        'X-CSRF-Token',
-    ],
+    allowedHeaders: CORS_HEADERS,
     maxAge: 3600,
 }));
 app.use((req, res, next) => {
@@ -144,53 +137,19 @@ app.use('/api', generalLimiter); // 전체 API 속도 제한
  * .mjs 파일이 로드 실패 시 .js (CommonJS) 버전으로 폴백
  * 테스트 환경에서는 동기 폴백을 즉시 수행
  */
-const isTest = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID;
+const isTest = process.env.NODE_ENV === 'test' || Boolean(process.env.JEST_WORKER_ID);
 let diContainer;
-let diMiddlewareFn;
-if (isTest) {
-    // 테스트 환경: 동기 로드로 즉시 초기화
-    try {
-        const { createDIContainer, diMiddleware } = await import('./app/infrastructure/di/container.js');
-        diContainer = createDIContainer();
-        diMiddlewareFn = diMiddleware;
-        app.use(diMiddlewareFn(diContainer));
-        app.set('diContainer', diContainer);
-    }
-    catch (_err) {
-        // 컨테이너 로드 실패 시 더미 미들웨어 사용
-        diMiddlewareFn = (container) => (req, res, next) => {
-            req.container = container || {};
-            next();
-        };
-        diContainer = {};
-        app.use(diMiddlewareFn(diContainer));
-        app.set('diContainer', diContainer);
-    }
+try {
+    const containerModule = await import('./app/infrastructure/di/container.js');
+    diContainer = containerModule.createDIContainer();
+    app.use(containerModule.diMiddleware(diContainer));
+    app.set('diContainer', diContainer);
+} catch (error) {
+    if (!isTest) throw new Error('Dependency container initialization failed', { cause: error });
+    // Unit tests explicitly mock the DI boundary; production never silently disables it.
+    diContainer = {};
+    app.use((req, _res, next) => { (req as any).container = diContainer; next(); });
 }
-else {
-    // 운영/개발 환경: ESM 동적 로드
-    const diLoadPromise = import('./app/infrastructure/di/container.js')
-        .then((module) => {
-        diContainer = module.createDIContainer();
-        diMiddlewareFn = module.diMiddleware;
-        app.use(diMiddlewareFn(diContainer));
-        app.set('diContainer', diContainer);
-    })
-        .catch((_err) => {
-        // 폴백: CommonJS 버전 사용
-        // Note: This fallback won't work in pure ESM, but kept for compatibility
-        logger.warn('[DI] ESM container load failed, DI disabled');
-    });
-}
-// DI 컨테이너가 준비될 때까지 요청 대기 (테스트 환경에서는 즉시 통과)
-app.use((req, res, next) => {
-    if (isTest || diContainer)
-        return next();
-    // 초기화 중: 헬스체크만 허용
-    if (req.path.startsWith('/api/health'))
-        return next();
-    return res.status(503).json({ error: 'Server initializing' });
-});
 /**
  * API 모니터링 (가장 먼저 시작)
  */
@@ -367,6 +326,7 @@ app.use(`${API_PREFIX}/admin/auth`, routes.adminAuth);
 app.use(`${API_PREFIX}/points`, routes.points);
 app.use(`${API_PREFIX}/plan-requests`, routes.planRequests);
 app.use(`${API_PREFIX}/plans`, routes.plans);
+app.use(`${API_PREFIX}/subscriptions`, lazyRouter(() => import('./routes/subscriptions.js')));
 app.use(`${API_PREFIX}/admin`, routes.auditLogs);
 app.use(`${API_PREFIX}/admin`, routes.featureFlags);
 app.use(`${API_PREFIX}/admin`, routes.orderEvents);
@@ -422,6 +382,7 @@ app.use(`${API_PREFIX}/monitoring`, lazyRouter(() => import('./app/interfaces/ht
 // Prometheus /metrics 스크랩 엔드포인트 (P1, 인증 없이 표준 텍스트 반환)
 app.use(`${API_PREFIX}/metrics`, lazyRouter(() => import('./metrics/metricsRouter.mts')));
 // 정적 파일 서빙
+app.use('/uploads/proofs', (_req, res) => res.status(403).json({ error: '증빙은 권한 확인 후 조회할 수 있습니다.' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'frontend/dist')));
 // SPA 라우팅 지원: 모든 비 API 요청을 index.html로 전송
@@ -476,7 +437,7 @@ app.use((req, res, next) => {
     }
     if (req.method === 'OPTIONS') {
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.setHeader('Access-Control-Allow-Headers', CORS_HEADERS.join(', '));
         res.setHeader('Access-Control-Max-Age', '3600');
         return res.sendStatus(204);
     }

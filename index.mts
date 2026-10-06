@@ -1,41 +1,41 @@
 import 'dotenv/config';
-import { createServer } from 'http';
-import path from 'path';
-const PORT = process.env.PORT || 3000;
+import { httpServer, io } from './app.mts';
+import logger from './utils/logger.ts';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const prisma = require('./config/prisma.js');
+import { getRedisCache } from './utils/redisCache.js';
+import { startBillingScheduler } from './services/billingScheduler.js';
 
-// ── Bootstrap: /api/health가 즉시 응답하는 최소 HTTP 서버 ────────────────────────
-// Render health check timeout(30초) 이내에 응답하도록 보장합니다.
-const bootstrapServer = createServer((req, res) => {
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    if (req.url?.startsWith('/api/health')) {
-        res.statusCode = 200;
-        res.end(JSON.stringify({ status: 'starting', timestamp: new Date().toISOString() }));
-        return;
-    }
-    // Render cold-start용 SPA 폴백: 비 API 경로는 index.html로
-    if (req.url === '/' || !req.url?.startsWith('/api')) {
-        res.statusCode = 200;
-        try {
-            res.end(require('fs').readFileSync(path.join(__dirname, 'frontend', 'dist', 'index.html'), 'utf-8'));
-        }
-        catch {
-            res.end('{"service":"wemarket"}');
-        }
-        return;
-    }
-    res.statusCode = 503;
-    res.end(JSON.stringify({ error: 'Server initializing' }));
+const PORT = Number(process.env.PORT || 3000);
+if (!Number.isInteger(PORT) || PORT < 0 || PORT > 65535) {
+    throw new Error('PORT must be an integer between 0 and 65535');
+}
+const stopBilling = startBillingScheduler();
+httpServer.on('error', (error) => {
+    logger.error('HTTP server failed', { error: error.message });
+    process.exitCode = 1;
+    shutdown();
 });
+httpServer.listen(PORT, () => logger.info(`WeMarket API listening on port ${PORT}`));
 
-// Bootstrap 서버를 즉시 시작 (동기적으로 포트 바인딩)
-bootstrapServer.listen(PORT, () => {
-    console.log(`[서버] Bootstrap health server listening on port ${PORT}`);
-    console.log(`[health] /api/health는 30초 타임아웃 이내 즉각 응답합니다.`);
-});
-
-// Bootstrap 서버는 영원히 유지 — /api/health가 즉시 응답함을 보장합니다.
-// 앱 본문 초기화는 별도 프로세스이거나 background에서 일어나더라도
-// /api/health 응답은 이미 Completed 되었습니다.
-
-// export (Render가 진입점으로 index.mts를 사용하는 경우를 대비해)
-export { bootstrapServer, PORT };
+let stopping = false;
+function shutdown() {
+    if (stopping) return;
+    stopping = true;
+    stopBilling();
+    const timeout = setTimeout(() => process.exit(1), 30_000);
+    timeout.unref();
+    httpServer.closeIdleConnections();
+    io.close(async () => {
+        await Promise.allSettled([Promise.resolve().then(() => prisma.disconnectAll()), Promise.resolve().then(() => getRedisCache().disconnect())]);
+        const cron = require('node-cron');
+        await Promise.allSettled([...cron.getTasks().values()].map((task: { stop: () => unknown }) => Promise.resolve(task.stop())));
+        clearTimeout(timeout);
+        // Let native database handles finish closing before Node exits.
+        process.exitCode = process.exitCode || 0;
+    });
+}
+process.once('SIGTERM', shutdown);
+process.once('SIGINT', shutdown);
+export { httpServer, PORT, shutdown };

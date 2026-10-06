@@ -194,34 +194,12 @@ const storeIdParamSchema = z.object({
 });
 
 // 구독 결제수단 등록 (배달 정기결제 빌링키 발급)
-const subscriptionPaymentMethodSchema = z.object({
-  plan_id: z.string().min(1, '플랜 ID가 필요합니다.'),
-  method: z.enum(['CARD', 'EASYPAY']).default('CARD'),
-  card: z
-    .object({
-      company: z.string().min(1),
-      number: z.string().regex(/^\d{4,20}$/, '카드번호 형식이 올바르지 않습니다.'),
-      installmentPlanMonths: z.number().int().min(0).max(36).optional(),
-      useFreeInstallmentPlan: z.boolean().optional(),
-      useCardPoint: z.boolean().optional(),
-    })
-    .optional(),
-  easy_pay: z
-    .object({
-      provider: z.enum([
-        'TOSSPAY',
-        'SAMSUNGPAY',
-        'APPLEPAY',
-        'NAVERPAY',
-        'KAKAOPAY',
-        'LGPAY',
-        'PAYCO',
-        'SSGPAY',
-      ]),
-      discountCode: z.string().optional(),
-    })
-    .optional(),
-});
+const subscriptionPaymentMethodSchema = z
+  .object({
+    auth_key: z.string().min(1).max(2048),
+    checkout_token: z.string().min(1).max(4096),
+  })
+  .strict();
 
 module.exports = {
   createStoreSchema,

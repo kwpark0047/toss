@@ -37,6 +37,7 @@ const Order = {
 
       return await prisma.$transaction(
         async (tx) => {
+          await require('../utils/planQuota').assertPlanQuota(tx, data.store_id, 'ordersPerMonth');
           let calculatedTotal = 0;
 
           // 1. 주문 상품 유효성 검사

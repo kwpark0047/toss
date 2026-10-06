@@ -53,7 +53,14 @@ export const ordersAPI = {
 };
 
 export const paymentsAPI = {
-  create: (data) => api.post('/payments', data),
+  create: (data, capability, walletCapability) =>
+    api.post('/payments', data, {
+      headers: {
+        'x-order-capability': capability,
+        ...(walletCapability ? { 'x-wallet-capability': walletCapability } : {}),
+        'Idempotency-Key': crypto.randomUUID(),
+      },
+    }),
   prepare: (data, capability) =>
     api.post('/payments/ready', data, {
       headers: capability ? { 'x-order-capability': capability } : undefined,
@@ -77,9 +84,13 @@ export const paymentsAPI = {
         },
       }
     ),
-  uploadProof: (id, formData) =>
+  getProof: (id) => api.get(`/payments/${id}/proof`, { responseType: 'blob' }),
+  uploadProof: (id, formData, capability) =>
     api.post(`/payments/${id}/proof`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...(capability ? { 'x-order-capability': capability } : {}),
+      },
     }),
   getBrandPayConfig: () => api.get('/payments/brandpay/config'),
   splitRequest: (data, capability) =>

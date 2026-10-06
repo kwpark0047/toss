@@ -29,6 +29,7 @@ jest.mock('../../config/prisma', () => {
       updateMany: jest.fn(),
     },
     payments: {
+      aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 0 } }),
       create: jest.fn(),
       findFirst: jest.fn(),
       findMany: jest.fn(),
@@ -59,6 +60,10 @@ jest.mock('../../config/prisma', () => {
     stock_history: { create: jest.fn() },
     metrics: { create: jest.fn() },
     order_items: { findMany: jest.fn().mockResolvedValue([]) },
+    idempotencyRecord: {
+      create: jest.fn().mockResolvedValue({}),
+      update: jest.fn().mockResolvedValue({}),
+    },
   };
   return mockPrisma;
 });
@@ -173,7 +178,7 @@ describe('[회귀] 현금 결제 주문 생성 (즉시 완료)', () => {
     total_amount: 10000,
     status: 'paid',
   };
-  const mockPayment = { id: 1, order_id: 1, store_id: 1, amount: 10000, status: 'DONE' };
+  const mockPayment = { id: 1, order_id: 1, store_id: 1, amount: 10000, status: 'READY' };
 
   beforeEach(() => {
     // PaymentService(Prisma)는 product_id로 상품을 조회해 가격을 재계산한다
@@ -189,6 +194,8 @@ describe('[회귀] 현금 결제 주문 생성 (즉시 완료)', () => {
       },
     ]);
     prisma.orders.create.mockResolvedValue(mockOrder);
+    prisma.orders.findUnique.mockResolvedValue(mockOrder);
+    prisma.payments.findFirst.mockResolvedValue(null);
     prisma.orders.update.mockResolvedValue(mockOrder);
     prisma.payments.create.mockResolvedValue(mockPayment);
     prisma.payments.update.mockResolvedValue(mockPayment);
@@ -197,7 +204,13 @@ describe('[회귀] 현금 결제 주문 생성 (즉시 완료)', () => {
   test('현금 결제 → 서버 오류 없이 결제 생성', async () => {
     const res = await request(app)
       .post('/api/payments')
+      .set(
+        'x-order-capability',
+        require('../../utils/orderCapability').createOrderCapability(mockOrder)
+      )
+      .set('Idempotency-Key', 'cash-order-one')
       .send({
+        order_id: 1,
         store_id: 1,
         payment_method: 'cash',
         total_amount: 10000,
@@ -213,8 +226,8 @@ describe('[회귀] 현금 결제 주문 생성 (즉시 완료)', () => {
         ],
       });
 
-    expect(res.status).not.toBe(500);
-    expect(prisma.orders.create).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(200);
+    expect(prisma.orders.create).not.toHaveBeenCalled();
     expect(prisma.payments.create).toHaveBeenCalled();
   });
 
@@ -223,7 +236,7 @@ describe('[회귀] 현금 결제 주문 생성 (즉시 완료)', () => {
     const res = await request(app)
       .post('/api/payments')
       .send({ payment_method: 'cash', total_amount: 10000, items: [] });
-    expect([400, 500]).toContain(res.status);
+    expect(res.status).toBe(403);
   });
 });
 
@@ -251,6 +264,8 @@ describe('[회귀] 계좌이체 주문 (수동 확인 필요)', () => {
       },
     ]);
     prisma.orders.create.mockResolvedValue(mockOrder);
+    prisma.orders.findUnique.mockResolvedValue(mockOrder);
+    prisma.payments.findFirst.mockResolvedValue(null);
     prisma.orders.update.mockResolvedValue(mockOrder);
     prisma.payments.create.mockResolvedValue(mockPayment);
     prisma.payments.update.mockResolvedValue(mockPayment);
@@ -259,7 +274,13 @@ describe('[회귀] 계좌이체 주문 (수동 확인 필요)', () => {
   test('계좌이체 → 서버 오류 없이 결제 생성', async () => {
     const res = await request(app)
       .post('/api/payments')
+      .set(
+        'x-order-capability',
+        require('../../utils/orderCapability').createOrderCapability(mockOrder)
+      )
+      .set('Idempotency-Key', 'transfer-order-two')
       .send({
+        order_id: 2,
         store_id: 1,
         payment_method: 'transfer',
         total_amount: 20000,
@@ -269,8 +290,8 @@ describe('[회귀] 계좌이체 주문 (수동 확인 필요)', () => {
         ],
       });
 
-    expect(res.status).not.toBe(500);
-    expect(prisma.orders.create).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(200);
+    expect(prisma.orders.create).not.toHaveBeenCalled();
   });
 });
 

@@ -1,4 +1,5 @@
 const { AppError } = require('../utils/errorHandler');
+const { effectivePlan } = require('../utils/subscriptionPolicy');
 
 /**
  * 플랜 기능 접근 제어 미들웨어
@@ -21,15 +22,15 @@ const PLAN_FEATURES = {
 /**
  * 플랜 기능 사용 가능 여부 체크
  */
-function checkPlanFeature(planName, feature) {
+function checkPlanFeature(planName, feature, configuredFeatures = {}) {
   const featureDef = PLAN_FEATURES[feature];
-  if (!featureDef) return true; // 정의되지 않은 기능은 허용
+  if (!featureDef) return false;
 
-  const allowed = featureDef[planName];
+  const allowed = configuredFeatures[feature] ?? featureDef[planName];
   if (allowed === true) return true;
   if (allowed === false) return false;
-  if (typeof allowed === 'number') return allowed > 0; // -1 = 무제한
-  if (typeof allowed === 'string') return allowed !== 'basic' || planName !== 'free'; // basic도 허용
+  if (typeof allowed === 'number') return allowed === -1 || allowed > 0;
+  if (typeof allowed === 'string') return allowed.length > 0;
 
   return false;
 }
@@ -39,7 +40,8 @@ function checkPlanFeature(planName, feature) {
  */
 function checkPlanLimit(planName, limitKey, currentUsage) {
   const featureDef = PLAN_FEATURES[limitKey];
-  if (!featureDef) return { allowed: true, limit: null, usage: currentUsage };
+  if (!featureDef || !Number.isSafeInteger(currentUsage) || currentUsage < 0)
+    return { allowed: false, limit: 0, usage: currentUsage };
 
   const limit = featureDef[planName];
   if (limit === -1) return { allowed: true, limit: -1, usage: currentUsage }; // 무제한
@@ -51,7 +53,7 @@ function checkPlanLimit(planName, limitKey, currentUsage) {
       remaining: Math.max(0, limit - currentUsage),
     };
   }
-  return { allowed: true, limit: null, usage: currentUsage };
+  return { allowed: false, limit: 0, usage: currentUsage };
 }
 
 /**
@@ -60,7 +62,8 @@ function checkPlanLimit(planName, limitKey, currentUsage) {
 function requirePlanFeature(feature) {
   return async (req, res, next) => {
     try {
-      const storeId = req.params.storeId || (req.body && req.body.store_id) || req.query.store_id;
+      const storeId =
+        req.storeId || req.params.storeId || (req.body && req.body.store_id) || req.query.store_id;
       const userRole = req.user?.role;
 
       // super_admin은 모든 기능 접근 허용
@@ -73,14 +76,15 @@ function requirePlanFeature(feature) {
       }
 
       const subscription = await require('../services/SubscriptionService').getSubscription(
-        storeId
+        Number(storeId)
       );
-      if (!subscription) {
-        return next(new AppError('구독 정보를 찾을 수 없습니다', 404));
-      }
 
-      const planName = subscription.plan?.name || 'free';
-      const allowed = checkPlanFeature(planName, feature);
+      const planName = effectivePlan(subscription);
+      const allowed = checkPlanFeature(
+        planName,
+        feature,
+        planName === subscription?.plan?.name ? subscription.plan.features || {} : {}
+      );
 
       if (!allowed) {
         return next(
@@ -105,7 +109,8 @@ function requirePlanFeature(feature) {
 function requirePlanLimit(limitKey, getCurrentUsage) {
   return async (req, res, next) => {
     try {
-      const storeId = req.params.storeId || (req.body && req.body.store_id) || req.query.store_id;
+      const storeId =
+        req.storeId || req.params.storeId || (req.body && req.body.store_id) || req.query.store_id;
       const userRole = req.user?.role;
 
       if (userRole === 'super_admin') {
@@ -117,14 +122,11 @@ function requirePlanLimit(limitKey, getCurrentUsage) {
       }
 
       const subscription = await require('../services/SubscriptionService').getSubscription(
-        storeId
+        Number(storeId)
       );
-      if (!subscription) {
-        return next(new AppError('구독 정보를 찾을 수 없습니다', 404));
-      }
 
-      const planName = subscription.plan?.name || 'free';
-      const currentUsage = getCurrentUsage ? await getCurrentUsage(storeId) : 0;
+      const planName = effectivePlan(subscription);
+      const currentUsage = getCurrentUsage ? await getCurrentUsage(Number(storeId)) : 0;
       const limitCheck = checkPlanLimit(planName, limitKey, currentUsage);
 
       if (!limitCheck.allowed) {
@@ -148,12 +150,15 @@ function requirePlanLimit(limitKey, getCurrentUsage) {
  * 현재 플랜 정보 조회 헬퍼
  */
 async function getCurrentPlan(req) {
-  const storeId = req.params.storeId || (req.body && req.body.store_id) || req.query.store_id;
+  const storeId =
+    req.storeId || req.params.storeId || (req.body && req.body.store_id) || req.query.store_id;
   if (!storeId) return { name: 'free', subscription: null };
 
-  const subscription = await require('../services/SubscriptionService').getSubscription(storeId);
+  const subscription = await require('../services/SubscriptionService').getSubscription(
+    Number(storeId)
+  );
   return {
-    name: subscription?.plan?.name || 'free',
+    name: effectivePlan(subscription),
     subscription,
     features: PLAN_FEATURES,
   };

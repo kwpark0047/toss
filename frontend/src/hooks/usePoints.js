@@ -112,23 +112,29 @@ export function usePoints(identifier = {}) {
 
   // 포인트 결제 실행
   const payWithPoints = useCallback(
-    async ({ orderId, storeId, totalAmount, pointAmount }) => {
+    async ({ orderId, storeId, totalAmount, pointAmount, orderCapability, walletCapability }) => {
+      if (pointAmount !== totalAmount)
+        return { success: false, error: '포인트 결제는 주문 잔액 전액 결제만 지원합니다.' };
       if (pointAmount > (points?.total_points || 0)) {
         return { success: false, error: '포인트가 부족합니다' };
       }
 
       try {
-        const paymentMethod = pointAmount === totalAmount ? 'point' : 'mixed';
+        const paymentMethod = 'point';
 
-        const { data: payment } = await paymentsAPI.create({
-          order_id: orderId,
-          store_id: storeId,
-          payment_method: paymentMethod,
-          total_amount: totalAmount,
-          point_amount: pointAmount,
-          toss_user_key,
-          phone,
-        });
+        const { data: payment } = await paymentsAPI.create(
+          {
+            order_id: orderId,
+            store_id: storeId,
+            payment_method: paymentMethod,
+            total_amount: totalAmount,
+            point_amount: pointAmount,
+            toss_user_key,
+            phone,
+          },
+          orderCapability,
+          walletCapability
+        );
 
         // 잔액 새로고침
         await fetchBalance();

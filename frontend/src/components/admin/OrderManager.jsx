@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ordersAPI, storesAPI, paymentsAPI, staffAPI } from '../../api';
+import { ordersAPI, storesAPI, paymentsAPI, staffAPI, businessAPI } from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSEO } from '../../lib/useSEO';
 import notificationSound from '../../utils/notificationSound';
@@ -11,7 +11,7 @@ import OrderCard from './OrderCard';
 import OrderDetailModal from './OrderDetailModal';
 import EmptyState from '../common/EmptyState';
 import Icon from '../../components/ui/Icon';
-import { Calendar, CheckCircle, ChefHat, Clock, Filter, Package, RefreshCw, Search } from 'lucide-react';
+import { Calendar, CheckCircle, ChefHat, Clock, Filter, Package, RefreshCw, Search, XCircle } from 'lucide-react';
 
 const statusConfig = {
   paid:      { label: '신규',    color: 'text-teal-500',    bg: 'bg-teal-50',    border: 'border-teal-200',   icon: CheckCircle,  next: 'preparing' },
@@ -54,6 +54,8 @@ const OrderManager = () => {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [newOrderAlert, setNewOrderAlert] = useState(false);
   const [currentStaffId, setCurrentStaffId] = useState(null);
+  const [collectingOrder, setCollectingOrder] = useState(null);
+  const collectionKeys = useRef(new Map());
 
   const prevOrderIdsRef = useRef(new Set());
   const isFirstLoadRef  = useRef(true);
@@ -178,10 +180,12 @@ const OrderManager = () => {
   const handlePaymentCancel = async (orderId) => {
     const reason = prompt('취소 사유를 입력하세요.', '관리자 취소');
     if (!reason) return;
-    if (!window.confirm('결제를 취소하시겠습니까? 고객에게 환불이 진행됩니다.')) return;
+    const order = orders.find((item) => item.id === orderId);
+    const offline = ['CASH', 'TRANSFER', 'STORE_CARD'].includes(String(order?.latest_payment?.method || order?.method || '').toUpperCase());
+    if (!window.confirm(offline ? '현장 결제는 고객에게 실제 환불을 완료한 뒤 기록해야 합니다. 실제 환불을 완료하셨습니까?' : '결제를 취소하시겠습니까? 고객에게 환불이 진행됩니다.')) return;
     setLoading(true);
     try {
-      await paymentsAPI.cancelByOrder(orderId, { cancelReason: reason });
+      await paymentsAPI.cancelByOrder(orderId, { cancelReason: reason, manual_refund_confirmed: offline });
       fetchOrders();
       setShowDetail(false);
     } catch (err) {
@@ -189,6 +193,21 @@ const OrderManager = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCollection = async (order) => {
+    if (collectingOrder || !window.confirm('실제로 수납한 금액을 확인하셨습니까? 확인하면 매출에 반영됩니다.')) return;
+    const method = String(order.latest_payment?.method || order.method || '').toUpperCase();
+    setCollectingOrder(order.id);
+    if (!collectionKeys.current.has(order.id)) collectionKeys.current.set(order.id, crypto.randomUUID());
+    try {
+      if (method === 'CASH') await businessAPI.confirmCash(order.id, collectionKeys.current.get(order.id));
+      else if (method === 'TRANSFER') await businessAPI.confirmTransfer(order.id, {});
+      else if (method === 'STORE_CARD') await businessAPI.confirmStoreCard(order.id, {});
+      else throw new Error('확인 가능한 현장 결제 내역이 없습니다.');
+      await fetchOrders();
+    } catch (error) { handleApiError(error, '수납 확인에 실패했습니다'); }
+    finally { setCollectingOrder(null); }
   };
 
   if (loading) {
@@ -354,6 +373,8 @@ const OrderManager = () => {
                 statusConfig={statusConfig}
                 onShowDetail={ord => { setSelectedOrder(ord); setShowDetail(true); }}
                 onStatusChange={handleStatusChange}
+                onCollection={handleCollection}
+                collecting={collectingOrder === order.id}
                 formatTime={formatTime}
               />
             ))}

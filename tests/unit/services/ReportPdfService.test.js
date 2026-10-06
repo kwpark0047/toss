@@ -40,7 +40,7 @@ jest.mock('chart.js', () => ({
 const prisma = require('../../../config/prisma');
 
 describe('ReportPdfService', () => {
-  const outputPath = path.join(__dirname, '../../../../reports/test_report.pdf');
+  const outputPath = path.join(__dirname, '../../../reports/test_report.pdf');
 
   beforeAll(() => {
     const dir = path.dirname(outputPath);

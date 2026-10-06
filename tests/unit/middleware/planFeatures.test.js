@@ -27,8 +27,8 @@ describe('middleware/planFeatures', () => {
   });
 
   describe('checkPlanFeature', () => {
-    test('정의되지 않은 기능은 허용', () => {
-      expect(checkPlanFeature('free', 'nonexistentFeature')).toBe(true);
+    test('정의되지 않은 기능은 거부', () => {
+      expect(checkPlanFeature('free', 'nonexistentFeature')).toBe(false);
     });
 
     test('불리언 기능 체크', () => {
@@ -37,13 +37,13 @@ describe('middleware/planFeatures', () => {
       expect(checkPlanFeature('enterprise', 'aiRecommendations')).toBe(true);
     });
 
-    test('숫자형 기능은 양수 한도면 true, -1(무제한)은 false', () => {
+    test('숫자형 기능은 양수 한도면 true, -1(무제한)은 true', () => {
       expect(checkPlanFeature('free', 'maxMenus')).toBe(true);
-      expect(checkPlanFeature('enterprise', 'maxMenus')).toBe(false);
+      expect(checkPlanFeature('enterprise', 'maxMenus')).toBe(true);
     });
 
     test('문자열 등급은 free의 basic일 때만 거부', () => {
-      expect(checkPlanFeature('free', 'analytics')).toBe(false);
+      expect(checkPlanFeature('free', 'analytics')).toBe(true);
       expect(checkPlanFeature('pro', 'analytics')).toBe(true);
     });
 
@@ -53,10 +53,10 @@ describe('middleware/planFeatures', () => {
   });
 
   describe('checkPlanLimit', () => {
-    test('정의되지 않은 limitKey는 항상 허용', () => {
+    test('정의되지 않은 limitKey는 거부', () => {
       const result = checkPlanLimit('free', 'nonexistent', 5);
-      expect(result.allowed).toBe(true);
-      expect(result.limit).toBeNull();
+      expect(result.allowed).toBe(false);
+      expect(result.limit).toBe(0);
     });
 
     test('무제한(-1)은 허용', () => {
@@ -79,10 +79,10 @@ describe('middleware/planFeatures', () => {
       expect(result.remaining).toBe(7);
     });
 
-    test('문자열 limit은 허용', () => {
+    test('문자열 limit은 거부', () => {
       const result = checkPlanLimit('free', 'analytics', 1);
-      expect(result.allowed).toBe(true);
-      expect(result.limit).toBeNull();
+      expect(result.allowed).toBe(false);
+      expect(result.limit).toBe(0);
     });
   });
 
@@ -109,12 +109,12 @@ describe('middleware/planFeatures', () => {
       expect(err.statusCode).toBe(400);
     });
 
-    test('구독 없으면 404', async () => {
+    test('구독 없으면 무료 플랜 적용', async () => {
       SubscriptionService.getSubscription.mockResolvedValue(null);
       const mw = requirePlanFeature('aiRecommendations');
       await mw({ params: { storeId: '1' }, user: { role: 'owner' } }, res, next);
       const err = next.mock.calls[0][0];
-      expect(err.statusCode).toBe(404);
+      expect(err.statusCode).toBe(403);
     });
 
     test('기능 미허용 플랜이면 403', async () => {
@@ -127,7 +127,11 @@ describe('middleware/planFeatures', () => {
     });
 
     test('허용 플랜이면 req.plan 설정 후 통과', async () => {
-      const sub = { plan: { name: 'pro' } };
+      const sub = {
+        status: 'active',
+        current_period_end: new Date(Date.now() + 86400000),
+        plan: { name: 'pro' },
+      };
       SubscriptionService.getSubscription.mockResolvedValue(sub);
       const mw = requirePlanFeature('aiRecommendations');
       const req = { params: {}, body: { store_id: '1' }, user: { role: 'owner' } };
@@ -161,11 +165,11 @@ describe('middleware/planFeatures', () => {
       expect(next.mock.calls[0][0].statusCode).toBe(400);
     });
 
-    test('구독 없으면 404', async () => {
+    test('구독 없으면 무료 플랜 적용', async () => {
       SubscriptionService.getSubscription.mockResolvedValue(null);
-      const mw = requirePlanLimit('maxMenus', jest.fn());
+      const mw = requirePlanLimit('maxMenus', async () => 50);
       await mw({ params: { storeId: '1' }, user: { role: 'owner' } }, {}, next);
-      expect(next.mock.calls[0][0].statusCode).toBe(404);
+      expect(next.mock.calls[0][0].statusCode).toBe(403);
     });
 
     test('사용량 초과 시 403', async () => {
@@ -178,7 +182,11 @@ describe('middleware/planFeatures', () => {
     });
 
     test('허용 시 req.planLimit 설정 후 통과', async () => {
-      SubscriptionService.getSubscription.mockResolvedValue({ plan: { name: 'pro' } });
+      SubscriptionService.getSubscription.mockResolvedValue({
+        status: 'active',
+        current_period_end: new Date(Date.now() + 86400000),
+        plan: { name: 'pro' },
+      });
       const mw = requirePlanLimit('maxMenus', async () => 10);
       const req = { params: { storeId: '1' }, user: { role: 'owner' } };
       await mw(req, {}, next);
@@ -187,7 +195,11 @@ describe('middleware/planFeatures', () => {
     });
 
     test('getCurrentUsage 미제공 시 기본 0 사용', async () => {
-      SubscriptionService.getSubscription.mockResolvedValue({ plan: { name: 'pro' } });
+      SubscriptionService.getSubscription.mockResolvedValue({
+        status: 'active',
+        current_period_end: new Date(Date.now() + 86400000),
+        plan: { name: 'pro' },
+      });
       const mw = requirePlanLimit('maxMenus');
       const req = { params: { storeId: '1' }, user: { role: 'owner' } };
       await mw(req, {}, next);
@@ -203,7 +215,11 @@ describe('middleware/planFeatures', () => {
     });
 
     test('구독 기반 플랜 반환', async () => {
-      const sub = { plan: { name: 'enterprise' } };
+      const sub = {
+        status: 'active',
+        current_period_end: new Date(Date.now() + 86400000),
+        plan: { name: 'enterprise' },
+      };
       SubscriptionService.getSubscription.mockResolvedValue(sub);
       const plan = await getCurrentPlan({ params: { storeId: '1' } });
       expect(plan.name).toBe('enterprise');

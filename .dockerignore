@@ -13,6 +13,9 @@ pnpm-debug.log*
 .env.local
 .env.production
 .env.development
+.env*
+!.env.example
+private/
 
 # Build outputs
 dist/

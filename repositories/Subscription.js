@@ -10,7 +10,7 @@ class SubscriptionRepository {
    */
   async findByStoreId(storeId) {
     return await prisma.subscription.findUnique({
-      where: { store_id: storeId },
+      where: { store_id: Number(storeId) },
       include: { plan: true },
     });
   }

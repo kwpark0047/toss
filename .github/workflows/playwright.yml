@@ -45,7 +45,7 @@ jobs:
         run: node scripts/seed_test.js || true
       - name: Start backend server
         run: |
-          nohup node index.js > backend.log 2>&1 &
+          nohup node --import tsx index.mts > backend.log 2>&1 &
           sleep 10
           cat backend.log
           curl -f http://localhost:3000/api/health || exit 1

@@ -1,10 +1,13 @@
 # Security Scanning Pipeline - Lightweight
-# Runs on schedule (weekly) and manual trigger only
+# Runs for changes, weekly, and on manual trigger.
 # Scans: Code (Semgrep), Dependencies (npm audit)
 
 name: Security Scanning
 
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
   schedule:
     - cron: '0 3 * * 1' # 주간 월요일 새벽 3시 (UTC)
@@ -53,9 +56,10 @@ jobs:
         run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Run npm audit
-        run: npm audit --json --audit-level=high > npm-audit.json || true
+        run: npm audit --json --audit-level=high > npm-audit.json
 
       - name: Upload audit results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: npm-audit
@@ -68,8 +72,12 @@ jobs:
           CRITICAL=$(jq '[.vulnerabilities[] | select(.severity == "critical")] | length' npm-audit.json)
           echo "High: $HIGH, Critical: $CRITICAL"
           if [ "$HIGH" -gt 0 ] || [ "$CRITICAL" -gt 0 ]; then
-            echo "::warning::Found $CRITICAL critical and $HIGH high vulnerabilities"
+            echo "::error::Found $CRITICAL critical and $HIGH high vulnerabilities"
+            exit 1
           fi
+
+      - name: Audit frontend dependencies
+        run: npm --prefix frontend audit --audit-level=high
 
   trufflehog:
     name: TruffleHog Secret Scan

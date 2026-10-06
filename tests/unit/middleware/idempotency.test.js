@@ -1,443 +1,106 @@
-/**
- * 멱등성 미들웨어 테스트 (M-10)
- *
- * 모바일 네트워크 타임아웃 후 재시도로 인한 중복 주문/중복 결제를 막는다.
- */
-jest.mock('../../../utils/redisCache', () => ({
-  isConnected: false,
-  get: jest.fn(),
-  set: jest.fn(),
-  del: jest.fn(),
+jest.mock('../../../config/prisma', () => ({
+  idempotencyRecord: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
 }));
-
-jest.mock('../../../utils/logger', () => ({
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  debug: jest.fn(),
-}));
-
+jest.mock('../../../utils/logger', () => ({ error: jest.fn() }));
+const prisma = require('../../../config/prisma');
 const idempotency = require('../../../middleware/idempotency');
-const redisCache = require('../../../utils/redisCache');
-
-/** 최소한의 res 스텁 (json 후킹, 헤더 기록, 이벤트) */
-function makeRes() {
-  const listeners = {};
-  const res = {
-    statusCode: 200,
-    headers: {},
-    body: undefined,
-    set(k, v) {
-      this.headers[k] = v;
-      return this;
-    },
-    status(code) {
-      this.statusCode = code;
-      return this;
-    },
-    json(body) {
-      this.body = body;
-      return this;
-    },
-    on(evt, fn) {
-      (listeners[evt] ||= []).push(fn);
-      return this;
-    },
-    emit(evt) {
-      (listeners[evt] || []).forEach((fn) => fn());
-    },
-  };
-  return res;
-}
-
-function makeReq(overrides = {}) {
-  return {
-    method: 'POST',
-    originalUrl: '/api/orders',
-    path: '/api/orders',
-    headers: {},
-    body: { store_id: 1, total_amount: 10000 },
-    ip: '1.2.3.4',
-    user: { id: 7 },
-    ...overrides,
-  };
-}
-
-/** 미들웨어를 실행하고 "핸들러가 응답을 내보내는" 흐름까지 재현 */
-async function runWithHandler(mw, req, res, handler) {
-  const next = jest.fn(() => handler && handler(req, res));
-  await mw(req, res, next);
-  return next;
-}
-
-describe('idempotency 미들웨어', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    redisCache.isConnected = false;
-    idempotency._clearMemoryStore();
+const records = new Map();
+const request = (overrides = {}) => ({
+  method: 'POST',
+  baseUrl: '/payments',
+  path: '/',
+  headers: { 'idempotency-key': 'key' },
+  body: { amount: 100 },
+  user: { id: 1 },
+  ...overrides,
+});
+const response = () => ({
+  statusCode: 200,
+  set: jest.fn().mockReturnThis(),
+  status(n) {
+    this.statusCode = n;
+    return this;
+  },
+  json: jest.fn(function (body) {
+    this.body = body;
+    return this;
+  }),
+});
+beforeEach(() => {
+  jest.clearAllMocks();
+  records.clear();
+  prisma.idempotencyRecord.create.mockImplementation(async ({ data }) => {
+    if (records.has(data.id)) throw Object.assign(new Error('duplicate'), { code: 'P2002' });
+    records.set(data.id, data);
+    return data;
   });
-
-  describe('헤더가 없을 때', () => {
-    test('기본 설정에서는 그대로 통과한다 (하위 호환)', async () => {
-      const mw = idempotency({ namespace: 'test' });
-      const req = makeReq();
-      const res = makeRes();
-      const next = await runWithHandler(mw, req, res);
-      expect(next).toHaveBeenCalled();
-    });
-
-    test('required: true 면 400 을 반환한다', async () => {
-      const mw = idempotency({ namespace: 'test', required: true });
-      const req = makeReq();
-      const res = makeRes();
-      const next = jest.fn();
-      await mw(req, res, next);
-      expect(res.statusCode).toBe(400);
-      expect(next).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('중복 요청 차단', () => {
-    test('[핵심] 완료된 요청은 저장된 응답을 재생한다', async () => {
-      const mw = idempotency({ namespace: 'orders:create' });
-      const key = 'uuid-1111';
-
-      // 1회차 — 실제 처리
-      const req1 = makeReq({ headers: { 'idempotency-key': key } });
-      const res1 = makeRes();
-      await runWithHandler(mw, req1, res1, (_r, r) => {
-        r.statusCode = 201;
-        r.json({ success: true, order_id: 42 });
-      });
-      expect(res1.body).toEqual({ success: true, order_id: 42 });
-
-      // 2회차 — 동일 키 재시도
-      const req2 = makeReq({ headers: { 'idempotency-key': key } });
-      const res2 = makeRes();
-      const handler2 = jest.fn();
-      await runWithHandler(mw, req2, res2, handler2);
-
-      expect(handler2).not.toHaveBeenCalled(); // 핸들러가 다시 실행되면 중복 주문
-      expect(res2.statusCode).toBe(201);
-      expect(res2.body).toEqual({ success: true, order_id: 42 });
-      expect(res2.headers['Idempotency-Replayed']).toBe('true');
-    });
-
-    test('처리 중인 동일 키 요청은 409 로 거절한다', async () => {
-      const mw = idempotency({ namespace: 'orders:create' });
-      const key = 'uuid-2222';
-
-      // 1회차 — next 만 호출되고 아직 응답하지 않은 상태
-      const req1 = makeReq({ headers: { 'idempotency-key': key } });
-      const res1 = makeRes();
-      await mw(req1, res1, jest.fn());
-
-      // 동시 도착한 2회차
-      const req2 = makeReq({ headers: { 'idempotency-key': key } });
-      const res2 = makeRes();
-      const next2 = jest.fn();
-      await mw(req2, res2, next2);
-
-      expect(res2.statusCode).toBe(409);
-      expect(next2).not.toHaveBeenCalled();
-      expect(res2.headers['Retry-After']).toBe('2');
-    });
-
-    test('같은 키로 다른 본문을 보내면 422', async () => {
-      const mw = idempotency({ namespace: 'orders:create' });
-      const key = 'uuid-3333';
-
-      const req1 = makeReq({ headers: { 'idempotency-key': key } });
-      const res1 = makeRes();
-      await runWithHandler(mw, req1, res1, (_r, r) => {
-        r.statusCode = 201;
-        r.json({ ok: 1 });
-      });
-
-      const req2 = makeReq({
-        headers: { 'idempotency-key': key },
-        body: { store_id: 1, total_amount: 999999 }, // 금액이 다름
-      });
-      const res2 = makeRes();
-      const next2 = jest.fn();
-      await mw(req2, res2, next2);
-
-      expect(res2.statusCode).toBe(422);
-      expect(next2).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('실패 응답은 캐시하지 않는다', () => {
-    test('4xx 이후 동일 키 재시도는 다시 처리된다', async () => {
-      const mw = idempotency({ namespace: 'orders:create' });
-      const key = 'uuid-4444';
-
-      const req1 = makeReq({ headers: { 'idempotency-key': key } });
-      const res1 = makeRes();
-      await runWithHandler(mw, req1, res1, (_r, r) => {
-        r.statusCode = 400;
-        r.json({ error: '재고 부족' });
-      });
-
-      const req2 = makeReq({ headers: { 'idempotency-key': key } });
-      const res2 = makeRes();
-      const handler2 = jest.fn((_r, r) => {
-        r.statusCode = 201;
-        r.json({ ok: true });
-      });
-      await runWithHandler(mw, req2, res2, handler2);
-
-      expect(handler2).toHaveBeenCalled();
-      expect(res2.statusCode).toBe(201);
-    });
-  });
-
-  describe('키 스코프 분리', () => {
-    test('다른 사용자가 같은 키를 써도 서로 간섭하지 않는다', async () => {
-      const mw = idempotency({ namespace: 'orders:create' });
-      const key = 'shared-key';
-
-      const resA = makeRes();
-      await runWithHandler(
-        mw,
-        makeReq({ headers: { 'idempotency-key': key }, user: { id: 1 } }),
-        resA,
-        (_r, r) => {
-          r.statusCode = 201;
-          r.json({ owner: 'A' });
-        }
-      );
-
-      const resB = makeRes();
-      const handlerB = jest.fn((_r, r) => {
-        r.statusCode = 201;
-        r.json({ owner: 'B' });
-      });
-      await runWithHandler(
-        mw,
-        makeReq({ headers: { 'idempotency-key': key }, user: { id: 2 } }),
-        resB,
-        handlerB
-      );
-
-      expect(handlerB).toHaveBeenCalled();
-      expect(resB.body).toEqual({ owner: 'B' });
-    });
-
-    test('네임스페이스가 다르면 서로 간섭하지 않는다', async () => {
-      const key = 'ns-key';
-      const mwOrders = idempotency({ namespace: 'orders:create' });
-      const mwPayments = idempotency({ namespace: 'payments:confirm' });
-
-      await runWithHandler(
-        mwOrders,
-        makeReq({ headers: { 'idempotency-key': key } }),
-        makeRes(),
-        (_r, r) => {
-          r.statusCode = 201;
-          r.json({ from: 'orders' });
-        }
-      );
-
-      const res2 = makeRes();
-      const handler2 = jest.fn((_r, r) => {
-        r.statusCode = 200;
-        r.json({ from: 'payments' });
-      });
-      await runWithHandler(
-        mwPayments,
-        makeReq({ headers: { 'idempotency-key': key } }),
-        res2,
-        handler2
-      );
-
-      expect(handler2).toHaveBeenCalled();
-    });
-  });
-
-  describe('입력 검증', () => {
-    test('지나치게 긴 키는 400', async () => {
-      const mw = idempotency({ namespace: 'test' });
-      const req = makeReq({ headers: { 'idempotency-key': 'x'.repeat(300) } });
-      const res = makeRes();
-      const next = jest.fn();
-      await mw(req, res, next);
-      expect(res.statusCode).toBe(400);
-      expect(next).not.toHaveBeenCalled();
-    });
-
-    test('x-idempotency-key 헤더도 인식한다', async () => {
-      const mw = idempotency({ namespace: 'test' });
-      const key = 'alt-header-key';
-
-      await runWithHandler(
-        mw,
-        makeReq({ headers: { 'x-idempotency-key': key } }),
-        makeRes(),
-        (_r, r) => {
-          r.statusCode = 200;
-          r.json({ v: 1 });
-        }
-      );
-
-      const res2 = makeRes();
-      const handler2 = jest.fn();
-      await runWithHandler(mw, makeReq({ headers: { 'x-idempotency-key': key } }), res2, handler2);
-
-      expect(handler2).not.toHaveBeenCalled();
-      expect(res2.body).toEqual({ v: 1 });
-    });
-  });
-
-  describe('Redis 경로', () => {
-    /** Redis를 인메모리 맵으로 대체해 실제 Redis 연결 시 동작을 모사한다 */
-    function useFakeRedis() {
-      const store = new Map();
-      redisCache.isConnected = true;
-      redisCache.get.mockImplementation(async (k) => (store.has(k) ? store.get(k) : null));
-      redisCache.set.mockImplementation(async (k, v) => {
-        store.set(k, v);
-        return 'OK';
-      });
-      redisCache.del.mockImplementation(async (k) => {
-        store.delete(k);
-        return 1;
-      });
-      return store;
-    }
-
-    test('Redis 연결 시 완료된 요청을 Redis에서 읽어 재생한다', async () => {
-      const store = useFakeRedis();
-      const mw = idempotency({ namespace: 'orders:create' });
-      const key = 'redis-uuid-1111';
-
-      const res1 = makeRes();
-      await runWithHandler(mw, makeReq({ headers: { 'idempotency-key': key } }), res1, (_r, r) => {
-        r.statusCode = 201;
-        r.json({ success: true, order_id: 99 });
-      });
-
-      // 응답 payload가 Redis에 실제로 기록되어야 한다 (인메모리 폴백이 아님)
-      const cachedRaw = [...store.entries()].find(
-        ([k]) => k.startsWith('idempotency:orders:create:7:') && !k.includes(':inflight')
-      );
-      expect(cachedRaw).toBeDefined();
-      expect(JSON.parse(cachedRaw[1])).toMatchObject({ status: 201, body: { order_id: 99 } });
-
-      // 2회차: Redis 히트 → 핸들러 미실행 + 재생
-      const handler2 = jest.fn();
-      const res2 = makeRes();
-      await runWithHandler(mw, makeReq({ headers: { 'idempotency-key': key } }), res2, handler2);
-
-      expect(handler2).not.toHaveBeenCalled();
-      expect(res2.statusCode).toBe(201);
-      expect(res2.body).toEqual({ success: true, order_id: 99 });
-      expect(res2.headers['Idempotency-Replayed']).toBe('true');
-    });
-
-    test('Redis 연결 시 본문이 다르면 422 로 거절한다 (bodyHash 대조)', async () => {
-      useFakeRedis();
-      const mw = idempotency({ namespace: 'orders:create' });
-      const key = 'redis-uuid-2222';
-
-      const res1 = makeRes();
-      await runWithHandler(mw, makeReq({ headers: { 'idempotency-key': key } }), res1, (_r, r) => {
-        r.statusCode = 201;
-        r.json({ ok: 1 });
-      });
-
-      const next2 = jest.fn();
-      const res2 = makeRes();
-      await runWithHandler(
-        mw,
-        makeReq({ headers: { 'idempotency-key': key }, body: { store_id: 1, total_amount: 555 } }),
-        res2,
-        next2
-      );
-
-      expect(res2.statusCode).toBe(422);
-      expect(next2).not.toHaveBeenCalled();
-    });
-
-    test('Redis 연결 시 in-flight 중복은 409 로 거절한다', async () => {
-      useFakeRedis();
-      const mw = idempotency({ namespace: 'orders:create' });
-      const key = 'redis-uuid-3333';
-
-      await mw(makeReq({ headers: { 'idempotency-key': key } }), makeRes(), jest.fn());
-
-      const next2 = jest.fn();
-      const res2 = makeRes();
-      await runWithHandler(mw, makeReq({ headers: { 'idempotency-key': key } }), res2, next2);
-
-      expect(res2.statusCode).toBe(409);
-      expect(next2).not.toHaveBeenCalled();
-    });
-
-    test('Redis 장애로 연결이 끊기면 인메모리 폴백으로 멱등성을 유지한다', async () => {
-      const store = useFakeRedis();
-      const mw = idempotency({ namespace: 'orders:create' });
-      const key = 'redis-outage-5555';
-
-      // Redis 정상 상태에서 1차 처리
-      const res1 = makeRes();
-      await runWithHandler(mw, makeReq({ headers: { 'idempotency-key': key } }), res1, (_r, r) => {
-        r.statusCode = 201;
-        r.json({ order_id: 7 });
-      });
-
-      // Redis 장애 — Redis에 저장된 응답은 이제 읽을 수 없다.
-      // 인메모리 폴백 레코드가 없다면 중복 주문이 그대로 통과해버린다.
-      store.clear();
-      redisCache.isConnected = false;
-
-      const handler2 = jest.fn();
-      const res2 = makeRes();
-      await runWithHandler(mw, makeReq({ headers: { 'idempotency-key': key } }), res2, handler2);
-
-      expect(handler2).not.toHaveBeenCalled();
-      expect(res2.headers['Idempotency-Replayed']).toBe('true');
-      expect(res2.statusCode).toBe(201);
-    });
-  });
-
-  describe('저장소 장애 내성', () => {
-    test('Redis 조회가 실패해도 요청을 막지 않는다 (가용성 우선)', async () => {
-      redisCache.isConnected = true;
-      redisCache.get.mockRejectedValue(new Error('redis down'));
-      redisCache.set.mockRejectedValue(new Error('redis down'));
-
-      const mw = idempotency({ namespace: 'test' });
-      const req = makeReq({ headers: { 'idempotency-key': 'k' } });
-      const res = makeRes();
-      const next = jest.fn();
-
-      await mw(req, res, next);
-
-      expect(next).toHaveBeenCalled();
-    });
-  });
-
-  describe('잠금 해제', () => {
-    test('응답 없이 연결이 끊기면 in-flight 표시를 해제한다', async () => {
-      const mw = idempotency({ namespace: 'test' });
-      const key = 'aborted-key';
-
-      const req1 = makeReq({ headers: { 'idempotency-key': key } });
-      const res1 = makeRes();
-      await mw(req1, res1, jest.fn());
-      res1.emit('close'); // 클라이언트 중단
-
-      // 재시도는 409 가 아니라 정상 처리되어야 한다
-      const res2 = makeRes();
-      const handler2 = jest.fn((_r, r) => {
-        r.statusCode = 201;
-        r.json({ ok: true });
-      });
-      await runWithHandler(mw, makeReq({ headers: { 'idempotency-key': key } }), res2, handler2);
-
-      expect(handler2).toHaveBeenCalled();
-      expect(res2.statusCode).toBe(201);
-    });
-  });
+  prisma.idempotencyRecord.findUnique.mockImplementation(async ({ where }) =>
+    records.get(where.id)
+  );
+  prisma.idempotencyRecord.update.mockImplementation(async ({ where, data }) =>
+    Object.assign(records.get(where.id), data)
+  );
+});
+test('optional requests without a key pass through', async () => {
+  const next = jest.fn();
+  await idempotency()(request({ headers: {} }), response(), next);
+  expect(next).toHaveBeenCalled();
+});
+test('required key absence is rejected', async () => {
+  const res = response();
+  await idempotency({ required: true })(request({ headers: {} }), res, jest.fn());
+  expect(res.statusCode).toBe(400);
+});
+test.each([' ', 'x'.repeat(256), ['key']])('invalid key %p is rejected', async (key) => {
+  const res = response();
+  await idempotency()(request({ headers: { 'idempotency-key': key } }), res, jest.fn());
+  expect(res.statusCode).toBe(400);
+});
+test('concurrent handlers admit only one', async () => {
+  const next = jest.fn();
+  const mw = idempotency();
+  await Promise.all([mw(request(), response(), next), mw(request(), response(), next)]);
+  expect(next).toHaveBeenCalledTimes(1);
+});
+test('completed response is replayed after middleware recreation', async () => {
+  const first = response();
+  const next = jest.fn();
+  await idempotency()(request(), first, next);
+  await first.json({ id: 12 });
+  const replay = response();
+  await idempotency()(request(), replay, next);
+  expect(replay.body).toEqual({ id: 12 });
+  expect(next).toHaveBeenCalledTimes(1);
+  expect(replay.set).toHaveBeenCalledWith('Idempotency-Replayed', 'true');
+});
+test('body mismatch is rejected', async () => {
+  await idempotency()(request(), response(), jest.fn());
+  const res = response();
+  await idempotency()(request({ body: { amount: 2 } }), res, jest.fn());
+  expect(res.statusCode).toBe(422);
+});
+test('keys are scoped by authenticated principal', async () => {
+  const next = jest.fn();
+  await idempotency()(request(), response(), next);
+  await idempotency()(request({ user: { id: 2 } }), response(), next);
+  expect(next).toHaveBeenCalledTimes(2);
+});
+test('database outage fails closed', async () => {
+  prisma.idempotencyRecord.create.mockRejectedValue(new Error('unavailable'));
+  const res = response(),
+    next = jest.fn();
+  await idempotency()(request(), res, next);
+  expect(next).not.toHaveBeenCalled();
+  expect(res.statusCode).toBe(503);
+});
+test('uncertain results are never re-executed', async () => {
+  const first = response();
+  await idempotency()(request(), first, jest.fn());
+  first.statusCode = 502;
+  await first.json({ error: 'timeout' });
+  const res = response(),
+    next = jest.fn();
+  await idempotency()(request(), res, next);
+  expect(next).not.toHaveBeenCalled();
+  expect(res.statusCode).toBe(409);
 });

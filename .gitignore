@@ -51,6 +51,7 @@ wemarket-miniapp/
 
 # 런타임 업로드 파일
 public/uploads/
+private/
 
 # 테스트 커버리지 리포트
 coverage/

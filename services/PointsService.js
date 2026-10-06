@@ -324,7 +324,7 @@ class PointsService {
         payment_id: paymentId,
         type: 'earn',
         amount: earnAmount,
-        balance_after: userPoint.total_points + earnAmount,
+        balance_after: userPoint.total_points,
         description: `주문(#${orderNumber}) 적립`,
         expires_at: expiresAt,
       },
@@ -343,20 +343,25 @@ class PointsService {
    * @returns {Promise<object>} 사용 트랜잭션 레코드
    */
   async use(orderId, paymentId, storeId, orderNumber, identifier, pointAmount, tx) {
+    if (!Number.isSafeInteger(pointAmount) || pointAmount <= 0) {
+      throw new Error('사용 포인트는 양의 정수여야 합니다');
+    }
     const user = await this.findOrCreateUser(identifier, tx);
     if (!user || user.total_points < pointAmount) {
       throw new Error('포인트가 부족합니다');
     }
 
-    const newBalance = user.total_points - pointAmount;
-    await tx.user_points.update({
-      where: { id: user.id },
+    const transition = await tx.user_points.updateMany({
+      where: { id: user.id, total_points: { gte: pointAmount } },
       data: {
-        total_points: newBalance,
+        total_points: { decrement: pointAmount },
         lifetime_used: { increment: pointAmount },
         updated_at: new Date(),
       },
     });
+    if (transition.count !== 1) throw new Error('포인트가 부족합니다');
+    const updated = await tx.user_points.findUnique({ where: { id: user.id } });
+    const newBalance = updated.total_points;
 
     return tx.point_transactions.create({
       data: {
@@ -404,12 +409,17 @@ class PointsService {
   }
 
   /**
-   * 포인트 트랜잭션 1건을 반전 처리합니다 ('cancel_earn'/'cancel_use'는 건너뛰어 재호출 멱등 보장).
+   * 원본 내역과 지갑을 잠그고 reversal_of 고유 값으로 중복 복구를 방지합니다.
    * @param {import('@prisma/client').PrismaTransactionClient} tx
    * @param {object} pt
    * @param {string} [reason] - 반전 설명에 사용할 사유 (기본: 결제 취소)
    */
   async _revertEntry(tx, pt, reason = '결제 취소') {
+    if (!['earn', 'use'].includes(pt.type)) return;
+    await tx.$queryRaw`SELECT id FROM public.point_transactions WHERE id = ${pt.id} FOR UPDATE`;
+    const reversed = await tx.point_transactions.findUnique({ where: { reversal_of: pt.id } });
+    if (reversed) return;
+    await tx.$queryRaw`SELECT id FROM public.user_points WHERE id = ${pt.user_point_id} FOR UPDATE`;
     if (pt.type === 'earn') {
       const user = await tx.user_points.findFirst({
         where: { id: pt.user_point_id },
@@ -431,6 +441,7 @@ class PointsService {
             order_id: pt.order_id,
             payment_id: pt.payment_id,
             type: 'cancel_earn',
+            reversal_of: pt.id,
             amount: -pt.amount,
             balance_after: newBalance,
             description: `${reason} 포인트 회수`,
@@ -459,6 +470,7 @@ class PointsService {
             order_id: pt.order_id,
             payment_id: pt.payment_id,
             type: 'cancel_use',
+            reversal_of: pt.id,
             amount: usedAmount,
             balance_after: newBalance,
             description: `${reason} 포인트 복구`,

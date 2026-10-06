@@ -185,9 +185,9 @@ const {
   } = useTossPayment();
 
   // 현금/계좌이체/매장카드/간편결제 즉시 결제 처리
-  const createPayment = async (data) => {
+  const createPayment = async (data, capability) => {
     try {
-      const res = await paymentsAPI.create(data);
+      const res = await paymentsAPI.create(data, capability);
       return res?.data || res;
     } catch (e) {
       return { success: false, error: e.message || '결제 실패' };
@@ -529,6 +529,7 @@ const order = await ordersAPI.create(orderData);
       // 현금, 계좌이체, 매장카드 → 즉시 결제 API 호출
       else if (['cash', 'transfer', 'store_card'].includes(paymentMethod)) {
         const paymentResult = await createPayment({
+          order_id: createdOrderId,
           store_id: storeId,
           payment_method: paymentMethod,
           total_amount: totalPrice,
@@ -541,7 +542,7 @@ const order = await ordersAPI.create(orderData);
             options: item.selectedOptions,
             user_phone: hasPhone ? notifyDigits : undefined
           }))
-        });
+        }, orderData_.order_capability);
         if (!paymentResult?.success) {
           throw new Error(paymentResult?.error || '결제 진행에 실패했습니다.');
         }

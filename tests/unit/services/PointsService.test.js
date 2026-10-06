@@ -11,6 +11,18 @@ const pointsService = require('../../../services/PointsService');
 const Point = require('../../../repositories/Point');
 
 describe('PointsService', () => {
+  test('earned history records the updated balance exactly once', async () => {
+    const tx = {
+      user_points: {
+        findFirst: jest.fn().mockResolvedValue({ id: 1, total_points: 100 }),
+        update: jest.fn().mockResolvedValue({ id: 1, total_points: 150 }),
+      },
+      store_point_settings: { findUnique: jest.fn().mockResolvedValue(null) },
+      point_transactions: { create: jest.fn().mockImplementation(({ data }) => data) },
+    };
+    const result = await pointsService.earn(1, 2, 3, 'ONE', '01012345678', 50, tx);
+    expect(result.balance_after).toBe(150);
+  });
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -145,7 +157,9 @@ describe('PointsService', () => {
 
   describe('revertOnOrderCancel', () => {
     const baseTx = () => ({
+      $queryRaw: jest.fn().mockResolvedValue([]),
       point_transactions: {
+        findUnique: jest.fn().mockResolvedValue(null),
         findMany: jest.fn(),
         create: jest.fn().mockResolvedValue({}),
       },
@@ -158,9 +172,21 @@ describe('PointsService', () => {
     test('적립 포인트를 회수하고 cancel_earn을 기록한다', async () => {
       const tx = baseTx();
       tx.point_transactions.findMany.mockResolvedValue([
-        { id: 10, user_point_id: 1, store_id: 2, order_id: 5, payment_id: null, type: 'earn', amount: 100 },
+        {
+          id: 10,
+          user_point_id: 1,
+          store_id: 2,
+          order_id: 5,
+          payment_id: null,
+          type: 'earn',
+          amount: 100,
+        },
       ]);
-      tx.user_points.findFirst.mockResolvedValue({ id: 1, total_points: 1000, lifetime_earned: 1000 });
+      tx.user_points.findFirst.mockResolvedValue({
+        id: 1,
+        total_points: 1000,
+        lifetime_earned: 1000,
+      });
 
       await pointsService.revertOnOrderCancel(5, tx);
 
@@ -187,7 +213,15 @@ describe('PointsService', () => {
     test('사용 포인트를 복구하고 cancel_use를 기록한다', async () => {
       const tx = baseTx();
       tx.point_transactions.findMany.mockResolvedValue([
-        { id: 11, user_point_id: 1, store_id: 2, order_id: 5, payment_id: 90, type: 'use', amount: -300 },
+        {
+          id: 11,
+          user_point_id: 1,
+          store_id: 2,
+          order_id: 5,
+          payment_id: 90,
+          type: 'use',
+          amount: -300,
+        },
       ]);
       tx.user_points.findFirst.mockResolvedValue({ id: 1, total_points: 700, lifetime_used: 300 });
 
@@ -237,14 +271,28 @@ describe('PointsService', () => {
   describe('revertOnCancel (리팩터 후 동작 보존)', () => {
     test('payment_id 기반 회수 — 기존 취소 설명 유지', async () => {
       const tx = {
+        $queryRaw: jest.fn().mockResolvedValue([]),
         point_transactions: {
-          findMany: jest.fn().mockResolvedValue([
-            { id: 1, user_point_id: 1, store_id: 2, order_id: 3, payment_id: 9, type: 'earn', amount: 50 },
-          ]),
+          findUnique: jest.fn().mockResolvedValue(null),
+          findMany: jest
+            .fn()
+            .mockResolvedValue([
+              {
+                id: 1,
+                user_point_id: 1,
+                store_id: 2,
+                order_id: 3,
+                payment_id: 9,
+                type: 'earn',
+                amount: 50,
+              },
+            ]),
           create: jest.fn().mockResolvedValue({}),
         },
         user_points: {
-          findFirst: jest.fn().mockResolvedValue({ id: 1, total_points: 500, lifetime_earned: 500 }),
+          findFirst: jest
+            .fn()
+            .mockResolvedValue({ id: 1, total_points: 500, lifetime_earned: 500 }),
           update: jest.fn().mockResolvedValue({}),
         },
       };

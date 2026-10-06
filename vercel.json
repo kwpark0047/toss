@@ -1,5 +1,5 @@
 {
-  "installCommand": "cd frontend && npm install --legacy-peer-deps",
+  "installCommand": "npm --prefix frontend ci",
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "frontend/dist",
   "routes": [

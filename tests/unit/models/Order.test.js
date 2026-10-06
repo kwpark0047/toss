@@ -37,6 +37,8 @@ describe('Order.create', () => {
 
   test('클라이언트 단가와 합계를 무시하고 서버 상품 가격을 저장한다', async () => {
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      subscription: { findUnique: jest.fn().mockResolvedValue(null) },
       products: {
         findMany: jest.fn().mockResolvedValue([
           {
@@ -50,7 +52,10 @@ describe('Order.create', () => {
           },
         ]),
       },
-      orders: { create: jest.fn().mockImplementation(({ data }) => ({ id: 1, ...data })) },
+      orders: {
+        count: jest.fn().mockResolvedValue(0),
+        create: jest.fn().mockImplementation(({ data }) => ({ id: 1, ...data })),
+      },
     };
     prisma.$transaction.mockImplementation((callback) => callback(tx));
 

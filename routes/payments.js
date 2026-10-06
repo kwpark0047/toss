@@ -1,31 +1,20 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
+const { optionalAuth } = require('../middleware/auth');
 const paymentController = require('../controllers/paymentController');
 const idempotency = require('../middleware/idempotency');
 const orderCapability = require('../middleware/orderCapability');
 const paymentOrderCapability = require('../middleware/paymentOrderCapability');
 const tossWebhookAuth = require('../middleware/tossWebhookAuth');
 const { rawBodyJsonParser } = require('../middleware/rawBodyJson');
+const directPaymentAuth = require('../middleware/directPaymentAuth');
 const { paymentCapabilityOrStoreAuth } = paymentOrderCapability;
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = 'public/uploads/proofs';
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `proof_${req.params.paymentId}_${Date.now()}${ext}`);
-  },
-});
 const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 0, parts: 1, fieldNameSize: 64 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('이미지 파일만 업로드 가능합니다.'));
@@ -63,7 +52,20 @@ const upload = multer({
  *       200:
  *         description: 결제 정보
  */
-router.post('/', idempotency({ namespace: 'payments:create' }), paymentController.createPayment);
+router.post(
+  '/',
+  optionalAuth,
+  orderCapability,
+  directPaymentAuth,
+  idempotency({ namespace: 'payments:create', required: true }),
+  paymentController.createPayment
+);
+router.post(
+  '/order/:orderId/confirm-cash',
+  authMiddleware,
+  idempotency({ namespace: 'payments:cash', required: true }),
+  paymentController.confirmCash
+);
 
 /**
  * @swagger
@@ -258,10 +260,16 @@ router.post('/:paymentKey/cancel', authMiddleware, paymentController.cancelByPay
  */
 router.post(
   '/:paymentId/proof',
-  authMiddleware,
+  optionalAuth,
   paymentCapabilityOrStoreAuth,
   upload.single('proof'),
   paymentController.uploadProof
+);
+router.get(
+  '/:paymentId/proof',
+  optionalAuth,
+  paymentCapabilityOrStoreAuth,
+  paymentController.getProof
 );
 
 /**

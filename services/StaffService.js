@@ -62,9 +62,12 @@ class StaffService {
     const existing = await prisma.staff.findFirst({ where: { store_id: sid, user_id: userId } });
     if (existing) throw new AppError('이미 근태 추적이 활성화되어 있습니다.', 409);
 
-    const newStaff = await prisma.staff.create({
-      data: { store_id: sid, user_id: userId, role: 'owner' },
-      include: { users: { select: { name: true, email: true } } },
+    const newStaff = await prisma.$transaction(async (tx) => {
+      await require('../utils/planQuota').assertPlanQuota(tx, sid, 'maxStaff');
+      return tx.staff.create({
+        data: { store_id: sid, user_id: userId, role: 'owner' },
+        include: { users: { select: { name: true, email: true } } },
+      });
     });
     return { id: newStaff.id, name: newStaff.users.name, role: 'owner' };
   }
@@ -97,6 +100,7 @@ class StaffService {
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      await require('../utils/planQuota').assertPlanQuota(tx, storeId, 'maxStaff');
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = await tx.users.create({
         data: {
@@ -322,9 +326,12 @@ class StaffService {
     });
     if (existing) throw new AppError('이미 해당 매장의 팀원입니다.', 409);
 
-    const newStaff = await prisma.staff.create({
-      data: { store_id: parseInt(storeId), user_id: parseInt(userId), role: assignedRole },
-      include: { users: { select: { name: true, email: true, phone: true } } },
+    const newStaff = await prisma.$transaction(async (tx) => {
+      await require('../utils/planQuota').assertPlanQuota(tx, storeId, 'maxStaff');
+      return tx.staff.create({
+        data: { store_id: parseInt(storeId), user_id: parseInt(userId), role: assignedRole },
+        include: { users: { select: { name: true, email: true, phone: true } } },
+      });
     });
 
     return {

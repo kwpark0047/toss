@@ -7,7 +7,12 @@ const cache = require('../utils/dbCache');
  */
 const Product = {
   // [상품 생성]
-  create: async (data) => {
+  create: async (data, transaction = null) => {
+    if (!transaction)
+      return prisma.$transaction(async (tx) => {
+        await require('../utils/planQuota').assertPlanQuota(tx, data.store_id, 'maxMenus');
+        return Product.create(data, tx);
+      });
     const {
       store_id,
       category_id,
@@ -34,7 +39,7 @@ const Product = {
 
     if (store_id === undefined) throw new Error('store_id is undefined');
 
-    const product = await prisma.products.create({
+    const product = await transaction.products.create({
       data: {
         store_id: parseInt(store_id),
         category_id:

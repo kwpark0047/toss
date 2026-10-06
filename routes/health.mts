@@ -16,6 +16,7 @@ import { getAllowedOrigins, isOriginAllowed } from '../config/domain.js';
 const prismaClient = prisma as any;
 
 const router = Router();
+router.get('/live', (_req: Request, res: Response) => res.json({ status: 'ok' }));
 
 // DB 슬립/서버 503 가용성 장애 시에도 브라우저 전송에 필요한 CORS 헤더를 원자적으로 강제 반사 (Workbox fetch 우회 차단 해결)
 router.use((req: Request, res: Response, next: NextFunction) => {

@@ -16,7 +16,10 @@ describe('production migration deployment', () => {
   });
 
   test('Render applies pending migrations before generating Prisma Client', () => {
-    const renderConfig = fs.readFileSync(path.join(__dirname, '../../../render.yaml'), 'utf8');
+    const renderConfig = fs
+      .readFileSync(path.join(__dirname, '../../../render.yaml'), 'utf8')
+      .split('\n')
+      .find((line) => line.includes('buildCommand:'));
     const deployIndex = renderConfig.indexOf('prisma migrate deploy');
     const generateIndex = renderConfig.indexOf('prisma generate');
 

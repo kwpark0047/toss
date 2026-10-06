@@ -5,6 +5,7 @@ const { checkStorePermission } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const storeController = require('../controllers/storeController');
 const subscriptionController = require('../controllers/subscriptionController');
+const idempotency = require('../middleware/idempotency');
 const { validateBody, validateQuery, validateParams } = require('../middleware/validate');
 const {
   createStoreSchema,
@@ -447,6 +448,7 @@ router.post(
   bridgeStoreId,
   checkStorePermission('settings:write'),
   validateBody(subscriptionPaymentMethodSchema),
+  idempotency({ namespace: 'subscription:register', required: true }),
   catchAsync(subscriptionController.registerPaymentMethod)
 );
 

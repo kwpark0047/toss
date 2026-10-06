@@ -42,19 +42,9 @@ const getAuthHeader = () => {
  */
 const sanitizeError = (error: any): any => {
   if (!error) return error;
-  const sanitized = { ...error };
-  if (sanitized.response?.data) {
-    sanitized.response.data = sanitizeTossResponse(sanitized.response.data);
-  }
-  if (sanitized.config?.data) {
-    try {
-      const parsed = JSON.parse(sanitized.config.data);
-      sanitized.config.data = sanitizeTossResponse(parsed);
-    } catch {
-      // 데이터가 JSON이 아닌 경우 그대로 유지
-    }
-  }
-  return sanitized;
+  // Axios config/request contain Authorization and billing keys in request URLs.
+  return { code: String(error.response?.data?.code || error.code || 'TOSS_ERROR'),
+    status: error.response?.status || null };
 };
 
 /**
@@ -83,6 +73,21 @@ const sanitizeTossResponse = (data: any): any => {
 };
 
 const TossAPI = {
+  issueBillingKeyFromAuth: async (authKey: string, customerKey: string) => {
+    if (!TOSS_SECRET_KEY) throw new Error('Toss billing is not configured');
+    return tossCircuit.call(async () => {
+      try {
+        const response = await axios.post('https://api.tosspayments.com/v1/billing/authorizations/issue',
+          { authKey, customerKey }, { headers: getAuthHeader() });
+        return response.data;
+      } catch (error: any) {
+        // Never expose Axios request headers or authKey in app errors/logs.
+        throw Object.assign(new Error('구독 결제수단 인증에 실패했습니다.'), {
+          code: error.response?.data?.code || 'BILLING_AUTH_FAILED', statusCode: 502,
+        });
+      }
+    });
+  },
   /**
    * 1. 결제 승인 (Confirm)
    * 결제창 호출 후 발급받은 paymentKey를 이용해 실제 승인을 요청합니다.
@@ -308,9 +313,8 @@ const TossAPI = {
     return tossCircuit.call(async () => {
       try {
         const response = await axios.post(
-          'https://api.tosspayments.com/v1/billing/payments',
+          `https://api.tosspayments.com/v1/billing/${encodeURIComponent(billingKey)}`,
           {
-            billingKey,
             customerKey,
             amount,
             orderId,
@@ -319,7 +323,7 @@ const TossAPI = {
             customerName,
             taxFreeAmount,
           },
-          { headers: getAuthHeader() }
+          { headers: { ...getAuthHeader(), 'Idempotency-Key': orderId } }
         );
         return response.data;
       } catch (error: any) {

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { formatPrice } from '../../utils/format';
 import { paymentsAPI } from '../../api';
-import { Eye, RefreshCw, Scissors, X } from 'lucide-react';
+import PrivatePaymentProof from './PrivatePaymentProof';
+import { RefreshCw, Scissors, X } from 'lucide-react';
 
 const OrderDetailModal = ({ order, statusConfig, onClose, onStatusChange, onPaymentCancel, formatDateTime }) => {
     const [showPartialRefund, setShowPartialRefund] = useState(false);
@@ -72,28 +73,8 @@ const OrderDetailModal = ({ order, statusConfig, onClose, onStatusChange, onPaym
                     </div>
 
                     {/* 입금 증빙 이미지 표시 */}
-                    {order.proof_image_url && (
-                        <div className="bg-orange-50 rounded-2xl p-4 border border-orange-100">
-                            <h3 className="font-bold text-orange-800 text-sm mb-3 flex items-center gap-2">
-                                <Eye className="w-4 h-4" /> 입금 증빙 사진 (송금 확인증)
-                            </h3>
-                            <a
-                                href={order.proof_image_url.startsWith('http') ? order.proof_image_url : `${import.meta.env.VITE_API_URL || window.location.origin}${order.proof_image_url}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block rounded-xl overflow-hidden border-2 border-white shadow-sm hover:opacity-90 transition-opacity"
-                            >
-                                <img
-                                    src={order.proof_image_url.startsWith('http') ? order.proof_image_url : `${import.meta.env.VITE_API_URL || window.location.origin}${order.proof_image_url}`}
-                                    alt="입금 증빙"
-                                    className="w-full h-auto max-h-64 object-contain bg-white"
-                                />
-                            </a>
-                            <p className="text-[11px] text-orange-600 mt-2 text-center">
-                                이미지를 클릭하면 원본 크기로 볼 수 있습니다.
-                            </p>
-                        </div>
-                    )}
+                    {order.latest_payment?.proof_image_url?.startsWith('private:') && <PrivatePaymentProof paymentId={order.latest_payment.id} />}
+                    {(order.proof_image_url || order.latest_payment?.proof_image_url) && !order.latest_payment?.proof_image_url?.startsWith('private:') && <p className="text-sm text-orange-700">기존 증빙은 비공개 저장소로 이전 후 조회할 수 있습니다.</p>}
 
                     {/* 주문 상품 목록 */}
                     <div>
@@ -189,7 +170,7 @@ const OrderDetailModal = ({ order, statusConfig, onClose, onStatusChange, onPaym
                                     </button>
                                 )}
                                 {/* 부분 환불 버튼 */}
-                                {order.payment_status === 'paid' && !showPartialRefund && (
+                                {order.payment_status === 'paid' && !showPartialRefund && !['CASH', 'TRANSFER', 'STORE_CARD', 'POINT'].includes(String(order.latest_payment?.method || order.method || '').toUpperCase()) && (
                                     <button
                                         onClick={() => setShowPartialRefund(true)}
                                         className="px-5 py-4 bg-amber-50 text-amber-700 rounded-2xl font-bold hover:bg-amber-100 transition-all border border-amber-200 flex items-center justify-center gap-2"

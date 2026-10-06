@@ -50,7 +50,7 @@ const paymentController = {
   createPayment: catchAsync(async (req, res) => {
     const io = req.app.get('io');
     const paymentService = new PaymentService(io);
-    const result = await paymentService.processDirectPayment(req.body);
+    const result = await paymentService.processDirectPayment(req.body, req.paymentIdentity);
     res.success(result, '결제가 처리되었습니다.');
   }),
 
@@ -59,6 +59,23 @@ const paymentController = {
     const paymentService = new PaymentService(io);
     const result = await paymentService.preparePayment(req.body);
     res.json({ success: true, ...result });
+  }),
+
+  confirmCash: catchAsync(async (req, res) => {
+    const orderId = Number(req.params.orderId);
+    if (!Number.isSafeInteger(orderId) || orderId <= 0)
+      throw new AppError('유효한 주문 ID가 필요합니다.', 400);
+    const order = await prisma.orders.findUnique({
+      where: { id: orderId },
+      select: { store_id: true },
+    });
+    if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
+    await assertStoreAccess(req.user, order.store_id);
+    const result = await new PaymentService(req.app.get('io')).confirmOfflinePayment(
+      orderId,
+      'CASH'
+    );
+    res.success(result, '현금 수납이 확인되었습니다.');
   }),
 
   confirmPayment: catchAsync(async (req, res) => {
@@ -105,7 +122,11 @@ const paymentController = {
 
     const io = req.app.get('io');
     const paymentService = new PaymentService(io);
-    const result = await paymentService.processCancellation(orderId, req.body.cancelReason);
+    const result = await paymentService.processCancellation(
+      orderId,
+      req.body.cancelReason,
+      req.body.manual_refund_confirmed
+    );
     res.json(result);
   }),
 
@@ -144,18 +165,38 @@ const paymentController = {
     const paymentService = new PaymentService(io);
     const result = await paymentService.processCancellation(
       payment.order_id,
-      req.body.cancelReason
+      req.body.cancelReason,
+      req.body.manual_refund_confirmed
     );
     res.json(result);
   }),
 
   uploadProof: catchAsync(async (req, res) => {
     if (!req.file) throw new Error('업로드된 파일이 없습니다.');
-    const proofUrl = `/uploads/proofs/${req.file.filename}`;
+    const proofKey = await require('../utils/privateProofStorage').save(req.file.buffer);
+    const proofUrl = `private:${proofKey}`;
     const io = req.app.get('io');
     const paymentService = new PaymentService(io);
     await paymentService.processProofUpload(req.params.paymentId, proofUrl);
-    res.success({ proof_url: proofUrl }, '입금 증빙이 업로드되었습니다.');
+    res.success(
+      { proof_url: `/api/payments/${req.params.paymentId}/proof` },
+      '입금 증빙이 업로드되었습니다.'
+    );
+  }),
+
+  getProof: catchAsync(async (req, res) => {
+    const payment = await prisma.payments.findUnique({
+      where: { id: Number(req.params.paymentId) },
+      select: { proof_image_url: true },
+    });
+    if (!payment?.proof_image_url?.startsWith('private:'))
+      throw new AppError('증빙이 없거나 비공개 저장소로 이전이 필요합니다.', 404);
+    const result = await require('../utils/privateProofStorage').access(
+      payment.proof_image_url.slice(8)
+    );
+    res.set('Cache-Control', 'no-store');
+    if (result.url) return res.success({ url: result.url, expires_in: 60 });
+    return res.download(result.path, 'payment-proof');
   }),
 
   setupSplitPayment: catchAsync(async (req, res) => {

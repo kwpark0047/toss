@@ -4,11 +4,8 @@ import path from 'path';
 import { imagetools } from 'vite-imagetools';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { VitePWA } from 'vite-plugin-pwa';
-import criticalCss from 'vite-plugin-critical-css';
 
-const isCI = !!process.env.CI;
 const isTest = process.env.VITEST === 'true';
-const enableCriticalCss = process.env.ENABLE_CRITICAL_CSS === 'true';
 const BUILD_TIMESTAMP = Date.now();
 
 export default defineConfig({
@@ -48,14 +45,6 @@ export default defineConfig({
             gzipSize: true,
             brotliSize: true,
           }),
-          enableCriticalCss && !isCI
-            ? criticalCss({
-                include: ['/'],
-                minify: true,
-                height: 800,
-                width: 1280,
-              })
-            : {},
           VitePWA({
             registerType: 'autoUpdate', // 새 버전 배포 시 SW 자동 교체
             injectRegister: 'auto',

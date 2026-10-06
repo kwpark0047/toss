@@ -12,8 +12,10 @@ export const storesAPI = {
   create: (data) => api.post('/stores', data),
   update: (id, data) => api.put('/stores/' + id, data),
   delete: (id) => api.delete('/stores/' + id),
-  addFavorite: (customerPhone, storeId) => api.post('/stores/favorites', { customer_phone: customerPhone, store_id: storeId }),
-  removeFavorite: (customerPhone, storeId) => api.delete('/stores/favorites', { data: { customer_phone: customerPhone, store_id: storeId } }),
+  addFavorite: (customerPhone, storeId) =>
+    api.post('/stores/favorites', { customer_phone: customerPhone, store_id: storeId }),
+  removeFavorite: (customerPhone, storeId) =>
+    api.delete('/stores/favorites', { data: { customer_phone: customerPhone, store_id: storeId } }),
   getFavorites: (customerPhone) => api.get('/stores/favorites/' + customerPhone),
 };
 
@@ -26,7 +28,15 @@ export const storeAccountAPI = {
 export const businessAPI = {
   get: (storeId) => api.get('/stores/' + storeId + '/business'),
   update: (storeId, data) => api.put('/stores/' + storeId + '/business', data),
-  issueInvoice: (storeId, settlementId) => api.post(`/admin/stores/${storeId}/settlements/${settlementId}/tax-invoice`),
-  confirmStoreCard: (orderId, data) => api.post(`/payments/order/${orderId}/confirm-store-card`, data),
+  issueInvoice: (storeId, settlementId) =>
+    api.post(`/admin/stores/${storeId}/settlements/${settlementId}/tax-invoice`),
+  confirmCash: (orderId, key) =>
+    api.post(
+      `/payments/order/${orderId}/confirm-cash`,
+      {},
+      { headers: { 'Idempotency-Key': key } }
+    ),
+  confirmStoreCard: (orderId, data) =>
+    api.post(`/payments/order/${orderId}/confirm-store-card`, data),
   confirmTransfer: (orderId, data) => api.post(`/payments/order/${orderId}/confirm-transfer`, data),
 };

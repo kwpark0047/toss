@@ -53,6 +53,7 @@ COPY --from=builder /app/docs ./docs
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/fonts ./fonts
 COPY --from=builder /app/app.mts ./app.mts
 COPY --from=builder /app/index.mts ./index.mts
 COPY --from=builder /app/metrics ./metrics

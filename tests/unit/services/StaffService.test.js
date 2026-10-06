@@ -4,6 +4,8 @@ jest.mock('../../../config/prisma', () => ({
   staff: { findFirst: jest.fn(), create: jest.fn() },
   stores: { findUnique: jest.fn() },
   $transaction: jest.fn(),
+  $queryRaw: jest.fn().mockResolvedValue([]),
+  subscription: { findUnique: jest.fn().mockResolvedValue(null) },
 }));
 
 const prisma = require('../../../config/prisma');
@@ -18,6 +20,7 @@ describe('StaffService.createStaff', () => {
     // 오너 (호출자 == 가게 주인)
     prisma.stores.findUnique.mockResolvedValue({ user_id: OWNER_ID });
     prisma.staff.findFirst.mockResolvedValue(null);
+    prisma.staff.count = jest.fn().mockResolvedValue(0);
   });
 
   it('오너는 직원을 생성하고 기본 역할(staff)을 부여한다', async () => {

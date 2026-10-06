@@ -232,29 +232,7 @@
     --icon-color-destructive: #f87171;
     --icon-color-inverse: #191f28;
   }
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 222 30% 18%;
-    --input: 222 30% 18%;
-    --ring: 24 95% 53%;
-
-    --sidebar-background: 222 47% 6%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 24 95% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 30% 12%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 30% 18%;
-    --sidebar-ring: 24 95% 53%;
-
-    /* Customer Semantic Tokens — Dark Mode */
-    --customer-bg-base: #000000;
-    --customer-bg-card: #191f28;   /* grey-900 */
-    --customer-text-main: #f2f4f6; /* grey-100 */
-    --customer-text-sub: #8b95a1;  /* grey-500 */
-    --customer-border: #333d4b;    /* grey-800 */
-    --customer-divider: #191f28;
-  }
+}
 
 @layer base {
   * {

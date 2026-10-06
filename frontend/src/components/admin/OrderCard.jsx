@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
 import Icon from '../../components/ui/Icon';
+import { Clock } from 'lucide-react';
 
 const STATUS_STYLE = {
   paid:      { bar: 'bg-teal-400',    badge: 'bg-teal-50 text-teal-700 border-teal-200',       btn: 'bg-teal-500 text-white' },
@@ -12,11 +13,13 @@ const STATUS_STYLE = {
   cancelled: { bar: 'bg-rose-400',    badge: 'bg-rose-50 text-rose-600 border-rose-200',       btn: 'bg-rose-500 text-white' },
 };
 
-const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, formatTime }) => {
+const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, onCollection, collecting, formatTime }) => {
   // 알 수 없는 상태(예: 신규 결제완료 'paid' 등)에도 크래시하지 않도록 방어
   const config = statusConfig[order.status] || statusConfig.pending || { label: order.status, icon: 'Clock', next: null };
   const style  = STATUS_STYLE[order.status] || STATUS_STYLE.pending;
-  const StatusIcon = config.icon || Clock;
+  const StatusIcon = typeof config.icon === 'function' || typeof config.icon === 'object' ? config.icon : Clock;
+  const method = String(order.latest_payment?.method || order.method || '').toUpperCase();
+  const needsCollection = order.latest_payment?.status === 'READY' && ['CASH', 'TRANSFER', 'STORE_CARD'].includes(method);
   const isPending = order.status === 'pending' || order.status === 'paid';
 
   return (
@@ -33,6 +36,7 @@ const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, formatTi
       {/* 주문 헤더 */}
       <div className="px-4 pt-3 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
+          {needsCollection && onCollection && <button type="button" disabled={collecting} onClick={() => onCollection(order)} className="min-h-11 rounded-xl bg-teal-600 px-3 text-sm font-bold text-white disabled:opacity-50">{collecting ? '확인 중' : '수납 확인'}</button>}
           <span className="text-xl font-black text-gray-900 tracking-tight">
             #{order.order_number}
           </span>

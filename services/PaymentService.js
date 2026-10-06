@@ -6,7 +6,6 @@ const pointService = require('./PointsService');
 const ledgerService = require('./LedgerService');
 const alerting = require('../utils/alerting');
 const { AppError } = require('../utils/errorHandler');
-const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
 const { encryptPhone } = require('../utils/phoneEncryption');
 const { encryptToken } = require('../utils/tokenEncryption');
 const { sanitizeRawResponse } = require('../utils/sanitize');
@@ -93,14 +92,18 @@ class PaymentService {
   // 내부 감사·모니터링용이며 order_number·금액은 그대로, 민감정보(paymentKey 등)는 절대 포함하지 않는다.
   _emitPaymentAudit(storeId, orderId, orderNumber, amount, verified) {
     if (!this.sentry) this.sentry = require('../utils/sentry');
-    this.sentry.captureMessage(`[PaymentAudit] 결제 승인 감사 (재검증 ${verified ? '통과' : '실패'})`, 'info', {
-      store_id: storeId,
-      order_id: orderId,
-      order_number: orderNumber,
-      amount,
-      verified,
-      event: 'payment-audit',
-    });
+    this.sentry.captureMessage(
+      `[PaymentAudit] 결제 승인 감사 (재검증 ${verified ? '통과' : '실패'})`,
+      'info',
+      {
+        store_id: storeId,
+        order_id: orderId,
+        order_number: orderNumber,
+        amount,
+        verified,
+        event: 'payment-audit',
+      }
+    );
   }
 
   _emitSplitUpdate(tableId, order, totalPaid, isFullyPaid, payer) {
@@ -118,164 +121,24 @@ class PaymentService {
   // ═════════════════════════════════════════════════════════════════
   // [현장/즉시 결제 처리 (cash, point, store_card, transfer)]
   // ═════════════════════════════════════════════════════════════════
-  async processDirectPayment(paymentData) {
-    const {
-      store_id,
-      items,
-      total_amount,
-      payment_method,
-      point_amount = 0,
-      phone,
-      toss_user_key,
-      customer_name,
-    } = paymentData;
-
-    const result = await prisma.$transaction(async (tx) => {
-      if (!items || items.length === 0) throw new AppError('주문 상품이 없습니다.', 400);
-
-      const pricedItems = [];
-      let authoritativeTotal = 0;
-      // N+1 방지: 모든 상품을 한 번에 조회 후 매핑
-      const rawItemsCache = await tx.products.findMany({
-        where: { id: { in: items.map((it) => parseInt(it.product_id)) } },
-      });
-      const productById = new Map(rawItemsCache.map((p) => [String(p.id), p]));
-      for (const item of items) {
-        const product = productById.get(String(item.product_id));
-        const pricedItem = priceOrderItem(product, item, store_id);
-        pricedItems.push(pricedItem);
-        authoritativeTotal += pricedItem.subtotal;
-      }
-      assertClientTotal(total_amount, authoritativeTotal);
-
-      // 주문 생성
-      const orderNumber = this._generateOrderNumber();
-      const order = await tx.orders.create({
-        data: {
-          store_id: parseInt(store_id),
-          order_number: orderNumber,
-          customer_phone: phone || null,
-          customer_name: customer_name || null,
-          total_amount: authoritativeTotal,
-          status: 'pending',
-          method: payment_method === 'mixed' ? 'card' : payment_method,
-          toss_user_key: toss_user_key || null,
-          created_at: new Date(),
-          updated_at: new Date(),
-          order_items: {
-            create: pricedItems.map((item) => ({
-              product_id: item.product_id,
-              product_name: item.product_name,
-              quantity: item.quantity,
-              price: item.price,
-              subtotal: item.price * item.quantity,
-              options: item.options.length ? JSON.stringify(item.options) : null,
-              user_phone: item.user_phone || phone || null,
-            })),
-          },
-        },
-        include: { order_items: true },
-      });
-
-      // 결제 기록 생성
-      const orderName =
-        pricedItems.length > 1
-          ? `${pricedItems[0].product_name} 외 ${pricedItems.length - 1}건`
-          : pricedItems[0].product_name;
-
-      const payment = await tx.payments.create({
-        data: {
-          order_id: order.id,
-          store_id: parseInt(store_id),
-          order_name: orderName,
-          amount: authoritativeTotal,
-          method: payment_method.toUpperCase(),
-          status: payment_method === 'cash' || payment_method === 'point' ? 'DONE' : 'READY',
-          created_at: new Date(),
-          updated_at: new Date(),
-        },
-      });
-
-      // 즉시완료 결제 후처리
-      const IMMEDIATE_METHODS = ['cash', 'point'];
-      if (IMMEDIATE_METHODS.includes(payment_method)) {
-        if (point_amount > 0) {
-          await pointService.use(
-            order.id,
-            payment.id,
-            parseInt(store_id),
-            orderNumber,
-            { phone, toss_user_key },
-            point_amount,
-            tx
-          );
-        }
-
-        const earnPoints = await pointService.calculateEarnPoints(authoritativeTotal, store_id, {
-          phone,
-          toss_user_key,
-        });
-        if (earnPoints > 0) {
-          await pointService.earn(
-            order.id,
-            payment.id,
-            parseInt(store_id),
-            orderNumber,
-            phone,
-            earnPoints,
-            tx
-          );
-        }
-
-        await ledgerService.recordIncome(
-          {
-            storeId: parseInt(store_id),
-            orderId: order.id,
-            paymentId: payment.id,
-            amount: authoritativeTotal,
-            method: payment_method.toUpperCase(),
-            description: `결제 완료: ${orderNumber}`,
-          },
-          tx
-        );
-
-        await tx.orders.update({
-          where: { id: order.id },
-          data: {
-            method: payment_method.toUpperCase(),
-            payment_status: 'paid',
-            updated_at: new Date(),
-          },
-        });
-
-        await this._upsertCustomer(
-          parseInt(store_id),
-          phone,
-          customer_name,
-          toss_user_key,
-          authoritativeTotal,
-          tx
-        );
-      }
-
-      return { payment, order };
-    });
-
-    if (result.payment.status === 'DONE' && this.io) {
-      this._emitNewOrder(store_id, result.order);
+  async processDirectPayment(paymentData, identity) {
+    const { requestDirectPayment } = require('./directPayment');
+    const result = await requestDirectPayment(
+      prisma,
+      pointService,
+      ledgerService,
+      paymentData,
+      identity
+    );
+    if (result.status === 'DONE' && this.io) {
       this._emitPaymentSuccess(
-        store_id,
-        result.order.id,
-        result.order.order_number,
-        result.order.total_amount
+        result.store_id,
+        result.order_id,
+        result.order_number,
+        result.amount
       );
     }
-
-    return {
-      ...result.payment,
-      order_number: result.order.order_number,
-      order_id: result.order.id,
-    };
+    return result;
   }
 
   // ═════════════════════════════════════════════════════════════════
@@ -740,7 +603,7 @@ class PaymentService {
   // ═════════════════════════════════════════════════════════════════
   // [결제 취소 처리]
   // ═════════════════════════════════════════════════════════════════
-  async processCancellation(orderId, cancelReason) {
+  async processCancellation(orderId, cancelReason, manualRefundConfirmed = false) {
     const payment = await prisma.payments.findFirst({
       where: { order_id: parseInt(orderId), status: 'DONE' },
       orderBy: { created_at: 'desc' },
@@ -759,6 +622,12 @@ class PaymentService {
       throw new Error('취소할 유효한 결제 내역이 없습니다.');
     }
 
+    if (
+      !payment.payment_key &&
+      ['CASH', 'TRANSFER', 'STORE_CARD', 'POINT'].includes(String(payment.method).toUpperCase())
+    ) {
+      return this.cancelOfflinePayment(payment, cancelReason, manualRefundConfirmed);
+    }
     // 토스 취소 API 호출
     await TossAPI.cancelPayment(payment.payment_key, cancelReason || '시스템 취소');
     logger.info('[PaymentService] 토스 결제 취소 완료', {
@@ -926,6 +795,11 @@ class PaymentService {
     });
     const payment = payments.find((p) => p.status === 'DONE');
     if (!payment) throw new AppError('취소 가능한 결제 내역이 없습니다.', 404);
+    if (
+      !payment.payment_key &&
+      ['CASH', 'TRANSFER', 'STORE_CARD', 'POINT'].includes(String(payment.method).toUpperCase())
+    )
+      throw new AppError('현장 결제와 포인트는 전체 환불로 처리해 주세요.', 409);
 
     const refunded = await prisma.ledger.aggregate({
       where: { payment_id: payment.id, type: 'REFUND' },
@@ -1017,7 +891,13 @@ class PaymentService {
           return;
         }
         // [추가기능①] 재검증을 통과한 결제 — 승인 진행 직전에 감사(audit) 이벤트 캡처 (Sentry)
-        this._emitPaymentAudit(order?.store_id, order?.id, order?.order_number, data.totalAmount, true);
+        this._emitPaymentAudit(
+          order?.store_id,
+          order?.id,
+          order?.order_number,
+          data.totalAmount,
+          true
+        );
         const result = await this.processApproval(
           paymentKey,
           tossOrderId,
@@ -1038,128 +918,137 @@ class PaymentService {
   // ═════════════════════════════════════════════════════════════════
   // [매장카드 결제 확인]
   // ═════════════════════════════════════════════════════════════════
-  async confirmStoreCard(orderId, terminalReceiptNo) {
-    const order = await prisma.orders.findUnique({ where: { id: parseInt(orderId) } });
-    if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
-    if (order.payment_status === 'paid') return { alreadyPaid: true };
+  async confirmStoreCard(orderId, receipt) {
+    return this.confirmOfflinePayment(orderId, 'STORE_CARD', receipt);
+  }
 
-    const { decryptPhone } = require('../utils/phoneEncryption');
-    const plainPhone = order.customer_phone ? decryptPhone(order.customer_phone) : null;
+  async confirmTransfer(orderId, reference) {
+    return this.confirmOfflinePayment(orderId, 'TRANSFER', reference);
+  }
 
-    await prisma.$transaction(async (tx) => {
+  async confirmOfflinePayment(orderId, method, reference) {
+    const id = Number(orderId);
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM public.orders WHERE id = ${id} FOR UPDATE`;
+      const order = await tx.orders.findUnique({ where: { id } });
+      if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
+      if (order.status === 'cancelled') throw new AppError('취소된 주문입니다.', 409);
+      const payment = await tx.payments.findFirst({
+        where: { order_id: id, method, status: 'READY' },
+      });
+      if (!payment) {
+        const completed = await tx.payments.findFirst({
+          where: { order_id: id, method, status: 'DONE' },
+        });
+        if (completed) return { order, alreadyPaid: true };
+        throw new AppError('확인할 결제 대기 내역이 없습니다.', 409);
+      }
       const transition = await tx.payments.updateMany({
-        where: { order_id: parseInt(orderId), method: { in: ['STORE_CARD', 'store_card'] } },
+        where: { id: payment.id, status: 'READY' },
         data: {
           status: 'DONE',
           approved_at: new Date(),
-          transfer_reference: terminalReceiptNo || null,
+          transfer_reference: reference || null,
         },
       });
-      if (transition.count === 0) {
-        throw new AppError('확인할 매장카드 결제 내역이 없습니다.', 409);
-      }
+      if (transition.count !== 1) throw new AppError('이미 처리 중인 결제입니다.', 409);
+      await ledgerService.recordIncome(
+        {
+          storeId: order.store_id,
+          orderId: id,
+          paymentId: payment.id,
+          amount: payment.amount,
+          method,
+          description: '현장 수납: ' + order.order_number,
+        },
+        tx
+      );
+      const paid = await tx.payments.aggregate({
+        where: { order_id: id, status: 'DONE' },
+        _sum: { amount: true },
+      });
+      const full = Number(paid._sum.amount || 0) >= Number(order.total_amount);
       await tx.orders.update({
-        where: { id: parseInt(orderId) },
-        data: { payment_status: 'paid', updated_at: new Date() },
-      });
-      await tx.ledger.create({
+        where: { id },
         data: {
-          store_id: order.store_id,
-          order_id: parseInt(orderId),
-          type: 'INCOME',
-          category: 'SALE',
-          amount: order.total_amount,
-          method: 'STORE_CARD',
-          description: `매장카드 확인: #${order.order_number}${terminalReceiptNo ? ` (영수증${terminalReceiptNo})` : ''}`,
-          created_at: new Date(),
+          payment_status: full ? 'paid' : 'partial',
+          status: full && order.status === 'pending' ? 'paid' : undefined,
+          updated_at: new Date(),
         },
       });
-      if (plainPhone) {
-        await this._upsertCustomer(
-          order.store_id,
-          plainPhone,
-          order.customer_name,
-          null,
-          order.total_amount,
-          tx
-        );
-      }
+      return { order, payment, alreadyPaid: false };
     });
-
-    if (this.io) {
-      this.io
-        .to(`store - ${order.store_id}`)
-        .emit('payment-confirmed', { order_id: parseInt(orderId), method: 'store_card' });
-    }
-
-    return { store_id: order.store_id, order_id: parseInt(orderId) };
+    if (!result.alreadyPaid && this.io)
+      this._emitPaymentSuccess(
+        result.order.store_id,
+        id,
+        result.order.order_number,
+        result.payment.amount
+      );
+    return {
+      success: true,
+      alreadyPaid: result.alreadyPaid,
+      store_id: result.order.store_id,
+      order_id: id,
+      method: method.toLowerCase(),
+    };
   }
 
-  // ═════════════════════════════════════════════════════════════════
-  // [계좌이체 확인]
-  // ═════════════════════════════════════════════════════════════════
-  async confirmTransfer(orderId, transferReference, depositorName) {
-    const order = await prisma.orders.findUnique({ where: { id: parseInt(orderId) } });
-    if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
-    if (order.payment_status === 'paid') return { alreadyPaid: true };
-
-    const { decryptPhone } = require('../utils/phoneEncryption');
-    const plainPhone = order.customer_phone ? decryptPhone(order.customer_phone) : null;
-
-    await prisma.$transaction(async (tx) => {
-      const transition = await tx.payments.updateMany({
-        where: { order_id: parseInt(orderId), method: { in: ['TRANSFER', 'transfer'] } },
+  async cancelOfflinePayment(payment, reason, manualRefundConfirmed) {
+    if (String(payment.method).toUpperCase() !== 'POINT' && manualRefundConfirmed !== true)
+      throw new AppError('현장 결제는 실제 환불을 완료한 뒤 환불 기록을 확정해 주세요.', 409);
+    return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM public.orders WHERE id = ${payment.order_id} FOR UPDATE`;
+      const changed = await tx.payments.updateMany({
+        where: { id: payment.id, status: 'DONE' },
         data: {
-          status: 'DONE',
-          transfer_confirmed: true,
-          transfer_confirmed_at: new Date(),
-          transfer_reference: transferReference || null,
-          approved_at: new Date(),
+          status: 'CANCELED',
+          cancelled_at: new Date(),
+          cancel_reason: reason || '현장 환불',
+          updated_at: new Date(),
         },
       });
-      if (transition.count === 0) {
-        throw new AppError('확인할 계좌이체 결제 내역이 없습니다.', 409);
-      }
+      if (changed.count !== 1) return { success: true, alreadyCanceled: true };
+      await pointService.revertOnCancel(payment.id, tx);
+      await ledgerService.recordRefund(
+        {
+          storeId: payment.store_id,
+          orderId: payment.order_id,
+          paymentId: payment.id,
+          amount: payment.amount,
+          method: payment.method,
+          description: `현장 환불: ${reason || ''}`,
+        },
+        tx
+      );
       await tx.orders.update({
-        where: { id: parseInt(orderId) },
-        data: { payment_status: 'paid', updated_at: new Date() },
+        where: { id: payment.order_id },
+        data: { payment_status: 'refunded', status: 'cancelled', updated_at: new Date() },
       });
-      await tx.ledger.create({
-        data: {
-          store_id: order.store_id,
-          order_id: parseInt(orderId),
-          type: 'INCOME',
-          category: 'SALE',
-          amount: order.total_amount,
-          method: 'TRANSFER',
-          description: `계좌이체 확인: #${order.order_number}${depositorName ? ` (입금자: ${depositorName})` : ''}`,
-          created_at: new Date(),
-        },
-      });
-      if (plainPhone) {
-        await this._upsertCustomer(
-          order.store_id,
-          plainPhone,
-          order.customer_name,
-          null,
-          order.total_amount,
-          tx
-        );
+      const items = await tx.order_items.findMany({ where: { order_id: payment.order_id } });
+      for (const item of items) {
+        if (!item.product_id) continue;
+        const product = await tx.products.findUnique({ where: { id: item.product_id } });
+        if (!product || product.stock_quantity === null) continue;
+        const updated = await tx.products.update({
+          where: { id: product.id },
+          data: { stock_quantity: { increment: item.quantity }, is_sold_out: false },
+        });
+        await tx.stock_history.create({
+          data: {
+            product_id: product.id,
+            store_id: product.store_id,
+            change: item.quantity,
+            qty_after: updated.stock_quantity,
+            reason: 'CANCEL',
+            order_id: payment.order_id,
+          },
+        });
       }
+      return { success: true, message: '환불 기록과 포인트·재고 복구가 완료되었습니다.' };
     });
-
-    if (this.io) {
-      this.io
-        .to(`store - ${order.store_id}`)
-        .emit('payment-confirmed', { order_id: parseInt(orderId), method: 'transfer' });
-    }
-
-    return { store_id: order.store_id, order_id: parseInt(orderId) };
   }
 
-  // ═════════════════════════════════════════════════════════════════
-  // [분할 결제 설정]
-  // ═════════════════════════════════════════════════════════════════
   async setupSplitPayment(orderId, splitType, numPeople) {
     if (!['EQUAL', 'ITEM'].includes(splitType)) {
       throw new AppError('분할 결제 방식이 올바르지 않습니다.', 400);
