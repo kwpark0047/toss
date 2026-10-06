@@ -137,7 +137,10 @@ class StoreIntegrationService {
     return this.guard(() =>
       this.db.$transaction(async (tx) => {
         // A per-store lock also protects canonical orders arriving through different channels.
-        await tx.$queryRawUnsafe('SELECT pg_advisory_xact_lock(146468,$1::int)', storeId);
+        await tx.$queryRawUnsafe(
+          'SELECT pg_advisory_xact_lock(146468,$1::int)::text AS locked',
+          storeId
+        );
         const connection = await this.findConnection(tx, storeId, id, true);
         this.validateChannel(connection, events);
         if (expectedMethod && connection.method !== expectedMethod)
