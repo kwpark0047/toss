@@ -137,7 +137,9 @@ describe('Login 컴포넌트', () => {
     setInputValue(screen.getByLabelText(/핸드폰/i), '010-1234-5678');
     setInputValue(screen.getByPlaceholderText('••••••••'), 'password');
     submitForm();
-    expect(await screen.findByText('올바른 이메일 또는 전화번호를 입력하세요.')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('올바른 이메일 또는 전화번호를 입력하세요.')).toBeInTheDocument();
+    });
     expect(screen.queryByText('Request failed with status code 400')).not.toBeInTheDocument();
   });
 

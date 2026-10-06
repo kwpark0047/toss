@@ -311,11 +311,13 @@ const Order = {
       const where = { store_id: numericStoreId };
 
       if (startDate && endDate) {
-        where.created_at = { gte: new Date(startDate), lte: new Date(endDate) };
+        where.created_at = {
+          gte: kstDayRange(startDate).startOfDay,
+          lte: kstDayRange(endDate).endOfDay,
+        };
       } else {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        where.created_at = { gte: today };
+        const today = new Date(Date.now() + KST_OFFSET_MS).toISOString().slice(0, 10);
+        where.created_at = { gte: kstDayRange(today).startOfDay, lte: kstDayRange(today).endOfDay };
       }
 
       const summary = await prisma.orders.aggregate({
@@ -352,8 +354,8 @@ const Order = {
   getDetailedStats: async (storeId, startDate, endDate) => {
     try {
       const numericStoreId = parseInt(storeId);
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+      const start = kstDayRange(startDate).startOfDay;
+      const end = kstDayRange(endDate).endOfDay;
       const where = { store_id: numericStoreId, created_at: { gte: start, lte: end } };
 
       const orders = await prisma.orders.findMany({
@@ -366,12 +368,13 @@ const Order = {
       const hourly = Array.from({ length: 24 }, (_, i) => ({ hour: i, count: 0, amount: 0 }));
 
       orders.forEach((order) => {
-        const date = order.created_at.toISOString().slice(0, 10);
+        const kst = new Date(order.created_at.getTime() + KST_OFFSET_MS);
+        const date = kst.toISOString().slice(0, 10);
         if (!dailyMap[date]) dailyMap[date] = { date, amount: 0, count: 0 };
         dailyMap[date].amount += order.total_amount;
         dailyMap[date].count += 1;
 
-        const hour = order.created_at.getHours();
+        const hour = kst.getUTCHours();
         hourly[hour].count += 1;
         hourly[hour].amount += order.total_amount;
       });

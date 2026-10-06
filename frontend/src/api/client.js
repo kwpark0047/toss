@@ -88,7 +88,10 @@ api.interceptors.response.use(
     }
 
     // 401 에러 처리 - 토큰 갱신
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isAuthRequest = /\/auth\/(?:login|register|refresh-token|2fa)(?:\/|$)/.test(
+      originalRequest.url || ''
+    );
+    if (error.response?.status === 401 && !isAuthRequest && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
         const refreshBody = USE_COOKIE
@@ -112,8 +115,9 @@ api.interceptors.response.use(
         }
         const path = window.location.pathname;
         const isPublicPage = path.startsWith('/menu') || path.startsWith('/qr') || path === '/';
-        if (!isPublicPage && !path.startsWith('/login')) {
-          window.location.href = '/login';
+        const isAuthPage = /^\/(?:auth|login|register)(?:\/|$)/.test(path);
+        if (!isPublicPage && !isAuthPage) {
+          window.location.href = '/auth';
         }
       }
     }

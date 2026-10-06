@@ -17,7 +17,7 @@ export default function PWAInstallBanner() {
     location.pathname.startsWith('/kiosk/') ||
     location.pathname.startsWith('/legal/');
 
-  if (!canInstall || dismissed || isCustomerPage) return null;
+  if (!canInstall || dismissed || isCustomerPage || location.pathname.startsWith('/admin')) return null;
 
   const handleInstall = async () => {
     const accepted = await install();

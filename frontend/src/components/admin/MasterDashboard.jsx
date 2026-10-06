@@ -9,7 +9,6 @@ import { formatPrice, formatTime } from '../../utils/format';
 import { format } from 'date-fns';
 import EmptyState from '../common/EmptyState';
 import Skeleton from '../common/Skeleton';
-import Icon from '../../components/ui/Icon';
 
 /* ─── 차트 로딩 스켈레톤 ─── */
 const SkeletonChart = () => <div className="bg-white/5 border border-white/10 rounded-2xl p-3 animate-pulse">
@@ -314,7 +313,11 @@ const MasterDashboard = () => {
   const [multiViewLoading, setMultiViewLoading] = useState(false);
   const [multiViewError, setMultiViewError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [lastRefresh, setLastRefresh] = useState(null);
+  const [dataError, setDataError] = useState('');
+  const requestSequence = useRef(0);
+  const refreshingRequest = useRef(false);
+  const loadedStoreId = useRef(null);
   const refreshTimer = useRef(null);
 
   // AI 결제량 변동성 실시간 위기경보 상태
@@ -331,20 +334,37 @@ const MasterDashboard = () => {
 
   /* ─── 단일 매장 데이터 ─── */
   const fetchStoreData = useCallback(async (storeId, silent = false) => {
+    if (!storeId || (silent && (document.hidden || refreshingRequest.current))) return;
+    refreshingRequest.current = true;
+    if (loadedStoreId.current !== storeId) {
+      loadedStoreId.current = storeId;
+      setStats(null);
+      setRecentOrders([]);
+      setComparison(null);
+      setLastRefresh(null);
+    }
+    const sequence = ++requestSequence.current;
     if (!silent) setRefreshing(true);
     try {
-      const [sRes, oRes, cRes] = await Promise.allSettled([ordersAPI.getStats(storeId), ordersAPI.getByStore(storeId, undefined, format(new Date(), 'yyyy-MM-dd')), analyticsAPI.getComparison(storeId, timeRange === 'month' ? 'monthly' : 'weekly')]);
+      const now = new Date();
+      const start = new Date(now);
+      start.setDate(start.getDate() - (timeRange === 'month' ? 29 : timeRange === 'week' ? 6 : 0));
+      const startDate = format(start, 'yyyy-MM-dd');
+      const endDate = format(now, 'yyyy-MM-dd');
+      const [sRes, oRes, cRes] = await Promise.allSettled([ordersAPI.getStats(storeId, startDate, endDate), ordersAPI.getByStore(storeId, undefined, endDate), analyticsAPI.getComparison(storeId, timeRange === 'month' ? 'monthly' : 'weekly')]);
+      if (sequence !== requestSequence.current) return;
+      setDataError(sRes.status === 'rejected' || oRes.status === 'rejected' ? '매출 또는 주문 정보를 불러오지 못했습니다. 기존 표시값은 최신 정보가 아닐 수 있습니다.' : '');
       if (sRes.status === 'fulfilled') setStats(sRes.value?.data ?? sRes.value);
       if (oRes.status === 'fulfilled') {
         const o = oRes.value?.data ?? oRes.value;
         setRecentOrders(Array.isArray(o) ? o.slice(0, 10) : []);
       }
       if (cRes.status === 'fulfilled') setComparison(cRes.value?.data ?? cRes.value);
-      setLastRefresh(new Date());
+      if (sRes.status === 'fulfilled' && oRes.status === 'fulfilled') setLastRefresh(new Date());
     } catch (e) {
       console.error('데이터 로딩 실패:', e);
     } finally {
-      setRefreshing(false);
+      if (sequence === requestSequence.current) { setRefreshing(false); refreshingRequest.current = false; }
     }
   }, [timeRange]);
 
@@ -557,17 +577,15 @@ const MasterDashboard = () => {
     color: 'from-amber-500 to-yellow-500',
     badge: 0
   }];
-  return /* pb-20: 모바일 하단 네비게이션 여백 */<div className="space-y-4 pb-20 md:pb-6 px-0">
-      <SystemStatusWidget />
-
+  return <div className="dashboard-overview space-y-4 px-0">
       {/* ── 모바일 헤더 ── */}
-      <div className="flex items-center justify-between px-1 pt-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1 pt-1">
         <div className="min-w-0">
           <p className="text-[10px] text-slate-500 font-bold">
             {getGreeting()}, {user?.name || '사장님'}!
           </p>
           <div className="flex items-center gap-2 mt-0.5">
-            <h1 className="text-lg font-black text-white truncate">
+            <h1 className="text-xl font-semibold text-white truncate">
               {isMultiView ? '전체 매장' : selectedStore?.name || '매장'}
             </h1>
             {!isMultiView && stores.length > 1 && <select aria-label="매장 선택" value={selectedStore?.id || ''} onChange={e => changeStore(parseInt(e.target.value))} className="text-[10px] font-bold bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-slate-300 outline-none max-w-[100px]">
@@ -599,6 +617,9 @@ const MasterDashboard = () => {
           </button>
         </div>
       </div>
+
+      <SystemStatusWidget />
+      {dataError && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-500"><span className="flex items-center gap-2"><AlertCircle size={16} />{dataError}</span><button onClick={() => fetchStoreData(selectedStore?.id)} className="rounded-lg border border-amber-500/30 px-3 py-2 font-medium">다시 시도</button></div>}
 
       {/* 기상특보 알림 배너 (폭염/한파/호우/건조 등) */}
       <WeatherAlertBanner store={selectedStore} />
@@ -717,7 +738,7 @@ const MasterDashboard = () => {
       </div>
 
       {/* ── 통계 카드 ── */}
-      <div className="grid grid-cols-2 xs:grid-cols-2 gap-2.5 sm:gap-3 px-1">
+      <div className="dashboard-metrics grid grid-cols-2 xl:grid-cols-4 gap-3 px-1">
         {[{
         title: '총 매출',
         icon: DollarSign,
@@ -930,9 +951,7 @@ const MasterDashboard = () => {
         </div>
 
         <p className="text-[9px] text-slate-700 text-right mt-1.5 px-1 pb-4">
-          최근 갱신: {lastRefresh.getHours().toString().padStart(2, '0')}:
-          {lastRefresh.getMinutes().toString().padStart(2, '0')}:
-          {lastRefresh.getSeconds().toString().padStart(2, '0')} · 60초 자동 갱신
+          최근 갱신: {lastRefresh ? lastRefresh.toLocaleTimeString('ko-KR', { hour12: false }) : '아직 확인되지 않음'} · 화면을 보는 동안 60초 자동 갱신
         </p>
       </div>
 

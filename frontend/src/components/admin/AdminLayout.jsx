@@ -1,338 +1,129 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useStore } from '../../contexts/StoreContext';
 import { NotificationProvider } from '../../contexts/NotificationContext';
 import { AdminThemeProvider, useAdminTheme } from '../../contexts/AdminThemeContext';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import NotificationBell from './NotificationBell';
 import { TC } from './adminThemes';
 import ThemeSwitcher from './ThemeSwitcher';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 import AdminChatManager from './AdminChatManager';
-import { ordersAPI } from '../../api';
+import { storesAPI } from '../../api';
 import Icon from '../../components/ui/Icon';
+import '../../styles/adminDashboard.css';
 
 function AdminLayoutInner({ children, storeId, user, handleLogout, location, filteredNavItems }) {
   const { themeId } = useAdminTheme();
   const { t } = useTranslation(undefined, { keyPrefix: 'admin' });
-  const tc = TC[themeId];
+  const tc = TC[themeId] || TC.obsidian;
   const [isMoreOpen, setMoreOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
-
-  const fetchPendingCount = useCallback(async () => {
-    if (!storeId) return;
-    try {
-      const res = await ordersAPI.getStats(storeId);
-      const stats = res?.data ?? res;
-      const count = (stats?.by_status?.paid || 0) + (stats?.by_status?.pending || 0) + (stats?.by_status?.confirmed || 0);
-      Promise.resolve().then(() => setPendingOrdersCount(count));
-    } catch { /* 무시 */ }
-  }, [storeId]);
-
-  useEffect(() => {
-    fetchPendingCount();
-    const iv = setInterval(fetchPendingCount, 30000);
-    return () => clearInterval(iv);
-  }, [fetchPendingCount]);
-
-  const mobileBottomNav = storeId ? [
+  const menuButton = useRef(null);
+  const menuPanel = useRef(null);
+  const active = item => location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(`${item.path}/`));
+  const pageTitle = filteredNavItems.find(active)?.label || t('adminCenter');
+  const quickNav = storeId ? [
     { label: t('home'), icon: 'LayoutDashboard', path: '/admin' },
-    { label: t('orders'), icon: 'UtensilsCrossed', path: `/admin/stores/${storeId}/orders`, badge: pendingOrdersCount },
+    { label: t('orders'), icon: 'UtensilsCrossed', path: `/admin/stores/${storeId}/orders` },
     { label: t('products'), icon: 'ShoppingBag', path: `/admin/stores/${storeId}/menu` },
     { label: t('ai'), icon: 'Sparkles', path: '/admin/tinkerbell' },
-  ] : [
-    { label: t('home'), icon: 'LayoutDashboard', path: '/admin' },
-    { label: t('ai'), icon: 'Sparkles', path: '/admin/tinkerbell' },
-    { label: t('community'), icon: 'Building2', path: '/admin/community' },
-    { label: t('board'), icon: 'MessageSquare', path: '/board' },
-  ];
+  ] : filteredNavItems.slice(0, 4);
 
-  return (
-    <NotificationProvider storeId={storeId} userId={user?.id} role={user?.role}>
-      <div className={`min-h-screen tds-stack flex-col overflow-hidden ${tc.root} ${themeId === 'arctic' ? 'admin-light' : ''}`}>
-        <AdminChatManager isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+  useEffect(() => {
+    Promise.resolve().then(() => setMoreOpen(false));
+  }, [location.pathname]);
 
-        {/* Sidebar (Desktop) */}
-        <aside className={`hidden lg:flex w-80 tds-stack flex-col z-30 relative ${tc.sidebar}`}>
-          <div className="tds-p-10">
-            <Link to="/admin" className="tds-stack-h tds-gap-4 items-center group">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-500 to-rose-600 tds-stack items-center justify-center shadow-xl shadow-brand-500/20 group-hover:rotate-12 transition-transform">
-                <Icon icon="Store" size="md" />
-              </div>
-              <div>
-                <span className={`tds-text-bold text-xl tracking-tighter block leading-none mb-1 uppercase ${tc.logoText}`}>WeMarket</span>
-                <span className={`tds-small font-black uppercase tracking-[0.2em] block ${tc.logoSub}`}>{t('adminCenter')}</span>
-              </div>
-            </Link>
-          </div>
+  useEffect(() => {
+    if (!isMoreOpen) return;
+    const previous = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    menuPanel.current?.querySelector('button')?.focus();
+    const keydown = event => {
+      if (event.key === 'Escape') setMoreOpen(false);
+      if (event.key !== 'Tab') return;
+      const items = [...(menuPanel.current?.querySelectorAll('a[href], button:not([disabled])') || [])];
+      const first = items[0];
+      const last = items.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener('keydown', keydown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', keydown);
+      previous?.focus?.();
+    };
+  }, [isMoreOpen]);
 
-          <nav className="flex-1 tds-p-6 tds-gap-2 overflow-y-auto scrollbar-hide py-4">
-            {filteredNavItems.map((item) => {
-              const isActive = location.pathname === item.path || (item.id === 'dashboard' && location.pathname === '/admin');
-              return (
-                <Link
-                  key={item.label}
-                  to={item.path}
-                  className={`tds-stack-h tds-gap-4 tds-p-5 tds-p-4 rounded-[20px] tds-text-bold text-sm transition-all relative group overflow-hidden ${
-                    isActive
-                      ? `${tc.textStrong} shadow-2xl ${tc.navActiveShadow}`
-                      : `${tc.navText} ${tc.navHover}`
-                  }`}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeNav"
-                      className={`absolute inset-0 bg-gradient-to-r ${tc.navActiveBg} z-0`}
-                    />
-                  )}
-                  <div className="tds-stack-h tds-gap-4 items-center relative z-10">
-                    <Icon icon={item.icon} size="sm" className={isActive ? tc.textStrong : `${tc.navIconHover} transition-colors`} />
-                    <span className="tracking-tight" style={{ fontSize: '21px' }}>{item.label}</span>
-                  </div>
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="tds-p-8">
-            {user ? (
-              <div className={`tds-p-5 rounded-[28px] ${tc.profile}`}>
-{(!user.name || !user.email) && (
-                      <Link
-                        to="/admin/profile"
-                        className={`tds-stack-h tds-gap-2 mb-4 tds-p-3 tds-p-2.5 rounded-xl hover:opacity-80 transition-opacity group ${tc.banner}`}
-                      >
-                        <div className={`w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0 ${tc.bannerDot}`} />
-                        <span className={`tds-small font-bold flex-1 leading-tight ${tc.bannerTxt}`}>
-                          {t('completeProfile')}
-                        </span>
-                        <Icon icon="ChevronRight" size="md" />
-                      </Link>
-                )}
-                <div className="tds-stack-h tds-gap-4 items-center mb-4">
-                  <div className={`w-12 h-12 rounded-2xl tds-stack items-center justify-center font-black shadow-lg ${tc.avatarBg} ${tc.textStrong}`}>
-                    {user.name ? user.name.charAt(0) : <Icon icon="UserCircle" size="md" />}
-                  </div>
-                  <div className="overflow-hidden flex-1">
-                    <p className={`tds-text-bold text-sm truncate ${tc.textStrong}`}>{user.name || t('nameNotSet')}</p>
-                    <p className={`tds-small font-black uppercase tracking-widest ${tc.textAccent}`}>{user.role === 'super_admin' ? t('superAdmin') : user.role === 'manager' ? t('manager') : user.role === 'staff' ? t('staff') : t('admin')}</p>
-                  </div>
-                </div>
-                <div className="tds-stack-h tds-gap-2">
-                  <Link
-                    to="/admin/profile"
-                    className={`flex-1 tds-stack-h tds-gap-1.5 items-center justify-center tds-p-2.5 rounded-xl tds-small font-bold transition-all active:scale-95 ${tc.btnBase}`}
-                  >
-                    <Icon icon="UserCircle" size="md" /> {t('profile')}
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className={`flex-1 tds-stack-h tds-gap-1.5 items-center justify-center tds-p-2.5 rounded-xl tds-small font-bold transition-all active:scale-95 ${tc.btnDanger}`}
-                  >
-                    <Icon icon="LogOut" size="md" /> {t('logout')}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <Link
-                to="/login"
-                className="w-full tds-stack-h tds-gap-3 items-center justify-center tds-p-4 rounded-2xl bg-white text-slate-950 text-sm font-black hover:shadow-xl hover:shadow-white/10 transition-all active:scale-95"
-              >
-                <Icon icon="LogIn" size="md" /> {t('login')}
-              </Link>
-            )}
-          </div>
-        </aside>
-
-        {/* Main Area */}
-        <main className="flex-1 tds-stack flex-col min-w-0 overflow-hidden relative">
-          <header className={`h-14 lg:h-24 tds-stack-h items-center justify-between tds-p-4 lg:tds-p-10 sticky top-0 z-20 ${tc.header}`}>
-            <Link to="/admin" aria-label={t('goToAdminMain')} className="tds-stack-h tds-gap-2.5 lg:hidden">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-500 to-rose-600 tds-stack items-center justify-center shadow-lg shadow-brand-500/30">
-<Icon icon="Store" size="md" />
-              </div>
-              <span className={`tds-text-bold text-sm tracking-tight ${tc.logoText}`}>{t('wemarketAdmin')}</span>
-            </Link>
-
-            <div className={`hidden lg:tds-stack-h items-center tds-gap-3 tds-p-4 tds-p-2 rounded-full ${tc.operational}`}>
-              <div className={`w-2 h-2 rounded-full animate-pulse ${tc.operationalDot}`} />
-              <span className={`tds-small font-black uppercase tracking-widest ${tc.operationalTxt}`}>{t('systemNormal')}</span>
-            </div>
-
-            <div className="tds-stack-h tds-gap-2 lg:tds-gap-3 items-center">
-              <button
-                onClick={() => setIsChatOpen(true)}
-                className={`tds-p-2 lg:tds-p-3 rounded-2xl transition-all relative group ${tc.statusBox} hover:scale-105 active:scale-95`}
-                aria-label={t('chatInquiry')}
-              >
-                <Icon icon="Headset" size="md" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-brand-500 rounded-full animate-ping" />
-              </button>
-              <ThemeSwitcher />
-              <LanguageSwitcher />
-              <NotificationBell />
-              <div className={`hidden md:block h-8 w-px mx-1 ${tc.separator}`} />
-              <div className={`hidden md:tds-stack-h items-center tds-gap-4 tds-p-5 tds-p-2.5 rounded-[20px] ${tc.statusBox}`}>
-                <div className={`w-9 h-9 rounded-xl tds-stack items-center justify-center text-white shadow-lg ${tc.statusIcon}`}>
-                  <Icon icon="Sparkles" size="md" />
-                </div>
-                <div className="hidden sm:block">
-                  <p className={`tds-small font-black uppercase tracking-widest leading-none mb-1 ${tc.statusLabel}`}>{t('status')}</p>
-                  <p className={`tds-small font-black leading-none ${tc.textStrong}`}>
-                    {user?.role === 'super_admin' ? t('superAdmin') : user?.role === 'manager' ? t('manager') : user?.role === 'staff' ? t('staff') : t('admin')} {t('active')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </header>
-
-          <div className="flex-1 overflow-y-auto tds-p-4 md:tds-p-8 lg:tds-p-12 pb-24 lg:pb-12 relative">
-            <div className="max-w-7xl mx-auto w-full">
-              {children}
-            </div>
-          </div>
-
-          {/* Mobile Bottom Nav */}
-          <nav
-            className={`fixed bottom-0 left-0 right-0 z-30 lg:hidden border-t ${tc.separator} ${tc.bottomNav}`}
-            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-          >
-            <div className="tds-stack-h h-16">
-              {mobileBottomNav.map((item) => {
-                const isActive = location.pathname === item.path ||
-                  (item.path === '/admin' && location.pathname === '/admin');
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`flex-1 tds-stack flex-col items-center justify-center tds-gap-0.5 transition-all ${isActive ? '' : tc.navText}`}
-                  >
-                    <div className="relative">
-                      <div className={`w-9 h-9 rounded-[14px] tds-stack items-center justify-center transition-all ${
-                        isActive ? `bg-gradient-to-br ${tc.navActiveBg} shadow-md ${tc.navActiveShadow}` : ''
-                      }`}>
-                        <Icon icon={item.icon} size="sm" color={isActive ? 'inverse' : undefined} />
-                      </div>
-                      {item.badge > 0 && (
-                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-brand-500 text-white tds-small font-bold rounded-full tds-stack items-center justify-center tds-p-1 tds-p-1.5 shadow-lg ring-2 ring-slate-950">
-                          {item.badge}
-                        </span>
-                      )}
-                    </div>
-                    <span className={`tds-text-bold leading-none ${isActive ? tc.textStrong : ''}`} style={{ fontSize: '13.5px' }}>{item.label}</span>
-                  </Link>
-                );
-              })}
-              <button
-                onClick={() => setMoreOpen(true)}
-                className={`flex-1 tds-stack flex-col items-center justify-center tds-gap-0.5 transition-all ${tc.navText}`}
-              >
-                <div className="w-9 h-9 rounded-[14px] tds-stack items-center justify-center">
-                  <Icon icon="Menu" size="md" />
-                </div>
-                <span className="tds-text-bold leading-none" style={{ fontSize: '13.5px' }}>{t('more')}</span>
-              </button>
-            </div>
-          </nav>
-        </main>
-
-        {/* Mobile More Bottom Sheet */}
-        <AnimatePresence>
-          {isMoreOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/60 backdrop-blur-md z-40 lg:hidden"
-                onClick={() => setMoreOpen(false)}
-              />
-              <motion.div
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{ y: '100%' }}
-                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-                className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden rounded-t-[2rem] ${tc.drawerBg} max-h-[85vh] overflow-y-auto`}
-                style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
-              >
-                {/* Handle bar */}
-                <div className="tds-stack-h tds-gap-4 tds-p-4 justify-center">
-                  <div className="w-10 h-1 bg-white/20 rounded-full" />
-                </div>
-
-                {/* User Profile Card */}
-                {user && (
-                  <div className={`mx-4 mt-3 mb-4 tds-p-4 rounded-2xl ${tc.profile}`}>
-                    {(!user.name || !user.email) && (
-                      <Link
-                        to="/admin/profile"
-                        onClick={() => setMoreOpen(false)}
-                        className={`tds-stack-h tds-gap-2 mb-3 tds-p-3 tds-p-2 rounded-xl ${tc.banner}`}
-                      >
-                        <div className={`w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0 ${tc.bannerDot}`} />
-                        <span className={`tds-small font-bold flex-1 ${tc.bannerTxt}`}>{t('completeProfile')}</span>
-<Icon icon="ChevronRight" size="md" />
-                      </Link>
-                    )}
-                    <div className="tds-stack-h tds-gap-3 items-center mb-3">
-                      <div className={`w-10 h-10 rounded-xl tds-stack items-center justify-center font-black flex-shrink-0 ${tc.avatarBg} ${tc.textStrong}`}>
-                        {user.name ? user.name.charAt(0) : <Icon icon="UserCircle" size="md" />}
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <p className={`tds-text-bold text-sm truncate ${tc.textStrong}`}>{user.name || t('nameNotSet')}</p>
-                        <p className={`tds-small font-bold uppercase tracking-widest ${tc.textAccent}`}>{user.role === 'super_admin' ? t('superAdmin') : user.role === 'manager' ? t('manager') : user.role === 'staff' ? t('staff') : t('admin')}</p>
-                      </div>
-                    </div>
-                    <div className="tds-stack-h tds-gap-2">
-                      <Link to="/admin/profile" onClick={() => setMoreOpen(false)}
-                        className={`flex-1 tds-stack-h tds-gap-1.5 items-center justify-center tds-p-2.5 rounded-xl tds-small font-bold transition-all active:scale-95 ${tc.btnBase}`}>
-<Icon icon="UserCircle" size="md" /> {t('profile')}
-                      </Link>
-                      <button onClick={() => { setMoreOpen(false); handleLogout(); }}
-                        className={`flex-1 tds-stack-h tds-gap-1.5 items-center justify-center tds-p-2.5 rounded-xl tds-small font-bold transition-all active:scale-95 ${tc.btnDanger}`}>
-<Icon icon="LogOut" size="md" /> {t('logout')}
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {/* All Nav Items */}
-                <div className="tds-p-4 tds-p-8 tds-stack tds-gap-1">
-                  <p className={`tds-small font-black uppercase tracking-[0.2em] tds-p-2 mb-3 ${tc.textSub}`}>{t('allMenu')}</p>
-                  {filteredNavItems.map((item) => {
-                    const isActive = location.pathname === item.path || (item.id === 'dashboard' && location.pathname === '/admin');
-                    return (
-                      <Link
-                        key={item.label}
-                        to={item.path}
-                        onClick={() => setMoreOpen(false)}
-                        className={`tds-stack-h tds-gap-4 tds-p-4 rounded-2xl font-bold text-base transition-all ${
-                          isActive ? `shadow-lg ${tc.drawerNavActive}` : tc.drawerNavIdle
-                        }`}
-                      >
-                        <Icon icon={item.icon} size="sm" />
-                        <span className="flex-1" style={{ fontSize: '24px' }}>{item.label}</span>
-                        {isActive && <Icon icon="ChevronRight" size="md" />}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+  const navigation = onNavigate => filteredNavItems.map(item => (
+    <Link key={item.path} to={item.path} onClick={onNavigate} aria-current={active(item) ? 'page' : undefined}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active(item) ? 'bg-orange-500/10 text-orange-500' : `${tc.navText} ${tc.navHover} hover:bg-white/5`}`}>
+      <Icon icon={item.icon} size="sm" />
+      <span className="min-w-0 truncate">{item.label}</span>
+    </Link>
+  ));
+  const profile = <div className={`rounded-xl border p-3 ${tc.profile}`}>
+    <div className="mb-3 flex items-center gap-3">
+      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-semibold ${tc.avatarBg} ${tc.textStrong}`}>
+        {user?.name?.charAt(0) || <Icon icon="UserCircle" size="sm" />}
       </div>
-    </NotificationProvider>
-  );
-}
+      <div className="min-w-0"><p className={`truncate text-sm font-semibold ${tc.textStrong}`}>{user?.name || t('nameNotSet')}</p>
+        <p className={`text-xs ${tc.textMuted}`}>{user?.role === 'super_admin' ? t('superAdmin') : user?.role === 'staff' ? t('staff') : t('admin')}</p></div>
+    </div>
+    {(!user?.name || !user?.email) && <Link to="/admin/profile" onClick={() => setMoreOpen(false)} className="mb-2 block text-xs text-orange-500">{t('completeProfile')}</Link>}
+    <div className="flex gap-2">
+      <Link to="/admin/profile" onClick={() => setMoreOpen(false)} className={`flex min-h-9 flex-1 items-center justify-center gap-1 rounded-lg text-xs ${tc.btnBase}`}><Icon icon="UserCircle" size="sm" />{t('profile')}</Link>
+      <button onClick={handleLogout} className={`flex min-h-9 flex-1 items-center justify-center gap-1 rounded-lg text-xs ${tc.btnDanger}`}><Icon icon="LogOut" size="sm" />{t('logout')}</button>
+    </div>
+  </div>;
 
+  return <NotificationProvider storeId={storeId} userId={user?.id} role={user?.role}>
+    <div data-testid="admin-shell" className={`admin-shell min-h-dvh lg:grid lg:grid-cols-[240px_minmax(0,1fr)] ${tc.root} ${themeId === 'arctic' ? 'admin-light' : ''}`}>
+      <a href="#admin-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-orange-500 focus:p-3 focus:text-white">본문으로 바로가기</a>
+      <AdminChatManager isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <aside data-testid="admin-sidebar" className={`sticky top-0 hidden h-dvh min-h-0 flex-col border-r lg:flex ${tc.sidebar}`}>
+        <Link to="/admin" className="flex h-16 shrink-0 items-center gap-3 px-5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500 text-white"><Icon icon="Store" size="sm" color="inverse" /></span>
+          <span><span className={`block text-sm font-bold tracking-wide ${tc.logoText}`}>WEMARKET</span><span className={`text-xs ${tc.textMuted}`}>{t('adminCenter')}</span></span>
+        </Link>
+        <nav aria-label="관리자 메뉴" className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 py-3">{navigation()}</nav>
+        <div className="shrink-0 p-3">{profile}</div>
+      </aside>
+      <main className="min-w-0">
+        <header className={`sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b px-4 py-3 lg:px-6 ${tc.header}`}>
+          <div className="min-w-0"><p className={`hidden text-xs lg:block ${tc.textMuted}`}>WeMarket / {t('adminCenter')}</p><p className={`truncate text-sm font-semibold ${tc.textStrong}`}>{pageTitle}</p></div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button onClick={() => setIsChatOpen(true)} className={`flex h-9 w-9 items-center justify-center rounded-lg ${tc.statusBox}`} aria-label={t('chatInquiry')}><Icon icon="Headset" size="sm" /></button>
+            <ThemeSwitcher /><div className="hidden sm:block"><LanguageSwitcher /></div><NotificationBell />
+          </div>
+        </header>
+        <section id="admin-content" tabIndex={-1} className="admin-content mx-auto w-full max-w-[1440px] p-4 pb-24 outline-none lg:p-6 lg:pb-6">{children}</section>
+      </main>
+      <nav aria-label="빠른 메뉴" className={`fixed inset-x-0 bottom-0 z-30 border-t lg:hidden ${tc.bottomNav}`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="flex h-16">{quickNav.map(item => <Link key={item.path} to={item.path} aria-current={active(item) ? 'page' : undefined} className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-xs ${active(item) ? 'text-orange-500' : tc.textMuted}`}><Icon icon={item.icon} size="sm" /><span>{item.label}</span></Link>)}
+          <button ref={menuButton} onClick={() => setMoreOpen(true)} aria-label="전체 메뉴 열기" aria-expanded={isMoreOpen} className={`flex flex-1 flex-col items-center justify-center gap-1 text-xs ${tc.textMuted}`}><Icon icon="Menu" size="sm" />{t('allMenu')}</button></div>
+      </nav>
+      {isMoreOpen && <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="absolute inset-0 bg-black/50" onClick={() => setMoreOpen(false)} aria-hidden="true" />
+        <div ref={menuPanel} role="dialog" aria-modal="true" aria-label={t('allMenu')} className={`absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col rounded-t-2xl p-4 ${tc.drawerBg}`} style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+          <div className="mb-3 flex items-center justify-between"><h2 className={`text-base font-semibold ${tc.textStrong}`}>{t('allMenu')}</h2><button onClick={() => setMoreOpen(false)} aria-label="메뉴 닫기" className="flex h-10 w-10 items-center justify-center"><Icon icon="X" size="sm" /></button></div>
+          <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain">{navigation(() => setMoreOpen(false))}</nav>
+          <div className="mt-3 shrink-0">{profile}</div>
+        </div>
+      </div>}
+    </div>
+  </NotificationProvider>;
+}
 const AdminLayout = ({ children }) => {
   const { user, logout } = useAuth();
+  const { selectedStore } = useStore();
   const { t } = useTranslation(undefined, { keyPrefix: 'admin' });
   const navigate = useNavigate();
   const location = useLocation();
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     try { sessionStorage.setItem('wm_last_path', location.pathname); } catch (_) {}
@@ -353,14 +144,13 @@ const AdminLayout = ({ children }) => {
   const isPublicBoardPath = isBoardPath && !location.pathname.startsWith('/board/write') && !location.pathname.startsWith('/board/edit');
 
   const rawStoreId = location.pathname.split('/')[3];
-  const storeId = rawStoreId && /^\d+$/.test(rawStoreId) ? rawStoreId : undefined;
+  const storeId = rawStoreId && /^\d+$/.test(rawStoreId) ? rawStoreId : selectedStore?.id;
 
   const [storeInfo, setStoreInfo] = useState(null);
 
   useEffect(() => {
     if (storeId) {
-      fetch(`/api/stores/${storeId}`)
-        .then(res => res.json())
+      storesAPI.getById(storeId)
         .then(json => {
           const data = json.data || json;
           setStoreInfo(data);
@@ -440,8 +230,6 @@ const AdminLayout = ({ children }) => {
         storeId={storeId}
         user={user}
         handleLogout={handleLogout}
-        isSidebarOpen={isSidebarOpen}
-        setSidebarOpen={setSidebarOpen}
         location={location}
         filteredNavItems={filteredNavItems}
       >

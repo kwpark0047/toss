@@ -1,0 +1,32 @@
+.admin-shell {
+  --dashboard-border: rgba(148, 163, 184, .16);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.admin-shell.admin-light { --dashboard-border: #dbe3ec; }
+.admin-shell.admin-light .dashboard-overview .bg-white\/5 { background-color: #fff !important; }
+.admin-shell.admin-light .dashboard-metrics > div:first-child { background-color: #fff7ed !important; }
+.admin-shell aside { scrollbar-width: thin; }
+.admin-shell aside nav a { min-height: 44px; }
+.admin-shell.admin-light aside nav a[aria-current="page"] { color: #c2410c; }
+.admin-shell .dashboard-overview :is([class~="text-[9px]"], [class~="text-[10px]"], [class~="text-[11px]"]) {
+  font-size: 12px;
+  line-height: 1.4;
+}
+.dashboard-metrics > div { border-color: var(--dashboard-border); padding: 16px; border-radius: 12px; }
+.dashboard-metrics > div:first-child { background: rgba(249, 115, 22, .07); }
+.dashboard-metrics > div p:last-child { font-size: 24px; line-height: 1.25; font-weight: 650; }
+.dashboard-metrics > div:first-child p:last-child { font-size: 28px; }
+.admin-shell .dashboard-overview h2 { font-size: 14px; font-weight: 600; }
+.admin-shell .dashboard-overview h3 { font-size: 13px; font-weight: 600; }
+.admin-shell .dashboard-health { border-color: var(--dashboard-border); }
+.admin-shell.admin-light .text-emerald-500 { color: #047857; }
+.admin-shell.admin-light .text-amber-500 { color: #92400e; }
+.admin-shell.admin-light .hover\:bg-white\/10:hover { background: #e2e8f0; }
+@media (max-width: 639px) {
+  .dashboard-metrics > div { padding: 12px; }
+  .dashboard-metrics > div p:last-child, .dashboard-metrics > div:first-child p:last-child { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell *, .admin-shell *::before, .admin-shell *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

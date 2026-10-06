@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { analyticsAPI, ordersAPI } from '../../../api';
 import { formatPrice } from '../../../utils/format';
 import Icon from '../../ui/Icon';
+import { normalizeSalesSeries } from '@/lib/dashboardData';
 import {
   AreaChart,
   Area,
@@ -13,8 +14,6 @@ import {
   BarChart,
   Bar,
   Cell,
-  PieChart as RechartsPieChart,
-  Pie,
   Line,
   ComposedChart,
 } from 'recharts';
@@ -30,24 +29,28 @@ export const SalesTrendChart = ({ storeId }) => {
   const [days, setDays] = useState(7);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     if (!storeId) return;
+    let active = true;
     setLoading(true);
+    setError(false);
     const end = new Date().toISOString().slice(0, 10);
     const start = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
     analyticsAPI
       .getSales(storeId, 'daily', start, end)
       .then((res) => {
-        const items = res?.data ?? res ?? [];
-        setData(Array.isArray(items) ? items : []);
+        if (active) setData(normalizeSalesSeries(res));
       })
-      .catch(() => setData([]))
-      .finally(() => setLoading(false));
-  }, [storeId, days]);
+      .catch(() => { if (active) { setData([]); setError(true); } })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [storeId, days, retry]);
 
   if (loading) return <div className="h-[200px] bg-white/5 rounded-2xl animate-pulse" />;
-  if (!data || data.length === 0) return null;
+  if (!data || data.length === 0) return <section className="rounded-xl border border-white/10 bg-white/5 p-4"><h3 className="text-sm font-semibold text-white">매출 추이</h3><p className="py-6 text-center text-sm text-slate-400">{error ? '매출 추이를 불러오지 못했습니다.' : `최근 ${days}일의 매출 데이터가 없습니다.`}</p>{error && <button onClick={() => setRetry(value => value + 1)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-orange-500">다시 시도</button>}</section>;
 
   return (
     <div>
@@ -85,7 +88,7 @@ export const SalesTrendChart = ({ storeId }) => {
               tick={{ fill: '#64748b', fontSize: 9 }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v) => v?.slice(5) ?? v}
+              tickFormatter={(v) => typeof v === 'string' && v.length > 5 ? v.slice(5) : v}
             />
             <YAxis
               tick={{ fill: '#64748b', fontSize: 9 }}
@@ -105,6 +108,7 @@ export const SalesTrendChart = ({ storeId }) => {
               formatter={(v) => [formatPrice(v), '매출']}
             />
             <Area
+              isAnimationActive={false}
               type="monotone"
               dataKey="sales"
               stroke="#f97316"
@@ -122,81 +126,19 @@ export const SalesTrendChart = ({ storeId }) => {
 
 /* ─── 주문 상태 분포 ─── */
 export const OrderStatusDonut = ({ stats }) => {
-  const byStatus = stats?.by_status;
-  if (!byStatus) return null;
-
-  const colorMap = {
-    completed: '#10b981',
-    pending: '#f97316',
-    preparing: '#f59e0b',
-    ready: '#34d399',
-    cancelled: '#f43f5e',
-    confirmed: '#3b82f6',
-    paid: '#14b8a6',
-  };
-  const labelMap = {
-    completed: '완료',
-    pending: '대기',
-    preparing: '조리중',
-    ready: '준비완료',
-    cancelled: '취소',
-    confirmed: '확인',
-    paid: '신규',
-  };
-
-  const data = Object.entries(byStatus)
-    .filter(([, v]) => v > 0)
-    .map(([k, v]) => ({ name: labelMap[k] || k, value: v, color: colorMap[k] || '#64748b' }));
-
-  if (data.length === 0) return null;
-
-  return (
-    <div>
-      <h3 className="text-xs font-black text-white flex items-center gap-1.5 mb-2 px-1">
-        <Icon icon="ShoppingBag" size="md" className="text-emerald-400" /> 주문 상태
-      </h3>
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
-        <ResponsiveContainer width="100%" height={140}>
-          <RechartsPieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={38}
-              outerRadius={58}
-              paddingAngle={3}
-              dataKey="value"
-            >
-              {data.map((entry, idx) => (
-                <Cell key={idx} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              contentStyle={{
-                backgroundColor: '#0F172A',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 12,
-                fontSize: 11,
-                color: '#e2e8f0',
-              }}
-            />
-          </RechartsPieChart>
-        </ResponsiveContainer>
-        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-1">
-          {data.map((d) => (
-            <div key={d.name} className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-              <span className="text-[9px] text-slate-400 font-bold">
-                {d.name} <span className="text-white">{d.value}</span>
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+  const labels = { completed: '완료', pending: '대기', preparing: '조리 중', ready: '준비 완료', cancelled: '취소', confirmed: '확인', paid: '신규' };
+  const entries = Object.entries(stats?.by_status || {}).filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((sum, [, value]) => sum + value, 0);
+  return <section aria-label="주문 상태 분포">
+    <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-white"><Icon icon="ShoppingBag" size="sm" className="text-orange-400" />주문 상태</h3>
+    <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+      {entries.length === 0 ? <p className="py-6 text-center text-sm text-slate-400">선택한 기간의 주문이 없습니다.</p> : entries.map(([key, value]) => <div key={key}>
+        <div className="mb-1 flex justify-between gap-3 text-xs"><span className="text-slate-300">{labels[key] || key}</span><span className="font-mono tabular-nums text-slate-300">{value}건 · {Math.round(value / total * 100)}%</span></div>
+        <div className="h-1.5 rounded-full bg-white/10"><div className="h-full rounded-full bg-orange-500/70" style={{ width: `${value / total * 100}%` }} /></div>
+      </div>)}
     </div>
-  );
+  </section>;
 };
-
 /* ─── 피크타임 바 차트 ─── */
 export const PeakHoursBar = ({ storeId }) => {
   const [data, setData] = useState(null);
@@ -255,7 +197,7 @@ export const PeakHoursBar = ({ storeId }) => {
               }}
               formatter={(v) => [v + '건', '주문']}
             />
-            <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={20}>
+            <Bar isAnimationActive={false} dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={20}>
               {data.map((entry, idx) => (
                 <Cell
                   key={idx}
@@ -339,13 +281,15 @@ export const SalesForecastWidget = ({ storeId, refreshKey = 0 }) => {
               }}
             />
             <Area
+              isAnimationActive={false}
               type="monotone"
               dataKey="confidence_upper"
               stroke="none"
               fill="url(#forecastGrad)"
             />
-            <Area type="monotone" dataKey="confidence_lower" stroke="none" fill="#0F172A" />
+            <Area isAnimationActive={false} type="monotone" dataKey="confidence_lower" stroke="none" fill="#0F172A" />
             <Line
+              isAnimationActive={false}
               type="monotone"
               dataKey="predicted"
               stroke="#818cf8"
