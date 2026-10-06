@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import { captureException } from '@/lib/sentry';
+import { isChunkLoadError, recoverChunkLoad } from '@/lib/chunkRecovery';
 
 /**
  * ErrorFallback — 에러 발생 시 표시되는 UI
@@ -62,6 +63,7 @@ export class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
+    if (isChunkLoadError(error)) void recoverChunkLoad();
     if (import.meta.env.DEV) {
       console.error('[ErrorBoundary]', error.message, errorInfo?.componentStack?.substring(0, 300));
     }
@@ -78,6 +80,10 @@ export class ErrorBoundary extends Component {
   }
 
   handleReset = () => {
+    if (isChunkLoadError(this.state.error)) {
+      void recoverChunkLoad({ force: true });
+      return;
+    }
     this.setState({ hasError: false, error: null });
   };
 

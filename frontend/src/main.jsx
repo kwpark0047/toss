@@ -7,6 +7,12 @@ import './i18n';
 import { wakeupServer } from './api/wakeup.js';
 import { initWebVitals } from './utils/webVitals';
 import { initSentry } from './lib/sentry.js';
+import { recoverChunkLoad } from './lib/chunkRecovery.js';
+
+window.addEventListener('vite:preloadError', () => {
+  // Keep the error boundary available if recovery is offline or already attempted.
+  void recoverChunkLoad();
+});
 
 const purgeServiceWorkerAndReload = async (reason) => {
   const flag = `wm-sw-purge:${reason}`;
