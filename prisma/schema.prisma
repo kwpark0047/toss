@@ -120,6 +120,7 @@ model order_items {
 }
 
 model orders {
+  integration_events integration_events[]
   id                 Int                  @id @default(autoincrement())
   store_id           Int
   table_id           Int?
@@ -574,6 +575,8 @@ model store_receipt_settings {
 }
 
 model stores {
+  integration_connections integration_connections[]
+  integration_events integration_events[]
   id                       Int                      @id @default(autoincrement())
   user_id                  Int
   name                     String
@@ -1159,6 +1162,54 @@ model option_templates {
   stores      stores    @relation(fields: [store_id], references: [id], onDelete: Cascade)
 
   @@index([store_id], map: "idx_option_templates_store")
+  @@schema("public")
+}
+
+model integration_connections {
+  id String @id @db.Uuid
+  store_id Int
+  channel String
+  provider String
+  name String
+  method String
+  enabled Boolean @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  last_ingested_at DateTime? @db.Timestamptz(6)
+  stores stores @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  events integration_events[]
+  @@unique([id, store_id], map: "integration_connections_id_store_key")
+  @@index([store_id], map: "integration_connections_store_idx")
+  @@schema("public")
+}
+
+model integration_events {
+  id String @id @db.Uuid
+  store_id Int
+  connection_id String @db.Uuid
+  event_id String
+  record_id String
+  kind String
+  version Int
+  occurred_at DateTime @db.Timestamptz(6)
+  amount BigInt
+  refund_amount BigInt @default(0)
+  status String
+  currency String
+  order_key String
+  native_order_id Int?
+  customer_key String?
+  marketing_consent String @default("unknown")
+  consent_at DateTime? @db.Timestamptz(6)
+  consent_source String?
+  payload_hash String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  stores stores @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  connection integration_connections @relation(fields: [connection_id, store_id], references: [id, store_id], onDelete: Cascade)
+  orders orders? @relation(fields: [native_order_id], references: [id], onDelete: SetNull)
+  @@unique([connection_id, event_id], map: "integration_events_connection_event_key")
+  @@unique([connection_id, kind, record_id, version], map: "integration_events_snapshot_key")
+  @@index([store_id, occurred_at], map: "integration_events_store_date_idx")
+  @@index([store_id, order_key], map: "integration_events_store_order_idx")
   @@schema("public")
 }
 

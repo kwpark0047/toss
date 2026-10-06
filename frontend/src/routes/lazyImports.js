@@ -96,3 +96,6 @@ export const RealTimeAnalyticsDashboard = lazy(
   () => import('../pages/analytics/RealTimeAnalyticsDashboard')
 );
 export const PlanRequestsManage = lazy(() => import('../pages/PlanRequestsManage'));
+export const StoreIntegrationCenter = lazy(
+  () => import('../components/admin/StoreIntegrationCenter')
+);

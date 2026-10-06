@@ -37,6 +37,8 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 // 서버 간 호출(Toss 웹훅)·헬스체크·메트릭은 쿠키를 갖지 않으므로 제외한다.
 const EXEMPT_PATHS = [
+  // API-key-only machine ingress; JWT/cookie-authenticated admin imports are not exempt.
+  /^\/api\/integrations\/events\/[0-9a-f-]{36}\/?$/i,
   // 주의: 토스 웹훅 실제 경로는 /api/payments/webhooks/toss 이다.
   // payments 라우터가 /api/payments 에 마운트되므로 (routes/payments.js:366)
   // /api/webhooks 로 가정하면 웹훅이 403 차단되어 결제가 유실된다.

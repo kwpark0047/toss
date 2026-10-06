@@ -286,6 +286,7 @@ const routes = {
     adminAuth: lazyRouter(() => import('./routes/adminAuth.js')),
     franchise: lazyRouter(() => import('./routes/franchise.js')),
     loyalty: lazyRouter(() => import('./routes/loyalty.js')),
+    integrations: lazyRouter(() => import('./routes/integrations.js')),
     ecoBadge: lazyRouter(() => import('./routes/ecoBadge.js')),
     aiOrder: lazyRouter(() => import('./routes/aiOrder.js')),
     aiAutoOrder: lazyRouter(() => import('./routes/aiAutoOrder.js')),
@@ -356,6 +357,7 @@ app.use(`${API_PREFIX}/ai-usage`, routes.aiUsage);
 app.use(`${API_PREFIX}/export`, routes.export);
 app.use(`${API_PREFIX}/franchise`, routes.franchise);
 app.use(`${API_PREFIX}/loyalty`, routes.loyalty);
+app.use(`${API_PREFIX}/integrations`, routes.integrations);
 app.use(`${API_PREFIX}/eco-badge`, routes.ecoBadge);
 app.use(`${API_PREFIX}/ai-order`, routes.aiOrder);
 app.use(`${API_PREFIX}/ai-auto-order`, routes.aiAutoOrder);
