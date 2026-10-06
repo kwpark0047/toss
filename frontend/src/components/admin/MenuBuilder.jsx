@@ -30,9 +30,9 @@ const fontOptions = [
 ];
 
 const layoutOptions = [
-    { id: 'grid', label: '그리드', icon: Grid, desc: '격자형 배치로 많은 메뉴를 한눈에' },
-    { id: 'list', label: '리스트', icon: AlignLeft, desc: '이미지와 내용이 나란히, 모바일 최적화' },
-    { id: 'magazine', label: '매거진', icon: BookOpen, desc: '이미지를 강조한 프리미엄 감성 스타일' }
+    { id: 'grid', label: '그리드', icon: 'Grid', desc: '격자형 배치로 많은 메뉴를 한눈에' },
+    { id: 'list', label: '리스트', icon: 'AlignLeft', desc: '이미지와 내용이 나란히, 모바일 최적화' },
+    { id: 'magazine', label: '매거진', icon: 'BookOpen', desc: '이미지를 강조한 프리미엄 감성 스타일' }
 ];
 
 const radiusOptions = [
