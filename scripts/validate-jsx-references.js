@@ -63,9 +63,9 @@ function collectDefinedIdentifiers(code) {
   while ((m = patterns[2].exec(code)) !== null) defined.add(m[1]);
 
   // const { X } = require(...) / const { X } = someNamespace
-  const destructureRe = /(?:const|let|var)\s*\{([^}]*)\}\s*=/g;
+  const destructureRe = /(?:const|let|var)\s*\{([^}]*)\}\s*=|\(\s*\{([^}]*)\}\s*\)\s*=>/g;
   while ((m = destructureRe.exec(code)) !== null) {
-    for (const part of m[1].split(',')) {
+    for (const part of (m[1] || m[2]).split(',')) {
       const name = part
         .split(/\s*:\s*/)
         .pop()
@@ -127,4 +127,6 @@ function main() {
   process.exit(1);
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = { collectDefinedIdentifiers, findJsxTags };
