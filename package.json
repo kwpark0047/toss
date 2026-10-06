@@ -53,7 +53,7 @@
     "security:scan": "semgrep --config p/javascript --config p/nodejs --config p/secrets --config p/owasp-top-ten --severity ERROR --error --exclude node_modules --exclude dist --exclude frontend/dist --exclude tests --exclude coverage --exclude __tests__ --exclude **/*.test.js routes services middleware controllers utils config app.mts index.mts socket metrics src",
     "security:scan:frontend": "semgrep --config p/react --config p/secrets --severity ERROR --error --exclude node_modules --exclude dist --exclude coverage --exclude __tests__ --exclude **/*.test.* frontend/src",
     "prepare": "husky",
-    "test:saas": "node --test --test-isolation=none tests/saas/*.test.cjs",
+    "test:saas": "node --test tests/saas/*.test.cjs",
     "typecheck:backend": "tsc --noEmit",
     "smoke:startup": "node --import tsx scripts/smoke-startup.mjs"
   },
