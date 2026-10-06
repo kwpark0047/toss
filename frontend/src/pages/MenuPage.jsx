@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Loader2, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { storesAPI } from "@/api/stores";
@@ -108,6 +108,8 @@ const ColdStartLoading = ({
 /** 테마 설정 → CSS 변수 객체 변환 (공용: lib/themePresets) */
 const buildThemeStyle = resolveThemeStyle;
 const MenuPage = () => {
+  const queryClient = useQueryClient();
+  const [cachedSections, setCachedSections] = useState({});
   const {
     t,
     i18n
@@ -235,6 +237,14 @@ const {
     retry: 10,
     retryDelay: idx => Math.min(5000 * (idx + 1), 30000)
   };
+  const cacheOptions = (type, key) => ({
+    timeoutMs: 0,
+    onFresh: data => {
+      queryClient.setQueryData([key, storeId], data);
+      setCachedSections(current => ({ ...current, [type]: false }));
+    },
+  });
+  const markCached = type => () => setCachedSections(current => ({ ...current, [type]: true }));
 
   // Fetch store profile — 숫자 storeId일 때만 실행
   const {
@@ -262,7 +272,7 @@ const {
         announcement: parsedTheme?.announcement || null,
         announcement_active: parsedTheme?.announcementActive || false
       };
-    }),
+    }, markCached('profile'), cacheOptions('profile', 'storeProfile')),
     enabled: isNumericStoreId,
     ...coldStartRetry
   });
@@ -280,7 +290,7 @@ const {
     queryFn: () => withOfflineCache(storeId, "categories", async () => {
       const raw = await categoriesAPI.getByStore(storeId);
       return Array.isArray(raw) ? raw : raw?.data || [];
-    }),
+    }, markCached('categories'), cacheOptions('categories', 'publicCategories')),
     enabled: isNumericStoreId,
     ...coldStartRetry
   });
@@ -298,7 +308,7 @@ const {
         ...item,
         is_available: true
       }));
-    }),
+    }, markCached('menu'), cacheOptions('menu', 'publicMenuItems')),
     enabled: isNumericStoreId,
     ...coldStartRetry
   });
@@ -629,6 +639,7 @@ const order = await ordersAPI.create(orderData);
         </div>}
 
       {/* Header */}
+      {Object.values(cachedSections).some(Boolean) && <div role="status" className="px-4 py-2 bg-orange-50 text-orange-800 text-xs">저장된 메뉴를 먼저 표시하고 있습니다. 최신 가격과 품절 정보를 확인 중입니다.</div>}
       <MenuHeader storeName={profile?.store_name || t('menu.store_name_default')} tableNumber={tableNumber} onOrderHistoryClick={handleOpenOrderHistory} onCallStaffClick={() => setShowCallSheet(true)} />
 
       {/* Store Info */}

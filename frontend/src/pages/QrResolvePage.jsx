@@ -5,8 +5,8 @@ import { Loader2, QrCode, AlertCircle, RefreshCw, Wifi } from 'lucide-react';
 import { useSystemDark } from '@/hooks/useSystemDark';
 
 const MAX_WAIT_MS = 60000;      // 총 대기 시간 (wakeupServer와 동일 60초)
-const BASE_RETRY_MS = 2000;     // 초기 재시도 간격
-const MAX_RETRY_MS = 8000;      // 최대 재시도 간격
+const BASE_RETRY_MS = 750;
+const MAX_RETRY_MS = 3000;
 
 export default function QrResolvePage() {
   const { qrCode } = useParams();
@@ -27,12 +27,11 @@ export default function QrResolvePage() {
     setServerReady(false);
 
     const run = async () => {
-      /* 1. Render 서버 웨이크업 */
-      setStatus('wakeup');
-      try {
-        await wakeupServer();
-        if (!cancelled) setServerReady(true);
-      } catch { /* ignore */ }
+      // Start lookup immediately; health checks must never gate a valid QR response.
+      setStatus('resolving');
+      void wakeupServer().then(() => { if (!cancelled) setServerReady(true); }).catch(() => {});
+      // Fetch the customer screen chunk while the table is being validated.
+      void import('./MenuPage.jsx').catch(() => {});
 
       /* 2. QR 코드 resolve (지수 백오프 재시도) */
       let retryMs = BASE_RETRY_MS;
@@ -41,7 +40,7 @@ export default function QrResolvePage() {
         setAttempt(retryCount.current + 1);
 
         try {
-          const res = await tablesAPI.getByQrCode(qrCode);
+          const res = await tablesAPI.getByQrCode(qrCode, { timeout: 8000, _coldRetry: true });
           const table = res?.data || res;
 
           if (table?.store_id) {

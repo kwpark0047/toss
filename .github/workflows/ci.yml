@@ -227,6 +227,8 @@ jobs:
         run: node scripts/smoke-menu-management.cjs
       - name: Table QR workflow smoke
         run: node scripts/smoke-table-qr.cjs
+      - name: QR cold-start and cached menu speed
+        run: node scripts/smoke-qr-speed.cjs
       - name: Customer menu header references
         working-directory: frontend
         run: npx eslint src/components/menu/MenuHeader.jsx --quiet

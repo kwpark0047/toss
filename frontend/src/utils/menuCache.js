@@ -35,7 +35,9 @@ export async function saveCache(storeId, type, data) {
       tx.onerror = () => reject(tx.error);
     });
     db.close();
-  } catch { /* 캐싱 실패는 무시 */ }
+  } catch {
+    /* 캐싱 실패는 무시 */
+  }
 }
 
 /** 캐시 로드. 반환 { data, cachedAt } 또는 null */
@@ -50,7 +52,9 @@ export async function loadCache(storeId, type) {
     });
     db.close();
     return result;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -68,25 +72,49 @@ export async function loadCache(storeId, type) {
  * @param {Function} [onFallback] 캐시 폴백 시 콜백(cachedAt)
  * @param {{timeoutMs?: number}} [opts]
  */
-export async function withOfflineCache(storeId, type, fetcher, onFallback, { timeoutMs = 4000 } = {}) {
+export async function withOfflineCache(
+  storeId,
+  type,
+  fetcher,
+  onFallback,
+  { timeoutMs = 4000, onFresh } = {}
+) {
   const cached = await loadCache(storeId, type);
   const network = (async () => {
     const fresh = await fetcher();
     saveCache(storeId, type, fresh); // 성공 시 캐시 갱신 (백그라운드여도 실행)
+    // Let the initial cached query settle before replacing it with fresh data.
+    if (onFresh) setTimeout(() => onFresh(fresh), 0);
     return fresh;
   })();
 
   // 캐시가 없으면 네트워크 결과에 그대로 의존 (성공/실패 전파)
   if (!cached) return network;
+  if (timeoutMs === 0) {
+    onFallback?.(cached.cachedAt);
+    // Consume background failures; cached browsing must not cause an unhandled rejection.
+    void network.catch(() => {});
+    return cached.data;
+  }
 
   // 캐시가 있으면 네트워크 vs 타임아웃 레이스
   return await new Promise((resolve) => {
     let settled = false;
-    const done = (v) => { if (!settled) { settled = true; resolve(v); } };
+    const done = (v) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve(v);
+      }
+    };
     network
       .then((fresh) => done(fresh)) // 빠른 응답 → 최신 데이터
-      .catch(() => { onFallback?.(cached.cachedAt); done(cached.data); }); // 실패 → 캐시
-    setTimeout(() => {
+      .catch(() => {
+        onFallback?.(cached.cachedAt);
+        done(cached.data);
+      }); // 실패 → 캐시
+    const timer = setTimeout(() => {
+      if (settled) return;
       // 타임아웃: 캐시 표시. 오프라인일 때만 배너(느린 온라인은 배너 없이 캐시)
       if (!navigator.onLine) onFallback?.(cached.cachedAt);
       done(cached.data);

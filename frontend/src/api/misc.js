@@ -96,7 +96,7 @@ export const reservationsAPI = {
 
 export const tablesAPI = {
   getByStore: (storeId) => api.get('/tables/store/' + storeId),
-  getByQrCode: (qrCode) => api.get('/tables/qr/' + qrCode),
+  getByQrCode: (qrCode, config) => api.get('/tables/qr/' + encodeURIComponent(qrCode), config),
   create: (data) => api.post('/tables', data),
   update: (id, data) => api.put('/tables/' + id, data),
   delete: (id) => api.delete('/tables/' + id),
