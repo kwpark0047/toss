@@ -128,6 +128,19 @@ describe('Login 컴포넌트', () => {
     localStorage.clear();
   });
 
+  it('400 검증 오류의 구체적인 메시지를 표시한다', async () => {
+    mockLogin.mockRejectedValueOnce({
+      message: 'Request failed with status code 400',
+      response: { data: { error: '입력 값 검증에 실패했습니다.', details: [{ message: '올바른 이메일 또는 전화번호를 입력하세요.' }] } },
+    });
+    renderLogin();
+    setInputValue(screen.getByLabelText(/핸드폰/i), '010-1234-5678');
+    setInputValue(screen.getByPlaceholderText('••••••••'), 'password');
+    submitForm();
+    expect(await screen.findByText('올바른 이메일 또는 전화번호를 입력하세요.')).toBeInTheDocument();
+    expect(screen.queryByText('Request failed with status code 400')).not.toBeInTheDocument();
+  });
+
   it('로그인 폼 UI가 정상 렌더링된다', () => {
     renderLogin();
 

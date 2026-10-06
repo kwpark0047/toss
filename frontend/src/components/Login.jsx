@@ -84,7 +84,11 @@ const Login = () => {
       }
       navigate('/admin', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || err.message || '로그인에 실패했습니다.');
+      const data = err.response?.data;
+      const validationMessage = Array.isArray(data?.details)
+        ? data.details.map(detail => detail.message).filter(Boolean).join(' ')
+        : '';
+      setError(validationMessage || data?.message || data?.error || err.message || '로그인에 실패했습니다.');
     } finally {
       setLoading(false);
     }

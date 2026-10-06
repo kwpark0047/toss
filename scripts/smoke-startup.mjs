@@ -54,7 +54,7 @@ try {
   const unknownLogin = await fetch(`http://127.0.0.1:${port}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'nonexistent@invalid.example', password: 'InvalidPassword!2026' }),
+    body: JSON.stringify({ identifier: 'nonexistent@invalid.example', password: 'InvalidPassword!2026' }),
   });
   assert.equal(unknownLogin.status, 401, 'CJS auth errors must retain their status in the ESM app');
   await unknownLogin.arrayBuffer();
