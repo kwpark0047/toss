@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { readApiList } from '../lib/apiList';
 import { categoriesAPI, productsAPI, storesAPI } from '../api';
 import { toast } from 'react-toastify';
 import { handleApiError } from '../utils/apiError';
@@ -13,7 +13,8 @@ const reorder = (list, startIdx, endIdx) => {
 };
 
 export const useMenuManager = (storeId) => {
-  const navigate = useNavigate();
+  const [dataError, setDataError] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
   const [store, setStore] = useState(null);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
@@ -37,6 +38,8 @@ export const useMenuManager = (storeId) => {
   const dragOverCatIdx = useRef(null);
 
   const fetchData = useCallback(async () => {
+    setDataError(null);
+    setLoading(true);
     try {
       const [storeRes, categoriesRes, productsRes] = await Promise.all([
         storesAPI.getById(storeId),
@@ -44,15 +47,15 @@ export const useMenuManager = (storeId) => {
         productsAPI.getByStore(storeId),
       ]);
       setStore(storeRes?.data || storeRes || null);
-      setCategories(categoriesRes?.data || categoriesRes || []);
-      setProducts(productsRes?.data || productsRes || []);
+      setCategories(readApiList(categoriesRes));
+      setProducts(readApiList(productsRes));
     } catch (error) {
       console.error(error);
-      navigate('/admin');
+      setDataError(error);
     } finally {
       setLoading(false);
     }
-  }, [storeId, navigate]);
+  }, [storeId]);
 
   useEffect(() => {
     fetchData();
@@ -61,9 +64,15 @@ export const useMenuManager = (storeId) => {
   const filteredProducts = (Array.isArray(products) ? products : []).filter(
     (p) =>
       (!selectedCategory || p.category_id === selectedCategory) &&
+      (statusFilter === 'all' ||
+        (statusFilter === 'sold-out' ? Boolean(p.is_sold_out) : !p.is_sold_out)) &&
       (p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (p.description || '').toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  useEffect(() => {
+    setSelectedProducts([]);
+  }, [selectedCategory, searchTerm, statusFilter]);
 
   const handleSelectAll = (e) => {
     setSelectedProducts(e.target.checked ? filteredProducts.map((p) => p.id) : []);
@@ -169,6 +178,9 @@ export const useMenuManager = (storeId) => {
     categories,
     products,
     loading,
+    dataError,
+    statusFilter,
+    setStatusFilter,
     selectedCategory,
     setSelectedCategory,
     showCategoryModal,

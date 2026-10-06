@@ -18,6 +18,8 @@ const SOCKET_URL = getSocketUrl();
 
 const socket = io(SOCKET_URL, {
   autoConnect: false,
+  transports: ['websocket', 'polling'],
+  tryAllTransports: true,
   withCredentials: true,
   auth: (callback) => callback({ token: localStorage.getItem('token') || undefined }),
   reconnection: true,

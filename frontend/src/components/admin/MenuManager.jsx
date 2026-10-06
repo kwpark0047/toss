@@ -1,30 +1,35 @@
+import './menu/menuWorkspace.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMenuManager } from '../../hooks/useMenuManager';
-import { motion } from 'framer-motion';
+
 import { lazy, Suspense } from 'react';
 import { useSEO } from '../../lib/useSEO';
 import Skeleton from '../common/Skeleton';
 import { CategoryModal } from './CategoryModal';
 import { CategoryList } from './menu/CategoryList';
 import { MenuItemList } from './menu/MenuItemList';
-import { ArrowLeft, Folders, Plus, Sparkles, Store } from 'lucide-react';
+import { ArrowLeft, Folders, Plus, Sparkles, Store, RefreshCw } from 'lucide-react';
 
 const BulkMenuModal = lazy(() => import('./BulkMenuModal'));
 const MenuScanModal = lazy(() => import('./MenuScanModal'));
 const MenuWizard = lazy(() => import('./MenuWizard'));
 const OptionTemplateModal = lazy(() => import('./OptionTemplateModal'));
-const ProductModal = lazy(() => import('./ProductModal'));
+const ProductModal = lazy(() => import('./ProductModal').then(module => ({ default: module.ProductModal })));
 
 const MenuManager = () => {
     useSEO({ title: '메뉴 관리 | 위마켓', description: '매장 메뉴를 관리합니다.' });
     const { storeId } = useParams();
   const navigate = useNavigate();
-  
+
   const {
     store,
     categories,
     products,
     loading,
+    dataError,
+    statusFilter,
+    setStatusFilter,
+    setSelectedProducts,
     selectedCategory,
     setSelectedCategory,
     showCategoryModal,
@@ -68,64 +73,27 @@ const MenuManager = () => {
   );
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-6 lg:space-y-10">
-      {/* 상단 헤더 */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 lg:gap-8">
-        <div className="flex items-center gap-3 lg:gap-6">
-          <motion.button
-            whileHover={{ scale: 1.1, x: -5 }} whileTap={{ scale: 0.9 }}
-            onClick={() => navigate('/admin')}
-            className="w-10 h-10 lg:w-14 h-14 bg-white/5 rounded-[16px] lg:rounded-[20px] border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-2xl backdrop-blur-xl flex-shrink-0"
-          >
-            <ArrowLeft size={20} />
-          </motion.button>
-          <div className="min-w-0">
-            <h1 className="text-2xl lg:text-4xl font-black text-white tracking-tight mb-1 lg:mb-2">메뉴 관리</h1>
-            <div className="flex items-center gap-2 lg:gap-3 flex-wrap">
-              <div className="px-2.5 py-0.5 lg:px-3 lg:py-1 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-                <p className="text-orange-500 font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5">
-                  <Store size={10} /> {store?.name}
-                </p>
-              </div>
-              <span className="text-slate-600 font-bold text-[10px] uppercase tracking-tighter hidden sm:block">상품 관리</span>
-            </div>
-          </div>
+    <div className="menu-workspace min-w-0 space-y-4">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <button type="button" aria-label="대시보드로 돌아가기" onClick={() => navigate('/admin')} className="menu-quiet grid h-11 w-11 place-items-center rounded-xl"><ArrowLeft size={18} /></button>
+          <div><h1 className="text-xl font-bold text-white">메뉴 관리</h1><p className="text-sm text-slate-400 flex items-center gap-2"><Store size={14} />{store?.name || '매장'} · 메뉴 {products.length}개</p></div>
         </div>
-
-        <div className="flex items-center gap-2 lg:gap-3 overflow-x-auto pb-1 scrollbar-hide">
-          <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
-            onClick={() => setShowScanModal(true)}
-            className="flex-shrink-0 flex items-center gap-2 px-4 lg:px-8 py-2.5 lg:py-4 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-[16px] lg:rounded-[20px] transition-all font-black text-xs lg:text-sm shadow-2xl shadow-orange-500/20 relative overflow-hidden group"
-          >
-            <Sparkles size={15} className="animate-pulse" />
-            <span>AI 사진 스캔 등록</span>
-          </motion.button>
-
-          <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
-            onClick={() => setShowWizard(true)}
-            className="flex-shrink-0 flex items-center gap-2 px-4 lg:px-8 py-2.5 lg:py-4 bg-white/5 text-white rounded-[16px] lg:rounded-[20px] transition-all font-black text-xs lg:text-sm shadow-xl border border-white/10"
-          >
-            <Sparkles size={15} />
-            <span>AI 생성</span>
-          </motion.button>
-
-          <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
-            onClick={() => setShowBulkModal(true)}
-            className="flex-shrink-0 flex items-center gap-2 px-4 lg:px-8 py-2.5 lg:py-4 bg-white/5 text-white rounded-[16px] lg:rounded-[20px] transition-all font-black text-xs lg:text-sm shadow-xl border border-white/10"
-          >
-            <Folders size={15} /> 일괄 등록
-          </motion.button>
-
-          <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
-            onClick={() => { setEditingProduct(null); setShowProductModal(true); }}
-            className="flex-shrink-0 flex items-center gap-2 px-4 lg:px-8 py-2.5 lg:py-4 bg-orange-500 text-white rounded-[16px] lg:rounded-[20px] transition-all font-black text-xs lg:text-sm shadow-xl shadow-orange-500/25 hover:bg-orange-400"
-          >
-            <Plus size={16} /> 메뉴 추가
-          </motion.button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => fetchData()} disabled={loading} aria-label="메뉴 새로고침" className="menu-quiet grid h-11 w-11 place-items-center rounded-xl"><RefreshCw size={17} className={loading ? 'animate-spin' : ''} /></button>
+          <button type="button" onClick={() => { setEditingProduct(null); setShowProductModal(true); }} className="menu-primary inline-flex items-center gap-2 rounded-xl px-4 py-3 font-semibold"><Plus size={18} />메뉴 추가</button>
         </div>
-      </div>
+      </header>
+      {dataError && <div role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-500">메뉴를 불러오지 못했습니다. {products.length > 0 && '이전 조회 내용입니다.'}<button type="button" onClick={fetchData} className="ml-3 underline">다시 조회</button></div>}
+      <details className="menu-panel rounded-xl" aria-label="메뉴 등록 도구">
+        <summary className="p-3 cursor-pointer text-white">빠른 등록 도구 <span className="text-slate-400 text-xs">사진 · AI · 일괄 등록</span></summary>
+        <div className="flex flex-wrap items-center gap-2 px-3 pb-3">
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-10">
+        <button type="button" onClick={() => setShowScanModal(true)} className="menu-quiet inline-flex items-center gap-2 rounded-lg px-3 py-2"><Sparkles size={16} />사진에서 가져오기</button>
+        <button type="button" onClick={() => setShowWizard(true)} className="menu-quiet inline-flex items-center gap-2 rounded-lg px-3 py-2"><Sparkles size={16} />AI로 초안 만들기</button>
+        <button type="button" onClick={() => setShowBulkModal(true)} className="menu-quiet inline-flex items-center gap-2 rounded-lg px-3 py-2"><Folders size={16} />일괄 등록</button>
+      </div></details>
+      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-4">
         <CategoryList
           categories={categories}
           products={products}
@@ -146,6 +114,11 @@ const MenuManager = () => {
           categories={categories}
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          clearSelection={() => setSelectedProducts([])}
+          onAdd={() => { setEditingProduct(null); setShowProductModal(true); }}
+          loading={loading}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           selectedProducts={selectedProducts}

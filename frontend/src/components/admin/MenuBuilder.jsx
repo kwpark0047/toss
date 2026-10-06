@@ -4,6 +4,7 @@ import { storesAPI, categoriesAPI, productsAPI, uploadsAPI } from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
 import Icon from '../../components/ui/Icon';
+import { readApiList } from '../../lib/apiList';
 
 const defaultTheme = {
     primaryColor: '#f97316',
@@ -59,6 +60,8 @@ const MenuBuilder = () => {
     const [products, setProducts] = useState([]);
     const [theme, setTheme] = useState(defaultTheme);
     const [loading, setLoading] = useState(true);
+    const [dataError, setDataError] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0);
     const [saveLoading, setSaveLoading] = useState(false);
     const [previewMode, setPreviewMode] = useState('mobile');
     const [activeTab, setActiveTab] = useState('style');
@@ -68,6 +71,8 @@ const MenuBuilder = () => {
 
     useEffect(() => {
         const fetchData = async () => {
+            setLoading(true);
+            setDataError(false);
             try {
                 const [s, c, p] = await Promise.all([
                     storesAPI.getById(storeId),
@@ -76,8 +81,8 @@ const MenuBuilder = () => {
                 ]);
                 const storeData = s.data || s;
                 setStore(storeData);
-                setCategories(c.data || c || []);
-                setProducts(p.data || p || []);
+                setCategories(readApiList(c));
+                setProducts(readApiList(p));
 
                 const rawTheme = storeData?.theme;
                 if (rawTheme) {
@@ -88,12 +93,13 @@ const MenuBuilder = () => {
                 }
             } catch (err) {
                 console.error(err);
+                setDataError(true);
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, [storeId]);
+    }, [storeId, reloadKey]);
 
     const handleThemeChange = (key, value) => {
         setTheme(prev => ({ ...prev, [key]: value }));
@@ -173,6 +179,7 @@ const MenuBuilder = () => {
 
     return (
         <div className="tds-viewport tds-stack tds-gap-6 h-[calc(100vh-140px)]">
+            {dataError && <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-800">메뉴 데이터를 불러오지 못했습니다.<button type="button" className="ml-3 underline" onClick={() => setReloadKey(key => key + 1)}>다시 조회</button></div>}
             {/* 상단 툴바 */}
             <div className="tds-stack-h tds-gap-8 items-center justify-between tds-p-8 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 shrink-0">
                 <div className="tds-stack-h tds-gap-6 items-center">
@@ -213,7 +220,7 @@ const MenuBuilder = () => {
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
                             onClick={handleSave}
-                            disabled={saveLoading}
+                            disabled={saveLoading || dataError}
                             className={`tds-stack-h tds-gap-2 tds-p-4 tds-p-8 rounded-2xl tds-text-bold text-sm shadow-xl transition-all disabled:opacity-50 active:scale-95 ${saved ? 'bg-success text-white shadow-success/20' : 'bg-brand-500 text-white shadow-brand-500/20 hover:bg-brand-600'}`}
                         >
                             {saved ? <Icon icon="Check" /> : <Icon icon="Save" />}

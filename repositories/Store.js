@@ -117,7 +117,7 @@ const Store = {
       const cacheKey = `store:${id}`;
 
       // 1. 캐시 시도
-      const cached = cache.get(cacheKey);
+      const cached = await cache.get(cacheKey);
       if (cached) return cached;
 
       // 2. DB 조회
@@ -180,7 +180,7 @@ const Store = {
 
   findAll: async () => {
     const cacheKey = 'stores:all';
-    const cached = cache.get(cacheKey);
+    const cached = await cache.get(cacheKey);
     if (cached) return cached;
 
     const stores = await prisma.stores
