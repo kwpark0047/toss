@@ -34,6 +34,8 @@ export function getAllowedOrigins(): string[] {
     'https://frontend-gamma-ten-89.vercel.app',
     'https://wemarket.onrender.com',
     'https://wemarket.vercel.app',
+    'https://wemarket-saas-kwpark0047-8227s-projects.vercel.app',
+    'https://wemarket-saas.vercel.app',
     'https://250105.vercel.app',
     'https://wemarket-6k6.pages.dev',
     'https://250105.kangwonpark71.workers.dev',
