@@ -216,7 +216,7 @@ jobs:
       - name: Build production frontend
         run: npm --prefix frontend run build
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: node node_modules/playwright/cli.js install --with-deps chromium
       - name: Verify rendered production routes
         run: node scripts/smoke-frontend-browser.cjs
 
