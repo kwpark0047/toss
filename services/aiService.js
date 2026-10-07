@@ -31,7 +31,7 @@ class AIService {
    * @param {Object} [options.generationConfig] - 생성 설정 (temperature, topP, maxOutputTokens, response_mime_type 등)
    */
   async generateWithFallback(prompt, options = {}) {
-    const { systemInstruction, generationConfig } = options;
+    const { systemInstruction, generationConfig, storeId = null } = options;
     let lastError = null;
     const startedAt = Date.now();
 
@@ -51,30 +51,36 @@ class AIService {
 
         // AI 사용량 트래킹 (실패해도 메인 흐름에 영향 없음 — fire-and-forget)
         const usageMetadata = response.usageMetadata || {};
-        aiUsageTracker.track({
-          provider: 'google',
-          endpoint: modelName,
-          promptTokens: usageMetadata.promptTokenCount ?? null,
-          completionTokens: usageMetadata.candidatesTokenCount ?? null,
-          totalTokens: usageMetadata.totalTokenCount ?? null,
-          statusCode: 200,
-          durationMs: Date.now() - attemptStart,
-          cacheHit: false,
-          fallbackUsed: isFallback,
-        }).catch(() => {});
+        aiUsageTracker
+          .track({
+            provider: 'google',
+            storeId,
+            endpoint: modelName,
+            promptTokens: usageMetadata.promptTokenCount ?? null,
+            completionTokens: usageMetadata.candidatesTokenCount ?? null,
+            totalTokens: usageMetadata.totalTokenCount ?? null,
+            statusCode: 200,
+            durationMs: Date.now() - attemptStart,
+            cacheHit: false,
+            fallbackUsed: isFallback,
+          })
+          .catch(() => {});
 
         return text;
       } catch (error) {
         lastError = error;
         if (error.status === 429 || error.status === 404 || error.message?.includes('quota')) {
-          aiUsageTracker.track({
-            provider: 'google',
-            endpoint: modelName,
-            statusCode: error.status ?? 500,
-            durationMs: Date.now() - attemptStart,
-            cacheHit: false,
-            fallbackUsed: true,
-          }).catch(() => {});
+          aiUsageTracker
+            .track({
+              provider: 'google',
+              storeId,
+              endpoint: modelName,
+              statusCode: error.status ?? 500,
+              durationMs: Date.now() - attemptStart,
+              cacheHit: false,
+              fallbackUsed: true,
+            })
+            .catch(() => {});
           logger.warn(`[AI] ${modelName} failed, fallback: ${error.message}`);
           continue;
         }
@@ -84,14 +90,17 @@ class AIService {
     }
 
     if (lastError) {
-      aiUsageTracker.track({
-        provider: 'google',
-        endpoint: this.models[this.models.length - 1] || 'unknown',
-        statusCode: lastError.status ?? 500,
-        durationMs: Date.now() - startedAt,
-        cacheHit: false,
-        fallbackUsed: true,
-      }).catch(() => {});
+      aiUsageTracker
+        .track({
+          provider: 'google',
+          storeId,
+          endpoint: this.models[this.models.length - 1] || 'unknown',
+          statusCode: lastError.status ?? 500,
+          durationMs: Date.now() - startedAt,
+          cacheHit: false,
+          fallbackUsed: true,
+        })
+        .catch(() => {});
     }
     throw lastError || new Error('All AI models exhausted');
   }

@@ -120,7 +120,9 @@ jobs:
       - name: Run backend unit tests
         run: npx jest --config jest.config.js tests/unit/ --no-cache --forceExit
       - name: Store integration PostgreSQL regression
-        run: node scripts/test-store-integrations-postgres.cjs
+        run: |
+          node scripts/test-store-integrations-postgres.cjs
+          node scripts/test-store-manager-postgres.cjs
 
       - name: Upload unit test coverage
         uses: actions/upload-artifact@v4
@@ -232,7 +234,9 @@ jobs:
       - name: QR cold-start and cached menu speed
         run: node scripts/smoke-qr-speed.cjs
       - name: Store integration browser flow
-        run: node scripts/smoke-store-integrations.cjs
+        run: |
+          node scripts/smoke-store-integrations.cjs
+          node scripts/smoke-store-manager.cjs
       - name: Customer menu header references
         working-directory: frontend
         run: npx eslint src/components/menu/MenuHeader.jsx --quiet

@@ -388,6 +388,7 @@ model post_likes {
 }
 
 model products {
+  manager_actions manager_actions[]
   id                 Int                 @id @default(autoincrement())
   store_id           Int
   category_id        Int?
@@ -575,6 +576,9 @@ model store_receipt_settings {
 }
 
 model stores {
+  manager_snapshots manager_snapshots[]
+  manager_actions manager_actions[]
+  manager_ai_requests manager_ai_requests[]
   integration_connections integration_connections[]
   provider_credentials provider_credentials[]
   integration_events integration_events[]
@@ -2009,5 +2013,73 @@ model crm_campaign_runs {
 
   @@index([store_id, status, created_at], map: "idx_crm_campaign_runs_store_status")
   @@index([store_id, segment_name, created_at], map: "idx_crm_campaign_runs_segment")
+  @@schema("public")
+}
+
+model manager_snapshots {
+  id String @id @db.Uuid
+  store_id Int
+  snapshot_key String
+  payload Json
+  created_at DateTime @default(now()) @db.Timestamptz
+  stores stores @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  actions manager_actions[]
+  @@unique([store_id, snapshot_key])
+  @@unique([store_id, id])
+  @@schema("public")
+}
+model manager_actions {
+  id String @id @db.Uuid
+  store_id Int
+  snapshot_id String @db.Uuid
+  dedupe_key String
+  kind String
+  product_id Int
+  payload Json
+  status String @default("proposed")
+  created_at DateTime @default(now()) @db.Timestamptz
+  approved_by Int?
+  approved_at DateTime? @db.Timestamptz
+  executed_by Int?
+  started_at DateTime? @db.Timestamptz
+  ends_at DateTime? @db.Timestamptz
+  stopped_at DateTime? @db.Timestamptz
+  stores stores @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  products products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  snapshot manager_snapshots @relation(fields: [store_id, snapshot_id], references: [store_id, id], onDelete: Cascade)
+  events manager_action_events[]
+  evaluations manager_evaluations[]
+  @@unique([store_id, dedupe_key])
+  @@unique([store_id, id])
+  @@index([store_id, status, ends_at], map: "manager_actions_active")
+  @@schema("public")
+}
+model manager_action_events {
+  id String @id @db.Uuid
+  store_id Int
+  action_id String @db.Uuid
+  actor_id Int
+  event String
+  created_at DateTime @default(now()) @db.Timestamptz
+  action manager_actions @relation(fields: [store_id, action_id], references: [store_id, id], onDelete: Cascade)
+  @@schema("public")
+}
+model manager_evaluations {
+  id String @id @db.Uuid
+  store_id Int
+  action_id String @db.Uuid
+  payload Json
+  evaluated_at DateTime @default(now()) @db.Timestamptz
+  action manager_actions @relation(fields: [store_id, action_id], references: [store_id, id], onDelete: Cascade)
+  @@unique([store_id, action_id])
+  @@schema("public")
+}
+model manager_ai_requests {
+  id String @id @db.Uuid
+  store_id Int
+  status String @default("reserved")
+  created_at DateTime @default(now()) @db.Timestamptz
+  stores stores @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  @@index([store_id, created_at], map: "manager_ai_requests_quota")
   @@schema("public")
 }

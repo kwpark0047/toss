@@ -17,6 +17,7 @@ import EmptyState from "@/components/common/EmptyState";
 import { Maximize2 } from "lucide-react";
 
 // Components
+import ManagerFeaturedMenus from '@/components/menu/ManagerFeaturedMenus';
 import MenuHeader from "@/components/menu/MenuHeader";
 import StoreInfoBanner from "@/components/menu/StoreInfoBanner";
 import CategoryTabs from "@/components/menu/CategoryTabs";
@@ -647,6 +648,8 @@ const order = await ordersAPI.create(orderData);
 
       {/* AI 개인화 추천 (F9) */}
       <PersonalizedRecommendations storeId={storeId} storeOpen={storeOpen} onAddToCart={handleAddToCartClick} menuItems={menuItems} />
+
+      <ManagerFeaturedMenus storeId={storeId} menuItems={menuItems} storeOpen={storeOpen} onAddToCart={handleAddToCartClick} />
 
       {/* Category Tabs */}
       <CategoryTabs categories={categoryNames} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
