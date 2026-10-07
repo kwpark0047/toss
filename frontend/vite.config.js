@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import fs from 'node:fs/promises';
 import { imagetools } from 'vite-imagetools';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -49,7 +50,7 @@ export default defineConfig({
             brotliSize: true,
           }),
           VitePWA({
-            registerType: 'autoUpdate', // 새 버전 배포 시 SW 자동 교체
+            registerType: 'prompt', // 열린 주문 화면은 사용자가 업데이트할 때까지 유지
             injectRegister: 'auto',
             includeAssets: ['icons/*.svg', 'icons/*.png', 'offline.html'],
             manifest: false, // public/manifest.json 사용
@@ -59,9 +60,39 @@ export default defineConfig({
               // 빌드 결과물 자동 프리캐시
               globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
               globIgnores: ['firebase-messaging-sw.js'],
+              manifestTransforms: [
+                async (entries) => {
+                  // Cache the shell, not every admin page on the customer's first QR visit.
+                  const html = await fs.readFile(
+                    path.resolve(__dirname, 'dist/index.html'),
+                    'utf8'
+                  );
+                  const shellScripts = new Set(
+                    [...html.matchAll(/(?:src|href)="\/?(assets\/[^"\s]+\.js)"/g)].map(
+                      (match) => match[1]
+                    )
+                  );
+                  return {
+                    manifest: entries.filter(
+                      (entry) => !entry.url.endsWith('.js') || shellScripts.has(entry.url)
+                    ),
+                    warnings: [],
+                  };
+                },
+              ],
 
               // 런타임 캐시 전략
               runtimeCaching: [
+                {
+                  urlPattern: ({ url, sameOrigin }) =>
+                    sameOrigin && url.pathname.startsWith('/assets/'),
+                  handler: 'CacheFirst',
+                  options: {
+                    cacheName: 'wemarket-assets',
+                    expiration: { maxEntries: 160, maxAgeSeconds: 60 * 60 * 24 * 14 },
+                    cacheableResponse: { statuses: [200] },
+                  },
+                },
                 // Same-origin API only. The production API lives on Render, so cross-origin
                 // requests must bypass Workbox entirely to avoid CORS/no-response loops.
                 {
@@ -156,7 +187,7 @@ export default defineConfig({
 
               // 기존 sw.js와 충돌 방지
               cleanupOutdatedCaches: true,
-              skipWaiting: true, // 새 SW 설치 즉시 activate (waiting 건너뜀)
+              skipWaiting: false,
               clientsClaim: true, // activate 후 모든 탭을 즉시 제어
             },
 
@@ -205,7 +236,6 @@ export default defineConfig({
           'vendor-icons': ['lucide-react'],
           'vendor-utils': ['axios', 'socket.io-client'],
           // [M-5] framer-motion은 admin/대시보드 전용 → lazy chunk로 분리
-          'vendor-motion': ['framer-motion'],
           // [M-5] firebase는 인증/푸시 전용 → 별도 chunk
           'vendor-firebase': ['firebase/app', 'firebase/messaging', 'firebase/analytics'],
           // [M-5] recharts/xlsx는 대시보드·일괄등록 전용 → 라우트 분할로 처리
