@@ -99,3 +99,6 @@ export const PlanRequestsManage = lazy(() => import('../pages/PlanRequestsManage
 export const StoreIntegrationCenter = lazy(
   () => import('../components/admin/StoreIntegrationCenter')
 );
+export const GlobalProviderSettings = lazy(
+  () => import('../components/admin/GlobalProviderSettings')
+);

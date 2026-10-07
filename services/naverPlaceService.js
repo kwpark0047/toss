@@ -1,5 +1,6 @@
 const axios = require('axios');
 const logger = require('../utils/logger');
+const credentials = require('./ProviderCredentialService');
 
 /**
  * 네이버 플레이스 연동 서비스.
@@ -11,20 +12,23 @@ const logger = require('../utils/logger');
  *   NAVER_CLIENT_ID     (developers.naver.com 애플리케이션)
  *   NAVER_CLIENT_SECRET
  */
-const CLIENT_ID = process.env.NAVER_CLIENT_ID || '';
-const CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET || '';
 const SEARCH_ENDPOINT = 'https://openapi.naver.com/v1/search/local';
 
-function isConfigured() {
-  return Boolean(CLIENT_ID && CLIENT_SECRET);
+async function isConfigured(storeId) {
+  return Boolean(await credentials.resolve('naver', storeId));
 }
 
 const stripTags = (s = '') => s.replace(/<[^>]+>/g, '').trim();
 const normalize = (s = '') =>
-  stripTags(s).toLowerCase().replace(/\([^)]*\)/g, '').replace(/[\s·.,'"-]/g, '');
+  stripTags(s)
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, '')
+    .replace(/[\s·.,'"-]/g, '');
 
 function regionHint(address = '') {
-  const m = address.match(/([가-힣]+(시|도))?\s*([가-힣]+(시|군|구))?\s*([가-힣]+(동|읍|면|가|로|길))?/);
+  const m = address.match(
+    /([가-힣]+(시|도))?\s*([가-힣]+(시|군|구))?\s*([가-힣]+(동|읍|면|가|로|길))?/
+  );
   return m ? m[0].trim() : '';
 }
 
@@ -34,8 +38,9 @@ function regionHint(address = '') {
  * @param {string} [address] - 매장 주소 (검색 정확도 향상)
  * @returns {Promise<{naverPlaceUrl: string, title: string, category: string, telephone: string, address: string, roadAddress: string}|null>}
  */
-async function searchPlace(name, address) {
-  if (!isConfigured()) {
+async function searchPlace(name, address, storeId) {
+  const credential = await credentials.resolve('naver', storeId);
+  if (!credential) {
     logger.warn('[naverPlace] NAVER_CLIENT_ID/SECRET 미설정');
     return null;
   }
@@ -47,8 +52,8 @@ async function searchPlace(name, address) {
     const res = await axios.get(SEARCH_ENDPOINT, {
       params: { query, display: 5, sort: 'random' },
       headers: {
-        'X-Naver-Client-Id': CLIENT_ID,
-        'X-Naver-Client-Secret': CLIENT_SECRET,
+        'X-Naver-Client-Id': credential.values.client_id,
+        'X-Naver-Client-Secret': credential.values.client_secret,
       },
       timeout: 8000,
     });
@@ -58,10 +63,11 @@ async function searchPlace(name, address) {
 
     // 상호명 정규화 비교로 최적 후보 선택
     const target = normalize(name);
-    const best = items.find(it => {
-      const n = normalize(it.title);
-      return n && (n === target || n.includes(target) || target.includes(n));
-    }) || items[0]; // fallback to first result
+    const best =
+      items.find((it) => {
+        const n = normalize(it.title);
+        return n && (n === target || n.includes(target) || target.includes(n));
+      }) || items[0]; // fallback to first result
 
     const title = stripTags(best.title);
     const link = best.link || '';

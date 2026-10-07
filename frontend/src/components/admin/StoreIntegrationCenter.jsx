@@ -5,6 +5,7 @@ import { Database, Upload, RefreshCw, Link2, Plus, Download, TrendingUp } from '
 import { integrationsAPI } from '../../api/integrations';
 import { API_URL } from '../../api/client';
 import './menu/menuWorkspace.css';
+import ProviderCredentialPanel from './ProviderCredentialPanel';
 
 const LABELS = { qr: 'QR · 자체 주문', pos: 'POS', table_order: '테이블오더', point_device: '포인트기기', card_terminal: '카드단말기', baemin: '배달의민족', online_order: '온라인 주문' };
 const TEMPLATE = 'event_id,record_id,kind,version,occurred_at,amount,status,currency,refund_amount,order_key,native_order_id,customer_reference,marketing_consent,consent_at,consent_source\n';
@@ -61,6 +62,7 @@ export default function StoreIntegrationCenter() {
     {error && <div role="alert" className="rounded-xl border border-rose-500/30 p-4 text-rose-400">{error} <button className="underline" onClick={load}>다시 조회</button></div>}
     {loading && !data && <p role="status">통합 데이터를 불러오는 중…</p>}
     {tab === 'growth' ? <GrowthRoadmap storeId={storeId} /> : <>
+      <ProviderCredentialPanel storeId={storeId} />
       <div className="menu-panel rounded-xl p-4 text-sm">업체별 API 연동은 승인·계정·별도 어댑터가 필요합니다. 지금은 공통 CSV 가져오기와 인증된 API 수집을 지원합니다. 수집 기록은 분석용이며 기존 주문·카드 승인·포인트·문자 발송을 실행하지 않습니다.</div>
       <div className="flex items-center gap-3"><label htmlFor="integration-days">조회 기간</label><select id="integration-days" className="menu-field rounded-lg p-2" value={days} onChange={event => setDays(Number(event.target.value))}><option value={7}>최근 7일</option><option value={30}>최근 30일</option><option value={90}>최근 90일</option></select></div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">{[

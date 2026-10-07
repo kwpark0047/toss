@@ -7,8 +7,8 @@ const geocodeSvc = require('../services/geocodeService');
 
 // 보강 공급자 설정 상태 조회 — 미설정 공급자는 프론트에서 비활성화 표시
 exports.getStatus = catchAsync(async (req, res) => {
-  const naver = naverLocal.configStatus();
-  const seoul = seoulData.configStatus();
+  const naver = await naverLocal.configStatus();
+  const seoul = await seoulData.configStatus();
   const geocoding = geocodeSvc.configStatus();
 
   res.success({
@@ -32,7 +32,7 @@ exports.getStatus = catchAsync(async (req, res) => {
 exports.enrichmentStatus = exports.getStatus;
 
 exports.enrichNaver = catchAsync(async (req, res) => {
-  if (!naverLocal.isConfigured()) {
+  if (!(await naverLocal.isConfigured())) {
     return res.status(503).json({ success: false, error: 'NAVER_CLIENT_SECRET 미설정' });
   }
   const limit = Math.min(50, Math.max(1, parseInt(req.body.limit, 10) || 10));
@@ -100,7 +100,7 @@ exports.enrichNaver = catchAsync(async (req, res) => {
 });
 
 exports.enrichSeoul = catchAsync(async (req, res) => {
-  if (!seoulData.isConfigured()) {
+  if (!(await seoulData.isConfigured())) {
     return res.status(503).json({ success: false, error: 'SEOUL_OPENAPI_KEYS 미설정' });
   }
   const size = Math.min(1000, Math.max(1, parseInt(req.body.size, 10) || 300));

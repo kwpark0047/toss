@@ -18,6 +18,7 @@ async function main() {
     await client.query('CREATE TABLE stores(id int PRIMARY KEY); CREATE TABLE orders(id int PRIMARY KEY,store_id int,total_amount int,payment_status text,status text,created_at timestamptz DEFAULT NOW()); CREATE TABLE ledger(id serial,store_id int,order_id int,type text,amount int); CREATE TABLE store_customers(id int,store_id int); INSERT INTO stores VALUES(3),(4); INSERT INTO orders(id,store_id,total_amount,payment_status,status) VALUES(30,3,5000,\'paid\',\'completed\'),(40,4,7000,\'paid\',\'completed\'); INSERT INTO ledger(store_id,order_id,type,amount) VALUES(3,30,\'REFUND\',-1000); INSERT INTO store_customers VALUES(1,3);');
     const migration = fs.readFileSync('prisma/migrations/20261007010000_store_data_integrations/migration.sql', 'utf8').replaceAll('"public".', `"${schema}".`);
     await client.query(migration);
+    await client.query(fs.readFileSync('prisma/migrations/20261007020000_provider_credentials/migration.sql', 'utf8').replaceAll('"public".', `"${schema}".`));
     const db = adapter(client);
     db.$transaction = async work => {
       const tx = await pool.connect();
@@ -56,7 +57,19 @@ async function main() {
     await assert.rejects(service.ingest(3, card.id, { events: [event] }, 'api'), error => error.statusCode === 400);
     await service.setEnabled(3, source.id, false);
     await assert.rejects(service.ingest(3, source.id, input), error => error.statusCode === 409);
-    console.log(JSON.stringify({ passed: true, realPostgres: true, tenantIsolation: true, concurrentIdempotency: true, atomicRollback: true, canonicalDedup: true, nativeRefunds: true, latestVersionBeforeDate: true }));
+    process.env.PROVIDER_SECRET_KEY = 'fixture-provider-key-for-isolated-postgres';
+    const providerContext = { process: { env: process.env }, module: { exports: {} }, require: name => name === '../config/prisma' ? db : name === '../utils/providerSecret' ? require('../utils/providerSecret') : name === '../utils/errorHandler' ? require('../utils/errorHandler') : require(name) };
+    vm.runInNewContext(fs.readFileSync('services/ProviderCredentialService.js', 'utf8'), providerContext);
+    const credentials = new providerContext.module.exports.ProviderCredentialService(db);
+    await credentials.save('pos', 3, { api_key: 'fixture-pos-provider-key' }, 1);
+    assert.equal((await credentials.resolve('pos', 3)).values.api_key, 'fixture-pos-provider-key');
+    assert.equal(await credentials.resolve('pos', 4), null);
+    assert.ok(!JSON.stringify(await credentials.list(3)).includes('fixture-pos-provider-key'));
+    await credentials.save('weather', null, { api_key: 'fixture-global-weather' }, 1);
+    assert.equal((await credentials.resolve('weather', 4)).source, 'global');
+    await assert.rejects(client.query("INSERT INTO provider_credentials(id,scope_key,store_id,provider,secret_ciphertext,updated_by) VALUES($1,'store:3',3,'weather','x',1)", [crypto.randomUUID()]));
+    await credentials.remove('pos', 3); assert.equal(await credentials.resolve('pos', 3), null);
+    console.log(JSON.stringify({ passed: true, realPostgres: true, tenantIsolation: true, concurrentIdempotency: true, atomicRollback: true, canonicalDedup: true, nativeRefunds: true, latestVersionBeforeDate: true, encryptedCredentials: true, globalProviderScope: true }));
   } finally { await client.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`); await pool.end(); await client.end(); }
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });

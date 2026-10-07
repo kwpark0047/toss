@@ -5,7 +5,7 @@
  * 기존 라우터와의 일관성을 위해 유지하며, 레거시 Express 4 호환성을 제공합니다.
  */
 const catchAsync = (fn) => (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
+  return Promise.resolve(fn(req, res, next)).catch(next);
 };
 
 module.exports = catchAsync;

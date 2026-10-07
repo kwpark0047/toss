@@ -1,4 +1,5 @@
 const axios = require('axios');
+const credentials = require('./ProviderCredentialService');
 
 /**
  * 서울 열린데이터광장 LOCALDATA(일반음식점 인허가) 연동.
@@ -8,24 +9,16 @@ const axios = require('axios');
  * env: SEOUL_OPENAPI_KEYS (콤마 구분 다중 키)
  */
 const SERVICE = 'LOCALDATA_072404'; // 일반음식점
-const KEYS = (process.env.SEOUL_OPENAPI_KEYS || '')
-  .split(',')
-  .map((k) => k.trim())
-  .filter(Boolean);
 let keyIdx = 0;
-const nextKey = () => {
-  const k = KEYS[keyIdx % KEYS.length];
-  keyIdx++;
-  return k;
-};
 
-function isConfigured() {
-  return KEYS.length > 0;
+async function isConfigured() {
+  return Boolean(await credentials.resolve('seoul'));
 }
 
 // 현재 환경변수 기준 설정 상태 진단 (관리자 상태 조회용)
-function configStatus() {
-  const keys = (process.env.SEOUL_OPENAPI_KEYS || '')
+async function configStatus() {
+  const credential = await credentials.resolve('seoul');
+  const keys = (credential?.values.api_keys || '')
     .split(',')
     .map((k) => k.trim())
     .filter(Boolean);
@@ -38,9 +31,14 @@ function configStatus() {
 
 // 페이지 조회 (start~end, 1-base). 최대 1000행/요청.
 async function fetchPage(start, end) {
-  if (!isConfigured()) throw new Error('SEOUL_OPENAPI_KEYS 미설정');
-  const key = nextKey();
-  const url = `http://openapi.seoul.go.kr:8088/${key}/json/${SERVICE}/${start}/${end}/`;
+  const credential = await credentials.resolve('seoul');
+  if (!credential) throw new Error('서울 공공데이터 인증정보 미설정');
+  const keys = credential.values.api_keys
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const key = keys[keyIdx++ % keys.length];
+  const url = `http://openapi.seoul.go.kr:8088/${encodeURIComponent(key)}/json/${SERVICE}/${start}/${end}/`;
   const res = await axios.get(url, { timeout: 15000 });
   const body = res.data?.[SERVICE];
   if (!body) {
@@ -106,5 +104,5 @@ module.exports = {
   addrCore,
   dongOf,
   hasCorruptName,
-  keyCount: () => KEYS.length,
+  keyCount: async () => (await configStatus()).keyCount,
 };

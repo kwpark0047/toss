@@ -1,3 +1,4 @@
+jest.mock('../../../config/prisma', () => ({ $queryRawUnsafe: jest.fn(async () => []) }));
 jest.mock('axios', () => ({ get: jest.fn() }));
 
 const axios = require('axios');
@@ -29,8 +30,8 @@ describe('naverPlaceService', () => {
   beforeEach(() => jest.clearAllMocks());
 
   describe('isConfigured', () => {
-    test('CLIENT_ID와 CLIENT_SECRET가 모두 설정되면 true 반환', () => {
-      expect(naverPlaceService.isConfigured()).toBe(true);
+    test('CLIENT_ID와 CLIENT_SECRET가 모두 설정되면 true 반환', async () => {
+      expect(await naverPlaceService.isConfigured()).toBe(true);
     });
   });
 
