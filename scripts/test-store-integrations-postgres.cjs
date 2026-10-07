@@ -58,7 +58,7 @@ async function main() {
     await service.setEnabled(3, source.id, false);
     await assert.rejects(service.ingest(3, source.id, input), error => error.statusCode === 409);
     process.env.PROVIDER_SECRET_KEY = 'fixture-provider-key-for-isolated-postgres';
-    const providerContext = { module: { exports: {} }, require: name => name === '../config/prisma' ? db : name === '../utils/providerSecret' ? require('../utils/providerSecret') : name === '../utils/errorHandler' ? require('../utils/errorHandler') : require(name) };
+    const providerContext = { process: { env: process.env }, module: { exports: {} }, require: name => name === '../config/prisma' ? db : name === '../utils/providerSecret' ? require('../utils/providerSecret') : name === '../utils/errorHandler' ? require('../utils/errorHandler') : require(name) };
     vm.runInNewContext(fs.readFileSync('services/ProviderCredentialService.js', 'utf8'), providerContext);
     const credentials = new providerContext.module.exports.ProviderCredentialService(db);
     await credentials.save('pos', 3, { api_key: 'fixture-pos-provider-key' }, 1);
