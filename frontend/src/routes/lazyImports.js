@@ -102,3 +102,5 @@ export const StoreIntegrationCenter = lazy(
 export const GlobalProviderSettings = lazy(
   () => import('../components/admin/GlobalProviderSettings')
 );
+
+export const AIStoreManager = lazy(() => import('../components/admin/AIStoreManager'));
