@@ -20,6 +20,7 @@ test('credentials are authenticated encrypted and bound to tenant/provider', () 
   assert.throws(() => open(encrypted, 'store:4:pos'));
   const changed = Buffer.from(encrypted, 'base64'); changed[changed.length - 1] ^= 1;
   assert.throws(() => open(changed.toString('base64'), 'store:3:pos'));
+  assert.throws(() => open(Buffer.alloc(27).toString('base64'), 'store:3:pos'));
 });
 test('store keys stay isolated, list never exposes plaintext, blank updates preserve existing secret', async () => {
   const db = database(), service = new ProviderCredentialService(db);
@@ -48,6 +49,7 @@ test('store Naver override wins and explicit disabled setting blocks environment
   await service.save('naver', 3, { client_id: 'store-id', client_secret: 'store-secret' }, 7);
   assert.equal((await service.resolve('naver', 3)).values.client_id, 'store-id');
   assert.equal((await service.resolve('naver', 4)).values.client_id, 'global-id');
+  assert.deepEqual((await service.list(4)).find(row => row.provider === 'naver').masked, {});
   await service.save('naver', 3, { enabled: false }, 7);
   assert.equal(await service.resolve('naver', 3), null);
   await service.remove('naver', 3); assert.equal((await service.resolve('naver', 3)).source, 'global');

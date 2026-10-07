@@ -73,7 +73,7 @@ class ProviderCredentialService {
           ? {
               values: open(own.secret_ciphertext, `${scope(storeId)}:${provider}`),
               source: 'store',
-              revision: own.updated_at,
+              revision: own.secret_ciphertext,
             }
           : null;
     }
@@ -84,7 +84,7 @@ class ProviderCredentialService {
           ? {
               values: open(shared.secret_ciphertext, `global:${provider}`),
               source: 'global',
-              revision: shared.updated_at,
+              revision: shared.secret_ciphertext,
             }
           : null;
       const values = this.environment(provider);
@@ -121,11 +121,15 @@ class ProviderCredentialService {
         updated_at: own?.updated_at || null,
         last_test_status: own?.last_test_status || 'untested',
         last_test_at: own?.last_test_at || null,
-        masked: resolved
-          ? Object.fromEntries(
-              item.fields.map((field) => [field, '••••' + String(resolved.values[field]).slice(-4)])
-            )
-          : {},
+        masked:
+          resolved && (!storeId || resolved.source === 'store')
+            ? Object.fromEntries(
+                item.fields.map((field) => [
+                  field,
+                  '••••' + String(resolved.values[field]).slice(-4),
+                ])
+              )
+            : {},
       });
     }
     return result;
@@ -236,11 +240,11 @@ class ProviderCredentialService {
       }
     }
     await this.db.$executeRawUnsafe(
-      'UPDATE provider_credentials SET last_test_status=$1,last_test_at=NOW() WHERE scope_key=$2 AND provider=$3 AND updated_at=$4',
+      'UPDATE provider_credentials SET last_test_status=$1,last_test_at=NOW() WHERE scope_key=$2 AND provider=$3 AND secret_ciphertext=$4',
       status,
       scope(storeId),
       provider,
-      credential.revision instanceof Date ? credential.revision : new Date(0)
+      credential.revision
     );
     return { status, message };
   }

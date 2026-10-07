@@ -1,3 +1,4 @@
+jest.mock('../../../config/prisma', () => ({ $queryRawUnsafe: jest.fn(async () => []) }));
 jest.mock('axios', () => ({ get: jest.fn() }));
 
 const axios = require('axios');
@@ -22,19 +23,19 @@ describe('store enrichment provider configuration', () => {
     process.env = originalEnv;
   });
 
-  test('네이버 누락 환경변수를 정확히 반환한다', () => {
+  test('네이버 누락 환경변수를 정확히 반환한다', async () => {
     process.env.NAVER_CLIENT_ID = 'client-id';
 
-    expect(naverLocal.configStatus()).toEqual({
+    expect(await naverLocal.configStatus()).toEqual({
       configured: false,
-      missing: ['NAVER_CLIENT_SECRET'],
+      missing: ['NAVER_CLIENT_ID', 'NAVER_CLIENT_SECRET'],
     });
   });
 
-  test('서울 API 키 개수와 설정 상태를 반환한다', () => {
+  test('서울 API 키 개수와 설정 상태를 반환한다', async () => {
     process.env.SEOUL_OPENAPI_KEYS = 'first, second, ';
 
-    expect(seoulData.configStatus()).toEqual({
+    expect(await seoulData.configStatus()).toEqual({
       configured: true,
       keyCount: 2,
       missing: [],

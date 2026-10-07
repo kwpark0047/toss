@@ -11,15 +11,18 @@ function key() {
 }
 function seal(value, context) {
   const iv = crypto.randomBytes(12),
-    cipher = crypto.createCipheriv('aes-256-gcm', key(), iv);
+    cipher = crypto.createCipheriv('aes-256-gcm', key(), iv, { authTagLength: 16 });
   cipher.setAAD(Buffer.from(context));
   const body = Buffer.concat([cipher.update(JSON.stringify(value), 'utf8'), cipher.final()]);
   return Buffer.concat([iv, cipher.getAuthTag(), body]).toString('base64');
 }
 function open(value, context) {
   try {
-    const bytes = Buffer.from(value, 'base64'),
-      decipher = crypto.createDecipheriv('aes-256-gcm', key(), bytes.subarray(0, 12));
+    const bytes = Buffer.from(value, 'base64');
+    if (bytes.length <= 28) throw new Error('Invalid encrypted payload');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key(), bytes.subarray(0, 12), {
+      authTagLength: 16,
+    });
     decipher.setAAD(Buffer.from(context));
     decipher.setAuthTag(bytes.subarray(12, 28));
     return JSON.parse(
