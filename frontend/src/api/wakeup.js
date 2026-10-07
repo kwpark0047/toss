@@ -14,21 +14,29 @@ export const wakeupServer = () => {
 
   _wakeupPromise = (async () => {
     while (Date.now() - startedAt < MAX_WAIT_MS) {
+      const ctrl = new AbortController();
+      const tid = setTimeout(
+        () => ctrl.abort(),
+        Math.min(5_000, MAX_WAIT_MS - (Date.now() - startedAt))
+      );
       try {
-        const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 5_000);
-        const resp = await fetch(`${baseUrl}/api/health`, { method: 'GET', mode: 'cors', signal: ctrl.signal });
-        clearTimeout(tid);
+        const resp = await fetch(`${baseUrl}/api/health`, {
+          method: 'GET',
+          mode: 'cors',
+          signal: ctrl.signal,
+        });
         if (resp.ok) return;
       } catch {
         // 서버 응답 없음 — 슬립 상태 유지
+      } finally {
+        clearTimeout(tid);
       }
-      await new Promise(r => setTimeout(r, POLL_MS));
+      await new Promise((r) => setTimeout(r, POLL_MS));
     }
     throw new Error('서버 웨이크업 시간 초과 (60s)');
-  })().finally(() => { _wakeupPromise = null; });
+  })().finally(() => {
+    _wakeupPromise = null;
+  });
 
   return _wakeupPromise;
 };
-
-

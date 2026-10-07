@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { extractErrorMessage } from '@/lib/errorUtils';
 import { attachCsrfToken, shouldRetryWithFreshToken } from '@/lib/csrf';
+import { shouldWakeAndRetry } from '@/lib/coldStart';
 
 const getApiUrl = () => {
   // 1순위: 환경변수 (VITE_API_URL)
@@ -59,9 +60,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // ── Render 콜드스타트 자동 재시도: 네트워크 에러 또는 502/503 응답 ──
-    const isNetworkError = !error.response;
-    const isSleepingResponse = error.response?.status === 502 || error.response?.status === 503;
-    if ((isNetworkError || isSleepingResponse) && !originalRequest._coldRetry) {
+    if (shouldWakeAndRetry(error)) {
       originalRequest._coldRetry = true;
       try {
         const { wakeupServer } = await import('./wakeup');

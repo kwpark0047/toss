@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
-import * as LucideIcons from 'lucide-react';
+import { iconRegistry } from './iconRegistry';
 
-type LucideIconName = keyof typeof LucideIcons;
+type LucideIconName = keyof typeof iconRegistry;
 
 interface IconProps extends React.SVGAttributes<SVGSVGElement> {
   icon: LucideIconName;
@@ -40,7 +40,7 @@ const colorMap = {
  */
 export const Icon = forwardRef<SVGSVGElement, IconProps>(
   ({ icon, size = 'md', stroke = 'md', color = 'inherit', className, ...props }, ref) => {
-    const LucideIcon = LucideIcons[icon] as
+    const LucideIcon = iconRegistry[icon] as
       | React.ForwardRefExoticComponent<Omit<React.SVGAttributes<SVGSVGElement>, 'ref'> & React.RefAttributes<SVGSVGElement>>
       | undefined;
 
