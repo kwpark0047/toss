@@ -3,6 +3,7 @@ const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
 const { analyze, localClock, compareEvaluation, DAY } = require('../utils/storeManagerAnalysis');
 const StoreIntegrationService = require('./StoreIntegrationService');
+const { collectCanonicalEvidence } = require('./integrations/canonicalAnalysis');
 const uuid = (value) => {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value)))
     throw new AppError('제안 ID가 올바르지 않습니다.', 400);
@@ -15,7 +16,7 @@ class StoreManagerService {
   async collect(storeId, now) {
     const since = new Date(now.getTime() - 56 * DAY),
       recent = new Date(now.getTime() - 28 * DAY);
-    const [stores, rawHourly, rawProducts, reviews, connections, overview] = await Promise.all([
+    const [stores, rawHourly, rawProducts, reviews, connections, overview, externalEvidence] = await Promise.all([
       this.db.$queryRawUnsafe('SELECT id,name FROM stores WHERE id=$1 AND is_active=true', storeId),
       this.db.$queryRawUnsafe(
         `WITH source AS (
@@ -52,8 +53,9 @@ class StoreManagerService {
       this.db.$queryRawUnsafe(
         'SELECT channel,enabled,last_ingested_at FROM integration_connections WHERE store_id=$1',
         storeId
-      ),
-      new StoreIntegrationService(this.db).overview(storeId, 30),
+      ).catch(() => []),
+      new StoreIntegrationService(this.db).overview(storeId, 30).catch(() => ({ unavailable: true, channels: [], total_orders: 0, total_revenue: 0 })),
+      collectCanonicalEvidence(this.db, storeId, since, now),
     ]);
     if (!stores.length) throw new AppError('운영 중인 매장을 찾을 수 없습니다.', 404);
     const hourly = rawHourly.map((r) => ({
@@ -65,6 +67,7 @@ class StoreManagerService {
     }));
     return {
       store: stores[0],
+      provenance: { native: { provider: 'wemarket', period: { start: since.toISOString(), end: now.toISOString() } }, external: externalEvidence },
       ...analyze(
         {
           hourly,
@@ -423,6 +426,7 @@ class StoreManagerService {
     return {
       reply,
       facts,
+      provenance: data.provenance || { status: 'legacy_snapshot_without_provenance' },
       explanation,
       engine: explanation ? 'verified_facts_with_ai' : 'verified_rules',
       as_of: data.as_of,

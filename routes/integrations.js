@@ -6,6 +6,8 @@ const catchAsync = require('../utils/catchAsync');
 const StoreIntegrationService = require('../services/StoreIntegrationService');
 const { CHANNELS, FIELDS } = require('../services/integrationContract');
 const service = new StoreIntegrationService();
+const SyncStore = require('../services/integrations/SyncStore');
+const syncStore = new SyncStore(require('../config/prisma'));
 
 // Machine ingress never accepts a body store_id: the API key is the tenant authority.
 router.post(
@@ -30,6 +32,14 @@ router.use('/stores/:storeId', auth, (req, res, next) => {
 router.get('/stores/:storeId/catalog', checkStorePermission('stats:read'), (req, res) =>
   res.success({ channels: CHANNELS, fields: FIELDS })
 );
+router.get('/stores/:storeId/sync-history', checkStorePermission('stats:read'), catchAsync(async (req,res)=>{
+  try {
+    res.success({common_engine_code_ready:true,integration_code_ready:false,provider_adapter_ready:false,operational_verified:false,jobs:await syncStore.history(Number(req.params.storeId))});
+  } catch(error) {
+    if(error.code==='P2010' && error.meta?.code==='42P01')return res.success({common_engine_code_ready:true,integration_code_ready:false,provider_adapter_ready:false,operational_verified:false,migration_required:true,jobs:[]});
+    throw error;
+  }
+}));
 router.get(
   '/stores/:storeId/overview',
   checkStorePermission('stats:read'),
