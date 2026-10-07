@@ -213,6 +213,7 @@ const AdminLayout = ({ children }) => {
     { label: t('truckDesignShowcase'), icon: 'Palette',    path: '/foodtruck/showcase',                             show: isFoodTruck, roles: [] },
     { label: t('notificationTemplates'),   icon: 'Bell',              path: `/admin/stores/${storeId}/notifications`,          show: !!storeId, roles: [] },
     { label: t('systemStatus'),   icon: 'Activity',     path: '/admin/system-status', roles: [] },
+    { label: '공통 API 설정', icon: 'KeyRound', path: '/admin/provider-settings', roles: ['super_admin'] },
     { label: t('aiTinkerbell'),     icon: 'Sparkles',     path: '/admin/tinkerbell',   roles: [] },
     { label: t('bulkSms'), icon: 'Smartphone',   path: '/admin/bulk-sms',     roles: ['super_admin'] },
     { label: t('localCommunity'), icon: 'Building2',    path: '/admin/community',    roles: [] },

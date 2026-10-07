@@ -576,6 +576,7 @@ model store_receipt_settings {
 
 model stores {
   integration_connections integration_connections[]
+  provider_credentials provider_credentials[]
   integration_events integration_events[]
   id                       Int                      @id @default(autoincrement())
   user_id                  Int
@@ -1213,6 +1214,22 @@ model integration_events {
   @@schema("public")
 }
 
+model provider_credentials {
+  id String @id @db.Uuid
+  scope_key String
+  store_id Int?
+  provider String
+  secret_ciphertext String
+  enabled Boolean @default(true)
+  updated_by Int
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  last_test_status String @default("untested")
+  last_test_at DateTime? @db.Timestamptz(6)
+  stores stores? @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  @@unique([scope_key, provider])
+  @@schema("public")
+}
+
 model api_keys {
   id           Int       @id @default(autoincrement())
   store_id     Int
@@ -1276,7 +1293,7 @@ model webhook_deliveries {
   retry_config        Json?
   secret              String?
   status              String    @default("pending")
-  attempt             Int       @default(0)
+  attempt             Int       @default(0) @map("attempts")
   response_status     Int?
   last_response       Json?
   last_error          String?

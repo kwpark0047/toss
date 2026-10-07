@@ -120,6 +120,8 @@ class DynamicPricingService {
 
     const results = [];
     for (const rule of activeRules) {
+      if (rule.rule_type === 'WEATHER_BASED' && (!weatherContext || weatherContext.is_fallback))
+        continue;
       const product = rule.products;
       if (!product) continue;
 

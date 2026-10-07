@@ -1,0 +1,30 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const express = require('express');
+const request = require('supertest');
+test('real provider routes deny staff, foreign owners and non-admin global writes', async () => {
+  const auth = (req, _res, next) => { req.user = { id: 7, role: req.headers['x-test-role'] || 'user' }; next(); };
+  auth.adminOnly = (req, res, next) => req.user.role === 'super_admin' ? next() : res.status(403).json({ error: 'forbidden' });
+  const calls = [];
+  const service = { list: async scope => { calls.push(scope); return []; }, save: async (_provider, scope) => { calls.push(scope); return { saved: true }; } };
+  const context = { module: { exports: {} }, require: name => {
+    if (name === '../middleware/auth') return auth;
+    if (name === '../middleware/storeAuth') return { getStoreRole: async (_user, store) => store === 3 ? 'owner' : store === 4 ? 'staff' : null };
+    if (name === '../services/ProviderCredentialService') return service;
+    if (name === '../utils/catchAsync') return require('../../utils/catchAsync');
+    if (name === '../utils/errorHandler') return require('../../utils/errorHandler');
+    return require(name);
+  } };
+  vm.runInNewContext(fs.readFileSync('routes/providerCredentials.js', 'utf8'), context);
+  const app = express(); app.use(express.json()); app.use((_req, res, next) => { res.success = data => res.json({ success: true, data }); next(); }); app.use('/credentials', context.module.exports); app.use((err, _req, res, _next) => res.status(err.statusCode || 500).json({ message: err.message }));
+  await request(app).put('/credentials/global/weather').send({ api_key: 'fixture-key' }).expect(403);
+  await request(app).get('/credentials/stores/4').expect(403);
+  await request(app).get('/credentials/stores/5').expect(403);
+  await request(app).get('/credentials/stores/0').expect(400);
+  assert.deepEqual(calls, []);
+  await request(app).get('/credentials/stores/3').expect(200);
+  await request(app).put('/credentials/global/weather').set('x-test-role', 'super_admin').send({ api_key: 'fixture-key' }).expect(200);
+  assert.deepEqual(calls, [3, null]);
+});

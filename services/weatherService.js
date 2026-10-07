@@ -1,9 +1,10 @@
 const axios = require('axios');
+const credentials = require('./ProviderCredentialService');
 const { apiLogger } = require('../utils/logger');
 
 class WeatherService {
   constructor() {
-    this.authKey = process.env.KMA_API_KEY || 'DbUh4_ekRRi1IeP3pPUYog'; // Use user's key as fallback
+    this.stationCache = new Map();
     this.baseUrl = 'https://apihub.kma.go.kr/api/typ01/url/kma_sfctm2.php';
     this.cachedWeather = null;
     this.lastFetchTime = null;
@@ -19,41 +20,58 @@ class WeatherService {
    * @returns {Promise<Object>} 파싱된 날씨 데이터 객체
    */
   async getCurrentWeather(stn = '108') {
-    // Check cache
-    if (
-      this.cachedWeather &&
-      this.lastFetchTime &&
-      Date.now() - this.lastFetchTime < this.CACHE_DURATION
-    ) {
-      return this.cachedWeather;
-    }
-
+    stn = String(stn);
+    if (!/^\d{1,4}$/.test(stn)) throw new Error('Invalid weather station');
+    let cached;
     try {
-      const url = `${this.baseUrl}?stn=${stn}&help=0&authKey=${this.authKey}`;
-      const response = await axios.get(url, { timeout: 5000 });
+      const credential = await credentials.resolve('weather');
+      if (!credential) throw new Error('Weather credentials missing');
+      const cacheKey = `${stn}:${require('crypto').createHash('sha256').update(credential.values.api_key).digest('hex')}`;
+      cached = this.stationCache.get(cacheKey);
+      if (cached && Date.now() - cached.at < this.CACHE_DURATION) return cached.value;
+      const response = await axios.get(this.baseUrl, {
+        params: { stn, help: 0, authKey: credential.values.api_key },
+        timeout: 5000,
+      });
       const dataText = response.data;
 
       const parsedData = this.parseSfctm2(dataText);
       if (parsedData) {
-        this.cachedWeather = parsedData;
-        this.lastFetchTime = Date.now();
-        return parsedData;
+        const value = {
+          ...parsedData,
+          station: stn,
+          source: 'kma',
+          is_fallback: false,
+          fetched_at: new Date().toISOString(),
+        };
+        if (this.stationCache.size >= 64)
+          this.stationCache.delete(this.stationCache.keys().next().value);
+        this.stationCache.set(cacheKey, { value, at: Date.now() });
+        return value;
       } else {
         throw new Error('No valid weather data found in response');
       }
     } catch (error) {
-      apiLogger.error({ error: error.message }, 'Failed to fetch weather data from KMA');
+      apiLogger.warn({ code: error.code || 'WEATHER_UNAVAILABLE' }, 'Weather provider unavailable');
       // Return a safe fallback or cached data if available
-      return (
-        this.cachedWeather || {
-          temp: 20,
-          rain: 0,
-          humidity: 50,
-          isRaining: false,
-          condition: 'Clear',
-          message: '날씨 정보를 불러올 수 없습니다.',
-        }
-      );
+      return cached
+        ? {
+            ...cached.value,
+            is_fallback: true,
+            message: '최신 날씨 조회에 실패하여 이전 관측을 표시합니다.',
+          }
+        : {
+            temp: 20,
+            rain: 0,
+            humidity: 50,
+            isRaining: false,
+            condition: 'Clear',
+            message: '날씨 정보를 불러올 수 없습니다.',
+            station: stn,
+            source: 'unavailable',
+            is_fallback: true,
+            fetched_at: null,
+          };
     }
   }
 
@@ -369,10 +387,18 @@ class WeatherService {
       if (line.trim() === '' || line.startsWith('#')) continue;
 
       const parts = line.trim().split(/\s+/);
-      if (parts.length >= 25) {
+      if (parts.length >= 26 && /^\d{12}$/.test(parts[0]) && /^\d{1,4}$/.test(parts[1])) {
         const temp = parseFloat(parts[11]); // TA: 기온
         const humidity = parseFloat(parts[13]); // HM: 습도
         const rain1hr = parseFloat(parts[15]); // RN: 1시간 강수량 (-9.0은 강수없음)
+        if (
+          ![temp, humidity, rain1hr].every(Number.isFinite) ||
+          temp < -90 ||
+          temp > 60 ||
+          humidity < 0 ||
+          humidity > 100
+        )
+          continue;
 
         const isRaining = rain1hr > 0;
 
