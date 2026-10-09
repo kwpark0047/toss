@@ -250,14 +250,56 @@ const Order = {
   },
 
   // [고객별 주문 내역 조회]
-  findByCustomer: async (phone = null, tossUserKey = null) => {
-    try {
-      if (!phone && !tossUserKey) return [];
+  findHistoryByCapability: async (storeId, orderIds) => {
+    if (
+      !Number.isSafeInteger(storeId) ||
+      storeId <= 0 ||
+      !Array.isArray(orderIds) ||
+      !orderIds.length ||
+      orderIds.length > 30 ||
+      orderIds.some((id) => !Number.isSafeInteger(id) || id <= 0)
+    )
+      return [];
+    const rows = await prisma.orders.findMany({
+      where: { store_id: storeId, id: { in: orderIds } },
+      include: {
+        order_items: true,
+        stores: { select: { name: true } },
+        payments: {
+          select: { id: true, amount: true, method: true, status: true, created_at: true },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+    return rows.map((order) => ({
+      ...order,
+      items: order.order_items,
+      store_name: order.stores?.name,
+    }));
+  },
+  findByCustomerInStore: async (storeId, phone) => {
+    const id = Number(storeId);
+    if (!Number.isSafeInteger(id) || id <= 0 || !phone) return [];
+    const orders = await prisma.orders
+      .findMany({
+        where: { store_id: id, customer_phone: { in: phoneSearchCandidates(phone) } },
+        include: { order_items: true },
+        orderBy: { created_at: 'desc' },
+        take: 50,
+      })
+      .catch(() => []); // No raw Prisma error containing customer query parameters.
+    return orders.map((order) => ({ ...order, items: order.order_items }));
+  },
 
-      const where = { OR: [] };
+  findByCustomer: async (phone = null, tossUserKey = null, storeId = null) => {
+    try {
+      const id = Number(storeId);
+      // Legacy callers without an explicit tenant fail closed. External IDs are not identity proof.
+      if (!phone || !Number.isSafeInteger(id) || id <= 0) return [];
+
+      const where = { store_id: id, OR: [] };
       // customer_phone은 암호화 저장되므로 현행/레거시/평문 후보로 검색
       if (phone) where.OR.push({ customer_phone: { in: phoneSearchCandidates(phone) } });
-      if (tossUserKey) where.OR.push({ toss_user_key: tossUserKey });
 
       const orders = await prisma.orders.findMany({
         where,
@@ -275,7 +317,7 @@ const Order = {
         items: order.order_items,
       }));
     } catch (error) {
-      console.error('[Prisma Error] findByCustomer failed:', error);
+      console.error('[Prisma Error] scoped customer history lookup failed');
       return [];
     }
   },

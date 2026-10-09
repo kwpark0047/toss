@@ -20,7 +20,8 @@ class HybridCache {
     });
     this.redisCache = null;
     this.redisReady = false;
-    this._initRedis();
+    this.ready = this._initRedis();
+    this.unregisterResource = require('./runtimeResources').registerResource(() => this.close());
   }
 
   async _initRedis() {
@@ -33,6 +34,13 @@ class HybridCache {
       logger.warn('[HybridCache] Redis unavailable, using NodeCache only', { error: err.message });
       this.redisReady = false;
     }
+  }
+
+  async close() {
+    await this.ready;
+    this.nodeCache.close();
+    if (this.redisCache) await this.redisCache.disconnect();
+    this.redisReady = false;
   }
 
   /**
@@ -112,7 +120,9 @@ class HybridCache {
   async flushByStore(storeId) {
     // L1: 키 패턴 매칭 삭제
     const keys = this.nodeCache.keys();
-    const storeKeys = keys.filter(k => k.includes(`store:${storeId}`) || k.includes(`:store:${storeId}`));
+    const storeKeys = keys.filter(
+      (k) => k.includes(`store:${storeId}`) || k.includes(`:store:${storeId}`)
+    );
     if (storeKeys.length > 0) {
       this.nodeCache.del(storeKeys);
     }
@@ -134,7 +144,7 @@ class HybridCache {
     // L1
     const keys = this.nodeCache.keys();
     const regex = new RegExp(pattern.replace(/\*/g, '.*'));
-    const matchedKeys = keys.filter(k => regex.test(k));
+    const matchedKeys = keys.filter((k) => regex.test(k));
     if (matchedKeys.length > 0) {
       this.nodeCache.del(matchedKeys);
     }
@@ -144,7 +154,10 @@ class HybridCache {
       try {
         await this.redisCache.invalidateByPattern(pattern);
       } catch (err) {
-        logger.warn('[HybridCache] Redis invalidateByPattern error', { pattern, error: err.message });
+        logger.warn('[HybridCache] Redis invalidateByPattern error', {
+          pattern,
+          error: err.message,
+        });
       }
     }
   }
@@ -186,9 +199,10 @@ class HybridCache {
    * 헬스 체크
    */
   async healthCheck() {
-    const redisHealth = this.redisReady && this.redisCache
-      ? await this.redisCache.healthCheck()
-      : { status: 'disabled' };
+    const redisHealth =
+      this.redisReady && this.redisCache
+        ? await this.redisCache.healthCheck()
+        : { status: 'disabled' };
     return {
       nodeCache: { status: 'healthy', keys: this.nodeCache.keys().length },
       redis: redisHealth,

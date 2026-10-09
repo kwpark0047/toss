@@ -1,3 +1,6 @@
+jest.mock('../../../services/AuthSessionService', () => ({
+  verifyAccess: jest.fn(async (decoded) => decoded),
+}));
 const jwt = require('jsonwebtoken');
 
 jest.mock('jsonwebtoken');
@@ -23,35 +26,37 @@ describe('Socket.IO handshake authentication', () => {
     expect(getHandshakeToken({ headers: { cookie: 'token=%E0%A4%A' } })).toBeNull();
   });
 
-  test('allows anonymous customer connections without granting a user', () => {
+  test('allows anonymous customer connections without granting a user', async () => {
     const socket = { handshake: {}, data: {} };
     const next = jest.fn();
 
-    authenticateSocket(socket, next);
+    await authenticateSocket(socket, next);
 
     expect(socket.data.user).toBeNull();
     expect(next).toHaveBeenCalledWith();
   });
 
-  test('stores a verified access token identity', () => {
+  test('stores a verified access token identity', async () => {
     const user = { id: 7, role: 'owner', type: 'access' };
     jwt.verify.mockReturnValue(user);
     const socket = { handshake: { auth: { token: 'valid-token' } }, data: {} };
     const next = jest.fn();
 
-    authenticateSocket(socket, next);
+    await authenticateSocket(socket, next);
 
-    expect(jwt.verify).toHaveBeenCalledWith('valid-token', 'socket-test-secret');
+    expect(jwt.verify).toHaveBeenCalledWith('valid-token', 'socket-test-secret', {
+      algorithms: ['HS256'],
+    });
     expect(socket.data.user).toEqual(user);
     expect(next).toHaveBeenCalledWith();
   });
 
-  test.each(['refresh', '2fa_pending'])('rejects %s tokens', (type) => {
+  test.each(['refresh', '2fa_pending'])('rejects %s tokens', async (type) => {
     jwt.verify.mockReturnValue({ id: 7, role: 'super_admin', type });
     const socket = { handshake: { auth: { token: 'invalid-type-token' } }, data: {} };
     const next = jest.fn();
 
-    authenticateSocket(socket, next);
+    await authenticateSocket(socket, next);
 
     const error = next.mock.calls[0][0];
     expect(error).toBeInstanceOf(Error);

@@ -32,28 +32,31 @@ export function verifyOrderCapability(token: string): { type: string; orderId: n
   }
 }
 
-export function createCustomerHistoryCapability({ phone, toss_user_key }: { phone?: string; toss_user_key?: string }): string | null {
+export function createCustomerHistoryCapability({ store_id, order_ids }: { store_id: number; order_ids: number[] }): string | null {
   const secret = getSecret();
   if (!secret) throw new Error('Order capability secret is not configured');
-  if (!phone && !toss_user_key) return null;
+  if (!Number.isSafeInteger(store_id) || store_id <= 0 || !Array.isArray(order_ids) ||
+      !order_ids.length || order_ids.length > 30 || order_ids.some(id => !Number.isSafeInteger(id) || id <= 0)) return null;
   return jwt.sign(
     {
       type: 'customer_history_capability',
-      phone: phone || null,
-      toss_user_key: toss_user_key || null,
+      version: 2, storeId: store_id, orderIds: [...new Set(order_ids)],
     },
     secret,
-    { expiresIn: '30d' }
+    { expiresIn: '30d', algorithm: 'HS256' }
   );
 }
 
-export function verifyCustomerHistoryCapability(token: string): { type: string; phone: string | null; toss_user_key: string | null } | null {
+export function verifyCustomerHistoryCapability(token: string): { type: string; version: number; storeId: number; orderIds: number[] } | null {
   const secret = getSecret();
   if (!secret || !token) return null;
   try {
-    const payload = jwt.verify(token, secret);
-    return isPayload(payload) && payload.type === 'customer_history_capability'
-      ? payload as { type: string; phone: string | null; toss_user_key: string | null }
+    const payload = jwt.verify(token, secret, { algorithms: ['HS256'] });
+    return isPayload(payload) && payload.type === 'customer_history_capability' && payload.version === 2 &&
+      Number.isSafeInteger(payload.storeId) && payload.storeId > 0 && Array.isArray(payload.orderIds) &&
+      payload.orderIds.length > 0 && payload.orderIds.length <= 30 &&
+      payload.orderIds.every(id => Number.isSafeInteger(id) && id > 0)
+      ? payload as { type: string; version: number; storeId: number; orderIds: number[] }
       : null;
   } catch {
     return null;

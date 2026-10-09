@@ -23,6 +23,21 @@ const sign = (secret, timestamp, body) =>
 
 /** 단일 delivery 전송 시도 */
 async function attemptDelivery(delivery, endpoint) {
+  const previousAttempt = delivery.attempt ?? delivery.attempts ?? 0;
+  if (previousAttempt >= MAX_ATTEMPTS) {
+    await prisma.webhook_deliveries.updateMany({
+      where: { id: delivery.id, status: 'pending', attempt: previousAttempt },
+      data: { status: 'failed', next_retry_at: null, last_error: 'attempt limit reached' },
+    });
+    return false;
+  }
+  // Increment on claim so competing processes cannot send the same attempt.
+  // A crash leaves a bounded lease in the existing durable retry timestamp.
+  const claim = await prisma.webhook_deliveries.updateMany({
+    where: { id: delivery.id, status: 'pending', attempt: previousAttempt },
+    data: { attempt: previousAttempt + 1, next_retry_at: new Date(Date.now() + 120000) },
+  });
+  if (!claim.count) return false;
   const bodyStr =
     typeof delivery.payload === 'string' ? delivery.payload : JSON.stringify(delivery.payload);
   const ts = Math.floor(Date.now() / 1000);
@@ -64,7 +79,7 @@ async function attemptDelivery(delivery, endpoint) {
   const attempts = (delivery.attempt ?? delivery.attempts ?? 0) + 1;
   if (ok) {
     await prisma.webhook_deliveries.update({
-      where: { id: delivery.id },
+      where: { id: delivery.id, attempt: previousAttempt + 1, status: 'pending' },
       data: {
         status: 'success',
         attempt: attempts,
@@ -86,9 +101,11 @@ async function attemptDelivery(delivery, endpoint) {
   };
   if (!exhausted) {
     updateData.next_retry_at = new Date(Date.now() + backoffMin * 60 * 1000);
+  } else {
+    updateData.next_retry_at = null;
   }
   await prisma.webhook_deliveries.update({
-    where: { id: delivery.id },
+    where: { id: delivery.id, attempt: previousAttempt + 1, status: 'pending' },
     data: updateData,
   });
   return false;
@@ -135,26 +152,58 @@ async function emitEvent(storeId, eventType, data) {
 
 /** 재시도 스케줄러 — next_retry_at 도래한 pending 건 재발송 */
 let timer = null;
+let running = false;
+let activeRetry = null;
+function stopRetryScheduler() {
+  if (timer) clearInterval(timer);
+  timer = null;
+  return activeRetry || Promise.resolve();
+}
 function startRetryScheduler(intervalMs = 60_000) {
-  if (timer) return;
-  timer = setInterval(async () => {
-    try {
-      const due = await prisma.webhook_deliveries.findMany({
-        where: { status: 'pending', next_retry_at: { not: null, lte: new Date() } },
-        orderBy: { next_retry_at: 'asc' },
-        take: 50,
-      });
-      for (const d of due) {
-        const ep = await prisma.webhook_endpoints.findUnique({ where: { id: d.endpoint_id } });
-        if (ep && ep.active) await attemptDelivery(d, ep);
+  if (timer) return stopRetryScheduler;
+  timer = setInterval(() => {
+    if (running) return;
+    running = true;
+    activeRetry = (async () => {
+      try {
+        const due = await prisma.webhook_deliveries.findMany({
+          where: { status: 'pending', next_retry_at: { not: null, lte: new Date() } },
+          orderBy: { next_retry_at: 'asc' },
+          take: 50,
+        });
+        for (const d of due) {
+          const ep = await prisma.webhook_endpoints.findUnique({ where: { id: d.endpoint_id } });
+          if (ep && ep.active) await attemptDelivery(d, ep);
+          else
+            await prisma.webhook_deliveries.updateMany({
+              where: { id: d.id, status: 'pending', attempt: d.attempt ?? d.attempts ?? 0 },
+              data: {
+                status: 'failed',
+                next_retry_at: null,
+                last_error: 'endpoint inactive or missing',
+              },
+            });
+        }
+        if (due.length) logger.info(`[webhook] 재시도 ${due.length}건 처리`);
+      } catch (e) {
+        logger.error(`[webhook] 재시도 스케줄러 오류: ${e.message}`);
+      } finally {
+        running = false;
+        activeRetry = null;
       }
-      if (due.length) logger.info(`[webhook] 재시도 ${due.length}건 처리`);
-    } catch (e) {
-      logger.error(`[webhook] 재시도 스케줄러 오류: ${e.message}`);
-    }
+    })();
+    return activeRetry;
   }, intervalMs);
   timer.unref();
   logger.info('[webhook] 재시도 스케줄러 시작 (60초 간격)');
+  return stopRetryScheduler;
 }
 
-module.exports = { emitEvent, attemptDelivery, sign, startRetryScheduler, MAX_ATTEMPTS };
+module.exports = {
+  emitEvent,
+  attemptDelivery,
+  sign,
+  startRetryScheduler,
+  stopRetryScheduler,
+  MAX_ATTEMPTS,
+};

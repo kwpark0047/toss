@@ -6,9 +6,13 @@ const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch {
+      window.alert('서버에서 로그아웃을 확인하지 못했습니다. 다시 시도해 주세요.');
+    }
   };
 
   return (

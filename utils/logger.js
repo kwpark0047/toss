@@ -1,5 +1,6 @@
 const winston = require('winston');
 const path = require('path');
+const { redact, text: redactText } = require('./logRedaction');
 
 const { combine, timestamp, printf, colorize, errors, splat } = winston.format;
 
@@ -14,11 +15,11 @@ const logFormat = printf((info) => {
   // 문자열 메시지 채택, 에러면 스택을 최우선
   let text = '';
   if (stack) {
-    text = stack;
+    text = redactText(stack);
   } else if (typeof message === 'string') {
-    text = message;
+    text = redactText(message);
   } else if (message instanceof Error) {
-    text = message.stack || message.message;
+    text = redactText(message.stack || message.message);
   }
 
   // 메타 구성: 객체형 message와 splat에 넘어온 값들을 모두 병합해 표기
@@ -29,7 +30,7 @@ const logFormat = printf((info) => {
   for (const v of splatVals) metaParts.push(v);
 
   const metaStr = metaParts
-    .map((v) => (typeof v === 'string' ? v : safeStringify(v)))
+    .map((v) => (typeof v === 'string' ? redactText(v) : safeStringify(v)))
     .filter((v) => v && v !== '{}')
     .join(' ');
 
@@ -40,9 +41,9 @@ const logFormat = printf((info) => {
 
 function safeStringify(value) {
   try {
-    return JSON.stringify(value);
+    return JSON.stringify(redact(value));
   } catch (_e) {
-    return String(value);
+    return redactText(String(value));
   }
 }
 

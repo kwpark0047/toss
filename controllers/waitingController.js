@@ -113,7 +113,8 @@ const waitingController = {
     const storeId = parseInt(req.params.storeId);
     if (isNaN(storeId)) return error(res, '유효하지 않은 매장 ID입니다.', 400);
 
-    const { weather, mood, phone, toss_user_key } = req.query;
+    const { weather, mood } = req.query;
+    const phone = req.customerIdentity?.storeId === storeId ? req.customerIdentity.phone : null;
 
     const menuList = await Product.findActiveAndInStock(storeId);
     if (menuList.length === 0) {
@@ -153,8 +154,8 @@ const waitingController = {
 
     // 전화번호 없으면 기존 방식 (비개인화)
     let pastOrders = [];
-    if (toss_user_key) {
-      const history = await Order.findByCustomer(null, toss_user_key);
+    if (phone) {
+      const history = await Order.findByCustomerInStore(storeId, phone);
       pastOrders = history
         .flatMap((order) => order.items.map((item) => item.product_name))
         .slice(0, 10);

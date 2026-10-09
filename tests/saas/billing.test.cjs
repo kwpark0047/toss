@@ -78,7 +78,7 @@ test('subscription is activated only after a verified invoice with server amount
         Object.assign(invoice, data);
         return invoice;
       },
-      updateMany: async () => ({ count: 1 }),
+      updateMany: async ({ data }) => { Object.assign(invoice, data); return { count: 1 }; },
     },
     subscription: {
       findUnique: async () => sub,

@@ -9,7 +9,11 @@ class CustomerPreferenceService {
    * 고객 선호도 프로파일 조회 (없으면 생성)
    */
   async getProfile(storeId, customerPhone) {
-    return await CustomerPreference.findOrCreate(storeId, customerPhone);
+    try {
+      return await CustomerPreference.findOrCreate(storeId, customerPhone);
+    } catch {
+      return {};
+    } // Private lookup failures must not leak query identifiers to error logs.
   }
 
   /**
@@ -32,13 +36,13 @@ class CustomerPreferenceService {
       await CustomerPreference.incrementFromOrder(storeId, customerPhone, enrichedItems);
 
       // 주문 패턴 분석 (시간대, 요일, 평균 주문액, 빈도)
-      const orders = await Order.findByCustomer(customerPhone);
+      const orders = await Order.findByCustomerInStore(storeId, customerPhone);
       if (orders.length > 0) {
         const patterns = this.analyzeOrderPatterns(orders);
         await CustomerPreference.updateOrderPatterns(storeId, customerPhone, patterns);
       }
     } catch (error) {
-      logger.warn(`[PreferenceService] 주문 학습 실패: ${error.message}`);
+      logger.warn('[PreferenceService] 주문 학습 실패');
     }
   }
 

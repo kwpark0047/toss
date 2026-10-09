@@ -1,5 +1,10 @@
 const { AppError } = require('../../../utils/errorHandler');
 const sentryUtils = require('../../../utils/sentry');
+jest.mock(
+  '../../../services/PaymentCompensationService',
+  () => ({ autoCancel: jest.fn().mockResolvedValue({ confirmed: true }) }),
+  { virtual: true }
+);
 
 // ── Manual mocks ──────────────────────────────────────────
 jest.mock('../../../utils/toss', () => ({
@@ -339,6 +344,13 @@ describe('PaymentService', () => {
   // processCancellation
   // ─────────────────────────────────────────────────────────
   describe('processCancellation', () => {
+    let durableRefund;
+    beforeEach(() => {
+      durableRefund = jest
+        .spyOn(require('../../../services/RefundService').prototype, 'refund')
+        .mockResolvedValue({ refundedAmount: 40000 });
+    });
+    afterEach(() => durableRefund.mockRestore());
     const donePayment = {
       id: 1,
       order_id: 10,
@@ -348,15 +360,25 @@ describe('PaymentService', () => {
       method: 'CARD',
     };
 
+    test('full cancellation routes every split payment through its durable refund key', async () => {
+      prisma.payments.findMany.mockResolvedValue([donePayment, { ...donePayment, id: 2 }]);
+      await service.processCancellation(10, 'remaining refund');
+      expect(durableRefund).toHaveBeenNthCalledWith(1, 1, {
+        key: 'full',
+        reason: 'remaining refund',
+      });
+      expect(durableRefund).toHaveBeenNthCalledWith(2, 2, {
+        key: 'full',
+        reason: 'remaining refund',
+      });
+    });
+
     test('cancels DONE payment via Toss API and updates DB', async () => {
-      prisma.payments.findFirst.mockResolvedValueOnce(donePayment);
-      prisma.payments.findFirst.mockResolvedValueOnce(null);
-      TossAPI.cancelPayment.mockResolvedValue({});
+      prisma.payments.findMany.mockResolvedValue([donePayment]);
 
       const result = await service.processCancellation(10, '고객 요청');
 
-      expect(TossAPI.cancelPayment).toHaveBeenCalledWith('toss_key_abc', '고객 요청');
-      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(durableRefund).toHaveBeenCalledWith(1, { key: 'full', reason: '고객 요청' });
       expect(result).toEqual({
         success: true,
         message: '결제 취소 및 환불 처리가 완료되었습니다.',
@@ -364,7 +386,7 @@ describe('PaymentService', () => {
     });
 
     test('is idempotent when already CANCELED', async () => {
-      prisma.payments.findFirst.mockResolvedValueOnce(donePayment);
+      prisma.payments.findMany.mockResolvedValue([]);
       prisma.payments.findFirst.mockResolvedValueOnce({ id: 99 });
 
       const result = await service.processCancellation(10, '중복');
@@ -374,6 +396,7 @@ describe('PaymentService', () => {
     });
 
     test('throws when no DONE payment exists', async () => {
+      prisma.payments.findMany.mockResolvedValue([]);
       prisma.payments.findFirst.mockResolvedValueOnce(null);
       await expect(service.processCancellation(10, '취소')).rejects.toThrow(
         '취소할 유효한 결제 내역이 없습니다.'
@@ -415,10 +438,9 @@ describe('PaymentService', () => {
       expect(prisma.orders.findFirst).toHaveBeenCalledWith({
         where: { order_number: 'NO-ORDER-001' },
       });
-      expect(TossAPI.cancelPayment).toHaveBeenCalledWith(
-        'key_mang',
-        expect.stringContaining('토스측 오류')
-      );
+      expect(
+        require('../../../services/PaymentCompensationService').autoCancel
+      ).toHaveBeenCalledWith('key_mang', expect.stringContaining('토스측 오류'));
     });
 
     test('calls processApproval when order exists', async () => {
@@ -572,10 +594,12 @@ describe('PaymentService', () => {
       });
       TossAPI.getPayment.mockRejectedValue(new Error('재조회 네트워크 오류'));
 
-      await service.handleTossWebhook({
-        eventType: 'PAYMENT_STATUS_CHANGED',
-        data: { status: 'DONE', paymentKey: 'key_wh', orderId: 'ORD-001', totalAmount: 30000 },
-      });
+      await expect(
+        service.handleTossWebhook({
+          eventType: 'PAYMENT_STATUS_CHANGED',
+          data: { status: 'DONE', paymentKey: 'key_wh', orderId: 'ORD-001', totalAmount: 30000 },
+        })
+      ).rejects.toThrow('재조회 네트워크 오류');
 
       expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
       expect(mockTx.orders.findUnique).not.toHaveBeenCalled();
@@ -821,10 +845,9 @@ describe('PaymentService', () => {
 
       expect(mockTx.payments.updateMany).not.toHaveBeenCalled();
       expect(ledgerService.recordIncome).not.toHaveBeenCalled();
-      expect(TossAPI.cancelPayment).toHaveBeenCalledWith(
-        'pk_regular',
-        expect.stringContaining('불일치')
-      );
+      expect(
+        require('../../../services/PaymentCompensationService').autoCancel
+      ).toHaveBeenCalledWith('pk_regular', expect.stringContaining('불일치'));
     });
 
     test('[2차 방어] 자동 취소가 실패해도 예외는 그대로 전파된다', async () => {
@@ -913,7 +936,9 @@ describe('PaymentService', () => {
       );
 
       expect(ledgerService.recordIncome).not.toHaveBeenCalled();
-      expect(TossAPI.cancelPayment).toHaveBeenCalledWith('pk_race', '중복 결제 승인 자동 취소');
+      expect(
+        require('../../../services/PaymentCompensationService').autoCancel
+      ).toHaveBeenCalledWith('pk_race', '중복 결제 승인 자동 취소');
     });
 
     test('READY 레코드가 없고 같은 키의 DONE 결제가 있으면 PG 재호출 없이 멱등 반환한다', async () => {

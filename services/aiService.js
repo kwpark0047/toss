@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const logger = require('../utils/logger');
 const aiUsageTracker = require('../utils/aiUsageTracker');
 const { normalizeRecommendation } = require('../utils/recommendationExplainability');
+const { createHash } = require('crypto');
 
 // 환경 변수 로드
 dotenv.config();
@@ -247,7 +248,7 @@ class AIService {
     } = context;
 
     // 캐시 키에 향상된 날씨 정보 + 세그먼트 컨텍스트 포함
-    const cacheKey = `rec_${preferences}_${weather}_${mood}_${pastOrders.length}_${trendingItems.length}_${menuList.length}_${temperature}_${humidity}_${isRaining}_${season}_${alerts ? alerts.join(',') : ''}_${segmentContext}`;
+    const cacheKey = `rec_${createHash('sha256').update(JSON.stringify({ context, menuList })).digest('hex')}`;
 
     if (this.cache.has(cacheKey)) {
       logger.debug(`[AI] 캐시에서 추천 결과를 반환합니다.`);
@@ -365,7 +366,7 @@ class AIService {
   async recommendDesserts(currentItems, dessertList) {
     if (!dessertList || dessertList.length === 0) return [];
 
-    const cacheKey = `dessert_${currentItems.join('_')}_${dessertList.length}`;
+    const cacheKey = `dessert_${createHash('sha256').update(JSON.stringify({ currentItems, dessertList })).digest('hex')}`;
     if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
 
     const prompt = `

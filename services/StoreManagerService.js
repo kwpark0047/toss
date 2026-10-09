@@ -3,6 +3,7 @@ const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
 const { analyze, localClock, compareEvaluation, DAY } = require('../utils/storeManagerAnalysis');
 const StoreIntegrationService = require('./StoreIntegrationService');
+const { collectCanonicalEvidence } = require('./integrations/canonicalAnalysis');
 const uuid = (value) => {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value)))
     throw new AppError('제안 ID가 올바르지 않습니다.', 400);
@@ -15,46 +16,55 @@ class StoreManagerService {
   async collect(storeId, now) {
     const since = new Date(now.getTime() - 56 * DAY),
       recent = new Date(now.getTime() - 28 * DAY);
-    const [stores, rawHourly, rawProducts, reviews, connections, overview] = await Promise.all([
-      this.db.$queryRawUnsafe('SELECT id,name FROM stores WHERE id=$1 AND is_active=true', storeId),
-      this.db.$queryRawUnsafe(
-        `WITH source AS (
+    const [stores, rawHourly, rawProducts, reviews, connections, overview, externalEvidence] =
+      await Promise.all([
+        this.db.$queryRawUnsafe(
+          'SELECT id,name FROM stores WHERE id=$1 AND is_active=true',
+          storeId
+        ),
+        this.db.$queryRawUnsafe(
+          `WITH source AS (
         SELECT o.id,o.status::text,o.payment_status::text,
           o.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul' AS local_time,
-          GREATEST(0,COALESCE(o.total_amount,0)-ABS(COALESCE((SELECT SUM(l.amount) FROM ledger l WHERE l.store_id=o.store_id AND l.order_id=o.id AND l.type='REFUND'),0))) AS net
+          GREATEST(0,COALESCE(o.total_amount,0)-ABS(COALESCE((SELECT SUM(ABS(l.amount)) FROM ledger l WHERE l.store_id=o.store_id AND l.order_id=o.id AND l.type='REFUND'),0))) AS net
         FROM orders o WHERE o.store_id=$1 AND o.created_at >= $2::timestamp AND o.created_at < $3::timestamp
       ) SELECT to_char(local_time,'YYYY-MM-DD') AS date,EXTRACT(HOUR FROM local_time)::int AS hour,
         COUNT(*) FILTER(WHERE payment_status='paid' AND status!='cancelled' AND net>0)::int AS orders,
         COALESCE(SUM(net) FILTER(WHERE payment_status='paid' AND status!='cancelled'),0)::text AS revenue,
         COUNT(*) FILTER(WHERE status='cancelled')::int AS cancelled
         FROM source GROUP BY date,hour ORDER BY date,hour`,
-        storeId,
-        since,
-        now
-      ),
-      this.db.$queryRawUnsafe(
-        `SELECT p.id,p.name,p.is_active,p.is_sold_out,p.stock_quantity,
+          storeId,
+          since,
+          now
+        ),
+        this.db.$queryRawUnsafe(
+          `SELECT p.id,p.name,p.is_active,p.is_sold_out,p.stock_quantity,
         COALESCE(SUM(i.quantity),0)::int AS quantity FROM products p
         LEFT JOIN order_items i ON i.product_id=p.id AND i.order_id IN
         (SELECT o.id FROM orders o WHERE o.store_id=$1 AND o.payment_status='paid' AND o.status::text!='cancelled' AND o.created_at >= $2::timestamp AND o.created_at < $3::timestamp
-          AND COALESCE(o.total_amount,0)>ABS(COALESCE((SELECT SUM(l.amount) FROM ledger l WHERE l.order_id=o.id AND l.store_id=o.store_id AND l.type='REFUND'),0)))
+          AND COALESCE(o.total_amount,0)>ABS(COALESCE((SELECT SUM(ABS(l.amount)) FROM ledger l WHERE l.order_id=o.id AND l.store_id=o.store_id AND l.type='REFUND'),0)))
         WHERE p.store_id=$1 GROUP BY p.id ORDER BY quantity DESC,p.id LIMIT 200`,
-        storeId,
-        recent,
-        now
-      ),
-      this.db.$queryRawUnsafe(
-        `SELECT COUNT(*)::int AS count,COUNT(*) FILTER(WHERE rating<=2)::int AS low,AVG(rating)::float AS average FROM reviews WHERE store_id=$1 AND created_at >= $2::timestamp AND created_at < $3::timestamp`,
-        storeId,
-        recent,
-        now
-      ),
-      this.db.$queryRawUnsafe(
-        'SELECT channel,enabled,last_ingested_at FROM integration_connections WHERE store_id=$1',
-        storeId
-      ),
-      new StoreIntegrationService(this.db).overview(storeId, 30),
-    ]);
+          storeId,
+          recent,
+          now
+        ),
+        this.db.$queryRawUnsafe(
+          `SELECT COUNT(*)::int AS count,COUNT(*) FILTER(WHERE rating<=2)::int AS low,AVG(rating)::float AS average FROM reviews WHERE store_id=$1 AND created_at >= $2::timestamp AND created_at < $3::timestamp`,
+          storeId,
+          recent,
+          now
+        ),
+        this.db
+          .$queryRawUnsafe(
+            'SELECT channel,enabled,last_ingested_at FROM integration_connections WHERE store_id=$1',
+            storeId
+          )
+          .catch(() => []),
+        new StoreIntegrationService(this.db)
+          .overview(storeId, 30)
+          .catch(() => ({ unavailable: true, channels: [], total_orders: 0, total_revenue: 0 })),
+        collectCanonicalEvidence(this.db, storeId, since, now),
+      ]);
     if (!stores.length) throw new AppError('운영 중인 매장을 찾을 수 없습니다.', 404);
     const hourly = rawHourly.map((r) => ({
       ...r,
@@ -65,6 +75,13 @@ class StoreManagerService {
     }));
     return {
       store: stores[0],
+      provenance: {
+        native: {
+          provider: 'wemarket',
+          period: { start: since.toISOString(), end: now.toISOString() },
+        },
+        external: externalEvidence,
+      },
       ...analyze(
         {
           hourly,
@@ -240,9 +257,9 @@ class StoreManagerService {
     const data = await this.db.$queryRawUnsafe(
       `SELECT CASE WHEN o.created_at >= $3::timestamp THEN 'after' ELSE 'before' END AS period,
       COUNT(*)::int AS orders,COUNT(*) FILTER(WHERE EXISTS(SELECT 1 FROM order_items i WHERE i.order_id=o.id AND i.product_id=$5))::int AS product_orders,
-      COALESCE(SUM(GREATEST(0,COALESCE(o.total_amount,0)-ABS(COALESCE((SELECT SUM(l.amount) FROM ledger l WHERE l.order_id=o.id AND l.store_id=o.store_id AND l.type='REFUND'),0)))),0)::text AS revenue
+      COALESCE(SUM(GREATEST(0,COALESCE(o.total_amount,0)-ABS(COALESCE((SELECT SUM(ABS(l.amount)) FROM ledger l WHERE l.order_id=o.id AND l.store_id=o.store_id AND l.type='REFUND'),0)))),0)::text AS revenue
       FROM orders o WHERE o.store_id=$1 AND o.created_at>=$2::timestamp AND o.created_at<$4::timestamp AND o.payment_status='paid' AND o.status::text!='cancelled'
-      AND COALESCE(o.total_amount,0)>ABS(COALESCE((SELECT SUM(l.amount) FROM ledger l WHERE l.order_id=o.id AND l.store_id=o.store_id AND l.type='REFUND'),0))
+      AND COALESCE(o.total_amount,0)>ABS(COALESCE((SELECT SUM(ABS(l.amount)) FROM ledger l WHERE l.order_id=o.id AND l.store_id=o.store_id AND l.type='REFUND'),0))
       AND ($6::int IS NULL OR EXTRACT(HOUR FROM o.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')=$6)
       GROUP BY period`,
       storeId,
@@ -423,6 +440,7 @@ class StoreManagerService {
     return {
       reply,
       facts,
+      provenance: data.provenance || { status: 'legacy_snapshot_without_provenance' },
       explanation,
       engine: explanation ? 'verified_facts_with_ai' : 'verified_rules',
       as_of: data.as_of,

@@ -103,7 +103,7 @@ describe('customer capability route boundaries', () => {
   });
 
   test('customer order history accepts a matching history capability', async () => {
-    const capability = createCustomerHistoryCapability({ phone: '01012345678' });
+    const capability = createCustomerHistoryCapability({ store_id: 1, order_ids: [10] });
     const response = await request(app())
       .get('/api/orders/customer/history?phone=99999999999')
       .set('x-customer-history-capability', capability);

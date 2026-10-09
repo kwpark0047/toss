@@ -19,6 +19,15 @@ export default function StoreIntegrationCenter() {
   const [data, setData] = useState(null), [error, setError] = useState(''), [loading, setLoading] = useState(false), [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ channel: 'pos', provider: '', name: '', method: 'csv' });
   const [selected, setSelected] = useState(''), [csv, setCsv] = useState(''), [preview, setPreview] = useState(null);
+  const [syncStatus, setSyncStatus] = useState(null);
+  const [syncError, setSyncError] = useState('');
+  useEffect(() => {
+    let active = true;
+    setSyncStatus(null); setSyncError('');
+    integrationsAPI.syncHistory(storeId).then(result => { if (active) setSyncStatus(unwrap(result)); })
+      .catch(failure => { if (active) setSyncError(errorMessage(failure)); });
+    return () => { active = false; };
+  }, [storeId]);
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try { setData(unwrap(await integrationsAPI.overview(storeId, days))); }
@@ -63,6 +72,15 @@ export default function StoreIntegrationCenter() {
     {loading && !data && <p role="status">통합 데이터를 불러오는 중…</p>}
     {tab === 'growth' ? <GrowthRoadmap storeId={storeId} /> : <>
       <ProviderCredentialPanel storeId={storeId} />
+      <section className="menu-panel rounded-xl p-4 space-y-2" aria-label="외부 동기화 운영 상태">
+        <h2 className="font-semibold">업체 동기화 검증 상태</h2>
+        {syncError ? <p role="alert" className="text-rose-400">동기화 상태 조회 실패: {syncError}</p> : !syncStatus ? <p role="status">검증 상태 조회 중…</p> : <>
+          <p className="text-sm">공통 수집 엔진 준비 · 실제 업체 adapter 미등록 · 운영 검증 미완료</p>
+          {syncStatus.migration_required && <p className="text-amber-400 text-sm">동기화 DB 변경이 아직 적용되지 않았습니다.</p>}
+          <p className="text-xs text-slate-400">API 키 저장이나 CSV 가져오기만으로 실제 업체 연결 성공으로 표시하지 않습니다.</p>
+          {(syncStatus.jobs || []).map(job => <div key={job.id} className="text-sm border-t border-slate-500/20 pt-2">{job.provider} · {job.status} · {job.pages}페이지 · {job.window_start} ~ {job.window_end}</div>)}
+        </>}
+      </section>
       <div className="menu-panel rounded-xl p-4 text-sm">업체별 API 연동은 승인·계정·별도 어댑터가 필요합니다. 지금은 공통 CSV 가져오기와 인증된 API 수집을 지원합니다. 수집 기록은 분석용이며 기존 주문·카드 승인·포인트·문자 발송을 실행하지 않습니다.</div>
       <div className="flex items-center gap-3"><label htmlFor="integration-days">조회 기간</label><select id="integration-days" className="menu-field rounded-lg p-2" value={days} onChange={event => setDays(Number(event.target.value))}><option value={7}>최근 7일</option><option value={30}>최근 30일</option><option value={90}>최근 90일</option></select></div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">{[

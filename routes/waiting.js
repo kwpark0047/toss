@@ -7,6 +7,7 @@ const { checkStorePermission, getStoreRole } = require('../middleware/storeAuth'
 const { verifyWaitingCapability } = require('../utils/orderCapability');
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
+const customerIdentity = require('../middleware/customerIdentity');
 
 // 대기 상태 변경 시 body store_id 대신 대기 항목의 저장된 매장으로 권한을 확인한다
 const checkWaitingPermission = (requiredPermission) => {
@@ -190,6 +191,7 @@ router.get('/my/:phone', waitingController.getMyWaiting);
  */
 router.get(
   '/store/:storeId/ai-suggestions',
+  customerIdentity,
   createAIRateLimiter('getAISuggestions'),
   waitingController.getAISuggestions
 );

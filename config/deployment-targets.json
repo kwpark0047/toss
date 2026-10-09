@@ -1,0 +1,8 @@
+{
+  "production": {
+    "backendUrl": "https://wemarket.onrender.com",
+    "frontendUrl": "https://wemarket-saas.vercel.app",
+    "vercelProjectId": "prj_ZXshlSsA2zPPNuIAhI0FtUwWwMYL",
+    "vercelOrgId": "team_tHNY4ZLczVxuEkUksjcUSYjw"
+  }
+}

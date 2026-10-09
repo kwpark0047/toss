@@ -87,13 +87,18 @@ jest.mock('../../config/prisma', () => {
     },
     orders: {
       findFirst: jest.fn(),
+      count: jest.fn().mockResolvedValue(0),
       findUnique: jest.fn(),
       create: jest.fn(),
       findMany: jest.fn(),
     },
     payments: {
-      create: jest.fn(),
+      create: jest.fn().mockResolvedValue({ id: 1 }),
     },
+    ledger: { upsert: jest.fn().mockResolvedValue({}) },
+    subscription: { findUnique: jest.fn().mockResolvedValue(null) },
+    $queryRaw: jest.fn().mockResolvedValue([]),
+    $transaction: jest.fn(async (fn) => fn(require('../../config/prisma'))),
     store_customers: {
       findMany: jest.fn(),
     },
@@ -370,7 +375,8 @@ describe('FoodTruck Integration Tests', () => {
         order_number: 'OFF-10001',
         created_at: new Date(),
       });
-      prisma.products.findUnique.mockResolvedValue({ id: 101, stock_quantity: 10 });
+      prisma.products.findUnique.mockResolvedValue({ id: 101, store_id: 10, stock_quantity: 10 });
+      prisma.products.updateMany.mockResolvedValue({ count: 1 });
       prisma.products.update.mockResolvedValue({ id: 101, stock_quantity: 8 });
 
       const offlineTransactions = [
@@ -378,7 +384,7 @@ describe('FoodTruck Integration Tests', () => {
           order_number: 'OFF-10001',
           customer_name: '김오프',
           customer_phone: '01055556666',
-          total_amount: 15000,
+          total_amount: 10000,
           method: 'cash',
           created_at: '2026-07-10T15:00:00.000Z',
           items: [
@@ -397,11 +403,14 @@ describe('FoodTruck Integration Tests', () => {
         .post(`${baseUrl}/stores/10/offline-sync`)
         .send({ offlineTransactions });
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
+      if (response.status !== 200) throw new Error(JSON.stringify(response.body));
+      expect({ status: response.status, body: response.body }).toMatchObject({
+        status: 200,
+        body: { success: true },
+      });
       expect(response.body.data.synchronizedCount).toBe(1);
       expect(prisma.orders.create).toHaveBeenCalled();
-      expect(prisma.products.update).toHaveBeenCalled();
+      expect(prisma.products.updateMany).toHaveBeenCalled();
       expect(prisma.stock_history.create).toHaveBeenCalled();
       expect(notificationService.sendSocket).toHaveBeenCalledWith(
         'store - 10',
@@ -412,14 +421,26 @@ describe('FoodTruck Integration Tests', () => {
 
     it('should skip duplicate orders for idempotency', async () => {
       prisma.stores.findUnique.mockResolvedValue({ id: 10, name: '신촌 닭꼬치 트럭' });
-      prisma.orders.findUnique.mockResolvedValue({ id: 501, order_number: 'OFF-10001' }); // Duplicate order exists
+      prisma.orders.findUnique.mockResolvedValue({
+        id: 501,
+        store_id: 10,
+        order_number: 'OFF-10001',
+      }); // Duplicate order exists
 
       const offlineTransactions = [
         {
           order_number: 'OFF-10001',
           customer_name: '김오프',
           total_amount: 15000,
-          items: [],
+          items: [
+            {
+              product_id: 101,
+              product_name: '치즈꼬치',
+              price: 15000,
+              quantity: 1,
+              subtotal: 15000,
+            },
+          ],
         },
       ];
 

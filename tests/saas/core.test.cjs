@@ -190,8 +190,8 @@ test('the same point use can be reversed only once', async () => {
 test('offline refund requires collection confirmation and records each refund once', async () => {
   let refunds = 0;
   let status = 'DONE';
-  const tx = { $queryRaw: async () => [], payments: { updateMany: async () => { if (status !== 'DONE') return { count: 0 }; status = 'CANCELED'; return { count: 1 }; } }, orders: { update: async () => {} }, order_items: { findMany: async () => [] } };
-  const PaymentService = load('services/PaymentService.js', { '../config/prisma': { $transaction: (fn) => fn(tx) }, './PointsService': { revertOnCancel: async () => {} }, './LedgerService': { recordRefund: async () => { refunds++; } } });
+  const tx = { $queryRaw: async () => [], inventory_compensations: { upsert: async () => ({ store_id: 1, status: 'pending' }), update: async () => ({ status: 'completed' }) }, payments: { count: async () => 0, updateMany: async () => { if (status !== 'DONE') return { count: 0 }; status = 'CANCELED'; return { count: 1 }; } }, orders: { update: async () => {} }, stock_history: { findMany: async () => [] } };
+  const PaymentService = load('services/PaymentService.js', { './RefundService': require('../../services/RefundService'), '../config/prisma': { $transaction: (fn) => fn(tx) }, './PointsService': { revertOnCancel: async () => {} }, './LedgerService': { recordRefund: async () => { refunds++; } } });
   const service = new PaymentService();
   const payment = { id: 1, order_id: 1, store_id: 1, method: 'CASH', amount: 1000 };
   await assert.rejects(service.cancelOfflinePayment(payment, 'return', false), (e) => e.statusCode === 409);

@@ -25,15 +25,18 @@ const prismaPrimary = new PrismaClient({
 });
 
 // 2. 보조 복제 데이터베이스 클라이언트 생성 (R - 읽기 전용 복제 세션 풀)
-const prismaReplica = new PrismaClient({
-  datasources: {
-    db: { url: REPLICA_URL },
-  },
-  log: [
-    { emit: 'stdout', level: 'error' },
-    { emit: 'stdout', level: 'warn' },
-  ],
-});
+const prismaReplica =
+  REPLICA_URL === DATABASE_URL
+    ? prismaPrimary
+    : new PrismaClient({
+        datasources: {
+          db: { url: REPLICA_URL },
+        },
+        log: [
+          { emit: 'stdout', level: 'error' },
+          { emit: 'stdout', level: 'warn' },
+        ],
+      });
 
 // 쿼리 레이턴시 실시간 모니터링을 위한 전역 인메모리 링버퍼 (최대 50건 유지)
 const queryLogBuffer = [];
@@ -48,8 +51,11 @@ prismaPrimary.$on('query', (e) => {
   const logId = crypto.randomUUID().substring(0, 8);
   queryLogBuffer.unshift({
     id: logId,
-    query: e.query,
-    params: e.params,
+    fingerprint: crypto
+      .createHash('sha256')
+      .update(e.query || '')
+      .digest('hex')
+      .slice(0, 16),
     duration: e.duration,
     timestamp: new Date(),
   });
@@ -58,7 +64,7 @@ prismaPrimary.$on('query', (e) => {
   }
 
   if (duration >= threshold) {
-    logger.warn(`🐌 [Prisma Slow Query] ${duration}ms | Query: ${e.query} | Params: ${e.params}`);
+    logger.warn('[Prisma Slow Query]', { duration, fingerprint: queryLogBuffer[0].fingerprint });
   }
 }); // <-- closing for arrow function
 
@@ -81,7 +87,9 @@ const prismaProxy = new Proxy(prismaPrimary, {
     }
     if (prop === 'disconnectAll') {
       return async () => {
-        await Promise.allSettled([prismaPrimary.$disconnect(), prismaReplica.$disconnect()]);
+        await Promise.allSettled(
+          [...new Set([prismaPrimary, prismaReplica])].map((client) => client.$disconnect())
+        );
       };
     }
 
@@ -101,7 +109,12 @@ const prismaProxy = new Proxy(prismaPrimary, {
 
     const delegate = target[prop];
     // 호출 프로퍼티가 Prisma 데이터 모델 델리게이트인 경우 (예: prisma.products)
-    if (delegate && typeof delegate === 'object' && !prop.startsWith('$')) {
+    if (
+      delegate &&
+      typeof delegate === 'object' &&
+      typeof prop === 'string' &&
+      !prop.startsWith('$')
+    ) {
       return new Proxy(delegate, {
         get(modelTarget, modelProp) {
           const originalMethod = modelTarget[modelProp];

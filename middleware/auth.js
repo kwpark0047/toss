@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const logger = require('../utils/logger');
 const { isCookieMode } = require('../utils/tokenCookies');
+const sessions = require('../services/AuthSessionService');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const IS_DEV = process.env.NODE_ENV !== 'production';
@@ -21,7 +22,7 @@ const extractToken = (req) => {
   return authHeader.substring(7);
 };
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
     const token = extractToken(req);
     if (!token) return res.status(401).json({ error: '인증 토큰이 필요합니다.' });
@@ -31,7 +32,7 @@ const authMiddleware = (req, res, next) => {
       return res.status(401).json({ error: '액세스 토큰이 필요합니다.' });
     }
 
-    req.user = decoded;
+    req.user = await sessions.verifyAccess(decoded);
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
@@ -41,12 +42,12 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-const optionalAuth = (req, res, next) => {
+const optionalAuth = async (req, res, next) => {
   try {
     const token = extractToken(req);
     if (token) {
       const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
-      if (decoded.type === 'access') req.user = decoded;
+      if (decoded.type === 'access') req.user = await sessions.verifyAccess(decoded);
     }
     next();
   } catch {

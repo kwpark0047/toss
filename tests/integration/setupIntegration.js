@@ -1,5 +1,15 @@
 // Global integration test setup — mocks Prisma to prevent real DB connections
 // This file MUST be loaded before any test requires `../../app`
+// Mock only the provider SDK boundary: fallback tests must not contact a live AI API.
+jest.mock('@google/generative-ai', () => ({
+  GoogleGenerativeAI: class {
+    getGenerativeModel() {
+      return {
+        generateContent: jest.fn().mockRejectedValue(new Error('TEST_PROVIDER_UNAVAILABLE')),
+      };
+    }
+  },
+}));
 
 jest.mock('../../config/prisma', () => {
   // Return a minimal mock with commonly used models
@@ -171,49 +181,8 @@ jest.mock('../../middleware/storeAuth', () => ({
   },
 }));
 
-jest.mock('../../middleware/validate', () => {
-  const isZodSchema = (s) => typeof s?.safeParse === 'function';
-  const parseSchema = (schema, data) => {
-    const result = schema.safeParse(data);
-    return {
-      success: result.success,
-      data: result.success ? result.data : data,
-      issues: result.success ? [] : result.error.issues,
-    };
-  };
-  const validate = (schema) => (req, res, next) => {
-    if (isZodSchema(schema)) {
-      const r = parseSchema(schema, req.body);
-      if (!r.success) {
-        const errorMessage = r.issues.map((i) => i.message).join(', ');
-        return res
-          .status(400)
-          .json({ error: 'Validation Error', message: errorMessage, details: r.issues });
-      }
-      req.body = r.data;
-      return next();
-    }
-    const validations = [];
-    if (schema.body) validations.push({ type: 'body', data: req.body, schema: schema.body });
-    if (schema.query) validations.push({ type: 'query', data: req.query, schema: schema.query });
-    if (schema.params)
-      validations.push({ type: 'params', data: req.params, schema: schema.params });
-    for (const v of validations) {
-      const r = parseSchema(v.schema, v.data);
-      if (!r.success) {
-        const errorMessage = r.issues.map((i) => i.message).join(', ');
-        return res.status(400).json({
-          error: `Validation Error (${v.type})`,
-          message: errorMessage,
-          details: r.issues,
-        });
-      }
-      req[v.type] = r.data;
-    }
-    next();
-  };
-  return validate;
-});
+// Use the production validation contract; do not mask malformed input.
+jest.mock('../../middleware/validate', () => jest.requireActual('../../middleware/validate'));
 
 // Mock rate limiter
 jest.mock('../../middleware/rateLimiter', () => ({
@@ -273,7 +242,12 @@ jest.mock('../../utils/errorHandler', () => {
     }
     res.status(error.status).json(error);
   };
-  return { AppError, errorHandler, errorTypes: {}, logError: jest.fn() };
+  return {
+    AppError,
+    errorHandler,
+    errorTypes: jest.requireActual('../../utils/errorHandler').errorTypes,
+    logError: jest.fn(),
+  };
 });
 
 // Mock Sentry

@@ -23,6 +23,13 @@ export const ordersAPI = {
     const response = await api.post('/orders', data, {
       headers: {
         'Idempotency-Key': globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+        ...(localStorage.getItem('wm_customer_history_capability')
+          ? {
+              'x-customer-history-capability': localStorage.getItem(
+                'wm_customer_history_capability'
+              ),
+            }
+          : {}),
       },
     });
     const capability = response?.data?.customer_history_capability;
@@ -34,10 +41,20 @@ export const ordersAPI = {
   cancel: (id) => api.post('/orders/' + id + '/cancel'),
   delete: (id) => api.delete('/orders/' + id),
   getById: (id) => api.get('/orders/' + id),
-  getCustomerHistory: (capability) =>
-    api.get('/orders/customer/history', {
-      headers: capability ? { 'x-customer-history-capability': capability } : undefined,
-    }),
+  getCustomerHistory: async (capability) => {
+    try {
+      return await api.get('/orders/customer/history', {
+        headers: capability ? { 'x-customer-history-capability': capability } : undefined,
+      });
+    } catch (error) {
+      if (
+        error.response?.status === 403 &&
+        localStorage.getItem('wm_customer_history_capability') === capability
+      )
+        localStorage.removeItem('wm_customer_history_capability');
+      throw error;
+    }
+  },
   getDetailedStats: (storeId, startDate, endDate) => {
     let url = '/orders/store/' + storeId + '/detailed-stats';
     const params = [];

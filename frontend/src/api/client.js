@@ -2,6 +2,7 @@ import axios from 'axios';
 import { extractErrorMessage } from '@/lib/errorUtils';
 import { attachCsrfToken, shouldRetryWithFreshToken } from '@/lib/csrf';
 import { shouldWakeAndRetry } from '@/lib/coldStart';
+import { refreshSession } from '@/lib/authSession';
 
 const getApiUrl = () => {
   // 1순위: 환경변수 (VITE_API_URL)
@@ -33,12 +34,19 @@ const USE_COOKIE = import.meta.env.VITE_HTTPONLY_COOKIE === 'true';
 
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true, // HttpOnly Cookie 전송에 필요
 });
 
 // 요청 인터셉터 - 토큰 추가 (쿠키 모드 아니면 Authorization 헤더 사용)
 api.interceptors.request.use(async (config) => {
+  if (
+    !['get', 'head', 'options'].includes(String(config.method || 'get').toLowerCase()) &&
+    config.timeout === 15000
+  ) {
+    config.timeout = 45000;
+  }
   if (!USE_COOKIE) {
     const token = localStorage.getItem('token');
     // 2FA 임시 토큰처럼 요청별로 명시적으로 설정된 Authorization은 우선시한다
@@ -58,6 +66,7 @@ api.interceptors.response.use(
   (response) => response.data,
   async (error) => {
     const originalRequest = error.config;
+    if (!originalRequest) return Promise.reject(error);
 
     // ── Render 콜드스타트 자동 재시도: 네트워크 에러 또는 502/503 응답 ──
     if (shouldWakeAndRetry(error)) {
@@ -93,21 +102,14 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !isAuthRequest && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        const refreshBody = USE_COOKIE
-          ? {}
-          : { refreshToken: localStorage.getItem('refreshToken') };
-        const response = await axios.post(`${API_URL}/auth/refresh-token`, refreshBody, {
-          withCredentials: true,
-        });
-        const { token, refreshToken: newRefreshToken } = response.data.data || response.data;
+        const { token } = await refreshSession(API_URL, USE_COOKIE);
         if (!USE_COOKIE) {
-          localStorage.setItem('token', token);
-          localStorage.setItem('refreshToken', newRefreshToken);
           originalRequest.headers.Authorization = `Bearer ${token}`;
         }
         return api(originalRequest);
       } catch (err) {
-        console.error('토큰 갱신 실패:', err);
+        // A temporary outage must not destroy a valid refresh credential.
+        if (![401, 403].includes(err.status)) return Promise.reject(error);
         if (!USE_COOKIE) {
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');

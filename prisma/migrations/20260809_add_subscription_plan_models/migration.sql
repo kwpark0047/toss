@@ -79,20 +79,20 @@ ALTER TABLE "Subscription"
     ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- 7. 기본 플랜 데이터 삽입
-INSERT INTO "Plan" ("id", "name", "display_name", "description", "price_monthly", "price_yearly", "features", "limits", "is_active", "sort_order", "trial_days")
+INSERT INTO "Plan" ("id", "name", "display_name", "description", "price_monthly", "price_yearly", "features", "limits", "is_active", "sort_order", "trial_days", "updated_at")
 VALUES
     ('plan_free', 'free', 'Free', '기본 매장 운영 및 QR 코드 생성', 0, 0,
      '{"maxMenus": 50, "maxStaff": 1, "aiRecommendations": false, "brandpay": false, "analytics": "basic", "customDomain": false}'::jsonb,
      '{"menuItems": 50, "staff": 1, "ordersPerMonth": 1000}'::jsonb,
-     true, 0, 0),
+     true, 0, 0, CURRENT_TIMESTAMP),
     ('plan_pro', 'pro', 'Pro', '실시간 결제 및 부가 편의 기능', 20000, 200000,
      '{"maxMenus": 200, "maxStaff": 10, "aiRecommendations": true, "brandpay": true, "analytics": "advanced", "customDomain": true}'::jsonb,
      '{"menuItems": 200, "staff": 10, "ordersPerMonth": 10000}'::jsonb,
-     true, 1, 14),
+     true, 1, 14, CURRENT_TIMESTAMP),
     ('plan_enterprise', 'enterprise', 'Enterprise', '프리미엄 통합 매장 운영', 50000, 500000,
      '{"maxMenus": -1, "maxStaff": -1, "aiRecommendations": true, "brandpay": true, "analytics": "premium", "customDomain": true, "dedicatedManager": true, "apiAccess": true}'::jsonb,
      '{"menuItems": -1, "staff": -1, "ordersPerMonth": -1}'::jsonb,
-     true, 2, 30)
+     true, 2, 30, CURRENT_TIMESTAMP)
 ON CONFLICT ("name") DO NOTHING;
 
 -- 8. 기존 stores의 plan 값을 기준으로 Subscription 레코드 생성

@@ -94,7 +94,7 @@ describe('Orders Integration Tests', () => {
   });
 
   describe('GET /orders/:id - 주문 단일 상세 조회', () => {
-    it.skip('should return order details when found - flaky due to supertest/Jest async with open handles', async () => {
+    it('should return order details when found', async () => {
       const mockOrder = {
         id: 101,
         store_id: 1,
@@ -110,13 +110,17 @@ describe('Orders Integration Tests', () => {
 
       const res = await request(await getApp())
         .get(`${baseUrl}/101`)
+        .set('Authorization', 'Bearer test-token')
         .set('x-order-capability', '101')
+        .expect((res) => {
+          if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+        })
         .expect(200);
 
       expect(res.body.success).toBe(true);
       expect(res.body.data.id).toBe(101);
       expect(res.body.data.order_number).toBe('20260720-0001');
-      expect(mockOrderRepository.findById).toHaveBeenCalledWith('101');
+      expect(mockOrderRepository.findById).toHaveBeenCalledWith(101);
     }, 30000);
   });
 
@@ -157,6 +161,9 @@ describe('Orders Integration Tests', () => {
         .get(`${baseUrl}/store/1`)
         .query({ page: 1, limit: 10 })
         .set('Authorization', 'Bearer test-token')
+        .expect((res) => {
+          if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+        })
         .expect(200);
 
       expect(res.body.success).toBe(true);
@@ -178,6 +185,9 @@ describe('Orders Integration Tests', () => {
       const res = await request(await getApp())
         .get(`${baseUrl}/store/1/stats`)
         .set('Authorization', 'Bearer test-token')
+        .expect((res) => {
+          if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+        })
         .expect(200);
 
       expect(res.body.success).toBe(true);
@@ -200,18 +210,21 @@ describe('Orders Integration Tests', () => {
         .post(`${baseUrl}`)
         .set('Authorization', 'Bearer test-token')
         .send({
-          store_id: 1,
+          storeId: 1,
           items: [
             {
-              product_id: 5,
-              product_name: '아메리카노',
+              productId: 5,
+              productName: '아메리카노',
               quantity: 1,
-              price: 10000,
-              subtotal: 10000,
+              unitPrice: 10000,
+              totalPrice: 10000,
             },
           ],
           total_amount: 10000,
           payment_method: 'card',
+        })
+        .expect((res) => {
+          if (res.status !== 201) throw new Error(JSON.stringify(res.body));
         })
         .expect(201);
 
@@ -229,6 +242,9 @@ describe('Orders Integration Tests', () => {
         .put(`${baseUrl}/1/status`)
         .set('Authorization', 'Bearer test-token')
         .send({ status: 'confirmed' })
+        .expect((res) => {
+          if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+        })
         .expect(200);
 
       expect(res.body.success).toBe(true);
@@ -246,6 +262,10 @@ describe('Orders Integration Tests', () => {
       const res = await request(await getApp())
         .post(`${baseUrl}/1/cancel`)
         .set('Authorization', 'Bearer test-token')
+        .send({ reason: 'customer_request' })
+        .expect((res) => {
+          if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+        })
         .expect(200);
 
       expect(res.body.success).toBe(true);
@@ -271,6 +291,9 @@ describe('Orders Integration Tests', () => {
         .delete(`${baseUrl}/1`)
         .set('Authorization', 'Bearer test-token')
         .set('x-order-capability', '1')
+        .expect((res) => {
+          if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+        })
         .expect(200);
 
       expect(res.body.success).toBe(true);

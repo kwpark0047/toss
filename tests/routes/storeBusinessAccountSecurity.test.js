@@ -16,6 +16,11 @@
  * - 존재하지 않는 매장: 403
  */
 const express = require('express');
+// This route matrix isolates authorization from session storage; actual revocation
+// and primary-role reads are covered by auth-sessions-postgres.test.cjs.
+jest.mock('../../services/AuthSessionService', () => ({
+  verifyAccess: jest.fn(async (decoded) => decoded),
+}));
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
 

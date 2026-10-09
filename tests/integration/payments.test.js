@@ -55,7 +55,7 @@ describe('Payments API', () => {
       });
       // Since the model is mocked, we can't assert a specific status code without more setup.
       // For now, we just check that the endpoint doesn't crash.
-      expect(response.status).not.toBe(500);
+      expect({ status: response.status, body: response.body }).not.toMatchObject({ status: 500 });
     });
   });
 
@@ -63,7 +63,7 @@ describe('Payments API', () => {
     it('should get a payment by ID', async () => {
       const paymentId = 'test-payment-id';
       const response = await request(app).get(`${baseUrl}/${paymentId}`);
-      expect(response.status).not.toBe(500);
+      expect({ status: response.status, body: response.body }).not.toMatchObject({ status: 500 });
     });
   });
 
@@ -73,7 +73,7 @@ describe('Payments API', () => {
       const response = await request(app)
         .post(`${baseUrl}/${paymentId}/confirm`)
         .send({ toss_payment_key: 'test-key' });
-      expect(response.status).not.toBe(500);
+      expect({ status: response.status, body: response.body }).not.toMatchObject({ status: 500 });
     });
   });
 });

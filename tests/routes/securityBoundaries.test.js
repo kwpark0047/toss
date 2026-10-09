@@ -8,6 +8,11 @@
  * 컨트롤러 뒤편(DB)은 목으로 대체하고, 관심사는 "누가 무엇에 접근 가능한가"에 둔다.
  */
 const express = require('express');
+// This route matrix isolates authorization from session storage; actual revocation
+// and primary-role reads are covered by auth-sessions-postgres.test.cjs.
+jest.mock('../../services/AuthSessionService', () => ({
+  verifyAccess: jest.fn(async (decoded) => decoded),
+}));
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
 

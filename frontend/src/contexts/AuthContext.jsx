@@ -5,6 +5,8 @@ import { storesAPI } from '../api/stores';
 import { API_URL } from '../api/client';
 import api from '../api/client';
 import { syncSentryUser } from '../lib/sentry';
+import { refreshSession } from '../lib/authSession';
+import { clearUserCaches } from '../utils/userCaches';
 
 const AuthContext = createContext(null);
 
@@ -23,33 +25,8 @@ const decodeToken = (token) => {
 
 // refreshToken으로 새 accessToken 발급
 const refreshAccessToken = async () => {
-  // 쿠키 모드: refreshToken이 HttpOnly Cookie로 자동 전송
-  if (USE_COOKIE) {
-    const res = await fetch(`${API_URL}/auth/refresh-token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-    });
-    if (!res.ok) return null;
-    const d = (await res.json())?.data;
-    return d?.token || null;
-  }
-
-  // 헤더 모드: localStorage에서 refreshToken 읽어 전송
-  const refreshToken = localStorage.getItem('refreshToken');
-  if (!refreshToken) return null;
-  const res = await fetch(`${API_URL}/auth/refresh-token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
-  });
-  if (!res.ok) return null;
-  const json = await res.json();
-  const d = json?.data || json;
-  if (!d?.token) return null;
-  localStorage.setItem('token', d.token);
-  if (d.refreshToken) localStorage.setItem('refreshToken', d.refreshToken);
-  return d.token;
+  const data = await refreshSession(API_URL, USE_COOKIE);
+  return data?.token || null;
 };
 
 export const AuthProvider = ({ children }) => {
@@ -112,9 +89,11 @@ export const AuthProvider = ({ children }) => {
           localStorage.removeItem('refreshToken');
           setUser(null);
         }
-      } catch {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
+      } catch (error) {
+        if ([401, 403].includes(error.status)) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+        }
         setUser(null);
       } finally {
         setLoading(false);
@@ -239,18 +218,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    if (USE_COOKIE) {
-      // 쿠키 모드: HttpOnly 쿠키는 JS 로 지울 수 없으므로 서버에 삭제를 요청한다.
-      try {
-        const { authAPI } = await import('@/api');
-        await authAPI.logout();
-      } catch {
-        // 로그아웃 실패는 치명적이지 않다 — 사용자 상태만 초기화한다.
-      }
-    } else {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-    }
+    await authAPI.logout();
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    storesCacheRef.current = null;
+    await clearUserCaches();
     setUser(null);
   };
 

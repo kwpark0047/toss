@@ -13,6 +13,7 @@ module.exports = {
     '/print-agent/',
   ],
   modulePathIgnorePatterns: [
+    '<rootDir>/reports/',
     '<rootDir>/toss-miniapp-examples/',
     '<rootDir>/wemarket-miniapp/',
     '<rootDir>/miniapp/',

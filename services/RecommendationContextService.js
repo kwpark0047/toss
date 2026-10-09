@@ -116,7 +116,7 @@ class RecommendationContextService {
         };
       }
     } catch (error) {
-      logger.warn({ error: error.message, storeId }, 'Failed to build recommendation context');
+      logger.warn({ storeId }, 'Failed to build recommendation context');
     }
 
     return result;

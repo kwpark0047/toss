@@ -120,6 +120,7 @@ model order_items {
 }
 
 model orders {
+  inventory_compensation inventory_compensations?
   integration_events integration_events[]
   id                 Int                  @id @default(autoincrement())
   store_id           Int
@@ -206,12 +207,58 @@ model payments {
   stores                stores               @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   orders                orders               @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   point_transactions    point_transactions[]
+  refund_operations     refund_operations[]
 
   @@index([payment_key], map: "idx_payments_payment_key")
   @@index([store_id], map: "idx_payments_store_id")
   @@index([order_id], map: "idx_payments_order_id")
   @@index([status], map: "idx_payments_status")
   @@index([store_id, status, created_at], map: "idx_payments_store_status_date")
+  @@schema("public")
+}
+
+model customer_ai_consents {
+  store_id Int
+  user_id Int
+  verified_phone String // encrypted; server-verified ownership only
+  verified_at DateTime @db.Timestamptz(6)
+  consent_at DateTime @db.Timestamptz(6)
+  revoked_at DateTime? @db.Timestamptz(6)
+  store stores @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  @@id([store_id, user_id])
+  @@schema("public")
+}
+
+model refund_operations {
+  id String @id @db.Uuid
+  operation_key String @unique
+  payment_id Int
+  store_id Int
+  amount Int
+  baseline_balance Int
+  reason String
+  status String
+  owner String? @db.Uuid
+  lease_until DateTime? @db.Timestamptz(6)
+  attempts Int @default(0)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  confirmed_at DateTime? @db.Timestamptz(6)
+  provider_result Json?
+  payment payments @relation(fields: [payment_id], references: [id], onDelete: Restrict)
+  @@index([payment_id, status])
+  @@schema("public")
+}
+
+model inventory_compensations {
+  order_id Int @id
+  store_id Int
+  status String @default("pending")
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  completed_at DateTime? @db.Timestamptz(6)
+  order orders @relation(fields: [order_id], references: [id], onDelete: Restrict)
+  store stores @relation(fields: [store_id], references: [id], onDelete: Restrict)
+  @@index([store_id, status])
   @@schema("public")
 }
 
@@ -326,6 +373,26 @@ model IdempotencyRecord {
   @@schema("public")
 }
 
+model PaymentWebhookInbox {
+ id String @id
+ kind String @default("webhook")
+ event_type String
+ payload_hash String
+ payload_encrypted String
+ status String @default("pending")
+ attempts Int @default(0)
+ owner String? @db.Uuid
+ lease_until DateTime? @db.Timestamp(3)
+ result Json?
+ error_code String?
+ next_retry_at DateTime? @db.Timestamp(3)
+ created_at DateTime @default(now()) @db.Timestamp(3)
+ updated_at DateTime @default(now()) @updatedAt @db.Timestamp(3)
+ @@index([status,lease_until],map:"payment_webhook_queue_idx")
+ @@map("payment_webhook_inbox")
+ @@schema("public")
+}
+
 model point_transactions {
   id            Int         @id @default(autoincrement())
   user_point_id Int
@@ -436,6 +503,7 @@ model stock_history {
   reason       String    // ORDER | MANUAL_IN | MANUAL_OUT | CORRECTION | RETURN
   order_id     Int?
   note         String?
+  compensation_key String? @unique
   created_by   Int?      // user_id of staff who made the change
   created_at   DateTime  @default(now())
   products     products  @relation(fields: [product_id], references: [id], onDelete: Cascade)
@@ -576,6 +644,8 @@ model store_receipt_settings {
 }
 
 model stores {
+  customer_ai_consents customer_ai_consents[]
+  inventory_compensations inventory_compensations[]
   manager_snapshots manager_snapshots[]
   manager_actions manager_actions[]
   manager_ai_requests manager_ai_requests[]
@@ -826,6 +896,8 @@ model user_points {
 }
 
 model users {
+  auth_sessions AuthSession[]
+  customer_ai_consents customer_ai_consents[]
   id                                                               Int                      @id @default(autoincrement())
   name                                                             String?
   email                                                            String?                  @unique(map: "uq_users_email")
@@ -858,6 +930,19 @@ model users {
   grant_change_logs                                                grant_change_logs[]
 
   @@index([email], map: "idx_users_email")
+  @@schema("public")
+}
+
+model AuthSession {
+  id String @id @db.Uuid
+  user_id Int
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  refresh_hash String
+  expires_at DateTime @db.Timestamp(3)
+  revoked_at DateTime? @db.Timestamp(3)
+  created_at DateTime @default(now()) @db.Timestamp(3)
+  @@index([user_id, expires_at], map: "auth_sessions_user_expiry_idx")
+  @@map("auth_sessions")
   @@schema("public")
 }
 

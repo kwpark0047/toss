@@ -215,6 +215,13 @@ class SaaSBillingService {
     });
     if (claim.count !== 1)
       throw new AppError('청구가 이미 처리 중이거나 재시도 대기 중입니다.', 409);
+    const ownedClaim = {
+      id,
+      status: 'processing',
+      claimed_at: now,
+      attempts: invoice.attempts + 1,
+    };
+    let providerConfirmed = false;
     try {
       if (!sub.payment_method_id) throw new AppError('결제수단을 등록해 주세요.', 400);
       // The same order ID and provider idempotency key are retained after response loss.
@@ -238,11 +245,12 @@ class SaaSBillingService {
       const paidAt = new Date(result.approvedAt || now);
       if (!Number.isFinite(paidAt.getTime()))
         throw Object.assign(new Error('Invalid approval time'), { manualReview: true });
+      providerConfirmed = true;
       await prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT id FROM public.stores WHERE id = ${sub.store_id} FOR UPDATE`;
         const current = await tx.subscription.findUnique({ where: { id: sub.id } });
-        await tx.billingInvoice.update({
-          where: { id },
+        const finalized = await tx.billingInvoice.updateMany({
+          where: ownedClaim,
           data: {
             status: 'paid',
             payment_key: encryptToken(result.paymentKey),
@@ -252,6 +260,8 @@ class SaaSBillingService {
             next_retry_at: null,
           },
         });
+        if (finalized.count !== 1)
+          throw new AppError('청구 처리 소유권이 변경되었습니다. 상태를 다시 확인해 주세요.', 409);
         // Late completion of an older invoice must never shorten newer entitlements.
         if (current.current_period_end > invoice.period_end) return;
         await tx.subscription.update({
@@ -299,10 +309,10 @@ class SaaSBillingService {
       });
       return { paid: true, invoice_id: id };
     } catch (error) {
-      const manual = error.manualReview || invoice.attempts + 1 >= 3;
+      const manual = providerConfirmed || error.manualReview || invoice.attempts + 1 >= 3;
       await prisma.$transaction(async (tx) => {
-        await tx.billingInvoice.update({
-          where: { id },
+        const failed = await tx.billingInvoice.updateMany({
+          where: ownedClaim,
           data: {
             status: manual ? 'manual_review' : 'failed',
             failure_code: String(error.code || 'BILLING_FAILED').slice(0, 100),
@@ -311,6 +321,9 @@ class SaaSBillingService {
               : new Date(now.getTime() + (invoice.attempts + 1) * 24 * 60 * 60 * 1000),
           },
         });
+        if (failed.count !== 1) return;
+        const current = await tx.subscription.findUnique({ where: { id: sub.id } });
+        if (current.current_period_end > invoice.period_end) return;
         await tx.subscription.update({ where: { id: sub.id }, data: { status: 'past_due' } });
       });
       logger.error('Subscription charge failed', {

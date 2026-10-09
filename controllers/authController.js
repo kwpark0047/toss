@@ -29,17 +29,8 @@ if (!JWT_SECRET && !IS_DEV) {
 const JWT_ACCESS_EXPIRY = process.env.JWT_ACCESS_EXPIRY || '2h';
 const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d';
 
-const signTokens = (user) => {
-  const token = jwt.sign(
-    { id: user.id, name: user.name, role: user.role || 'user', type: 'access' },
-    JWT_SECRET,
-    { expiresIn: JWT_ACCESS_EXPIRY }
-  );
-  const refreshToken = jwt.sign({ id: user.id, type: 'refresh' }, JWT_REFRESH_SECRET, {
-    expiresIn: JWT_REFRESH_EXPIRY,
-  });
-  return { token, refreshToken };
-};
+const sessions = require('../services/AuthSessionService');
+const signTokens = (user) => sessions.issue(user);
 
 const safeUser = (user) => {
   const { password: _, ...rest } = user;
@@ -136,7 +127,7 @@ const verify2fa = async (req, res, next) => {
     const isValid = otplib.verify(String(totp), secret);
     if (!isValid) return next(new AppError('TOTP 토큰이 일치하지 않습니다.', 400));
 
-    const { token, refreshToken } = signTokens(user);
+    const { token, refreshToken } = await signTokens(user);
     setTokenCookies(res, token, refreshToken);
     res.success({ token, refreshToken, user: safeUser(user) }, '2FA 인증이 완료되었습니다.');
   } catch (error) {
@@ -198,7 +189,7 @@ const register = async (req, res, next) => {
       logger.warn(`[Auth] 포인트 통합 실패 (user ${user.id}): ${err.message}`);
     });
 
-    const { token, refreshToken } = signTokens(user);
+    const { token, refreshToken } = await signTokens(user);
     setTokenCookies(res, token, refreshToken);
     res.created({ token, refreshToken, user: safeUser(user) }, '회원가입이 완료되었습니다.');
   } catch (error) {
@@ -249,7 +240,7 @@ const login = async (req, res, next) => {
       return res.success({ tempToken, two_factor_required: true }, '2FA 인증이 필요합니다.');
     }
 
-    const { token, refreshToken } = signTokens(user);
+    const { token, refreshToken } = await signTokens(user);
     setTokenCookies(res, token, refreshToken);
     res.success({ token, refreshToken, user: safeUser(user) }, '로그인 성공');
   } catch (error) {
@@ -365,14 +356,7 @@ const refreshToken = async (req, res, next) => {
     const clientToken = isCookieMode() ? req.cookies?.refreshToken : req.body?.refreshToken;
     if (!clientToken) return next(new AppError('리프레시 토큰이 필요합니다.', 400));
 
-    const decoded = jwt.verify(clientToken, JWT_REFRESH_SECRET);
-    if (decoded.type !== 'refresh')
-      return next(new AppError('유효하지 않은 토큰 타입입니다.', 401));
-
-    const user = await userRepository.findUnique(decoded.id);
-    if (!user) return next(new AppError('사용자를 찾을 수 없습니다.', 404));
-
-    const { token, refreshToken: newRefreshToken } = signTokens(user);
+    const { token, refreshToken: newRefreshToken } = await sessions.rotate(clientToken);
     setTokenCookies(res, token, newRefreshToken);
     res.success({ token, refreshToken: newRefreshToken }, '토큰이 갱신되었습니다.');
   } catch {
@@ -385,10 +369,17 @@ const refreshToken = async (req, res, next) => {
  * 쿠키 모드에서는 서버가 HttpOnly 쿠키를 제거해야 로그아웃이 완료된다.
  * (JS 가 HttpOnly 쿠키를 지울 수 없으므로)
  */
-const logout = async (req, res) => {
+const logout = async (req, res, next) => {
   const { clearTokenCookies } = require('../utils/tokenCookies');
+  try {
+    const access = req.cookies?.token || req.headers.authorization?.replace(/^Bearer /, '');
+    await sessions.revoke(access);
+    await sessions.revoke(req.cookies?.refreshToken || req.body?.refreshToken, 'refresh');
+  } catch {
+    return next(new AppError('로그아웃 처리에 실패했습니다. 다시 시도해 주세요.', 503));
+  }
   clearTokenCookies(res);
-  // JWT 는 무상태라 서버 측 무효화는 없고, 쿠키 제거 + 클라이언트 토큰 폐기로 완료한다.
+  // Server revocation precedes client cleanup; access and refresh share the session.
   res.success(null, '로그아웃되었습니다.');
 };
 

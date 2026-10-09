@@ -1,3 +1,6 @@
+jest.mock('../../../services/AuthSessionService', () => ({
+  verifyAccess: jest.fn(async (decoded) => decoded),
+}));
 const jwt = require('jsonwebtoken');
 const { isCookieMode } = require('../../../utils/tokenCookies');
 
@@ -12,7 +15,7 @@ const auth = require('../../../middleware/auth');
 describe('auth middleware', () => {
   let req, res, next;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     req = { cookies: {}, headers: {} };
     res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
@@ -20,23 +23,23 @@ describe('auth middleware', () => {
   });
 
   describe('authMiddleware', () => {
-    test('returns 401 when no token provided (no cookie, no Authorization header)', () => {
+    test('returns 401 when no token provided (no cookie, no Authorization header)', async () => {
       isCookieMode.mockReturnValue(false);
 
-      auth.authMiddleware(req, res, next);
+      await auth.authMiddleware(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: '인증 토큰이 필요합니다.' });
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('extracts token from Authorization header and calls next()', () => {
+    test('extracts token from Authorization header and calls next()', async () => {
       isCookieMode.mockReturnValue(false);
       const decoded = { id: 1, role: 'owner', name: '장사장', type: 'access' };
       jwt.verify.mockReturnValue(decoded);
       req.headers.authorization = 'Bearer valid-jwt-token';
 
-      auth.authMiddleware(req, res, next);
+      await auth.authMiddleware(req, res, next);
 
       expect(jwt.verify).toHaveBeenCalledWith('valid-jwt-token', 'test-secret', {
         algorithms: ['HS256'],
@@ -45,13 +48,13 @@ describe('auth middleware', () => {
       expect(next).toHaveBeenCalled();
     });
 
-    test('extracts token from cookie when isCookieMode is true', () => {
+    test('extracts token from cookie when isCookieMode is true', async () => {
       isCookieMode.mockReturnValue(true);
       const decoded = { id: 2, role: 'staff', type: 'access' };
       jwt.verify.mockReturnValue(decoded);
       req.cookies.token = 'cookie-jwt-token';
 
-      auth.authMiddleware(req, res, next);
+      await auth.authMiddleware(req, res, next);
 
       expect(jwt.verify).toHaveBeenCalledWith('cookie-jwt-token', 'test-secret', {
         algorithms: ['HS256'],
@@ -60,24 +63,24 @@ describe('auth middleware', () => {
       expect(next).toHaveBeenCalled();
     });
 
-    test('returns 401 when token type is refresh', () => {
+    test('returns 401 when token type is refresh', async () => {
       isCookieMode.mockReturnValue(false);
       jwt.verify.mockReturnValue({ type: 'refresh' });
       req.headers.authorization = 'Bearer refresh-token';
 
-      auth.authMiddleware(req, res, next);
+      await auth.authMiddleware(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: '액세스 토큰이 필요합니다.' });
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('returns 401 when token type is 2fa_pending', () => {
+    test('returns 401 when token type is 2fa_pending', async () => {
       isCookieMode.mockReturnValue(false);
       jwt.verify.mockReturnValue({ id: 1, role: 'super_admin', type: '2fa_pending' });
       req.headers.authorization = 'Bearer pending-token';
 
-      auth.authMiddleware(req, res, next);
+      await auth.authMiddleware(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: '액세스 토큰이 필요합니다.' });
@@ -85,18 +88,18 @@ describe('auth middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('returns 401 when token type is missing', () => {
+    test('returns 401 when token type is missing', async () => {
       isCookieMode.mockReturnValue(false);
       jwt.verify.mockReturnValue({ id: 1, role: 'super_admin' });
       req.headers.authorization = 'Bearer legacy-token';
 
-      auth.authMiddleware(req, res, next);
+      await auth.authMiddleware(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('returns 401 with TOKEN_EXPIRED when token is expired', () => {
+    test('returns 401 with TOKEN_EXPIRED when token is expired', async () => {
       isCookieMode.mockReturnValue(false);
       const err = new Error('jwt expired');
       err.name = 'TokenExpiredError';
@@ -105,7 +108,7 @@ describe('auth middleware', () => {
       });
       req.headers.authorization = 'Bearer expired-token';
 
-      auth.authMiddleware(req, res, next);
+      await auth.authMiddleware(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
@@ -115,39 +118,39 @@ describe('auth middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('returns 401 when token is invalid (generic JWT error)', () => {
+    test('returns 401 when token is invalid (generic JWT error)', async () => {
       isCookieMode.mockReturnValue(false);
       jwt.verify.mockImplementation(() => {
         throw new Error('invalid signature');
       });
       req.headers.authorization = 'Bearer bad-token';
 
-      auth.authMiddleware(req, res, next);
+      await auth.authMiddleware(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: '유효하지 않은 토큰입니다.' });
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('returns 401 when Authorization header is malformed (not Bearer)', () => {
+    test('returns 401 when Authorization header is malformed (not Bearer)', async () => {
       isCookieMode.mockReturnValue(false);
       req.headers.authorization = 'Token abc123';
 
-      auth.authMiddleware(req, res, next);
+      await auth.authMiddleware(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: '인증 토큰이 필요합니다.' });
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('prefers cookie over Authorization header when isCookieMode is true', () => {
+    test('prefers cookie over Authorization header when isCookieMode is true', async () => {
       isCookieMode.mockReturnValue(true);
       const decoded = { id: 3, role: 'super_admin', type: 'access' };
       jwt.verify.mockReturnValue(decoded);
       req.cookies.token = 'cookie-token';
       req.headers.authorization = 'Bearer header-token';
 
-      auth.authMiddleware(req, res, next);
+      await auth.authMiddleware(req, res, next);
 
       // Should have used the cookie value, not the header value
       expect(jwt.verify).toHaveBeenCalledWith('cookie-token', 'test-secret', {
@@ -158,69 +161,69 @@ describe('auth middleware', () => {
   });
 
   describe('optionalAuth', () => {
-    test('calls next() when no token present', () => {
+    test('calls next() when no token present', async () => {
       isCookieMode.mockReturnValue(false);
 
-      auth.optionalAuth(req, res, next);
+      await auth.optionalAuth(req, res, next);
 
       expect(req.user).toBeUndefined();
       expect(next).toHaveBeenCalled();
     });
 
-    test('sets req.user with valid token', () => {
+    test('sets req.user with valid token', async () => {
       isCookieMode.mockReturnValue(false);
       const decoded = { id: 1, role: 'owner', type: 'access' };
       jwt.verify.mockReturnValue(decoded);
       req.headers.authorization = 'Bearer valid-token';
 
-      auth.optionalAuth(req, res, next);
+      await auth.optionalAuth(req, res, next);
 
       expect(req.user).toEqual(decoded);
       expect(next).toHaveBeenCalled();
     });
 
-    test('skips setting req.user when token is refresh type', () => {
+    test('skips setting req.user when token is refresh type', async () => {
       isCookieMode.mockReturnValue(false);
       jwt.verify.mockReturnValue({ type: 'refresh' });
       req.headers.authorization = 'Bearer refresh-token';
 
-      auth.optionalAuth(req, res, next);
+      await auth.optionalAuth(req, res, next);
 
       expect(req.user).toBeUndefined();
       expect(next).toHaveBeenCalled();
     });
 
-    test('skips setting req.user when token is 2fa_pending type', () => {
+    test('skips setting req.user when token is 2fa_pending type', async () => {
       isCookieMode.mockReturnValue(false);
       jwt.verify.mockReturnValue({ id: 1, role: 'super_admin', type: '2fa_pending' });
       req.headers.authorization = 'Bearer pending-token';
 
-      auth.optionalAuth(req, res, next);
+      await auth.optionalAuth(req, res, next);
 
       expect(req.user).toBeUndefined();
       expect(next).toHaveBeenCalled();
     });
 
-    test('silently ignores invalid/expired token and calls next()', () => {
+    test('silently ignores invalid/expired token and calls next()', async () => {
       isCookieMode.mockReturnValue(false);
       jwt.verify.mockImplementation(() => {
         throw new Error('bad token');
       });
       req.headers.authorization = 'Bearer bad-token';
 
-      auth.optionalAuth(req, res, next);
+      await auth.optionalAuth(req, res, next);
 
       expect(req.user).toBeUndefined();
       expect(next).toHaveBeenCalled();
     });
 
-    test('extracts token from cookie when isCookieMode is true', () => {
+    test('extracts token from cookie when isCookieMode is true', async () => {
       isCookieMode.mockReturnValue(true);
       const decoded = { id: 5, role: 'staff', type: 'access' };
       jwt.verify.mockReturnValue(decoded);
       req.cookies.token = 'cookie-token';
 
-      auth.optionalAuth(req, res, next);
+      await auth.optionalAuth(req, res, next);
 
       expect(req.user).toEqual(decoded);
       expect(next).toHaveBeenCalled();
@@ -228,7 +231,7 @@ describe('auth middleware', () => {
   });
 
   describe('adminOnly', () => {
-    test('calls next() when user role is super_admin', () => {
+    test('calls next() when user role is super_admin', async () => {
       req.user = { role: 'super_admin' };
 
       auth.adminOnly(req, res, next);
@@ -237,7 +240,7 @@ describe('auth middleware', () => {
       expect(res.status).not.toHaveBeenCalled();
     });
 
-    test('returns 403 when user role is owner', () => {
+    test('returns 403 when user role is owner', async () => {
       req.user = { role: 'owner' };
 
       auth.adminOnly(req, res, next);
@@ -247,7 +250,7 @@ describe('auth middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('returns 403 when user role is staff', () => {
+    test('returns 403 when user role is staff', async () => {
       req.user = { role: 'staff' };
 
       auth.adminOnly(req, res, next);
@@ -256,7 +259,7 @@ describe('auth middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('returns 403 when user role is user', () => {
+    test('returns 403 when user role is user', async () => {
       req.user = { role: 'user' };
 
       auth.adminOnly(req, res, next);
@@ -265,7 +268,7 @@ describe('auth middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('returns 403 when req.user is not set', () => {
+    test('returns 403 when req.user is not set', async () => {
       auth.adminOnly(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(403);
@@ -274,24 +277,24 @@ describe('auth middleware', () => {
   });
 
   describe('refreshTokenAuth', () => {
-    test('access 토큰이어도 refresh 토큰인 경우 401 반환', () => {
+    test('access 토큰이어도 refresh 토큰인 경우 401 반환', async () => {
       isCookieMode.mockReturnValue(false);
       jwt.verify.mockReturnValue({ type: 'refresh' });
       req.headers.authorization = 'Bearer access-looks-like-refresh';
 
-      auth.authMiddleware(req, res, next);
+      await auth.authMiddleware(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: '액세스 토큰이 필요합니다.' });
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('refresh 토큰 단독으로 인증 시도 시 401 반환', () => {
+    test('refresh 토큰 단독으로 인증 시도 시 401 반환', async () => {
       isCookieMode.mockReturnValue(false);
       jwt.verify.mockReturnValue({ type: 'refresh' });
       req.headers.authorization = 'Bearer pure-refresh-token';
 
-      auth.authMiddleware(req, res, next);
+      await auth.authMiddleware(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: '액세스 토큰이 필요합니다.' });

@@ -19,7 +19,13 @@ const CRITICAL_CONTRACTS = [
 const APP_ENTRY_FILES = ['app.js', 'app.mts'];
 
 const validateApiContract = ({ root = ROOT } = {}) => {
-  const entryFile = APP_ENTRY_FILES.find((name) => fs.existsSync(path.join(root, name)));
+  const entryFile = APP_ENTRY_FILES.find((name) => {
+    try {
+      return fs.statSync(path.join(root, name)).isFile();
+    } catch {
+      return false;
+    }
+  });
   if (!entryFile) throw new Error(`app entry file not found in ${root}`);
   const appContent = fs.readFileSync(path.join(root, entryFile), 'utf8');
   const failures = [];

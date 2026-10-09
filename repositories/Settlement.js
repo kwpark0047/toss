@@ -56,8 +56,8 @@ const Settlement = {
     }
 
     // 매장 설정에서 수수료율·부가세율 읽기
-    const store = await prisma.stores.findUnique({
-      where: { id: parseInt(store_id) },
+    const store = await prisma.store_settlement_config.findUnique({
+      where: { store_id: parseInt(store_id) },
       select: { commission_rate: true, vat_rate: true },
     });
     const commissionRate = store?.commission_rate ?? 0.03;
@@ -65,7 +65,7 @@ const Settlement = {
 
     // 장부 데이터 집계 (결제수단별 분리)
     const stats = await prisma.ledger.groupBy({
-      by: ['type', 'method'],
+      by: ['type', 'method', 'amount'],
       where: {
         store_id: parseInt(store_id),
         created_at: { gte: start, lte: end },

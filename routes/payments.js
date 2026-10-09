@@ -199,7 +199,7 @@ router.post('/order/:orderId/cancel', authMiddleware, paymentController.cancelBy
 router.post(
   '/order/:orderId/partial-cancel',
   authMiddleware,
-  idempotency({ namespace: 'payments:partial-cancel', required: true }),
+  idempotency({ namespace: 'payments:partial-cancel', required: true, domainOwned: true }),
   paymentController.partialCancel
 );
 

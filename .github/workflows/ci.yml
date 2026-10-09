@@ -118,7 +118,7 @@ jobs:
         run: npx prisma generate
 
       - name: Run backend unit tests
-        run: npx jest --config jest.config.js tests/unit/ --no-cache --forceExit
+        run: node scripts/run-jest.cjs --config jest.config.js tests/unit/ --no-cache
       - name: Store integration PostgreSQL regression
         run: |
           node scripts/test-store-integrations-postgres.cjs
@@ -131,6 +131,45 @@ jobs:
           name: unit-coverage
           path: coverage/
           retention-days: 3
+
+  financial-postgres-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: audit
+          POSTGRES_PASSWORD: audit-local-only
+          POSTGRES_DB: wemarket_p0_schema_test
+        ports: [55438:5432]
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql://audit:audit-local-only@127.0.0.1:55438/wemarket_p0_schema_test
+      DIRECT_URL: postgresql://audit:audit-local-only@127.0.0.1:55438/wemarket_p0_schema_test
+      P0_TEST_DATABASE_URL: postgresql://audit:audit-local-only@127.0.0.1:55438/wemarket_p0_schema_test
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --prefer-offline --no-audit --no-fund
+      - run: node scripts/deploy-migrations.cjs --apply
+      - run: npx prisma generate
+      - name: Actual PostgreSQL financial, session and canonical gates
+        run: |
+          node --import tsx --test tests/database/refunds-postgres.test.cjs
+          node --test tests/database/auth-sessions-postgres.test.cjs
+          node --test tests/database/billing-fencing-postgres.test.cjs
+          node --import tsx --test tests/database/webhook-inbox-postgres.test.cjs
+          node --test tests/database/canonical-sync-postgres.test.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: financial-postgres-evidence
+          path: reports/
 
   backend-regression-tests:
     runs-on: ubuntu-latest
@@ -158,7 +197,7 @@ jobs:
         run: npx prisma generate
 
       - name: Run regression tests
-        run: npx jest --config jest.config.js tests/regression/ --no-cache --forceExit
+        run: node scripts/run-jest.cjs --config jest.config.js tests/regression/ --no-cache
 
       - name: Upload regression test coverage
         uses: actions/upload-artifact@v4
@@ -247,7 +286,6 @@ jobs:
 
   # === 수동/스케줄 트리거 잡 (push/PR에서는 실행 안 함) ===
   backend-integration-tests:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: backend-unit-tests
@@ -282,16 +320,18 @@ jobs:
         run: npx prisma generate
 
       - name: Run database migrations
-        run: npx prisma migrate deploy
+        run: node scripts/deploy-migrations.cjs --apply
 
       - name: Seed test database
-        run: node scripts/seed_test.js || true
+        run: node scripts/seed_test.js
 
       - name: Run integration tests (mocked, fast)
-        run: npx jest --config jest.config.integration.js --no-cache --forceExit --verbose
+        run: node scripts/run-jest.cjs --config jest.config.integration.js --no-cache --verbose
 
-      - name: Run integration tests (with real DB)
-        run: npx jest --config jest.config.js tests/integration/ --no-cache --forceExit --verbose --testTimeout=60000
+      - name: Real PostgreSQL importer and AI approval regression
+        run: |
+          node scripts/test-store-integrations-postgres.cjs
+          node scripts/test-store-manager-postgres.cjs
 
       - name: Upload integration test coverage
         uses: actions/upload-artifact@v4
@@ -302,7 +342,14 @@ jobs:
           retention-days: 3
 
   e2e-tests:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+      DIRECT_URL: postgresql://test:test@localhost:5432/wemarket_test
+      NODE_ENV: test
+      JWT_SECRET: test-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
+      TOSS_SECRET_KEY: test_sk_fixture_only
+      SMS_ENV: dev
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: [backend-integration-tests, frontend-test]
@@ -333,10 +380,10 @@ jobs:
         run: npx prisma generate
 
       - name: Run database migrations
-        run: npx prisma migrate deploy
+        run: node scripts/deploy-migrations.cjs --apply
 
       - name: Seed test database
-        run: node scripts/seed_test.js || true
+        run: node scripts/seed_test.js
 
       - name: Start backend server
         run: |
@@ -439,6 +486,9 @@ jobs:
         frontend-test,
         frontend-browser-smoke,
         security-scan,
+        backend-integration-tests,
+        financial-postgres-tests,
+        e2e-tests,
       ]
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -456,7 +506,8 @@ jobs:
           if [ -n "$RENDER_DEPLOY_HOOK_URL" ]; then
             curl -f -X POST "$RENDER_DEPLOY_HOOK_URL"
           else
-            echo "::warning::RENDER_DEPLOY_HOOK_URL is not configured; skipped Render deploy (Render still auto-deploys on push to main if Git-connected)"
+            echo "::error::RENDER_DEPLOY_HOOK_URL is required for a verified production deployment"
+            exit 1
           fi
 
       - name: Deploy to Vercel (frontend, production)
@@ -468,16 +519,18 @@ jobs:
           VITE_SOCKET_URL: https://wemarket.onrender.com
         run: |
           if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
-            echo "::warning::Vercel secrets (VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID) are not all configured; skipped Vercel production deploy. Add them to repo secrets and re-run to deploy."
-            echo "deployed=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "::error::Vercel production deployment secrets are required"
+            exit 1
           fi
-          cd frontend && npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
+          node scripts/validate-deployment-target.cjs
+          cd frontend && npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN" --build-env APP_COMMIT_SHA="$GITHUB_SHA"
           echo "deployed=true" >> "$GITHUB_OUTPUT"
 
       - name: Smoke test (backend + frontend)
         if: steps.vercel-deploy.outputs.deployed == 'true'
-        run: node scripts/smoke-deploy.js --backend=https://wemarket.onrender.com --frontend=https://wemarket.vercel.app
+        env:
+          EXPECTED_COMMIT_SHA: ${{ github.sha }}
+        run: node scripts/smoke-deploy.js
 
   # Docker build and security scan (스케줄/수동만)
   docker-build:

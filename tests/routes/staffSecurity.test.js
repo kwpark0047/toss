@@ -1,5 +1,10 @@
 // Staff 라우트 테넌트 인가 테스트 — 타 매장 사용자의 접근을 차단하는지 검증
 const express = require('express');
+// This route matrix isolates authorization from session storage; actual revocation
+// and primary-role reads are covered by auth-sessions-postgres.test.cjs.
+jest.mock('../../services/AuthSessionService', () => ({
+  verifyAccess: jest.fn(async (decoded) => decoded),
+}));
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
 

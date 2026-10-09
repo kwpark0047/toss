@@ -1,0 +1,850 @@
+{
+  "baseline": "7d0c93fd69454bf46755038bb1e8a1180ffdb476",
+  "branch": "codex/release-candidate-20261009",
+  "scope": "Changed source/document/test files; unchanged source is anchored by baseline. Manifest itself excluded.",
+  "publication": "local RC; no push or deployment",
+  "staging_verified": false,
+  "production_verified": false,
+  "changed_files": [
+    {
+      "file": ".github/workflows/ci.yml",
+      "worktree_sha256": "114bc8dc8b22ba934be7506ca2570b87caa2c87dc6a7b287a1daf76ad473816c",
+      "index_blob": "2f65a1b1a6e738b6751761a3100418ca3f44ba79"
+    },
+    {
+      "file": "FINAL_PRODUCTION_READINESS_REPORT.md",
+      "worktree_sha256": "466bb8fae8669edce4dd4e4f721adfe8e491d0bf184abbc04d708c2b6e842da7",
+      "index_blob": "80dbe6578eeeaf57be56e6b930431e43072ef573"
+    },
+    {
+      "file": "PRODUCTION_P0_REMEDIATION_REPORT.md",
+      "worktree_sha256": "1827e14586a943318bc725281e141417db7ba85c4c36dc7b0fb5ca64648872f4",
+      "index_blob": "64c7fbb451674808cb7f0541c284f1d205bc9354"
+    },
+    {
+      "file": "PRODUCTION_READINESS_AUDIT.md",
+      "worktree_sha256": "e2155865d097b617781b0e8696618e7fecca374d4275f0bf225eda4be7a5a411",
+      "index_blob": "e2e69ff181cf444669ca26e1af0bc6bafc28ff43"
+    },
+    {
+      "file": "PRODUCTION_RELEASE_REMEDIATION_REPORT.md",
+      "worktree_sha256": "a2f0caf17b9bb57d3864c0f27812c225d2dcecfd133139a33409e310febc5a98",
+      "index_blob": "8512f603421efa4d6ce9553a4039309e4aa433df"
+    },
+    {
+      "file": "PRODUCTION_REMEDIATION_P0_P1.md",
+      "worktree_sha256": "fa6205351e632f7dcd8510c89fb687da70325953daa3f0fba6ecb14986bd9533",
+      "index_blob": "7ade1af4d2f247326ff565b31f87d1337989a9e7"
+    },
+    {
+      "file": "PROJECT_PROGRESS_REVIEW_2026-10-09.md",
+      "worktree_sha256": "8664f74cf8063f0e1cfacca1bab30d51caa2848b16313306919c44c06b8a2710",
+      "index_blob": "61dec0abfa279ea43ec9b40df092b292c5ade57a"
+    },
+    {
+      "file": "RELEASE_SEQUENCE_STATUS_2026-10-09.md",
+      "worktree_sha256": "3a493e7ce97b583bd888534d7e1e9df82a605927d109d0734abfe83d1ede3fe5",
+      "index_blob": "82c2340027954aeb002499b7b1012f74f2869848"
+    },
+    {
+      "file": "app.mts",
+      "worktree_sha256": "9d722b21e2b5a33e8e410f041186a4e893acbaa690e7d29a23c208575c069ef6",
+      "index_blob": "5e1c27573915566f35604943a137c6162c879179"
+    },
+    {
+      "file": "config/corsHeaders.js",
+      "worktree_sha256": "920b730f2da8bf8369cf20f08e183b17126ba2b091aba73e4f15b4c96d473905",
+      "index_blob": "c09c26b77606f2473e89a707abd4efd322594678"
+    },
+    {
+      "file": "config/deployment-targets.json",
+      "worktree_sha256": "2eb9f44f67653e0db42ed97c4672e1d7a6b117660e0c17a48dc353e8bdfd314d",
+      "index_blob": "f2475452c1a9d3457b2ebc615d630f236406388d"
+    },
+    {
+      "file": "config/prisma.js",
+      "worktree_sha256": "cb572af3e8b6197e16f517a698268597382ddd3cf5eda505b715de93a9968a47",
+      "index_blob": "c5be7a436efde5d60c76712eb63e57cce8a05422"
+    },
+    {
+      "file": "controllers/aiController.js",
+      "worktree_sha256": "64b68cb4bd642cb1083f42e3f33ee9a68d0f71848281ffbf1b6a9ce33ae9accf",
+      "index_blob": "515257f483e67212293c78065ab45a0707d7e77c"
+    },
+    {
+      "file": "controllers/authController.js",
+      "worktree_sha256": "93ef791cb86a70177134117fe2a55a3373b99326b9b1e51323c1ced6415cfc9a",
+      "index_blob": "83a17bc6386fcf2eb3da8a47115883ae8ad4292e"
+    },
+    {
+      "file": "controllers/orderController.js",
+      "worktree_sha256": "d498c67f641312b1389adac78bc209782f9abd26cc43afeaa39efd5aa851d455",
+      "index_blob": "6ca08e4c79ff09d88b2c16b04801cffe251fdde2"
+    },
+    {
+      "file": "controllers/paymentController.js",
+      "worktree_sha256": "a1a29148b78cc0427b039f27303b4e24abb999d0fca10f24f00b4f6bf5a62165",
+      "index_blob": "0d1286f6f10c40b0d4ac80650bd183f62ca20601"
+    },
+    {
+      "file": "controllers/waitingController.js",
+      "worktree_sha256": "5f30bb952b0d3b3ef163e1182100f0ffbf7ae7b00ede34e75f4f029745ada34c",
+      "index_blob": "dcf119e0f7a02cedbd5c6d313cf5a08d91d16ea0"
+    },
+    {
+      "file": "docs/COMMERCIAL_RELIABILITY_2026-10-08.md",
+      "worktree_sha256": "2b63917a7715bfb6a7e248e2b9553396bb76e683eb19f62fd1ef725e357b64db",
+      "index_blob": "517b7e837e746b9f1db401e3f22d4635d65cd900"
+    },
+    {
+      "file": "docs/EXTERNAL_INTEGRATION_PRODUCTION.md",
+      "worktree_sha256": "a4fafee682bf9bd739150cd7d5acc40f73e364fe2269ba5b7f72d61af0a5ba19",
+      "index_blob": "224761c9de886e3612773205c2748da3d13a6b17"
+    },
+    {
+      "file": "docs/RC_STAGING_VALIDATION_RUNBOOK.md",
+      "worktree_sha256": "734faeb670d12c369ba85b3b341381bef9488bcaed214528b464de753b8327b3",
+      "index_blob": "2b494463575c974d700dbcc54ebfa01d5416b991"
+    },
+    {
+      "file": "frontend/index.html",
+      "worktree_sha256": "c65239f80bbe5486fbd5f3802dc97214bef97d7938677b476f294ac6ec5ee75e",
+      "index_blob": "585555fc21343e39a9198d4b47fcb3879d3c2a41"
+    },
+    {
+      "file": "frontend/public/sw-sync.js",
+      "worktree_sha256": "ab410a2fca40ed453ff4298347cb86172ea736eea7603cf9c317dd8e4d87a9ae",
+      "index_blob": "fcc1bfeb6694d24d8486554e9aef99c0620accae"
+    },
+    {
+      "file": "frontend/src/api/auth.js",
+      "worktree_sha256": "cd175353045517612dfa44fcd1161daff05f22fb9930dd01de9ed6a066edbcdd",
+      "index_blob": "5a635270b380cb9d753ba30c912b3165b6afbc0a"
+    },
+    {
+      "file": "frontend/src/api/client.js",
+      "worktree_sha256": "2932e93fab25ed04c68f4cdac5ce43e517a44d5b873088ad7296d0b6bbc7632c",
+      "index_blob": "69f30ea11bb66a63920d6675653e295e68ef22a5"
+    },
+    {
+      "file": "frontend/src/api/integrations.js",
+      "worktree_sha256": "b3fef09d8dc175c7d9079b5a6e30e7f2d89d4e39fe583491b552a0184a02ca7b",
+      "index_blob": "d5c4a5d661b2b59d206e66716c195c886c53a32e"
+    },
+    {
+      "file": "frontend/src/api/orders.js",
+      "worktree_sha256": "e8637c5fb6337a559540aaf510097eff8053000ccba665bdb2c08def40080202",
+      "index_blob": "6eeeb1530afe032813c261961fc7a99a955c2626"
+    },
+    {
+      "file": "frontend/src/components/Layout.jsx",
+      "worktree_sha256": "0524311d40a820972fc2de3016749cb733222879993526245c35bb957ac767b0",
+      "index_blob": "8402ca9d5b2a2005b4c39126e9de2b840cfc5629"
+    },
+    {
+      "file": "frontend/src/components/admin/AdminLayout.jsx",
+      "worktree_sha256": "e5cb27dfac42c286668ae4a5114441b18999b99234fe3c568f861e30b1cdcd44",
+      "index_blob": "62bd5c7e796a921164527fff24a5602e21d7a914"
+    },
+    {
+      "file": "frontend/src/components/admin/StoreIntegrationCenter.jsx",
+      "worktree_sha256": "1eb5d427b362f6f9489eedc3fc2bda38536ad85b15d65fcf9105abb6f380d811",
+      "index_blob": "c00e368454a5751510818c82b9899262ecc76475"
+    },
+    {
+      "file": "frontend/src/components/customer/OrderHistory.jsx",
+      "worktree_sha256": "2bacb4183edd4af601c691a00ec076ce2bce210618d4b46315b0b0368ff85e72",
+      "index_blob": "aef2274456d4436b1c170f0279c07f425f9ca825"
+    },
+    {
+      "file": "frontend/src/contexts/AuthContext.jsx",
+      "worktree_sha256": "36e6253f413714eb08805b5036a0aadd5755d0a49e8f4da51354ba89befd78e6",
+      "index_blob": "33184210f90bf6a072dee90d9467c66a6a752013"
+    },
+    {
+      "file": "frontend/src/lib/authSession.js",
+      "worktree_sha256": "78f26f4ff887e8d3f59deedfb318f3ca9d893c72fccd4ad16c57b8634def5e28",
+      "index_blob": "258c5cf17b91b11f62bab3976e6481f64a57bcdc"
+    },
+    {
+      "file": "frontend/src/lib/authSession.test.js",
+      "worktree_sha256": "c28c74fbf88a96f258e716766792abaa3f96d04f4a75ca31e91be395113e424d",
+      "index_blob": "c4112301e0bd20cb67af8b55a9b374d6f2e70734"
+    },
+    {
+      "file": "frontend/src/test/auth-client.test.js",
+      "worktree_sha256": "cf2cce4b8b9e780db89d8aa5ccf996c53060e996d6122b7e964fe7f8f840b516",
+      "index_blob": "3ffa5d579922c021a89734afe62354c2427c7f50"
+    },
+    {
+      "file": "frontend/src/test/order-history-capability.test.js",
+      "worktree_sha256": "50a1d8d9ab1e6a49dac7c24475a9552c4ac7cf868de5674b506c8dcbc91f5e46",
+      "index_blob": "cca07852ec1d4b936997724ef28f4bda44555b3c"
+    },
+    {
+      "file": "frontend/vite.config.js",
+      "worktree_sha256": "38abdbc2beb933de92292710fd732a27d5e739388065e504f914156917e48c1d",
+      "index_blob": "c7ed52227d6da4baec1f32a072077227bc14dfa2"
+    },
+    {
+      "file": "handlers/subscriptionWebhook.js",
+      "worktree_sha256": "213d6c49f2169ad2da8a3025a6aac3d7e0435081b86d91134a1b8356a32c3820",
+      "index_blob": "2b3a4915f5aeab017f73eb34db0aa5ae235a0380"
+    },
+    {
+      "file": "index.mts",
+      "worktree_sha256": "6149a6cc657c5c192319795a8049767d531474250babc793a55ca57a07727a1f",
+      "index_blob": "9b10461ec313e176ea74f9d491cca51e7296f82d"
+    },
+    {
+      "file": "jest.config.integration.js",
+      "worktree_sha256": "08d3307f1fbd90bf629180ba34efa16ad3567c5b8228736f2bf3a3f1cc4cb6cc",
+      "index_blob": "894a45021f91fd01dbb29258d23dc578a1369df8"
+    },
+    {
+      "file": "jest.config.js",
+      "worktree_sha256": "9a951f7274e53852ccac71bf4e37726d09433730f3a9d299ccbc3b310fea78b9",
+      "index_blob": "0991a511229f8e1da522da791c6010ee42e3c9bd"
+    },
+    {
+      "file": "middleware/auth.js",
+      "worktree_sha256": "17439d30153fea212197b8d1d2c14820fa9ebda0b1fa07f2e3ceb5998f469781",
+      "index_blob": "1510b90c378106f6539f81adb11d66b45206aaa9"
+    },
+    {
+      "file": "middleware/customerIdentity.js",
+      "worktree_sha256": "02d53716de6c84df144becfd6e5cadc149148935ef1e759d3a30e32aa0ae14dc",
+      "index_blob": "56342f6230c1f3222e2f835b74ec42b7f47265e8"
+    },
+    {
+      "file": "middleware/idempotency.js",
+      "worktree_sha256": "0ae1279be061dd263a7d4751721a3d13f4b27852d62cfe3f22b26305c8acaa47",
+      "index_blob": "e44495710bfbe4bf9e5f74c28733714d6926dc07"
+    },
+    {
+      "file": "package.json",
+      "worktree_sha256": "5f874fe7c83672dfab8205f35defb6ac232307ba816b9950a85ea15313f26bec",
+      "index_blob": "dcef34d2e19f0f6499904e4fd11e993858a44e42"
+    },
+    {
+      "file": "prisma/migrations/20260809_add_subscription_plan_models/migration.sql",
+      "worktree_sha256": "71c37624e526451014f9d17a1f5e0b7dd032b395a3a68a546a5f71fe283b7668",
+      "index_blob": "368fb3a5d800344cf5ec0a2adf5867b9814f92c7"
+    },
+    {
+      "file": "prisma/migrations/20260828000000_split_stores_model/migration.sql",
+      "worktree_sha256": "bf36f72536bed7cd8903dd4fa70261b4528d6e2306bc474a59cfc6778d18714f",
+      "index_blob": "e5c759c902929a24d148d0fe25915850e2529936"
+    },
+    {
+      "file": "prisma/migrations/20261008010000_durable_refunds/migration.sql",
+      "worktree_sha256": "05d675a1ac0395c602e23380030bae0d5d050315f4ac992543f59f6d3decc36b",
+      "index_blob": "c0ffc5f3580add57a801b59e52e25731f4fe6dbb"
+    },
+    {
+      "file": "prisma/migrations/20261008020000_canonical_sync/migration.sql",
+      "worktree_sha256": "277394ae2b321b29ca3667e229a2f93db96d72984fd7f09c1af0db7cb5e5f530",
+      "index_blob": "69e7fde7671c222aba21baf9a2c6933dc622d04b"
+    },
+    {
+      "file": "prisma/migrations/20261009010000_p0_identity_compensation/migration.sql",
+      "worktree_sha256": "9e7d4e699f2c07754d67b27d06e269c6b2c4e85d020a029d78be8ecf7f6b6e2f",
+      "index_blob": "f3d4f8ce70f48c22ff5273f32ac59d2a5b2f1fd0"
+    },
+    {
+      "file": "prisma/migrations/20261009020000_auth_sessions/migration.sql",
+      "worktree_sha256": "a95b6e18b00c77c71d301b7ce773e2cfedb1aef77cacdfdcf97d4287ebd3a034",
+      "index_blob": "7b2c3e6085d866c184e2f9fd2a2b71f10c41c1a6"
+    },
+    {
+      "file": "prisma/migrations/20261009030000_payment_webhook_inbox/migration.sql",
+      "worktree_sha256": "9432920677dfd1e5c6e6e17d653ab5f7e9e111f1273d797a432b8bc3f676296f",
+      "index_blob": "48fd14a7b3ce7afa662d72c43cba3124dd03a587"
+    },
+    {
+      "file": "prisma/schema.prisma",
+      "worktree_sha256": "c0fdad8f6ed02f0846305a4b688d1e5910344fd4275cfa32027cfc27f518524e",
+      "index_blob": "4aac1acc9ce7ab0e858724d80170adbd6324814f"
+    },
+    {
+      "file": "render.yaml",
+      "worktree_sha256": "f8cdcceddaefeb25594683de63cd09bdd85b67672cc6a81cc0ec068bf63df036",
+      "index_blob": "f0828f39e64f186d888b58becd979a03a79bc98e"
+    },
+    {
+      "file": "repositories/Ledger.js",
+      "worktree_sha256": "2bddf01397396dbebb19e85a949de1b8e31ac823e80f7f45ca746e53e9ee4ee7",
+      "index_blob": "c385242db97743229b14cbf2eb2ce7b22c6ba465"
+    },
+    {
+      "file": "repositories/Order.js",
+      "worktree_sha256": "e559e260f5a744c060bcfe03106af26dd62c5f32153e4085c95e2ec12bb46f66",
+      "index_blob": "dcb8b7e96bc905d981abfc934e74165bfa744e46"
+    },
+    {
+      "file": "repositories/Settlement.js",
+      "worktree_sha256": "0e8d70eb50167ac760baaa0103066669e0e3a0736cd53dc0aace45633c783742",
+      "index_blob": "64b08c695c2c85d8525510ca72bc92ae4ee86948"
+    },
+    {
+      "file": "routes/ai.js",
+      "worktree_sha256": "50bb7d3d02052a19c4c4a93eaf9e0f5ccff8c8c5e9df15c618d62d1a056dc5ed",
+      "index_blob": "a5466d7a8ed7e738e32230262ba38ee2c2b26aa5"
+    },
+    {
+      "file": "routes/health.mts",
+      "worktree_sha256": "e4bb8d932fdc8fe91ad53aa9a9a4a229b317296b67879f116258e6f5fcda8cd4",
+      "index_blob": "0fb612f31efcd833d53b72a2174d40d66354868e"
+    },
+    {
+      "file": "routes/integrations.js",
+      "worktree_sha256": "3f213dd9570cf08fc98322024bc22bd18970e647d9d64ade73ca6d9c824b7814",
+      "index_blob": "2c5f03a16450b0ace75bbe7c31463ebf38e0353c"
+    },
+    {
+      "file": "routes/payments.js",
+      "worktree_sha256": "799a1d60d44aec44622f331ef18154ec1549b12ab4d0f150bbc4bb3486ef1ea8",
+      "index_blob": "ecd7101ab9cd866c792485c65083cb9b3a89aeb3"
+    },
+    {
+      "file": "routes/waiting.js",
+      "worktree_sha256": "fbfbaeea13ad322512e3beca7bc6f028e1e41168946e72165781a5032d8a4012",
+      "index_blob": "e696b6bac524193a4e2af598807162e1a3cb274f"
+    },
+    {
+      "file": "scripts/apply-canonical-sync-migration.cjs",
+      "worktree_sha256": "acb80b2de24f8054924542548cae516ddeadd62cebe9e97964e90d54734170d3",
+      "index_blob": "27056f7eb4087bf2593707ae03ee286c2571c69a"
+    },
+    {
+      "file": "scripts/apply-provider-credentials-migration.cjs",
+      "worktree_sha256": "4b6639b79cef06add6a119431f2aecee95d8ecb27d70bad0388822b01a5f119c",
+      "index_blob": "c46030fda99aa4a2ff49c091f9c116e2e08f2894"
+    },
+    {
+      "file": "scripts/audit-data-pipelines.cjs",
+      "worktree_sha256": "35d2353bd510cb8ba2c612b23b89add349f757c7f9a3e1190c99772d31a05ab0",
+      "index_blob": "f0e480569a34baed48983d66652ec5d1cffca215"
+    },
+    {
+      "file": "scripts/deploy-migrations.cjs",
+      "worktree_sha256": "b3aae62ec0efd61121daf47f2a4ba8209dcab3049a2fead57996e42d3ea1a2de",
+      "index_blob": "f98d5d592dd13321d90324a6e204e049402797cf"
+    },
+    {
+      "file": "scripts/operations-worker.cjs",
+      "worktree_sha256": "608fd97e48d5152fed9ecf72c479a217eddcb985dd0df8859084850ae8f35510",
+      "index_blob": "cb17f8d84d0c8d7de10061a8a52f99235d79080f"
+    },
+    {
+      "file": "scripts/reconcile-refunds-readonly.cjs",
+      "worktree_sha256": "858bb77c087b45f1a3c3dff916e982a4e0489f810fa7f5e04537c56589885241",
+      "index_blob": "4b279de40e625ba1c9b4dc1ba25d5c30b7249f7a"
+    },
+    {
+      "file": "scripts/run-jest.cjs",
+      "worktree_sha256": "5b24cd77134f0cf86eff0f092f300531fd5d9ea36c6b037661e2e18101c0a039",
+      "index_blob": "005cc17f6663dda90aedeff286a83802602c90f3"
+    },
+    {
+      "file": "scripts/seed_test.js",
+      "worktree_sha256": "aa2c908cb1727aa48ea526282139974ae502b34274fcdc4feb871d471ffc7f5c",
+      "index_blob": "53e8e21fd35f9178fcef6c731456952b11247c8c"
+    },
+    {
+      "file": "scripts/smoke-deploy.js",
+      "worktree_sha256": "79827085569d5606c0c01a8b49c47d9fefb1dbfcf0af025bed8624739e07eac4",
+      "index_blob": "65ef12194e64aeb09e23373933a2ff4e765af800"
+    },
+    {
+      "file": "scripts/test-refund-recovery-child.cjs",
+      "worktree_sha256": "f4b7d34662d296858417041910d89a75f99b7a8b3b7180c4bd051d705ebbf608",
+      "index_blob": "1753de7858a3b734dd6c9bf9a497abbf30b5d66b"
+    },
+    {
+      "file": "scripts/test-store-manager-postgres.cjs",
+      "worktree_sha256": "cde3f29ac127a45aec0c71606908c882e30ff9267357c78f9e1bd9c0d696047d",
+      "index_blob": "f9eadfbf05897ccc3a2a085556e15448502f4128"
+    },
+    {
+      "file": "scripts/validate-api-contract.js",
+      "worktree_sha256": "720db62c529ace9181ec09bb361300d7951dc30881cc46addef1d3b26bc6e161",
+      "index_blob": "7ef888399a5942dae4e2f4ae659a16f37668a940"
+    },
+    {
+      "file": "scripts/validate-deployment-target.cjs",
+      "worktree_sha256": "b4a5823d1c941122d6460833cda9c571ad8dc9818bb71ef1c497f336e4cd38d8",
+      "index_blob": "5be7ffbbe0eb9609c0a96d0ab3aa421b4f11daa2"
+    },
+    {
+      "file": "services/AuthSessionService.js",
+      "worktree_sha256": "29543344281f5915cfe071dc3658fe76fcff172e065239ba058176a8aa135ab6",
+      "index_blob": "185b073ff9df43eb02cbec045236f4e8626b329a"
+    },
+    {
+      "file": "services/CustomerPreferenceService.js",
+      "worktree_sha256": "b977b218d1836021200d0ff6fbd35b97fdf6c5ca2c85008f2912c2e9f47d5c6d",
+      "index_blob": "75d69d7587c0c0fac986f9e3012b3c899f1daa6d"
+    },
+    {
+      "file": "services/LedgerService.js",
+      "worktree_sha256": "a59db27c951594b7f4edcdbc3ae7ee25446fae8a278241c8097cf33de8e80676",
+      "index_blob": "30e18d21ae7c8ac09dda2909a1de8879ca9d7f99"
+    },
+    {
+      "file": "services/PaymentCompensationService.js",
+      "worktree_sha256": "2729c9f6565c51c1f705392d2c4f0bb55c266b3495f0c2ebc0521517318d4186",
+      "index_blob": "731266e817e310889db05e352d11bd0b4570d9e9"
+    },
+    {
+      "file": "services/PaymentService.js",
+      "worktree_sha256": "06345b60938e4117b7924435d520f177f23f41df7a211040c900c35c6b8b0101",
+      "index_blob": "bc41b8c9da2f47692946a5ca24db1f1d29640630"
+    },
+    {
+      "file": "services/PaymentWebhookInbox.js",
+      "worktree_sha256": "17ce57612062aa47e2faa6b6f34f941cbc86064d18ea974ae928f2384e9b62a5",
+      "index_blob": "025a82fc26d44188e94bd2bec7b2d59665ab1527"
+    },
+    {
+      "file": "services/RecommendationContextService.js",
+      "worktree_sha256": "eb786c9097d7e15e0ae9b8c11cb81251f6953bee3a9f36b6a40a62c8fc989cab",
+      "index_blob": "ff90b80c4a1b5018609f388ed16b1686c1566752"
+    },
+    {
+      "file": "services/RefundService.js",
+      "worktree_sha256": "cc98b0d37038637df85f893836818df6feff21a5be2160de333cca331e3b4ad4",
+      "index_blob": "26de4bf79a7188e4235913fc611217f91db98eaf"
+    },
+    {
+      "file": "services/SaaSBillingService.js",
+      "worktree_sha256": "38909b789351eaef1e131f5a34aa578442ce5582fabe84e6ad6bde0c3be9d49b",
+      "index_blob": "932791a9389285aed656893554a856eb2957156c"
+    },
+    {
+      "file": "services/StoreManagerService.js",
+      "worktree_sha256": "c49791f16f7ff50922a37a978de67c75495342aa012fa7ecdd8859a67638f0df",
+      "index_blob": "106222457e03dc9d8e08549fecb7f0de63e9d88e"
+    },
+    {
+      "file": "services/aiService.js",
+      "worktree_sha256": "7dddba185c8262ec5a2756df7fe85c45c336f9c8c75948505a5eca43d752616f",
+      "index_blob": "f635859297edaaf3e54c9a31b87ecca81544478b"
+    },
+    {
+      "file": "services/billingScheduler.js",
+      "worktree_sha256": "9b2a2bdd5f0bd84aec2bd87894fbb0a6e64138091ad35a0a1cf45e10491e187a",
+      "index_blob": "e0f62bdb8c58f17e46108ea0a2d389279ede1b89"
+    },
+    {
+      "file": "services/integrations/SyncStore.js",
+      "worktree_sha256": "0f818b6a68c87169f3b2af6ccea2be0a38af215ec8967290992546f108d456b1",
+      "index_blob": "d6e695e9a032070a40421eec7a535833c5380932"
+    },
+    {
+      "file": "services/integrations/canonicalAnalysis.js",
+      "worktree_sha256": "8726e7fea572ca1138e2618256aea9d434be58af5331d9914826117cd51fa1f3",
+      "index_blob": "e351f1b5373ea5e664d49637540e9f9438b1168e"
+    },
+    {
+      "file": "services/integrations/providerPipeline.js",
+      "worktree_sha256": "d22d7f256cc5bc4125aa33508e9c5f723cf76b53348dd8670f47f912ae889dfc",
+      "index_blob": "6acef880ed8fd4c70bbf5dfd0f4b44735b56d11b"
+    },
+    {
+      "file": "services/integrations/runSyncPage.js",
+      "worktree_sha256": "87771807bc260bb07d81bcc03d5204fbc3f7dde29f03445ef53dbc20cc64bd64",
+      "index_blob": "b7cd3d675e085a50f1e64a9cfdd79322db333816"
+    },
+    {
+      "file": "services/webhookDispatcher.js",
+      "worktree_sha256": "6e70026d7042e79acea76d67f045901b0db14a11dd1c48794931ebb643e2f27c",
+      "index_blob": "283427fb6c4378b6485d6db1a580baa89ac44f57"
+    },
+    {
+      "file": "socket/auth.js",
+      "worktree_sha256": "bb434478a2aea981093a384cb2b4d64b65761857633fd67ce0413dd2b9ad827d",
+      "index_blob": "294293cb4840cd1e0c0d90b781094adee1fb837f"
+    },
+    {
+      "file": "tests/database/auth-sessions-postgres.test.cjs",
+      "worktree_sha256": "66beddedb3962e7c553e7ba86b8af0ca325aaa5b08e539e440dc36c712a83d3e",
+      "index_blob": "8929de37ec4ee84b4b90e725df6872af396298b6"
+    },
+    {
+      "file": "tests/database/billing-fencing-postgres.test.cjs",
+      "worktree_sha256": "d468f9caa77ab49d1c4815e8f1c9b132668f2d86dc6d384bdec63b626f80f679",
+      "index_blob": "1377db2aa65e1916d98b61ca4bd1bb9afeafdc95"
+    },
+    {
+      "file": "tests/database/canonical-sync-postgres.test.cjs",
+      "worktree_sha256": "10b577f30b63e542e4c35ba4a6548ccb1df46ed366c18191f5d768678480a696",
+      "index_blob": "04e4aa50ad987f72f392d48ece4660f945f8b23a"
+    },
+    {
+      "file": "tests/database/refund-migration.sql",
+      "worktree_sha256": "5d1ba16eb6858d30fc159bb6289f5de8b32093c11ec41e0b57ce398ba7e4251e",
+      "index_blob": "4b9ecb8c7a11525898b2138ed92cda3d867fec06"
+    },
+    {
+      "file": "tests/database/refunds-postgres.test.cjs",
+      "worktree_sha256": "7f361eb0d1ebc7c667700c51df2177fcb7c3e19abba56dd90fa583841f5f5b8a",
+      "index_blob": "7ab3b04f71de1224f2b668425c7abe64118b1873"
+    },
+    {
+      "file": "tests/database/webhook-inbox-postgres.test.cjs",
+      "worktree_sha256": "fa754a6be96fe58f1e3e43555e047f45a471b79426460b6eedaffe5044e6c640",
+      "index_blob": "f42072a774c3398e282d15b633fafbe7afb796c5"
+    },
+    {
+      "file": "tests/integration/foodTruck.test.js",
+      "worktree_sha256": "5de21283b7d2dbc9399508461a800e213fcce03b1147088bdfae13fd86f4ac02",
+      "index_blob": "9e186df0c62af08525019dc84747f8beeb4103e4"
+    },
+    {
+      "file": "tests/integration/orders.test.js",
+      "worktree_sha256": "6bbd1e5291a168f3a89b6996a701bd5e06d7e81b2542b14ad91755fd30a0f56a",
+      "index_blob": "f3aa23faaa4aa026e583490b9d35106b6826ec30"
+    },
+    {
+      "file": "tests/integration/payments.test.js",
+      "worktree_sha256": "19a76428f23a5d22ca67fedb7e0ee90043d2d992728f46c44fd083e0616f4ee9",
+      "index_blob": "b93850c2f5d607d10062bb3cfa163d921250d484"
+    },
+    {
+      "file": "tests/integration/setupIntegration.js",
+      "worktree_sha256": "653d0b1aab2210ed54f3fd83e366435e3fd90c81486c5b820e8d7ab25018366a",
+      "index_blob": "31f5af6e9596522dfde4cbf806352e2532e12499"
+    },
+    {
+      "file": "tests/integration/teardownIntegration.js",
+      "worktree_sha256": "4b7bace325d5e97cb7f656399006679265d39592f3a8c5e070d7f23ac1ef909f",
+      "index_blob": "ee7225fd82bcbdee82934216bb6a81044d15a89d"
+    },
+    {
+      "file": "tests/routes/auditLogSecurity.test.js",
+      "worktree_sha256": "2c4ae1cacf1ffd440212a4c6ef5040c3bdb1e7767ba9c184fca66c76b0bfef13",
+      "index_blob": "28935700ce2ed23b6589e17e3af71f743df3c896"
+    },
+    {
+      "file": "tests/routes/chatSecurity.test.js",
+      "worktree_sha256": "4839041f5656a7df733c6db129c518d1dbd3bc12090c0c687fbec184c6c4ed30",
+      "index_blob": "cff9acb6ee5f365614ca58b4d896cc37c2d47bb7"
+    },
+    {
+      "file": "tests/routes/crmAutomationSecurity.test.js",
+      "worktree_sha256": "03a1f036ca5663654392dbbd326b90753811ac4c15db485451e39f5395b82fda",
+      "index_blob": "a742001da22264462df3fe62c1f3650fada8324b"
+    },
+    {
+      "file": "tests/routes/customerCapabilitySecurity.test.js",
+      "worktree_sha256": "3e96441021b29903e80754b9f1b4bf6b1d17f6e7c666c3a614dcb583d29af40f",
+      "index_blob": "91aa43de088101f5b6e2c07c44e8d8155f63de0e"
+    },
+    {
+      "file": "tests/routes/customerManagementSecurity.test.js",
+      "worktree_sha256": "d42926a4451093e758aa06cbb7c3f383f1f842b8a93de70cf26ddedcddc4fa7a",
+      "index_blob": "ba3febcad64afac24fe562b64552dd616574ab87"
+    },
+    {
+      "file": "tests/routes/featureFlagSecurity.test.js",
+      "worktree_sha256": "e0fcb59c02949a1e819480bc0555a8dfcb825f19b006cfa474724bf19db4fe3c",
+      "index_blob": "c2cfc65019ca849b2e98b33cbfb4388ab93ee599"
+    },
+    {
+      "file": "tests/routes/inventoryReorderSecurity.test.js",
+      "worktree_sha256": "a7b1b77c13e5ea176bf5319e212e8ae85392063267f41c9d296a3f6f9130d1e3",
+      "index_blob": "59d34585f3be92ab2058fa601d2f07609d57ce23"
+    },
+    {
+      "file": "tests/routes/kdsSecurity.test.js",
+      "worktree_sha256": "a0b0c9a89257212eb0fbf206cbae46a23d748f54c515d5d41750580f233843dc",
+      "index_blob": "5ba441a98cb7caf2be3c774a5e8ca1c63bf207b8"
+    },
+    {
+      "file": "tests/routes/orderEventSecurity.test.js",
+      "worktree_sha256": "7cd0b95f1d443594510a0118e1721936f9372b55218ce289dcd6ab1f6a56d472",
+      "index_blob": "6e3f255c6fe4b37862c9d8c4fea8a3268aff2f45"
+    },
+    {
+      "file": "tests/routes/securityBoundaries.test.js",
+      "worktree_sha256": "4383d37605835e2fabf520ee9437462bee5183dbdbf2db43e7b915a0a210f76c",
+      "index_blob": "67e6f738c10c287adf2db1062d29d3455c972fb0"
+    },
+    {
+      "file": "tests/routes/staffSecurity.test.js",
+      "worktree_sha256": "4ee4e116caaee7552c567e29625e9fe6cb5539d7e5efbb85580e52cd053d4f23",
+      "index_blob": "aa01e4cbe875c575078fd302e2b3282c6d921d67"
+    },
+    {
+      "file": "tests/routes/storeBusinessAccountSecurity.test.js",
+      "worktree_sha256": "d11c6bd52be48b2bad802aa41ebb67f7f90ba718c387499ea10cc23b7427215f",
+      "index_blob": "205b4aa33e46c0b157a7fafc2fd4d1f4cfea93d8"
+    },
+    {
+      "file": "tests/routes/tablesSecurity.test.js",
+      "worktree_sha256": "d350f4e16c2bd284809649b7f1179e2aaf85a42ad30efa113ce162a7801c7a71",
+      "index_blob": "ec5c6888acd14fbdfa64f2f3372611bde5131d73"
+    },
+    {
+      "file": "tests/routes/tenantAuthorization.test.js",
+      "worktree_sha256": "e20758b77baff81b02cd0dab81ef92c28cd2ad1432026fadd16203a67bb13d20",
+      "index_blob": "3aacbd56781b6675dbab2347e6b5be1a90bfbc90"
+    },
+    {
+      "file": "tests/routes/waitingSecurity.test.js",
+      "worktree_sha256": "f6d50a7ff7edf9743fc53d3520813ac15d2f93cf7b0c546209692aff61ac8081",
+      "index_blob": "119982cf6f95b816568bc067a4deb0c09ca72258"
+    },
+    {
+      "file": "tests/saas/ai-rate-limit-shutdown.test.cjs",
+      "worktree_sha256": "874fbdf62c46d9ae61cf0bac6512a97d4c6457ad36277d817cad9520757da428",
+      "index_blob": "d4550b4c340e9dc57978c8d06e6a2d43778588a8"
+    },
+    {
+      "file": "tests/saas/api-cache-security.test.cjs",
+      "worktree_sha256": "db566b52ff22e15ba77e931b3b326cb5959e9b53f8b29552b86888e86c5c0994",
+      "index_blob": "4ab8d81ff392ea4fc4b32e9e098a43e37d99c075"
+    },
+    {
+      "file": "tests/saas/billing-fencing.test.cjs",
+      "worktree_sha256": "f8e9edf6d75a463118dd4302a01fe435e02501dee7c463a7e8c90c8e91f06edd",
+      "index_blob": "e09c57ac167726669b81159d6dcc4a6fc21fb47d"
+    },
+    {
+      "file": "tests/saas/billing-shutdown.test.cjs",
+      "worktree_sha256": "343340a28671e3993c5d481a4977c4028ffacba022fa74ada1991123eb9ea714",
+      "index_blob": "d07d18084b0911e311ffa0f763880e023ea7b6f4"
+    },
+    {
+      "file": "tests/saas/billing.test.cjs",
+      "worktree_sha256": "00163a19e92cf83f57004a8e35f2f4547972220973ceecbec1154e66963652d0",
+      "index_blob": "b6e95c7f9232c1272c1b7100c7167b992d0adcc8"
+    },
+    {
+      "file": "tests/saas/cache-shutdown.test.cjs",
+      "worktree_sha256": "437c4bb94f7b2e16d08d9f0f2971569cd1299adf236d9ab6c5d8eaa9b290b8f7",
+      "index_blob": "64001b7620a1961d352b5977580fa03a27454dad"
+    },
+    {
+      "file": "tests/saas/canonical-analysis.test.cjs",
+      "worktree_sha256": "6762d6d311c003403ce5cf4b14d5d75e5ee2416e06c5352b8c1d5ec2abbca7fe",
+      "index_blob": "dae909ecbea92570706c16fab58c38e400bc9b4f"
+    },
+    {
+      "file": "tests/saas/core.test.cjs",
+      "worktree_sha256": "197b3dbc774caa32f6685df17023111139597d4063c6c7cc6650f6a2e64b7802",
+      "index_blob": "ea58dab1330f97d0a7ee2fb23fc94f201ade62ed"
+    },
+    {
+      "file": "tests/saas/jest-runner-isolation.test.cjs",
+      "worktree_sha256": "a47fce518dd644eda8ab597361ad79ef06e2d813001ec46b87dea6d311d5c6a2",
+      "index_blob": "fbc1ec13c97df1126d560c9afb5409cbb2222200"
+    },
+    {
+      "file": "tests/saas/log-redaction.test.cjs",
+      "worktree_sha256": "ccee106038a48485c79815a0e6ad6c6e5a5e8e715e04a48c500b3c2b4e863ec6",
+      "index_blob": "f391197894e516e720c5e9d33f0aec915e624070"
+    },
+    {
+      "file": "tests/saas/provider-pipeline.test.cjs",
+      "worktree_sha256": "164ad0657c841d63e7a056829549263044856423df4ad811101d2bbf61aa16fa",
+      "index_blob": "5d259113e1fd6a480e659845287d607b37c0d9e5"
+    },
+    {
+      "file": "tests/saas/sync-store.test.cjs",
+      "worktree_sha256": "4e4cdedad6b56e1006fc128f58bf97b51c37f1af02b1b274e33ee470083bc454",
+      "index_blob": "d8d03e1af86650943dfc9e87d6607f16b664bef1"
+    },
+    {
+      "file": "tests/saas/webhook-inbox.test.cjs",
+      "worktree_sha256": "e8ad2a8dc53e867793f0f629378b0fbd948680b1a789495c85ef91ceda8bcdce",
+      "index_blob": "bbd3a47207ba17524078ef473e0ff6756e996235"
+    },
+    {
+      "file": "tests/saas/worker-shutdown.test.cjs",
+      "worktree_sha256": "d867b26a9f6ef82ece2813f773804f0b91730487fd1024a1d329ec706eec0a4a",
+      "index_blob": "314f204a3666203c7c1a2d11fd4bab780ce8b082"
+    },
+    {
+      "file": "tests/setupAfterEnv.js",
+      "worktree_sha256": "f4825b47b4a02ace07525557cb5e210a43936db70684d69c54679631c231edd8",
+      "index_blob": "790ffcaf296554f2c52f657b46cb697390c3264c"
+    },
+    {
+      "file": "tests/unit/config/prisma-reliability.test.js",
+      "worktree_sha256": "7d314ff22d5c40327f2dbab8b946cf957c16590286ddd02a3934dce8ad37be2d",
+      "index_blob": "7406c2e23269ddcab7d434465c2cdabf10b2da06"
+    },
+    {
+      "file": "tests/unit/controllers/aiPersonalization.security.test.js",
+      "worktree_sha256": "d2cd42d5997346bb52288a3c9d8752453d4e81579aa17467858c08c852f235a1",
+      "index_blob": "7c70dda374a7f090880a8d05bea3aac3b56de471"
+    },
+    {
+      "file": "tests/unit/controllers/historyCapability.security.test.js",
+      "worktree_sha256": "55c13eceea40a902da282b4fda3490ff1f5a2f6fd7e489ebf4802b1b5b6c0b90",
+      "index_blob": "74bb2b8b5d8a32bf774516e279ff874a4fab1011"
+    },
+    {
+      "file": "tests/unit/middleware/auth.test.js",
+      "worktree_sha256": "9c4da7b8776b27c02e234696130b6f053263466645f3733c3bbab0e0cecf5c77",
+      "index_blob": "103d01db751eb931b3a15d41357d0674c31b1bdb"
+    },
+    {
+      "file": "tests/unit/middleware/authAlgorithms.test.js",
+      "worktree_sha256": "f7fad25ce8403d2dda1cdab0d2f9fa9b787d5656ae9719e9977a31778087a615",
+      "index_blob": "805d89f37fc6f1c127e8f51a3f7f20a4499d3e74"
+    },
+    {
+      "file": "tests/unit/middleware/customerIdentity.test.js",
+      "worktree_sha256": "b6daae7e1afe5d57051286f893eb06732b2ba5ed25c86845e87b9483266ceb98",
+      "index_blob": "91475217ad568fc9bbda4499a06f685de228810a"
+    },
+    {
+      "file": "tests/unit/middleware/idempotency.test.js",
+      "worktree_sha256": "d95c149dd6f53a1afb019a2b88263e8e698ad8ef2d106648ffa57bf67a6b5214",
+      "index_blob": "fcbd244abf57d0af3753788dc381235b42134ed2"
+    },
+    {
+      "file": "tests/unit/middleware/sessionRevocation.test.js",
+      "worktree_sha256": "923e9da2f65c7ea94205b377070881859d85190481e7eea93690e4aa2fe8df2d",
+      "index_blob": "e81749f626d4948a5b66d3b5e35ce03df51a8ff3"
+    },
+    {
+      "file": "tests/unit/repositories/Ledger.refunds.test.js",
+      "worktree_sha256": "b3743695ae4923b20f9f3afae91b04e61a3f48c3b5dee6c9ed5827897d6ab144",
+      "index_blob": "46526122a1a5ae52b11e94f5114d7cf54b462926"
+    },
+    {
+      "file": "tests/unit/repositories/Order.customerPrivacy.test.js",
+      "worktree_sha256": "9f555665ac079445bdfc78d7c43ff31b4caf1e86655155abbddb53a4268a44b8",
+      "index_blob": "a3fa5c9e31580f68e0a268ea30c29e5045e85de5"
+    },
+    {
+      "file": "tests/unit/scripts/deploymentTarget.test.js",
+      "worktree_sha256": "54e9135e73ff13c0f647fa5edae20e0bcb7b1d97b54547361cd3fd6153f05355",
+      "index_blob": "9ec9507c3489893457e3e2121a8a57fa2ea47546"
+    },
+    {
+      "file": "tests/unit/scripts/migrationDeployment.test.js",
+      "worktree_sha256": "453da61c029c9895f9a8e550fad8dc59b45d60585bfcbb00e97c59a23b3ed8f5",
+      "index_blob": "efd0ee5e6ac69f754cd121983eba1a86e765d089"
+    },
+    {
+      "file": "tests/unit/services/LedgerService.test.js",
+      "worktree_sha256": "462467ce060e846c24ad77cb786e22fbde047e017d2b67f2e43cb0c7c7063897",
+      "index_blob": "13037562a05748a6c25229627a9f2717fadbd08a"
+    },
+    {
+      "file": "tests/unit/services/PaymentService.test.js",
+      "worktree_sha256": "e545b432eb48717bf0219fabb23bdba8663ed48f792e4e4d7639274e306199c8",
+      "index_blob": "803972b7ecbb9ca681a43591a1c34e2cb6051231"
+    },
+    {
+      "file": "tests/unit/services/aiCache.privacy.test.js",
+      "worktree_sha256": "ca4b7a1935cfd0b9d209aa1333672dc1a366ec1afe61dad5951fcc16df369703",
+      "index_blob": "a2698008db648f8ac549f626eb729c6915f4d09e"
+    },
+    {
+      "file": "tests/unit/services/preferenceTenant.security.test.js",
+      "worktree_sha256": "5774d7ef658c81538445760289e27691135945ee900f561d9475237044da2cae",
+      "index_blob": "338a9283953865357bcc512b20223f911f6ca950"
+    },
+    {
+      "file": "tests/unit/services/readinessProbe.test.js",
+      "worktree_sha256": "b60e3b100dbb219f70815db2d273fbfdecee5db003504b44b46f9bb073afecb8",
+      "index_blob": "f0f19e2a1fee08aa536698b5bd7acaf33b45683a"
+    },
+    {
+      "file": "tests/unit/socket/auth.test.js",
+      "worktree_sha256": "ce65ca184e2bb68f3ebad814223df441c9d008cb37f0a840ce55451825838db6",
+      "index_blob": "22dbea1669f7525dd50e6f5956cbbe8e8b544aac"
+    },
+    {
+      "file": "tests/unit/utils/customerHistory.scope.test.js",
+      "worktree_sha256": "8f13fb5cc2451ee9638d9c77c76e22390b36d4e2d52c77ec27e24fcc037b95f7",
+      "index_blob": "80113c7328b842295944f8f5bdd60a82b28f6360"
+    },
+    {
+      "file": "tests/unit/webhookDispatcher.test.js",
+      "worktree_sha256": "791850a16f515f90eaae28c791b7348253805aa068ca5f50ff3ffd4bfbd1c782",
+      "index_blob": "72bcea5687de676bd87886e36feeba1af87f36a7"
+    },
+    {
+      "file": "utils/aiRateLimiter.js",
+      "worktree_sha256": "94b20d34a830b0971666b23bab7c6e0ff2ec1fe39a0dabc746f019e24fd8ba53",
+      "index_blob": "0389b5c462927ff3cf246bd2ba1c711630443ba9"
+    },
+    {
+      "file": "utils/cache.js",
+      "worktree_sha256": "bdfff4f30fe0ba3d3667c656fd53a85091275727c02871d78ab6cf799416e64f",
+      "index_blob": "eca1c7f2af57ad19ab0f9ff03029859976120a3d"
+    },
+    {
+      "file": "utils/logRedaction.js",
+      "worktree_sha256": "e0248bd0cd9ec297a2bdaa46c78fd03677e7b6d02c028ef415f0cbd57f665558",
+      "index_blob": "b97e572476116983e2251e16fb0ba0def4543749"
+    },
+    {
+      "file": "utils/logger.js",
+      "worktree_sha256": "4cc7775340d1385cc5ba8d67f37bd189cb5466f404ac4080023786f707962493",
+      "index_blob": "a6906485ca9e2d670c3403d6ff483c0407e15ac2"
+    },
+    {
+      "file": "utils/orderCapability.js",
+      "worktree_sha256": "62b4ed378e1441ed688265acc5b7fbebc9b0ee52f60e78dc6580e12170915511",
+      "index_blob": "0363bb97b544f2ab24a22dc4001e41e61a21671d"
+    },
+    {
+      "file": "utils/orderCapability.ts",
+      "worktree_sha256": "bf8dc8cc8adecaa6e04adc10d717f6622d716ea80cfdb107f92fed594df3e94a",
+      "index_blob": "f1a0353507a2dc1c719abc1c39066e8c69b4d34e"
+    },
+    {
+      "file": "utils/readinessProbe.js",
+      "worktree_sha256": "5830936ed2fee2c2cbb9014f2f901c70fbe585f9268efe806c761d261b7fa01b",
+      "index_blob": "de4e3624e774f8632c95a5798b958d3a37f4cef7"
+    },
+    {
+      "file": "utils/redisCache.js",
+      "worktree_sha256": "7ecba368153ad43455788482a8d7629a2ded78b5a4ccd6f3fd732308fac37ea8",
+      "index_blob": "730c1f64f0a6cad8840cc8f27bfd182d0dbf52e6"
+    },
+    {
+      "file": "utils/runtimeResources.js",
+      "worktree_sha256": "009fc3c9f5e0542300b8b530a6076af409b52febde6978f9b4ed636ae65c27a0",
+      "index_blob": "ea9ed3ed836a5985b6f1a7ba91733576f1e2f112"
+    }
+  ],
+  "evidence_hashes": [
+    {
+      "file": "reports/release-sequence-backend-rc.json",
+      "sha256": "d1efe3fa626a5c41cb3a634ea32dec93ee3190b5c21d168bf0519ac06e958158"
+    },
+    {
+      "file": "reports/release-sequence-integration-isolated.json",
+      "sha256": "1c2dcab30f962e2d07c837743e619ae12e6d81515416a866937f211dc656dd47"
+    },
+    {
+      "file": "reports/release-sequence-frontend-rc.log",
+      "sha256": "8de4c8d85edf23a9bb32d157943dfd5a84e1ffcbc5ceca94a33da5b1e9ba16a1"
+    },
+    {
+      "file": "reports/release-sequence-saas-rc.log",
+      "sha256": "e85322c9d36f0f0a1452ae627d37e0693be502bb30e3885cd47f7763ca452148"
+    },
+    {
+      "file": "reports/release-sequence-postgres-rc.log",
+      "sha256": "11f2b920d048227d188910166df60a5de83288a260e4ca15b7aaeb031fced4bc"
+    },
+    {
+      "file": "reports/release-sequence-lint-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "reports/release-sequence-precommit.log",
+      "sha256": "371acda6e5e047037e2922da7665270465ed3dd385169f616324df71e8e195fa"
+    }
+  ]
+}

@@ -300,10 +300,8 @@ const routes = {
 // [DEBUG] API 요청 도달 모니터링 (라우트 매칭 전 상세 로깅, 개발 환경에서만 활성화)
 if (process.env.NODE_ENV !== 'production') {
     app.use('/api', (req, res, next) => {
-        logger.debug(`[API Trace] ${req.method} ${req.originalUrl}`);
-        if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
-            logger.debug(`[API Body]`, JSON.stringify(req.body, null, 2));
-        }
+        // Never log raw bodies, query strings, or path parameters (passwords/phones/tokens).
+        logger.debug('[API Trace]', { method: req.method });
         next();
     });
 }

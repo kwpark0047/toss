@@ -51,7 +51,7 @@ const OrderHistory = () => {
 
         try {
             const historyCapability = localStorage.getItem('wm_customer_history_capability');
-            if (!historyCapability || (!userPhone && !tossUserKey)) {
+            if (!historyCapability) {
                 setOrders([]);
                 return;
             }
@@ -59,7 +59,8 @@ const OrderHistory = () => {
             const response = await ordersAPI.getCustomerHistory(historyCapability);
             setOrders(response.data);
         } catch (error) {
-            console.error('주문 내역 조회 실패:', error);
+            if (error.response?.status === 403) setOrders([]);
+            console.error('주문 내역 조회 실패');
         } finally {
             setLoading(false);
             setRefreshing(false);

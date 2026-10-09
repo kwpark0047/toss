@@ -1,8 +1,14 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const aiController = require("../controllers/aiController");
-const { validateBody, validateId } = require("../middleware/validator");
-const { createAIRateLimiter } = require("../utils/aiRateLimiter");
+const aiController = require('../controllers/aiController');
+const { validateBody, validateId } = require('../middleware/validator');
+const { createAIRateLimiter } = require('../utils/aiRateLimiter');
+const customerIdentity = require('../middleware/customerIdentity');
+const auth = require('../middleware/auth');
+const publicRecommendation = (req, res, next) => {
+  req.customerIdentity = null;
+  next();
+};
 
 /**
  * @swagger
@@ -31,7 +37,12 @@ const { createAIRateLimiter } = require("../utils/aiRateLimiter");
  *       200:
  *         description: 생성된 메뉴 설명
  */
-router.post("/describe-menu", validateBody(["name"]), createAIRateLimiter("describeMenu"), aiController.describeMenu);
+router.post(
+  '/describe-menu',
+  validateBody(['name']),
+  createAIRateLimiter('describeMenu'),
+  aiController.describeMenu
+);
 
 /**
  * @swagger
@@ -53,7 +64,12 @@ router.post("/describe-menu", validateBody(["name"]), createAIRateLimiter("descr
  *       200:
  *         description: 생성된 인스타그램 문구
  */
-router.post("/instagram", validateBody(["name"]), createAIRateLimiter("instagram"), aiController.generateInstagramCopy);
+router.post(
+  '/instagram',
+  validateBody(['name']),
+  createAIRateLimiter('instagram'),
+  aiController.generateInstagramCopy
+);
 
 /**
  * @swagger
@@ -75,7 +91,21 @@ router.post("/instagram", validateBody(["name"]), createAIRateLimiter("instagram
  *       200:
  *         description: 추천 메뉴 목록
  */
-router.post("/recommend", validateId(["store_id"]), createAIRateLimiter("recommend"), aiController.recommendMenus);
+router.post(
+  '/recommend',
+  validateId(['store_id']),
+  createAIRateLimiter('recommend'),
+  publicRecommendation,
+  aiController.recommendMenus
+);
+router.post(
+  '/personalized-recommend',
+  auth,
+  validateId(['store_id']),
+  createAIRateLimiter('recommend'),
+  customerIdentity,
+  aiController.recommendMenus
+);
 
 /**
  * @swagger
@@ -97,7 +127,12 @@ router.post("/recommend", validateId(["store_id"]), createAIRateLimiter("recomme
  *       200:
  *         description: 추천 디저트 목록
  */
-router.post("/recommend-dessert", validateId(["store_id"]), createAIRateLimiter("recommendDessert"), aiController.recommendDessert);
+router.post(
+  '/recommend-dessert',
+  validateId(['store_id']),
+  createAIRateLimiter('recommendDessert'),
+  aiController.recommendDessert
+);
 
 /**
  * @swagger
@@ -121,7 +156,12 @@ router.post("/recommend-dessert", validateId(["store_id"]), createAIRateLimiter(
  *       200:
  *         description: 번역된 메뉴 목록
  */
-router.post("/translate-menu", validateBody(["store_id", "targetLang"]), createAIRateLimiter("translateMenu"), aiController.translateMenu);
+router.post(
+  '/translate-menu',
+  validateBody(['store_id', 'targetLang']),
+  createAIRateLimiter('translateMenu'),
+  aiController.translateMenu
+);
 
 /**
  * @swagger
@@ -145,7 +185,12 @@ router.post("/translate-menu", validateBody(["store_id", "targetLang"]), createA
  *       200:
  *         description: 번역 결과
  */
-router.post("/translate", validateBody(["text", "targetLang"]), createAIRateLimiter("translate"), aiController.translate);
+router.post(
+  '/translate',
+  validateBody(['text', 'targetLang']),
+  createAIRateLimiter('translate'),
+  aiController.translate
+);
 
 /**
  * @swagger
@@ -167,7 +212,12 @@ router.post("/translate", validateBody(["text", "targetLang"]), createAIRateLimi
  *       200:
  *         description: 생성된 스토리텔링 텍스트
  */
-router.post("/storytelling", validateBody(["name"]), createAIRateLimiter("storytelling"), aiController.storytelling);
+router.post(
+  '/storytelling',
+  validateBody(['name']),
+  createAIRateLimiter('storytelling'),
+  aiController.storytelling
+);
 
 /**
  * @swagger
@@ -189,7 +239,11 @@ router.post("/storytelling", validateBody(["name"]), createAIRateLimiter("storyt
  *       200:
  *         description: 분석 결과
  */
-router.post("/analyze-menu-list", createAIRateLimiter("describeMenu"), aiController.analyzeMenuList);
+router.post(
+  '/analyze-menu-list',
+  createAIRateLimiter('describeMenu'),
+  aiController.analyzeMenuList
+);
 
 /**
  * @swagger
@@ -211,7 +265,12 @@ router.post("/analyze-menu-list", createAIRateLimiter("describeMenu"), aiControl
  *       200:
  *         description: 제안된 풀 메뉴
  */
-router.post("/propose-menu-full", validateBody(["name"]), createAIRateLimiter("describeMenu"), aiController.proposeMenuFull);
+router.post(
+  '/propose-menu-full',
+  validateBody(['name']),
+  createAIRateLimiter('describeMenu'),
+  aiController.proposeMenuFull
+);
 
 /**
  * @swagger
@@ -233,7 +292,12 @@ router.post("/propose-menu-full", validateBody(["name"]), createAIRateLimiter("d
  *       200:
  *         description: 추천 페어링 목록
  */
-router.post("/recommend-pairing", validateId(["store_id"]), createAIRateLimiter("recommend"), aiController.recommendPairing);
+router.post(
+  '/recommend-pairing',
+  validateId(['store_id']),
+  createAIRateLimiter('recommend'),
+  aiController.recommendPairing
+);
 
 /**
  * @swagger
@@ -257,7 +321,12 @@ router.post("/recommend-pairing", validateId(["store_id"]), createAIRateLimiter(
  *       200:
  *         description: 생성된 이미지 URL
  */
-router.post("/generate-menu-image", validateBody(["store_id", "name"]), createAIRateLimiter("generateMenuImage"), aiController.generateMenuImage);
+router.post(
+  '/generate-menu-image',
+  validateBody(['store_id', 'name']),
+  createAIRateLimiter('generateMenuImage'),
+  aiController.generateMenuImage
+);
 
 /**
  * @swagger
@@ -277,7 +346,7 @@ router.post("/generate-menu-image", validateBody(["store_id", "name"]), createAI
  *       200:
  *         description: 스캔된 메뉴 데이터
  */
-router.post("/scan-menu-image", createAIRateLimiter("scanMenuImage"), aiController.scanMenuImage);
+router.post('/scan-menu-image', createAIRateLimiter('scanMenuImage'), aiController.scanMenuImage);
 
 /**
  * @swagger
@@ -305,7 +374,12 @@ router.post("/scan-menu-image", createAIRateLimiter("scanMenuImage"), aiControll
  *       200:
  *         description: 생성된 답글
  */
-router.post("/generate-review-reply", validateBody(["rating", "content"]), createAIRateLimiter("generateReviewReply"), aiController.generateReviewReply);
+router.post(
+  '/generate-review-reply',
+  validateBody(['rating', 'content']),
+  createAIRateLimiter('generateReviewReply'),
+  aiController.generateReviewReply
+);
 
 /**
  * @swagger
@@ -325,7 +399,11 @@ router.post("/generate-review-reply", validateBody(["rating", "content"]), creat
  *       200:
  *         description: 추천 필터 값
  */
-router.post("/recommend-image-enhancement", createAIRateLimiter("recommendImageEnhancement"), aiController.recommendImageEnhancement);
+router.post(
+  '/recommend-image-enhancement',
+  createAIRateLimiter('recommendImageEnhancement'),
+  aiController.recommendImageEnhancement
+);
 
 /**
  * @swagger
@@ -360,6 +438,20 @@ router.post("/recommend-image-enhancement", createAIRateLimiter("recommendImageE
  *       200:
  *         description: AI 추천 메뉴 목록
  */
-router.post("/tinkerbell-rec", createAIRateLimiter("tinkerbellRec"), aiController.tinkerbellRecommend);
+router.post(
+  '/tinkerbell-rec',
+  validateId(['store_id']),
+  createAIRateLimiter('tinkerbellRec'),
+  publicRecommendation,
+  aiController.tinkerbellRecommend
+);
+router.post(
+  '/personalized-tinkerbell-rec',
+  auth,
+  validateId(['store_id']),
+  createAIRateLimiter('tinkerbellRec'),
+  customerIdentity,
+  aiController.tinkerbellRecommend
+);
 
 module.exports = router;

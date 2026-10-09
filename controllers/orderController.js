@@ -11,62 +11,20 @@ const {
 } = require('../utils/orderCapability');
 const EtaPredictionService = require('../services/EtaPredictionService');
 
-// ===========================================
-// DataLoader 인스턴스 가져오기 (요청 단위 초기화)
-// ===========================================
-const getLoaders = (req) => {
-  if (!req.dataLoaders) {
-    const {
-      orderLoader,
-      orderItemsLoader,
-      orderPaymentsLoader,
-      storeLoader,
-      productLoader,
-      userLoader,
-    } = require('../utils/dataLoaders');
-
-    req.dataLoaders = {
-      orderLoader,
-      orderItemsLoader,
-      orderPaymentsLoader,
-      storeLoader,
-      productLoader,
-      userLoader,
-    };
-  }
-  return req.dataLoaders;
-};
-
-/**
- * DataLoader 캐시 클리어 미들웨어 (요청 종료 시)
- */
-const clearDataLoaderCache = (req, res, next) => {
-  res.on('finish', () => {
-    if (req.dataLoaders) {
-      Object.values(req.dataLoaders).forEach((loader) => {
-        if (loader && typeof loader.clearAll === 'function') {
-          loader.clearAll();
-        }
-      });
-    }
-  });
-  next();
-};
-
 const orderController = {
-  // 미들웨어: DataLoader 캐시 초기화 + 정리
-  initializeDataLoaders: (req, res, next) => {
-    getLoaders(req);
-    clearDataLoaderCache(req, res, next);
-  },
+  // Compatibility hook: repository queries are request-scoped and need no shared cache.
+  initializeDataLoaders: (_req, _res, next) => next(),
 
   // 주문 생성 (기존과 동일 — DataLoader 불필요)
   createOrder: catchAsync(async (req, res) => {
     const orderService = new OrderService(req.app.get('io'));
     const order = await orderService.createOrder(req.body);
+    const previous = verifyCustomerHistoryCapability(req.get('x-customer-history-capability'));
     const customerHistoryCapability = createCustomerHistoryCapability({
-      phone: req.body.phone || req.body.customer_phone,
-      toss_user_key: req.body.toss_user_key,
+      store_id: order.store_id,
+      order_ids: [
+        ...new Set([order.id, ...(previous?.storeId === order.store_id ? previous.orderIds : [])]),
+      ].slice(0, 30),
     });
     res.created(
       {
@@ -85,11 +43,7 @@ const orderController = {
       return res.status(403).json({ error: '고객 주문내역 조회 권한이 없거나 만료되었습니다.' });
     }
 
-    const { orderLoader } = getLoaders(req);
-    const orderIds = await Order.findIdsByCustomer(capability.phone, capability.toss_user_key);
-    const orders = await orderLoader.loadMany(orderIds);
-    const validOrders = orders.filter((o) => o !== null);
-    res.success(validOrders);
+    res.success(await Order.findHistoryByCapability(capability.storeId, capability.orderIds));
   }),
 
   // Repository already loads items and payments in a single Prisma include query.
@@ -114,36 +68,20 @@ const orderController = {
 
   // 주문 단일 상세 조회 — DataLoader로 아이템/결제/매장/상품 일괄 로드
   getOrderDetails: catchAsync(async (req, res) => {
-    const { orderLoader, orderItemsLoader, orderPaymentsLoader, storeLoader, productLoader } =
-      getLoaders(req);
-
-    const orderId = String(req.params.id);
-
-    const [order, items, payments] = await Promise.all([
-      orderLoader.load(orderId),
-      orderItemsLoader.load(orderId),
-      orderPaymentsLoader.load(orderId),
-    ]);
-
+    const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ error: '주문을 찾을 수 없습니다' });
-
-    if (order.store_id) {
-      order.store = await storeLoader.load(String(order.store_id));
-    }
-
-    if (items.length > 0) {
-      const productIds = [...new Set(items.map((i) => String(i.product_id)))];
-      const products = await productLoader.loadMany(productIds);
-      const productMap = new Map(products.map((p, i) => [productIds[i], p]));
-
-      items.forEach((item) => {
-        item.product = productMap.get(String(item.product_id)) || null;
-      });
-    }
-
-    order.items = items;
-    order.payments = payments;
-
+    // Public capability holders must never receive PG credentials or raw responses.
+    order.payments = (order.payments || []).map(
+      ({ id, status, amount, method, receipt_url, approved_at, created_at }) => ({
+        id,
+        status,
+        amount,
+        method,
+        receipt_url,
+        approved_at,
+        created_at,
+      })
+    );
     res.success(order);
   }),
 
@@ -156,9 +94,6 @@ const orderController = {
       role: req.user?.role,
     });
 
-    const { orderLoader } = getLoaders(req);
-    orderLoader.clear(String(req.params.id));
-
     res.json({ success: true, order: updated, message: '주문 상태가 변경되었습니다' });
   }),
 
@@ -166,12 +101,6 @@ const orderController = {
   cancelOrder: catchAsync(async (req, res) => {
     const orderService = new OrderService(req.app.get('io'));
     const result = await orderService.cancelOrder(req.params.id, req.user?.id, req.user?.role);
-
-    const { orderLoader, orderItemsLoader, orderPaymentsLoader } = getLoaders(req);
-    const orderId = String(req.params.id);
-    orderLoader.clear(orderId);
-    orderItemsLoader.clear(orderId);
-    orderPaymentsLoader.clear(orderId);
 
     res.json(result);
   }),
@@ -186,12 +115,6 @@ const orderController = {
       req.user?.role
     );
 
-    const { orderLoader, orderItemsLoader, orderPaymentsLoader } = getLoaders(req);
-    const orderId = String(req.params.id);
-    orderLoader.clear(orderId);
-    orderItemsLoader.clear(orderId);
-    orderPaymentsLoader.clear(orderId);
-
     res.json(result);
   }),
 
@@ -203,12 +126,6 @@ const orderController = {
     if (order.status !== 'cancelled')
       throw new AppError('취소된 주문만 삭제할 수 있습니다. 활성 주문은 먼저 취소해 주세요.', 400);
     await Order.delete(orderId);
-
-    const { orderLoader, orderItemsLoader, orderPaymentsLoader } = getLoaders(req);
-    const orderIdStr = String(orderId);
-    orderLoader.clear(orderIdStr);
-    orderItemsLoader.clear(orderIdStr);
-    orderPaymentsLoader.clear(orderIdStr);
 
     res.success(null, '주문이 삭제되었습니다.');
   }),
@@ -258,8 +175,7 @@ const orderController = {
         .json({ error: 'invalid_request', message: 'FCM 토큰이 제공되지 않았습니다.' });
     }
 
-    const { orderLoader } = getLoaders(req);
-    const order = await orderLoader.load(String(orderId));
+    const order = await Order.findById(orderId);
 
     if (!order) {
       return res.status(404).json({ error: '주문을 찾을 수 없습니다.' });
@@ -280,8 +196,6 @@ const orderController = {
       });
       logger.info(`[FCM Token] Synced customer PWA push token: Store ${order.store_id}`);
     }
-
-    orderLoader.clear(String(orderId));
 
     res.json({
       success: true,

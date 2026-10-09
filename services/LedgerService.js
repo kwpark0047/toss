@@ -51,6 +51,8 @@ class LedgerService {
    * @returns {Promise<object>}
    */
   async recordRefund({ storeId, orderId, paymentId, amount, method, description, eventKey }, tx) {
+    if (!Number.isSafeInteger(amount) || amount <= 0)
+      throw new Error('Refund ledger amount must be a positive integer');
     const db = tx || prisma;
     const event_key = eventKey || `payment:${paymentId}:refund`;
     return db.ledger.upsert({

@@ -11,8 +11,8 @@ const options = [
 const result = spawnSync(
   process.execPath,
   [
-    '--import',
-    'tsx',
+    // Jest/Babel already transform TS/MTS. Native tsx preload can retain modules
+    // outside Jest's per-suite registry and bypass authentication mocks.
     path.join(__dirname, '../node_modules/jest/bin/jest.js'),
     ...process.argv.slice(2),
   ],

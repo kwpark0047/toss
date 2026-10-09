@@ -36,7 +36,11 @@ function idempotencyMiddleware(options = {}) {
     try {
       try {
         await prisma.idempotencyRecord.create({
-          data: { id, body_hash: bodyHash, status: 'processing' },
+          data: {
+            id,
+            body_hash: bodyHash,
+            status: options.domainOwned ? 'domain_owned' : 'processing',
+          },
         });
       } catch (error) {
         if (error.code !== 'P2002') throw error;
@@ -46,6 +50,9 @@ function idempotencyMiddleware(options = {}) {
           return res
             .status(422)
             .json({ success: false, error: 'Idempotency-Key reused with different request body.' });
+        // Only opt in when the domain persists its intent, owns a lease, validates the
+        // same key/body and reconciles external effects before retrying (RefundService).
+        if (options.domainOwned) return next();
         if (record.status === 'completed') {
           return res
             .set('Idempotency-Replayed', 'true')
@@ -65,6 +72,7 @@ function idempotencyMiddleware(options = {}) {
         error: 'Duplicate protection unavailable. Retry with the same key.',
       });
     }
+    if (options.domainOwned) return next();
     const originalJson = res.json.bind(res);
     res.json = async (body) => {
       try {

@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
+const serviceRequire = require('node:module').createRequire(require('node:path').resolve('services/StoreManagerService.js'));
 const url = new URL(process.env.DATABASE_URL || 'postgresql://localhost:5432/wemarket_test');
 if (!['localhost','127.0.0.1'].includes(url.hostname) || url.pathname !== '/wemarket_test') throw new Error('Only local wemarket_test is allowed.');
 const schema = 'manager_test_' + crypto.randomBytes(6).toString('hex');
@@ -36,7 +37,7 @@ async function main() {
       if (name === '../utils/storeManagerAnalysis') return require('../utils/storeManagerAnalysis');
       if (name === './StoreIntegrationService') return require('../services/StoreIntegrationService');
       if (name === './aiService') return { generateWithFallback: async prompt => { aiCalls++; assert.ok(!prompt.includes('PRIVATE_PROMPT_SECRET')); return '{"opening_index":0}'; } };
-      return require(name);
+      return serviceRequire(name);
     } };
     vm.runInNewContext(fs.readFileSync('services/StoreManagerService.js', 'utf8'), context);
     const service = new context.module.exports(db);

@@ -27,7 +27,7 @@ function getHandshakeToken(handshake = {}) {
   return getCookieValue(handshake.headers?.cookie, 'token');
 }
 
-function authenticateSocket(socket, next) {
+async function authenticateSocket(socket, next) {
   const token = getHandshakeToken(socket.handshake);
   socket.data = socket.data || {};
 
@@ -37,9 +37,21 @@ function authenticateSocket(socket, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     if (decoded.type !== 'access') throw new Error('Access token required');
-    socket.data.user = decoded;
+    const sessions = require('../services/AuthSessionService');
+    socket.data.user = await sessions.verifyAccess(decoded);
+    if (socket.join) await socket.join(`auth-session:${decoded.sid}`);
+    if (socket.use)
+      socket.use(async (_packet, done) => {
+        try {
+          socket.data.user = await sessions.verifyAccess(decoded);
+          done();
+        } catch {
+          socket.disconnect(true);
+          done(new Error('UNAUTHENTICATED'));
+        }
+      });
     return next();
   } catch {
     const error = new Error('유효한 액세스 토큰이 필요합니다.');

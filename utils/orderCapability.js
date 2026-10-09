@@ -27,18 +27,27 @@ function verifyOrderCapability(token) {
   }
 }
 
-function createCustomerHistoryCapability({ phone, toss_user_key }) {
+function createCustomerHistoryCapability({ store_id, order_ids }) {
   const secret = getSecret();
   if (!secret) throw new Error('Order capability secret is not configured');
-  if (!phone && !toss_user_key) return null;
+  if (
+    !Number.isSafeInteger(store_id) ||
+    store_id <= 0 ||
+    !Array.isArray(order_ids) ||
+    !order_ids.length ||
+    order_ids.length > 30 ||
+    order_ids.some((id) => !Number.isSafeInteger(id) || id <= 0)
+  )
+    return null;
   return jwt.sign(
     {
       type: 'customer_history_capability',
-      phone: phone || null,
-      toss_user_key: toss_user_key || null,
+      version: 2,
+      storeId: store_id,
+      orderIds: [...new Set(order_ids)],
     },
     secret,
-    { expiresIn: '30d' }
+    { expiresIn: '30d', algorithm: 'HS256' }
   );
 }
 
@@ -46,8 +55,17 @@ function verifyCustomerHistoryCapability(token) {
   const secret = getSecret();
   if (!secret || !token) return null;
   try {
-    const payload = jwt.verify(token, secret);
-    return payload.type === 'customer_history_capability' ? payload : null;
+    const payload = jwt.verify(token, secret, { algorithms: ['HS256'] });
+    return payload.type === 'customer_history_capability' &&
+      payload.version === 2 &&
+      Number.isSafeInteger(payload.storeId) &&
+      payload.storeId > 0 &&
+      Array.isArray(payload.orderIds) &&
+      payload.orderIds.length > 0 &&
+      payload.orderIds.length <= 30 &&
+      payload.orderIds.every((id) => Number.isSafeInteger(id) && id > 0)
+      ? payload
+      : null;
   } catch {
     return null;
   }

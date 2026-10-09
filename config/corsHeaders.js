@@ -7,6 +7,7 @@ const CORS_HEADERS = [
   'X-Idempotency-Key',
   'X-CSRF-Token',
   'X-Order-Capability',
+  'X-Customer-History-Capability',
   'X-Reservation-Capability',
   'X-Wallet-Capability',
 ];

@@ -31,6 +31,9 @@ class RedisCache {
     this.isConnected = false;
     this.localCache = new Map(); // L1 캐시 (최근 접근 키)
     this.localCacheMaxSize = 1000;
+    this.unregisterResource = require('./runtimeResources').registerResource(() =>
+      this.disconnect()
+    );
   }
 
   /**

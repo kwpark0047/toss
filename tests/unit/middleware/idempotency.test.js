@@ -104,3 +104,15 @@ test('uncertain results are never re-executed', async () => {
   expect(next).not.toHaveBeenCalled();
   expect(res.statusCode).toBe(409);
 });
+
+test('durable domain-owned refunds can reconcile after response loss without generic response caching', async () => {
+  const next = jest.fn();
+  const mw = idempotency({ required: true, domainOwned: true });
+  await mw(request(), response(), next);
+  await mw(request(), response(), next);
+  expect(next).toHaveBeenCalledTimes(2);
+  const changed = response();
+  await mw(request({ body: { amount: 200 } }), changed, next);
+  expect(changed.statusCode).toBe(422);
+  expect(next).toHaveBeenCalledTimes(2);
+});

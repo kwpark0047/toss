@@ -20,7 +20,7 @@ describe('production migration deployment', () => {
       .readFileSync(path.join(__dirname, '../../../render.yaml'), 'utf8')
       .split('\n')
       .find((line) => line.includes('buildCommand:'));
-    const deployIndex = renderConfig.indexOf('prisma migrate deploy');
+    const deployIndex = renderConfig.indexOf('node scripts/deploy-migrations.cjs --apply');
     const generateIndex = renderConfig.indexOf('prisma generate');
 
     expect(deployIndex).toBeGreaterThan(-1);

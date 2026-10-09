@@ -26,6 +26,7 @@ const ANALYTICS_RATE_LIMIT = { windowMs: 60_000, max: 120 };
 let sharedRedisClient = null;
 let sharedRedisClientPromise = null;
 let redisUnavailable = false;
+require('./runtimeResources').registerResource(() => shutdownAIRateLimiter());
 
 async function getRedisClient() {
   if (sharedRedisClient) return sharedRedisClient;
@@ -38,8 +39,10 @@ async function getRedisClient() {
   if (!redisUrl) return null;
 
   sharedRedisClientPromise = (async () => {
+    let client;
+    let connectionTimer;
     try {
-      const client = Redis.createClient({
+      client = Redis.createClient({
         url: redisUrl,
         socket: {
           connectTimeout: 1000,
@@ -51,16 +54,16 @@ async function getRedisClient() {
       });
       await Promise.race([
         client.connect(),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Redis connection timeout')), 1000)
-        ),
+        new Promise((_, reject) => {
+          connectionTimer = setTimeout(() => reject(new Error('Redis connection timeout')), 1000);
+        }),
       ]);
       sharedRedisClient = client;
       logger.info('[AIRateLimiter] Redis store connected for rate limiting');
       return client;
     } catch (err) {
       try {
-        sharedRedisClient?.disconnect?.();
+        await client?.disconnect?.();
       } catch (_disconnectErr) {
         /* ignore cleanup errors */
       }
@@ -71,11 +74,20 @@ async function getRedisClient() {
       );
       return null;
     } finally {
+      clearTimeout(connectionTimer);
       sharedRedisClientPromise = null;
     }
   })();
 
   return sharedRedisClientPromise;
+}
+
+async function shutdownAIRateLimiter() {
+  redisUnavailable = true;
+  if (sharedRedisClientPromise) await sharedRedisClientPromise;
+  const client = sharedRedisClient;
+  sharedRedisClient = null;
+  if (client) await client.disconnect();
 }
 
 class RedisStore {
@@ -285,6 +297,7 @@ function createAnalyticsRateLimiter() {
 }
 
 module.exports = {
+  shutdownAIRateLimiter,
   createAIRateLimiter,
   createAnalyticsRateLimiter,
   AI_RATE_LIMITS,

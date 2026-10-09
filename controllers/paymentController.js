@@ -8,7 +8,6 @@ const catchAsync = require('../utils/catchAsync');
 const { AppError } = require('../utils/errorHandler');
 const logger = require('../utils/logger');
 const { getStoreRole } = require('../middleware/storeAuth');
-const { handleSubscriptionWebhook } = require('../handlers/subscriptionWebhook');
 
 const maskPaymentKey = (paymentKey) => {
   if (typeof paymentKey !== 'string' || paymentKey.length <= 8) return '****';
@@ -132,12 +131,11 @@ const paymentController = {
 
   partialCancel: catchAsync(async (req, res) => {
     const { cancelAmount, cancelReason } = req.body;
-
-    const payments = await Payment.findByOrderId(req.params.orderId);
-    const payment = payments.find((p) => p.status === 'DONE');
-    if (!payment) throw new AppError('취소 가능한 결제 내역이 없습니다.', 404);
-
-    await assertStoreAccess(req.user, payment.store_id, 'orders:manage');
+    const order = await Order.findById(Number(req.params.orderId));
+    if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
+    // Authorize against the immutable order tenant, even after its payment is canceled.
+    // The durable refund intent decides whether this is a replay or a new refund.
+    await assertStoreAccess(req.user, order.store_id, 'orders:manage');
 
     const io = req.app.get('io');
     const paymentService = new PaymentService(io);
@@ -222,67 +220,13 @@ const paymentController = {
   }),
 
   handleTossWebhook: catchAsync(async (req, res) => {
-    // 인증은 tossWebhookAuth 미들웨어에서 계층적 검증(공유 시크릿/IP 화이트리스트/레거시 Basic)으로 수행됨
-
-    // [정기결제] Subscription.* 이벤트는 결제(paymentKey) 재검증 대상이 아니다.
-    // subscriptionId 기반 구독 상태 동기화 핸들러로 조기 라우팅한다.
-    const eventType = req.body?.eventType;
-    if (typeof eventType === 'string' && eventType.startsWith('Subscription.')) {
-      try {
-        const result = await handleSubscriptionWebhook(eventType, req.body?.data);
-        return res.status(200).json({ success: true, ...result });
-      } catch (e) {
-        // 인프라 오류(예: DB 장애)일 때만 처리 실패를 반환해 토스가 재전송하게 한다.
-        // 역매핑 실패 등 영구 조건은 핸들러 내부에서 handled:false로 처리(200)되므로 재전송이 없다.
-        logger.error('[Webhook/Toss] 정기결제 웹훅 처리 실패', {
-          eventType,
-          error: e.message,
-        });
-        return res.status(500).end();
-      }
-    }
-
-    const eventData = req.body?.data;
-    const paymentKey = eventData?.paymentKey;
-    if (!paymentKey) {
-      logger.warn('[Webhook/Toss] paymentKey 누락 - 요청 무시');
-      return res.status(400).end();
-    }
-
-    // [보안] 웹훅 본문을 신뢰하지 않는다 — 토스 결제 조회 API로 실제 결제 상태를 재검증한다.
-    // (웹훅 위변조 시 orderId/금액이 조작돼도, 조회 결과와 대조하여 차단)
-    let verifiedPayment;
-    try {
-      verifiedPayment = await TossAPI.getPayment(paymentKey);
-    } catch (e) {
-      logger.error('[Webhook/Toss] 결제 조회 실패 - 요청 무시', {
-        error: e.message,
-        paymentKey: maskPaymentKey(paymentKey),
-      });
-      return res.status(400).end();
-    }
-    const amountOk = Number(verifiedPayment?.totalAmount) === Number(eventData?.totalAmount);
-    const orderOk = verifiedPayment?.orderId === eventData?.orderId;
-    const statusOk = verifiedPayment?.status === 'DONE';
-    if (!amountOk || !orderOk || !statusOk) {
-      logger.warn('[Webhook/Toss] 결제 재검증 실패 - 요청 무시', {
-        orderId: eventData?.orderId,
-        amountMismatch: !amountOk,
-        orderMismatch: !orderOk,
-        statusMismatch: !statusOk,
-      });
-      return res.status(400).end();
-    }
-
-    logger.info(`[Webhook/Toss] 이벤트 수신: ${req.body?.eventType}`, {
-      orderId: eventData?.orderId,
-    });
-    const io = req.app.get('io');
-    const paymentService = new PaymentService(io);
-    await paymentService.handleTossWebhook(req.body);
-    res.status(200).json({ success: true });
+    // Authentication/signature checks run on the route before durable receipt.
+    const inbox = require('../services/PaymentWebhookInbox');
+    const result = await inbox.run(req.body, (event) =>
+      inbox.processEvent(event, req.app.get('io'))
+    );
+    res.status(200).json({ success: true, ...result });
   }),
-
   confirmStoreCard: catchAsync(async (req, res) => {
     const order = await Order.findById(parseInt(req.params.orderId));
     if (!order) return res.status(404).json({ error: '주문을 찾을 수 없습니다.' });

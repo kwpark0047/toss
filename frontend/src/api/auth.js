@@ -17,7 +17,8 @@ export const authAPI = {
   sendTwoFactorOtp: (purpose) => api.post('/auth/2fa/send-otp', { purpose }),
   verifyTwoFactorOtp: (purpose, otp) => api.post('/auth/2fa/verify', { purpose, otp }),
   me: () => api.get('/auth/me'),
-  logout: () => api.post('/auth/logout'),
+  logout: () =>
+    api.post('/auth/logout', { refreshToken: localStorage.getItem('refreshToken') || undefined }),
   updateProfile: (data) => api.put('/auth/profile', data),
   changePassword: (current_password, new_password) =>
     api.put('/auth/password', { current_password, new_password }),

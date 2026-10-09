@@ -8,6 +8,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 const isTest = process.env.VITEST === 'true';
 const BUILD_TIMESTAMP = Date.now();
+const rawRevision = process.env.APP_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || '';
+const APP_REVISION = /^[a-f0-9]{40}$/i.test(rawRevision) ? rawRevision : 'untracked';
 
 export default defineConfig({
   define: {
@@ -29,7 +31,9 @@ export default defineConfig({
     {
       name: 'html-transform',
       transformIndexHtml(html) {
-        return html.replace('__BUILD_TIMESTAMP__', JSON.stringify(BUILD_TIMESTAMP));
+        return html
+          .replace('__BUILD_TIMESTAMP__', JSON.stringify(BUILD_TIMESTAMP))
+          .replace('__APP_COMMIT_SHA__', APP_REVISION);
       },
     },
     ...(isTest
@@ -93,41 +97,8 @@ export default defineConfig({
                     cacheableResponse: { statuses: [200] },
                   },
                 },
-                // Same-origin API only. The production API lives on Render, so cross-origin
-                // requests must bypass Workbox entirely to avoid CORS/no-response loops.
-                {
-                  urlPattern: ({ url, sameOrigin }) =>
-                    sameOrigin &&
-                    url.pathname.startsWith('/api/') &&
-                    !url.pathname.startsWith('/api/health'),
-                  handler: 'NetworkFirst',
-                  options: {
-                    cacheName: 'wemarket-api',
-                    networkTimeoutSeconds: 3,
-                    expiration: {
-                      maxEntries: 100,
-                      maxAgeSeconds: 60 * 60 * 24, // 1 day
-                    },
-                  },
-                },
-                // Same-origin non-critical API only (search, listings)
-                {
-                  urlPattern: ({ url, sameOrigin }) =>
-                    sameOrigin &&
-                    url.pathname.startsWith('/api/') &&
-                    !url.pathname.startsWith('/api/health') &&
-                    (url.searchParams.has('list') ||
-                      url.searchParams.has('search') ||
-                      url.pathname.includes('/list')),
-                  handler: 'StaleWhileRevalidate',
-                  options: {
-                    cacheName: 'wemarket-api-stale',
-                    expiration: {
-                      maxEntries: 50,
-                      maxAgeSeconds: 60 * 60 * 24, // 1 day
-                    },
-                  },
-                },
+                // Authenticated API responses bypass Workbox. Public QR menu caching
+                // is handled by the explicit store-scoped menu cache in the application.
                 // 메뉴 이미지 / 업로드 파일 — Cache First
                 {
                   urlPattern: /\/uploads\//,

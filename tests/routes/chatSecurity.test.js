@@ -1,4 +1,9 @@
 const express = require('express');
+// This route matrix isolates authorization from session storage; actual revocation
+// and primary-role reads are covered by auth-sessions-postgres.test.cjs.
+jest.mock('../../services/AuthSessionService', () => ({
+  verifyAccess: jest.fn(async (decoded) => decoded),
+}));
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
 
@@ -22,7 +27,9 @@ function app() {
   const instance = express();
   instance.use(express.json());
   instance.use('/api/chat', require('../../routes/chat'));
-  instance.use((err, req, res, _next) => res.status(err.status || 500).json({ error: err.message }));
+  instance.use((err, req, res, _next) =>
+    res.status(err.status || 500).json({ error: err.message })
+  );
   return instance;
 }
 
@@ -39,10 +46,12 @@ describe('chat HTTP security', () => {
       .send({ store_id: 999, customer_phone: 'victim', customer_id: 999 });
 
     expect(response.status).toBe(200);
-    expect(mockChat.accessCustomerRoom).toHaveBeenCalledWith(expect.objectContaining({
-      orderId: 10,
-      storeId: 3,
-    }));
+    expect(mockChat.accessCustomerRoom).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: 10,
+        storeId: 3,
+      })
+    );
   });
 
   test('denies message history when the requester is not a room member', async () => {
@@ -68,12 +77,14 @@ describe('chat HTTP security', () => {
       .send({ room_id: 8, content: 'hello', sender_type: 'super_admin' });
 
     expect(response.status).toBe(200);
-    expect(mockChat.sendMessage).toHaveBeenCalledWith(expect.objectContaining({
-      room_id: 8,
-      sender_id: 5,
-      sender_type: 'manager',
-      content: 'hello',
-    }));
+    expect(mockChat.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        room_id: 8,
+        sender_id: 5,
+        sender_type: 'manager',
+        content: 'hello',
+      })
+    );
   });
 
   test('derives read filtering from membership instead of request body', async () => {

@@ -1,6 +1,7 @@
 const { afterAll } = require('@jest/globals');
 
 afterAll(async () => {
+  await require('../utils/runtimeResources').closeRuntimeResources();
   // app.mts 가 ESM 이므로 require.cache[appPath] 는 module namespace 를 노출하고,
   // VM 모듈 환경에서 namespace.io 접근 시 "Cannot access 'io' before initialization"(TDZ) throws.
   // teardown 은 best-effort 이므로 실패해도 무시한다.

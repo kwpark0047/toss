@@ -36,13 +36,15 @@ const aiController = {
 
   // [메뉴 추천]
   recommendMenus: catchAsync(async (req, res) => {
-    const { store_id, preferences, weather, mood, phone, toss_user_key } = req.body;
+    const { store_id, preferences, weather, mood } = req.body;
+    const phone =
+      req.customerIdentity?.storeId === Number(store_id) ? req.customerIdentity.phone : null;
     const hour = new Date().getHours();
     const time = new Date().toLocaleTimeString('ko-KR');
 
     let pastOrders = [];
-    if (phone || toss_user_key) {
-      const history = await Order.findByCustomer(phone, toss_user_key);
+    if (phone) {
+      const history = await Order.findByCustomerInStore(store_id, phone);
       pastOrders = history
         .flatMap((order) => order.items.map((item) => item.product_name))
         .slice(0, 10);
@@ -97,18 +99,12 @@ const aiController = {
     let segmentContext = '';
     let recContext = null;
     try {
-      // toss_user_key가 있으면 전화번호 없이도 고객 식별 가능
-      const phoneForCtx = phone || toss_user_key;
-      if (phoneForCtx) {
-        recContext = await RecommendationContextService.buildContext(
-          store_id,
-          phone,
-          toss_user_key
-        );
+      if (phone) {
+        recContext = await RecommendationContextService.buildContext(store_id, phone);
         segmentContext = RecommendationContextService.formatContext(recContext);
       }
     } catch (ctxError) {
-      console.warn('Failed to build recommendation context:', ctxError.message);
+      console.warn('Failed to build recommendation context');
     }
 
     const recommendations = await aiService.recommendMenus(
@@ -340,7 +336,9 @@ const aiController = {
 
   // [틱커벨 AI 추천] - 매장 AI 어시스턴트 동적 메뉴 추천
   tinkerbellRecommend: catchAsync(async (req, res) => {
-    const { store_id, weather, mood, phone, toss_user_key } = req.body;
+    const { store_id, weather, mood } = req.body;
+    const phone =
+      req.customerIdentity?.storeId === Number(store_id) ? req.customerIdentity.phone : null;
 
     if (!store_id) {
       return res.status(400).json({ error: 'store_id가 필요합니다.' });
@@ -359,8 +357,8 @@ const aiController = {
               : '야식';
 
     let pastOrders = [];
-    if (phone || toss_user_key) {
-      const history = await Order.findByCustomer(phone, toss_user_key);
+    if (phone) {
+      const history = await Order.findByCustomerInStore(store_id, phone);
       pastOrders = history
         .flatMap((order) => order.items.map((item) => item.product_name))
         .slice(0, 10);
@@ -406,7 +404,7 @@ const aiController = {
         segmentContext = RecommendationContextService.formatContext(recContext);
       }
     } catch (ctxError) {
-      console.warn('Failed to build recommendation context:', ctxError.message);
+      console.warn('Failed to build recommendation context');
     }
 
     const recommendations = await aiService.recommendMenus(

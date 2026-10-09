@@ -16,6 +16,8 @@ import { getAllowedOrigins, isOriginAllowed } from '../config/domain.js';
 const require = createRequire(import.meta.url);
 const prismaModule = require('../config/prisma.js');
 const prismaClient = typeof prismaModule.$queryRaw === 'function' ? prismaModule : prismaModule.default;
+const { createReadinessProbe } = require('../utils/readinessProbe.js');
+const probeDatabase = createReadinessProbe(() => prismaClient.$queryRaw`SELECT 1`);
 
 const router = Router();
 router.get('/live', (_req: Request, res: Response) => res.json({ status: 'ok' }));
@@ -112,15 +114,11 @@ export const requestTracker = (req: Request, res: Response, next: NextFunction) 
  *       503:
  *         description: 서비스 저하 (DB 불가)
  */
-router.get('/', async (req, res) => {
+router.get(['/', '/ready'], async (req, res) => {
   // DB 핑 타임아웃 3초
   let dbOk = false;
   try {
-    await Promise.race([
-      prismaClient.$queryRaw`SELECT 1`,
-      new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 3000)),
-    ]);
-    dbOk = true;
+    dbOk = await probeDatabase();
   } catch {
     /* pass */
   }
@@ -132,6 +130,8 @@ router.get('/', async (req, res) => {
     uptime: Math.floor((Date.now() - START_TIME) / 1000),
     ts: new Date().toISOString(),
     version: APP_VERSION,
+    revision: /^[a-f0-9]{40}$/i.test(process.env.RENDER_GIT_COMMIT || process.env.APP_COMMIT_SHA || '')
+      ? (process.env.RENDER_GIT_COMMIT || process.env.APP_COMMIT_SHA) : null,
     enc: !!(process.env.PHONE_ENC_KEY || process.env.JWT_SECRET),
   });
 });
@@ -157,10 +157,7 @@ router.get('/deep', async (req, res) => {
   // SELECT 1: 테이블 스캔 없는 순수 연결+왕복 지연 측정
   const t0 = Date.now();
   try {
-    await Promise.race([
-      prismaClient.$queryRaw`SELECT 1`,
-      new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 5000)),
-    ]);
+    if (!await probeDatabase()) throw new Error('database readiness timeout or unavailable');
     const latencyMs = Date.now() - t0;
     checks.database = { status: latencyMs > 3000 ? 'warn' : 'ok', latencyMs };
   } catch (e) {

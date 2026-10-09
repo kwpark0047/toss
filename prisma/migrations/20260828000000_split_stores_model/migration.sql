@@ -177,12 +177,15 @@ WHERE "settlement_cycle" IS NOT NULL
 INSERT INTO "store_eco_badge" (
     "store_id", "level", "title", "carbon_saved_kg", "orders_count"
 )
-SELECT "id", "eco_badge_level", "eco_badge_title", "eco_carbon_saved_kg", "eco_orders_count"
+SELECT "id", to_jsonb("stores")->>'eco_badge_level',
+    to_jsonb("stores")->>'eco_badge_title',
+    (to_jsonb("stores")->>'eco_carbon_saved_kg')::numeric,
+    (to_jsonb("stores")->>'eco_orders_count')::integer
 FROM "stores"
-WHERE "eco_badge_level" IS NOT NULL 
-   OR "eco_badge_title" IS NOT NULL
-   OR "eco_carbon_saved_kg" IS NOT NULL
-   OR "eco_orders_count" IS NOT NULL;
+WHERE to_jsonb("stores")->>'eco_badge_level' IS NOT NULL
+   OR to_jsonb("stores")->>'eco_badge_title' IS NOT NULL
+   OR to_jsonb("stores")->>'eco_carbon_saved_kg' IS NOT NULL
+   OR to_jsonb("stores")->>'eco_orders_count' IS NOT NULL;
 
 -- store_operating_hours 데이터 이관
 INSERT INTO "store_operating_hours" (

@@ -19,7 +19,12 @@ if (typeof global.AbortController === 'undefined') {
 // Prisma mock — findMany, create, update, findUnique chain
 const mockPrisma = {
   webhook_endpoints: { findMany: jest.fn(), findUnique: jest.fn() },
-  webhook_deliveries: { create: jest.fn(), update: jest.fn(), findMany: jest.fn() },
+  webhook_deliveries: {
+    create: jest.fn(),
+    update: jest.fn(),
+    updateMany: jest.fn(),
+    findMany: jest.fn(),
+  },
 };
 jest.mock('../../config/prisma', () => mockPrisma);
 
@@ -51,6 +56,7 @@ const MOCK_ENDPOINT = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockPrisma.webhook_deliveries.updateMany.mockResolvedValue({ count: 1 });
   jest.useRealTimers();
 });
 afterEach(() => {
@@ -61,6 +67,12 @@ afterEach(() => {
 /*  sign()                                                             */
 /* ------------------------------------------------------------------ */
 describe('sign()', () => {
+  it('does not send when another worker already claimed this attempt', async () => {
+    mockPrisma.webhook_deliveries.updateMany.mockResolvedValue({ count: 0 });
+    global.fetch = jest.fn();
+    expect(await attemptDelivery({ id: 1, attempt: 0, payload: {} }, MOCK_ENDPOINT)).toBe(false);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
   it('HMAC-SHA256 hex 서명 생성', () => {
     const expected = crypto
       .createHmac('sha256', 'sekret')
@@ -96,7 +108,7 @@ describe('attemptDelivery() — success path', () => {
     expect(global.fetch.mock.calls[0][0]).toBe(MOCK_ENDPOINT.url);
     expect(mockPrisma.webhook_deliveries.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 3000 },
+        where: { id: 3000, attempt: 1, status: 'pending' },
         data: expect.objectContaining({ status: 'success', attempt: 1 }),
       })
     );
@@ -121,7 +133,7 @@ describe('attemptDelivery() — failure / retry', () => {
     expect(result).toBe(false);
     expect(mockPrisma.webhook_deliveries.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 4000 },
+        where: { id: 4000, attempt: 1, status: 'pending' },
         data: expect.objectContaining({
           status: 'pending',
           attempt: 1,
@@ -147,11 +159,10 @@ describe('attemptDelivery() — failure / retry', () => {
     const result = await attemptDelivery(delivery, MOCK_ENDPOINT);
 
     expect(result).toBe(false);
-    const updateCall = mockPrisma.webhook_deliveries.update.mock.calls[0][0];
+    const updateCall = mockPrisma.webhook_deliveries.updateMany.mock.calls[0][0];
     expect(updateCall.data.status).toBe('failed');
-    expect(updateCall.data.attempt).toBe(MAX_ATTEMPTS + 1);
-    // exhausted 시 next_retry_at은 DB 필드를 변경하지 않음 (updateData에 포함되지 않음)
-    expect(updateCall.data).not.toHaveProperty('next_retry_at');
+    expect(updateCall.data.next_retry_at).toBe(null);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('fetch 예외 시 last_error에 메시지 기록', async () => {

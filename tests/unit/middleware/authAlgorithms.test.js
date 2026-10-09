@@ -1,3 +1,6 @@
+jest.mock('../../../services/AuthSessionService', () => ({
+  verifyAccess: jest.fn(async (decoded) => decoded),
+}));
 /**
  * 실제 jsonwebtoken(비-목업)으로 JWT algorithm 고정(algorithms: ['HS256'])이
  * 실제로 동작하는지 검증한다.
@@ -33,21 +36,21 @@ describe('auth middleware - JWT algorithm pinning', () => {
   let res;
   let next;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     req = { cookies: {}, headers: {} };
     res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
     next = jest.fn();
   });
 
-  const callWith = (token) => {
+  const callWith = async (token) => {
     req.headers.authorization = `Bearer ${token}`;
-    auth.authMiddleware(req, res, next);
+    await auth.authMiddleware(req, res, next);
   };
 
-  test('HS256 access token 은 통과한다 (회귀 없음)', () => {
+  test('HS256 access token 은 통과한다 (회귀 없음)', async () => {
     const token = signWith({ id: 1, name: '테스트', role: 'owner', type: 'access' }, 'HS256');
 
-    callWith(token);
+    await callWith(token);
 
     expect(next).toHaveBeenCalled();
     expect(req.user).toMatchObject({ id: 1, role: 'owner', type: 'access' });
@@ -55,10 +58,10 @@ describe('auth middleware - JWT algorithm pinning', () => {
 
   test.each(['HS384', 'HS512'])(
     '같은 secret 으로 서명한 %s 토큰은 거부한다 (algorithm 혼동 방어)',
-    (algorithm) => {
+    async (algorithm) => {
       const token = signWith({ id: 1, role: 'super_admin', type: 'access' }, algorithm);
 
-      callWith(token);
+      await callWith(token);
 
       expect(next).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(401);
@@ -66,20 +69,20 @@ describe('auth middleware - JWT algorithm pinning', () => {
     }
   );
 
-  test('alg=none (서명 없는) 토큰은 거부한다', () => {
+  test('alg=none (서명 없는) 토큰은 거부한다', async () => {
     const token = signWith({ id: 1, role: 'super_admin', type: 'access' }, 'none');
 
-    callWith(token);
+    await callWith(token);
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(401);
     expect(req.user).toBeUndefined();
   });
 
-  test('JWT_SECRET 로 서명한 refresh 타입 토큰은 통과하지 않는다', () => {
+  test('JWT_SECRET 로 서명한 refresh 타입 토큰은 통과하지 않는다', async () => {
     const token = signWith({ id: 1, type: 'refresh' }, 'HS256');
 
-    callWith(token);
+    await callWith(token);
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(401);

@@ -568,7 +568,7 @@ class PaymentService {
           const cancelReason = isAmountMismatch
             ? '승인 금액 불일치 자동 취소'
             : '중복 결제 승인 자동 취소';
-          await TossAPI.cancelPayment(paymentKey, cancelReason);
+          await require('./PaymentCompensationService').autoCancel(paymentKey, cancelReason);
           autoCanceled = true;
           logger.warn('[PaymentService] 금액 불일치 결제 자동 취소 완료', {
             paymentKey: maskPaymentKey(paymentKey),
@@ -604,115 +604,35 @@ class PaymentService {
   // [결제 취소 처리]
   // ═════════════════════════════════════════════════════════════════
   async processCancellation(orderId, cancelReason, manualRefundConfirmed = false) {
-    const payment = await prisma.payments.findFirst({
-      where: { order_id: parseInt(orderId), status: 'DONE' },
-      orderBy: { created_at: 'desc' },
+    const payments = await prisma.payments.findMany({
+      where: { order_id: Number(orderId), status: 'DONE' },
+      orderBy: { id: 'asc' },
     });
-
-    // 멱등성: 이미 취소된 결제는 재처리 없이 반환
-    const alreadyCanceled = await prisma.payments.findFirst({
-      where: { order_id: parseInt(orderId), status: { in: ['CANCELED', 'CANCELLED'] } },
-    });
-    if (alreadyCanceled) {
-      logger.info('[PaymentService] 중복 취소 요청 무시 (멱등성)');
-      return { success: true, message: '이미 취소 처리된 결제입니다.' };
-    }
-
-    if (!payment) {
-      throw new Error('취소할 유효한 결제 내역이 없습니다.');
-    }
-
-    if (
-      !payment.payment_key &&
-      ['CASH', 'TRANSFER', 'STORE_CARD', 'POINT'].includes(String(payment.method).toUpperCase())
-    ) {
-      return this.cancelOfflinePayment(payment, cancelReason, manualRefundConfirmed);
-    }
-    // 토스 취소 API 호출
-    await TossAPI.cancelPayment(payment.payment_key, cancelReason || '시스템 취소');
-    logger.info('[PaymentService] 토스 결제 취소 완료', {
-      paymentKey: maskPaymentKey(payment.payment_key),
-    });
-
-    // DB 상태 업데이트 (트랜잭션)
-    await prisma.$transaction(async (tx) => {
-      await tx.payments.update({
-        where: { payment_key: payment.payment_key },
-        data: {
-          status: 'CANCELED',
-          cancelled_at: new Date(),
-          cancel_reason: cancelReason,
-          updated_at: new Date(),
-        },
+    if (!payments.length) {
+      const canceled = await prisma.payments.findFirst({
+        where: { order_id: Number(orderId), status: 'CANCELED' },
       });
-
-      await pointService.revertOnCancel(payment.id, tx);
-
-      await ledgerService.recordRefund(
-        {
-          storeId: payment.store_id,
-          orderId: payment.order_id,
-          paymentId: payment.id,
-          amount: payment.amount,
-          method: payment.method,
-          description: `환불: ${cancelReason}`,
-        },
-        tx
-      );
-
-      await tx.orders.update({
-        where: { id: payment.order_id },
-        data: {
-          payment_status: 'refunded',
-          status: 'cancelled',
-          updated_at: new Date(),
-        },
-      });
-    });
-
-    // 재고 복구 (별도 트랜잭션, 취소 실패해도 결제 취소는 유지)
-    try {
-      const items = await prisma.order_items.findMany({
-        where: { order_id: payment.order_id },
-        select: { product_id: true, quantity: true },
-      });
-      for (const item of items) {
-        if (!item.product_id) continue;
-        const product = await prisma.products.findUnique({
-          where: { id: item.product_id },
-          select: { id: true, store_id: true, stock_quantity: true },
-        });
-        if (!product || product.stock_quantity === null) continue;
-
-        const restoredQty = product.stock_quantity + item.quantity;
-        await prisma.products.update({
-          where: { id: item.product_id },
-          data: { stock_quantity: restoredQty, is_sold_out: false },
-        });
-        await prisma.stock_history.create({
-          data: {
-            product_id: item.product_id,
-            store_id: product.store_id,
-            change: item.quantity,
-            qty_after: restoredQty,
-            reason: 'CANCEL',
-            order_id: payment.order_id,
-          },
-        });
-        logger.info(
-          `[PaymentService] 재고 복구: product_id=${item.product_id}, +${item.quantity}개`
-        );
-      }
-    } catch (e) {
-      logger.warn('[PaymentService] 재고 복구 실패 (취소는 완료):', e.message);
+      if (canceled) return { success: true, message: '이미 취소 처리된 결제입니다.' };
+      throw new AppError('취소할 유효한 결제 내역이 없습니다.', 409);
     }
-
+    const RefundService = require('./RefundService');
+    const refunds = new RefundService({
+      db: prisma,
+      provider: TossAPI,
+      ledger: ledgerService,
+      points: pointService,
+    });
+    for (const payment of payments) {
+      if (
+        !payment.payment_key &&
+        ['CASH', 'TRANSFER', 'STORE_CARD', 'POINT'].includes(String(payment.method).toUpperCase())
+      )
+        await this.cancelOfflinePayment(payment, cancelReason, manualRefundConfirmed);
+      else await refunds.refund(payment.id, { key: 'full', reason: cancelReason });
+    }
     return { success: true, message: '결제 취소 및 환불 처리가 완료되었습니다.' };
   }
 
-  // ═════════════════════════════════════════════════════════════════
-  // [결제 준비]
-  // ═════════════════════════════════════════════════════════════════
   async preparePayment({ order_id, store_id, order_name, amount, method, checkout_url }) {
     let targetStoreId = store_id;
     let targetAmount = amount;
@@ -788,67 +708,45 @@ class PaymentService {
   // ═════════════════════════════════════════════════════════════════
   async processPartialCancel(orderId, cancelAmount, cancelReason, idempotencyKey) {
     const amount = Number(cancelAmount);
-    if (!amount || amount <= 0) throw new AppError('환불 금액이 올바르지 않습니다.', 400);
-
+    if (!Number.isSafeInteger(amount) || amount <= 0 || !idempotencyKey)
+      throw new AppError('환불 금액 또는 작업 키가 올바르지 않습니다.', 400);
     const payments = await prisma.payments.findMany({
-      where: { order_id: parseInt(orderId) },
+      where: { order_id: Number(orderId) },
+      orderBy: { id: 'asc' },
     });
-    const payment = payments.find((p) => p.status === 'DONE');
-    if (!payment) throw new AppError('취소 가능한 결제 내역이 없습니다.', 404);
-    if (
-      !payment.payment_key &&
-      ['CASH', 'TRANSFER', 'STORE_CARD', 'POINT'].includes(String(payment.method).toUpperCase())
-    )
-      throw new AppError('현장 결제와 포인트는 전체 환불로 처리해 주세요.', 409);
-
-    const refunded = await prisma.ledger.aggregate({
-      where: { payment_id: payment.id, type: 'REFUND' },
-      _sum: { amount: true },
-    });
-    const refundedAmount = Math.abs(Number(refunded._sum.amount || 0));
-    if (amount + refundedAmount > Number(payment.amount)) {
-      throw new AppError(
-        `누적 환불 금액(${(amount + refundedAmount).toLocaleString()}원)이 결제 금액을 초과합니다.`,
-        400
-      );
-    }
-
-    if (amount > payment.amount) {
-      throw new AppError(
-        `환불 금액(${amount.toLocaleString()}원)이 결제 금액(${payment.amount.toLocaleString()}원)을 초과합니다.`,
-        400
-      );
-    }
-
-    const tossResponse = await TossAPI.cancelPayment(
-      payment.payment_key,
-      cancelReason || '부분 환불',
-      amount,
-      idempotencyKey ? `partial-refund:${idempotencyKey}` : undefined
-    );
-    logger.info(`[PaymentService] 부분 환불 완료: orderId=${orderId}, amount=${amount}`);
-
-    await prisma.ledger.create({
-      data: {
-        store_id: payment.store_id,
-        order_id: payment.order_id,
-        payment_id: payment.id,
+    const legacy = await prisma.ledger.findFirst({
+      where: {
+        payment_id: { in: payments.map((p) => p.id) },
         type: 'REFUND',
-        category: 'PARTIAL_CANCEL',
-        amount: -amount,
-        method: payment.method,
-        description: `부분 환불: ${cancelReason || '부분 환불'} (${amount.toLocaleString()}원)`,
-        event_key: idempotencyKey ? `partial-refund:${idempotencyKey}` : null,
-        created_at: new Date(),
+        event_key: `partial-refund:${idempotencyKey}`,
       },
     });
-
-    return { refundedAmount: amount, tossResponse };
+    if (legacy) {
+      if (Math.abs(legacy.amount) !== amount)
+        throw new AppError('동일 환불 키의 금액이 다릅니다.', 422);
+      return { refundedAmount: amount, alreadyRefunded: true };
+    }
+    const previous = await prisma.refund_operations.findFirst({
+      where: {
+        payment_id: { in: payments.map((p) => p.id) },
+        operation_key: { in: payments.map((p) => `refund:${p.id}:partial:${idempotencyKey}`) },
+      },
+    });
+    const payment = previous
+      ? payments.find((p) => p.id === previous.payment_id)
+      : payments.find((p) => p.status === 'DONE');
+    if (!payment) throw new AppError('취소 가능한 결제 내역이 없습니다.', 404);
+    if (!payment.payment_key)
+      throw new AppError('현장 결제와 포인트는 전체 환불로 처리해 주세요.', 409);
+    const RefundService = require('./RefundService');
+    return new RefundService({
+      db: prisma,
+      provider: TossAPI,
+      ledger: ledgerService,
+      points: pointService,
+    }).refund(payment.id, { amount, reason: cancelReason, key: `partial:${idempotencyKey}` });
   }
 
-  // ═════════════════════════════════════════════════════════════════
-  // [Toss 웹훅 처리]
-  // ═════════════════════════════════════════════════════════════════
   async handleTossWebhook(event) {
     const eventType = event?.eventType;
     const data = event?.data;
@@ -866,10 +764,14 @@ class PaymentService {
         `[Webhook/Toss] 망취소 감지: paymentKey=${maskedPaymentKey}, orderId=${tossOrderId}`
       );
       try {
-        await TossAPI.cancelPayment(paymentKey, '토스측 오류: 주문 미생성으로 인한 자동 취소');
+        await require('./PaymentCompensationService').autoCancel(
+          paymentKey,
+          '토스측 오류: 주문 미생성으로 인한 자동 취소'
+        );
         logger.info(`[Webhook/Toss] 망취소 완료: paymentKey=${maskedPaymentKey}`);
       } catch (e) {
-        logger.error(`[Webhook/Toss] 망취소 API 실패: ${e.message}`);
+        logger.error('[Webhook/Toss] 자동 취소 복구가 필요합니다.');
+        throw e;
       }
     } else {
       // [보안] 웹훅 이벤트 데이터 사전 sanitize - 민감정보( customerKey 등) 사전 제거
@@ -910,7 +812,8 @@ class PaymentService {
           logger.info(`[Webhook/Toss] 결제 승인 완료: orderId=${tossOrderId}`);
         }
       } catch (e) {
-        logger.error(`[Webhook/Toss] processApproval 실패: ${e.message}`);
+        logger.error('[Webhook/Toss] 승인 처리 재시도가 필요합니다.');
+        throw e;
       }
     }
   }
@@ -1021,28 +924,20 @@ class PaymentService {
         },
         tx
       );
-      await tx.orders.update({
-        where: { id: payment.order_id },
-        data: { payment_status: 'refunded', status: 'cancelled', updated_at: new Date() },
+      const remaining = await tx.payments.count({
+        where: { order_id: payment.order_id, status: 'DONE' },
       });
-      const items = await tx.order_items.findMany({ where: { order_id: payment.order_id } });
-      for (const item of items) {
-        if (!item.product_id) continue;
-        const product = await tx.products.findUnique({ where: { id: item.product_id } });
-        if (!product || product.stock_quantity === null) continue;
-        const updated = await tx.products.update({
-          where: { id: product.id },
-          data: { stock_quantity: { increment: item.quantity }, is_sold_out: false },
-        });
-        await tx.stock_history.create({
-          data: {
-            product_id: product.id,
-            store_id: product.store_id,
-            change: item.quantity,
-            qty_after: updated.stock_quantity,
-            reason: 'CANCEL',
-            order_id: payment.order_id,
-          },
+      if (remaining === 0) {
+        const RefundService = require('./RefundService');
+        await new RefundService({
+          db: prisma,
+          provider: TossAPI,
+          ledger: ledgerService,
+          points: pointService,
+        }).restoreInventory(tx, payment.order_id, payment.store_id);
+        await tx.orders.update({
+          where: { id: payment.order_id },
+          data: { payment_status: 'refunded', status: 'cancelled', updated_at: new Date() },
         });
       }
       return { success: true, message: '환불 기록과 포인트·재고 복구가 완료되었습니다.' };

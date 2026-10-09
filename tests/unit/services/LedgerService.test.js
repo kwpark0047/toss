@@ -36,7 +36,7 @@ describe('LedgerService', () => {
       storeId: 1,
       orderId: 2,
       paymentId: 3,
-      amount: -500,
+      amount: 500,
       method: 'CARD',
       description: 'partial refund',
       eventKey: 'refund:9',
@@ -46,4 +46,14 @@ describe('LedgerService', () => {
       expect.objectContaining({ where: { event_key: 'refund:9' } })
     );
   });
+
+  test.each([-500, 0, 0.5])(
+    'refund amount %s violates the positive integer ledger contract',
+    async (amount) => {
+      await expect(
+        ledgerService.recordRefund({ storeId: 1, orderId: 2, paymentId: 3, amount })
+      ).rejects.toThrow();
+      expect(prisma.ledger.upsert).not.toHaveBeenCalled();
+    }
+  );
 });

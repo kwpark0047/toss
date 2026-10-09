@@ -17,24 +17,6 @@ const logger = require('../utils/logger');
  * Toss는 실패 시 동일 웹훅을 재전송하므로 webhookId 기반 멱등성을 보장한다.
  */
 
-// 웹훅 멱등성을 위한 webhookId → 처리 시각 캐시 (TTL 1시간, 최대 10,000건)
-const dedupStore = new Map();
-const DEDUP_TTL_MS = 60 * 60 * 1000;
-const DEDUP_MAX_SIZE = 10000;
-
-function isDuplicate(key) {
-  if (!key) return false;
-  const now = Date.now();
-  if (dedupStore.has(key)) return true;
-  dedupStore.set(key, now);
-  if (dedupStore.size > DEDUP_MAX_SIZE) {
-    for (const [k, ts] of dedupStore) {
-      if (now - ts > DEDUP_TTL_MS) dedupStore.delete(k);
-    }
-  }
-  return false;
-}
-
 /** Toss subscriptionId로 매장 구독 역매핑 — 실패 시 null + 경고 로그 */
 async function resolveStoreSubscription(subscriptionId, eventType) {
   const storeSub = await StoreSubscriptionRepository.findBySubscriptionId(subscriptionId);
@@ -57,49 +39,18 @@ function computeNextPeriod(billingCycle, from = new Date()) {
 }
 
 async function handleSubscriptionWebhook(eventType, data) {
-  logger.info({ eventType, subscriptionId: data?.subscriptionId }, '정기결제 웹훅 수신');
-
-  // 멱등성: 동일 webhookId 중복 처리 방지
-  const dedupKey = data?.webhookId || data?.eventId;
-  if (isDuplicate(dedupKey)) {
-    logger.info({ dedupKey, eventType }, '중복 정기결제 웹훅 무시');
-    return { received: true, handled: false, duplicated: true };
-  }
-
-  try {
-    switch (eventType) {
-      case 'Subscription.CREATED':
-        return await handleSubscriptionCreated(data);
-
-      case 'Subscription.PAYMENT_SUCCEEDED':
-        return await handlePaymentSucceeded(data);
-
-      case 'Subscription.PAYMENT_FAILED':
-        return await handlePaymentFailed(data);
-
-      case 'Subscription.CANCELED':
-        return await handleSubscriptionCanceled(data);
-
-      case 'Subscription.PAUSED':
-        return await handleSubscriptionPaused(data);
-
-      case 'Subscription.RESUMED':
-        return await handleSubscriptionResumed(data);
-
-      default:
-        logger.warn({ eventType }, '알 수 없는 정기결제 이벤트 타입');
-        return { received: true, handled: false };
-    }
-  } catch (error) {
-    logger.error({ eventType, error: error.message }, '정기결제 웹훅 처리 실패');
-    throw error;
-  }
+  const inbox = require('../services/PaymentWebhookInbox');
+  return inbox.run({ eventType, data }, async () => ({
+    received: true,
+    handled: false,
+    reviewRequired: true,
+    reason: 'UNVERIFIED_LEGACY_PROVIDER_CONTRACT',
+  }));
 }
-
 async function handleSubscriptionCreated(data) {
   const { subscriptionId, customerKey, plan } = data;
   const eventType = 'Subscription.CREATED';
-  logger.info({ subscriptionId, customerKey }, '정기결제 생성됨');
+  logger.info({ subscriptionId }, '정기결제 생성됨');
 
   // 정기결제 생성은 결제수단 등록 시점에 store_subscriptions upsert로 이미 반영됨.
   // 웹훅으로 도달 시 매핑이 있다면 자동 갱신 상태만 보장한다.
@@ -117,7 +68,7 @@ async function handleSubscriptionCreated(data) {
 async function handlePaymentSucceeded(data) {
   const { subscriptionId, paymentKey, amount, approvedAt } = data;
   const eventType = 'Subscription.PAYMENT_SUCCEEDED';
-  logger.info({ subscriptionId, paymentKey, amount }, '정기결제 결제 성공');
+  logger.info({ subscriptionId, amount }, '정기결제 결제 성공');
 
   const storeSub = await resolveStoreSubscription(subscriptionId, eventType);
   if (!storeSub) return { received: true, handled: false };
