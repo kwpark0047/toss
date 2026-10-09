@@ -4,6 +4,7 @@ import { storesAPI, tierSettingsAPI } from '../../api';
 import { toast } from 'react-toastify';
 import { useSEO } from '../../lib/useSEO';
 import Icon from '../../components/ui/Icon';
+import ProviderCredentialPanel from './ProviderCredentialPanel';
 import { Award, Brush, CheckCircle2, ChevronDown, ChevronUp, CopyCheck, Crown, Edit3, Info, Layout, Moon, Palette, Plus, Save, Store, Sun, ToggleLeft, ToggleRight, Trash2, Type, Clock } from 'lucide-react';
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
@@ -618,6 +619,7 @@ export default function StoreSettings() {
       </Section>
 
       {/* 하단 저장 버튼 (고정) */}
+      <ProviderCredentialPanel key={storeId} storeId={storeId} />
       <div className="fixed bottom-0 left-0 right-0 px-4 py-4 bg-white/90 backdrop-blur-sm border-t border-gray-100 flex justify-end max-w-2xl mx-auto z-10">
         <button
           onClick={handleSave}

@@ -73,3 +73,18 @@ test('weather cache is station/key specific, missing keys and errors are explici
   assert.equal(service.parseSfctm2('invalid provider error body'), null);
   await assert.rejects(service.getCurrentWeather('108&authKey=evil'));
 });
+
+test('named provider keys are isolated per store and never inherited globally', async () => {
+ const service = new ProviderCredentialService(database());
+ for (const provider of ['tossplace','payhere','okpos','easypos','yogiyo','coupangeats','tosspayments']) {
+ const input = provider === 'tosspayments' ? { client_key:'test_ck_fixture123', secret_key:'test_sk_fixture123' } : {api_key:'fixture-vendor-key123'};
+ await service.save(provider,3,input,7);
+ assert.deepEqual((await service.resolve(provider,3)).values,input);
+ assert.equal(await service.resolve(provider,4),null);
+ await assert.rejects(service.save(provider,null,input,7));
+ assert.ok(!JSON.stringify(await service.list(3)).includes(Object.values(input)[0]));
+ assert.equal((await service.test(provider,3)).status,'adapter_required');
+ await service.save(provider,3,{enabled:false},7);
+ assert.equal(await service.resolve(provider,3),null);
+ }
+});

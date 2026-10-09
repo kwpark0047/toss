@@ -3,6 +3,13 @@ const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
 const { seal, open } = require('../utils/providerSecret');
 const CATALOG = {
+  tossplace: { label: '토스플레이스 POS', fields: ['api_key'], store: true, adapter: false },
+  payhere: { label: '페이히어 POS', fields: ['api_key'], store: true, adapter: false },
+  okpos: { label: 'OKPOS', fields: ['api_key'], store: true, adapter: false },
+  easypos: { label: '이지포스', fields: ['api_key'], store: true, adapter: false },
+  yogiyo: { label: '요기요', fields: ['api_key'], store: true, adapter: false },
+  coupangeats: { label: '쿠팡이츠', fields: ['api_key'], store: true, adapter: false },
+  tosspayments: { label: '토스페이먼츠 거래 대사', fields: ['client_key', 'secret_key'], store: true, adapter: false },
   pos: { label: 'POS', fields: ['api_key'], store: true, adapter: false },
   table_order: {
     label: '외부 키오스크·테이블오더',
@@ -10,7 +17,7 @@ const CATALOG = {
     store: true,
     adapter: false,
   },
-  baemin: { label: '배달 서비스', fields: ['api_key'], store: true, adapter: false },
+  baemin: { label: '배달의민족', fields: ['api_key'], store: true, adapter: false },
   online_order: {
     label: '온라인·모바일 주문 업체',
     fields: ['api_key'],
@@ -27,7 +34,7 @@ const CATALOG = {
   weather: { label: '기상청', fields: ['api_key'], store: false, adapter: true },
 };
 function definition(provider, storeId) {
-  const item = CATALOG[provider];
+  const item = Object.hasOwn(CATALOG, provider) ? CATALOG[provider] : null;
   if (!item || (storeId && !item.store) || (!storeId && item.store && provider !== 'naver'))
     throw new AppError('해당 범위에서 설정할 수 없는 공급자입니다.', 400);
   return item;
@@ -65,7 +72,7 @@ class ProviderCredentialService {
       : null;
   }
   async resolve(provider, storeId = null) {
-    if (!CATALOG[provider]) throw new AppError('지원하지 않는 공급자입니다.', 400);
+    if (!Object.hasOwn(CATALOG, provider)) throw new AppError('지원하지 않는 공급자입니다.', 400);
     if (storeId && CATALOG[provider].store) {
       const own = await this.row(provider, storeId);
       if (own)

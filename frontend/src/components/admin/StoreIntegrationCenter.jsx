@@ -71,7 +71,7 @@ export default function StoreIntegrationCenter() {
     {error && <div role="alert" className="rounded-xl border border-rose-500/30 p-4 text-rose-400">{error} <button className="underline" onClick={load}>다시 조회</button></div>}
     {loading && !data && <p role="status">통합 데이터를 불러오는 중…</p>}
     {tab === 'growth' ? <GrowthRoadmap storeId={storeId} /> : <>
-      <ProviderCredentialPanel storeId={storeId} />
+      <ProviderCredentialPanel key={storeId} storeId={storeId} />
       <section className="menu-panel rounded-xl p-4 space-y-2" aria-label="외부 동기화 운영 상태">
         <h2 className="font-semibold">업체 동기화 검증 상태</h2>
         {syncError ? <p role="alert" className="text-rose-400">동기화 상태 조회 실패: {syncError}</p> : !syncStatus ? <p role="status">검증 상태 조회 중…</p> : <>
