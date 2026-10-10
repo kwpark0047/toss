@@ -1,6 +1,7 @@
 {
   "production": {
-    "backendUrl": "https://wemarket.onrender.com",
+    "backendUrl": "https://wemarket-eiw4.onrender.com",
+    "renderServiceId": "srv-db0aoa7avr4c73esalbg",
     "frontendUrl": "https://wemarket-saas.vercel.app",
     "vercelProjectId": "prj_ZXshlSsA2zPPNuIAhI0FtUwWwMYL",
     "vercelOrgId": "team_tHNY4ZLczVxuEkUksjcUSYjw"

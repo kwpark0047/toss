@@ -1,0 +1,21 @@
+{
+  "scope": "latest local verification; not staging/production certification",
+  "evidence": [
+    {
+      "file": "reports/rc-refresh-backend-sequential.json",
+      "sha256": "fc3e4853b7db52f8c0ac74b14e6e36418d53d34b6ffa5518d75373ec86388759"
+    },
+    {
+      "file": "reports/rc-refresh-saas.log",
+      "sha256": "bd12803223979270c592f7e0cf7a9231dfb56d7eb6ec2e0e7cd5e19086a1042a"
+    },
+    {
+      "file": "reports/rc-refresh-production-audit.json",
+      "sha256": "714641e2d512489d3e48610f70a83c962ea713dff2b101549c067368478c6d1e"
+    },
+    {
+      "file": "reports/rc-refresh-frontend-sequential.log",
+      "sha256": "ec8d3bba9bd31a25c7ff40435366724e58f34df1d71870389f85b11a56fb721a"
+    }
+  ]
+}

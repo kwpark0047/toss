@@ -6,7 +6,7 @@ const levels = {
   OPTIONAL: 'OPTIONAL',
 } as const;
 
-type Level = typeof levels[keyof typeof levels];
+type Level = (typeof levels)[keyof typeof levels];
 
 interface EnvVar {
   key: string;
@@ -86,8 +86,44 @@ export function checkEnv(): { ok: boolean; warnings: string[] } {
 
   const warnings: string[] = [];
 
+  // Fail closed on configured unusable keys; never log secret values.
+  if (process.env.NODE_ENV === 'production') {
+    const keyMinimums = {
+      JWT_SECRET: 32,
+      JWT_REFRESH_SECRET: 32,
+      PHONE_ENC_KEY: 16,
+      TOKEN_ENC_KEY: 16,
+      PROVIDER_SECRET_KEY: 16,
+    };
+    for (const [name, minimum] of Object.entries(keyMinimums)) {
+      const value = process.env[name];
+      if (
+        value !== undefined &&
+        (value.trim().length < minimum || /변경필요|change-me|^YOUR_/i.test(value))
+      ) {
+        const msg = '[CRITICAL] Invalid production key configuration: ' + name;
+        logger.error(msg);
+        return { ok: false, warnings: [msg] };
+      }
+    }
+  }
+
   // Production safety checks for dev flags
   if (process.env.NODE_ENV === 'production') {
+    if (process.env.REQUIRE_SEPARATE_ENCRYPTION_KEYS === 'true') {
+      for (const name of ['PHONE_ENC_KEY', 'TOKEN_ENC_KEY', 'PROVIDER_SECRET_KEY']) {
+        const value = process.env[name];
+        if (
+          !value ||
+          value === process.env.JWT_SECRET ||
+          value === process.env.JWT_REFRESH_SECRET
+        ) {
+          const msg = '[CRITICAL] Explicit encryption key separation required: ' + name;
+          logger.error(msg);
+          return { ok: false, warnings: [msg] };
+        }
+      }
+    }
     const dangerousFlags = ['BYPASS_OTP', 'EXPOSE_OTP', 'ALLOW_MOCK_PAYMENTS'];
     for (const flag of dangerousFlags) {
       if (process.env[flag] === 'true') {

@@ -19,7 +19,6 @@ async function check(url, expected) {
   const body = await response.text();
   const ok = response.status >= 200 && response.status < 300 && (!expected || expected(body));
   console.log(`${ok ? 'PASS' : 'FAIL'} ${url} → HTTP ${response.status}`);
-  if (!ok && body) console.log(body.slice(0, 500));
   return ok;
 }
 
@@ -52,7 +51,9 @@ async function main() {
       const payload = JSON.parse(body);
       const statusOk = payload.status === 'ok';
       const checks = payload.checks || {};
-      return Boolean(statusOk && checks.database && checks.operationalConfig);
+      return Boolean(
+        statusOk && checks.database?.status === 'ok' && checks.operationalConfig?.status === 'ok'
+      );
     } catch {
       return false;
     }
@@ -70,7 +71,10 @@ async function main() {
   if (!backendOk || !deepHealthOk || !frontendOk) process.exitCode = 1;
 }
 
-main().catch((error) => {
-  console.error(`FAIL smoke test: ${error.message}`);
-  process.exitCode = 1;
-});
+module.exports = { check, main };
+
+if (require.main === module)
+  main().catch(() => {
+    console.error('FAIL smoke test: response unavailable or invalid; details suppressed');
+    process.exitCode = 1;
+  });

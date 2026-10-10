@@ -499,7 +499,20 @@ jobs:
         with:
           node-version: 22
 
-      - name: Deploy to Render (backend, optional)
+      - name: Validate all production deployment targets before side effects
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ] || [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error::Production deployment configuration is incomplete"
+            exit 1
+          fi
+          node scripts/validate-deployment-target.cjs
+
+      - name: Deploy to Render (backend)
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
@@ -516,14 +529,15 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VITE_SOCKET_URL: https://wemarket.onrender.com
         run: |
           if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
             echo "::error::Vercel production deployment secrets are required"
             exit 1
           fi
+          export VITE_API_URL="$(node -p "require('./config/deployment-targets.json').production.backendUrl + '/api'")"
+          export VITE_SOCKET_URL="$(node -p "require('./config/deployment-targets.json').production.backendUrl")"
           node scripts/validate-deployment-target.cjs
-          cd frontend && npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN" --build-env APP_COMMIT_SHA="$GITHUB_SHA"
+          cd frontend && npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN" --build-env APP_COMMIT_SHA="$GITHUB_SHA" --build-env VITE_API_URL="$VITE_API_URL" --build-env VITE_SOCKET_URL="$VITE_SOCKET_URL"
           echo "deployed=true" >> "$GITHUB_OUTPUT"
 
       - name: Smoke test (backend + frontend)
