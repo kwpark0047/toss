@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import api from '../../api/client';
 import { KeyRound, RefreshCw } from 'lucide-react';
@@ -7,7 +7,13 @@ const FIELD_LABELS = { api_secret: 'SMS_API_SECRET · API 시크릿', sender: 'S
 const STATUS = { configured: '설정 확인 · 실발송 미검증', untested: '미검증', verified: '공식 API 조회 확인', failed: '연결 검증 실패', adapter_required: '업체 어댑터 연결 필요' };
 function ProviderCard({ row, base, reload }) {
   const [values, setValues] = useState({}), [enabled, setEnabled] = useState(row.enabled ?? true), [busy, setBusy] = useState(false);
-  useEffect(() => { setValues({}); setEnabled(row.enabled ?? true); }, [row.updated_at, row.enabled]);
+  const previous = useRef({ updated_at: row.updated_at, enabled: row.enabled });
+  useEffect(() => {
+    if (previous.current.updated_at !== row.updated_at || previous.current.enabled !== row.enabled) {
+      setValues({}); setEnabled(row.enabled ?? true);
+      previous.current = { updated_at: row.updated_at, enabled: row.enabled };
+    }
+  }, [row.updated_at, row.enabled]);
   const run = async action => {
     setBusy(true);
     try { await action(); } catch (error) { toast.error(error?.response?.data?.message || error?.message || '요청을 처리하지 못했습니다.'); }
