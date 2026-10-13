@@ -8,10 +8,20 @@ describe('environment safety validation', () => {
       NODE_ENV: 'production',
       DATABASE_URL: 'postgresql://localhost/test',
       JWT_SECRET: 'a-secure-test-secret-that-is-long-enough',
+      JWT_REFRESH_SECRET: 'a-separate-refresh-test-secret-long-enough',
     };
     delete process.env.BYPASS_OTP;
     delete process.env.EXPOSE_OTP;
     delete process.env.ALLOW_MOCK_PAYMENTS;
+    for (const key of [
+      'PHONE_ENC_KEY',
+      'TOKEN_ENC_KEY',
+      'PROVIDER_SECRET_KEY',
+      'REQUIRE_SEPARATE_ENCRYPTION_KEYS',
+      'NCP_GEOCODE_KEY_ID',
+      'NCP_GEOCODE_KEY',
+    ])
+      delete process.env[key];
     jest.doMock('../../../utils/logger', () => ({
       info: jest.fn(),
       warn: jest.fn(),
