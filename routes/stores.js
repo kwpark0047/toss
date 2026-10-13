@@ -210,7 +210,7 @@ router.get(
   catchAsync(async (req, res) => {
     const cache = require('../utils/cache');
     const cacheKey = `store:${req.params.id}:profile`;
-    const cached = cache.get(cacheKey);
+    const cached = await cache.get(cacheKey);
     if (cached) return res.success(cached);
     await storeController.getStore(req, res);
   })

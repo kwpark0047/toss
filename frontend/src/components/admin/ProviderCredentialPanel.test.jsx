@@ -10,6 +10,18 @@ beforeEach(() => {
   api.put.mockResolvedValue({saved:true});
 });
 describe('store provider credentials', () => {
+  it('saves SMS secrets only in the global scope and clears inputs', async () => {
+    api.get.mockResolvedValue({data:[{provider:'coolsms',label:'SMS · Coolsms',fields:['api_key','api_secret','sender'],registered:false,configured:false,source:'none',enabled:true,masked:{},adapter:true}]});
+    render(<ProviderCredentialPanel global />);
+    const key=await screen.findByLabelText('SMS · Coolsms API 키');
+    fireEvent.change(key,{target:{value:'fixture-api-key'}});
+    fireEvent.change(screen.getByLabelText('SMS · Coolsms SMS_API_SECRET · API 시크릿'),{target:{value:'fixture-api-secret'}});
+    fireEvent.change(screen.getByLabelText('SMS · Coolsms SMS_SENDER · 등록 발신번호'),{target:{value:'01000000000'}});
+    fireEvent.click(screen.getByRole('button',{name:'저장',exact:true}));
+    await waitFor(()=>expect(api.put).toHaveBeenCalledWith('/provider-credentials/global/coolsms',{api_key:'fixture-api-key',api_secret:'fixture-api-secret',sender:'01000000000',enabled:true}));
+    await waitFor(()=>expect(key.value).toBe(''));
+    expect(screen.getByRole('button',{name:'설정 확인 (발송 없음)'})).toBeTruthy();
+  });
   it('shows masked metadata and submits replacement only to the selected store', async () => {
     render(<ProviderCredentialPanel storeId={3} />);
     const input = await screen.findByLabelText('토스플레이스 POS API 키');

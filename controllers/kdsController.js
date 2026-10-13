@@ -31,6 +31,8 @@ const kdsController = {
       throw new AppError('업데이트할 조리 상태(status)는 필수입니다.', 400);
     }
 
+    if (status === 'cancelled')
+      throw new AppError('주문 취소는 관리자 주문 취소 경로에서 처리해 주세요.', 409);
     const validStatuses = ['pending', 'preparing', 'ready', 'completed', 'cancelled'];
     if (!validStatuses.includes(status)) {
       throw new AppError('올바르지 않은 KDS 조리 상태 코드입니다.', 400);
@@ -44,7 +46,7 @@ const kdsController = {
 
     const order = await KdsService.updateKdsOrderStatus(storeId, orderId, status, staffId, io, {
       userId: req.user?.id,
-      role: req.user?.role,
+      role: req.storeRole || req.user?.role,
     });
     res.success(order, `주문 조리 상태가 성공적으로 [${status}] 상태로 전환되었습니다.`);
   }),

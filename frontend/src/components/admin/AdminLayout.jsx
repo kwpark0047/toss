@@ -1,3 +1,4 @@
+import { canSeeAdminMenu } from '../../utils/adminMenuAccess';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,7 +16,7 @@ import { storesAPI } from '../../api';
 import Icon from '../../components/ui/Icon';
 import '../../styles/adminDashboard.css';
 
-function AdminLayoutInner({ children, storeId, user, handleLogout, location, filteredNavItems }) {
+function AdminLayoutInner({ children, storeId, user, storeRole, handleLogout, location, filteredNavItems }) {
   const { themeId } = useAdminTheme();
   const { t } = useTranslation(undefined, { keyPrefix: 'admin' });
   const tc = TC[themeId] || TC.obsidian;
@@ -25,7 +26,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
   const menuPanel = useRef(null);
   const active = item => location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(`${item.path}/`));
   const pageTitle = filteredNavItems.find(active)?.label || t('adminCenter');
-  const quickNav = storeId ? [
+  const quickNav = storeRole === 'kitchen' ? filteredNavItems.slice(0,2) : storeId ? [
     { label: t('home'), icon: 'LayoutDashboard', path: '/admin' },
     { label: t('orders'), icon: 'UtensilsCrossed', path: `/admin/stores/${storeId}/orders` },
     { label: t('products'), icon: 'ShoppingBag', path: `/admin/stores/${storeId}/menu` },
@@ -72,7 +73,7 @@ function AdminLayoutInner({ children, storeId, user, handleLogout, location, fil
         {user?.name?.charAt(0) || <Icon icon="UserCircle" size="sm" />}
       </div>
       <div className="min-w-0"><p className={`truncate text-sm font-semibold ${tc.textStrong}`}>{user?.name || t('nameNotSet')}</p>
-        <p className={`text-xs ${tc.textMuted}`}>{user?.role === 'super_admin' ? t('superAdmin') : user?.role === 'staff' ? t('staff') : t('admin')}</p></div>
+        <p className={`text-xs ${tc.textMuted}`}>{user?.role === 'super_admin' ? t('superAdmin') : storeRole === 'manager' ? '매니저' : storeRole === 'kitchen' ? '주방' : user?.role === 'staff' ? t('staff') : t('admin')}</p></div>
     </div>
     {(!user?.name || !user?.email) && <Link to="/admin/profile" onClick={() => setMoreOpen(false)} className="mb-2 block text-xs text-orange-500">{t('completeProfile')}</Link>}
     <div className="flex gap-2">
@@ -151,6 +152,18 @@ const AdminLayout = ({ children }) => {
   const storeId = rawStoreId && /^\d+$/.test(rawStoreId) ? rawStoreId : selectedStore?.id;
 
   const [storeInfo, setStoreInfo] = useState(null);
+  const [storeRole, setStoreRole] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    setStoreRole(null);
+    if (!storeId || user?.role === 'super_admin') return;
+    storesAPI.getMy().then(response => {
+      const stores = response?.data ?? response;
+      const membership = Array.isArray(stores) && stores.find(store => String(store.id) === String(storeId));
+      if (!cancelled) setStoreRole(membership?.role || null);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [storeId, user?.id, user?.role]);
 
   useEffect(() => {
     if (storeId) {
@@ -227,6 +240,7 @@ const AdminLayout = ({ children }) => {
 
   const filteredNavItems = navItems.filter(item => {
     if (item.show === false) return false;
+    if (!canSeeAdminMenu(item.path, user?.role, storeRole)) return false;
     if (item.roles.length === 0) return true;
     return item.roles.includes(user?.role);
   });
@@ -236,6 +250,7 @@ const AdminLayout = ({ children }) => {
       <AdminLayoutInner
         storeId={storeId}
         user={user}
+        storeRole={storeRole}
         handleLogout={handleLogout}
         location={location}
         filteredNavItems={filteredNavItems}

@@ -37,6 +37,7 @@ const mockPointsController = {
   adminDeduct: jest.fn(),
 };
 const mockObjectPermission = jest.fn((req, res, next) => next());
+const mockResourcePermission = jest.fn((req, res, next) => next());
 
 jest.mock('../../controllers/orderController', () => mockOrdersController);
 jest.mock('../../controllers/reservationsController', () => mockReservationsController);
@@ -64,7 +65,12 @@ jest.mock('../../middleware/auth', () => {
 jest.mock('../../middleware/storeAuth', () => ({
   checkStorePermission: () => (req, res, next) => next(),
   checkStorePermissionForObject: () => mockObjectPermission,
-  checkResourcePermission: () => (req, res, next) => next(),
+  checkResourcePermission:
+    (...args) =>
+    (req, res, next) => {
+      req.testPermission = args[3];
+      mockResourcePermission(req, res, next);
+    },
 }));
 
 const {
@@ -126,7 +132,9 @@ describe('customer capability route boundaries', () => {
     const response = await request(app()).get('/api/orders/10').set('x-test-role', role);
 
     expect(response.status).toBe(200);
-    expect(mockObjectPermission).toHaveBeenCalled();
+    expect(mockResourcePermission).toHaveBeenCalled();
+    expect(mockResourcePermission.mock.calls[0][0].testPermission).toBe('order:read');
+    expect(mockObjectPermission).not.toHaveBeenCalled();
   });
 
   test('customer token registration rejects a capability for another order', async () => {

@@ -1,13 +1,5 @@
-/**
- * [Compiled Output — Do Not Edit Directly]
- *
- * 이 파일은 KdsService.ts로부터 TypeScript 컴파일러(tsc)로 생성된 출력물입니다.
- * 소스 코드의 변경이 필요한 경우 KdsService.ts를 수정하고 tsc로 재컴파일하십시오.
- *
- * 관련 파일:
- * - Source: services/KdsService.ts (타입 정의 + 비즈니스 로직)
- * - Runtime: 이 파일 (컴파일된 JavaScript)
- */
+/** KDS runtime source. The historical TypeScript source referenced by the old
+ * generated-file header is absent; this module is the active CommonJS entry. */
 'use strict';
 const __importDefault =
   (this && this.__importDefault) ||
@@ -21,6 +13,36 @@ const phoneEncryption_1 = require('../utils/phoneEncryption');
 const errorHandler_1 = require('../utils/errorHandler');
 const orderStatus_1 = require('../utils/orderStatus');
 const OrderEventService_1 = require('./OrderEventService');
+function kitchenOrder(order) {
+  return {
+    id: order.id,
+    store_id: order.store_id,
+    table_id: order.table_id,
+    order_number: order.order_number,
+    status: order.status,
+    notes: order.notes,
+    total_amount: order.total_amount,
+    queue_number: order.queue_number,
+    estimated_minutes: order.estimated_minutes,
+    is_takeout: order.is_takeout,
+    created_at: order.created_at,
+    preparing_at: order.preparing_at,
+    ready_at: order.ready_at,
+    completed_at: order.completed_at,
+    has_customer_contact: Boolean(order.customer_phone),
+    items: (order.order_items || order.items || []).map((item) => ({
+      id: item.id,
+      product_id: item.product_id,
+      product_name: item.product_name,
+      quantity: item.quantity,
+      price: item.price,
+      subtotal: item.subtotal,
+      options: item.options,
+    })),
+    table_name: order.table_name || order.tables?.table_number || null,
+    store_name: order.store_name || order.stores?.name || '',
+  };
+}
 class KdsService {
   /**
    * KDS 활성 주문 목록 조회 (pending, preparing, ready 상태)
@@ -31,7 +53,7 @@ class KdsService {
       if (!Number.isInteger(numericStoreId) || numericStoreId <= 0) {
         throw new errorHandler_1.AppError('올바르지 않은 매장 ID입니다.', 400);
       }
-      const activeStatuses = ['pending', 'preparing', 'ready'];
+      const activeStatuses = ['pending', 'confirmed', 'preparing', 'ready'];
       const orders = await prisma_1.default.orders.findMany({
         where: {
           store_id: numericStoreId,
@@ -54,12 +76,7 @@ class KdsService {
           created_at: 'asc', // 오래된 주문이 위로 가게 함
         },
       });
-      return orders.map((order) => ({
-        ...order,
-        items: order.order_items || [],
-        table_name: order.tables?.table_number || null,
-        store_name: order.stores?.name || '',
-      }));
+      return orders.map(kitchenOrder);
     } catch (error) {
       logger_1.default.error(`[KDS Service] getActiveKdsOrders failed: ${error.message}`);
       throw error;
@@ -97,6 +114,11 @@ class KdsService {
         throw new errorHandler_1.AppError('주문을 찾을 수 없거나 해당 매장 소유가 아닙니다.', 404);
       }
       (0, orderStatus_1.assertKdsOrderStatusTransition)(order.status, status);
+      if (order.status === status) {
+        if (['preparing', 'ready', 'completed'].includes(status) && order.order_items?.length)
+          await new (require('./OrderService'))(io)._processInventory(order);
+        return kitchenOrder(order);
+      }
       // 2. 상태 전이 및 업데이트용 데이터 조립
       const updateData = {
         status,
@@ -128,9 +150,14 @@ class KdsService {
       }
       // 3. 트랜잭션으로 상태 업데이트와 프린트 잡 생성을 일괄 처리
       const updatedOrder = await prisma_1.default.$transaction(async (tx) => {
-        const res = await tx.orders.update({
-          where: { id: numericOrderId },
+        const claimed = await tx.orders.updateMany({
+          where: { id: numericOrderId, store_id: numericStoreId, status: order.status },
           data: updateData,
+        });
+        if (claimed.count !== 1)
+          throw new errorHandler_1.AppError('주문 상태가 변경되었습니다. 새로고침해 주세요.', 409);
+        const res = await tx.orders.findUnique({
+          where: { id: numericOrderId },
           include: {
             order_items: true,
           },
@@ -156,6 +183,8 @@ class KdsService {
         }
         return res;
       });
+      if (['preparing', 'ready', 'completed'].includes(status) && updatedOrder.order_items?.length)
+        await new (require('./OrderService'))(io)._processInventory(updatedOrder);
       // 4. 조리 완료('ready') 시 고객 전화번호 복호화 후 알림톡 자동 발송
       if (status === 'ready' && order.customer_phone) {
         setImmediate(async () => {
@@ -200,11 +229,11 @@ class KdsService {
         actorRole: actor?.role || null,
         metadata: { staff_id: staffId || null },
       });
-      return {
+      return kitchenOrder({
         ...updatedOrder,
         table_name: order.tables?.table_number || null,
         store_name: order.stores?.name || '',
-      };
+      });
     } catch (error) {
       logger_1.default.error(`[KDS Service] updateKdsOrderStatus failed: ${error.message}`);
       throw error;

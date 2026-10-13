@@ -3,6 +3,12 @@ const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
 const { seal, open } = require('../utils/providerSecret');
 const CATALOG = {
+  coolsms: {
+    label: 'SMS · Coolsms',
+    fields: ['api_key', 'api_secret', 'sender'],
+    store: false,
+    adapter: true,
+  },
   tossplace: { label: '토스플레이스 POS', fields: ['api_key'], store: true, adapter: false },
   payhere: { label: '페이히어 POS', fields: ['api_key'], store: true, adapter: false },
   okpos: { label: 'OKPOS', fields: ['api_key'], store: true, adapter: false },
@@ -65,6 +71,14 @@ class ProviderCredentialService {
   }
   environment(provider) {
     const values = {
+      coolsms:
+        process.env.SMS_ENV === 'coolsms'
+          ? {
+              api_key: process.env.SMS_API_KEY,
+              api_secret: process.env.SMS_API_SECRET,
+              sender: process.env.SMS_SENDER,
+            }
+          : null,
       naver: {
         client_id: process.env.NAVER_CLIENT_ID,
         client_secret: process.env.NAVER_CLIENT_SECRET,
@@ -169,6 +183,8 @@ class ProviderCredentialService {
       )
         throw new AppError(`${field} 형식과 길이를 확인하세요.`, 400);
       values[field] = input[field].trim();
+      if (provider === 'coolsms' && field === 'sender' && !/^\d{8,11}$/.test(values[field]))
+        throw new AppError('등록된 발신번호는 8~11자리 숫자로 입력하세요.', 400);
       if (field === 'api_keys') {
         const keys = values[field].split(',').map((value) => value.trim());
         if (
@@ -211,7 +227,11 @@ class ProviderCredentialService {
     if (!credential) throw new AppError('사용 가능한 인증정보를 먼저 등록하세요.', 400);
     let status = 'adapter_required',
       message = '키가 암호화 저장되었습니다. 실제 업체 어댑터 연결과 권한 검증이 필요합니다.';
-    if (item.adapter) {
+    if (provider === 'coolsms') {
+      status = 'configured';
+      message =
+        '암호화 설정을 확인했습니다. API 인증·등록 발신번호·실제 수신은 별도의 테스트 발송으로 검증해야 합니다. 메시지를 발송하지 않았습니다.';
+    } else if (item.adapter) {
       status = 'failed';
       message = '공급자 연결 검증에 실패했습니다. 키·권한·사용량 한도를 확인하세요.';
       try {

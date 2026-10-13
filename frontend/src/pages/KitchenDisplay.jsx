@@ -7,6 +7,8 @@ import { connectKitchen, getSocket } from '../utils/socket';
 import notificationSound, { vibrateShort, vibrateOrderReady } from '../utils/notificationSound';
 import { usePrinter } from '../hooks/usePrinter';
 import Icon from '../components/ui/Icon';
+import api from '../api/client';
+import { toast } from 'sonner';
 export default function KitchenDisplay() {
   const {
     t
@@ -15,6 +17,7 @@ export default function KitchenDisplay() {
     storeId
   } = useParams();
   const [orders, setOrders] = useState([]);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [voiceEnabled, setVoiceEnabled] = useState(true); // AI 음성 방송 활성화 여부
@@ -53,12 +56,13 @@ export default function KitchenDisplay() {
 const fetchKdsOrders = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
-       const res = await fetch(`/api/kds/stores/${storeId}/orders`);
-      if (!res.ok) throw new Error(t('kds.fetch_error'));
-      const json = await res.json();
-      setOrders(json.data || json || []);
+      const response = await api.get(`/kds/stores/${storeId}/orders`);
+      const data = response?.data ?? response;
+      if (!Array.isArray(data)) throw new Error(t('kds.fetch_error'));
+      setOrders(data);
+      setError('');
 } catch (err) {
-      console.error('[KDS] Fetch Error:', err);
+      setError(err?.response?.data?.message || err.message || t('kds.fetch_error'));
     } finally {
       if (showLoading) setLoading(false);
     }
@@ -73,7 +77,7 @@ const fetchKdsOrders = useCallback(async (showLoading = true) => {
 
     // 재생 대기열 초기화 후 신규 오더 즉시 점유
     window.speechSynthesis.cancel();
-    const tableLabel = order.is_takeout ? t('kds.labels.takeout') : t('kds.labels.table', {
+    const tableLabel = (order.is_takeout || !order.table_id) ? t('kds.labels.takeout') : t('kds.labels.table', {
       name: order.table_name || '일반'
     });
     let itemsLabel = '';
@@ -200,16 +204,7 @@ knownOrderIdsRef.current = currentIds;
   const handleUpdateStatus = useCallback(async (orderId, nextStatus) => {
     try {
       setUpdatingId(orderId);
-       const res = await fetch(`/api/kds/stores/${storeId}/orders/${orderId}/status`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          status: nextStatus
-        })
-      });
-      if (!res.ok) throw new Error(t('kds.status_update_failed'));
+      await api.post(`/kds/stores/${storeId}/orders/${orderId}/status`, { status: nextStatus });
       if (soundEnabled) {
         notificationSound.playSuccess();
         vibrateShort();
@@ -231,7 +226,7 @@ knownOrderIdsRef.current = currentIds;
         }
       }
 } catch (err) {
-      alert(err.message);
+      setError(err.message);
     } finally {
       setUpdatingId(null);
     }
@@ -246,24 +241,14 @@ knownOrderIdsRef.current = currentIds;
         if (orderToPrint) {
           const success = await printReceipt(orderToPrint);
           if (success) {
-            alert(t('kds.print.success'));
+            setError(''); toast.success(t('kds.print.success'));
             return;
           }
         }
       }
-       const res = await fetch(`/api/kds/stores/${storeId}/orders/${orderId}/status`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          status: 'preparing'
-        })
-      });
-      if (!res.ok) throw new Error(t('kds.print.failed'));
-      alert(t('kds.print.queued'));
+      throw new Error('연결된 주방 프린터가 필요합니다. 재인쇄는 주문 상태를 변경하지 않습니다.');
     } catch (err) {
-      alert(err.message);
+      setError(err.message);
     } finally {
       setUpdatingId(null);
     }
@@ -305,7 +290,7 @@ knownOrderIdsRef.current = currentIds;
     if (filterType === 'TAKEOUT') return matchesSearch && order.is_takeout;
     return matchesSearch;
   });
-  const pendingOrders = filteredOrders.filter(o => o.status === 'pending');
+  const pendingOrders = filteredOrders.filter(o => ['pending','confirmed'].includes(o.status));
   const preparingOrders = filteredOrders.filter(o => o.status === 'preparing');
   const readyOrders = filteredOrders.filter(o => o.status === 'ready');
 
@@ -454,6 +439,7 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
         </div>
       </div>
 
+      {error && <div role="alert" className="p-4 text-red-400">{error}</div>}
       {loading && orders.length === 0 ? (/* 스켈레톤 로딩 */
     <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map(col => <div key={col} className="bg-slate-900/40 rounded-xl border border-slate-850 p-4 animate-pulse flex flex-col gap-4">
@@ -486,7 +472,7 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
                           #{order.order_number.slice(-4)}
                         </span>
                         <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}`}>
-                          {order.is_takeout ? t('kds.labels.takeout') : `${order.table_name || t('kds.labels.table_fallback')}번`}
+                          {(order.is_takeout || !order.table_id) ? t('kds.labels.takeout') : `${order.table_name || t('kds.labels.table_fallback')}번`}
                         </span>
                       </div>
                       <div className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border ${getTimerSeverityClass(order.created_at)}`}>
@@ -548,7 +534,7 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
                           #{order.order_number.slice(-4)}
                         </span>
                         <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}`}>
-                          {order.is_takeout ? t('kds.labels.takeout') : `${order.table_name || t('kds.labels.table_fallback')}번`}
+                          {(order.is_takeout || !order.table_id) ? t('kds.labels.takeout') : `${order.table_name || t('kds.labels.table_fallback')}번`}
                         </span>
                       </div>
                       <div className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border ${getTimerSeverityClass(order.created_at)}`}>
@@ -626,7 +612,7 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
                             #{order.order_number.slice(-4)}
                           </span>
                           <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}`}>
-                            {order.is_takeout ? t('kds.labels.takeout') : `${order.table_name || t('kds.labels.table_fallback')}번`}
+                            {(order.is_takeout || !order.table_id) ? t('kds.labels.takeout') : `${order.table_name || t('kds.labels.table_fallback')}번`}
                           </span>
                         </div>
                         <div className="text-[10px] px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg font-mono font-bold">
@@ -644,7 +630,7 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
                             <User className="size-3.5" />
                             <span>{t('kds.info.phone')}</span>
                             <span className="font-mono text-slate-200">
-                              {order.customer_phone ? '010-****-' + order.customer_phone.slice(-4) : t('kds.info.no_registration')}
+                              {order.has_customer_contact ? '연락처 등록됨' : t('kds.info.no_registration')}
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5 text-xs text-slate-400">
@@ -733,16 +719,8 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
         <div className="flex items-center gap-2">
           <span>&copy; WeMarket Store Display.</span>
           <span className="text-slate-700">|</span>
-          <Link to={`/admin/stores/${storeId}/foodtruck`} className="hover:text-slate-300 underline">
-            {t('kds.footer.mobile_console')}
-          </Link>
-          <span className="text-slate-700">|</span>
-          <Link to={`/admin/stores/${storeId}/foodtruck/analytics`} className="hover:text-slate-300 underline">
-            {t('kds.footer.peak_dashboard')}
-          </Link>
-        </div>
-        <div className="font-mono">
-          SYSTEM HEALTHY
+          <span>매장 {storeId} · 주방 전용</span>
+          {socketStatus === 'CONNECTED' ? 'ORDER CHANNEL ONLINE' : 'ORDER CHANNEL RECONNECTING'}
         </div>
       </footer>
     </div>;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { adminAPI } from '../../api/admin';
 import { bizLabel } from '../../utils/businessType';
@@ -23,6 +23,7 @@ export default function StoreDetailModal({ storeId, onClose, onChanged }) {
   const [phone, setPhone] = useState('');
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
+  const adjustment = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -54,7 +55,11 @@ export default function StoreDetailModal({ storeId, onClose, onChanged }) {
     if (!phone.trim() || !amt) { setMsg('전화번호와 포인트를 입력하세요.'); return; }
     setBusy(true); setMsg('');
     try {
-      const r = await adminAPI.grantPoints(storeId, { phone: phone.trim(), amount: amt, reason: reason.trim() });
+      const payload = { phone: phone.trim(), amount: amt, reason: reason.trim() };
+      const fingerprint = JSON.stringify([storeId, payload]);
+      if (adjustment.current?.fingerprint !== fingerprint) adjustment.current = { fingerprint, key: crypto.randomUUID() };
+      const r = await adminAPI.grantPoints(storeId, payload, adjustment.current.key);
+      adjustment.current = null;
       setMsg((r?.data?.message) || r?.message || '처리 완료');
       setAmount(''); setReason('');
     } catch (e) { setMsg(e?.response?.data?.error || '처리 실패'); }
@@ -93,7 +98,7 @@ export default function StoreDetailModal({ storeId, onClose, onChanged }) {
                 { label: '주문', value: num(data.summary.totalOrders), icon: ShoppingBag },
                 { label: '매출', value: won(data.summary.totalSales), icon: Coins },
                 { label: '고객', value: num(data.summary.customers), icon: Users },
-                { label: '포인트', value: num(data.summary.points), icon: Gift },
+                { label: '관련 지갑 잔액', value: num(data.summary.points), icon: Gift },
               ].map(s => (
                 <div key={s.label} className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
                   <p className="text-base font-black tabular-nums truncate">{s.value}</p>

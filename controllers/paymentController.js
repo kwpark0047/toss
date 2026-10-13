@@ -7,38 +7,17 @@ const TossAPI = require('../utils/toss');
 const catchAsync = require('../utils/catchAsync');
 const { AppError } = require('../utils/errorHandler');
 const logger = require('../utils/logger');
-const { getStoreRole } = require('../middleware/storeAuth');
+const { getStoreRole, rolePermissions } = require('../middleware/storeAuth');
 
 const maskPaymentKey = (paymentKey) => {
   if (typeof paymentKey !== 'string' || paymentKey.length <= 8) return '****';
   return `****${paymentKey.slice(-8)}`;
 };
 
-const assertStoreAccess = async (user, storeId, permission = 'orders:manage') => {
+const assertStoreAccess = async (user, storeId, permission = 'payments:manage') => {
   if (user.role === 'super_admin') return;
   const role = await getStoreRole(user.id, storeId);
-  const rolePermissions = {
-    owner: [
-      'store:update',
-      'store:delete',
-      'items:manage',
-      'orders:manage',
-      'staff:manage',
-      'stats:read',
-      'order:read',
-    ],
-    manager: [
-      'store:update',
-      'items:manage',
-      'orders:manage',
-      'staff:manage',
-      'stats:read',
-      'order:read',
-    ],
-    staff: ['orders:manage', 'order:read'],
-    kitchen: ['orders:manage', 'order:read'],
-  };
-  if (!role || !rolePermissions[role]?.includes(permission)) {
+  if (!role || (role !== 'owner' && !rolePermissions[role]?.includes(permission))) {
     const err = new Error('해당 매장에 대한 권한이 없습니다.');
     err.statusCode = 403;
     throw err;
@@ -69,7 +48,7 @@ const paymentController = {
       select: { store_id: true },
     });
     if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
-    await assertStoreAccess(req.user, order.store_id);
+    await assertStoreAccess(req.user, order.store_id, 'payments:collect');
     const result = await new PaymentService(req.app.get('io')).confirmOfflinePayment(
       orderId,
       'CASH'
@@ -117,7 +96,7 @@ const paymentController = {
     }
 
     // 멀티테넌트 로우 레벨 격리: 세션 사용자의 주문 취소 권한 검사
-    await assertStoreAccess(req.user, order.store_id, 'orders:manage');
+    await assertStoreAccess(req.user, order.store_id, 'payments:manage');
 
     const io = req.app.get('io');
     const paymentService = new PaymentService(io);
@@ -135,7 +114,7 @@ const paymentController = {
     if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
     // Authorize against the immutable order tenant, even after its payment is canceled.
     // The durable refund intent decides whether this is a replay or a new refund.
-    await assertStoreAccess(req.user, order.store_id, 'orders:manage');
+    await assertStoreAccess(req.user, order.store_id, 'payments:manage');
 
     const io = req.app.get('io');
     const paymentService = new PaymentService(io);
@@ -157,7 +136,7 @@ const paymentController = {
     if (!payment) return res.status(404).json({ error: '결제 정보 없음' });
 
     // 멀티테넌트 로우 레벨 격리: 세션 사용자의 주문 취소 권한 검사
-    await assertStoreAccess(req.user, payment.store_id, 'orders:manage');
+    await assertStoreAccess(req.user, payment.store_id, 'payments:manage');
 
     const io = req.app.get('io');
     const paymentService = new PaymentService(io);
@@ -230,7 +209,7 @@ const paymentController = {
   confirmStoreCard: catchAsync(async (req, res) => {
     const order = await Order.findById(parseInt(req.params.orderId));
     if (!order) return res.status(404).json({ error: '주문을 찾을 수 없습니다.' });
-    await assertStoreAccess(req.user, order.store_id, 'orders:manage');
+    await assertStoreAccess(req.user, order.store_id, 'payments:collect');
 
     const io = req.app.get('io');
     const paymentService = new PaymentService(io);
@@ -246,7 +225,7 @@ const paymentController = {
   confirmTransfer: catchAsync(async (req, res) => {
     const order = await Order.findById(parseInt(req.params.orderId));
     if (!order) return res.status(404).json({ error: '주문을 찾을 수 없습니다.' });
-    await assertStoreAccess(req.user, order.store_id, 'orders:manage');
+    await assertStoreAccess(req.user, order.store_id, 'payments:collect');
 
     const io = req.app.get('io');
     const paymentService = new PaymentService(io);

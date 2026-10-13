@@ -28,7 +28,10 @@ const Order = {
       // 주문번호 자동 생성
       if (!order_number) {
         const now = new Date();
-        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+        const dateStr = new Date(now.getTime() + KST_OFFSET_MS)
+          .toISOString()
+          .slice(0, 10)
+          .replace(/-/g, '');
         const randomStr = Math.floor(Math.random() * 10000)
           .toString()
           .padStart(4, '0');
@@ -368,6 +371,20 @@ const Order = {
         _sum: { total_amount: true },
       });
 
+      const entries = await prisma.ledger.groupBy({
+        by: ['type'],
+        where: {
+          store_id: numericStoreId,
+          created_at: where.created_at,
+          type: { in: ['INCOME', 'REFUND'] },
+        },
+        _sum: { amount: true },
+      });
+      const collected = entries.reduce(
+        (sum, row) =>
+          sum + (row.type === 'INCOME' ? row._sum.amount || 0 : -Math.abs(row._sum.amount || 0)),
+        0
+      );
       const byStatus = await prisma.orders.groupBy({
         by: ['status'],
         where,
@@ -381,14 +398,15 @@ const Order = {
 
       return {
         total_orders: summary._count.id || 0,
-        total_sales: summary._sum.total_amount || 0,
+        total_sales: collected,
+        sales_basis: 'ledger_net',
         by_status: statusMap,
         settlement_rate: 0, // 기본값
         efficiency: 0, // 기본값
       };
     } catch (error) {
       console.error(`[Prisma Error] getStats failed for Store: ${storeId}`, error);
-      return { total_orders: 0, total_sales: 0, by_status: {}, settlement_rate: 0, efficiency: 0 };
+      throw error;
     }
   },
 

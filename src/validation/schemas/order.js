@@ -9,7 +9,7 @@ const phoneSchema = z.string().regex(/^01[0-9][0-9]{7,8}$/);
 const accountNumberSchema = z.string().regex(/^\d{10,14}$/);
 
 // 주문 생성
-const createOrderSchema = z.object({
+const camelCaseOrderSchema = z.object({
   storeId: z.number().int().positive(),
   tableId: z.number().int().positive().optional().nullable(),
   waitingId: z.number().int().positive().optional().nullable(),
@@ -70,6 +70,102 @@ const createOrderSchema = z.object({
   packagingType: z.enum(['none', 'basic', 'premium', 'eco']).default('basic'),
   packagingFee: priceSchema.default(0),
 });
+
+// Validate the deployed QR/POS wire contract before passing it to OrderService.
+// Prices remain untrusted hints: OrderService reprices using store-owned products.
+const wireId = z.union([
+  z.number().int().positive(),
+  z
+    .string()
+    .regex(/^[1-9]\d*$/)
+    .transform(Number),
+]);
+const canonicalOrderSchema = z.object({
+  store_id: wireId,
+  table_id: wireId.optional().nullable(),
+  table_number: z
+    .union([z.string().min(1).max(50), z.number().int().positive().transform(String)])
+    .optional(),
+  customer_phone: phoneSchema.optional(),
+  phone: phoneSchema.optional(),
+  customer_fcm_token: z.string().max(4096).optional(),
+  user_coupon_id: wireId.optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  total_amount: priceSchema,
+  payment_method: z
+    .enum([
+      'cash',
+      'card',
+      'store_card',
+      'transfer',
+      'toss',
+      'kakao',
+      'naver',
+      'toss_pay',
+      'kakao_pay',
+      'naver_pay',
+      'point',
+      'mixed',
+    ])
+    .default('card'),
+  items: z
+    .array(
+      z.object({
+        product_id: wireId,
+        product_name: z.string().min(1).max(200),
+        quantity: z.number().int().min(1).max(999),
+        price: priceSchema,
+        subtotal: priceSchema,
+        options: z
+          .array(
+            z.object({
+              groupId: z.union([z.string().max(100), z.number().int()]).optional(),
+              groupName: z.string().max(100).optional(),
+              choiceId: z.union([z.string().max(100), z.number().int()]).optional(),
+              choiceName: z.string().max(100).optional(),
+              priceAdjustment: z.number().int().optional(),
+            })
+          )
+          .max(100)
+          .default([]),
+      })
+    )
+    .min(1)
+    .max(100),
+});
+const createOrderSchema = z.preprocess(
+  (input) => {
+    // Reject ambiguous aliases instead of choosing a potentially different tenant.
+    if (input && Object.hasOwn(input, 'store_id') && Object.hasOwn(input, 'storeId')) return null;
+    return input;
+  },
+  z.union([
+    canonicalOrderSchema,
+    camelCaseOrderSchema.transform((data) => ({
+      ...data,
+      store_id: data.storeId,
+      table_id: data.tableId,
+      customer_phone: data.customerPhone,
+      payment_method:
+        { toss_pay: 'toss', kakao_pay: 'kakao', naver_pay: 'naver' }[data.paymentMethod] ||
+        data.paymentMethod,
+      total_amount: data.items.reduce((sum, item) => sum + item.totalPrice, 0),
+      items: data.items.map((item) => ({
+        product_id: item.productId,
+        product_name: item.productName,
+        quantity: item.quantity,
+        price: item.unitPrice,
+        subtotal: item.totalPrice,
+        options: item.options.map((option) => ({
+          groupName: option.optionName,
+          choiceName: option.optionItemName,
+          priceAdjustment: option.price,
+        })),
+      })),
+    })),
+  ])
+);
 
 // 주문 상태 변경
 const updateOrderStatusSchema = z.object({

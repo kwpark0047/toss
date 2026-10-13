@@ -28,7 +28,7 @@ const STATUS_MSG_KEYS = {
 };
 
 
-const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWriteReview }) => {
+const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, tableNumber, onWriteReview }) => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -42,23 +42,26 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
     if (!orderId && !storeId) return;
     setLoading(true);
     try {
-      if (orderId) {
-        const res = await ordersAPI.getById(orderId);
+      if (orderId && capability) {
+        const res = await ordersAPI.getById(orderId, capability);
         setOrder(res?.data || res);
       } else {
-        const res = await ordersAPI.getByStore(storeId);
-        const list = res?.data || res || [];
+        const historyCapability = localStorage.getItem('wm_customer_history_capability');
+        if (!historyCapability) { setOrder(null); return; }
+        const res = await ordersAPI.getCustomerHistory(historyCapability);
+        const list = Array.isArray(res?.data) ? res.data : [];
         const found = [...list]
           .filter(o =>
-            String(o.table_id) === String(tableNumber) ||
-            o.table_name === tableNumber
+            Number(o.store_id) === Number(storeId) &&
+            (orderId ? Number(o.id) === Number(orderId) :
+              (String(o.table_id) === String(tableNumber) || o.table_name === tableNumber))
           )
           .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
         setOrder(found || null);
       }
     } catch { /* 이전 상태 유지 */ }
     finally { setLoading(false); }
-  }, [orderId, storeId, tableNumber]);
+  }, [orderId, capability, storeId, tableNumber]);
 
   // ETA 조회
   const fetchEta = useCallback(async () => {
@@ -95,14 +98,6 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
 
   // 소켓: orderId 룸 구독 + 실시간 상태 수신
   useEffect(() => {
-    if (isOpen) {
-      setOrder(null);
-      fetchOrder();
-    }
-  }, [isOpen, fetchOrder]);
-
-  // 소켓: orderId 룸 구독 + 실시간 상태 수신
-  useEffect(() => {
     if (!isOpen || !orderId) return;
     joinOrderRoom(orderId);
     const off = onOrderUpdated((payload) => {
@@ -113,9 +108,9 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, storeId, tableNumber, onWr
     return off;
   }, [isOpen, orderId]);
 
-  // orderId 없을 때 5초 폴링
+  // Reconcile even identified orders when a socket event was missed.
   useEffect(() => {
-    if (!isOpen || orderId) return;
+    if (!isOpen) return;
     const t = setInterval(fetchOrder, 5000);
     return () => clearInterval(t);
   }, [isOpen, orderId, fetchOrder]);

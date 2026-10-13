@@ -7,6 +7,7 @@ jest.mock('../../../config/prisma', () => ({
   store_customers: { count: jest.fn() },
   orders: { count: jest.fn() },
   user_points: { aggregate: jest.fn() },
+  ledger: { groupBy: jest.fn().mockResolvedValue([]) },
 }));
 jest.mock('../../../utils/logger', () => ({ warn: jest.fn(), info: jest.fn() }));
 jest.mock('../../../repositories/Store', () => ({ update: jest.fn() }));

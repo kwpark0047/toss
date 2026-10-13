@@ -19,10 +19,11 @@ export const ordersAPI = {
     if (params.length > 0) url += '?' + params.join('&');
     return api.get(url);
   },
-  create: async (data) => {
+  create: async (data, { idempotencyKey } = {}) => {
     const response = await api.post('/orders', data, {
       headers: {
-        'Idempotency-Key': globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+        'Idempotency-Key':
+          idempotencyKey || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
         ...(localStorage.getItem('wm_customer_history_capability')
           ? {
               'x-customer-history-capability': localStorage.getItem(
@@ -40,7 +41,11 @@ export const ordersAPI = {
     api.put('/orders/' + id + '/status', { status, staff_id: staffId }),
   cancel: (id) => api.post('/orders/' + id + '/cancel'),
   delete: (id) => api.delete('/orders/' + id),
-  getById: (id) => api.get('/orders/' + id),
+  getById: (id, capability) =>
+    api.get(
+      '/orders/' + id,
+      capability ? { headers: { 'x-order-capability': capability } } : undefined
+    ),
   getCustomerHistory: async (capability) => {
     try {
       return await api.get('/orders/customer/history', {

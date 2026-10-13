@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Component } from 'react';
+import { useState, useEffect, useCallback, useRef, Component } from 'react';
 import { useSEO } from '../../lib/useSEO';
 import api from '../../api';
 import Icon from '../../components/ui/Icon';
@@ -141,30 +141,27 @@ export default function SystemStatus() {
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [error, setError] = useState(null);
+  const inFlight = useRef(false);
   const fetchAll = useCallback(async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setLoading(true);
     setError(null);
     try {
-      const fetchBody = path => api.get(path).catch(e => {
-        if (e?.response?.data) return e.response.data;
-        throw e;
-      });
       const auditParams = new URLSearchParams({ limit: '10', page: String(auditPage) });
       if (auditAction) auditParams.set('action', auditAction);
       if (auditResourceType) auditParams.set('resourceType', auditResourceType);
-      const [hRes, sRes, cRes, dRes, aRes, fRes, eRes] = await Promise.all([fetchBody('/health/deep'), fetchBody('/health/sla'), fetchBody('/health/circuits'), fetchBody('/analytics/db-profile'), fetchBody(`/admin/audit-logs?${auditParams}`), fetchBody('/admin/feature-flags'), fetchBody('/admin/order-events?limit=10') // 실시간 Prisma 데이터 조회 연동
-       ]);
-      setHealth(hRes?.data ?? hRes);
-      setSla(sRes?.data ?? sRes);
-      setCircuits((cRes?.data ?? cRes)?.circuits || []);
-       setDbProfile(dRes?.data ?? dRes);
-       setAuditLogs(aRes?.data ?? aRes);
-       setFeatureFlags(fRes?.data ?? fRes ?? []);
-       setOrderEvents(eRes?.data ?? eRes);
+      const paths = ['/health/deep','/health/sla','/health/circuits','/analytics/db-profile',`/admin/audit-logs?${auditParams}`,'/admin/feature-flags','/admin/order-events?limit=10'];
+      const results = await Promise.allSettled(paths.map(path => api.get(path)));
+      const setters = [setHealth,setSla,value=>setCircuits(Array.isArray(value?.circuits)?value.circuits:[]),setDbProfile,setAuditLogs,value=>setFeatureFlags(Array.isArray(value)?value:[]),setOrderEvents];
+      results.forEach((result,index)=>{if(result.status==='fulfilled') setters[index](result.value?.data ?? result.value);});
+      const failed = paths.filter((_,index)=>results[index].status==='rejected');
+      if(failed.length) setError('조회 실패 (이전 성공 데이터는 유지): ' + failed.join(', '));
       setLastRefresh(new Date());
     } catch {
       setError('시스템 상태 및 데이터베이스 프로파일 데이터를 불러오지 못했습니다.');
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   }, [auditAction, auditPage, auditResourceType]);
@@ -180,12 +177,13 @@ export default function SystemStatus() {
     setFeatureFlags((current) => current.map((item) => item.key === flag.key ? { ...item, ...saved } : item));
   };
   const pruneAuditLogs = async () => {
+    if (!window.confirm('보존 기간이 지난 감사로그를 정리할까요? 운영 보존 정책을 먼저 확인하세요.')) return;
     await api.delete('/admin/audit-logs/retention');
     await fetchAll();
   };
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, REFRESH_INTERVAL);
+    const interval = setInterval(() => { if (document.visibilityState !== 'hidden') void fetchAll(); }, REFRESH_INTERVAL);
     return () => clearInterval(interval);
   }, [fetchAll]);
   const overall = health?.status || 'unknown';

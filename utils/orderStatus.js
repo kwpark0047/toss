@@ -10,6 +10,7 @@ const ORDER_STATUS_TRANSITIONS = Object.freeze({
 });
 
 const KDS_STATUS_TRANSITIONS = Object.freeze({
+  confirmed: ['preparing', 'cancelled'],
   pending: ['preparing', 'cancelled'],
   preparing: ['ready', 'cancelled'],
   ready: ['completed'],

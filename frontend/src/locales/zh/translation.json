@@ -22,7 +22,11 @@
     "all": "全部",
     "select": "选择",
     "required": "必填",
-    "optional": "选填"
+    "optional": "选填",
+    "history": "订单记录",
+    "call_manager": "呼叫店员",
+    "search_placeholder": "搜索订单",
+    "and_others": "另有{{count}}项"
   },
   "menu": {
     "title": "菜单",
@@ -55,7 +59,8 @@
     "display_empty_desc": "请在管理员页面添加菜单。",
     "on_sale": "销售中",
     "currency_won": "韩元",
-    "display_footer_notice": "这里是 WeMarket 数字菜单板。请在柜台点餐。"
+    "display_footer_notice": "这里是 WeMarket 数字菜单板。请在柜台点餐。",
+    "no_items": "暂无订单记录"
   },
   "order": {
     "title": "点餐",
@@ -73,7 +78,11 @@
       "ready": "待取餐",
       "completed": "已完成",
       "cancelled": "已取消"
-    }
+    },
+    "active_status": "进行中的订单",
+    "total_amount": "订单金额",
+    "summary": "订单详情",
+    "past_history": "历史订单"
   },
   "cart": {
     "title": "购物车",
@@ -164,7 +173,8 @@
     "voice": {
       "title": "实时TTS语音播报显示屏",
       "empty": "暂无待播报语音消息。"
-    }
+    },
+    "order_progress": "订单进度"
   },
   "waiting": {
     "title": "排队等位",
@@ -189,7 +199,8 @@
     "submit": "提交评价",
     "empty": "暂无评价",
     "helpful": "有帮助",
-    "photo": "添加照片"
+    "photo": "添加照片",
+    "completed": "评价已提交"
   },
   "mypage": {
     "title": "我的页面",
@@ -650,5 +661,13 @@
       "copyright": " © 2024 WeMarket. All rights reserved。"
     }
   },
-  "dynamicPricing": "动态定价"
+  "dynamicPricing": "动态定价",
+  "status": {
+    "pending": "等待确认",
+    "confirmed": "订单已确认",
+    "preparing": "准备中",
+    "ready": "准备完成",
+    "completed": "已完成",
+    "cancelled": "已取消"
+  }
 }

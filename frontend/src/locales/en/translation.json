@@ -22,7 +22,11 @@
     "all": "All",
     "select": "Select",
     "required": "Required",
-    "optional": "Optional"
+    "optional": "Optional",
+    "history": "Order history",
+    "call_manager": "Call staff",
+    "search_placeholder": "Search orders",
+    "and_others": "and {{count}} more"
   },
   "menu": {
     "title": "Menu",
@@ -55,7 +59,8 @@
     "display_empty_desc": "Please add menu items from the admin page.",
     "on_sale": "On Sale",
     "currency_won": "KRW",
-    "display_footer_notice": "This is the WeMarket digital menu board. Please order at the counter."
+    "display_footer_notice": "This is the WeMarket digital menu board. Please order at the counter.",
+    "no_items": "No orders yet"
   },
   "order": {
     "title": "Place Order",
@@ -73,7 +78,11 @@
       "ready": "Ready",
       "completed": "Completed",
       "cancelled": "Cancelled"
-    }
+    },
+    "active_status": "Active orders",
+    "total_amount": "Order total",
+    "summary": "Order details",
+    "past_history": "Past orders"
   },
   "cart": {
     "title": "Shopping Cart",
@@ -164,7 +173,8 @@
     "voice": {
       "title": "Live TTS Voice Broadcast Display",
       "empty": "No pending voice broadcast messages."
-    }
+    },
+    "order_progress": "Order progress"
   },
   "waiting": {
     "title": "Waiting Queue",
@@ -189,7 +199,8 @@
     "submit": "Submit Review",
     "empty": "No reviews yet",
     "helpful": "Helpful",
-    "photo": "Add Photo"
+    "photo": "Add Photo",
+    "completed": "Review submitted"
   },
   "mypage": {
     "title": "My Page",
@@ -650,5 +661,13 @@
       "copyright": "© 2024 WeMarket. All rights reserved."
     }
   },
-  "dynamicPricing": "Dynamic Pricing"
+  "dynamicPricing": "Dynamic Pricing",
+  "status": {
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "preparing": "Preparing",
+    "ready": "Ready",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  }
 }

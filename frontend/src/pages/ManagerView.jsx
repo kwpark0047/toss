@@ -15,35 +15,38 @@ const ManagerView = () => {
     const [orders, setOrders] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
-
-    // 권한 체크
-    useEffect(() => {
-        if (user && !['super_admin', 'store_admin', 'manager'].includes(user.role)) {
-            navigate('/');
-        }
-    }, [user, navigate]);
+    const [error, setError] = useState('');
 
     // 데이터 로딩
     const fetchData = useCallback(async () => {
         try {
+            if (!user) return;
+            if (user.role !== 'super_admin') {
+                const membershipResponse = await storesAPI.getMy();
+                const memberships = membershipResponse?.data ?? membershipResponse;
+                const membership = Array.isArray(memberships) && memberships.find(store => String(store.id) === String(storeId));
+                if (!membership || !['owner','manager'].includes(membership.role)) { setError('매장 소유주 또는 매니저 권한이 필요합니다.'); return; }
+            }
             const [storeRes, ordersRes, statsRes] = await Promise.all([
                 storesAPI.getById(storeId),
                 ordersAPI.getByStore(storeId),
                 ordersAPI.getStats(storeId),
             ]);
-            setStore(storeRes.data);
-            setOrders(ordersRes.data.slice(0, 10));
-            setStats(statsRes.data);
+            setStore(storeRes?.data ?? storeRes);
+            const loadedOrders = ordersRes?.data ?? ordersRes;
+            setOrders(Array.isArray(loadedOrders) ? loadedOrders.slice(0, 10) : []);
+            setStats(statsRes?.data ?? statsRes);
+            setError('');
         } catch (error) {
-            console.error('데이터 로딩 실패:', error);
+            setError(error?.response?.data?.message || '데이터를 불러오지 못했습니다.');
         } finally {
             setLoading(false);
         }
-    }, [storeId]);
+    }, [storeId, user]);
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 30000);
+        const interval = setInterval(() => { if (document.visibilityState !== 'hidden') void fetchData(); }, 30000);
         return () => clearInterval(interval);
     }, [fetchData]);
 
@@ -96,6 +99,7 @@ const ManagerView = () => {
             </header>
 
             <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+                {error && <div role="alert" className="text-red-600">{error}<button onClick={fetchData}>다시 시도</button></div>}
                 {/* 통계 카드 */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
@@ -170,7 +174,7 @@ const ManagerView = () => {
                                         </div>
                                         <div>
                                             <p className="font-bold text-slate-900">
-                                                {order.table_name || `테이블 ${order.table_id}`}
+                                                {order.table_name || (order.table_id ? `테이블 ${order.table_id}` : '포장·픽업')}
                                                 {order.is_takeout && <span className="ml-2 text-purple-500">(포장)</span>}
                                             </p>
                                             <p className="text-sm text-slate-400">
@@ -204,9 +208,9 @@ const ManagerView = () => {
                     {[
                         { label: '주방 화면', to: `/admin/stores/${storeId}/kitchen`, icon: AlertCircle, color: 'orange' },
                         { label: '직원 관리', to: `/admin/stores/${storeId}/staff`, icon: Users, color: 'blue' },
-                        { label: '근무표', to: `/admin/stores/${storeId}/schedules`, icon: Calendar, color: 'teal' },
-                        { label: '주문 내역', to: `/admin/stores/${storeId}/orders`, icon: 'ShoppingBag', color: 'green' },
-                        { label: '매출 통계', to: `/admin/stores/${storeId}/stats`, icon: BarChart3, color: 'purple' },
+                        { label: '근무표', to: `/admin/stores/${storeId}/staff-scheduler`, icon: Calendar, color: 'teal' },
+                        { label: '주문 내역', to: `/admin/stores/${storeId}/orders`, icon: ShoppingBag, color: 'green' },
+                        { label: '매출 통계', to: `/admin/stores/${storeId}/sales`, icon: BarChart3, color: 'purple' },
                     ].map((item) => (
                         <Link
                             key={item.label}

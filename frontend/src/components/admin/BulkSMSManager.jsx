@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { bulkSmsAPI } from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../components/ui/Icon';
+import { Link } from 'react-router-dom';
 
 const BulkSMSManager = () => {
     const [options, setOptions] = useState({ stores: [], regions: [], businessTypes: [] });
@@ -89,6 +90,7 @@ const BulkSMSManager = () => {
             animate="visible"
             className="space-y-8 pb-20"
         >
+            <Link to="/admin/provider-settings" className="inline-flex rounded-xl border border-slate-500 px-4 py-2 text-sm">SMS 공급자 설정</Link>
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
@@ -245,7 +247,7 @@ const BulkSMSManager = () => {
                                 <textarea
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
-                                    placeholder="전송할 메시지 내용을 입력하세요... (고객명은 {name}으로 자동 치환됩니다)"
+                                    placeholder="전송할 메시지 내용을 입력하세요... "
                                     className="w-full h-full bg-transparent border-none focus:ring-0 resize-none text-slate-200 font-medium placeholder:text-slate-700 leading-relaxed scrollbar-hide mb-12"
                                 />
                                 <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
@@ -279,7 +281,7 @@ const BulkSMSManager = () => {
                             <div className="p-4 bg-blue-50/50 border border-blue-100/50 rounded-2xl flex gap-3 mt-4">
                                 <Icon icon="AlertCircle" size="md" className="text-blue-500 shrink-0" />
                                 <p className="text-[10px] text-blue-700 font-medium leading-relaxed uppercase tracking-tighter">
-                                    광고성 문자 전항 준수: (광고) 표시와 수신거부 번호가 자동으로 포함됩니다. 발송 비용은 매장별 정산 시 자동 차감됩니다.
+                                    광고 문자는 동의한 수신자에게만 보내고 (광고) 표시·수신거부 안내를 직접 포함하세요. 공급자 이용료가 발생하며, 매장 정산 자동 차감은 지원하지 않습니다.
                                 </p>
                             </div>
                         </div>

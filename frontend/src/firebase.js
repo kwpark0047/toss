@@ -38,20 +38,39 @@ const getFirebaseMessaging = async () => {
   return messaging;
 };
 
-export const requestNotificationPermission = async () => {
-  try {
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      const messagingInstance = await getFirebaseMessaging();
-      const token = await getToken(messagingInstance, {
-        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
-      });
-      return token;
+export const requestNotificationPermission = async ({
+  requestPermission = true,
+  timeoutMs = 3000,
+} = {}) => {
+  if (typeof Notification === 'undefined') return null;
+  if (!requestPermission && Notification.permission !== 'granted') return null;
+  let timer;
+  const lookup = async () => {
+    try {
+      const permission =
+        Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+      if (permission === 'granted') {
+        const messagingInstance = await getFirebaseMessaging();
+        const token = await getToken(messagingInstance, {
+          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+        });
+        return token;
+      }
+      return null;
+    } catch (error) {
+      console.error('An error occurred while requesting notification permission. ', error);
+      return null;
     }
-    return null;
-  } catch (error) {
-    console.error('An error occurred while requesting notification permission. ', error);
-    return null;
+  };
+  try {
+    return await Promise.race([
+      lookup(),
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(null), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
   }
 };
 

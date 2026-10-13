@@ -94,10 +94,11 @@ const bulkSmsController = {
             let sentCount = 0;
             for (const phone of uniquePhones) {
                 try {
-                    await sendSms(phone, message);
-                    sentCount++;
+                    const result = await sendSms(phone, message);
+                    if (result.sent === true) sentCount++;
+                    else logger.error('[BulkSMS] 공급자 접수 실패');
                 } catch (e) {
-                    logger.error(`[BulkSMS] 발송 실패: ${phone}`, e.message);
+                    logger.error('[BulkSMS] 공급자 접수 실패');
                 }
             }
             logger.info(`[BulkSMS] 발송 완료: ${sentCount}/${uniquePhones.length}`);

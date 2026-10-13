@@ -9,6 +9,7 @@ import ReviewModal from './ReviewModal';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 import Icon from "../ui/Icon";
+import OrderStatusModal from '../menu/OrderStatusModal';
 
 /**
  * 주문 내역(Order History) 고도화 컴포넌트
@@ -33,6 +34,7 @@ const OrderHistory = () => {
     // 리뷰 모달 관련 상태
     const [selectedOrderForReview, setSelectedOrderForReview] = useState(null);
     const [reviewedOrderIds, setReviewedOrderIds] = useState(new Set());
+    const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
 
     // 주문 상태별 레이블 및 색상 정의
     const statusConfig = {
@@ -57,7 +59,7 @@ const OrderHistory = () => {
             }
 
             const response = await ordersAPI.getCustomerHistory(historyCapability);
-            setOrders(response.data);
+            setOrders(Array.isArray(response?.data) ? response.data : []);
         } catch (error) {
             if (error.response?.status === 403) setOrders([]);
             console.error('주문 내역 조회 실패');
@@ -69,7 +71,13 @@ const OrderHistory = () => {
 
     useEffect(() => {
         fetchHistory();
+        const reconciliation = setInterval(() => {
+            if (document.visibilityState !== 'hidden') fetchHistory(true);
+        }, 10000);
+        return () => clearInterval(reconciliation);
+    }, [fetchHistory]);
 
+    useEffect(() => {
         // 실시간 업데이트를 위한 소켓 연결 설정
         const socket = getSocket();
         if (socket && orders.length > 0) {
@@ -93,7 +101,7 @@ const OrderHistory = () => {
                 socket.off('order-updated', handleOrderUpdated);
             };
         }
-    }, [fetchHistory, orders, userPhone, tossUserKey]);
+    }, [orders]);
 
     const activeOrders = useMemo(() =>
         orders.filter(o => !['completed', 'cancelled'].includes(o.status)),
@@ -249,7 +257,7 @@ const OrderHistory = () => {
                                                     <div className="flex gap-2">
                                                         <motion.button
                                                             whileTap={{ scale: 0.95 }}
-                                                            onClick={() => navigate(`/menu/${order.store_id}`)}
+                                                            onClick={() => setSelectedOrderDetail(order)}
                                                             className="px-6 py-3 bg-slate-900 text-white text-sm font-black rounded-2xl shadow-xl shadow-slate-200 transition-all flex items-center gap-2 group"
                                                         >
                                                             {t('order.summary')} <Icon icon="ChevronRight" size="md" className="group-hover:translate-x-1 transition-transform" />
@@ -294,6 +302,9 @@ const OrderHistory = () => {
                                                     <Icon icon="ShoppingBag" size="md" strokeWidth="1.5" />
                                                 )}
                                             </div>
+                                            <span className={order.status === 'cancelled' ? 'text-xs font-bold text-red-600' : 'text-xs font-bold text-slate-500'}>
+                                                {statusConfig[order.status]?.label}
+                                            </span>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-start">
                                                     <h3 className="font-black text-slate-900 truncate tracking-tight">{order.store_name}</h3>
@@ -394,6 +405,17 @@ const OrderHistory = () => {
                 customerInfo={{ phone: userPhone }}
             />
 
+            <OrderStatusModal
+                isOpen={!!selectedOrderDetail}
+                onClose={() => setSelectedOrderDetail(null)}
+                orderId={selectedOrderDetail?.id}
+                storeId={selectedOrderDetail?.store_id}
+                tableNumber={selectedOrderDetail?.table_name || selectedOrderDetail?.table_id}
+                onWriteReview={() => {
+                    setSelectedOrderForReview(selectedOrderDetail);
+                    setSelectedOrderDetail(null);
+                }}
+            />
             <ReviewModal
                 isOpen={!!selectedOrderForReview}
                 onClose={() => setSelectedOrderForReview(null)}

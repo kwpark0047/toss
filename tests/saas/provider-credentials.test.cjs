@@ -14,6 +14,17 @@ function database() {
       return 1;
     } };
 }
+test('SMS is global encrypted configuration only and disabled blocks fallback', async () => {
+  const db=database(),service=new ProviderCredentialService(db);
+  await assert.rejects(service.save('coolsms',3,{api_key:'fixture-key',api_secret:'fixture-secret',sender:'01000000000'},1));
+  await service.save('coolsms',null,{api_key:'fixture-key',api_secret:'fixture-secret',sender:'01000000000'},1);
+  assert.ok(!JSON.stringify(await service.list()).includes('fixture-secret'));
+  assert.equal((await service.resolve('coolsms')).values.sender,'01000000000');
+  assert.equal((await service.test('coolsms',null)).status,'configured');
+  await assert.rejects(service.save('coolsms',null,{sender:'invalid-number'},1));
+  await service.save('coolsms',null,{enabled:false},1);
+  assert.equal(await service.resolve('coolsms'),null);
+});
 test('credentials are authenticated encrypted and bound to tenant/provider', () => {
   const secret = { api_key: 'fixture-secret-key' }, encrypted = seal(secret, 'store:3:pos');
   assert.ok(!encrypted.includes(secret.api_key)); assert.deepEqual(open(encrypted, 'store:3:pos'), secret);

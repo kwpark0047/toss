@@ -33,8 +33,15 @@ const checkOrderPermission = checkResourcePermission(
   'orders:manage'
 );
 
+const checkOrderReadPermission = checkResourcePermission(
+  prisma.orders,
+  'id',
+  'store_id',
+  'order:read'
+);
+
 // 주문 capability 검증: 유효한 x-order-capability(고객 경로)가 있으면 우선 통과,
-// super_admin/staff는 checkStorePermissionForObject로, 그 외 인증 사용자는
+// super_admin/staff는 역할별 읽기 권한 검사로, 그 외 인증 사용자는
 // 주문 소유권(checkResourcePermission)으로 접근을 허용한다.
 const requireOrderCapability = (req, res, next) => {
   const orderId = parseInt(req.params.id || req.params.orderId);
@@ -45,8 +52,7 @@ const requireOrderCapability = (req, res, next) => {
   }
 
   if (req.user?.role === 'super_admin' || req.user?.role === 'staff') {
-    const middleware = checkStorePermissionForObject('orders');
-    return middleware(req, res, next);
+    return checkOrderReadPermission(req, res, next);
   }
 
   if (req.user) {

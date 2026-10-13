@@ -29,7 +29,7 @@ const Payment = {
         order_name,
         amount,
         status,
-        method: 'READY',
+        method: data.method || null,
         checkout_url: checkout_url || null,
         payer_phone: data.payer_phone ? encryptPhone(data.payer_phone) : null,
         is_partial: data.is_partial || false,

@@ -1,0 +1,44 @@
+import React from 'react';
+import { it, expect, vi, afterEach } from 'vitest';
+import { render, act, cleanup, screen, fireEvent } from '@testing-library/react';
+const history=vi.hoisted(()=>vi.fn());
+const navigate=vi.hoisted(()=>vi.fn());
+vi.mock('../api',()=>({ordersAPI:{getCustomerHistory:history},getSocket:()=>null}));
+vi.mock('react-router-dom',()=>({useNavigate:()=>navigate}));
+vi.mock('react-i18next',()=>({useTranslation:()=>({t:key=>key})}));
+vi.mock('../components/common/LanguageSwitcher',()=>({default:()=>null}));
+vi.mock('../components/customer/ManagerCallSheet',()=>({default:()=>null}));
+vi.mock('../components/customer/ChatDrawer',()=>({default:()=>null}));
+vi.mock('../components/customer/ReviewModal',()=>({default:()=>null}));
+vi.mock('../components/menu/OrderStatusModal',()=>({default:({isOpen,orderId})=>isOpen?<div>receipt {orderId}</div>:null}));
+import OrderHistory from '../components/customer/OrderHistory';
+afterEach(()=>vi.useRealTimers());
+it('does not refetch when the initial order array is installed',async()=>{
+  localStorage.setItem('wm_customer_history_capability','fixture-owned-history');
+  vi.spyOn(localStorage,'getItem').mockImplementation(key=>key==='wm_customer_history_capability'?'fixture-owned-history':null);
+  history.mockResolvedValueOnce({data:[]}).mockImplementation(()=>new Promise(()=>{}));
+  render(<OrderHistory/>);
+  await act(async()=>{await new Promise(resolve=>setTimeout(resolve,40));});
+  expect(history).toHaveBeenCalledTimes(1);
+  cleanup(); localStorage.removeItem('wm_customer_history_capability');
+});
+it('reconciles the list after a missed socket event',async()=>{
+  vi.useFakeTimers(); history.mockReset();
+  localStorage.setItem('wm_customer_history_capability','fixture-owned-history');
+  history.mockResolvedValueOnce({data:[]}).mockResolvedValue({data:[{id:17,store_id:1,status:'confirmed',total_amount:5000,created_at:'2026-10-12T00:00:00Z',items:[]}]});
+  await act(async()=>{render(<OrderHistory/>);});
+  await act(async()=>{await vi.advanceTimersByTimeAsync(10000);});
+  expect(history).toHaveBeenCalledTimes(2);
+  expect(screen.getByText('status.confirmed')).toBeInTheDocument();
+});
+it('opens the selected owned order instead of navigating to a new menu',async()=>{
+  history.mockReset(); navigate.mockReset();
+  localStorage.setItem('wm_customer_history_capability','fixture-owned-history');
+  vi.spyOn(localStorage,'getItem').mockImplementation(key=>key==='wm_customer_history_capability'?'fixture-owned-history':null);
+  history.mockResolvedValue({data:[{id:17,store_id:1,status:'pending',total_amount:5000,created_at:'2026-10-12T00:00:00Z',items:[]}]});
+  render(<OrderHistory/>);
+  fireEvent.click(await screen.findByRole('button',{name:'order.summary'}));
+  expect(await screen.findByText('receipt 17')).toBeInTheDocument();
+  expect(navigate).not.toHaveBeenCalled();
+  cleanup();
+});

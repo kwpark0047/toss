@@ -13,6 +13,8 @@ const rolePermissions = {
     'order:read',
   ],
   manager: [
+    'payments:collect',
+    'payments:manage',
     'store:read',
     'store:update',
     'settings:read',
@@ -30,8 +32,8 @@ const rolePermissions = {
     'stats:read',
     'order:read',
   ],
-  staff: ['orders:manage', 'order:read'],
-  kitchen: ['orders:read', 'orders:update', 'orders:manage', 'order:read'],
+  staff: ['orders:manage', 'order:read', 'payments:collect'],
+  kitchen: ['orders:read', 'orders:update'],
 };
 
 /**

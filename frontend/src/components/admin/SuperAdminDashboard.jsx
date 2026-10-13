@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { adminAPI, plansAPI } from '../../api/admin';
@@ -26,6 +26,9 @@ const num = (n) => Number(n || 0).toLocaleString('ko-KR');
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
   useSEO({ title: '플랫폼 관리 | 위마켓', description: '위마켓 플랫폼의 매장, 고객, 주문을 관리합니다.' });
+  const [errors, setErrors] = useState({});
+  const requestSequence = useRef(0);
+  const fail = (key, message) => setErrors(previous => ({ ...previous, [key]: message }));
   const [overview, setOverview] = useState(null);
   const [subStats, setSubStats] = useState(null);
   const [rows, setRows] = useState([]);
@@ -47,17 +50,17 @@ export default function SuperAdminDashboard() {
   const [linkBusy, setLinkBusy] = useState(null);
 
   const loadLinkReqs = useCallback(() => {
-    adminAPI.linkRequests('pending').then(r => setLinkReqs((r?.data || r)?.requests || [])).catch(() => {});
+    adminAPI.linkRequests('pending').then(r => setLinkReqs((r?.data || r)?.requests || [])).catch(() => fail('links', '연동 요청을 불러오지 못했습니다.'));
   }, []);
 
   const loadCoverage = useCallback(() => {
-    adminAPI.enrichmentCoverage().then(r => setCoverage(r?.data || r)).catch(() => setCoverage(null));
+    adminAPI.enrichmentCoverage().then(r => setCoverage(r?.data || r)).catch(() => { setCoverage(null); fail('coverage', '정보 보강 현황을 불러오지 못했습니다.'); });
   }, []);
 
   useEffect(() => {
-    adminAPI.platformOverview().then(r => setOverview(r?.data || r)).catch(() => {});
-    adminAPI.platformTrend(14).then(r => setTrend((r?.data || r)?.daily || [])).catch(() => {});
-    plansAPI.getStats().then(r => setSubStats(r?.data || r)).catch(() => {});
+    adminAPI.platformOverview().then(r => setOverview(r?.data || r)).catch(() => fail('overview', '전체 지표를 불러오지 못했습니다.'));
+    adminAPI.platformTrend(14).then(r => setTrend((r?.data || r)?.daily || [])).catch(() => fail('trend', '추이를 불러오지 못했습니다.'));
+    plansAPI.getStats().then(r => setSubStats(r?.data || r)).catch(() => fail('subscriptions', '구독 통계를 불러오지 못했습니다.'));
     loadLinkReqs();
     loadCoverage();
   }, [loadLinkReqs, loadCoverage]);
@@ -68,18 +71,20 @@ export default function SuperAdminDashboard() {
       if (approve) await adminAPI.approveLinkRequest(id);
       else await adminAPI.rejectLinkRequest(id);
       setLinkReqs(prev => prev.filter(r => r.id !== id));
-    } catch { /* 무시 */ }
+    } catch { fail('decision', '승인·거절 처리에 실패했습니다. 요청 상태를 새로고침해 주세요.'); loadLinkReqs(); }
     finally { setLinkBusy(null); }
   };
 
   const fetchStores = useCallback(async () => {
+    const sequence = ++requestSequence.current;
     setLoading(true);
     try {
       const r = await adminAPI.platformStores({ page, search: query, region, business_type: bizType, status, limit: 20 });
+      if (sequence !== requestSequence.current) return;
       const d = r?.data || r;
       // 중복 데이터 제거 (id 기준) - Map으로 O(n) 처리
       const storeMap = new Map();
-      (d.stores || []).forEach(store => {
+      (Array.isArray(d.stores) ? d.stores : []).forEach(store => {
         if (!storeMap.has(store.id)) storeMap.set(store.id, store);
       });
       const uniqueStores = Array.from(storeMap.values());
@@ -87,10 +92,12 @@ export default function SuperAdminDashboard() {
       setTotalPages(d.totalPages || 1);
       setTotal(d.total || 0);
     } catch (err) {
-      console.error('[SuperAdminDashboard] Failed to fetch stores:', err);
+      if (sequence !== requestSequence.current) return;
+      fail('stores', '매장 목록을 불러오지 못했습니다.');
+      setTotal(0); setTotalPages(1);
       setRows([]);
     }
-    finally { setLoading(false); }
+    finally { if (sequence === requestSequence.current) setLoading(false); }
   }, [page, query, region, bizType, status]);
 
   useEffect(() => { fetchStores(); }, [fetchStores]);
@@ -98,16 +105,17 @@ export default function SuperAdminDashboard() {
   const submitSearch = (e) => { e?.preventDefault?.(); setPage(1); setQuery(search.trim()); };
 
   const KPIS = overview ? [
-    { label: '전체 매장', value: num(overview.totalStores), icon: Store, color: 'text-orange-400', bg: 'bg-orange-500/10' },
-    { label: '활성 매장', value: num(overview.activeStores), icon: Clock, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { label: '총 고객', value: num(overview.totalCustomers), icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { label: '총 주문', value: num(overview.totalOrders), icon: 'ShoppingBag', color: 'text-violet-400', bg: 'bg-violet-500/10' },
+    { label: '전체 매장', value: num(overview.totalStores), icon: 'Store', color: 'text-orange-400', bg: 'bg-orange-500/10' },
+    { label: '활성 매장', value: num(overview.activeStores), icon: 'Clock', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { label: '고객 등록(매장별)', value: num(overview.totalCustomers), icon: 'Users', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { label: '전체 주문(취소 포함)', value: num(overview.totalOrders), icon: 'ShoppingBag', color: 'text-violet-400', bg: 'bg-violet-500/10' },
     { label: '발행 포인트', value: num(overview.pointsIssued), icon: 'Coins', color: 'text-amber-400', bg: 'bg-amber-500/10' },
     { label: '포인트 잔액', value: num(overview.pointsBalance), icon: 'Gift', color: 'text-rose-400', bg: 'bg-rose-500/10' },
   ] : [];
 
   return (
     <div className="max-w-7xl mx-auto text-white pb-10">
+      {Object.keys(errors).length > 0 && <div role="alert" className="mb-4 rounded-xl border border-red-400 p-4">{Object.values(errors).map(message => <p key={message}>{message}</p>)}<button type="button" onClick={() => window.location.reload()}>다시 불러오기</button></div>}
       {/* 헤더 */}
       <div className="flex items-center justify-between gap-4 flex-wrap mb-6">
         <div>
@@ -128,7 +136,7 @@ export default function SuperAdminDashboard() {
           {KPIS.map(k => (
             <div key={k.label} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-start gap-4">
               <div className={`w-10 h-10 rounded-xl ${k.bg} flex items-center justify-center shrink-0`}>
-                <k.icon size={18} className={k.color} aria-hidden="true" />
+                <Icon icon={k.icon} size="sm" className={k.color} aria-hidden="true" />
               </div>
               <div className="min-w-0">
                 <p className="text-[11px] text-slate-500 font-bold">{k.label}</p>
@@ -151,7 +159,7 @@ export default function SuperAdminDashboard() {
           </h2>
           {subStats && (
             <span className="text-[11px] bg-white/10 text-slate-300 px-2 py-0.5 rounded-full">
-              활성 구독 <span className="tabular-nums text-white font-black">{num(subStats.active)}</span> · 결제 구독 <span className="tabular-nums text-white font-black">{num(subStats.mrr?.paying_subscribers ?? 0)}</span>
+              활성 구독 <span className="tabular-nums text-white font-black">{num(subStats.active)}</span> · 유료 계약 <span className="tabular-nums text-white font-black">{num(subStats.mrr?.paying_subscribers ?? 0)}</span>
             </span>
           )}
         </div>
@@ -160,10 +168,10 @@ export default function SuperAdminDashboard() {
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
               {[
-                { label: '월 반복 매출 (MRR)', value: won(subStats.mrr?.total), sub: 'trialing·미결제 제외', color: 'text-orange-300' },
+                { label: '월 반복 매출 (MRR)', value: won(subStats.mrr?.total), sub: '활성 구독 계약 기준 · 수납매출 별도', color: 'text-orange-300' },
                 { label: '연 환산 (ARR)', value: won(subStats.mrr?.arr), sub: 'MRR × 12', color: 'text-emerald-300' },
-                { label: '구독당 평균 매출 (ARPU)', value: won(subStats.mrr?.arpu), sub: 'MRR ÷ 결제 구독', color: 'text-blue-300' },
-                { label: '총 결제 구독자', value: num(subStats.mrr?.paying_subscribers ?? 0), sub: '활성 중 유료', color: 'text-violet-300' },
+                { label: '구독당 평균 매출 (ARPU)', value: won(subStats.mrr?.arpu), sub: 'MRR ÷ 유료 계약', color: 'text-blue-300' },
+                { label: '총 유료 계약자', value: num(subStats.mrr?.paying_subscribers ?? 0), sub: '활성 중 유료', color: 'text-violet-300' },
               ].map(m => (
                 <div key={m.label} className="bg-white/5 border border-white/10 rounded-xl p-3">
                   <p className="text-[10px] text-slate-500 font-bold">{m.label}</p>
@@ -175,9 +183,9 @@ export default function SuperAdminDashboard() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
               {[
-                { label: '신규 MRR (30일)', value: won(subStats.flows?.new_mrr), delta: `+${num(subStats.flows?.new_subscriptions ?? 0)}건`, color: 'text-emerald-300' },
+                { label: '가입·갱신 MRR (30일)', value: won(subStats.flows?.new_mrr), delta: `+${num(subStats.flows?.new_subscriptions ?? 0)}건`, color: 'text-emerald-300' },
                 { label: '취소 MRR (30일)', value: won(subStats.flows?.canceled_mrr), delta: `-${num(subStats.flows?.canceled_subscriptions ?? 0)}건`, color: 'text-rose-300' },
-                { label: '순 MRR 증감 (30일)', value: won(subStats.flows?.net_mrr), delta: '신규 − 취소', color: 'text-orange-300' },
+                { label: '순 MRR 증감 (30일)', value: won(subStats.flows?.net_mrr), delta: '가입·갱신 − 취소', color: 'text-orange-300' },
                 { label: '예정 하향 변경', value: won(subStats.flows?.scheduled_contraction_mrr), delta: `${num(subStats.flows?.scheduled_contractions ?? 0)}건`, color: 'text-amber-300' },
               ].map(m => (
                 <div key={m.label} className="bg-white/5 border border-white/10 rounded-xl p-3">
@@ -347,7 +355,7 @@ export default function SuperAdminDashboard() {
             </div>
             <div className="hidden md:block col-span-2 text-xs text-slate-400 truncate">{s.business_type ? bizLabel(s.business_type) : '-'}</div>
             <div className="hidden md:block col-span-1 text-right text-sm font-bold tabular-nums">{num(s.orders)}</div>
-            <div className="hidden md:block col-span-2 text-right text-sm font-bold tabular-nums text-orange-300">{won(s.sales)}</div>
+            <div className="hidden md:block col-span-2 text-right text-sm font-bold tabular-nums text-orange-300">{s.sales == null ? '미집계' : won(s.sales)}</div>
             <div className="hidden md:block col-span-1 text-right text-sm font-bold tabular-nums">{num(s.customers)}</div>
             <div className="col-span-2 flex items-center justify-end gap-1.5">
               <button type="button" onClick={() => setEnhanceId(s.id)} aria-label={`${s.name} AI 보강`}

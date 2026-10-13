@@ -27,17 +27,21 @@ test('store order lists reuse repository items and payments without legacy loade
 });
 
 test('dashboard summaries include the full selected KST day', async () => {
-  let where;
+  let where, ledgerWhere;
   const repository = load('../../repositories/Order', {
     '../utils/kstTime': kstTime,
     '../config/prisma': { orders: {
       aggregate: async args => { where = args.where; return { _count: { id: 0 }, _sum: { total_amount: 0 } }; },
       groupBy: async () => [],
-    } },
+    }, ledger: {groupBy:async args=>{ledgerWhere=args.where;return [{type:'INCOME',_sum:{amount:1000}},{type:'REFUND',_sum:{amount:200}}];}} },
   });
-  await repository.getStats(3, '2026-10-06', '2026-10-06');
+  const summary = await repository.getStats(3, '2026-10-06', '2026-10-06');
   assert.equal(where.created_at.gte.toISOString(), '2026-10-05T15:00:00.000Z');
   assert.equal(where.created_at.lte.toISOString(), '2026-10-06T14:59:59.999Z');
+  assert.equal(ledgerWhere.store_id,3);
+  assert.equal(ledgerWhere.created_at.gte.toISOString(),where.created_at.gte.toISOString());
+  assert.equal(ledgerWhere.created_at.lte.toISOString(),where.created_at.lte.toISOString());
+  assert.equal(summary.total_sales,800);
 });
 
 test('hourly dashboard data uses Korea time', async () => {

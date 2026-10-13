@@ -22,7 +22,11 @@
     "all": "すべて",
     "select": "選択",
     "required": "必須",
-    "optional": "任意"
+    "optional": "任意",
+    "history": "注文履歴",
+    "call_manager": "スタッフを呼ぶ",
+    "search_placeholder": "注文を検索",
+    "and_others": "他{{count}}件"
   },
   "menu": {
     "title": "メニュー",
@@ -55,7 +59,8 @@
     "display_empty_desc": "管理者ページからメニューを登録してください。",
     "on_sale": "販売中",
     "currency_won": "ウォン",
-    "display_footer_notice": "WeMarketデジタルメニューボードです。カウンターでご注文ください。"
+    "display_footer_notice": "WeMarketデジタルメニューボードです。カウンターでご注文ください。",
+    "no_items": "注文履歴はありません"
   },
   "order": {
     "title": "注文する",
@@ -73,7 +78,11 @@
       "ready": "受取待ち",
       "completed": "完了",
       "cancelled": "キャンセル済み"
-    }
+    },
+    "active_status": "進行中の注文",
+    "total_amount": "注文金額",
+    "summary": "注文詳細",
+    "past_history": "過去の注文"
   },
   "cart": {
     "title": "ショッピングカート",
@@ -164,7 +173,8 @@
     "voice": {
       "title": "リアルタイムTTSボイス放送表示",
       "empty": "待機中のボイス放送メッセージはありません。"
-    }
+    },
+    "order_progress": "注文の進捗"
   },
   "waiting": {
     "title": "順番待ち",
@@ -189,7 +199,8 @@
     "submit": "レビュー投稿",
     "empty": "まだレビューがありません",
     "helpful": "参考になった",
-    "photo": "写真を追加"
+    "photo": "写真を追加",
+    "completed": "レビュー投稿済み"
   },
   "mypage": {
     "title": "マイページ",
@@ -650,5 +661,13 @@
       "copyright": "© 2024 WeMarket. All rights reserved。"
     }
   },
-  "dynamicPricing": "動的価格"
+  "dynamicPricing": "動的価格",
+  "status": {
+    "pending": "受付待ち",
+    "confirmed": "注文確認済み",
+    "preparing": "準備中",
+    "ready": "準備完了",
+    "completed": "受け取り完了",
+    "cancelled": "キャンセル済み"
+  }
 }

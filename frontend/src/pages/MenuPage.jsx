@@ -181,8 +181,9 @@ const MenuPage = () => {
   const [isPhoneSheetOpen, setIsPhoneSheetOpen] = useState(false);
   const [showCallSheet, setShowCallSheet] = useState(false);
   const [showChatDrawer, setShowChatDrawer] = useState(false);
-  const [currentOrderId, _setCurrentOrderId] = useState(null);
-  const [currentOrderAmount, _setCurrentOrderAmount] = useState(0);
+  const [currentOrderId, setCurrentOrderId] = useState(null);
+  const [currentOrderCapability, setCurrentOrderCapability] = useState(null);
+  const [currentOrderAmount, setCurrentOrderAmount] = useState(0);
 const {
     initiateTossPayment
   } = useTossPayment();
@@ -191,7 +192,9 @@ const {
   const createPayment = async (data, capability) => {
     try {
       const res = await paymentsAPI.create(data, capability);
-      return res?.data || res;
+      // Preserve the transport success envelope. READY means the request was
+      // accepted; only staff confirmation may turn offline receipts into DONE.
+      return res;
     } catch (e) {
       return { success: false, error: e.message || '결제 실패' };
     }
@@ -459,13 +462,21 @@ const handleOptionConfirm = useCallback((quantity, selectedOptions, totalPrice) 
       }).filter(Boolean);
     });
   }, []);
+  const checkoutAttempt = useRef(null);
 const handleOrder = useCallback(async () => {
     if (!storeId || cart.length === 0) return;
+    if (checkoutAttempt.current?.busy) return;
     if (!storeOpen) {
       toast.error(t('order.cannot_order'));
       return;
     }
     setIsOrdering(true);
+    const fingerprint = JSON.stringify({ storeId, tableNumber, cart, totalPrice, paymentMethod, notifyPhone });
+    if (checkoutAttempt.current?.fingerprint !== fingerprint) {
+      checkoutAttempt.current = { fingerprint, key: crypto.randomUUID(), order: null, busy: false };
+    }
+    const attempt = checkoutAttempt.current;
+    attempt.busy = true;
     try {
       const notifyDigits = notifyPhone.replace(/\D/g, '');
       const hasPhone = notifyDigits.length >= 10;
@@ -474,7 +485,7 @@ const handleOrder = useCallback(async () => {
       let fcmToken = null;
       if (!hasPhone) {
         try {
-          fcmToken = await requestNotificationPermission();
+          fcmToken = await requestNotificationPermission({ requestPermission: false, timeoutMs: 1000 });
         } catch {
           fcmToken = null;
         }
@@ -508,7 +519,8 @@ const handleOrder = useCallback(async () => {
           localStorage.setItem('wm_customer_phone', notifyDigits);
         } catch {/* 무시 */}
       }
-const order = await ordersAPI.create(orderData);
+const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKey: attempt.key });
+      attempt.order = order;
       const orderData_ = order?.data || order || {};
       const createdOrderId = orderData_.id;
       if (!createdOrderId) throw new Error('주문 생성 결과에 주문 ID가 없습니다.');
@@ -559,26 +571,17 @@ const order = await ordersAPI.create(orderData);
         }
       }
       toast.success(t('order.success'));
-      const orderNo = orderData_.order_number || orderData_.id;
-      // 예상 준비시간: 메뉴별 실제 조리시간(cooking_time, 기본 5분) 기준.
-      // 가장 오래 걸리는 메뉴가 기준이 되고, 수량이 많을수록 큐 지연을 더한다.
-      const times = cart.map(i => Number(i.menuItem?.cooking_time) || 5);
-      const maxPrep = times.length ? Math.max(...times) : 5;
-      const totalQty = cart.reduce((a, i) => a + i.quantity, 0);
-      const eta = Math.min(60, maxPrep + Math.max(0, totalQty - 1));
+      checkoutAttempt.current = null;
       setCart([]);
       setIsCartOpen(false);
-
-      // 주문 완료 → 매장 위치 페이지로 이동(주문번호·예상시간 전달)
-      const params = new URLSearchParams({
-        order: String(orderNo || ''),
-        eta: String(eta)
-      });
-      if (profile?.store_name) params.set('store', profile.store_name);
-      navigate(`/?${params.toString()}#locations`);
+      setCurrentOrderId(createdOrderId);
+      setCurrentOrderCapability(orderData_.order_capability);
+      setCurrentOrderAmount(Number(orderData_.total_amount ?? totalPrice));
+      setIsOrderStatusOpen(true);
     } catch {
       toast.error(t('order.failed'));
     } finally {
+      attempt.busy = false;
       setIsOrdering(false);
     }
   }, [storeId, cart, storeOpen, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t]);
@@ -678,7 +681,7 @@ const order = await ordersAPI.create(orderData);
       <CartModal isOpen={isCartOpen} onClose={handleCloseCart} cart={cart} onUpdateQuantity={updateQuantity} onOrder={handleOrder} isOrdering={isOrdering} totalPrice={totalPrice} notifyPhone={notifyPhone} onNotifyPhoneChange={setNotifyPhone} paymentMethod={paymentMethod} onPaymentMethodChange={setPaymentMethod} menuItems={menuItems} storeId={storeId} onAddToCartClick={handleAddToCartClick} />
 
       {/* Order Status Modal */}
-      {storeId && <OrderStatusModal isOpen={isOrderStatusOpen} onClose={handleCloseOrderStatus} orderId={currentOrderId} storeId={storeId} tableNumber={tableNumber} onWriteReview={handleWriteReview} />}
+      {storeId && <OrderStatusModal isOpen={isOrderStatusOpen} onClose={handleCloseOrderStatus} orderId={currentOrderId} capability={currentOrderCapability} storeId={storeId} tableNumber={tableNumber} onWriteReview={handleWriteReview} />}
 
       {/* 리뷰 작성 모달 (주문 상태에서 진입, 실제 사진 첨부 지원) */}
       <ReviewModal isOpen={!!reviewOrder} onClose={handleCloseReview} order={reviewOrder} onSuccess={handleCloseReview} />

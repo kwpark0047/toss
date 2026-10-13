@@ -58,7 +58,7 @@ export function useTossPayment() {
         }
 
         // 1. 서버에서 결제 준비 (Ready)
-        const { data: payment } = await paymentsAPI.prepare(
+        const readyResponse = await paymentsAPI.prepare(
           {
             order_id: orderId,
             store_id: storeId,
@@ -67,6 +67,10 @@ export function useTossPayment() {
           },
           capability
         );
+        const payment = readyResponse?.data ?? readyResponse;
+        if (!payment?.payment_id || !payment?.order_number) {
+          throw new Error('결제 준비 응답이 올바르지 않습니다. 주문 내역을 확인해 주세요.');
+        }
 
         // 2. 토스 앱 SDK 호출 (Web Bridge)
         const appCheckoutPayment =

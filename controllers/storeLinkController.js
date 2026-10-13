@@ -10,8 +10,8 @@ exports.listRequests = catchAsync(async (req, res) => {
     orderBy: { created_at: 'desc' },
   });
 
-  const userIds = [...new Set(requests.map(r => r.user_id))];
-  const storeIds = [...new Set(requests.map(r => r.store_id))];
+  const userIds = [...new Set(requests.map((r) => r.user_id))];
+  const storeIds = [...new Set(requests.map((r) => r.store_id))];
 
   const [users, stores] = await Promise.all([
     prisma.users.findMany({
@@ -29,7 +29,7 @@ exports.listRequests = catchAsync(async (req, res) => {
   const storeMap = {};
   for (const s of stores) storeMap[s.id] = s;
 
-  const enriched = requests.map(r => ({
+  const enriched = requests.map((r) => ({
     id: r.id,
     requested_name: r.requested_name,
     requested_address: r.requested_address,
@@ -52,11 +52,13 @@ exports.approveRequest = catchAsync(async (req, res) => {
   if (!request) return res.status(404).json({ success: false, error: '요청을 찾을 수 없습니다.' });
 
   if (request.status !== 'pending') {
-    return res.status(400).json({ success: false, error: `이미 ${request.status} 처리된 요청입니다.` });
+    return res
+      .status(400)
+      .json({ success: false, error: `이미 ${request.status} 처리된 요청입니다.` });
   }
 
-  await prisma.store_link_requests.update({
-    where: { id: requestId },
+  const changed = await prisma.store_link_requests.updateMany({
+    where: { id: requestId, status: 'pending' },
     data: {
       status: 'approved',
       reviewed_by: req.user?.id || null,
@@ -64,6 +66,10 @@ exports.approveRequest = catchAsync(async (req, res) => {
     },
   });
 
+  if (changed.count !== 1)
+    return res
+      .status(409)
+      .json({ success: false, error: '다른 관리자가 이미 처리했습니다. 새로고침해 주세요.' });
   logger.info({ requestId, storeId: request.store_id, userId: request.user_id }, '매장 연동 승인');
   res.success({ id: requestId, status: 'approved' }, '승인 완료');
 });
@@ -76,13 +82,15 @@ exports.rejectRequest = catchAsync(async (req, res) => {
   if (!request) return res.status(404).json({ success: false, error: '요청을 찾을 수 없습니다.' });
 
   if (request.status !== 'pending') {
-    return res.status(400).json({ success: false, error: `이미 ${request.status} 처리된 요청입니다.` });
+    return res
+      .status(400)
+      .json({ success: false, error: `이미 ${request.status} 처리된 요청입니다.` });
   }
 
   const { admin_note } = req.body;
 
-  await prisma.store_link_requests.update({
-    where: { id: requestId },
+  const changed = await prisma.store_link_requests.updateMany({
+    where: { id: requestId, status: 'pending' },
     data: {
       status: 'rejected',
       reviewed_by: req.user?.id || null,
@@ -91,6 +99,10 @@ exports.rejectRequest = catchAsync(async (req, res) => {
     },
   });
 
+  if (changed.count !== 1)
+    return res
+      .status(409)
+      .json({ success: false, error: '다른 관리자가 이미 처리했습니다. 새로고침해 주세요.' });
   logger.info({ requestId, storeId: request.store_id, userId: request.user_id }, '매장 연동 거절');
   res.success({ id: requestId, status: 'rejected' }, '거절 완료');
 });

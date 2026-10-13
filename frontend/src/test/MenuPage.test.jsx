@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, act, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, act, cleanup, fireEvent } from '@testing-library/react';
 import React from 'react';
 
 const h = React.createElement;
@@ -52,6 +52,7 @@ vi.mock('@/api/products', () => ({
 }));
 vi.mock('@/api/orders', () => ({
   ordersAPI: { create: vi.fn(), getSocket: vi.fn() },
+  paymentsAPI: { create: vi.fn() },
 }));
 vi.mock('@/api/misc', () => ({
   weatherAPI: { getCurrent: vi.fn() },
@@ -83,11 +84,11 @@ vi.mock('@/utils/tinkerbell', () => ({
 vi.mock('@/components/menu/MenuHeader', () => ({ default: () => 'MenuHeader' }));
 vi.mock('@/components/menu/StoreInfoBanner', () => ({ default: () => 'StoreInfoBanner' }));
 vi.mock('@/components/menu/CategoryTabs', () => ({ default: () => 'CategoryTabs' }));
-vi.mock('@/components/menu/MenuItemCard', () => ({ default: () => 'MenuItemCard' }));
+vi.mock('@/components/menu/MenuItemCard', () => ({ default: ({ item, onAddToCart }) => h('div', null, 'MenuItemCard', h('button', { onClick: () => onAddToCart(item) }, 'fixture add')) }));
 vi.mock('@/components/menu/CartButton', () => ({ default: () => 'CartButton' }));
-vi.mock('@/components/menu/CartModal', () => ({ default: () => 'CartModal' }));
+vi.mock('@/components/menu/CartModal', () => ({ default: ({ onOrder, onPaymentMethodChange }) => h('div', null, 'CartModal', h('button', { onClick: () => onPaymentMethodChange('cash') }, 'fixture cash'), h('button', { onClick: () => onPaymentMethodChange('transfer') }, 'fixture transfer'), h('button', { onClick: onOrder }, 'fixture order')) }));
 vi.mock('@/components/menu/OptionSelectionModal', () => ({ default: () => 'OptionSelectionModal' }));
-vi.mock('@/components/menu/OrderStatusModal', () => ({ default: () => 'OrderStatusModal' }));
+vi.mock('@/components/menu/OrderStatusModal', () => ({ default: ({ isOpen, orderId, capability }) => isOpen ? h('div', null, `OrderStatusModal receipt ${orderId} ${capability}`) : 'OrderStatusModal' }));
 vi.mock('@/components/menu/CustomerPhoneSheet', () => ({ default: () => 'CustomerPhoneSheet' }));
 vi.mock('@/components/menu/PersonalizedRecommendations', () => ({ default: () => 'PersonalizedRecommendations' }));
 vi.mock('@/components/customer/ReviewModal', () => ({ default: () => 'ReviewModal' }));
@@ -109,6 +110,7 @@ import { storesAPI } from '@/api/stores';
 import { categoriesAPI, productsAPI } from '@/api/products';
 import { weatherAPI } from '@/api/misc';
 import { useKioskMode } from '@/hooks/useKioskMode';
+import { ordersAPI, paymentsAPI } from '@/api/orders';
 
 // =====================
 // Helpers
@@ -209,6 +211,20 @@ describe('buildThemeStyle', () => {
 // =====================
 
 describe('MenuPage', () => {
+  for (const method of ['cash', 'transfer']) it(`accepts ${method} receipt without claiming payment completion`, async () => {
+    storesAPI.getById.mockResolvedValue({ data: { id: 1, name: 'fixture', theme: null } });
+    categoriesAPI.getByStore.mockResolvedValue({ data: [] });
+    productsAPI.getByStore.mockResolvedValue({ data: [{ id: 1, name: 'fixture', price: 7500 }] });
+    ordersAPI.create.mockResolvedValue({ success: true, data: { id: 1, order_number: 'fixture-order', total_amount: 7500, order_capability: 'fixture-capability' } });
+    paymentsAPI.create.mockResolvedValue({ success: true, data: { id: 2, status: 'READY', method: method.toUpperCase() } });
+    render(h(MenuPage), { wrapper: createWrapper() });
+    fireEvent.click(await screen.findByText('fixture add'));
+    fireEvent.click(screen.getByText(`fixture ${method}`));
+    fireEvent.click(screen.getByText('fixture order'));
+    await waitFor(() => expect(screen.getByText('OrderStatusModal receipt 1 fixture-capability')).toBeInTheDocument());
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(paymentsAPI.create).toHaveBeenCalledWith(expect.objectContaining({ order_id: 1, payment_method: method }), 'fixture-capability');
+  });
   it('DEBUG: string component renders as text in wrapper', async () => {
     // verify mock component rendering within full menu page context
     storesAPI.getById.mockReturnValue(Promise.resolve({ data: { id: 1, name: '테', theme: null, open_time: '09:00', close_time: '22:00' } }));

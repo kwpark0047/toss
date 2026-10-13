@@ -22,7 +22,11 @@
     "all": "전체",
     "select": "선택",
     "required": "필수",
-    "optional": "선택사항"
+    "optional": "선택사항",
+    "history": "주문 내역",
+    "call_manager": "직원 호출",
+    "search_placeholder": "주문 검색",
+    "and_others": "외 {{count}}개"
   },
   "menu": {
     "title": "메뉴",
@@ -55,7 +59,8 @@
     "display_empty_desc": "관리자 페이지에서 메뉴를 등록해 주세요.",
     "on_sale": "판매중",
     "currency_won": "원",
-    "display_footer_notice": "WeMarket 디지털 메뉴보드 솔루션입니다. 카운터에서 주문해 주세요."
+    "display_footer_notice": "WeMarket 디지털 메뉴보드 솔루션입니다. 카운터에서 주문해 주세요.",
+    "no_items": "주문 내역이 없습니다"
   },
   "order": {
     "title": "주문하기",
@@ -73,7 +78,11 @@
       "ready": "수령 대기",
       "completed": "완료",
       "cancelled": "취소됨"
-    }
+    },
+    "active_status": "진행 중인 주문",
+    "total_amount": "주문 금액",
+    "summary": "주문 상세",
+    "past_history": "지난 주문"
   },
   "cart": {
     "title": "장바구니",
@@ -164,7 +173,8 @@
     "voice": {
       "title": "실시간 TTS 보이스 방송 전광판",
       "empty": "대기 중인 보이스 방송 메시지가 없습니다."
-    }
+    },
+    "order_progress": "주문 진행 상태"
   },
   "waiting": {
     "title": "대기열",
@@ -189,7 +199,8 @@
     "submit": "리뷰 등록",
     "empty": "아직 리뷰가 없습니다",
     "helpful": "도움돼요",
-    "photo": "사진 첨부"
+    "photo": "사진 첨부",
+    "completed": "리뷰 작성 완료"
   },
   "mypage": {
     "title": "마이페이지",
@@ -651,5 +662,13 @@
       "privacy": "개인정보처리방침",
       "copyright": "© 2024 WeMarket. All rights reserved."
     }
+  },
+  "status": {
+    "pending": "접수 대기",
+    "confirmed": "주문 확인",
+    "preparing": "준비 중",
+    "ready": "준비 완료",
+    "completed": "수령 완료",
+    "cancelled": "취소됨"
   }
 }

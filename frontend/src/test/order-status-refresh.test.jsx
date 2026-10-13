@@ -1,0 +1,20 @@
+import React from 'react';
+import { it, expect, vi, afterEach } from 'vitest';
+import { render, act, screen, cleanup } from '@testing-library/react';
+const api=vi.hoisted(()=>({getById:vi.fn(),getEta:vi.fn(async()=>({data:null}))}));
+vi.mock('../api',()=>({ordersAPI:api}));
+vi.mock('../utils/socket',()=>({joinOrderRoom:vi.fn(),onOrderUpdated:()=>()=>{}}));
+vi.mock('react-i18next',()=>({useTranslation:()=>({t:key=>key})}));
+vi.mock('framer-motion',()=>({motion:new Proxy({}, {get:()=>({children})=><div>{children}</div>}),AnimatePresence:({children})=>children}));
+import OrderStatusModal from '../components/menu/OrderStatusModal';
+afterEach(()=>{cleanup();vi.useRealTimers();});
+it('refreshes an owned order when the live event was missed',async()=>{
+ vi.useFakeTimers();
+ const order={id:1,store_id:1,status:'pending',total_amount:5000,items:[]};
+ api.getById.mockResolvedValueOnce({data:order}).mockResolvedValue({data:{...order,status:'confirmed'}});
+ await act(async()=>{render(<OrderStatusModal isOpen orderId={1} storeId={1} capability="fixture-owned-order"/>);});
+ expect(api.getById).toHaveBeenCalledTimes(1);
+ await act(async()=>{await vi.advanceTimersByTimeAsync(5000);});
+ expect(api.getById).toHaveBeenCalledTimes(2);
+ expect(screen.getByText('order_status.messages.confirmed')).toBeInTheDocument();
+});

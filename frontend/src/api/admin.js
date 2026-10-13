@@ -2,8 +2,7 @@ import api from './client';
 
 export const adminAPI = {
   getSettlements: (storeId) => api.get(`/admin/stores/${storeId}/settlements`),
-  getSettlementSummary: (storeId) =>
-    api.get(`/admin/stores/${storeId}/settlements/summary`),
+  getSettlementSummary: (storeId) => api.get(`/admin/stores/${storeId}/settlements/summary`),
   getSettlement: (storeId, id, params = {}) =>
     api.get(`/admin/stores/${storeId}/settlements/${id}`, { params }),
   generateSettlement: (storeId, data) =>
@@ -34,7 +33,8 @@ export const adminAPI = {
     api.get(`/admin/platform/stores/${id}/detail`, { params: { days } }),
   toggleStoreActive: (id, is_active) =>
     api.patch(`/admin/platform/stores/${id}/active`, { is_active }),
-  grantPoints: (id, data) => api.post(`/admin/platform/stores/${id}/points`, data),
+  grantPoints: (id, data, key) =>
+    api.post(`/admin/platform/stores/${id}/points`, data, { headers: { 'Idempotency-Key': key } }),
   // 매장 정보 보강 (AI + 커버리지) — super_admin 전용
   enrichmentCoverage: () => api.get('/admin/platform/enrichment/coverage'),
   storeCompletion: (id) => api.get(`/admin/platform/stores/${id}/completion`),

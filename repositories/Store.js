@@ -160,7 +160,7 @@ const Store = {
     // 2. 직원으로 등록된 매장 조회 (별도 try-catch: 스키마 불일치 시에도 소유 매장 반환)
     try {
       const staffed = await prisma.staff.findMany({
-        where: { user_id: uid },
+        where: { user_id: uid, is_active: 1 },
         include: { stores: { include: STORE_DETAILS } },
       });
       staffed.forEach((item) => {
