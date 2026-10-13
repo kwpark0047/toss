@@ -18,14 +18,19 @@ const storeController = {
           id: true,
           name: true,
           address: true,
-          business_type: true,
+          store_business_info: { select: { business_type: true } },
           latitude: true,
           longitude: true,
         },
         take: Math.min(limit, 200),
         orderBy: { id: 'desc' },
       });
-      return res.success(stores);
+      return res.success(
+        stores.map(({ store_business_info, ...store }) => ({
+          ...store,
+          business_type: store_business_info?.business_type ?? null,
+        }))
+      );
     }
     const stores = await Store.findAll();
     res.success(stores);
