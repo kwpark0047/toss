@@ -68,7 +68,8 @@ const CommentItem = ({ comment, user, onDelete, onReply, depth = 0 }) => (
 );
 
 const BoardDetail = () => {
-    const { id } = useParams();
+    const { id: globalId, postId } = useParams();
+    const id = globalId || postId;
     const { user } = useAuth();
     const navigate = useNavigate();
     const commentRef = useRef(null);

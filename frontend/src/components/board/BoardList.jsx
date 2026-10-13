@@ -47,12 +47,17 @@ const BoardList = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
+    const [loadError, setLoadError] = useState('');
+    const [retry, setRetry] = useState(0);
+
+    useEffect(() => { setBoardType(urlType || 'notice'); setPage(1); }, [urlType]);
 
     useEffect(() => {
-        boardAPI.getTrending(6).then(res => setTrending(res.data?.data || [])).catch(() => {});
+        boardAPI.getTrending(6).then(res => { const data = res.data?.data || res.data || []; setTrending(Array.isArray(data) ? data : []); }).catch(() => {});
     }, []);
 
     useEffect(() => {
+        let cancelled = false;
         const fetchPosts = async () => {
             setLoading(true);
             try {
@@ -60,20 +65,24 @@ const BoardList = () => {
                     page, search: search.trim(), searchType, tag: activeTag, limit: 12,
                 });
                 const data = res.data?.data || res.data;
+                if (cancelled) return;
+                setLoadError('');
                 const allPosts = data.posts || [];
                 setPinnedPosts(allPosts.filter(p => p.is_pinned));
                 setPosts(allPosts.filter(p => !p.is_pinned));
                 setTotalPages(data.totalPages || 1);
                 setTotal(data.total || 0);
             } catch (error) {
+                if (cancelled) return;
+                setLoadError('게시글을 불러오지 못했습니다. 다시 시도해 주세요.');
                 console.error('Failed to fetch posts:', error);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
         const t = setTimeout(fetchPosts, 300);
-        return () => clearTimeout(t);
-    }, [boardType, page, search, searchType, activeTag]);
+        return () => { cancelled = true; clearTimeout(t); };
+    }, [boardType, page, search, searchType, activeTag, retry]);
 
     const handleTypeChange = (newType) => {
         setBoardType(newType);
@@ -93,6 +102,7 @@ const BoardList = () => {
 
     return (
         <div className="max-w-7xl mx-auto pb-32 px-1 sm:px-2 text-white">
+            {loadError && <div role="alert" className="mb-4 rounded-xl border border-red-400 p-4">{loadError}<button type="button" className="ml-3 underline" onClick={() => setRetry(value => value + 1)}>다시 시도</button></div>}
 
             {/* ── 헤더 ── */}
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-5 pt-2 pb-6 border-b border-white/10">
@@ -300,7 +310,7 @@ const BoardList = () => {
                                     </motion.div>
                                 ))}
                             </div>
-                        ) : (
+                        ) : !loadError && (
                             <div className="py-24 text-center">
                                 <div className="text-5xl mb-3 select-none" aria-hidden="true">📭</div>
                                 <p className="text-slate-400 font-bold">{activeTag ? `#${activeTag} 태그의 게시글이 없어요` : '아직 게시글이 없어요'}</p>

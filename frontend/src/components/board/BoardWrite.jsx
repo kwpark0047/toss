@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { boardAPI } from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,7 +23,8 @@ const BoardWrite = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const initialType = searchParams.get('type') || 'free';
-    const editId = searchParams.get('edit');
+    const { id: routeEditId } = useParams();
+    const editId = searchParams.get('edit') || routeEditId;
 
     const isAdmin = user && ['super_admin', 'store_admin'].includes(user.role);
 

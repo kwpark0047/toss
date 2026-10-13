@@ -137,7 +137,11 @@ const AppRoutes = memo(() => <Routes>
     {/* Admin Routes */}
     <Route path="/admin" element={<AdminPage><AdminSuspense><MasterDashboard /></AdminSuspense></AdminPage>} />
     <Route path="/admin/profile" element={<Navigate to="/admin" replace />} />
-    <Route path="/board" element={<Navigate to="/admin" replace />} />
+    <Route path="/board" element={<AdminSuspense><AdminLayout><BoardList /></AdminLayout></AdminSuspense>} />
+    <Route path="/board/:type" element={<AdminSuspense><AdminLayout><BoardList /></AdminLayout></AdminSuspense>} />
+    <Route path="/board/posts/:id" element={<AdminSuspense><AdminLayout><BoardDetail /></AdminLayout></AdminSuspense>} />
+    <Route path="/board/write" element={<AdminPage><AdminSuspense><BoardWrite /></AdminSuspense></AdminPage>} />
+    <Route path="/board/edit/:id" element={<AdminPage><AdminSuspense><BoardWrite /></AdminSuspense></AdminPage>} />
     <Route path="/stores" element={<Navigate to="/admin" replace />} />
     <Route path="/admin/supervisor" element={<AdminPage><AdminSuspense><MultiStoreSupervisorDashboard /></AdminSuspense></AdminPage>} />
     <Route path="/admin/setup" element={<ProtectedRoute><AdminSuspense><StoreSetupWizard /></AdminSuspense></ProtectedRoute>} />
