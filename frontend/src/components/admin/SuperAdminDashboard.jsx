@@ -49,21 +49,31 @@ export default function SuperAdminDashboard() {
   const [linkReqs, setLinkReqs] = useState([]);
   const [linkBusy, setLinkBusy] = useState(null);
 
-  const loadLinkReqs = useCallback(() => {
-    adminAPI.linkRequests('pending').then(r => setLinkReqs((r?.data || r)?.requests || [])).catch(() => fail('links', '연동 요청을 불러오지 못했습니다.'));
+  const readSection = useCallback(async (key, request, apply, message) => {
+    try {
+      const response = await request();
+      apply(response?.data || response);
+      setErrors(previous => { const next = { ...previous }; delete next[key]; return next; });
+    } catch { fail(key, message); }
   }, []);
-
-  const loadCoverage = useCallback(() => {
-    adminAPI.enrichmentCoverage().then(r => setCoverage(r?.data || r)).catch(() => { setCoverage(null); fail('coverage', '정보 보강 현황을 불러오지 못했습니다.'); });
-  }, []);
-
+  const loadLinkReqs = useCallback(() => readSection('links', () => adminAPI.linkRequests('pending'), d => setLinkReqs(d.requests || []), '연동 요청을 불러오지 못했습니다.'), [readSection]);
+  const loadCoverage = useCallback(() => readSection('coverage', () => adminAPI.enrichmentCoverage(), setCoverage, '정보 보강 현황을 불러오지 못했습니다.'), [readSection]);
+  const loadDashboard = useCallback(async (isCancelled = () => false) => {
+    // A section paints as soon as it completes; do not fan out nested DB queries.
+    const tasks = [
+      () => readSection('overview', () => adminAPI.platformOverview(), setOverview, '전체 지표를 불러오지 못했습니다.'),
+      () => readSection('subscriptions', () => plansAPI.getStats(), setSubStats, '구독 통계를 불러오지 못했습니다.'),
+      () => loadCoverage(),
+      () => readSection('trend', () => adminAPI.platformTrend(14), d => setTrend(d.daily || []), '추이를 불러오지 못했습니다.'),
+      () => loadLinkReqs(),
+    ];
+    for (const task of tasks) { if (isCancelled()) break; await task(); }
+  }, [readSection, loadCoverage, loadLinkReqs]);
   useEffect(() => {
-    adminAPI.platformOverview().then(r => setOverview(r?.data || r)).catch(() => fail('overview', '전체 지표를 불러오지 못했습니다.'));
-    adminAPI.platformTrend(14).then(r => setTrend((r?.data || r)?.daily || [])).catch(() => fail('trend', '추이를 불러오지 못했습니다.'));
-    plansAPI.getStats().then(r => setSubStats(r?.data || r)).catch(() => fail('subscriptions', '구독 통계를 불러오지 못했습니다.'));
-    loadLinkReqs();
-    loadCoverage();
-  }, [loadLinkReqs, loadCoverage]);
+    let cancelled = false;
+    void loadDashboard(() => cancelled);
+    return () => { cancelled = true; };
+  }, [loadDashboard]);
 
   const decideLink = async (id, approve) => {
     setLinkBusy(id);
@@ -88,6 +98,7 @@ export default function SuperAdminDashboard() {
         if (!storeMap.has(store.id)) storeMap.set(store.id, store);
       });
       const uniqueStores = Array.from(storeMap.values());
+      setErrors(previous => { const next = { ...previous }; delete next.stores; return next; });
       setRows(uniqueStores);
       setTotalPages(d.totalPages || 1);
       setTotal(d.total || 0);
@@ -115,7 +126,7 @@ export default function SuperAdminDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto text-white pb-10">
-      {Object.keys(errors).length > 0 && <div role="alert" className="mb-4 rounded-xl border border-red-400 p-4">{Object.values(errors).map(message => <p key={message}>{message}</p>)}<button type="button" onClick={() => window.location.reload()}>다시 불러오기</button></div>}
+      {Object.keys(errors).length > 0 && <div role="alert" className="mb-4 rounded-xl border border-red-400 p-4">{Object.values(errors).map(message => <p key={message}>{message}</p>)}<button type="button" onClick={() => { void loadDashboard(); void fetchStores(); }}>다시 불러오기</button></div>}
       {/* 헤더 */}
       <div className="flex items-center justify-between gap-4 flex-wrap mb-6">
         <div>
@@ -145,7 +156,7 @@ export default function SuperAdminDashboard() {
             </div>
           ))}
         </div>
-      ) : (
+      ) : errors.overview ? <p className="mb-6 text-sm text-red-300">전체 지표 조회 실패 · 다시 불러오기로 재시도하세요.</p> : (
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-8">
           {[...Array(6)].map((_, i) => <div key={i} className="skeleton-dark h-28 rounded-2xl" />)}
         </div>
@@ -213,7 +224,7 @@ export default function SuperAdminDashboard() {
               ))}
             </div>
           </>
-        ) : (
+        ) : errors.subscriptions ? <p className="text-sm text-red-300">구독 통계 조회 실패 · 다시 불러오기로 재시도하세요.</p> : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[...Array(4)].map((_, i) => <div key={i} className="skeleton-dark h-20 rounded-xl" />)}
           </div>

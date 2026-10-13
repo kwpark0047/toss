@@ -1,3 +1,4 @@
+const loadCoverageSnapshot = require('../utils/singleFlightCache')();
 const prisma = require('../config/prisma');
 const catchAsync = require('../utils/catchAsync');
 const logger = require('../utils/logger');
@@ -321,83 +322,37 @@ exports.grantPoints = catchAsync(async (req, res) => {
 
 // 플랫폼 전역 매장 정보 커버리지 — 대시보드 위젯용 필드별 누락 집계
 exports.getEnrichmentCoverage = catchAsync(async (req, res) => {
-  const totalStores = await prisma.stores.count();
-
-  const keyFields = [
-    { field: 'phone', label: '전화번호', where: { phone: null } },
-    {
-      field: 'business_type',
-      label: '업종',
-      where: {
-        OR: [
-          { store_business_info: { is: null } },
-          { store_business_info: { is: { business_type: null } } },
-          { store_business_info: { is: { business_type: '' } } },
-        ],
-      },
-    },
-    { field: 'latitude', label: '위도', where: { latitude: null } },
-    { field: 'longitude', label: '경도', where: { longitude: null } },
-    {
-      field: 'open_time',
-      label: '영업시간',
-      where: {
-        OR: [
-          { store_operating_hours: { is: null } },
-          {
-            store_operating_hours: {
-              is: {
-                OR: [
-                  { open_time: null },
-                  { close_time: null },
-                  { open_time: '' },
-                  { close_time: '' },
-                ],
-              },
-            },
-          },
-        ],
-      },
-    },
-    { field: 'description', label: '매장 설명', where: { description: null } },
-    {
-      field: 'business_number',
-      label: '사업자등록번호',
-      where: {
-        OR: [
-          { store_business_info: { is: null } },
-          { store_business_info: { is: { business_number: null } } },
-          { store_business_info: { is: { business_number: '' } } },
-        ],
-      },
-    },
-    {
-      field: 'ceo_name',
-      label: '대표자명',
-      where: {
-        OR: [
-          { store_business_info: { is: null } },
-          { store_business_info: { is: { ceo_name: null } } },
-          { store_business_info: { is: { ceo_name: '' } } },
-        ],
-      },
-    },
-    {
-      field: 'business_address',
-      label: '사업장 주소',
-      where: {
-        OR: [
-          { store_business_info: { is: null } },
-          { store_business_info: { is: { business_address: null } } },
-          { store_business_info: { is: { business_address: '' } } },
-        ],
-      },
-    },
-  ];
-
-  const missingCounts = await Promise.all(
-    keyFields.map((f) => prisma.stores.count({ where: f.where }))
+  // One snapshot/connection replaces nine concurrent full-table counts.
+  const [counts] = await loadCoverageSnapshot(
+    () => prisma.$queryRaw`
+    SELECT COUNT(*) AS total,
+      COUNT(*) FILTER (WHERE s.phone IS NULL) AS phone,
+      COUNT(*) FILTER (WHERE b.business_type IS NULL OR b.business_type = '') AS business_type,
+      COUNT(*) FILTER (WHERE s.latitude IS NULL) AS latitude,
+      COUNT(*) FILTER (WHERE s.longitude IS NULL) AS longitude,
+      COUNT(*) FILTER (WHERE h.open_time IS NULL OR h.close_time IS NULL OR h.open_time = '' OR h.close_time = '') AS open_time,
+      COUNT(*) FILTER (WHERE s.description IS NULL) AS description,
+      COUNT(*) FILTER (WHERE b.business_number IS NULL OR b.business_number = '') AS business_number,
+      COUNT(*) FILTER (WHERE b.ceo_name IS NULL OR b.ceo_name = '') AS ceo_name,
+      COUNT(*) FILTER (WHERE b.business_address IS NULL OR b.business_address = '') AS business_address
+    FROM public.stores s
+    LEFT JOIN public.store_business_info b ON b.store_id = s.id
+    LEFT JOIN public.store_operating_hours h ON h.store_id = s.id
+  `
   );
+  const totalStores = Number(counts.total);
+  const keyFields = [
+    { field: 'phone', label: '전화번호' },
+    { field: 'business_type', label: '업종' },
+    { field: 'latitude', label: '위도' },
+    { field: 'longitude', label: '경도' },
+    { field: 'open_time', label: '영업시간' },
+    { field: 'description', label: '매장 설명' },
+    { field: 'business_number', label: '사업자등록번호' },
+    { field: 'ceo_name', label: '대표자명' },
+    { field: 'business_address', label: '사업장 주소' },
+  ];
+  const missingCounts = keyFields.map((f) => Number(counts[f.field]));
   const coverage = {};
   keyFields.forEach((f, i) => {
     coverage[f.field] = { label: f.label, missing: missingCounts[i] };

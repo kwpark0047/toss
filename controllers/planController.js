@@ -1,3 +1,4 @@
+const loadSubscriptionStats = require('../utils/singleFlightCache')();
 const PlanService = require('../services/PlanService');
 const { AppError } = require('../utils/errorHandler');
 const logger = require('../utils/logger');
@@ -110,7 +111,9 @@ const planController = {
   // 구독 현황 통계 (대시보드용)
   async getSubscriptionStats(req, res, next) {
     try {
-      const stats = await require('../services/SubscriptionService').getStats();
+      const stats = await loadSubscriptionStats(() =>
+        require('../services/SubscriptionService').getStats()
+      );
       res.success(stats);
     } catch (error) {
       next(error);

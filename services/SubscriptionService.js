@@ -314,46 +314,53 @@ class SubscriptionService {
   async getStats() {
     const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [total, activeCount, trialing, past_due, canceled, expired, byPlan, activeSubs, canceledSubs, plans] =
-      await Promise.all([
-        prisma.subscription.count(),
-        prisma.subscription.count({ where: { status: 'active' } }),
-        prisma.subscription.count({ where: { status: 'trialing' } }),
-        prisma.subscription.count({ where: { status: 'past_due' } }),
-        prisma.subscription.count({ where: { status: 'canceled' } }),
-        prisma.subscription.count({ where: { status: 'expired' } }),
-        prisma.subscription.groupBy({
-          by: ['plan_id'],
-          _count: { plan_id: true },
-        }),
-        prisma.subscription.findMany({
-          where: { status: 'active' },
-          select: {
-            id: true,
-            plan_id: true,
-            billing_cycle: true,
-            current_period_start: true,
-            metadata: true,
-            plan: {
-              select: { id: true, name: true, display_name: true, price_monthly: true, price_yearly: true },
-            },
-          },
-        }),
-        prisma.subscription.findMany({
-          where: { status: 'canceled', canceled_at: { gte: monthAgo, not: null } },
-          select: {
-            id: true,
-            billing_cycle: true,
-            canceled_at: true,
-            plan: {
-              select: { id: true, name: true, display_name: true, price_monthly: true, price_yearly: true },
-            },
-          },
-        }),
-        prisma.plan.findMany({
-          select: { id: true, name: true, display_name: true, price_monthly: true, price_yearly: true },
-        }),
-      ]);
+    // Counts share one query/connection; MRR inputs retain their existing contract.
+    const [counts] = await prisma.$queryRaw`
+      SELECT COUNT(*) AS total,
+        COUNT(*) FILTER (WHERE status = 'active') AS active,
+        COUNT(*) FILTER (WHERE status = 'trialing') AS trialing,
+        COUNT(*) FILTER (WHERE status = 'past_due') AS past_due,
+        COUNT(*) FILTER (WHERE status = 'canceled') AS canceled,
+        COUNT(*) FILTER (WHERE status = 'expired') AS expired
+      FROM public."Subscription"
+    `;
+    const [total, activeCount, trialing, past_due, canceled, expired] = [
+      'total',
+      'active',
+      'trialing',
+      'past_due',
+      'canceled',
+      'expired',
+    ].map((k) => Number(counts[k]));
+    const [byPlan, activeSubs, canceledSubs, plans] = await Promise.all([
+      prisma.subscription.groupBy({
+        by: ['plan_id'],
+        _count: { plan_id: true },
+      }),
+      prisma.$queryRaw`
+          SELECT plan_id, billing_cycle,
+            (current_period_start >= ${monthAgo}) AS recent,
+            metadata #>> '{pending_plan_change,plan_id}' AS pending_plan_id,
+            COUNT(*) AS subscription_count
+          FROM public."Subscription" WHERE status = 'active'
+          GROUP BY plan_id, billing_cycle, recent, pending_plan_id
+        `,
+      prisma.$queryRaw`
+          SELECT plan_id, billing_cycle, COUNT(*) AS subscription_count
+          FROM public."Subscription"
+          WHERE status = 'canceled' AND canceled_at >= ${monthAgo}
+          GROUP BY plan_id, billing_cycle
+        `,
+      prisma.plan.findMany({
+        select: {
+          id: true,
+          name: true,
+          display_name: true,
+          price_monthly: true,
+          price_yearly: true,
+        },
+      }),
+    ]);
 
     // 플랜별 이름 매핑
     const planMap = Object.fromEntries(plans.map((p) => [p.id, p]));
@@ -368,26 +375,30 @@ class SubscriptionService {
     const planMrr = new Map();
 
     for (const sub of activeSubs) {
-      const amount = this._monthlyAmount(sub);
-      mrr += amount;
-      if (amount > 0) payingSubscribers += 1;
-      planMrr.set(sub.plan_id, (planMrr.get(sub.plan_id) || 0) + amount);
+      const count = Number(sub.subscription_count ?? 1);
+      const amount = this._monthlyAmount({ ...sub, plan: sub.plan || planMap[sub.plan_id] });
+      mrr += amount * count;
+      if (amount > 0) payingSubscribers += count;
+      planMrr.set(sub.plan_id, (planMrr.get(sub.plan_id) || 0) + amount * count);
 
       // 최근 30일 내 신규 시작(신규/재활성) 구독 → MRR 유입
-      if (sub.current_period_start && sub.current_period_start >= monthAgo) {
-        newMrr += amount;
-        newSubscriptions += 1;
+      if (sub.recent ?? (sub.current_period_start && sub.current_period_start >= monthAgo)) {
+        newMrr += amount * count;
+        newSubscriptions += count;
       }
 
       // 기간 만료 시 적용 예약된 다운그레이드 → 소실 예정 MRR
-      const pending = sub.metadata?.pending_plan_change;
+      const pending = sub.pending_plan_id
+        ? { plan_id: sub.pending_plan_id }
+        : sub.metadata?.pending_plan_change;
       if (pending?.plan_id) {
         const nextPlan = planMap[pending.plan_id];
         if (nextPlan) {
-          const delta = amount - this._monthlyAmount({ billing_cycle: sub.billing_cycle, plan: nextPlan });
+          const delta =
+            amount - this._monthlyAmount({ billing_cycle: sub.billing_cycle, plan: nextPlan });
           if (delta > 0) {
-            scheduledContraction += delta;
-            scheduledContractions += 1;
+            scheduledContraction += delta * count;
+            scheduledContractions += count;
           }
         }
       }
@@ -396,7 +407,9 @@ class SubscriptionService {
     // 최근 30일 취소로 소실된 MRR
     let canceledMrr = 0;
     for (const sub of canceledSubs) {
-      canceledMrr += this._monthlyAmount(sub);
+      canceledMrr +=
+        this._monthlyAmount({ ...sub, plan: sub.plan || planMap[sub.plan_id] }) *
+        Number(sub.subscription_count ?? 1);
     }
 
     const byPlanMapped = byPlan.map((bp) => ({
@@ -425,7 +438,10 @@ class SubscriptionService {
         new_mrr: Math.round(newMrr),
         new_subscriptions: newSubscriptions,
         canceled_mrr: Math.round(canceledMrr),
-        canceled_subscriptions: canceledSubs.length,
+        canceled_subscriptions: canceledSubs.reduce(
+          (sum, sub) => sum + Number(sub.subscription_count ?? 1),
+          0
+        ),
         net_mrr: Math.round(newMrr - canceledMrr),
         scheduled_contraction_mrr: Math.round(scheduledContraction),
         scheduled_contractions: scheduledContractions,

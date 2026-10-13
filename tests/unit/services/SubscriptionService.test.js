@@ -16,6 +16,7 @@ jest.mock('../../../repositories/Plan', () => ({
 }));
 
 jest.mock('../../../config/prisma', () => ({
+  $queryRaw: jest.fn(),
   stores: { update: jest.fn() },
   store_subscriptions: { upsert: jest.fn() },
   subscription: { count: jest.fn(), groupBy: jest.fn(), findMany: jest.fn() },
@@ -309,13 +310,13 @@ describe('SubscriptionService', () => {
 
   describe('getStats', () => {
     test('구독 통계 집계 (counts + MRR + flows)', async () => {
-      prisma.subscription.count
-        .mockResolvedValueOnce(10)
-        .mockResolvedValueOnce(5)
-        .mockResolvedValueOnce(2)
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(1);
+      prisma.$queryRaw.mockImplementation((sql) =>
+        sql.join('').includes('FILTER')
+          ? Promise.resolve([
+              { total: 10n, active: 5n, trialing: 2n, past_due: 1n, canceled: 1n, expired: 1n },
+            ])
+          : prisma.subscription.findMany()
+      );
       prisma.subscription.groupBy.mockResolvedValue([{ plan_id: 1, _count: { plan_id: 3 } }]);
       prisma.subscription.findMany
         .mockResolvedValueOnce([
@@ -324,7 +325,13 @@ describe('SubscriptionService', () => {
             billing_cycle: 'MONTHLY',
             current_period_start: new Date(),
             metadata: {},
-            plan: { id: 1, name: 'pro', display_name: '프로', price_monthly: 10000, price_yearly: 0 },
+            plan: {
+              id: 1,
+              name: 'pro',
+              display_name: '프로',
+              price_monthly: 10000,
+              price_yearly: 0,
+            },
           },
         ])
         .mockResolvedValueOnce([]);
@@ -363,19 +370,21 @@ describe('SubscriptionService', () => {
     monthAgo.setDate(monthAgo.getDate() - 30);
 
     const countChain = (values) => {
-      prisma.subscription.count
-        .mockResolvedValueOnce(values.total)
-        .mockResolvedValueOnce(values.active)
-        .mockResolvedValueOnce(values.trialing)
-        .mockResolvedValueOnce(values.past_due)
-        .mockResolvedValueOnce(values.canceled)
-        .mockResolvedValueOnce(values.expired);
+      prisma.$queryRaw.mockImplementation((sql) =>
+        sql.join('').includes('FILTER') ? Promise.resolve([values]) : prisma.subscription.findMany()
+      );
     };
 
     test('active MONTHLY/YEARLY 혼합하여 MRR·ARR·ARPU 집계', async () => {
       const plans = [
         { id: 'p_pro', name: 'pro', display_name: '프로', price_monthly: 10000, price_yearly: 0 },
-        { id: 'p_ent', name: 'enterprise', display_name: '엔터프라이즈', price_monthly: 0, price_yearly: 240000 },
+        {
+          id: 'p_ent',
+          name: 'enterprise',
+          display_name: '엔터프라이즈',
+          price_monthly: 0,
+          price_yearly: 240000,
+        },
       ];
       const activeSubs = [
         {
@@ -415,7 +424,13 @@ describe('SubscriptionService', () => {
     });
 
     test('무료 플랜(단가 0)은 paying_subscribers에서 제외되고 MRR 0', async () => {
-      const freePlan = { id: 'p_free', name: 'free', display_name: '무료', price_monthly: 0, price_yearly: 0 };
+      const freePlan = {
+        id: 'p_free',
+        name: 'free',
+        display_name: '무료',
+        price_monthly: 0,
+        price_yearly: 0,
+      };
       prisma.subscription.findMany
         .mockResolvedValueOnce([
           {
@@ -440,7 +455,13 @@ describe('SubscriptionService', () => {
     test('flows: 30일 신규 유입 · 취소 손실 · 예약 다운그레이드 소실 집계', async () => {
       const plans = [
         { id: 'p_pro', name: 'pro', display_name: '프로', price_monthly: 10000, price_yearly: 0 },
-        { id: 'p_ent', name: 'enterprise', display_name: '엔터프라이즈', price_monthly: 100000, price_yearly: 0 },
+        {
+          id: 'p_ent',
+          name: 'enterprise',
+          display_name: '엔터프라이즈',
+          price_monthly: 100000,
+          price_yearly: 0,
+        },
       ];
       const activeSubs = [
         // 30일 내 신규 시작 → MRR 유입
@@ -470,7 +491,9 @@ describe('SubscriptionService', () => {
 
       countChain({ total: 3, active: 2, trialing: 0, past_due: 0, canceled: 1, expired: 0 });
       prisma.subscription.groupBy.mockResolvedValue([]);
-      prisma.subscription.findMany.mockResolvedValueOnce(activeSubs).mockResolvedValueOnce(canceledSubs);
+      prisma.subscription.findMany
+        .mockResolvedValueOnce(activeSubs)
+        .mockResolvedValueOnce(canceledSubs);
       prisma.plan.findMany.mockResolvedValue(plans);
 
       const stats = await service.getStats();
@@ -488,7 +511,13 @@ describe('SubscriptionService', () => {
 
     test('YEARLY 구독의 예약 다운그레이드 소실도 월등가 기준으로 산출', async () => {
       const plans = [
-        { id: 'p_ent', name: 'enterprise', display_name: '엔터프라이즈', price_monthly: 0, price_yearly: 240000 },
+        {
+          id: 'p_ent',
+          name: 'enterprise',
+          display_name: '엔터프라이즈',
+          price_monthly: 0,
+          price_yearly: 240000,
+        },
         { id: 'p_pro', name: 'pro', display_name: '프로', price_monthly: 10000, price_yearly: 0 },
       ];
       prisma.subscription.findMany

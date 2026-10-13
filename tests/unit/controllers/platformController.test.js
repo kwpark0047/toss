@@ -1,4 +1,5 @@
 jest.mock('../../../config/prisma', () => ({
+  $queryRaw: jest.fn(),
   stores: {
     count: jest.fn(),
     findMany: jest.fn(),
@@ -109,17 +110,20 @@ describe('platformController.getEnrichmentCoverage', () => {
   beforeEach(() => jest.clearAllMocks());
 
   test('필드별 누락 수와 전체 점수를 반환한다', async () => {
-    prisma.stores.count
-      .mockResolvedValueOnce(100)
-      .mockResolvedValueOnce(10)
-      .mockResolvedValueOnce(5)
-      .mockResolvedValueOnce(50)
-      .mockResolvedValueOnce(50)
-      .mockResolvedValueOnce(20)
-      .mockResolvedValueOnce(30)
-      .mockResolvedValueOnce(40)
-      .mockResolvedValueOnce(40)
-      .mockResolvedValueOnce(40);
+    prisma.$queryRaw.mockResolvedValue([
+      {
+        total: 100n,
+        phone: 10n,
+        business_type: 5n,
+        latitude: 50n,
+        longitude: 50n,
+        open_time: 20n,
+        description: 30n,
+        business_number: 40n,
+        ceo_name: 40n,
+        business_address: 40n,
+      },
+    ]);
 
     const res = makeRes();
     controller.getEnrichmentCoverage({}, res, jest.fn());
