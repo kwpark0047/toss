@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, Component } from 'react';
 import { useSEO } from '../../lib/useSEO';
 import api from '../../api';
+import { systemHealthSummary } from '../../lib/systemHealthSummary';
 import Icon from '../../components/ui/Icon';
 import { Activity, AlertTriangle, Building2, CheckCircle2, CreditCard, Database, FileText, RefreshCw, Server, Shield, XCircle, Zap, TrendingUp, Clock, Cpu } from 'lucide-react';
 
@@ -75,6 +76,8 @@ const StatusBadge = ({
       cls: 'bg-amber-100 text-amber-700',
       icon: AlertTriangle
     },
+    unavailable: { label: '미연결', cls: 'bg-gray-100 text-gray-600', icon: Activity },
+    unknown: { label: '확인 불가', cls: 'bg-gray-100 text-gray-600', icon: Activity },
     CLOSED: {
       label: '정상',
       cls: 'bg-emerald-100 text-emerald-700',
@@ -141,6 +144,7 @@ export default function SystemStatus() {
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [error, setError] = useState(null);
+  const [healthUnavailable, setHealthUnavailable] = useState(false);
   const inFlight = useRef(false);
   const fetchAll = useCallback(async () => {
     if (inFlight.current) return;
@@ -152,13 +156,23 @@ export default function SystemStatus() {
       if (auditAction) auditParams.set('action', auditAction);
       if (auditResourceType) auditParams.set('resourceType', auditResourceType);
       const paths = ['/health/deep','/health/sla','/health/circuits','/analytics/db-profile',`/admin/audit-logs?${auditParams}`,'/admin/feature-flags','/admin/order-events?limit=10'];
-      const results = await Promise.allSettled(paths.map(path => api.get(path)));
+      const results = await Promise.allSettled(paths.map(async path => {
+        // A deep probe's 503 is a valid diagnostic result, not a discarded payload.
+        const response = await api.get(path, path === '/health/deep' ? { validateStatus: code => (code >= 200 && code < 300) || code === 503 } : undefined);
+        if (path === '/health/deep') {
+          const payload = response?.data ?? response;
+          if (!['ok', 'degraded'].includes(payload?.status) || !payload?.checks || typeof payload.checks !== 'object') throw new Error('Invalid health diagnostic');
+        }
+        return response;
+      }));
+      setHealthUnavailable(results[0].status === 'rejected');
       const setters = [setHealth,setSla,value=>setCircuits(Array.isArray(value?.circuits)?value.circuits:[]),setDbProfile,setAuditLogs,value=>setFeatureFlags(Array.isArray(value)?value:[]),setOrderEvents];
       results.forEach((result,index)=>{if(result.status==='fulfilled') setters[index](result.value?.data ?? result.value);});
       const failed = paths.filter((_,index)=>results[index].status==='rejected');
       if(failed.length) setError('조회 실패 (이전 성공 데이터는 유지): ' + failed.join(', '));
       setLastRefresh(new Date());
     } catch {
+      setHealthUnavailable(true);
       setError('시스템 상태 및 데이터베이스 프로파일 데이터를 불러오지 못했습니다.');
     } finally {
       inFlight.current = false;
@@ -187,6 +201,8 @@ export default function SystemStatus() {
     return () => clearInterval(interval);
   }, [fetchAll]);
   const overall = health?.status || 'unknown';
+  const summary = !health && loading ? { tone: 'unknown', title: '시스템 상태 확인 중' } : systemHealthSummary(health, healthUnavailable);
+  const bannerStyles = { ok: 'bg-emerald-50 border-emerald-200 text-emerald-700', warn: 'bg-amber-50 border-amber-200 text-amber-700', error: 'bg-red-50 border-red-200 text-red-700', unknown: 'bg-gray-50 border-gray-200 text-gray-700' };
   const dbCheck = health?.checks?.database;
   const memCheck = health?.checks?.memory;
   const slaData = sla?.current;
@@ -219,12 +235,15 @@ export default function SystemStatus() {
 
             <SectionErrorBoundary sectionName="전체 상태">
                 <div className={`p-5 rounded-2xl border-2 flex items-center gap-4
-                    ${overall === 'ok' ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`} role="status" aria-live="polite" aria-label={`전체 시스템 상태: ${overall}`}>
-                    {overall === 'ok' ? <CheckCircle2 size={32} className="text-emerald-500 flex-shrink-0" aria-hidden="true" /> : <Icon icon="AlertTriangle" />}
+                    ${bannerStyles[summary.tone]}`} role="status" aria-live="polite" aria-label={`전체 시스템 상태: ${healthUnavailable ? 'unknown' : overall}`}>
+                    {summary.tone === 'ok' ? <CheckCircle2 size={32} className="text-emerald-500 flex-shrink-0" aria-hidden="true" /> : <Icon icon="AlertTriangle" />}
                     <div>
-                        <p className={`text-lg font-black ${overall === 'ok' ? 'text-emerald-700' : 'text-red-700'}`}>
-                            {overall === 'ok' ? '모든 시스템 정상 운영 중' : '일부 시스템 이상 감지'}
+                        <p className="text-lg font-black">
+                            {summary.title}
                         </p>
+                        {healthUnavailable && health && <p className="text-sm mt-1">아래 값은 이전 점검 결과입니다. 최신 상태를 다시 확인해 주세요.</p>}
+                        {health?.checks?.operationalConfig?.status === 'warn' && <p className="text-sm mt-1">Toss 웹훅 검증 설정이 없습니다. 공식 서명키 또는 검증된 IP 허용목록 등록이 필요합니다.</p>}
+                        {health?.checks?.omniroute?.status === 'unavailable' && <p className="text-sm text-gray-600 mt-1">AI 보조 게이트웨이 미연결 · 핵심 주문·결제 상태와 별도로 점검합니다.</p>}
                         <p className="text-sm text-gray-500 mt-0.5">
                             업타임: {slaData?.uptimeFormatted || '—'} | SLO 목표 {slaTarget?.uptimePct || 99.5}%
                         </p>
