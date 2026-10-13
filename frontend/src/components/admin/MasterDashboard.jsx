@@ -295,7 +295,7 @@ const MasterDashboard = () => {
     _setSoundEnabled
   } = useNotifications();
   useSEO({
-    title: selectedStore ? `${selectedStore.name} | 위마켓 매장 관리` : '위마켓 매장 관리',
+    title: user?.role === 'super_admin' ? '위마켓 최고 관리자' : selectedStore ? `${selectedStore.name} | 위마켓 매장 관리` : '위마켓 매장 관리',
     description: selectedStore ? `${selectedStore.name}의 매출, 주문, 고객 정보를 관리하세요.` : '위마켓 스마트 매장 관리'
   });
 

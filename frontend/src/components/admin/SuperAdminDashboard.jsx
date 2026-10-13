@@ -25,7 +25,7 @@ const num = (n) => Number(n || 0).toLocaleString('ko-KR');
  */
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
-  useSEO({ title: '플랫폼 관리 | 위마켓', description: '위마켓 플랫폼의 매장, 고객, 주문을 관리합니다.' });
+  useSEO({ title: '위마켓 최고 관리자', description: '위마켓 플랫폼의 매장, 고객, 주문을 관리합니다.' });
   const [errors, setErrors] = useState({});
   const requestSequence = useRef(0);
   const fail = (key, message) => setErrors(previous => ({ ...previous, [key]: message }));
