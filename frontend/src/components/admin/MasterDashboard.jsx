@@ -556,7 +556,7 @@ const MasterDashboard = () => {
     badge: 0
   }, {
     label: '매출 분석',
-    path: 'stats',
+    path: 'sales',
     icon: BarChart3,
     color: 'from-emerald-500 to-teal-500',
     badge: 0

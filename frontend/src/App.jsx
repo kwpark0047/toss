@@ -148,6 +148,7 @@ const AppRoutes = memo(() => <Routes>
     <Route path="/admin/stores/:storeId/visual-builder" element={<AdminPage><ValidStoreRoute><AdminSuspense><MenuBuilder /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/staff" element={<AdminPage><ValidStoreRoute><AdminSuspense><StaffManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/sales" element={<AdminPage><ValidStoreRoute><AdminSuspense><SalesStats /></AdminSuspense></ValidStoreRoute></AdminPage>} />
+    <Route path="/admin/stores/:storeId/stats" element={<AdminPage><ValidStoreRoute><AdminSuspense><SalesStats /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/reviews" element={<AdminPage><ValidStoreRoute><AdminSuspense><ReviewManager /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/analytics" element={<AdminPage><ValidStoreRoute><AdminSuspense><AnalyticsDashboard /></AdminSuspense></ValidStoreRoute></AdminPage>} />
     <Route path="/admin/stores/:storeId/recommendation-stats" element={<AdminPage><ValidStoreRoute><AdminSuspense><RecommendationStatsPage /></AdminSuspense></ValidStoreRoute></AdminPage>} />
