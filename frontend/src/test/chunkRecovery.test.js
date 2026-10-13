@@ -50,4 +50,11 @@ describe('deployment chunk recovery', () => {
     expect(await recoverChunkLoad({ browser })).toBe(false);
     expect(browser.location.replace).not.toHaveBeenCalled();
   });
+  it('permits one recovery for each newly loaded deployment without loops', async () => {
+    const browser = fixture();
+    expect(await recoverChunkLoad({ browser, revision: 'release-a' })).toBe(true);
+    expect(await recoverChunkLoad({ browser, revision: 'release-a' })).toBe(false);
+    expect(await recoverChunkLoad({ browser, revision: 'release-b' })).toBe(true);
+    expect(await recoverChunkLoad({ browser, revision: 'release-b' })).toBe(false);
+  });
 });

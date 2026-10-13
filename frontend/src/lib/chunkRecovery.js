@@ -4,12 +4,17 @@ export function isChunkLoadError(error) {
   );
 }
 
-// One automatic recovery per tab prevents reload loops on persistent network failures.
-export async function recoverChunkLoad({ force = false, browser = window } = {}) {
+// One recovery per loaded deployment avoids loops while allowing later deployments to recover.
+export async function recoverChunkLoad({ force = false, browser = window, revision } = {}) {
   if (browser.navigator.onLine === false) return false;
   try {
-    if (!force && browser.sessionStorage.getItem('wm-chunk-recovered')) return false;
-    browser.sessionStorage.setItem('wm-chunk-recovered', '1');
+    const version =
+      revision ||
+      browser.document?.querySelector('meta[name="app-commit"]')?.content ||
+      'untracked';
+    const guard = `wm-chunk-recovered:${version}`;
+    if (!force && browser.sessionStorage.getItem(guard)) return false;
+    browser.sessionStorage.setItem(guard, '1');
   } catch {
     if (!force) return false;
   }
