@@ -17,3 +17,14 @@ test('failed two-factor lookup cannot present disabled state as confirmed', asyn
   render(<ProfilePage />);
   expect(await screen.findByRole('alert')).toHaveTextContent('2단계 인증 상태를 확인하지 못했습니다');
 });
+test('duplicate email explains the reason and preserves the entered value', async () => {
+  auth.getTwoFactorStatus.mockResolvedValue(false);
+  auth.updateProfile.mockRejectedValue({response:{status:409}});
+  render(<ProfilePage />);
+  fireEvent.click(screen.getByRole('button',{name:'이메일 추가'}));
+  const input = screen.getByRole('textbox',{name:'이메일'});
+  fireEvent.change(input,{target:{value:'owner@example.com'}});
+  fireEvent.click(screen.getByRole('button',{name:'저장',exact:true}));
+  expect(await screen.findByRole('alert')).toHaveTextContent('다른 계정에서 사용 중');
+  expect(input).toHaveValue('owner@example.com');
+});

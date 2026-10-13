@@ -45,6 +45,15 @@ const validate = {
   address: () => null,
 };
 
+const profileSaveError = (error) => {
+  const status = error.response?.status;
+  if (status === 409) return '이미 다른 계정에서 사용 중인 이메일입니다. 다른 이메일을 입력해 주세요.';
+  if (status === 401) return '로그인이 만료되었습니다. 입력 내용을 보관한 뒤 다시 로그인해 주세요.';
+  if (status === 403) return '프로필 수정 권한을 확인할 수 없습니다. 다시 로그인해 주세요.';
+  if (status >= 500 || error.code === 'ECONNABORTED' || !error.response) return '서버 응답을 확인하지 못했습니다. 입력 내용은 유지됩니다. 잠시 후 다시 저장해 주세요.';
+  return '입력 내용을 확인해 주세요. 이메일 형식이나 허용 길이가 올바르지 않을 수 있습니다.';
+};
+
 /* ──────────────────────────────────────────────
    토스트
 ────────────────────────────────────────────── */
@@ -112,7 +121,7 @@ const ProfileField = ({
       await onSave(trimmed || null);
       setEditing(false);
     } catch (e) {
-      setFieldError(e.response?.data?.message || '저장에 실패했습니다.');
+      setFieldError(profileSaveError(e));
     } finally {
       setLoading(false);
     }
@@ -209,6 +218,7 @@ const ProfileField = ({
 
             {fieldError && (
               <motion.p
+                role="alert"
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="flex items-center gap-1.5 text-xs text-red-400 font-medium"
