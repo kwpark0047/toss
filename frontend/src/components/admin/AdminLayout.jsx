@@ -143,7 +143,7 @@ const AdminLayout = ({ children }) => {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/login');
+      navigate('/auth', { replace: true });
     } catch {
       window.alert('서버에서 로그아웃을 확인하지 못했습니다. 다시 시도해 주세요.');
     }

@@ -7,6 +7,7 @@ import api from '../api/client';
 import { syncSentryUser } from '../lib/sentry';
 import { refreshSession } from '../lib/authSession';
 import { clearUserCaches } from '../utils/userCaches';
+import { logoutFlow } from '../lib/logoutFlow';
 
 const AuthContext = createContext(null);
 
@@ -218,12 +219,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await authAPI.logout();
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    storesCacheRef.current = null;
-    await clearUserCaches();
-    setUser(null);
+    return logoutFlow({
+      revoke: () => authAPI.logout(),
+      clearLocalSession: () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        storesCacheRef.current = null;
+        setUser(null);
+      },
+      clearCaches: clearUserCaches,
+    });
   };
 
   // Sentry에 사용자 컨텍스트 동기화 (운영 환경에서만 의미 있음 — 지연 로드)
