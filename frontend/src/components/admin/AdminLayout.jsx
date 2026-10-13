@@ -1,4 +1,4 @@
-import { canSeeAdminMenu } from '../../utils/adminMenuAccess';
+import { canSeeAdminMenu, resolveAdminStoreId } from '../../utils/adminMenuAccess';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -95,6 +95,10 @@ function AdminLayoutInner({ children, storeId, user, storeRole, handleLogout, lo
         <div className="shrink-0 p-3">{profile}</div>
       </aside>
       <main className="min-w-0">
+        {user?.role === 'super_admin' && storeId && <div role="status" className="flex items-center justify-between gap-3 border-b border-orange-400/30 bg-orange-500/10 px-4 py-3 text-sm">
+          <span>최고관리자 · 매장 {storeId} 점검 중 (계정 전환 없음)</span>
+          <Link to="/admin" className="font-bold underline">최고관리자 대시보드로 돌아가기</Link>
+        </div>}
         <header className={`sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b px-4 py-3 lg:px-6 ${tc.header}`}>
           <div className="min-w-0"><p className={`hidden text-xs lg:block ${tc.textMuted}`}>WeMarket / {t('adminCenter')}</p><p className={`truncate text-sm font-semibold ${tc.textStrong}`}>{pageTitle}</p></div>
           <div className="flex shrink-0 items-center gap-2">
@@ -148,8 +152,7 @@ const AdminLayout = ({ children }) => {
   const isBoardPath = location.pathname.startsWith('/board');
   const isPublicBoardPath = isBoardPath && !location.pathname.startsWith('/board/write') && !location.pathname.startsWith('/board/edit');
 
-  const rawStoreId = location.pathname.split('/')[3];
-  const storeId = rawStoreId && /^\d+$/.test(rawStoreId) ? rawStoreId : selectedStore?.id;
+  const storeId = resolveAdminStoreId(location.pathname, user?.role, selectedStore?.id);
 
   const [storeInfo, setStoreInfo] = useState(null);
   const [storeRole, setStoreRole] = useState(null);

@@ -1,3 +1,7 @@
+export function resolveAdminStoreId(path, platformRole, selectedStoreId) {
+  const match = path.match(/^\/admin\/stores\/(\d+)(?:\/|$)/);
+  return match ? match[1] : platformRole === 'super_admin' ? undefined : selectedStoreId;
+}
 export function canSeeAdminMenu(path, platformRole, storeRole) {
   if (platformRole === 'super_admin') return true;
   if (

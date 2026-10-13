@@ -1,5 +1,12 @@
 import { test, expect } from 'vitest';
-import { canSeeAdminMenu } from '../utils/adminMenuAccess';
+import { canSeeAdminMenu, resolveAdminStoreId } from '../utils/adminMenuAccess';
+
+test('super admin global navigation never inherits the automatically selected store', () => {
+  expect(resolveAdminStoreId('/admin/system-status', 'super_admin', 3)).toBeUndefined();
+  expect(resolveAdminStoreId('/admin', 'super_admin', 3)).toBeUndefined();
+  expect(resolveAdminStoreId('/admin/stores/5/orders', 'super_admin', 3)).toBe('5');
+  expect(resolveAdminStoreId('/admin', 'store_admin', 3)).toBe(3);
+});
 test.each([
   ['/admin/stores/3/kitchen', 'staff', 'kitchen', true],
   ['/admin/stores/3/settings', 'staff', 'kitchen', false],

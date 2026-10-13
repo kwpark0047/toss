@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { adminAPI } from '../../api/admin';
 import { bizLabel } from '../../utils/businessType';
@@ -164,9 +165,9 @@ export default function StoreDetailModal({ storeId, onClose, onChanged }) {
                 className={`flex-1 h-11 rounded-2xl font-black text-sm flex items-center justify-center gap-1.5 transition-all ${active ? 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10' : 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'}`}>
                 {busy ? <Loader2 size={15} className="animate-spin" /> : <Power size={15} aria-hidden="true" />} {active ? '비활성화' : '활성화'}
               </button>
-              <a href={`/admin/stores/${storeId}/orders`} className="flex-1 h-11 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-600 text-white font-black text-sm flex items-center justify-center gap-1.5">
-                <ExternalLink size={15} aria-hidden="true" /> 매장 관리로 이동
-              </a>
+              <Link to={`/admin/stores/${storeId}/orders`} className="flex-1 h-11 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-600 text-white font-black text-sm flex items-center justify-center gap-1.5">
+                <ExternalLink size={15} aria-hidden="true" /> 최고관리자로 매장 점검
+              </Link>
             </div>
           </div>
         )}
