@@ -1,4 +1,5 @@
 jest.mock('../../../config/prisma', () => ({
+  orders: { groupBy: jest.fn() },
   stores: { findMany: jest.fn(), count: jest.fn() },
   store_business_info: { findMany: jest.fn() },
   store_favorites: { findMany: jest.fn() },
@@ -26,6 +27,7 @@ test('search uses normalized filters, hours and business facets', async () => {
   expect(x.facets.businessTypes).toEqual(['restaurant']);
 });
 test('popular uses business relation while preserving flat output', async () => {
+  db.orders.groupBy.mockResolvedValue([{ store_id: 3, _count: { _all: 2 } }]);
   db.stores.findMany.mockImplementation(async (args) => {
     expect(args.select.business_type).toBeUndefined();
     return [{ id: 3, store_business_info: { business_type: 'restaurant' }, _count: { orders: 2 } }];

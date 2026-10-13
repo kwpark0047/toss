@@ -194,8 +194,20 @@ class StoreService {
 
   // 인기 매장 랭킹
   async getPopular() {
+    const ranked = await prisma.orders.groupBy({
+      by: ['store_id'],
+      where: { status: 'completed', stores: { is: { is_active: true, ...EXCLUDE_CORRUPT_NAME } } },
+      _count: { _all: true },
+      orderBy: [{ _count: { store_id: 'desc' } }, { store_id: 'asc' }],
+      take: 8,
+    });
+    const ids = ranked.map((row) => row.store_id);
     const stores = await prisma.stores.findMany({
-      where: { is_active: true, ...EXCLUDE_CORRUPT_NAME },
+      where: {
+        is_active: true,
+        ...EXCLUDE_CORRUPT_NAME,
+        ...(ids.length ? { id: { in: ids } } : {}),
+      },
       select: {
         id: true,
         name: true,
@@ -203,12 +215,12 @@ class StoreService {
         ...publicBusiness,
         latitude: true,
         longitude: true,
-        _count: { select: { orders: { where: { status: 'completed' } } } },
       },
-      orderBy: { orders: { _count: 'desc' } },
+      orderBy: { id: 'asc' },
       take: 8,
     });
 
+    if (ids.length) stores.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
     return stores.map((s, i) => ({
       rank: i + 1,
       id: s.id,
@@ -217,7 +229,7 @@ class StoreService {
       business_type: s.store_business_info?.business_type ?? null,
       latitude: s.latitude,
       longitude: s.longitude,
-      order_count: s._count.orders,
+      order_count: ranked.find((row) => row.store_id === s.id)?._count._all || 0,
     }));
   }
 
