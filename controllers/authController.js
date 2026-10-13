@@ -32,10 +32,7 @@ const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d';
 const sessions = require('../services/AuthSessionService');
 const signTokens = (user) => sessions.issue(user);
 
-const safeUser = (user) => {
-  const { password: _, ...rest } = user;
-  return rest;
-};
+const safeUser = require('../utils/publicUser');
 
 /**
  * OTP 발송
@@ -306,8 +303,8 @@ const updateProfile = async (req, res, next) => {
 
     const updated = await userRepository.update(userId, updateData);
 
-    const { ...safe } = updated;
-    res.success(safe, '프로필이 업데이트되었습니다.');
+    const safe = safeUser(updated);
+    res.success({ ...safe, phone: decryptPhone(safe.phone) }, '프로필이 업데이트되었습니다.');
   } catch (error) {
     next(error);
   }

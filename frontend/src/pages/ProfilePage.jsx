@@ -162,6 +162,7 @@ const ProfileField = ({
         {!editing && !disabled && (
           <button
             onClick={openEdit}
+            aria-label={`${label} ${hasValue ? '수정' : '추가'}`}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 text-xs font-semibold transition-all"
           >
             <Edit2 className="w-3 h-3" />
@@ -187,6 +188,7 @@ const ProfileField = ({
           >
             <input
               type={type}
+              aria-label={label}
               value={input}
               autoFocus
               onChange={(e) => {
@@ -612,6 +614,7 @@ const ProfilePage = () => {
   const {
     user,
     updateProfile,
+    refreshProfile,
     changePassword,
     getTwoFactorStatus,
     sendTwoFactorOtp,
@@ -619,16 +622,25 @@ const ProfilePage = () => {
   } = useAuth();
   const [toast, setToast] = useState(null);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [twoFactorReady, setTwoFactorReady] = useState(false);
+  const [twoFactorError, setTwoFactorError] = useState('');
+  const [profileError, setProfileError] = useState('');
+  const loadProfile = async () => {
+    if (!refreshProfile) return;
+    try { await refreshProfile(); setProfileError(''); }
+    catch { setProfileError('프로필 정보를 불러오지 못했습니다. 다시 시도해 주세요.'); }
+  };
 
   // 마운트 시 2FA 활성화 상태 조회
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
+    void loadProfile();
     let mounted = true;
     getTwoFactorStatus()
       .then((enabled) => {
-        if (mounted) setTwoFactorEnabled(enabled);
+        if (mounted) { setTwoFactorEnabled(enabled); setTwoFactorReady(true); }
       })
-      .catch(() => {});
+      .catch(() => { if (mounted) setTwoFactorError('2단계 인증 상태를 확인하지 못했습니다. 페이지를 새로고침해 주세요.'); });
     return () => {
       mounted = false;
     };
@@ -674,6 +686,7 @@ const ProfilePage = () => {
 
   return (
     <div className="max-w-xl mx-auto py-6 px-2">
+      {profileError && <div role="alert" className="mb-4 rounded-xl border border-red-400 p-4 text-red-300">{profileError}<button type="button" className="ml-3 underline" onClick={loadProfile}>다시 시도</button></div>}
       {/* 헤더 */}
       <div className="mb-7">
         <h1 className="text-2xl font-extrabold text-white tracking-tight">내 프로필</h1>
@@ -774,11 +787,11 @@ const ProfilePage = () => {
         <PasswordCard changePassword={handleChangePassword} />
 
         {/* 2단계 인증 (2FA) */}
-        <TwoFactorCard
+        {twoFactorReady ? <TwoFactorCard
           enabled={twoFactorEnabled}
           onSend={handleTwoFactorSend}
           onVerify={handleTwoFactorVerify}
-        />
+        /> : <p role={twoFactorError ? 'alert' : 'status'} className="p-4 text-sm text-slate-400">{twoFactorError || '2단계 인증 상태 확인 중…'}</p>}
       </div>
 
       {/* 가입일 */}

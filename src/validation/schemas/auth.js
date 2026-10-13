@@ -154,6 +154,8 @@ const changePasswordSchema = z
 const updateProfileSchema = z
   .object({
     name: nameSchema.optional(),
+    email: z.string().trim().pipe(emailSchema).nullable().optional(),
+    address: z.string().trim().max(500).nullable().optional(),
     phone: phoneSchema.optional(),
     profileImage: z.string().url().optional().nullable(),
   })

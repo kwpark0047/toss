@@ -136,7 +136,7 @@ const AppRoutes = memo(() => <Routes>
 
     {/* Admin Routes */}
     <Route path="/admin" element={<AdminPage><AdminSuspense><MasterDashboard /></AdminSuspense></AdminPage>} />
-    <Route path="/admin/profile" element={<Navigate to="/admin" replace />} />
+    <Route path="/admin/profile" element={<AdminPage><AdminSuspense><ProfilePage /></AdminSuspense></AdminPage>} />
     <Route path="/board" element={<AdminSuspense><AdminLayout><BoardList /></AdminLayout></AdminSuspense>} />
     <Route path="/board/:type" element={<AdminSuspense><AdminLayout><BoardList /></AdminLayout></AdminSuspense>} />
     <Route path="/board/posts/:id" element={<AdminSuspense><AdminLayout><BoardDetail /></AdminLayout></AdminSuspense>} />

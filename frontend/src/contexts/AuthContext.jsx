@@ -206,10 +206,18 @@ export const AuthProvider = ({ children }) => {
     return { token, user: userData };
   };
 
+  const refreshProfile = async () => {
+    const response = await authAPI.me();
+    const updated = response.data || response;
+    if (!updated?.id) throw new Error('프로필 응답을 확인할 수 없습니다.');
+    setUser(previous => previous?.id === updated.id ? { ...previous, ...updated } : previous);
+    return updated;
+  };
+
   const updateProfile = async (data) => {
     const res = await authAPI.updateProfile(data);
     const updated = res.data || res;
-    setUser((prev) => ({ ...prev, ...updated }));
+    setUser((prev) => prev?.id === updated.id ? { ...prev, ...updated } : prev);
     return updated;
   };
 
@@ -272,6 +280,7 @@ export const AuthProvider = ({ children }) => {
         socialLogin,
         register,
         updateProfile,
+        refreshProfile,
         changePassword,
         logout,
         consumeStoresCache,
