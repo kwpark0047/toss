@@ -902,12 +902,6 @@ const LandingPage = () => {
             ══════════════════════════════════════════════ */}
             <div id="locations" className="py-24 px-6 bg-gradient-to-b from-white to-slate-50/50">
                 <div className="max-w-7xl mx-auto">
-                    <div className="flex items-center gap-2 px-1 mb-6">
-                        <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
-                            <Icon icon="MapPin" />
-                        </div>
-                        <h2 className="font-black text-gray-900 text-lg">전체 매장 위치</h2>
-                    </div>
                     <StoreLocator />
                 </div>
             </div>

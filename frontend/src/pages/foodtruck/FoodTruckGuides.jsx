@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Truck, Menu, X, Smartphone, QrCode, Navigation, ChevronDown, ChevronUp, Sparkles, Fuel, AlertTriangle } from 'lucide-react';
-export default function FoodTruckGuides() {
+export default function FoodTruckGuides({ embedded = false } = {}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
   const navItems = [{
@@ -68,9 +68,9 @@ export default function FoodTruckGuides() {
     q: '알림톡은 어떻게 설정하나요?',
     a: '카카오 알림톡 채널 연동이 필요합니다. 설정 > 알림 설정에서 채널 ID를 입력하면 자동으로 연동됩니다.'
   }];
-  return <div className="min-h-screen bg-white text-slate-900 font-sans">
+  return <div className={`${embedded ? "" : "min-h-screen"} bg-white text-slate-900 font-sans`}>
       {/* Navigation */}
-      <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+      {!embedded && <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <Link to="/foodtruck/landing" className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
@@ -107,7 +107,7 @@ export default function FoodTruckGuides() {
                 {item.label}
               </Link>)}
           </div>}
-      </nav>
+      </nav>}
 
       {/* Hero */}
       <section className="relative py-20 lg:py-28 overflow-hidden">
@@ -164,7 +164,7 @@ export default function FoodTruckGuides() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-slate-50 py-12 text-slate-500">
+      {!embedded && <footer className="border-t border-slate-200 bg-slate-50 py-12 text-slate-500">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-slate-200">
@@ -174,6 +174,6 @@ export default function FoodTruckGuides() {
           </div>
           <p className="text-xs font-mono text-slate-400">&copy; 2026 WeMarket Platform. All rights reserved.</p>
         </div>
-      </footer>
+      </footer>}
     </div>;
 }

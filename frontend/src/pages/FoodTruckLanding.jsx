@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { MapPin, Search, Navigation, Truck, ArrowRight, Clock, Sparkles, AlertCircle, ShoppingBag, ShieldAlert, Home, CreditCard, BookOpen, Mail, Smartphone, Signal, Fuel, AlertTriangle, Zap } from 'lucide-react';
 import api from '@/api/client';
 import Icon from '../components/ui/Icon';
+import { useSEO } from '../lib/useSEO';
 
 /* ─── Lazy-load foodtruck-specific marketing pages ─── */
 const FeaturesPage = lazy(() => import('./foodtruck/FoodTruckFeatures'));
@@ -107,7 +108,12 @@ export default function FoodTruckLanding() {
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [locatingUser, setLocatingUser] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
-  const [activeTab, setActiveTab] = useState('finder');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabs = ['finder', 'features', 'pricing', 'guides', 'contact'];
+  const requestedTab = searchParams.get('tab');
+  const activeTab = tabs.includes(requestedTab) ? requestedTab : 'finder';
+  const setActiveTab = tab => { const next = new URLSearchParams(searchParams); tab === 'finder' ? next.delete('tab') : next.set('tab', tab); setSearchParams(next); };
+  useSEO({ title: '위마켓 푸드트럭 — 매장 찾기와 운영 안내' });
 
 // Leaflet map refs
   const mapContainerRef = useRef(null);
@@ -133,10 +139,11 @@ export default function FoodTruckLanding() {
     }
   }, []);
   useEffect(() => {
+    if (activeTab !== 'finder') return;
     fetchActiveTrucks();
     const interval = setInterval(fetchActiveTrucks, 30000);
     return () => clearInterval(interval);
-  }, [fetchActiveTrucks]);
+  }, [fetchActiveTrucks, activeTab]);
 
   /* ─── Geolocation ─── */
   const handleGetLocation = () => {
@@ -193,6 +200,7 @@ export default function FoodTruckLanding() {
 
   /* ─── Leaflet map initialization ─── */
   useEffect(() => {
+    if (activeTab !== 'finder') return;
     let cancelled = false;
     loadLeaflet().then(L => {
       if (cancelled || !mapContainerRef.current || mapRef.current) return;
@@ -215,7 +223,7 @@ export default function FoodTruckLanding() {
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [activeTab]);
 
   /* ─── Update markers when trucks or selection change ─── */
   useEffect(() => {
@@ -318,7 +326,7 @@ export default function FoodTruckLanding() {
       {/* ─── Tab Navigation ─── */}
       <div className="sticky top-16 z-30 border-b border-slate-200 bg-white/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide py-2 -mx-1">
+          <div role="tablist" aria-label="푸드트럭 메뉴" className="flex gap-1 overflow-x-auto scrollbar-hide py-2 -mx-1">
             {[{
             id: 'finder',
             label: '매장찾기',
@@ -339,7 +347,7 @@ export default function FoodTruckLanding() {
             id: 'contact',
             label: '문의하기',
             icon: Mail
-          }].map(tab => <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 border border-slate-200'}`}>
+          }].map(tab => <button key={tab.id} role="tab" id={`truck-tab-${tab.id}`} aria-selected={activeTab === tab.id} aria-controls={`truck-panel-${tab.id}`} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 border border-slate-200'}`}>
                 <tab.icon size={13} />
                 {tab.label}
               </button>)}
@@ -348,57 +356,6 @@ export default function FoodTruckLanding() {
       </div>
 
       {/* ─── Foodtruck Features Banner (_finder tab only) ─── */}
-      {activeTab === 'finder' && <section className="border-b border-slate-200 bg-white py-12 px-4 relative z-10">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600 text-xs font-mono font-bold mb-4">
-              <Sparkles className="size-3.5" />
-              <span>FOOD TRUCK FEATURES</span>
-            </div>
-            <h2 className="text-2xl font-black text-slate-900 mb-2">
-              이동식 푸드트럭을 위한<br />
-              <span className="bg-gradient-to-r from-orange-400 to-rose-500 bg-clip-text text-transparent">모바일 우선 솔루션</span>
-            </h2>
-            <p className="text-slate-500 text-sm max-w-xl mx-auto">
-              GPS 실시간 동기화, 긴급 품절 제어, 불안정 네트워크 대응까지 이동형 비즈니스에 최적화된 기능을 제공합니다.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[{
-            icon: Navigation,
-            title: 'GPS 위치 싱크',
-            desc: '실시간 이동 위치 추적'
-          }, {
-            icon: AlertTriangle,
-            title: '킬스위치',
-            desc: '원터치 전 메뉴 품절'
-          }, {
-            icon: Smartphone,
-            title: '모바일 주문',
-            desc: '앱 설치 없이 주문'
-          }, {
-            icon: Signal,
-            title: '하트비트',
-            desc: '네트워크 끊김 자동 대응'
-          }, {
-            icon: 'Zap',
-            title: '스마트 거점',
-            desc: 'AI 최적 영업 위치 추천'
-          }, {
-            icon: Fuel,
-            title: '동선 최적화',
-            desc: '연료·매출 동시 계산'
-          }].map((feat, i) => <div key={i} className="bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-2xl p-4 text-center transition-all hover:scale-[1.02]">
-                <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center">
-                  <feat.icon className="size-5" />
-                </div>
-                <h3 className="text-xs font-black text-slate-900 mb-1">{feat.title}</h3>
-                <p className="text-[10px] text-slate-500 leading-tight">{feat.desc}</p>
-              </div>)}
-          </div>
-        </div>
-      </section>}
-
       {/* ─── Hero ─── */}
       {activeTab === 'finder' && <>
       <section className="max-w-6xl mx-auto w-full px-4 pt-10 pb-6 text-center md:text-left md:flex md:items-center md:justify-between gap-8 relative z-10">
@@ -594,27 +551,27 @@ export default function FoodTruckLanding() {
       </section>
       </>}
 
-      {activeTab === 'features' && <div className="relative z-10 flex-1">
+      {activeTab === 'features' && <div role="tabpanel" id="truck-panel-features" aria-labelledby="truck-tab-features" className="relative z-10 flex-1">
           <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
-            <FeaturesPage />
+            <FeaturesPage embedded />
           </Suspense>
         </div>}
 
-      {activeTab === 'pricing' && <div className="relative z-10 flex-1">
+      {activeTab === 'pricing' && <div role="tabpanel" id="truck-panel-pricing" aria-labelledby="truck-tab-pricing" className="relative z-10 flex-1">
           <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
-            <PricingPage />
+            <PricingPage embedded />
           </Suspense>
         </div>}
 
-      {activeTab === 'guides' && <div className="relative z-10 flex-1">
+      {activeTab === 'guides' && <div role="tabpanel" id="truck-panel-guides" aria-labelledby="truck-tab-guides" className="relative z-10 flex-1">
           <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
-            <GuidesPage />
+            <GuidesPage embedded />
           </Suspense>
         </div>}
 
-      {activeTab === 'contact' && <div className="relative z-10 flex-1">
+      {activeTab === 'contact' && <div role="tabpanel" id="truck-panel-contact" aria-labelledby="truck-tab-contact" className="relative z-10 flex-1">
           <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
-            <ContactPage />
+            <ContactPage embedded />
           </Suspense>
         </div>}
 
