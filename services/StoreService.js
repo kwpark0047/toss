@@ -2,6 +2,12 @@ const prisma = require('../config/prisma');
 const Store = require('../repositories/Store');
 const cache = require('../utils/cache');
 const { AppError } = require('../utils/errorHandler');
+const publicBusiness = { store_business_info: { select: { business_type: true } } };
+const flattenPublic = ({ store_business_info, store_operating_hours, ...store }) => ({
+  ...store,
+  business_type: store_business_info?.business_type ?? null,
+  ...(store_operating_hours || {}),
+});
 
 // 공공매장 매칭 상수
 const PUBLIC_OWNER_ID = 1;
@@ -53,7 +59,8 @@ class StoreService {
   async searchStores({ district, business_type, q, lat, lng, limit = 30, page = 1 }) {
     const where = { is_active: true, ...EXCLUDE_CORRUPT_NAME };
     if (district) where.address = { contains: String(district) };
-    if (business_type && business_type !== 'all') where.business_type = String(business_type);
+    if (business_type && business_type !== 'all')
+      where.store_business_info = { is: { business_type: String(business_type) } };
     if (q) {
       const kw = String(q);
       where.OR = [{ name: { contains: kw } }, { address: { contains: kw } }];
@@ -71,19 +78,20 @@ class StoreService {
       select: {
         id: true,
         name: true,
-        business_type: true,
+        ...publicBusiness,
         address: true,
         latitude: true,
         longitude: true,
-        open_time: true,
-        close_time: true,
-        business_hours: true,
+        store_operating_hours: {
+          select: { open_time: true, close_time: true, business_hours: true },
+        },
       },
       skip,
       take: perPage,
       orderBy: { name: 'asc' },
     });
 
+    stores = stores.map(flattenPublic);
     // 거리 계산
     const { haversineKm } = require('../utils/geo');
     const la = parseFloat(lat),
@@ -101,8 +109,8 @@ class StoreService {
     }
 
     // 업종 필터 facets
-    const typeRows = await prisma.stores.findMany({
-      where: { is_active: true, business_type: { not: null } },
+    const typeRows = await prisma.store_business_info.findMany({
+      where: { stores: { is: { is_active: true } }, business_type: { not: null } },
       select: { business_type: true },
       distinct: ['business_type'],
     });
@@ -192,7 +200,7 @@ class StoreService {
         id: true,
         name: true,
         address: true,
-        business_type: true,
+        ...publicBusiness,
         latitude: true,
         longitude: true,
         _count: { select: { orders: { where: { status: 'completed' } } } },
@@ -206,7 +214,7 @@ class StoreService {
       id: s.id,
       name: s.name,
       address: s.address,
-      business_type: s.business_type,
+      business_type: s.store_business_info?.business_type ?? null,
       latitude: s.latitude,
       longitude: s.longitude,
       order_count: s._count.orders,
@@ -449,7 +457,7 @@ class StoreService {
             id: true,
             name: true,
             address: true,
-            business_type: true,
+            ...publicBusiness,
             latitude: true,
             longitude: true,
             is_active: true,
@@ -458,7 +466,7 @@ class StoreService {
       },
       orderBy: { created_at: 'desc' },
     });
-    return list.map((f) => ({ ...f.stores, favorited_at: f.created_at }));
+    return list.map((f) => ({ ...flattenPublic(f.stores), favorited_at: f.created_at }));
   }
 
   // 사업자 정보 검증
