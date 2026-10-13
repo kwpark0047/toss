@@ -276,7 +276,7 @@ const StatusBadge = ({
       {c.label}
     </span>;
 };
-const MasterDashboard = () => {
+const StoreDashboard = () => {
   const {
     user
   } = useAuth();
@@ -504,7 +504,6 @@ const MasterDashboard = () => {
   const pendingCount = recentOrders.filter(o => o.status === 'pending').length;
 
   /* ── 슈퍼관리자: 플랫폼 대시보드로 분기 (단일 매장 오너 뷰 대신) ── */
-  if (user?.role === 'super_admin') return <SuperAdminDashboard />;
   if (selectedStore?.role === 'kitchen') return <Navigate to={`/admin/stores/${selectedStore.id}/kitchen`} replace />;
   if (selectedStore?.role === 'manager') return <Navigate to={`/admin/stores/${selectedStore.id}/manager`} replace />;
 
@@ -1073,4 +1072,8 @@ const MasterDashboard = () => {
       </div>
     </div>;
 };
-export default MasterDashboard;
+export default function MasterDashboard() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return user?.role === 'super_admin' ? <SuperAdminDashboard /> : <StoreDashboard />;
+}
