@@ -9,6 +9,18 @@ const emailSchema = z.string().email('유효하지 않은 이메일 형식입니
 const phoneSchema = z
   .string()
   .regex(/^01[0-9][0-9]{7,8}$/, '유효하지 않은 한국 전화번호 형식입니다. (010-xxxx-xxxx)');
+const normalizedPhoneSchema = z
+  .string()
+  .max(20)
+  .transform((value) => value.replace(/[\s()-]/g, ''))
+  .pipe(phoneSchema);
+const signupOtpRequestSchema = z.object({ phone: normalizedPhoneSchema }).strict();
+const signupOtpVerifySchema = z
+  .object({
+    phone: normalizedPhoneSchema,
+    otp: z.string().regex(/^\d{6}$/, '6자리 인증번호가 필요합니다.'),
+  })
+  .strict();
 const passwordSchema = z
   .string()
   .min(8, '비밀번호는 최소 8자 이상이어야 합니다.')
@@ -54,6 +66,7 @@ const registerSchema = z
     phone: phoneSchema.optional(),
     businessNumber: businessNumberSchema.optional(),
     storeName: z.string().max(200).optional(),
+    verificationToken: z.string().min(1).max(2048).optional(),
     agreeTerms: z.literal(true, { errorMap: () => ({ message: '약관에 동의해야 합니다.' }) }),
     agreePrivacy: z.literal(true, {
       errorMap: () => ({ message: '개인정보 처리에 동의해야 합니다.' }),
@@ -64,6 +77,15 @@ const registerSchema = z
     message: '비밀번호가 일치하지 않습니다.',
     path: ['passwordConfirm'],
   });
+// The deployed signup screen uses phone verification; keep the existing email contract available.
+const phoneRegisterSchema = z
+  .object({
+    phone: normalizedPhoneSchema,
+    password: passwordSchema,
+    verificationToken: z.string().min(1).max(2048),
+  })
+  .strict();
+const registrationRequestSchema = z.union([phoneRegisterSchema, registerSchema]);
 
 // 관리자 로그인
 const adminLoginSchema = z.object({
@@ -164,6 +186,9 @@ const updateProfileSchema = z
 module.exports = {
   loginSchema,
   registerSchema,
+  registrationRequestSchema,
+  signupOtpRequestSchema,
+  signupOtpVerifySchema,
   adminLoginSchema,
   resetPasswordRequestSchema,
   resetPasswordConfirmSchema,

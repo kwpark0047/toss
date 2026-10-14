@@ -6,6 +6,8 @@
  * 응답 본문으로 돌려주는 것이 double-submit 을 성립시키는 전제다.
  */
 jest.mock('../../../controllers/authController', () => ({
+  sendOtp: jest.fn(),
+  verifyOtp: jest.fn(),
   login: jest.fn(),
   register: jest.fn(),
   refreshToken: jest.fn(),

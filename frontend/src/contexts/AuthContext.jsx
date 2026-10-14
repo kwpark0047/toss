@@ -35,6 +35,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   // 로그인 직후 프리패치한 stores 캐시 (MasterDashboard가 즉시 소비)
   const storesCacheRef = useRef(null);
+  const signupProofRef = useRef(null);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -104,13 +105,16 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const sendOtp = async (phone) => {
+    signupProofRef.current = null;
     const res = await authAPI.sendOtp(phone);
     return res.data || res;
   };
 
   const verifyOtp = async (phone, otp) => {
     const res = await authAPI.verifyOtp(phone, otp);
-    return res.data || res;
+    const data = res.data || res;
+    signupProofRef.current = { phone: phone.replace(/\D/g, ''), token: data.verificationToken };
+    return data;
   };
 
   const login = async (identifier, password) => {
@@ -195,7 +199,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (data) => {
-    const res = await authAPI.register(data);
+    const proof = signupProofRef.current;
+    if (!proof?.token || proof.phone !== data.phone?.replace(/\D/g, ''))
+      throw new Error('핸드폰 번호 인증을 다시 진행해 주세요.');
+    const res = await authAPI.register({ ...data, verificationToken: proof.token });
+    signupProofRef.current = null;
     const { token, refreshToken, user: userData } = res.data || res;
 
     if (!USE_COOKIE) {
@@ -210,14 +218,14 @@ export const AuthProvider = ({ children }) => {
     const response = await authAPI.me();
     const updated = response.data || response;
     if (!updated?.id) throw new Error('프로필 응답을 확인할 수 없습니다.');
-    setUser(previous => previous?.id === updated.id ? { ...previous, ...updated } : previous);
+    setUser((previous) => (previous?.id === updated.id ? { ...previous, ...updated } : previous));
     return updated;
   };
 
   const updateProfile = async (data) => {
     const res = await authAPI.updateProfile(data);
     const updated = res.data || res;
-    setUser((prev) => prev?.id === updated.id ? { ...prev, ...updated } : prev);
+    setUser((prev) => (prev?.id === updated.id ? { ...prev, ...updated } : prev));
     return updated;
   };
 

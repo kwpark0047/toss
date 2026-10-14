@@ -159,7 +159,8 @@ const Register = () => {
     e.preventDefault();
     setError('');
 
-    if (password.length < 6) return setError('비밀번호는 최소 6자 이상이어야 합니다.');
+    if (password.length < 8 || password.length > 128 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password))
+      return setError('비밀번호는 영문·숫자를 포함해 8~128자로 입력해주세요.');
     if (password !== confirmPassword) return setError('비밀번호가 일치하지 않습니다.');
 
     setLoading(true);
@@ -407,7 +408,7 @@ const Register = () => {
                           required
                           autoFocus
                           className="w-full pl-11 pr-12 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none font-medium text-slate-900 transition-all"
-                          placeholder="최소 6자 이상"
+                          placeholder="영문·숫자 포함 8자 이상"
                         />
                         <button
                           type="button"

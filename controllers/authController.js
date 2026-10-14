@@ -1,11 +1,10 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const userRepository = require('../app/lib/repositories/user.repository');
-const prisma = require('../config/prisma'); // 다른 모델 접근을 위해 필요
 const logger = require('../utils/logger');
 const otplib = require('otplib');
 const { AppError } = require('../utils/errorHandler');
-const { sendSms } = require('../utils/smsService');
+
 const { generate2faSecret, verify2faToken } = require('../services/TwoFactorService');
 const {
   normalizePhone,
@@ -15,7 +14,6 @@ const {
   phoneSearchCandidates,
 } = require('../utils/phoneEncryption');
 const { setTokenCookies } = require('../utils/tokenCookies');
-const { OTP_EXPIRY_MS } = require('../config/authConstants');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET;
@@ -38,73 +36,27 @@ const safeUser = require('../utils/publicUser');
  * OTP 발송
  * POST /auth/send-otp { phone }
  */
+const signupOtp = new (require('../services/RegistrationOtpService'))();
 const sendOtp = async (req, res, next) => {
   try {
-    const { phone } = req.body;
-    if (!phone) return next(new AppError('핸드폰 번호를 입력해주세요.', 400));
-
-    const normalized = normalizePhone(phone);
-    if (normalized.length < 10)
-      return next(new AppError('올바른 핸드폰 번호를 입력해주세요.', 400));
-
-    // 기존 미사용 OTP 무효화
-    await prisma.phone_otps.updateMany({
-      where: { phone: normalized, used: false },
-      data: { used: true },
-    });
-
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS); // 기본 5분 (config/authConstants)
-
-    await prisma.phone_otps.create({
-      data: { phone: normalized, otp, expires_at: expiresAt },
-    });
-
-    await sendSms(normalized, `[위마켓] 인증번호: ${otp}`);
-
-    const responseData = { message: '인증번호가 발송되었습니다.' };
-    if (IS_DEV || !process.env.SMS_ENV || process.env.SMS_ENV === 'none')
-      responseData.dev_otp = otp;
-
-    res.success(responseData, '인증번호가 발송되었습니다.');
+    const result = await signupOtp.send(normalizePhone(req.body.phone));
+    res.success(result, result.message);
   } catch (error) {
     next(error);
   }
 };
-
-/**
- * OTP 검증
- * POST /auth/verify-otp { phone, otp }
- */
 const verifyOtp = async (req, res, next) => {
   try {
-    const { phone, otp } = req.body;
-    if (!phone || !otp) return next(new AppError('핸드폰 번호와 인증번호를 입력해주세요.', 400));
-
-    const normalized = normalizePhone(phone);
-    const record = await prisma.phone_otps.findFirst({
-      where: { phone: normalized, used: false, verified: false },
-      orderBy: { created_at: 'desc' },
-    });
-
-    if (!record) return next(new AppError('인증번호를 다시 요청해주세요.', 400));
-    if (new Date() > record.expires_at)
-      return next(new AppError('인증번호가 만료되었습니다. 다시 요청해주세요.', 400));
-    if (record.otp !== String(otp)) return next(new AppError('인증번호가 일치하지 않습니다.', 400));
-
-    await prisma.phone_otps.update({
-      where: { id: record.id },
-      data: { verified: true },
-    });
-
-    res.success({ verified: true, phone: normalized }, '인증이 완료되었습니다.');
+    res.success(
+      await signupOtp.verify(normalizePhone(req.body.phone), req.body.otp),
+      '인증이 완료되었습니다.'
+    );
   } catch (error) {
     next(error);
   }
 };
-
 /**
- *this points to non-existent page 384. Let me use read toTwoFactorVerification { phone, totp }
+ * Two-factor verification { phone, totp }
  */
 const verify2fa = async (req, res, next) => {
   try {
@@ -147,40 +99,20 @@ const register = async (req, res, next) => {
     const normalized = normalizePhone(phone);
     const encryptedPhone = encryptPhone(normalized);
 
-    const exists = await userRepository.findByPhone([encryptedPhone, normalized]);
-    if (exists) return next(new AppError('이미 가입된 핸드폰 번호입니다.', 409));
-
-    // OTP 인증 확인 (BYPASS_OTP=true 환경변수로 건너뛰기 가능)
-    if (process.env.BYPASS_OTP !== 'true') {
-      const verifiedOtp = await prisma.phone_otps.findFirst({
-        where: {
-          phone: normalized,
-          verified: true,
-          used: false,
-          expires_at: { gte: new Date(Date.now() - 10 * 60 * 1000) },
-        },
-        orderBy: { created_at: 'desc' },
-      });
-
-      if (!verifiedOtp) {
-        return next(new AppError('핸드폰 번호 인증이 필요합니다.', 400));
-      }
-
-      // OTP 사용 처리
-      await prisma.phone_otps.update({
-        where: { id: verifiedOtp.id },
-        data: { used: true },
-      });
-    }
-
-    const hashedPassword = bcrypt.hashSync(password, 10);
-    const user = await userRepository.create({
-      phone: encryptedPhone,
-      password: hashedPassword,
-      role: 'user',
-      profile_step: 1,
-    });
-
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await signupOtp.createUser(
+      normalized,
+      phoneSearchCandidates(normalized),
+      {
+        phone: encryptedPhone,
+        password: hashedPassword,
+        role: 'user',
+        profile_step: 1,
+        ...(req.body.email ? { email: req.body.email } : {}),
+        ...(req.body.name ? { name: req.body.name } : {}),
+      },
+      req.body.verificationToken
+    );
     const pointService = require('../services/PointsService');
     await pointService.unifyPoints(user.id, normalized).catch((err) => {
       logger.warn(`[Auth] 포인트 통합 실패 (user ${user.id}): ${err.message}`);

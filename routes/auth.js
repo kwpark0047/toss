@@ -6,7 +6,9 @@ const { validateBody } = require('../middleware/validate');
 const { ensureCsrfToken } = require('../middleware/csrf');
 const {
   loginSchema,
-  registerSchema,
+  registrationRequestSchema,
+  signupOtpRequestSchema,
+  signupOtpVerifySchema,
   updateProfileSchema,
   changePasswordSchema,
   refreshTokenSchema,
@@ -59,7 +61,9 @@ const {
  *       201:
  *         description: 회원가입 완료 (JWT 토큰 발급)
  */
-router.post('/register', validateBody(registerSchema), authController.register);
+router.post('/send-otp', validateBody(signupOtpRequestSchema), authController.sendOtp);
+router.post('/verify-otp', validateBody(signupOtpVerifySchema), authController.verifyOtp);
+router.post('/register', validateBody(registrationRequestSchema), authController.register);
 
 /**
  * @swagger
