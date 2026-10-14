@@ -82,7 +82,11 @@ class RegistrationOtpService {
       verified: true,
       phone,
       verificationToken: jwt.sign(
-        { purpose: 'registration', otp_id: outcome },
+        {
+          purpose: 'registration',
+          otp_id: outcome,
+          phone_hash: this.digest(phone, 'registration-proof'),
+        },
         this.env.JWT_SECRET,
         { algorithm: 'HS256', audience: 'wemarket-signup', expiresIn: '5m' }
       ),
@@ -101,7 +105,11 @@ class RegistrationOtpService {
         400
       );
     }
-    if (proof.purpose !== 'registration' || !Number.isInteger(proof.otp_id))
+    if (
+      proof.purpose !== 'registration' ||
+      !Number.isInteger(proof.otp_id) ||
+      proof.phone_hash !== this.digest(phone, 'registration-proof')
+    )
       throw new AppError('가입 인증이 올바르지 않습니다.', 400);
     return this.db.$transaction(async (tx) => {
       await this.lock(tx, phone);

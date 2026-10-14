@@ -35,3 +35,9 @@ test('five incorrect attempts durably exhaust challenge; expired verified OTP ca
  f.rows()[0].used=false;f.rows()[0].verified=true;f.rows()[0].expires_at=new Date(0);
  await assert.rejects(s.createUser('01012345678',['cipher'],{phone:'cipher'}),e=>e.statusCode===400);
 });
+test('registration proof stays bound to verified phone even if a challenge row is altered',async()=>{
+ const f=fixture();let code;const s=new Service(f.db,async(_p,text)=>{code=text.match(/\d{6}/)[0];return {sent:true};},env);
+ await s.send('01012345678');const proof=await s.verify('01012345678',code);
+ f.rows()[0].phone='01087654321';
+ await assert.rejects(s.createUser('01087654321',['other'],{phone:'other'},proof.verificationToken),e=>e.statusCode===400);
+});
