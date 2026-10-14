@@ -39,12 +39,15 @@ ALTER TABLE business_support_cases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE business_support_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE business_support_jobs ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON business_support_enrollments,business_support_cases,business_support_events,business_support_jobs FROM PUBLIC;
+REVOKE ALL ON SEQUENCE business_support_cases_sequence_seq FROM PUBLIC;
 DO $$ BEGIN
  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN
  REVOKE ALL ON business_support_enrollments,business_support_cases,business_support_events,business_support_jobs FROM anon;
+ REVOKE ALL ON SEQUENCE business_support_cases_sequence_seq FROM anon;
  END IF;
  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN
  REVOKE ALL ON business_support_enrollments,business_support_cases,business_support_events,business_support_jobs FROM authenticated;
+ REVOKE ALL ON SEQUENCE business_support_cases_sequence_seq FROM authenticated;
  END IF;
 END $$;
 COMMIT;
