@@ -79,3 +79,11 @@ Production Ready 선언이 아니다. 운영에서 새 지원 동의를 대신 �
 - 지원센터는 저장된 분석을 읽는다. 주문별 LLM 호출, 전체 공개 매장 분석, 신규 cross-tenant websocket broadcast는 추가하지 않았다. 실시간 push 인프라를 구축한 것으로 보고하지 않는다.
 - SMS 접수 후 DB 저장 실패 시 접수된 코드가 무효가 되는 안전한 실패 경로는 실제 제공자 fault 검증이 남아 있다. 자동 중복 발송 재시도는 하지 않는다.
 - 로컬 구현 커밋/운영 배포 SHA는 최종 커밋 후 아래에 기록한다. 신규 지원센터를 운영에 반영했다고 주장하지 않는다.
+
+## 최종 인수 기록
+
+- 로컬 지원센터 구현 커밋: `679d372` (공개 푸시·운영 DB·worker 활성화 안 함).
+- 마지막 근거 분리 UI 회귀: 2 files / 6 tests 통과 (`business-support-ui-final.log`), 최종 build 31.25초 통과 (`business-support-build-final.log`).
+- 마지막 권한/OTP/분석 회귀 13개 통과 (`business-support-targeted-final.log`). 실제 PostgreSQL의 원본 근거·5분 rollover·dirty generation·lease 회수·평가 감사 검증도 통과.
+- 운영 가입 복구: backend `a35eccf5888b1bf37c2c6261f5adcb0c1c99822a`, frontend `3535a465341bbbadec0ff042ab36edcab130d81d`. 가입 증명 payload에 원문 전화번호 대신 HMAC을 결합한 추가 backend 보완이며 frontend contract는 동일하다.
+- 별도 운영 보안 SQL은 사용자 승인 대기. 해당 P0를 해결 완료로 표시하지 않는다.

@@ -26,3 +26,18 @@
 
 ## 복구
 이전 Render/Vercel 정상 배포로 되돌릴 수 있고 DB 스키마 변경은 없다. 다만 이전 버전의 OTP 경로 누락·인증번호 노출 위험이 재발하므로 보안이 수정된 새 버전을 우선 복구 대상으로 삼는다. 새 가입 증명은 5분 내 만료되고 challenge가 소비되면 재사용할 수 없다.
+
+## 운영 반영 확인
+- 커밋 `3535a465341bbbadec0ff042ab36edcab130d81d`, GitHub main 및 RC 브랜치 게시 완료.
+- Render `dep-db7fkibbc2fs73f1m1pg` Live. `/api/health` 200, DB connected, revision 일치.
+- Vercel `dpl_5Dkj7ua1WrL4zo9TFUK8XiaDhqHp`, `https://wemarket-saas.vercel.app` alias 완료. 격리된 Git 커밋 frontend만 빌드하여 미완료 AI 지원센터 변경은 포함하지 않았다.
+- 각 가입 API에 빈 입력만 POST하여 400 검증 응답 확인(404 해소); Origin CORS 일치. 실제 OTP 생성·문자·사용자 가입·운영 DB 쓰기 0건. 증거 `registration-live-api.log`.
+- 브라우저 PWA 업데이트 후 meta app-commit SHA 일치와 가입 화면 렌더 확인. 증거 `registration-otp-live-20261014.jpg`.
+- 첫 Vercel CLI 배포는 metadata 추가 시 Not authorized였다. 기존 계정·팀·프로젝트 접근을 확인하고 metadata 없이 동일 artifact를 배포하여 성공했다. 정확한 권한 오류 원인은 아직 미확정이며 실제 HTML SHA로 배포물을 검증했다.
+- 실제 SMS 공급자 설정 및 수신 검증은 여전히 미검증/실발송 보류. 이것을 신규 가입 E2E 완료로 해석하지 않는다.
+
+## 추가 가입 증명 보완
+
+- backend `a35eccf5888b1bf37c2c6261f5adcb0c1c99822a` 배포, Render `dep-db7g42ij9qps73cb3bog` Live. 운영 health 200 / revision 일치 / DB connected (`registration-live-final.log`).
+- OTP 행의 전화번호가 변경되더라도 다른 번호 가입에 증명을 전용할 수 없도록 서명 payload에 전화번호 HMAC을 결합했다. 원문 번호는 token에 넣지 않는다. 위변조 재현 테스트 실패 후 관련 5개 테스트와 실DB signup 회귀 통과.
+- frontend는 opaque verificationToken을 전달하므로 기존 `3535a46`과 호환된다. 이전 방식으로 발급된 가입 증명은 새 인증번호를 요청해야 한다.
