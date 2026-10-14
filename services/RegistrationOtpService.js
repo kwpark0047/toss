@@ -19,7 +19,11 @@ class RegistrationOtpService {
       .digest('hex');
   }
   async lock(tx, phone) {
-    await tx.$queryRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `signup:${phone}`);
+    // Preserve the transaction lock while returning a Prisma-supported integer, never void.
+    await tx.$queryRawUnsafe(
+      'SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(hashtext($1))) AS lock_result',
+      `signup:${phone}`
+    );
   }
   async send(phone) {
     const result = await this.db.$transaction(async (tx) => {
