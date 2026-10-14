@@ -68,7 +68,7 @@ const Register = () => {
     setLoading(true);
     setLoadingMsg('인증번호 발송 중...');
     // 3초 후에도 로딩 중이면 서버 웨이크업 안내
-    const slowTimer = setTimeout(() => setLoadingMsg('서버 시작 중입니다. 잠시만 기다려주세요...'), 3000);
+    const slowTimer = setTimeout(() => setLoadingMsg('서버 연결과 인증 요청을 확인 중입니다. 잠시만 기다려주세요...'), 3000);
     try {
       const res = await sendOtp(phone);
       if (res?.dev_otp) setDevOtp(res.dev_otp);
@@ -126,7 +126,7 @@ const Register = () => {
       await verifyOtp(phone, otpValue);
       setStep(3);
     } catch (err) {
-      setError(err.response?.data?.message || '인증번호가 올바르지 않습니다.');
+      setError(err.response?.data?.message || err.message || '인증번호가 올바르지 않습니다.');
     } finally {
       setLoading(false);
     }
@@ -147,7 +147,7 @@ const Register = () => {
       const isNetwork = !err.response && (err.code === 'ERR_NETWORK' || err.message === 'Network Error');
       setError(
         err.response?.data?.message ||
-        (isNetwork ? '서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.' : '재발송에 실패했습니다.')
+        (isNetwork ? '서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.' : err.message || '재발송에 실패했습니다.')
       );
     } finally {
       setLoading(false);
@@ -168,7 +168,7 @@ const Register = () => {
       await register({ phone, password });
       navigate('/admin', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || '회원가입에 실패했습니다.');
+      setError(err.response?.data?.message || err.message || '회원가입에 실패했습니다.');
     } finally {
       setLoading(false);
     }
