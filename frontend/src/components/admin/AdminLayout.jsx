@@ -223,6 +223,8 @@ const AdminLayout = ({ children }) => {
     { label: t('dynamicPricing'),     icon: 'TrendingUp',      path: `/admin/stores/${storeId}/pricing`,                  show: !!storeId, roles: [] },
     { label: t('customerManagement'),     icon: 'Users',             path: `/admin/stores/${storeId}/customers`,               show: !!storeId, roles: [] },
     { label: 'AI 매장 매니저', icon: 'Sparkles', path: `/admin/stores/${storeId}/ai-manager`, show: !!storeId, roles: [] },
+    { label: '지원 제안함', icon: 'ClipboardCheck', path: `/admin/stores/${storeId}/support`, show: !!storeId, roles: [] },
+    { label: 'AI 사업자 지원센터', icon: 'Sparkles', path: '/admin/business-support', roles: ['super_admin'] },
     { label: '데이터 통합 · 성장', icon: 'Database', path: `/admin/stores/${storeId}/integrations`, show: !!storeId, roles: [] },
     { label: t('campaignDashboard'),  icon: 'Megaphone',         path: `/admin/stores/${storeId}/campaigns`,               show: !!storeId, roles: [] },
     { label: t('aiRecommendationStats'),  icon: 'Sparkles',       path: `/admin/stores/${storeId}/recommendation-stats`,    show: !!storeId, roles: [] },

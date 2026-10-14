@@ -142,13 +142,31 @@ class StoreManagerService {
       storeId
     );
   }
-  async transition(storeId, id, event, actorId, now = new Date()) {
+  async transition(storeId, id, event, actorId, now = new Date(), transaction = null) {
     uuid(id);
     if (!['approve', 'execute', 'stop', 'dismiss'].includes(event))
       throw new AppError('실행 요청이 올바르지 않습니다.', 400);
-    return this.db.$transaction(async (tx) => {
+    const apply = async (tx) => {
       // One tenant lock orders concurrent approve/execute/stop and prevents overlapping slots.
-      await tx.$queryRawUnsafe('SELECT id FROM stores WHERE id=$1 FOR UPDATE', storeId);
+      const owners = await tx.$queryRawUnsafe(
+        'SELECT id,user_id FROM stores WHERE id=$1 FOR UPDATE',
+        storeId
+      );
+      if (owners[0]?.user_id !== actorId)
+        throw new AppError('현재 매장 소유주만 제안을 실행할 수 있습니다.', 403);
+      if (!transaction) {
+        const tables = await tx.$queryRawUnsafe(
+          "SELECT to_regclass('public.business_support_cases') AS name"
+        );
+        if (tables[0]?.name) {
+          const linked = await tx.$queryRawUnsafe(
+            'SELECT id FROM business_support_cases WHERE store_id=$1 AND action_id=$2::uuid LIMIT 1',
+            storeId,
+            id
+          );
+          if (linked.length) throw new AppError('지원 제안함에서 승인·실행·중단해 주세요.', 409);
+        }
+      }
       const rows = await tx.$queryRawUnsafe(
         'SELECT * FROM manager_actions WHERE store_id=$1 AND id=$2::uuid FOR UPDATE',
         storeId,
@@ -214,7 +232,8 @@ class StoreManagerService {
         event
       );
       return changed[0];
-    });
+    };
+    return transaction ? apply(transaction) : this.db.$transaction(apply);
   }
   async featured(storeId, now = new Date()) {
     const hour = localClock(now).hour;

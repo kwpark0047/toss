@@ -14,11 +14,11 @@ async function main() {
   await client.connect();
   try {
     await client.query(`CREATE SCHEMA "${schema}"`); await client.query(`SET search_path TO "${schema}"`);
-    await client.query(`CREATE TABLE stores(id int PRIMARY KEY,name text,is_active boolean); CREATE TABLE products(id int PRIMARY KEY,store_id int,name text,price int,is_active boolean,is_sold_out boolean,stock_quantity int);
+    await client.query(`CREATE TABLE stores(id int PRIMARY KEY,name text,is_active boolean,user_id int DEFAULT 7); CREATE TABLE products(id int PRIMARY KEY,store_id int,name text,price int,is_active boolean,is_sold_out boolean,stock_quantity int);
       CREATE TABLE orders(id serial PRIMARY KEY,store_id int,total_amount int,payment_status text,status text,created_at timestamp);
       CREATE TABLE order_items(id serial,order_id int,product_id int,quantity int); CREATE TABLE ledger(id serial,store_id int,order_id int,type text,amount int);
       CREATE TABLE reviews(id serial,store_id int,rating int,created_at timestamp); CREATE TABLE store_customers(id int,store_id int);
-      INSERT INTO stores VALUES(3,'검증 매장',true),(4,'다른 매장',true); INSERT INTO products VALUES(1,3,'추천 메뉴',10000,true,false,NULL),(2,4,'다른 매장 메뉴',20000,true,false,NULL);`);
+      INSERT INTO stores(id,name,is_active) VALUES(3,'검증 매장',true),(4,'다른 매장',true); INSERT INTO products VALUES(1,3,'추천 메뉴',10000,true,false,NULL),(2,4,'다른 매장 메뉴',20000,true,false,NULL);`);
     for (const name of ['20261007010000_store_data_integrations','20261007030000_ai_store_manager']) await client.query(fs.readFileSync(`prisma/migrations/${name}/migration.sql`, 'utf8').replaceAll('"public".', `"${schema}".`));
     const now = new Date('2026-10-07T07:30:00Z');
     for (let day = 1; day <= 28; day++) {

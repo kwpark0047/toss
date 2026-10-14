@@ -644,6 +644,8 @@ model store_receipt_settings {
 }
 
 model stores {
+  business_support_enrollment business_support_enrollments?
+  business_support_cases business_support_cases[]
   customer_ai_consents customer_ai_consents[]
   inventory_compensations inventory_compensations[]
   manager_snapshots manager_snapshots[]
@@ -896,6 +898,9 @@ model user_points {
 }
 
 model users {
+  business_support_enrollments business_support_enrollments[]
+  business_support_assignments business_support_cases[]
+  business_support_events business_support_events[]
   auth_sessions AuthSession[]
   customer_ai_consents customer_ai_consents[]
   id                                                               Int                      @id @default(autoincrement())
@@ -2102,6 +2107,7 @@ model crm_campaign_runs {
 }
 
 model manager_snapshots {
+  business_support_cases business_support_cases[]
   id String @id @db.Uuid
   store_id Int
   snapshot_key String
@@ -2114,6 +2120,7 @@ model manager_snapshots {
   @@schema("public")
 }
 model manager_actions {
+  business_support_cases business_support_cases[]
   id String @id @db.Uuid
   store_id Int
   snapshot_id String @db.Uuid
@@ -2166,5 +2173,72 @@ model manager_ai_requests {
   created_at DateTime @default(now()) @db.Timestamptz
   stores stores @relation(fields: [store_id], references: [id], onDelete: Cascade)
   @@index([store_id, created_at], map: "manager_ai_requests_quota")
+  @@schema("public")
+}
+
+model business_support_enrollments {
+  store_id Int @id
+  owner_id Int
+  enabled Boolean @default(false)
+  consent_version String @default("2026-10-14-v1")
+  consented_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @default(now()) @db.Timestamptz
+  store stores @relation(fields:[store_id],references:[id],onDelete:NoAction)
+  owner users @relation(fields:[owner_id],references:[id],onDelete:NoAction)
+  job business_support_jobs?
+  @@schema("public")
+}
+model business_support_cases {
+  id String @id @db.Uuid
+  sequence BigInt @unique @default(autoincrement())
+  store_id Int
+  snapshot_id String @db.Uuid
+  action_id String? @db.Uuid
+  status String @default("draft")
+  priority Int
+  evidence Json
+  note String @default("")
+  assignee_id Int?
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @default(now()) @db.Timestamptz
+  store stores @relation(fields:[store_id],references:[id],onDelete:NoAction)
+  snapshot manager_snapshots @relation(fields:[store_id,snapshot_id],references:[store_id,id],onDelete:NoAction)
+  action manager_actions? @relation(fields:[store_id,action_id],references:[store_id,id],onDelete:NoAction)
+  assignee users? @relation(fields:[assignee_id],references:[id],onDelete:NoAction)
+  events business_support_events[]
+  @@unique([store_id,id])
+  @@unique([store_id,snapshot_id])
+  @@index([priority,created_at,id],map:"business_support_queue")
+  @@index([store_id,created_at,id],map:"business_support_store")
+  @@schema("public")
+}
+model business_support_events {
+  id String @id @db.Uuid
+  store_id Int
+  case_id String @db.Uuid
+  actor_id Int
+  operation_id String @unique @db.Uuid
+  event String
+  from_status String?
+  to_status String
+  note String @default("")
+  created_at DateTime @default(now()) @db.Timestamptz
+  support_case business_support_cases @relation(fields:[store_id,case_id],references:[store_id,id],onDelete:NoAction)
+  actor users @relation(fields:[actor_id],references:[id],onDelete:NoAction)
+  @@index([store_id,case_id,created_at],map:"business_support_event_case")
+  @@schema("public")
+}
+model business_support_jobs {
+  store_id Int @id
+  generation Int @default(1)
+  attempts Int @default(0)
+  status String @default("pending")
+  available_at DateTime @default(now()) @db.Timestamptz
+  lease_until DateTime? @db.Timestamptz
+  lease_id String? @db.Uuid
+  last_error String?
+  updated_at DateTime @default(now()) @db.Timestamptz
+  enrollment business_support_enrollments @relation(fields:[store_id],references:[store_id],onDelete:NoAction)
+  @@index([status,available_at],map:"business_support_job_claim")
   @@schema("public")
 }

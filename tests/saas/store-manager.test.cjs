@@ -38,7 +38,7 @@ test('performance reports sample size and observed change without claiming causa
 test('actual manager router restricts foreign tenants, staff and manager execution; public endpoint exposes only featured products', async () => {
   const calls = [];
   class Service { async featured(id) { calls.push(['featured', id]); return []; } async briefing(id) { calls.push(['briefing', id]); return {}; } async transition(...args) { calls.push(args); return {}; } }
-  const auth = (req, res, next) => { if (!req.headers['x-user']) return res.status(401).end(); req.user = { id: 7, role: 'user' }; next(); };
+  const auth = (req, res, next) => { if (!req.headers['x-user']) return res.status(401).end(); req.user = { id: 7, role: req.headers['x-user'] === 'platform' ? 'super_admin' : 'user' }; next(); };
   const context = { module: { exports: {} }, require: name => {
     if (name === '../middleware/auth') return auth;
     if (name === '../middleware/storeAuth') return { getStoreRole: async (_id, sid) => ({ 3: 'owner', 4: 'manager', 5: 'staff' })[sid] };
@@ -58,4 +58,8 @@ test('actual manager router restricts foreign tenants, staff and manager executi
   assert.deepEqual(calls, [['featured', 3]]);
   const response = await request(app).get('/manager/stores/4/briefing').set('x-user', 'yes').expect(200);
   assert.equal(response.body.data.can_execute, false);
+  const platform = await request(app).get('/manager/stores/6/briefing').set('x-user', 'platform').expect(200);
+  assert.equal(platform.body.data.can_execute, false);
+  await request(app).post('/manager/stores/6/actions/test/approve').set('x-user', 'platform').expect(403);
+  await request(app).post('/manager/stores/3/actions/test/approve').set('x-user', 'yes').expect(200);
 });

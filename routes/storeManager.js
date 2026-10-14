@@ -24,8 +24,9 @@ router.use(auth);
 router.use(
   '/stores/:storeId',
   catchAsync(async (req, res, next) => {
-    req.managerRole =
-      req.user.role === 'super_admin' ? 'super_admin' : await getStoreRole(req.user.id, store(req));
+    const actualRole = await getStoreRole(req.user.id, store(req));
+    req.managerRole = req.user.role === 'super_admin' ? 'super_admin' : actualRole;
+    req.isManagerOwner = actualRole === 'owner';
     if (!['owner', 'manager', 'super_admin'].includes(req.managerRole))
       throw new AppError('매장 관리자 권한이 필요합니다.', 403);
     res.set('Cache-Control', 'no-store');
@@ -33,15 +34,13 @@ router.use(
   })
 );
 const owner = (req, _res, next) =>
-  ['owner', 'super_admin'].includes(req.managerRole)
-    ? next()
-    : next(new AppError('매장 소유주만 제안을 실행할 수 있습니다.', 403));
+  req.isManagerOwner ? next() : next(new AppError('매장 소유주만 제안을 실행할 수 있습니다.', 403));
 router.get(
   '/stores/:storeId/briefing',
   catchAsync(async (req, res) =>
     res.success({
       ...(await service.briefing(store(req))),
-      can_execute: ['owner', 'super_admin'].includes(req.managerRole),
+      can_execute: req.isManagerOwner,
     })
   )
 );
