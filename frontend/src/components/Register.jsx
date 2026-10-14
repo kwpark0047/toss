@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Store, Phone, Lock, ShieldCheck, ArrowRight, Check, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import FreeAuthOptions from './FreeAuthOptions';
 
 const STEPS = [
   { id: 1, label: '핸드폰', icon: Phone },
@@ -201,6 +202,8 @@ const Register = () => {
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">위마켓 가입</h1>
           </div>
 
+          <FreeAuthOptions mode="signup" />
+          <p className="text-sm font-semibold text-slate-600 mb-4">기존 휴대전화 인증으로 가입</p>
           {/* 스텝 인디케이터 */}
           <div className="flex items-center justify-center gap-2 mb-8">
             {STEPS.map((s, i) => (

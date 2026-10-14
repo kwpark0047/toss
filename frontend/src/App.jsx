@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { StoreProvider } from "@/contexts/StoreContext";
 import { Suspense, useState, useEffect, memo } from "react";
+import { FreeAuthCallback, AccountSecurityPage } from '@/routes/lazyImports';
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { logError } from "@/lib/errorUtils";
@@ -113,6 +114,9 @@ const AppRoutes = memo(() => <Routes>
     {/* Public Routes */}
     <Route path="/" element={<AdminSuspense><Index /></AdminSuspense>} />
     <Route path="/auth" element={<AdminSuspense><AuthPage /></AdminSuspense>} />
+    <Route path="/auth/free/callback" element={<AdminSuspense><FreeAuthCallback /></AdminSuspense>} />
+    <Route path="/auth/free/email" element={<AdminSuspense><FreeAuthCallback /></AdminSuspense>} />
+    <Route path="/admin/account-security" element={<AdminPage><AdminSuspense><AccountSecurityPage /></AdminSuspense></AdminPage>} />
     <Route path="/login" element={<Navigate to="/auth" replace />} />
     <Route path="/register" element={<AdminSuspense><Register /></AdminSuspense>} />
     <Route path="/search" element={<AdminSuspense><StoreSearchPage /></AdminSuspense>} />

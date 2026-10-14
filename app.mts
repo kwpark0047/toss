@@ -41,6 +41,7 @@ alerting.registerGlobalHandlers();
 // Prometheus 프로세스 기본 메트릭(event loop, 메모리, GC) 등록 (P1 모니터링)
 initDefaultMetrics();
 const app = express();
+app.use((await import('./middleware/redactAuthCallback.js')).default);
 const httpServer = createServer(app);
 const lazyRouter = (loader: () => Promise<{ default: RequestHandler }>) => {
     const router = express.Router();
@@ -283,6 +284,7 @@ const routes = {
     aiRecommendations: lazyRouter(() => import('./routes/aiRecommendations.js')),
     demandForecast: lazyRouter(() => import('./routes/demandForecast.js')),
     socialAuth: lazyRouter(() => import('./routes/socialAuth.js')),
+    freeAuth: lazyRouter(() => import('./routes/freeAuth.js')),
     adminAuth: lazyRouter(() => import('./routes/adminAuth.js')),
     franchise: lazyRouter(() => import('./routes/franchise.js')),
     loyalty: lazyRouter(() => import('./routes/loyalty.js')),
@@ -311,6 +313,7 @@ const API_PREFIX = '/api';
 // ── Open Commerce Hub: 개발자 포털(내부 인증) + Open API v1(API 키 인증) ──
 app.use(`${API_PREFIX}/developer`, lazyRouter(() => import('./routes/developer.js')));
 app.use(`${API_PREFIX}/v1`, lazyRouter(() => import('./routes/v1.js')));
+app.use(`${API_PREFIX}/auth/free`, authLimiter, routes.freeAuth);
 app.use(`${API_PREFIX}/auth`, authLimiter, routes.auth);
 app.use(`${API_PREFIX}/auth/social`, authLimiter, routes.socialAuth);
 app.use(`${API_PREFIX}/stores`, publicLimiter, routes.stores);

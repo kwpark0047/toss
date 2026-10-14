@@ -6,6 +6,7 @@ import { wakeupServer } from '../api';
 import { Store, Phone, Lock, AlertCircle, ArrowRight, ShieldCheck, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SocialLoginButtons from './SocialLoginButtons';
+import FreeAuthOptions from './FreeAuthOptions';
 
 const formatPhone = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -23,6 +24,8 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [serverStatus, setServerStatus] = useState('idle'); // idle | waking | ready
+  const [freeAuthReady, setFreeAuthReady] = useState({});
+  const [socialMfa,setSocialMfa]=useState(null);
 
   // ── 2FA (2차 로그인) 상태 ──
   const [step, setStep] = useState('login'); // 'login' | 'otp'
@@ -139,7 +142,8 @@ const Login = () => {
     setLoading(true);
     setError('');
     try {
-      await socialLogin(provider, accessToken);
+      const result=await socialLogin(provider, accessToken);
+      if(result.twoFactorRequired){setSocialMfa(result);return;}
       navigate('/admin', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'SNS 로그인에 실패했습니다.');
@@ -177,6 +181,7 @@ const Login = () => {
             </p>
           </div>
 
+          <FreeAuthOptions onAvailability={setFreeAuthReady} initialResult={socialMfa} />
           <AnimatePresence mode="wait">
             {error && (
               <motion.div
@@ -467,7 +472,7 @@ const Login = () => {
 
           {step === 'login' && (
             <>
-              <SocialLoginButtons onSuccess={handleSocialLogin} loading={loading} />
+              <SocialLoginButtons onSuccess={handleSocialLogin} loading={loading} hiddenProviders={freeAuthReady} />
 
               <div className="mt-8 pt-6 border-t border-slate-50 text-center">
                 <p className="text-slate-500 font-medium tracking-tight">

@@ -30,7 +30,7 @@ const generateNonce = () => {
  * CSP Nonce Middleware
  * Generates a unique nonce per request and makes it available via res.locals.cspNonce
  * Also sets the CSP header with the nonce for inline scripts/styles
- * 
+ *
  * @param {Object} options - Configuration options
  * @param {boolean} options.useReportOnly - If true, uses CSP Report-Only header
  * @param {string[]} options.additionalScriptSrc - Additional script-src directives
@@ -38,11 +38,7 @@ const generateNonce = () => {
  * @returns {Function} Express middleware
  */
 const cspNonceMiddleware = (options = {}) => {
-  const {
-    useReportOnly = false,
-    additionalScriptSrc = [],
-    additionalStyleSrc = []
-  } = options;
+  const { useReportOnly = false, additionalScriptSrc = [], additionalStyleSrc = [] } = options;
 
   return (req, res, next) => {
     // This middleware is the SOLE owner of the CSP header (helmet CSP is disabled in app.js).
@@ -55,18 +51,19 @@ const cspNonceMiddleware = (options = {}) => {
       "'self'",
       `'nonce-${nonce}'`,
       "'strict-dynamic'",
-      "https://www.gstatic.com",
-      "https://cdn.jsdelivr.net",
-      ...additionalScriptSrc
+      'https://www.gstatic.com',
+      'https://cdn.jsdelivr.net',
+      'https://challenges.cloudflare.com',
+      ...additionalScriptSrc,
     ].join(' ');
 
     const styleSrc = [
       "'self'",
       `'nonce-${nonce}'`,
       "'unsafe-inline'",
-      "https://fonts.googleapis.com",
-      "https://www.gstatic.com",
-      ...additionalStyleSrc
+      'https://fonts.googleapis.com',
+      'https://www.gstatic.com',
+      ...additionalStyleSrc,
     ].join(' ');
 
     const cspDirectives = [
@@ -76,15 +73,17 @@ const cspNonceMiddleware = (options = {}) => {
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: https: blob:",
       "connect-src 'self' https://wemarket-toss.onrender.com wss://wemarket-toss.onrender.com https://toss.wemarket.workers.dev https://wemarket.onrender.com wss://wemarket.onrender.com https://api.tosspayments.com https://www.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com",
-      "frame-src 'self' https://js.tosspayments.com",
+      "frame-src 'self' https://js.tosspayments.com https://challenges.cloudflare.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
       "frame-ancestors 'none'",
-      "upgrade-insecure-requests"
+      'upgrade-insecure-requests',
     ].join('; ');
 
-    const headerName = useReportOnly ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
+    const headerName = useReportOnly
+      ? 'Content-Security-Policy-Report-Only'
+      : 'Content-Security-Policy';
     res.setHeader(headerName, cspDirectives);
     res.locals.cspHeader = cspDirectives;
 
@@ -111,7 +110,7 @@ const getCspNonce = (res) => {
 const createScriptTag = (res, { src, content } = {}) => {
   const nonce = getCspNonce(res);
   const nonceAttr = nonce ? ` nonce="${nonce}"` : '';
-  
+
   if (src) {
     return `<script src="${src}"${nonceAttr}></script>`;
   }
@@ -131,7 +130,7 @@ const createScriptTag = (res, { src, content } = {}) => {
 const createStyleTag = (res, { href, content } = {}) => {
   const nonce = getCspNonce(res);
   const nonceAttr = nonce ? ` nonce="${nonce}"` : '';
-  
+
   if (href) {
     return `<link rel="stylesheet" href="${href}"${nonceAttr}>`;
   }
@@ -146,5 +145,5 @@ module.exports = {
   generateNonce,
   getCspNonce,
   createScriptTag,
-  createStyleTag
+  createStyleTag,
 };

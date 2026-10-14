@@ -1,5 +1,6 @@
 import api from './client';
 import { wakeupServer } from './wakeup';
+import { getBrowserProof } from './freeAuth';
 
 // Probe with a safe read before a non-repeatable authentication/SMS write.
 async function readyPost(url, data) {
@@ -43,5 +44,6 @@ export const authAPI = {
   updateProfile: (data) => api.put('/auth/profile', data),
   changePassword: (current_password, new_password) =>
     api.put('/auth/password', { current_password, new_password }),
-  socialLogin: (provider, accessToken) => api.post(`/auth/social/${provider}`, { accessToken }),
+  socialLogin: (provider, accessToken) =>
+    api.post(`/auth/social/${provider}`, { accessToken, browserProof: getBrowserProof() }),
 };

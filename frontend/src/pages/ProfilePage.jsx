@@ -700,6 +700,7 @@ const ProfilePage = () => {
       {/* 헤더 */}
       <div className="mb-7">
         <h1 className="text-2xl font-extrabold text-white tracking-tight">내 프로필</h1>
+        <a href="/admin/account-security" className="inline-block mt-3 text-sm text-orange-400 underline">로그인 수단 연결·보안·회원 탈퇴</a>
         <p className="text-slate-400 text-sm mt-1">
           이름, 이메일 등 추가 정보는 언제든지 설정할 수 있어요
         </p>

@@ -73,7 +73,7 @@ const verify2fa = async (req, res, next) => {
     const secret = user.two_factor_secret;
     if (!secret) return next(new AppError('2FA 비밀키가 없습니다. 설정을 다시 진행해주세요.', 400));
 
-    const isValid = otplib.verify(String(totp), secret);
+    const isValid = require('../utils/totp').verifyTotp(String(totp), secret);
     if (!isValid) return next(new AppError('TOTP 토큰이 일치하지 않습니다.', 400));
 
     const { token, refreshToken } = await signTokens(user);
@@ -155,7 +155,12 @@ const login = async (req, res, next) => {
       }
     }
 
-    if (!user || !bcrypt.compareSync(password, user.password)) {
+    if (
+      !user ||
+      user.auth_status === 'deletion_pending' ||
+      user.password_login_enabled === false ||
+      !bcrypt.compareSync(password, user.password)
+    ) {
       return next(new AppError('아이디 또는 비밀번호가 올바르지 않습니다.', 401));
     }
 

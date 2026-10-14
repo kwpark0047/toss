@@ -9,6 +9,8 @@ export const QrResolvePage = lazy(() => import('../pages/QrResolvePage'));
 export const MenuDemo = lazy(() => import('../components/customer/MenuDemo'));
 export const BusinessDemo = lazy(() => import('../components/admin/BusinessDemo'));
 export const AuthPage = lazy(() => import('../pages/AuthPage'));
+export const FreeAuthCallback = lazy(() => import('../pages/FreeAuthCallback'));
+export const AccountSecurityPage = lazy(() => import('../pages/AccountSecurityPage'));
 export const Register = lazy(() => import('../components/Register'));
 export const StoreSearchPage = lazy(() => import('../pages/StoreSearchPage'));
 export const NotFound = lazy(() => import('../pages/NotFound'));

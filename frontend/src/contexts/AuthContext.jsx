@@ -36,6 +36,16 @@ export const AuthProvider = ({ children }) => {
   // 로그인 직후 프리패치한 stores 캐시 (MasterDashboard가 즉시 소비)
   const storesCacheRef = useRef(null);
   const signupProofRef = useRef(null);
+  const recentAuthProofRef = useRef(null);
+  const acceptAuthentication = async (data) => {
+    if (!data?.token || !data?.user?.id) throw new Error('인증 응답을 확인할 수 없습니다.');
+    await clearUserCaches(); storesCacheRef.current = null; recentAuthProofRef.current = null;
+    if (!USE_COOKIE) {
+      localStorage.setItem('token', data.token);
+      if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+    }
+    setUser(data.user);
+  };
 
   useEffect(() => {
     const loadUser = async () => {
@@ -241,6 +251,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         storesCacheRef.current = null;
+        recentAuthProofRef.current = null; signupProofRef.current = null;
         setUser(null);
       },
       clearCaches: clearUserCaches,
@@ -266,21 +277,21 @@ export const AuthProvider = ({ children }) => {
   const socialLogin = async (provider, accessToken) => {
     const res = await authAPI.socialLogin(provider, accessToken);
     const data = res.data || res;
-    const { token, refreshToken, user: userData } = data;
-    if (!token || !userData) throw new Error('서버 응답이 올바르지 않습니다.');
-
-    if (!USE_COOKIE) {
-      localStorage.setItem('token', token);
-      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-    }
-    setUser(userData);
-    return { token, user: userData };
+    if(data.twoFactorRequired)return data;
+    await acceptAuthentication(data);
+    return { token:data.token, user:data.user };
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        acceptAuthentication,
+        clearAuthentication: async () => { localStorage.removeItem('token'); localStorage.removeItem('refreshToken'); await clearUserCaches(); recentAuthProofRef.current = null; signupProofRef.current = null; storesCacheRef.current = null; setUser(null); },
+        getRecentAuthProof: () => recentAuthProofRef.current,
+        clearRecentAuthProof: () => { recentAuthProofRef.current = null; },
+        saveRecentAuthProof: (proof) => { recentAuthProofRef.current = proof; },
+        consumeRecentAuthProof: () => { const proof = recentAuthProofRef.current; recentAuthProofRef.current = null; return proof; },
         loading,
         sendOtp,
         verifyOtp,

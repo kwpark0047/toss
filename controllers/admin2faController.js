@@ -123,9 +123,12 @@ const verifyLoginOtp = async (req, res, next) => {
     const user = await userRepository.findUnique(decoded.id);
     if (!user) return next(new AppError('사용자를 찾을 수 없습니다.', 404));
 
-    const { token, refreshToken } = signTokens(user);
+    const { token, refreshToken } = await require('../services/AuthSessionService').issue(user);
     setTokenCookies(res, token, refreshToken);
-    res.success({ token, refreshToken, user: safeUser(user) }, '2FA 인증이 완료되었습니다.');
+    res.success(
+      { token, refreshToken, user: require('../utils/publicUser')(user) },
+      '2FA 인증이 완료되었습니다.'
+    );
   } catch (error) {
     next(error);
   }

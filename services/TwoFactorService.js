@@ -32,7 +32,7 @@ class TwoFactorService {
     const issuer = 'WeMarket';
     const accountName = user.email || user.phone || `user_${user.id}`;
 
-    const otpauthUrl = otplib.generateURI(accountName, issuer, secret);
+    const otpauthUrl = otplib.generateURI({ label: accountName, issuer, secret });
 
     let qrCodeDataUrl = '';
     try {
@@ -52,7 +52,7 @@ class TwoFactorService {
    */
   verifyToken(token, secret) {
     if (!token || !secret) return false;
-    return otplib.verify(token, secret);
+    return require('../utils/totp').verifyTotp(token, secret);
   }
 
   /**

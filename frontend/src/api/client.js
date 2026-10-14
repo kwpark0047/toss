@@ -96,7 +96,7 @@ api.interceptors.response.use(
     }
 
     // 401 에러 처리 - 토큰 갱신
-    const isAuthRequest = /\/auth\/(?:login|register|refresh-token|2fa)(?:\/|$)/.test(
+    const isAuthRequest = /\/auth\/(?:login|register|refresh-token|2fa|free|social)(?:\/|$)/.test(
       originalRequest.url || ''
     );
     if (error.response?.status === 401 && !isAuthRequest && !originalRequest._retry) {

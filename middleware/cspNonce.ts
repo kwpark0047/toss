@@ -48,6 +48,7 @@ export const cspNonceMiddleware = (options: {
       "'strict-dynamic'",
       "https://www.gstatic.com",
       "https://cdn.jsdelivr.net",
+      "https://challenges.cloudflare.com",
       ...additionalScriptSrc
     ].join(' ');
 
@@ -67,7 +68,7 @@ export const cspNonceMiddleware = (options: {
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: https: blob:",
       "connect-src 'self' https://wemarket-toss.onrender.com wss://wemarket-toss.onrender.com https://toss.wemarket.workers.dev https://wemarket.onrender.com wss://wemarket.onrender.com https://api.tosspayments.com https://www.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com",
-      "frame-src 'self' https://js.tosspayments.com",
+      "frame-src 'self' https://js.tosspayments.com https://challenges.cloudflare.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

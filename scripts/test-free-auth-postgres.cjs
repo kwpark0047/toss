@@ -1,0 +1,115 @@
+// Disposable local DB only. Real generated Prisma, transactions and constraints.
+const fs=require('node:fs'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const {Client}=require('pg');
+const local=require('dotenv').parse(fs.readFileSync('.env.staging.local')),base=new URL(local.DATABASE_URL);
+if(base.hostname!=='127.0.0.1'||base.port!=='55438'||base.pathname!=='/wemarket_test_staging_20261010')throw Error('ISOLATED_DB_REQUIRED');
+const name='wemarket_free_auth_'+crypto.randomBytes(6).toString('hex'),admin=new Client({connectionString:base.href});
+let db,raw;
+(async()=>{
+ await admin.connect();await admin.query(`CREATE DATABASE "${name}"`);const target=new URL(base);target.pathname='/'+name;
+ process.env.DATABASE_URL=target.href;process.env.DIRECT_URL=target.href;process.env.REPLICA_URL=target.href;process.env.NODE_ENV='test';
+ process.env.JWT_SECRET='local-free-auth-access-key';process.env.JWT_REFRESH_SECRET='local-free-auth-refresh-key';
+ raw=new Client({connectionString:target.href});await raw.connect();
+ await raw.query(`CREATE TABLE users(id serial PRIMARY KEY,name text,email text UNIQUE,phone text UNIQUE,address text,profile_step integer DEFAULT 1,password text NOT NULL,
+ two_factor_enabled boolean NOT NULL DEFAULT false,two_factor_secret text,two_factor_backup_codes text,created_at timestamp DEFAULT now(),role text DEFAULT 'user',fcm_token text);
+ CREATE TABLE auth_sessions(id uuid PRIMARY KEY,user_id integer NOT NULL REFERENCES users(id),refresh_hash text NOT NULL,expires_at timestamp NOT NULL,revoked_at timestamp,created_at timestamp DEFAULT now());
+ CREATE TABLE social_accounts(id serial PRIMARY KEY,user_id integer REFERENCES users(id),provider text NOT NULL,provider_id text NOT NULL,email text,name text,profile_image text,access_token text,refresh_token text,expires_at timestamp,created_at timestamp DEFAULT now(),updated_at timestamp DEFAULT now(),UNIQUE(provider,provider_id));
+ CREATE TABLE stores(id serial PRIMARY KEY,user_id integer REFERENCES users(id),is_active boolean DEFAULT true);
+ CREATE TABLE "Subscription"(id text PRIMARY KEY,store_id integer REFERENCES stores(id),status text,auto_renew boolean DEFAULT false);
+ CREATE TABLE store_subscriptions(id serial PRIMARY KEY,store_id integer REFERENCES stores(id),auto_renew boolean DEFAULT false);`);
+ await raw.query(fs.readFileSync('prisma/migrations/20261014030000_free_authentication/migration.sql','utf8'));
+ db=require('../config/prisma');
+ const sessions=require('../services/AuthSessionService');
+ const {EmailAuthService}=require('../services/EmailAuthService');
+ const {AuthIdentityService}=require('../services/AuthIdentityService');
+ const env={EMAIL_AUTH_PEPPER:'local-fixture-pepper-'.repeat(3),JWT_SECRET:process.env.JWT_SECRET,FRONTEND_URL:'https://app.test.invalid'};
+ const identity=new AuthIdentityService(db,env),browser='a'.repeat(43);let sent;
+ const mail={configured:()=>true,send:async payload=>{sent=payload;return {accepted:true};}};
+ const email=new EmailAuthService(db,mail,env);
+ const complete=(tx,row)=>identity.emailResult(tx,row,browser);
+ let challenge=await email.request({email:'new@example.com',purpose:'signup',browserProof:browser});
+ assert.equal(challenge.delivered,false);assert.ok(!JSON.stringify(challenge).includes(sent.code));
+ const stored=(await raw.query('SELECT * FROM auth_email_challenges WHERE id=$1',[challenge.challengeId])).rows[0];assert.ok(!stored.otp_hash.includes(sent.code));assert.equal(stored.dispatch_payload,null);
+ await assert.rejects(email.request({email:'new@example.com',purpose:'signup',browserProof:browser}),e=>e.statusCode===429);
+ await assert.rejects(email.verify({id:challenge.challengeId,code:sent.code,browserProof:'b'.repeat(43)},complete));
+ const wins=await Promise.allSettled([1,2].map(()=>email.verify({id:challenge.challengeId,code:sent.code,browserProof:browser},complete)));
+ assert.equal(wins.filter(r=>r.status==='fulfilled').length,1);
+ const pair=wins.find(r=>r.status==='fulfilled').value;assert.ok(pair.token);await sessions.verifyAccess(require('jsonwebtoken').decode(pair.token));
+ assert.equal((await raw.query('SELECT count(*)::int AS n FROM users')).rows[0].n,1);
+ await assert.rejects(email.verify({id:challenge.challengeId,token:sent.token,browserProof:browser},complete));
+ challenge=await email.request({email:'locked@example.com',purpose:'signup',browserProof:browser});
+ for(let i=0;i<5;i++)await assert.rejects(email.verify({id:challenge.challengeId,code:'000000',browserProof:browser},complete));
+ await assert.rejects(email.verify({id:challenge.challengeId,code:sent.code,browserProof:browser},complete));
+ assert.equal((await raw.query('SELECT attempts FROM auth_email_challenges WHERE id=$1',[challenge.challengeId])).rows[0].attempts,5);
+ const legacy=await db.users.create({data:{email:'legacy@example.com',password:'existing-hash',role:'super_admin'}});
+ challenge=await email.request({email:'legacy@example.com',purpose:'login',browserProof:browser});
+ await assert.rejects(email.verify({id:challenge.challengeId,code:sent.code,browserProof:browser},complete),e=>e.statusCode===409);
+ assert.equal((await db.users.findUnique({where:{id:legacy.id}})).password,'existing-hash');
+ challenge=await email.request({email:'rollback@example.com',purpose:'signup',browserProof:browser});
+ await assert.rejects(email.verify({id:challenge.challengeId,code:sent.code,browserProof:browser},async()=>{throw Error('injected DB failure');}));
+ assert.equal((await raw.query('SELECT used_at FROM auth_email_challenges WHERE id=$1',[challenge.challengeId])).rows[0].used_at,null);
+ await raw.query("UPDATE auth_email_challenges SET created_at=now()-interval '6 minutes' WHERE id=$1",[challenge.challengeId]);
+ await assert.rejects(email.verify({id:challenge.challengeId,code:sent.code,browserProof:browser},complete));
+ const linkResult=await email.verify({id:challenge.challengeId,token:sent.token,browserProof:browser},complete);assert.ok(linkResult.token);
+ const uncertain=new EmailAuthService(db,{configured:()=>true,send:async()=>{throw Error('fault');}},env);
+ await assert.rejects(uncertain.request({email:'uncertain@example.com',purpose:'signup',browserProof:browser}));
+ assert.equal((await raw.query("SELECT dispatch_state FROM auth_email_challenges WHERE email='uncertain@example.com'")).rows[0].dispatch_state,'uncertain');
+ const {OAuthLoginService}=require('../services/OAuthLoginService');let started;
+ const provider={authorization:(_p,params)=>{started=params;return 'https://provider.test/authorize';},exchange:async()=>({subject:'google-fixture',email:'social@example.com',name:'OAuth fixture'})};
+ const oauth=new OAuthLoginService(db,env,provider);
+ await oauth.start({provider:'google',intent:'signup',browserProof:browser});const flow=await oauth.callback('google',started.state,'controlled-code');
+ await assert.rejects(oauth.callback('google',started.state,'controlled-code'));
+ await assert.rejects(oauth.exchange(flow,'b'.repeat(43)));
+ const oauthWins=await Promise.allSettled([oauth.exchange(flow,browser),oauth.exchange(flow,browser)]);assert.equal(oauthWins.filter(x=>x.status==='fulfilled').length,1);
+ const oauthUser=oauthWins.find(x=>x.status==='fulfilled').value.user;assert.equal(oauthUser.role,'user');
+ await sessions.revoke(pair.token);await assert.rejects(sessions.verifyAccess(require('jsonwebtoken').decode(pair.token)));
+ const user=await db.users.findFirst({where:{email:'new@example.com'}}),backup='controlled-backup-code';
+ await db.users.update({where:{id:user.id},data:{two_factor_enabled:true,two_factor_backup_codes:JSON.stringify([crypto.createHash('sha256').update(backup).digest('hex')])}});
+ const mfa=await db.$transaction(async tx=>identity.loginResult(tx,await db.users.findUnique({where:{id:user.id}}),browser));assert.equal(mfa.twoFactorRequired,true);assert.equal(mfa.token,undefined);
+ await assert.rejects(identity.completeMfa(mfa.tempToken,'bad-code',browser));
+ const mfaPair=await identity.completeMfa(mfa.tempToken,backup,browser);assert.ok(mfaPair.token);await assert.rejects(identity.completeMfa(mfa.tempToken,backup,browser));
+ const {AccountLifecycleService}=require('../services/AccountLifecycleService'),life=new AccountLifecycleService(db,env);
+ const password=require('bcryptjs').hashSync('Legacy123!',10);
+ const disposable=await db.users.create({data:{email:'delete@example.com',password}}),deletePair=await sessions.issue(disposable),actor=require('jsonwebtoken').decode(deletePair.token);
+ const proof=await identity.reauthPassword(actor.id,actor.sid,'Legacy123!');
+ await life.withdraw(actor,proof.reauthProof,crypto.randomUUID());
+ await assert.rejects(sessions.verifyAccess(actor));await assert.rejects(sessions.rotate(deletePair.refreshToken));await assert.rejects(sessions.issue(disposable));
+ const ownerPair=await sessions.issue(legacy),owner=require('jsonwebtoken').decode(ownerPair.token);
+ await raw.query('INSERT INTO stores(user_id) VALUES($1)',[legacy.id]);
+ const ownerProof=await identity.reauthPassword(owner.id,owner.sid,'not-the-password').catch(()=>null);assert.equal(ownerProof,null);
+ await db.users.update({where:{id:legacy.id},data:{password}});
+ const actualOwnerProof=await identity.reauthPassword(owner.id,owner.sid,'Legacy123!');
+ await assert.rejects(life.withdraw(owner,actualOwnerProof.reauthProof,crypto.randomUUID()),e=>e.statusCode===409);
+ assert.equal((await db.users.findUnique({where:{id:legacy.id}})).auth_status,'active');
+ await sessions.verifyAccess(owner);
+ const socialPair=await sessions.issue(await db.users.findUnique({where:{id:oauthUser.id}})),socialActor=require('jsonwebtoken').decode(socialPair.token);
+ const {recentProof}=require('../services/FreeAuthStore');
+ const lastProof=await db.$transaction(tx=>recentProof(tx,oauthUser,socialActor.sid,env));
+ await assert.rejects(life.unlink(socialActor,'google',lastProof.reauthProof),e=>e.statusCode===409);
+ await raw.query("INSERT INTO social_accounts(user_id,provider,provider_id) VALUES($1,'kakao','second-fixture')",[oauthUser.id]);
+ // Pause login after its first identity read. Unlink commits before login takes
+ // the user lock; a fresh read after that lock must reject the stale identity.
+ let sawIdentity,continueLogin;const observed=new Promise(r=>{sawIdentity=r;}),resume=new Promise(r=>{continueLogin=r;});
+ const inFlight=db.$transaction(async tx=>{
+  let paused=false;const wrapper=new Proxy(tx,{get(target,key){if(key==='$queryRawUnsafe')return async(...args)=>{
+   const rows=await target.$queryRawUnsafe(...args);
+   if(!paused&&args[0].startsWith('SELECT user_id FROM social_accounts')){paused=true;sawIdentity();await resume;}
+   return rows;
+  };const value=target[key];return typeof value==='function'?value.bind(target):value;}});
+  return identity.resolve(wrapper,{provider:'google',subject:'google-fixture'},'login');
+ });
+ const pendingOutcome=inFlight.then(()=>({success:true}),error=>({error}));
+ await observed;
+ try{await life.unlink(socialActor,'google',lastProof.reauthProof);}finally{continueLogin();}
+ const outcome=await pendingOutcome;assert.equal(outcome.error?.statusCode,409);
+ assert.equal((await raw.query("SELECT count(*)::int n FROM social_accounts WHERE user_id=$1 AND provider='google'",[oauthUser.id])).rows[0].n,0);
+ await assert.rejects(identity.reauthPassword(user.id,require('jsonwebtoken').decode(mfaPair.token).sid,'Legacy123!'));
+ await raw.query("UPDATE auth_email_challenges SET dispatch_state='sending',dispatch_started_at=now()-interval '2 minutes',expires_at=now()-interval '8 days' WHERE email='uncertain@example.com'");
+ const maintenance=require('node:child_process').spawnSync(process.execPath,['scripts/maintain-free-auth.cjs'],{env:{...process.env,FREE_AUTH_MAINTENANCE_ENABLED:'true'},encoding:'utf8',timeout:20000});
+ assert.equal(maintenance.status,0,maintenance.stderr);const counts=JSON.parse(maintenance.stdout.trim().split('\n').at(-1));assert.ok(counts.uncertain>=1);assert.ok(counts.email>=1);
+ console.log(JSON.stringify({passed:true,realPrisma:true,realPostgres:true,operatingDB:false,externalEmails:0,checks:['private migration','single-use concurrent OTP','browser binding','attempt exhaustion','legacy identity collision','rollback preserves challenge','OTP expiry/link expiry separate','uncertain SMTP no automatic replay','OAuth single-use concurrent exchange','MFA backup single use','withdraw revokes access and refresh','store owner withdrawal blocked','last login method retained','unlink race rejects stale identity']}));
+})().catch(e=>{console.error(e.stack);process.exitCode=1;}).finally(async()=>{
+ await db?.disconnectAll();await raw?.end();
+ if(admin._connected&&/^wemarket_free_auth_[a-f0-9]{12}$/.test(name))await admin.query(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
+ await admin.end();
+});

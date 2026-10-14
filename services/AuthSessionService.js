@@ -31,18 +31,27 @@ function read(token, type) {
   return decoded;
 }
 module.exports = {
-  async issue(user) {
-    const sid = crypto.randomUUID(),
-      pair = tokens(user, sid);
-    await prisma.authSession.create({
-      data: {
-        id: sid,
-        user_id: user.id,
-        refresh_hash: digest(pair.refreshToken),
-        expires_at: new Date(jwt.decode(pair.refreshToken).exp * 1000),
-      },
-    });
-    return pair;
+  async issue(user, transaction = null) {
+    const issue = async (tx) => {
+      const locked = await tx.$queryRawUnsafe(
+        'SELECT id,auth_status FROM users WHERE id=$1 FOR UPDATE',
+        user.id
+      );
+      if (!locked[0] || locked[0].auth_status !== 'active')
+        throw new AppError('로그인이 필요합니다.', 401);
+      const sid = crypto.randomUUID(),
+        pair = tokens(user, sid);
+      await tx.authSession.create({
+        data: {
+          id: sid,
+          user_id: user.id,
+          refresh_hash: digest(pair.refreshToken),
+          expires_at: new Date(jwt.decode(pair.refreshToken).exp * 1000),
+        },
+      });
+      return pair;
+    };
+    return transaction ? issue(transaction) : prisma.$transaction(issue);
   },
   async verifyAccess(decoded) {
     if (!decoded.sid) throw new AppError('다시 로그인해 주세요.', 401);
@@ -56,7 +65,8 @@ module.exports = {
         session.user_id !== decoded.id ||
         session.revoked_at ||
         session.expires_at <= new Date() ||
-        !session.user
+        !session.user ||
+        session.user.auth_status === 'deletion_pending'
       )
         throw new AppError('세션이 만료되었습니다.', 401);
       // Primary account role replaces the stale JWT snapshot, including admin removal.
@@ -75,7 +85,8 @@ module.exports = {
         session.user_id !== decoded.id ||
         session.revoked_at ||
         session.expires_at <= new Date() ||
-        !session.user
+        !session.user ||
+        session.user.auth_status === 'deletion_pending'
       )
         return null;
       if (session.refresh_hash !== digest(refreshToken)) {

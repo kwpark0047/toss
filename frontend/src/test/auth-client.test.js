@@ -18,18 +18,23 @@ describe('login failures do not trigger session refresh or navigation', () => {
     vi.stubGlobal('fetch', vi.fn());
   });
   afterEach(() => vi.unstubAllGlobals());
-  it.each(['/auth/login', '/auth/2fa/verify-login-otp'])(
-    '%s preserves the original 401',
-    async (url) => {
-      const error = {
-        config: { url },
-        response: { status: 401, data: { message: '인증 정보를 확인하세요.' } },
-      };
-      await expect(reject(error)).rejects.toBe(error);
-      expect(mocks.post).not.toHaveBeenCalled();
-      expect(mocks.api).not.toHaveBeenCalled();
-    }
-  );
+  it.each([
+    '/auth/login',
+    '/auth/2fa/verify-login-otp',
+    '/auth/free/mfa',
+    '/auth/free/oauth/exchange',
+  ])('%s preserves the original 401', async (url) => {
+    localStorage.setItem('refreshToken', 'existing-refresh');
+    fetch.mockRejectedValue(new Error('must not refresh an authentication request'));
+    const error = {
+      config: { url },
+      response: { status: 401, data: { message: '인증 정보를 확인하세요.' } },
+    };
+    await expect(reject(error)).rejects.toBe(error);
+    expect(mocks.post).not.toHaveBeenCalled();
+    expect(mocks.api).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it('protected requests still refresh and retry once', async () => {
     localStorage.setItem('refreshToken', 'test-refresh');
     fetch.mockResolvedValueOnce({

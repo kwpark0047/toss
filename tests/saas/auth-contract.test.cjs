@@ -4,22 +4,24 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const { loginSchema } = require('../../src/validation/schemas/auth');
 
-test('actual frontend login payload passes server validation for email and phone', () => {
+test('actual frontend login payload passes server validation for email and phone', async () => {
   const requests = [];
   const api = { post: (url, body) => requests.push({ url, body }) };
   const source = fs.readFileSync(require.resolve('../../frontend/src/api/auth.js'), 'utf8')
-    .replace(/import api from '\.\/client';/, '')
+    .replace(/^import .*;$/gm, '')
     .replace('export const authAPI =', 'globalThis.authAPI =');
-  const context = { api };
+  const context = { api, wakeupServer:async()=>{},getBrowserProof:()=> 'browser-proof-fixture' };
   vm.runInNewContext(source, context);
   for (const identifier of [' user@example.com ', '01012345678', '010-1234-5678']) {
-    context.authAPI.login(identifier, 'ExistingPassword!');
+    await context.authAPI.login(identifier, 'ExistingPassword!');
     const request = requests.at(-1);
     assert.equal(request.url, '/auth/login');
     const parsed = loginSchema.parse(request.body);
     assert.equal(parsed.identifier, identifier.trim());
     assert.equal(parsed.password, 'ExistingPassword!');
   }
+  context.authAPI.socialLogin('google','controlled-provider-token');
+  assert.equal(requests.at(-1).body.browserProof,'browser-proof-fixture');
 });
 
 test('legacy email login remains supported', () => {

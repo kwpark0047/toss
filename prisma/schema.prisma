@@ -897,7 +897,96 @@ model user_points {
   @@schema("public")
 }
 
+model auth_email_challenges {
+  id String @id @db.Uuid
+  email String
+  purpose String
+  user_id Int?
+  session_id String? @db.Uuid
+  browser_hash String
+  otp_hash String
+  link_hash String
+  attempts Int @default(0)
+  expires_at DateTime @db.Timestamptz(6)
+  used_at DateTime? @db.Timestamptz(6)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  dispatch_state String @default("pending")
+  dispatch_payload String?
+  dispatch_started_at DateTime? @db.Timestamptz(6)
+  user users? @relation(fields:[user_id],references:[id],onDelete:NoAction,onUpdate:NoAction)
+  session AuthSession? @relation(fields:[session_id],references:[id],onDelete:NoAction,onUpdate:NoAction)
+  @@index([email,created_at(sort:Desc)],map:"auth_email_challenge_rate")
+  @@schema("public")
+}
+model auth_oauth_flows {
+  id String @id @db.Uuid
+  provider String
+  state_hash String @unique
+  browser_hash String
+  nonce String
+  verifier_ciphertext String
+  intent String
+  user_id Int?
+  session_id String? @db.Uuid
+  expires_at DateTime @db.Timestamptz(6)
+  used_at DateTime? @db.Timestamptz(6)
+  result_ciphertext String?
+  result_used_at DateTime? @db.Timestamptz(6)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  user users? @relation(fields:[user_id],references:[id],onDelete:NoAction,onUpdate:NoAction)
+  session AuthSession? @relation(fields:[session_id],references:[id],onDelete:NoAction,onUpdate:NoAction)
+  @@schema("public")
+}
+model auth_abuse_buckets {
+  bucket_key String
+  window_start DateTime @db.Timestamptz(6)
+  hits Int
+  @@id([bucket_key,window_start])
+  @@schema("public")
+}
+model auth_recent_proofs {
+  proof_hash String @id
+  user_id Int
+  session_id String @db.Uuid
+  expires_at DateTime @db.Timestamptz(6)
+  used_at DateTime? @db.Timestamptz(6)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  user users @relation(fields:[user_id],references:[id],onDelete:NoAction,onUpdate:NoAction)
+  session AuthSession @relation(fields:[session_id],references:[id],onDelete:NoAction,onUpdate:NoAction)
+  @@schema("public")
+}
+model auth_account_events {
+  id String @id @db.Uuid
+  user_id Int
+  event String
+  operation_id String @unique @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  user users @relation(fields:[user_id],references:[id],onDelete:NoAction,onUpdate:NoAction)
+  @@schema("public")
+}
+model auth_mfa_challenges {
+  id String @id @db.Uuid
+  user_id Int
+  browser_hash String
+  purpose String @default("login")
+  session_id String? @db.Uuid
+  attempts Int @default(0)
+  expires_at DateTime @db.Timestamptz(6)
+  used_at DateTime? @db.Timestamptz(6)
+  user users @relation(fields:[user_id],references:[id],onDelete:NoAction,onUpdate:NoAction)
+  session AuthSession? @relation(fields:[session_id],references:[id],onDelete:NoAction,onUpdate:NoAction)
+  @@schema("public")
+}
+
 model users {
+  free_email_challenges auth_email_challenges[]
+  free_oauth_flows auth_oauth_flows[]
+  free_recent_proofs auth_recent_proofs[]
+  free_account_events auth_account_events[]
+  free_mfa_challenges auth_mfa_challenges[]
+  auth_status String @default("active")
+  password_login_enabled Boolean @default(true)
+  email_verified_at DateTime? @db.Timestamptz(6)
   business_support_enrollments business_support_enrollments[]
   business_support_assignments business_support_cases[]
   business_support_events business_support_events[]
@@ -939,6 +1028,10 @@ model users {
 }
 
 model AuthSession {
+  free_email_challenges auth_email_challenges[]
+  free_oauth_flows auth_oauth_flows[]
+  free_recent_proofs auth_recent_proofs[]
+  free_mfa_challenges auth_mfa_challenges[]
   id String @id @db.Uuid
   user_id Int
   user users @relation(fields: [user_id], references: [id], onDelete: Cascade)

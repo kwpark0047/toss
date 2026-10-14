@@ -11,7 +11,9 @@ const loadScript = src => new Promise((resolve, reject) => {
 });
 const SocialLoginButtons = ({
   onSuccess,
-  loading
+  loading,
+  legacyOnly = false,
+  hiddenProviders = {}
 }) => {
   const {
     t
@@ -19,9 +21,9 @@ const SocialLoginButtons = ({
     keyPrefix: 'auth'
   });
   const [error, setError] = useState('');
-  const KAKAO_KEY = import.meta.env.VITE_KAKAO_JS_KEY;
+  const KAKAO_KEY = legacyOnly || hiddenProviders.kakao ? null : import.meta.env.VITE_KAKAO_JS_KEY;
   const NAVER_KEY = import.meta.env.VITE_NAVER_CLIENT_ID;
-  const GOOGLE_KEY = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const GOOGLE_KEY = legacyOnly || hiddenProviders.google ? null : import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const hasAnyProvider = KAKAO_KEY || NAVER_KEY || GOOGLE_KEY;
   const handleKakao = useCallback(async () => {
     try {
