@@ -6,6 +6,14 @@ beforeAll(async () => {
 });
 const prisma = require('../../config/prisma');
 const AlimtalkService = require('../../services/AlimtalkService');
+const mockProcessInventory = jest.fn().mockResolvedValue(undefined);
+// Keep KDS orchestration under test; inventory transaction correctness is
+// covered by the dedicated OrderService/PostgreSQL suites.
+jest.mock('../../services/OrderService', () =>
+  jest.fn().mockImplementation(() => ({
+    _processInventory: (...args) => mockProcessInventory(...args),
+  }))
+);
 
 let mockUser = { id: 1, name: '장사장', role: 'user' };
 
@@ -81,6 +89,7 @@ jest.mock('../../config/prisma', () => {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
     print_jobs: {
       create: jest.fn(),
@@ -104,10 +113,11 @@ describe('KDS Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUser = { id: 1, name: '장사장', role: 'user' };
+    prisma.orders.updateMany.mockResolvedValue({ count: 1 });
   });
 
   describe('GET /stores/:storeId/orders', () => {
-    it('should fetch active KDS orders in pending, preparing, or ready status', async () => {
+    it('should fetch active KDS orders including confirmed orders', async () => {
       prisma.orders.findMany.mockResolvedValue([
         {
           id: 101,
@@ -132,7 +142,7 @@ describe('KDS Integration Tests', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             store_id: 1,
-            status: expect.objectContaining({ in: ['pending', 'preparing', 'ready'] }),
+            status: expect.objectContaining({ in: ['pending', 'confirmed', 'preparing', 'ready'] }),
           }),
         })
       );
@@ -172,8 +182,7 @@ describe('KDS Integration Tests', () => {
         stores: { name: '연남 디저트 카페' },
       };
 
-      prisma.orders.findUnique.mockResolvedValue(mockOrder);
-      prisma.orders.update.mockResolvedValue({
+      prisma.orders.findUnique.mockResolvedValueOnce(mockOrder).mockResolvedValueOnce({
         ...mockOrder,
         status: 'preparing',
       });
@@ -185,6 +194,10 @@ describe('KDS Integration Tests', () => {
 
       expect(res.body.success).toBe(true);
       expect(res.body.data.status).toBe('preparing');
+      expect(prisma.orders.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 101, store_id: 1, status: 'pending' } })
+      );
+      expect(mockProcessInventory).toHaveBeenCalledTimes(1);
       expect(prisma.print_jobs.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -214,8 +227,7 @@ describe('KDS Integration Tests', () => {
         stores: { name: '연남 디저트 카페' },
       };
 
-      prisma.orders.findUnique.mockResolvedValue(mockOrder);
-      prisma.orders.update.mockResolvedValue({
+      prisma.orders.findUnique.mockResolvedValueOnce(mockOrder).mockResolvedValueOnce({
         ...mockOrder,
         status: 'ready',
       });
@@ -227,6 +239,7 @@ describe('KDS Integration Tests', () => {
 
       expect(res.body.success).toBe(true);
       expect(res.body.data.status).toBe('ready');
+      expect(mockProcessInventory).toHaveBeenCalledTimes(1);
 
       // setImmediate 기반 비동기 알림톡 동작 검증을 위한 짧은 지연 처리
       await new Promise((resolve) => setImmediate(resolve));
@@ -237,6 +250,22 @@ describe('KDS Integration Tests', () => {
         '20260711-0001',
         '12'
       );
+    });
+    it('rejects a lost state claim before printing or inventory side effects', async () => {
+      prisma.orders.findUnique.mockResolvedValueOnce({
+        id: 101,
+        store_id: 1,
+        status: 'pending',
+        order_items: [{ quantity: 1 }],
+      });
+      prisma.orders.updateMany.mockResolvedValueOnce({ count: 0 });
+      await request(app)
+        .post(`${baseUrl}/orders/101/status`)
+        .send({ status: 'preparing' })
+        .expect(409);
+      expect(prisma.print_jobs.create).not.toHaveBeenCalled();
+      expect(mockProcessInventory).not.toHaveBeenCalled();
+      expect(AlimtalkService.sendFoodReady).not.toHaveBeenCalled();
     });
   });
 });

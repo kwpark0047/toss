@@ -1,5 +1,11 @@
 # 무료 인증 릴리스 진행
 
+## CI 통합 테스트 보완
+
+기존 CI의 KDS 통합 테스트 3건 실패를 로컬에서 재현했다(3 failed/2 passed). 이 테스트의 기대 상태 목록에는 이미 운영에 존재하는 confirmed가 빠져 있었고, Prisma mock은 현재 CAS updateMany 계약과 재고 서비스 경계를 구현하지 않았다.
+
+운영 KDS 코드를 변경하지 않고 테스트 fixture를 현 계약에 맞췄다. 매장·이전 상태 조건의 CAS 호출, 재고 처리 호출 횟수를 검증하며, 상태 claim 실패 시 409 및 인쇄·재고·알림 부작용 0건도 추가했다. 전체 통합 결과 15 suites/114 tests 통과(`free-auth-integration-final.log`). 비교적 빠른 mocked 통합 결과이며 실DB 금융 안정성을 대신하지 않는다. 별도 격리 PostgreSQL 인증 회귀와 운영 migration 권한 검사는 유지한다.
+
 ## 보안 검사 후속 보완
 
 Linux 설치 수정본 21ba988은 Render에서 Live로 배포됐다. Vercel 동일 커밋 빌드는 READY이나 운영 도메인 승격은 보류했다. GitHub Security Scanning이 `utils/freeAuthSecrets.js`의 GCM 복호화 authTagLength 누락을 발견했다. 4바이트로 줄인 태그가 허용되는 것을 회귀 테스트로 재현한 뒤, 암·복호화 모두 16바이트로 고정했다. 정상 16바이트 암호문은 그대로 읽으며 키나 저장 형식을 바꾸지 않는다.
