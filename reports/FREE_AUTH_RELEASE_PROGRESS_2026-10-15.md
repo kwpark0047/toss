@@ -1,5 +1,11 @@
 # 무료 인증 릴리스 진행
 
+## 보안 검사 후속 보완
+
+Linux 설치 수정본 21ba988은 Render에서 Live로 배포됐다. Vercel 동일 커밋 빌드는 READY이나 운영 도메인 승격은 보류했다. GitHub Security Scanning이 `utils/freeAuthSecrets.js`의 GCM 복호화 authTagLength 누락을 발견했다. 4바이트로 줄인 태그가 허용되는 것을 회귀 테스트로 재현한 뒤, 암·복호화 모두 16바이트로 고정했다. 정상 16바이트 암호문은 그대로 읽으며 키나 저장 형식을 바꾸지 않는다.
+
+후속 검증: SaaS 96개 통과(`free-auth-gcm-green.log`), 격리 PostgreSQL 인증 회귀 통과(`free-auth-gcm-postgres.log`). 첫 실DB 재실행의 ECONNREFUSED는 중지된 로컬 DB 때문이었고 기존 격리 컨테이너를 시작한 뒤 실제 재검증했다. 보안 검사를 제외/skip하지 않았다. 최종 수정 커밋의 CI와 운영 SHA 확인이 남아 있다.
+
 인증 RC `c54c6b132ba3f5f5f004cb6d594d6cc62256ee7f`을 기존 공개 main·RC 브랜치에 fast-forward 게시했다. Render에서 정확한 커밋 배포를 시작했으나 `dep-db8460om7kps73d01d1g` 빌드가 npm ci에서 실패했다. 기존 운영 버전 a52d326은 유지됐고 health 200을 확인했다.
 
 ## 원인과 재현

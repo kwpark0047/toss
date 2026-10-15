@@ -10,14 +10,14 @@ function digest(purpose, value, env = process.env) {
 }
 function seal(value, aad, env = process.env) {
   const iv = crypto.randomBytes(12),
-    cipher = crypto.createCipheriv('aes-256-gcm', key(env), iv);
+    cipher = crypto.createCipheriv('aes-256-gcm', key(env), iv, { authTagLength: 16 });
   cipher.setAAD(Buffer.from(aad));
   const data = Buffer.concat([cipher.update(JSON.stringify(value), 'utf8'), cipher.final()]);
   return [iv, cipher.getAuthTag(), data].map((b) => b.toString('base64url')).join('.');
 }
 function open(value, aad, env = process.env) {
   const [iv, tag, data] = value.split('.').map((x) => Buffer.from(x, 'base64url'));
-  const cipher = crypto.createDecipheriv('aes-256-gcm', key(env), iv);
+  const cipher = crypto.createDecipheriv('aes-256-gcm', key(env), iv, { authTagLength: 16 });
   cipher.setAAD(Buffer.from(aad));
   cipher.setAuthTag(tag);
   return JSON.parse(Buffer.concat([cipher.update(data), cipher.final()]).toString('utf8'));
