@@ -9,7 +9,10 @@ const url = new URL(process.env.DATABASE_URL || 'postgresql://localhost:5432/wem
 if (!['localhost','127.0.0.1'].includes(url.hostname) || url.pathname !== '/wemarket_test') throw new Error('Only local wemarket_test is allowed.');
 const schema = 'manager_test_' + crypto.randomBytes(6).toString('hex');
 const client = new Client({ connectionString: url.toString() }), pool = new Pool({ connectionString: url.toString(), max: 4 });
-const adapter = pg => ({ $queryRawUnsafe: async (sql, ...values) => (await pg.query(sql, values)).rows, $executeRawUnsafe: async (sql, ...values) => (await pg.query(sql, values)).rowCount });
+// Match qualified metadata lookups to this isolated namespace as well. A public
+// table created by another CI migration must not leak into this fixture's plan.
+const scopedSql = sql => sql.replaceAll('public.', `"${schema}".`);
+const adapter = pg => ({ $queryRawUnsafe: async (sql, ...values) => (await pg.query(scopedSql(sql), values)).rows, $executeRawUnsafe: async (sql, ...values) => (await pg.query(scopedSql(sql), values)).rowCount });
 async function main() {
   await client.connect();
   try {

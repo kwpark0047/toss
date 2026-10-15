@@ -1,5 +1,11 @@
 # 무료 인증 릴리스 진행
 
+## 최종 품질 게이트 보완
+
+450333f의 CI에서 테스트 assertion은 통과했으나 새 인증 서비스의 Jest 커버리지가 기존 경로별 기준 미만이었다. node:test/실DB 검증을 삭제하거나 커버리지 임계값을 낮추지 않고, SMTP 수락·거부/정리, Turnstile hostname/action/장애, OAuth PKCE/안전한 callback, 기존 소셜 subject/audience, 재인증 proof의 사용자·세션 결합과 폐기 계정 차단을 Jest에도 검증했다. 전체 178 suites/1366 tests 및 coverage gate 통과. services 함수 36.1%, 라인 40.04%(기준 35%/38%).
+
+추가 CI 실DB 회귀에서는 다른 migration이 만든 public.business_support_cases 존재가 별도 격리 schema 테스트에 누출됐다. 격리 adapter가 명시적 public metadata 참조도 자기 namespace로 치환하도록 수정했다. 운영 서비스 SQL은 변경하지 않았다. 루프백 전용 임시 PostgreSQL에 public sentinel을 만들고 수정 전 실패/수정 후 성공을 재현했다. 임시 컨테이너는 제거했다. 증거: free-auth-manager-schema-red.log, free-auth-manager-schema-green.log, free-auth-coverage-final.log.
+
 ## CI 통합 테스트 보완
 
 기존 CI의 KDS 통합 테스트 3건 실패를 로컬에서 재현했다(3 failed/2 passed). 이 테스트의 기대 상태 목록에는 이미 운영에 존재하는 confirmed가 빠져 있었고, Prisma mock은 현재 CAS updateMany 계약과 재고 서비스 경계를 구현하지 않았다.
