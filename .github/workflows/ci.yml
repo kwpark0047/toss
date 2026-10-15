@@ -404,10 +404,11 @@ jobs:
       - name: Start frontend preview server
         run: |
           cd frontend
-          nohup npx serve dist -l 5173 > frontend.log 2>&1 &
+          nohup npm run preview -- --host 127.0.0.1 --port 5173 --strictPort > frontend.log 2>&1 &
           sleep 3
           cat frontend.log
           curl -f http://localhost:5173 || exit 1
+          curl -fsS http://localhost:5173/menu/demo | grep -q 'id="root"'
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium

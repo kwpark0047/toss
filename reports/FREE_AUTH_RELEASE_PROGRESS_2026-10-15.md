@@ -35,3 +35,11 @@ Node22.22.0/npm10.9.4 Linux에서 c54c6b1의 package-lock으로 npm ci를 재현
 실제 신규 가입은 Google/Kakao callback·Turnstile 실제 hostname/action, 이메일 OTP/링크 소비 및 승인된 플랫폼 약관/개인정보처리방침 URL 확인 뒤 활성화해야 한다. 기존 `/legal/:storeId` 문서는 매장 문서이며 플랫폼 회원가입 약관으로 자동 지정하지 않았다.
 
 Vercel 프로젝트는 기존 wemarket-saas/prj_ZXshlSsA2zPPNuIAhI0FtUwWwMYL임을 확인했다. 기존 배포는 cac2afa이며 push가 자동 배포를 시작하지 않아 고정 커밋의 깨끗한 export로 프론트 배포를 준비한다. 비밀 환경파일이나 미커밋 작업 트리를 업로드하지 않는다. 최종 운영 반영·SHA 증거는 후속 기록으로 구분한다.
+
+## 서버 종료 및 브라우저 CI 원인 확인
+
+3e4eebe의 실제 서버 smoke는 HTTP assertion 후 프로세스가 종료되지 않았다. tsx가 utils/cache.js·redisCache.js import를 동명의 오래된 .ts 구현으로 바꿔 읽어 CommonJS와 별도 singleton/타이머를 생성했다. .ts 쪽에는 이미 JS에 있는 bounded connection·resource registration·close가 없어 종료 소유권이 갈라졌다. 중복 .ts 구현을 제거해 기존 .js 런타임을 단일 원본으로 유지했다. 공개 export와 호출 경로는 유지한다.
+
+수정 전 mixed-module singleton 일치 테스트 실패, 수정 후 동일 객체·close·8초 이내 자연 종료 통과. npm run smoke:startup도 강제 process.exit 없이 exit 0, SaaS 97개 통과. 증거: free-auth-cache-boundary-red/green.log, free-auth-startup-cache-fixed.log, free-auth-saas-cache-fixed.log.
+
+CI browser E2E 6개 실패를 별도로 확인했다. CI가 SPA fallback 없는 serve dist로 deep link를 404 처리해 메뉴·결제·기능 소개가 렌더되지 않았다. Playwright 설정과 같은 Vite preview로 서버를 통일하고 /menu/demo HTTP·root 검사를 시작 단계에 추가한다. assertion/재시도/테스트를 줄이거나 skip하지 않는다. 이 수정 후 브라우저 재실행 결과는 아직 대기 중이다.
