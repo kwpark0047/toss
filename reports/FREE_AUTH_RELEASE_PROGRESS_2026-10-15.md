@@ -43,3 +43,9 @@ Vercel 프로젝트는 기존 wemarket-saas/prj_ZXshlSsA2zPPNuIAhI0FtUwWwMYL임�
 수정 전 mixed-module singleton 일치 테스트 실패, 수정 후 동일 객체·close·8초 이내 자연 종료 통과. npm run smoke:startup도 강제 process.exit 없이 exit 0, SaaS 97개 통과. 증거: free-auth-cache-boundary-red/green.log, free-auth-startup-cache-fixed.log, free-auth-saas-cache-fixed.log.
 
 CI browser E2E 6개 실패를 별도로 확인했다. CI가 SPA fallback 없는 serve dist로 deep link를 404 처리해 메뉴·결제·기능 소개가 렌더되지 않았다. Playwright 설정과 같은 Vite preview로 서버를 통일하고 /menu/demo HTTP·root 검사를 시작 단계에 추가한다. assertion/재시도/테스트를 줄이거나 skip하지 않는다. 이 수정 후 브라우저 재실행 결과는 아직 대기 중이다.
+
+## 최종 CI 추가 진단
+
+d18135f에서 서버 startup smoke는 정상 종료했다. 이어 JSX 검사기가 board-routing.test.js의 정규식 안 `<Navigate>`를 실행 코드로 오인해 실패했다. 기존 정규식 매칭 대신 이미 의존 중인 TypeScript AST로 실제 JSX·icon 값만 탐색하도록 수정하고, 함수 인자의 컴포넌트 식별자도 인식한다. 정규식/문자열/주석을 무시하되 실제 미선언 JSX는 잡는 재현 검증을 추가했다. 검사 파일 제외나 gate 삭제는 하지 않았다.
+
+캐시 회귀 fixture는 실제 index.mts와 같은 .mts 진입점으로 강화했다. 기존 .ts 파일을 Git 원본으로 임시 복원했을 때 close 미존재 실패, 중복 제거 후 동일 singleton·close와 프로세스 자연 종료 성공을 재확인했다. 정확한 증거는 free-auth-cache-boundary-mts-red/green.log이며 초기 inline .mjs 방식은 TypeScript 우선 해석을 재현하지 못했다. 두 실행 형식의 차이를 구분했다.

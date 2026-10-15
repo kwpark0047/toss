@@ -75,6 +75,21 @@ function collectDefinedIdentifiers(code) {
     }
   }
 
+  const ts = require('typescript');
+  const source = ts.createSourceFile(
+    'source.tsx',
+    code,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
+  );
+  function visit(node) {
+    if (ts.isParameter(node) && ts.isIdentifier(node.name) && /^[A-Z]/.test(node.name.text)) {
+      defined.add(node.name.text);
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(source);
   return defined;
 }
 
@@ -82,25 +97,41 @@ function collectDefinedIdentifiers(code) {
 // - previous non-space char must not be word/closing bracket/dot/quote (rules out comparisons)
 // - tag must be followed by whitespace+attr-ish token, '>' or '/>'
 function findJsxTags(code) {
+  const ts = require('typescript');
+  const source = ts.createSourceFile(
+    'source.tsx',
+    code,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
+  );
   const tags = [];
-  const re = /<([A-Z][A-Za-z0-9]*)(?=[\s/>])/g;
-  let m;
-  while ((m = re.exec(code)) !== null) {
-    const idx = m.index;
-    const prev = code.slice(Math.max(0, idx - 1), idx);
-    if (idx > 0 && /[\w$.>)\]'"]/.test(prev)) continue; // comparison like `a <B` or `x)<Y`
-    const line = code.slice(0, idx).split('\n').length;
-    tags.push({ name: m[1], line });
+  function add(node) {
+    if (ts.isIdentifier(node) && /^[A-Z][A-Za-z0-9]*$/.test(node.text)) {
+      tags.push({
+        name: node.text,
+        line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+      });
+    }
   }
-  // Icon values in configuration objects and props also execute as identifiers.
-  const iconRef =
-    /\bicon\s*(?::\s*([A-Z][A-Za-z0-9]*)\s*(?=[,}])|=\s*\{\s*([A-Z][A-Za-z0-9]*)\s*\})/g;
-  while ((m = iconRef.exec(code)) !== null) {
-    tags.push({ name: m[1] || m[2], line: code.slice(0, m.index).split('\n').length });
+  function visit(node) {
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) add(node.tagName);
+    if (ts.isPropertyAssignment(node) && node.name.getText(source) === 'icon')
+      add(node.initializer);
+    if (
+      ts.isJsxAttribute(node) &&
+      node.name.getText(source) === 'icon' &&
+      node.initializer &&
+      ts.isJsxExpression(node.initializer) &&
+      node.initializer.expression
+    ) {
+      add(node.initializer.expression);
+    }
+    ts.forEachChild(node, visit);
   }
+  visit(source);
   return tags;
 }
-
 function main() {
   const files = walk(FRONTEND_SRC);
   const violations = [];
@@ -111,7 +142,7 @@ function main() {
     if (!/<[A-Z]/.test(code)) continue;
 
     const defined = collectDefinedIdentifiers(code);
-    for (const tag of findJsxTags(code)) {
+    for (const tag of findJsxTags(raw)) {
       if (!defined.has(tag.name)) {
         violations.push({
           file: path.relative(process.cwd(), file),

@@ -21,3 +21,13 @@ test('JSX validation checks icon metadata values and component props', () => {
   assert.ok(names.includes('Banknote'));
   assert.ok(names.includes('Building2'));
 });
+
+test('JSX validation ignores tags inside regular expressions, strings and comments', () => {
+  const code = 'expect(source).not.toMatch(/path="\\/board" element=\\{<Navigate to="\\/admin"/); const s = "<Fake />"; /* <Comment /> */ const View = () => <RealMissing />;';
+  assert.deepEqual(findJsxTags(code).map(tag => tag.name), ['RealMissing']);
+});
+
+test('JSX validation recognizes named callback component parameters', () => {
+  const code = 'items.forEach(Component => render(<Component />));';
+  assert.equal(collectDefinedIdentifiers(code).has('Component'), true);
+});
