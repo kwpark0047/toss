@@ -284,8 +284,7 @@ const StoreDashboard = () => {
     stores,
     selectedStore,
     loading: storesLoading,
-    changeStore,
-    refetch: refetchStores
+    changeStore
   } = useStore();
   const navigate = useNavigate();
   const {
@@ -410,11 +409,8 @@ const StoreDashboard = () => {
   }, [timeRange]);
 
   /* ─── 이펙트 ─── */
-  useEffect(() => {
-    if (user && !stores?.length && !storesLoading) {
-      refetchStores();
-    }
-  }, [user, stores, storesLoading, refetchStores]);
+  // StoreContext owns initial loading. An empty completed result is valid;
+  // refetching it here creates an empty-array update/refetch loop.
   useEffect(() => {
     if (isMultiView) fetchMultiStoreData();else if (selectedStore) fetchStoreData(selectedStore.id);
   }, [isMultiView, selectedStore, fetchStoreData, fetchMultiStoreData]);

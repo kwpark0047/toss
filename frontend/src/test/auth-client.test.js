@@ -56,4 +56,32 @@ describe('login failures do not trigger session refresh or navigation', () => {
     expect(mocks.post).not.toHaveBeenCalled();
     expect(error.config.headers.Authorization).toBe('Bearer new-token');
   });
+  it.each([
+    ['/auth/free/oauth/kakao/start', { intent: 'link' }],
+    ['/auth/free/oauth/google/start', JSON.stringify({ intent: 'reauth' })],
+    ['/auth/free/email/request', { purpose: 'reauth' }],
+    ['/auth/free/accounts', undefined],
+  ])('refreshes expired session before retrying session-bound %s', async (url, data) => {
+    localStorage.setItem('refreshToken', 'test-refresh');
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: { token: 'new-token', refreshToken: 'new-refresh' } }),
+    });
+    mocks.api.mockResolvedValueOnce({ success: true });
+    const error = { config: { url, data, headers: {} }, response: { status: 401 } };
+    await expect(reject(error)).resolves.toEqual({ success: true });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(mocks.api).toHaveBeenCalledTimes(1);
+    expect(error.config._retry).toBe(true);
+  });
+  it.each([
+    ['/auth/free/oauth/kakao/start', { intent: 'login' }],
+    ['/auth/free/email/request', { purpose: 'signup' }],
+    ['/auth/free/email/verify', { id: 'fixture', code: 'fixture' }],
+  ])('does not retry anonymous authentication or invalid OTP at %s', async (url, data) => {
+    const error = { config: { url, data, headers: {} }, response: { status: 401 } };
+    await expect(reject(error)).rejects.toBe(error);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(mocks.api).not.toHaveBeenCalled();
+  });
 });

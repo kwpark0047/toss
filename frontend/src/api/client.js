@@ -96,9 +96,26 @@ api.interceptors.response.use(
     }
 
     // 401 에러 처리 - 토큰 갱신
-    const isAuthRequest = /\/auth\/(?:login|register|refresh-token|2fa|free|social)(?:\/|$)/.test(
-      originalRequest.url || ''
-    );
+    let authBody = originalRequest.data;
+    if (typeof authBody === 'string') {
+      try {
+        authBody = JSON.parse(authBody);
+      } catch {
+        authBody = null;
+      }
+    }
+    const requestUrl = originalRequest.url || '';
+    const boundAuthRequest =
+      /\/auth\/free\/(?:accounts(?:\/unlink)?|withdraw|reauth\/(?:password|totp))$/.test(
+        requestUrl
+      ) ||
+      (/\/auth\/free\/(?:email\/request|oauth\/(?:google|kakao)\/start)$/.test(requestUrl) &&
+        ['link', 'reauth'].includes(authBody?.purpose || authBody?.intent));
+    const isAuthRequest =
+      !boundAuthRequest &&
+      /\/auth\/(?:login|register|refresh-token|2fa|free|social)(?:\/|$)/.test(
+        originalRequest.url || ''
+      );
     if (error.response?.status === 401 && !isAuthRequest && !originalRequest._retry) {
       originalRequest._retry = true;
       try {

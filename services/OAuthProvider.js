@@ -70,6 +70,11 @@ class OAuthProvider {
     }
   }
   authorization(provider, { state, nonce, verifier, reauth = false }) {
+    if (provider === 'google' && reauth)
+      throw new AppError(
+        'Google은 최근 인증 시점을 확인할 수 없습니다. 이메일·기존 비밀번호·인증 앱으로 재인증해 주세요.',
+        400
+      );
     const crypto = require('node:crypto'),
       item = this.settings(provider),
       url = new URL(item.authorize);

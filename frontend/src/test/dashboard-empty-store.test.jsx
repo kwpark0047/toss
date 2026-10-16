@@ -1,0 +1,20 @@
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { expect, it, vi } from 'vitest';
+const mocks = vi.hoisted(() => ({ refetch: vi.fn(), user: { id: 34, role: 'user' } }));
+vi.mock('../contexts/AuthContext', () => ({ useAuth: () => ({ user: mocks.user, loading: false }) }));
+vi.mock('../contexts/StoreContext', () => ({ useStore: () => ({ stores: [], selectedStore: null, loading: false, refetch: mocks.refetch }) }));
+vi.mock('../contexts/NotificationContext', () => ({ useNotifications: () => ({ notifications: [], soundEnabled: false }) }));
+vi.mock('../lib/useSEO', () => ({ useSEO: vi.fn() }));
+vi.mock('../api', () => ({ ordersAPI: {}, analyticsAPI: {}, reviewsAPI: {}, exportAPI: {}, getSocket: () => null }));
+vi.mock('../utils/socket', () => ({ onNewOrder: () => () => {}, onOrderUpdated: () => () => {}, joinDashboard: vi.fn(), leaveDashboard: vi.fn(), onDashboardOrderStatusChanged: () => () => {}, onDashboardForecastUpdate: () => () => {}, onConnect: vi.fn() }));
+vi.mock('../components/admin/SuperAdminDashboard', () => ({ default: () => null }));
+vi.mock('../components/admin/SystemStatusWidget', () => ({ default: () => null }));
+vi.mock('../components/admin/WeatherAlertBanner', () => ({ default: () => null }));
+import MasterDashboard from '../components/admin/MasterDashboard';
+it('treats a completed empty store result as valid without refetching on rerenders', () => {
+  const page = render(<MemoryRouter><MasterDashboard /></MemoryRouter>);
+  expect(screen.getByText('등록된 매장이 없습니다')).toBeInTheDocument();
+  page.rerender(<MemoryRouter><MasterDashboard /></MemoryRouter>);
+  expect(mocks.refetch).not.toHaveBeenCalled();
+});

@@ -43,3 +43,24 @@ it('reports provider availability independently for mixed legacy configurations'
  await waitFor(()=>expect(availability).toHaveBeenCalledWith({google:true,kakao:false}));
 });
 
+it('directs recent authentication to supported methods while retaining Google linking',async()=>{
+ const {unmount}=render(<MemoryRouter><FreeAuthOptions mode="reauth"/></MemoryRouter>);
+ await screen.findByRole('button',{name:'이메일 인증 받기'});
+ expect(screen.queryByRole('button',{name:'Google로 계속하기'})).toBeNull();
+ expect(screen.getByText(/Google.*재인증.*이메일/)).toBeInTheDocument();
+ unmount();
+ render(<MemoryRouter><FreeAuthOptions mode="link" reauthProof="proof"/></MemoryRouter>);
+ expect(await screen.findByRole('button',{name:'Google로 계속하기'})).toBeInTheDocument();
+});
+it('removes a consumed email challenge after successful recent authentication',async()=>{
+ const onResult=vi.fn();mock.verifyEmail.mockResolvedValue({reauthProof:'recent-proof'});
+ render(<MemoryRouter><FreeAuthOptions mode="reauth" onResult={onResult}/></MemoryRouter>);
+ fireEvent.click(await screen.findByRole('button',{name:'보안 확인'}));
+ fireEvent.change(screen.getByLabelText('이메일'),{target:{value:'a@example.com'}});
+ fireEvent.click(screen.getByRole('button',{name:'이메일 인증 받기'}));
+ fireEvent.change(await screen.findByLabelText('6자리 이메일 인증번호'),{target:{value:'123456'}});
+ fireEvent.click(screen.getByRole('button',{name:'인증하고 계속하기'}));
+ await waitFor(()=>expect(onResult).toHaveBeenCalledWith({reauthProof:'recent-proof'}));
+ expect(screen.queryByLabelText('6자리 이메일 인증번호')).toBeNull();
+});
+

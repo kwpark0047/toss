@@ -20,6 +20,7 @@ function publicConfig(env = process.env) {
   return {
     enabled,
     google: enabled && protectedForms && !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
+    googleReauth: false,
     kakao: enabled && protectedForms && !!(env.KAKAO_REST_API_KEY && env.KAKAO_CLIENT_SECRET),
     email:
       enabled &&

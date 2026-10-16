@@ -14,7 +14,7 @@ export default function FreeAuthOptions({mode='login',reauthProof=null,onResult,
  const allowed=mode!=='signup'||(terms&&privacy&&config?.termsUrl&&config?.privacyUrl);
  async function finish(data){
   if(data.twoFactorRequired){setMfa(data.tempToken);setCode('');return;}
-  if(data.linked||data.reauthProof){onResult?.(data);return;}
+  if(data.linked||data.reauthProof){setChallenge(null);setCode('');setWait(0);setError('');onResult?.(data);return;}
   await acceptAuthentication(data);navigate('/admin',{replace:true});
  }
  async function run(work){setBusy(true);setError('');try{await work();}catch(e){setError(e.response?.data?.message||e.message||'인증을 완료하지 못했습니다.');}finally{setBusy(false);}}
@@ -36,7 +36,8 @@ export default function FreeAuthOptions({mode='login',reauthProof=null,onResult,
   {!mfa&&<>
    <TurnstileChallenge siteKey={config.turnstileSiteKey} action={mode} onToken={setToken} generation={generation}/>
    <div className="space-y-2">
-    {config.google&&<button type="button" className="w-full rounded-xl border border-slate-300 bg-white p-3 font-semibold disabled:opacity-50" disabled={busy||!token||!allowed} onClick={()=>start('google')}>Google로 계속하기</button>}
+    {config.google&&mode!=='reauth'&&<button type="button" className="w-full rounded-xl border border-slate-300 bg-white p-3 font-semibold disabled:opacity-50" disabled={busy||!token||!allowed} onClick={()=>start('google')}>Google로 계속하기</button>}
+    {config.google&&mode==='reauth'&&<p className="text-sm text-slate-600">Google 재인증은 최근 인증 시점을 확인할 수 없어 지원하지 않습니다. 이메일·기존 비밀번호·인증 앱으로 재인증해 주세요.</p>}
     {config.kakao&&<button type="button" className="w-full rounded-xl bg-yellow-300 p-3 font-semibold disabled:opacity-50" disabled={busy||!token||!allowed} onClick={()=>start('kakao')}>카카오로 계속하기</button>}
    </div>
    {config.email&&<form onSubmit={request} className="space-y-3">
