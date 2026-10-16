@@ -518,7 +518,7 @@ jobs:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
           if [ -n "$RENDER_DEPLOY_HOOK_URL" ]; then
-            curl -f -X POST "$RENDER_DEPLOY_HOOK_URL"
+            curl --fail --silent --show-error --max-time 60 --get --data-urlencode "ref=$GITHUB_SHA" "$RENDER_DEPLOY_HOOK_URL"
           else
             echo "::error::RENDER_DEPLOY_HOOK_URL is required for a verified production deployment"
             exit 1
@@ -538,7 +538,7 @@ jobs:
           export VITE_API_URL="$(node -p "require('./config/deployment-targets.json').production.backendUrl + '/api'")"
           export VITE_SOCKET_URL="$(node -p "require('./config/deployment-targets.json').production.backendUrl")"
           node scripts/validate-deployment-target.cjs
-          cd frontend && npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN" --build-env APP_COMMIT_SHA="$GITHUB_SHA" --build-env VITE_API_URL="$VITE_API_URL" --build-env VITE_SOCKET_URL="$VITE_SOCKET_URL"
+          npx --yes vercel@64.0.2 deploy --prod --yes --token "$VERCEL_TOKEN" --meta githubCommitSha="$GITHUB_SHA" --meta githubCommitRef=main --build-env APP_COMMIT_SHA="$GITHUB_SHA" --build-env VITE_API_URL="$VITE_API_URL" --build-env VITE_SOCKET_URL="$VITE_SOCKET_URL"
           echo "deployed=true" >> "$GITHUB_OUTPUT"
 
       - name: Smoke test (backend + frontend)

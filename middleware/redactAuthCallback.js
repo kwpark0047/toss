@@ -1,5 +1,16 @@
 module.exports = function redactAuthCallback(req, _res, next) {
   const url = req.url || '';
+  if (/^\/api\/payments\/webhooks\/toss(?:\?|$)/.test(url)) {
+    const parsed = new URL(url, 'http://internal.invalid');
+    const secrets = parsed.searchParams.getAll('secret');
+    Object.defineProperty(req, 'tossWebhookSecret', {
+      value: secrets.length === 1 ? secrets[0] : null,
+      enumerable: false,
+      configurable: true,
+    });
+    req.url = parsed.pathname;
+    req.originalUrl = parsed.pathname;
+  }
   if (/^\/api\/auth\/free\/oauth\/(google|kakao)\/callback(?:\?|$)/.test(url)) {
     const parsed = new URL(url, 'http://internal.invalid');
     Object.defineProperty(req, 'freeAuthCallback', {

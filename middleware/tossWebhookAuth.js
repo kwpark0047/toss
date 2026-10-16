@@ -153,7 +153,7 @@ const tossWebhookAuth = (req, res, next) => {
 
   // ① 공유 시크릿
   if (secret) {
-    const provided = req.get('x-webhook-secret') || req.query?.secret;
+    const provided = req.get('x-webhook-secret') || req.tossWebhookSecret || req.query?.secret;
     if (provided && timingSafeEqualStr(provided, secret)) return next();
   }
 
