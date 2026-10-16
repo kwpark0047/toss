@@ -72,12 +72,19 @@ describe('Free authentication trust boundaries', () => {
         state: 'state',
         nonce: 'nonce',
         verifier: 'verifier',
-        reauth: true,
       })
     );
     expect(google.searchParams.get('code_challenge_method')).toBe('S256');
     expect(google.searchParams.get('nonce')).toBe('nonce');
     expect(google.searchParams.get('state')).toBe('state');
+    expect(() =>
+      provider.authorization('google', {
+        state: 'state',
+        nonce: 'nonce',
+        verifier: 'verifier',
+        reauth: true,
+      })
+    ).toThrow(/이메일.*재인증/);
     const kakao = new URL(
       provider.authorization('kakao', { state: 'state', nonce: 'nonce', reauth: true })
     );

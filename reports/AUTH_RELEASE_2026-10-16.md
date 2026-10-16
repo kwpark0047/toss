@@ -17,3 +17,6 @@
 Production FREE_AUTH_ENABLED remains false. No operational credentials, staging environments, legal drafts or browser screenshots are included in this commit. No DB migration or production account change is required. Real production OAuth/signup activation is outside this release. Provider configuration completed in staging does not establish production readiness.
 
 Deploy the same immutable commit to existing Render and Vercel projects and verify health/version plus disabled free-auth configuration. Previous release is adb0b70a1594685339ac7df5651127463f5797d1; rollback may redeploy that commit without a DB migration.
+
+## CI expectation alignment
+The first release CI exposed an older unit test that requested Google recent-auth while testing PKCE. The test now checks PKCE/state/nonce on ordinary Google authorization and explicitly asserts rejection of unsupported recent-auth. Kakao recent-auth and insecure-callback checks remain. The targeted Jest suite passes 9 tests; no test was skipped and no authentication check was relaxed.
