@@ -33,6 +33,17 @@ services:
         sync: false
       - key: PHONE_ENC_KEY
         sync: false
+      # ── 간편 이메일 가입 (검증 후 운영자가 명시적으로 활성화) ──
+      - key: FREE_AUTH_SIMPLE_SIGNUP_ENABLED
+        value: false
+      - key: FREE_AUTH_TERMS_URL
+        value: https://wemarket-saas.vercel.app/platform/terms.html
+      - key: FREE_AUTH_PRIVACY_URL
+        value: https://wemarket-saas.vercel.app/platform/privacy.html
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
       - key: BILLING_SCHEDULER_ENABLED
         value: false
       - key: SUPABASE_PRIVATE_BUCKET
@@ -104,3 +115,4 @@ services:
         sync: false
       - key: SEED_KEY
         sync: false
+
