@@ -34,7 +34,6 @@ it('creates an unverified email/password account without requesting OTP or sendi
 
   fireEvent.change(screen.getByLabelText('이메일'), { target: { value: 'owner@example.com' } });
   fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'Password123' } });
-  fireEvent.change(screen.getByLabelText('비밀번호 확인'), { target: { value: 'Password123' } });
   fireEvent.click(screen.getByLabelText('이용약관에 동의합니다'));
   fireEvent.click(screen.getByLabelText('개인정보 처리방침에 동의합니다'));
   fireEvent.click(screen.getByLabelText('만 14세 이상입니다'));
@@ -61,3 +60,11 @@ it('does not display signup form until server feature and legal/security configu
   expect(screen.queryByLabelText('이메일')).toBeNull();
 });
 
+it('keeps the signup form to email and one password field', async () => {
+  render(<MemoryRouter><Register /></MemoryRouter>);
+  await screen.findByRole('heading', { name: '위마켓 회원가입' });
+  expect(screen.getByLabelText('이메일')).toBeInTheDocument();
+  expect(screen.getByLabelText('비밀번호')).toBeInTheDocument();
+  expect(screen.queryByLabelText('이름 (선택)')).toBeNull();
+  expect(screen.queryByLabelText('비밀번호 확인')).toBeNull();
+});

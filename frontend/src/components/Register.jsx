@@ -10,10 +10,8 @@ export default function Register() {
   const navigate = useNavigate();
   const { acceptAuthentication } = useAuth();
   const [config, setConfig] = useState(null);
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [confirmAge14, setConfirmAge14] = useState(false);
@@ -40,10 +38,10 @@ export default function Register() {
     setError('');
     try {
       const data = await freeAuthAPI.simpleSignup({
-        name: name.trim() || undefined,
         email,
         password,
-        passwordConfirm,
+        // Keep the current server contract while avoiding a redundant confirmation field.
+        passwordConfirm: password,
         agreeTerms,
         agreePrivacy,
         confirmAge14,
@@ -90,21 +88,13 @@ export default function Register() {
           <form onSubmit={submit} className="space-y-4">
             {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
             <label className="block text-sm font-medium text-slate-700">
-              이름 <span className="font-normal text-slate-500">(선택)</span>
-              <input aria-label="이름 (선택)" type="text" autoComplete="name" maxLength={100} value={name} onChange={(event) => setName(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-900" />
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
               이메일
               <input aria-label="이메일" type="email" autoComplete="email" required maxLength={255} value={email} onChange={(event) => setEmail(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-900" />
             </label>
             <label className="block text-sm font-medium text-slate-700">
               비밀번호
-              <input aria-label="비밀번호" type="password" autoComplete="new-password" required minLength={8} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-900" />
+              <input aria-label="비밀번호" type="password" autoComplete="new-password" required minLength={8} maxLength={128} pattern="(?=.*[A-Za-z])(?=.*[0-9]).{8,128}" title="8자 이상, 영문과 숫자를 포함해 주세요." value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-900" />
               <span className="mt-1 block text-xs font-normal text-slate-500">8자 이상, 영문과 숫자를 포함해 주세요.</span>
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
-              비밀번호 확인
-              <input aria-label="비밀번호 확인" type="password" autoComplete="new-password" required minLength={8} maxLength={128} value={passwordConfirm} onChange={(event) => setPasswordConfirm(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-900" />
             </label>
 
             <fieldset className="space-y-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
@@ -128,4 +118,3 @@ export default function Register() {
     </main>
   );
 }
-
