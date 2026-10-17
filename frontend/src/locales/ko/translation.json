@@ -291,7 +291,7 @@
     "popular_menu": "인기 메뉴",
     "recommended_pairing": "추천 페어링",
     "add": "추가하기",
-    "order_with_method": "{{method}}으로 주문하기",
+    "order_with_method": "{{method}} 주문하기",
     "easy_payment": "간편결제",
     "easy_payment_desc": "앱으로 빠르게 결제",
     "standard_payment": "일반결제",
