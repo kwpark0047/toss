@@ -3,7 +3,7 @@ import {useNavigate} from 'react-router-dom';
 import {useAuth} from '../contexts/AuthContext';
 import {freeAuthAPI} from '../api/freeAuth';
 import TurnstileChallenge from './TurnstileChallenge';
-export default function FreeAuthOptions({mode='login',reauthProof=null,onResult,onAvailability,initialResult=null}){
+export default function FreeAuthOptions({mode='login',reauthProof=null,onResult,onAvailability,initialResult=null,emailOnly=false}){
  const navigate=useNavigate(),{acceptAuthentication}=useAuth();
  const [config,setConfig]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const [token,setToken]=useState(null),[generation,setGeneration]=useState(0),[terms,setTerms]=useState(false),[privacy,setPrivacy]=useState(false);
@@ -24,9 +24,9 @@ export default function FreeAuthOptions({mode='login',reauthProof=null,onResult,
  });setToken(null);setGeneration(n=>n+1);}
  async function request(event){event.preventDefault();await run(async()=>{const data=await freeAuthAPI.requestEmail({email,purpose:mode,turnstileToken:token,reauthProof,agreeTerms:terms,agreePrivacy:privacy});setChallenge(data.challengeId);setWait(60);setCode('');});setToken(null);setGeneration(n=>n+1);}
  if(!config)return <p role="status" className="text-sm text-slate-500 py-3">인증 방법 확인 중…</p>;
- if(!config.enabled&&!mfa)return <p className="text-sm text-slate-500 py-3">무료 인증은 설정을 준비 중입니다. 기존 로그인·가입 방식을 이용할 수 있습니다.</p>;
+ if(!config.enabled&&!mfa)return <p className="text-sm text-slate-500 py-3">{emailOnly?'이메일 인증 설정을 준비 중입니다. 설정 완료 후 이메일로 가입할 수 있습니다.':'무료 인증은 설정을 준비 중입니다. 기존 로그인·가입 방식을 이용할 수 있습니다.'}</p>;
  return <section aria-label="무료 인증" className="space-y-4 mb-6 text-slate-900">
-  <h2 className="font-bold">{mode==='signup'?'문자 없이 회원가입':mode==='link'?'인증 수단 연결':mode==='reauth'?'최근 본인 인증':'간편 로그인'}</h2>
+  <h2 className="font-bold">{mode==='signup'?(emailOnly?'이메일로 가입하기':'문자 없이 회원가입'):mode==='link'?'인증 수단 연결':mode==='reauth'?'최근 본인 인증':'간편 로그인'}</h2>
   {error&&<p role="alert" className="text-sm text-red-700">{error}</p>}
   {mode==='signup'&&<div className="space-y-2 text-sm">
    <label className="flex gap-2"><input type="checkbox" checked={terms} onChange={e=>setTerms(e.target.checked)} aria-label="이용약관에 동의합니다"/>이용약관에 동의합니다 {config.termsUrl&&<a className="underline" href={config.termsUrl} target="_blank" rel="noreferrer">보기</a>}</label>
@@ -60,3 +60,4 @@ export default function FreeAuthOptions({mode='login',reauthProof=null,onResult,
   {!config.google&&!config.kakao&&!config.email&&<p>인증 공급자 설정이 필요합니다. 기존 로그인은 계속 사용할 수 있습니다.</p>}
  </section>;
 }
+
