@@ -31,7 +31,7 @@ class DirectEmailSignupService {
         const keys = [`direct-signup:email:${digest(email, this.env)}`, `direct-signup:ip:${digest(ip, this.env)}`].sort();
         for (const key of keys)
           await tx.$queryRawUnsafe(
-            'SELECT pg_advisory_xact_lock(hashtextextended($1,0)) AS locked',
+            'SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended($1,0))) AS lock_result',
             key
           );
 
