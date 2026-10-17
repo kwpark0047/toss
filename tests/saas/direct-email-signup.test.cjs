@@ -51,6 +51,9 @@ test('creates an email-unverified user, records consent, and issues session with
   assert.equal(result.user.id, 21);
   assert.equal(result.token, 'access');
   assert.equal(calls.issued, 1);
+  const lockQueries = calls.sql.filter((sql) => sql.includes('pg_advisory_xact_lock'));
+  assert.equal(lockQueries.length, 2);
+  assert.ok(lockQueries.every((sql) => /SELECT\\s+1\\s+AS\\s+locked\\s+FROM\\s+\\(SELECT\\s+pg_advisory_xact_lock/i.test(sql)));
   assert.match(calls.event[2], /direct-email-unverified/);
   assert.match(calls.event[2], /terms\+privacy:age14/);
 });
