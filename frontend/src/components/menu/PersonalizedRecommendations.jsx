@@ -322,9 +322,9 @@ export default function PersonalizedRecommendations({ storeId, storeOpen, onAddT
             );
           })}
           {/* fallback: 매칭 실패 시 표시 */}
-          {!hasTrending && recs.length > 0 && recs.every(r => !r.is_trending) && (
-            <p className="text-[10px] text-orange-200/60 truncate text-center">
-              오늘은 추천 매칭이 어려웠어요. 나중에 다시 시도해 주세요.
+          {recs.length === 0 && (
+            <p className="text-[10px] text-orange-200/60 text-center">
+              지금은 추천 메뉴가 없어요. 위 메뉴 목록에서 골라 주세요.
             </p>
           )}
         </div>
