@@ -82,6 +82,8 @@ const phoneRegisterSchema = z
   .object({
     phone: normalizedPhoneSchema,
     password: passwordSchema,
+    // Optional for older clients; the current registration UI collects it before phone verification.
+    name: nameSchema.optional(),
     verificationToken: z.string().min(1).max(2048),
   })
   .strict();
@@ -207,3 +209,4 @@ module.exports = {
   nameSchema,
   businessNumberSchema,
 };
+

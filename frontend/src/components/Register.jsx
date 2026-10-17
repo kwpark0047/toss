@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Store, Phone, Lock, ShieldCheck, ArrowRight, Check, RefreshCw } from 'lucide-react';
+import { Store, Phone, Lock, ShieldCheck, ArrowRight, Check, RefreshCw, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import FreeAuthOptions from './FreeAuthOptions';
 
@@ -30,6 +30,7 @@ const Register = () => {
   const [loadingMsg, setLoadingMsg] = useState('');
 
   // Step 1
+  const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
 
   // Step 2 — OTP
@@ -64,6 +65,7 @@ const Register = () => {
     setError('');
 
     const digits = phone.replace(/\D/g, '');
+    if (!name.trim()) return setError('이름을 입력해주세요.');
     if (digits.length < 10) return setError('올바른 핸드폰 번호를 입력해주세요.');
 
     setLoading(true);
@@ -166,7 +168,7 @@ const Register = () => {
 
     setLoading(true);
     try {
-      await register({ phone, password });
+      await register({ name: name.trim(), phone, password });
       navigate('/admin', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || err.message || '회원가입에 실패했습니다.');
@@ -199,16 +201,17 @@ const Register = () => {
             >
               <Store className="w-8 h-8 text-white" />
             </motion.div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">위마켓 가입</h1>
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">위마켓 회원가입</h1>
           </div>
 
           <FreeAuthOptions mode="signup" />
-          <p className="text-sm font-semibold text-slate-600 mb-4">기존 휴대전화 인증으로 가입</p>
+          <p className="text-sm font-semibold text-slate-600 mb-4">휴대전화 인증으로 안전하게 가입해요</p>
           {/* 스텝 인디케이터 */}
-          <div className="flex items-center justify-center gap-2 mb-8">
+          <ol aria-label="회원가입 단계" className="mb-8 flex items-start justify-center gap-2">
             {STEPS.map((s, i) => (
-              <div key={s.id} className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+              <li key={s.id} aria-current={step === s.id ? 'step' : undefined} className="flex min-w-0 flex-1 items-center gap-2">
+                <div className="flex shrink-0 flex-col items-center gap-1.5">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
                   step > s.id
                     ? 'bg-orange-500 text-white'
                     : step === s.id
@@ -217,12 +220,14 @@ const Register = () => {
                 }`}>
                   {step > s.id ? <Check className="w-4 h-4" /> : s.id}
                 </div>
+                <span className={`whitespace-nowrap text-xs ${step === s.id ? 'font-bold text-orange-700' : step > s.id ? 'font-medium text-slate-600' : 'text-slate-400'}`}>{s.label}</span>
+                </div>
                 {i < STEPS.length - 1 && (
-                  <div className={`w-8 h-0.5 transition-all duration-300 ${step > s.id ? 'bg-orange-500' : 'bg-slate-200'}`} />
+                  <div aria-hidden="true" className={`mb-5 h-0.5 min-w-3 flex-1 transition-all duration-300 ${step > s.id ? 'bg-orange-500' : 'bg-slate-200'}`} />
                 )}
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
 
           {/* 에러 */}
           <AnimatePresence mode="wait">
@@ -252,21 +257,41 @@ const Register = () => {
                 className="space-y-5"
               >
                 <div>
-                  <p className="text-lg font-bold text-slate-800 mb-1">핸드폰 번호로 시작하세요</p>
-                  <p className="text-sm text-slate-500 mb-5">번호만으로 간편하게 가입할 수 있어요</p>
+                  <p className="text-lg font-bold text-slate-800 mb-1">이름과 휴대전화 번호를 입력해 주세요</p>
+                  <p className="text-sm text-slate-500 mb-5">인증 후 비밀번호를 설정하면 가입이 완료돼요</p>
 
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label htmlFor="signup-name" className="mb-2 block text-sm font-bold text-slate-700">
+                    이름 <span className="text-orange-500">*</span>
+                  </label>
+                  <div className="relative mb-4">
+                    <User aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      id="signup-name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      autoComplete="name"
+                      maxLength={100}
+                      required
+                      className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none font-medium text-slate-900 transition-all"
+                      placeholder="이름을 입력해 주세요"
+                    />
+                  </div>
+
+                  <label htmlFor="signup-phone" className="block text-sm font-bold text-slate-700 mb-2">
                     핸드폰 번호 <span className="text-orange-500">*</span>
                   </label>
                   <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Phone aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
+                      id="signup-phone"
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(formatPhone(e.target.value))}
+                      autoComplete="tel-national"
+                      inputMode="tel"
                       required
-                      autoFocus
-                      className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none font-medium text-slate-900 transition-all"
+                      className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none font-medium text-slate-900 transition-all"
                       placeholder="010-1234-5678"
                     />
                   </div>
@@ -463,7 +488,7 @@ const Register = () => {
                 </motion.button>
 
                 <p className="text-center text-xs text-slate-400">
-                  이름, 이메일 등 추가 정보는 가입 후 프로필에서 설정할 수 있어요
+                  이메일 등 추가 정보는 가입 후 프로필에서 설정할 수 있어요
                 </p>
               </motion.form>
             )}
@@ -496,3 +521,4 @@ const Register = () => {
 };
 
 export default Register;
+

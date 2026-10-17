@@ -626,9 +626,9 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
   const cardPadding = themeSettings.ui_size === 'small' ? 'S' : themeSettings.ui_size === 'large' ? 'XL' : 'L';
   const menuDisplayOptions = themeSettings.menu_options || {};
   return (
-    // TDS 미니앱 프레임: 모바일 폭(480px) 중앙 정렬, 데스크톱에선 좌우 여백 배경
-    <div className={`min-h-screen w-full flex justify-center bg-slate-200 overflow-x-hidden ${isDark ? 'dark' : ''}`}>
-    <div className="relative w-full max-w-full sm:max-w-[480px] min-h-screen pb-24 font-sans tracking-tight cust-bg-base shadow-2xl shadow-black/10" style={themeStyle}>
+    // Mobile-first customer menu; the same layout expands into a readable tablet/desktop canvas.
+    <div className={`min-h-screen w-full flex justify-center bg-slate-100 dark:bg-slate-950 overflow-x-hidden ${isDark ? 'dark' : ''}`}>
+    <div className="relative w-full max-w-full min-h-screen pb-24 font-sans tracking-tight cust-bg-base shadow-2xl shadow-black/10 sm:max-w-[720px] lg:max-w-[1024px] xl:max-w-[1200px]" style={themeStyle}>
       {/* 키오스크 모드: 전체화면 진입 안내 (미진입 상태에서만) */}
       {isKiosk && !isFullscreen && <button onClick={enterFullscreen} className="w-full px-4 py-2.5 flex items-center justify-center gap-2 bg-orange-500 text-white text-sm font-black" aria-label="전체화면으로 전환">
           <Maximize2 size={16} /> {t('menu.kiosk_hint')}
@@ -658,15 +658,15 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       <CategoryTabs categories={categoryNames} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
 
       {/* Menu List */}
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
         {filteredItems.length === 0 ? <EmptyState icon="🍽️" title={t('menu.empty')} description={selectedCategory === t('menu.all_category') ? t('menu.empty_desc') : t('menu.category_empty')} /> :
-          // 테마 menu_layout=grid → 2열 카드 그리드, 그 외 → TDS 리스트 그룹 (flush divider)
-          <div className={isGridLayout ? 'grid grid-cols-2 gap-3' : 'cust-bg-card rounded-2xl border cust-border shadow-sm overflow-hidden cust-divide'}>
+          // Keep the store's selected layout while increasing card density only as viewport space allows.
+          <div className={isGridLayout ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4' : 'mx-auto w-full max-w-4xl cust-bg-card rounded-2xl border cust-border shadow-sm overflow-hidden cust-divide'}>
             {filteredItems.map(item => {
               const options = getOptionsForMenuItem(menuItems, item.id);
               const isPopular = orderStats.includes(item.id);
               const isNew = isNewItem(item);
-              return <MenuItemCard key={item.id} item={item} hasOptions={options.length > 0} isPopular={isPopular} isNew={isNew} onAddToCart={handleAddToCartClick} disabled={!storeOpen} padding={isGridLayout ? cardPadding : 'L'} options={menuDisplayOptions} />;
+              return <MenuItemCard key={item.id} item={item} hasOptions={options.length > 0} isPopular={isPopular} isNew={isNew} onAddToCart={handleAddToCartClick} disabled={!storeOpen} isGrid={isGridLayout} padding={isGridLayout ? cardPadding : 'L'} options={menuDisplayOptions} />;
             })}
           </div>}
 
@@ -736,3 +736,4 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
   );
 };
 export default MenuPage;
+

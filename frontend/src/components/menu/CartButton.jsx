@@ -14,6 +14,7 @@ const CartButton = ({ totalItems, totalPrice, onClick }) => {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           className="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-40 px-4"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}
         >
           <Button 
             variant="primary" 
@@ -44,3 +45,4 @@ const CartButton = ({ totalItems, totalPrice, onClick }) => {
 };
 
 export default CartButton;
+

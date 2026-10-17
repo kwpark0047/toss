@@ -100,6 +100,42 @@ export const THEME_PRESETS = [
 // TDS 시맨틱 토큰용 화이트 색상 상수
 export const TDS_COLOR_WHITE = '#FFFFFF';
 
+const parseThemeRgb = (value) => {
+  if (typeof value !== 'string') return null;
+  const color = value.trim();
+  const hex = color.match(/^#([\da-f]{3}|[\da-f]{6})$/i);
+  if (hex) {
+    const raw = hex[1].length === 3 ? [...hex[1]].map((part) => part + part).join('') : hex[1];
+    return [0, 2, 4].map((offset) => parseInt(raw.slice(offset, offset + 2), 16));
+  }
+  const rgb = color.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i);
+  return rgb ? rgb.slice(1, 4).map(Number) : null;
+};
+
+const contrastRatio = (first, second) => {
+  const luminance = (rgb) => {
+    const channels = rgb.map((channel) => {
+      const normalized = channel / 255;
+      return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  };
+  const a = luminance(first);
+  const b = luminance(second);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+};
+
+const readableTextOn = (preferred, surface) => {
+  const foreground = parseThemeRgb(preferred);
+  const background = parseThemeRgb(surface);
+  if (!foreground || !background || contrastRatio(foreground, background) >= 4.5) return preferred;
+  const dark = [25, 31, 40];
+  const light = [255, 255, 255];
+  return contrastRatio(dark, background) >= contrastRatio(light, background)
+    ? '#191f28'
+    : '#ffffff';
+};
+
 // 메뉴 표시 옵션 기본값 — 관리자 설정 폼의 초기값과 동일하게 유지
 export const DEFAULT_THEME_SETTINGS = {
   theme_preset: 'classic-orange',
@@ -182,6 +218,10 @@ export const resolveThemeStyle = (themeSettings) => {
 
   if (!c) return {};
 
+  const textColor = c.text || '#191f28';
+  const cardSurface = c.surface || TDS_COLOR_WHITE;
+  const cardTextColor = readableTextOn(textColor, cardSurface);
+
   const fontFamily = isPresetFormat
     ? themeSettings.fontFamily || preset?.font || 'inherit'
     : themeSettings.fontFamily || 'Noto Sans KR, sans-serif';
@@ -192,13 +232,14 @@ export const resolveThemeStyle = (themeSettings) => {
     '--color-accent': c.secondary,
     '--customer-bg-base': c.background,
     '--customer-bg-card': c.surface,
-    '--customer-text-main': c.text,
-    '--customer-text-sub': `color-mix(in srgb, ${c.text} 72%, ${c.background})`,
+    '--customer-text-main': textColor,
+    '--customer-text-on-card': cardTextColor,
+    '--customer-text-sub': `color-mix(in srgb, ${cardTextColor} 72%, ${cardSurface})`,
     '--customer-border': c.border,
     '--customer-divider': c.border,
     fontFamily,
     backgroundColor: c.background,
-    color: c.text,
+    color: textColor,
   };
 };
 
@@ -219,3 +260,4 @@ export const formatPriceWithOptions = (price, priceFormat = 'comma', unit = '원
   }
   return `${formatted}${unit}`;
 };
+

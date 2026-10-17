@@ -13,7 +13,7 @@ const PADDING = { S: 'py-2', M: 'py-3', L: 'py-4', XL: 'py-5' };
  * options: { showBadge, priceFormat, showPriceUnit } — 매장 테마 설정(menu_options) 반영.
  * TDS 준수: 375px 기준, ListRow 패딩, Icon 래퍼, 타입 스케일 2단계(일반형/포스트형)
  */
-const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disabled, padding = 'L', options }) => {
+const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disabled, isGrid = false, padding = 'L', options }) => {
   const py = PADDING[padding] || PADDING.L;
   const {
     showBadge = true,
@@ -26,6 +26,7 @@ const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disable
       whileTap={!disabled ? { scale: 0.99 } : {}}
       role="button"
       tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled}
       aria-label={`${item.name} 담기`}
       onClick={() => {
         if (!disabled) {
@@ -40,50 +41,59 @@ const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disable
           onAddToCart(item);
         }
       }}
-      className={`flex items-center gap-3 px-4 ${py} transition-colors ${
-        disabled ? 'opacity-60 grayscale cursor-not-allowed' : 'hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-white/5 dark:active:bg-white/10 cursor-pointer'
-      }`}
+      className={isGrid
+        ? `flex min-w-0 flex-col overflow-hidden rounded-2xl border cust-border cust-bg-card text-left shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${disabled ? 'cursor-not-allowed' : 'hover:shadow-md active:scale-[0.99] cursor-pointer'}`
+        : `flex items-center gap-3 px-4 ${py} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${
+          disabled ? 'cursor-not-allowed' : 'hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-white/5 dark:active:bg-white/10 cursor-pointer'
+        }`}
     >
       {/* Leading — 썸네일 (LazyImage 적용) */}
-      <div className="relative w-16 h-16 flex-shrink-0">
-        <LazyImage 
-          src={item.image_url} 
-          alt={item.name} 
+      <div className={isGrid ? 'relative w-full overflow-hidden bg-slate-100' : 'relative h-16 w-16 flex-shrink-0'}>
+        <LazyImage
+          src={item.image_url}
+          alt={item.name}
           placeholderEmoji={item.emoji || '🍽️'}
-          className="rounded-xl"
+          ratio={isGrid ? 'aspect-[4/3]' : 'aspect-square'}
+          className={isGrid ? 'w-full rounded-none border-0' : 'rounded-xl'}
         />
         <div className="absolute top-0.5 left-0.5 flex flex-col gap-0.5 z-20">
           {showBadge && isPopular && (
-            <div className="bg-orange-500 text-white p-0.5 rounded-lg shadow">
+            <div className="flex items-center gap-1 rounded-lg bg-orange-600 px-1.5 py-1 text-white shadow-sm" aria-label="인기 메뉴">
               <Icon icon="Flame" />
+              {isGrid && <span className="text-[10px] font-bold">인기</span>}
             </div>
           )}
           {showBadge && isNew && (
-            <div className="bg-blue-500 text-white p-0.5 rounded-lg shadow">
+            <div className="flex items-center gap-1 rounded-lg bg-blue-700 px-1.5 py-1 text-white shadow-sm" aria-label="신규 메뉴">
               <Icon icon="Sparkles" />
+              {isGrid && <span className="text-[10px] font-bold">신메뉴</span>}
             </div>
           )}
         </div>
       </div>
 
       {/* Content — 타이틀 + 설명 */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <h3 className="menu-name truncate">{item.name}</h3>
+      <div className={isGrid ? 'flex min-w-0 flex-1 flex-col p-3 sm:p-4' : 'flex-1 min-w-0'}>
+        <div className="flex min-w-0 items-start gap-1.5">
+          <h3 className={`menu-name ${isGrid ? 'menu-name-multiline min-h-10 sm:min-h-11' : 'truncate'}`}>{item.name}</h3>
           {hasOptions && (
             <span className="menu-badge bg-grey-100 dark:bg-white/10 text-grey-500 dark:text-grey-400 px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0">옵션</span>
           )}
         </div>
         {item.description && (
-          <p className="menu-desc mt-0.5">{item.description}</p>
+          <p className={`menu-desc mt-0.5 ${isGrid ? 'menu-desc-multiline min-h-8' : ''}`}>{item.description}</p>
         )}
-        <span className="menu-price mt-1 block">{formatPriceWithOptions(item.price, priceFormat, showPriceUnit)}</span>
-      </div>
+        <div className={`flex items-center justify-between gap-2 ${isGrid ? 'mt-auto pt-3' : 'mt-1'}`}>
+          <span className="menu-price block min-w-0 truncate">{formatPriceWithOptions(item.price, priceFormat, showPriceUnit)}</span>
 
-      {/* Trailing — 담기 */}
-      <div className="flex-shrink-0 self-center">
-        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-          <Icon icon="Plus" />
+          {/* Trailing — 담기 */}
+          <span className={isGrid
+            ? 'inline-flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center gap-1 rounded-xl bg-primary px-3 text-white shadow-sm'
+            : 'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary'}
+          >
+            <Icon icon="Plus" />
+            {isGrid && <span className="text-xs font-bold">담기</span>}
+          </span>
         </div>
       </div>
     </motion.div>
@@ -91,3 +101,4 @@ const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disable
 };
 
 export default MenuItemCard;
+

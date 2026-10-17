@@ -416,9 +416,11 @@
 .tds-small     { font-size: 11px; line-height: 14px; font-weight: 500; letter-spacing: -0.01em; }  /* 스몰: 타임스탬프·메타 */
 
 /* 메뉴판 전용 — 우선순위: 메뉴명 > 가격 > 설명 > 배지 */
-.menu-name      { font-size: 15px; line-height: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--customer-text-main); }      /* 15px bold — 메뉴명 */
-.menu-price     { font-size: 15px; line-height: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--customer-text-main); font-variant-numeric: tabular-nums; } /* 15px bold — 가격(숫자 정렬) */
-.menu-desc      { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: -0.01em; color: var(--customer-text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }     /* 12px regular — 설명 */
+.menu-name      { font-size: 15px; line-height: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--customer-text-on-card, var(--customer-text-main, #191f28)); }      /* 15px bold — 메뉴명 */
+.menu-name-multiline { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.menu-price     { font-size: 15px; line-height: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--customer-text-on-card, var(--customer-text-main, #191f28)); font-variant-numeric: tabular-nums; } /* 15px bold — 가격(숫자 정렬) */
+.menu-desc      { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: -0.01em; color: var(--customer-text-on-card, var(--customer-text-sub, #191f28)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }     /* 12px regular — 설명 */
+.menu-desc-multiline { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; }
 .menu-badge     { font-size: 11px; line-height: 14px; font-weight: 500; letter-spacing: -0.01em; }               /* 11px medium — 배지(NEW/인기) */
 
 /* ── TDS Skeleton (다크) — 관리자 다크 테마용 ────────────────────────────── */
@@ -605,3 +607,4 @@ button, [role="button"], a, summary, label { touch-action: manipulation; }
 .tds-badge-new     { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
 .tds-badge-popular { background-color: rgba(249, 115, 22, 0.1); color: #f97316; }
 .tds-badge-special { background-color: rgba(234, 88, 12, 0.1); color: #ea580c; }
+
