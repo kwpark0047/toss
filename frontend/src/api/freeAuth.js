@@ -18,6 +18,7 @@ export function getBrowserProof(create = true) {
 }
 export const freeAuthAPI = {
   config: async () => unwrap(await api.get('/auth/free/config')),
+  simpleSignup: (data) => post('signup/simple', data),
   requestEmail: (data) => post('email/request', { ...data, browserProof: getBrowserProof() }),
   verifyEmail: (data) => post('email/verify', { ...data, browserProof: getBrowserProof(false) }),
   startOAuth: (data) =>
@@ -30,3 +31,4 @@ export const freeAuthAPI = {
   unlink: (provider, reauthProof) => post('accounts/unlink', { provider, reauthProof }),
   withdraw: (reauthProof, operationId) => post('withdraw', { reauthProof, operationId }),
 };
+
