@@ -11,6 +11,7 @@ const jwt = require('jsonwebtoken');
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-for-staff-security';
 
 const mockPrisma = {
+  $queryRawUnsafe: jest.fn().mockResolvedValue([{ business_access_status: 'approved', trial_ends_at: null }]),
   stores: { findUnique: jest.fn() },
   staff: { findFirst: jest.fn(), findUnique: jest.fn() },
 };
@@ -87,3 +88,4 @@ describe('staff 테넌트 인가', () => {
     expect(res.status).toBe(401);
   });
 });
+

@@ -6,12 +6,12 @@ import TurnstileChallenge from './TurnstileChallenge';
 export default function FreeAuthOptions({mode='login',reauthProof=null,onResult,onAvailability,initialResult=null,emailOnly=false}){
  const navigate=useNavigate(),{acceptAuthentication}=useAuth();
  const [config,setConfig]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
- const [token,setToken]=useState(null),[generation,setGeneration]=useState(0),[terms,setTerms]=useState(false),[privacy,setPrivacy]=useState(false);
+ const [token,setToken]=useState(null),[generation,setGeneration]=useState(0),[terms,setTerms]=useState(false),[privacy,setPrivacy]=useState(false),[ageConfirmed,setAgeConfirmed]=useState(false);
  const [email,setEmail]=useState(''),[challenge,setChallenge]=useState(null),[code,setCode]=useState(''),[wait,setWait]=useState(0),[mfa,setMfa]=useState(null);
  useEffect(()=>{if(initialResult?.twoFactorRequired)setMfa(initialResult.tempToken);},[initialResult]);
  useEffect(()=>{let live=true;freeAuthAPI.config().then(data=>{if(live){setConfig(data);onAvailability?.({google:!!(data.enabled&&data.google),kakao:!!(data.enabled&&data.kakao)});}}).catch(()=>{if(live)setConfig({enabled:false});});return()=>{live=false;};},[onAvailability]);
  useEffect(()=>{if(wait<=0)return;const id=setTimeout(()=>setWait(n=>n-1),1000);return()=>clearTimeout(id);},[wait]);
- const allowed=mode!=='signup'||(terms&&privacy&&config?.termsUrl&&config?.privacyUrl);
+ const allowed=mode!=='signup'||(terms&&privacy&&ageConfirmed&&config?.termsUrl&&config?.privacyUrl);
  async function finish(data){
   if(data.twoFactorRequired){setMfa(data.tempToken);setCode('');return;}
   if(data.linked||data.reauthProof){setChallenge(null);setCode('');setWait(0);setError('');onResult?.(data);return;}
@@ -19,10 +19,10 @@ export default function FreeAuthOptions({mode='login',reauthProof=null,onResult,
  }
  async function run(work){setBusy(true);setError('');try{await work();}catch(e){setError(e.response?.data?.message||e.message||'인증을 완료하지 못했습니다.');}finally{setBusy(false);}}
  async function start(provider){await run(async()=>{
-  const data=await freeAuthAPI.startOAuth({provider,intent:mode,turnstileToken:token,reauthProof,agreeTerms:terms,agreePrivacy:privacy});
+  const data=await freeAuthAPI.startOAuth({provider,intent:mode,turnstileToken:token,reauthProof,agreeTerms:terms,agreePrivacy:privacy,confirmAge14:ageConfirmed});
   const target=new URL(data.url);if(!['https://accounts.google.com','https://kauth.kakao.com'].includes(target.origin))throw new Error('인증 주소를 확인할 수 없습니다.');window.location.assign(target.href);
  });setToken(null);setGeneration(n=>n+1);}
- async function request(event){event.preventDefault();await run(async()=>{const data=await freeAuthAPI.requestEmail({email,purpose:mode,turnstileToken:token,reauthProof,agreeTerms:terms,agreePrivacy:privacy});setChallenge(data.challengeId);setWait(60);setCode('');});setToken(null);setGeneration(n=>n+1);}
+ async function request(event){event.preventDefault();await run(async()=>{const data=await freeAuthAPI.requestEmail({email,purpose:mode,turnstileToken:token,reauthProof,agreeTerms:terms,agreePrivacy:privacy,confirmAge14:ageConfirmed});setChallenge(data.challengeId);setWait(60);setCode('');});setToken(null);setGeneration(n=>n+1);}
  if(!config)return <p role="status" className="text-sm text-slate-500 py-3">인증 방법 확인 중…</p>;
  if(!config.enabled&&!mfa)return <p className="text-sm text-slate-500 py-3">{emailOnly?'이메일 인증 설정을 준비 중입니다. 설정 완료 후 이메일로 가입할 수 있습니다.':'무료 인증은 설정을 준비 중입니다. 기존 로그인·가입 방식을 이용할 수 있습니다.'}</p>;
  return <section aria-label="무료 인증" className="space-y-4 mb-6 text-slate-900">
@@ -31,6 +31,7 @@ export default function FreeAuthOptions({mode='login',reauthProof=null,onResult,
   {mode==='signup'&&<div className="space-y-2 text-sm">
    <label className="flex gap-2"><input type="checkbox" checked={terms} onChange={e=>setTerms(e.target.checked)} aria-label="이용약관에 동의합니다"/>이용약관에 동의합니다 {config.termsUrl&&<a className="underline" href={config.termsUrl} target="_blank" rel="noreferrer">보기</a>}</label>
    <label className="flex gap-2"><input type="checkbox" checked={privacy} onChange={e=>setPrivacy(e.target.checked)} aria-label="개인정보 처리방침에 동의합니다"/>개인정보 처리방침에 동의합니다 {config.privacyUrl&&<a className="underline" href={config.privacyUrl} target="_blank" rel="noreferrer">보기</a>}</label>
+   <label className="flex gap-2"><input type="checkbox" checked={ageConfirmed} onChange={e=>setAgeConfirmed(e.target.checked)} aria-label="만 14세 이상입니다"/>만 14세 이상입니다</label>
    {(!config.termsUrl||!config.privacyUrl)&&<p>약관 등록 후 신규 가입을 이용할 수 있습니다.</p>}
   </div>}
   {!mfa&&<>

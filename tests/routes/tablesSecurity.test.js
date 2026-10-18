@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken');
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'tables-route-test-secret';
 
 const mockPrisma = {
+  $queryRawUnsafe: jest.fn().mockResolvedValue([{ business_access_status: 'approved', trial_ends_at: null }]),
   stores: { findUnique: jest.fn() },
   staff: { findFirst: jest.fn() },
   tables: { findMany: jest.fn() },
@@ -139,3 +140,4 @@ describe('table route tenant authorization', () => {
     expect(mockTable.updateLayout).toHaveBeenCalledWith('42', layout);
   });
 });
+

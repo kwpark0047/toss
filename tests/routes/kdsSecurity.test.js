@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken');
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'kds-security-test-secret';
 
 const mockPrisma = {
+  $queryRawUnsafe: jest.fn().mockResolvedValue([{ business_access_status: 'approved', trial_ends_at: null }]),
   stores: { findUnique: jest.fn() },
   staff: { findFirst: jest.fn() },
 };
@@ -64,3 +65,4 @@ describe('KDS role boundaries', () => {
     expect(mockController.getActiveOrders).not.toHaveBeenCalled();
   });
 });
+

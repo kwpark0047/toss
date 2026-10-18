@@ -9,7 +9,7 @@ const jwt = require('jsonwebtoken');
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'crm-automation-route-test-secret';
 
-const mockPrisma = { stores: { findUnique: jest.fn() }, staff: { findFirst: jest.fn() } };
+const mockPrisma = { $queryRawUnsafe: jest.fn().mockResolvedValue([{ business_access_status: 'approved', trial_ends_at: null }]), stores: { findUnique: jest.fn() }, staff: { findFirst: jest.fn() } };
 jest.mock('../../config/prisma', () => mockPrisma);
 jest.mock('../../controllers/crmAutomationController', () => ({
   generate: (_req, res) => res.json({ success: true }),
@@ -50,3 +50,4 @@ describe('CRM automation security', () => {
     expect(response.status).toBe(403);
   });
 });
+
