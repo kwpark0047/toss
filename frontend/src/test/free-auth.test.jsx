@@ -10,7 +10,7 @@ beforeEach(()=>{vi.clearAllMocks();mock.config.mockResolvedValue({enabled:true,g
 it('offers Google first and gates signup on both legal consent and a fresh challenge',async()=>{
  render(<MemoryRouter><FreeAuthOptions mode="signup"/></MemoryRouter>);
  const google=await screen.findByRole('button',{name:'Google로 계속하기'});expect(google).toBeDisabled();
- fireEvent.click(screen.getByLabelText('이용약관에 동의합니다'));fireEvent.click(screen.getByLabelText('개인정보 처리방침에 동의합니다'));fireEvent.click(screen.getByRole('button',{name:'보안 확인'}));expect(google).toBeEnabled();
+ fireEvent.click(screen.getByLabelText('이용약관에 동의합니다'));fireEvent.click(screen.getByLabelText('개인정보 처리방침에 동의합니다'));fireEvent.click(screen.getByRole('button',{name:'보안 확인'}));expect(google).toBeDisabled();fireEvent.click(screen.getByLabelText('만 14세 이상입니다'));expect(google).toBeEnabled();
  expect(screen.getAllByRole('button').findIndex(x=>x.textContent==='Google로 계속하기')).toBeLessThan(screen.getAllByRole('button').findIndex(x=>x.textContent==='카카오로 계속하기'));
 });
 it('sends one email challenge and requires explicit code verification before login',async()=>{
@@ -63,4 +63,5 @@ it('removes a consumed email challenge after successful recent authentication',a
  await waitFor(()=>expect(onResult).toHaveBeenCalledWith({reauthProof:'recent-proof'}));
  expect(screen.queryByLabelText('6자리 이메일 인증번호')).toBeNull();
 });
+
 

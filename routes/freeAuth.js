@@ -100,17 +100,6 @@ router.use((_req, _res, next) =>
 );
 const actor = auth.authMiddleware,
   optional = auth.optionalAuth;
-function consent(body) {
-  if (body.intent === 'signup' || body.purpose === 'signup') {
-    if (
-      body.agreeTerms !== true ||
-      body.agreePrivacy !== true ||
-      !publicConfig().termsUrl ||
-      !publicConfig().privacyUrl
-    )
-      throw new AppError('이용약관·개인정보 처리방침을 확인하고 동의해 주세요.', 400);
-  }
-}
 function authenticatedPurpose(req) {
   if (['link', 'reauth'].includes(req.body.purpose || req.body.intent) && !req.user?.sid)
     throw new AppError('기존 계정으로 먼저 로그인해 주세요.', 401);
@@ -259,3 +248,4 @@ router.post(
   })
 );
 module.exports = router;
+

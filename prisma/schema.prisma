@@ -985,6 +985,12 @@ model users {
   free_account_events auth_account_events[]
   free_mfa_challenges auth_mfa_challenges[]
   auth_status String @default("active")
+  // Existing accounts stay approved; new direct-signup accounts are assigned a one-month trial.
+  business_access_status String @default("approved")
+  trial_started_at DateTime? @db.Timestamptz(6)
+  trial_ends_at DateTime? @db.Timestamptz(6)
+  business_approved_at DateTime? @db.Timestamptz(6)
+  business_approved_by Int?
   password_login_enabled Boolean @default(true)
   email_verified_at DateTime? @db.Timestamptz(6)
   business_support_enrollments business_support_enrollments[]
@@ -1024,6 +1030,7 @@ model users {
   grant_change_logs                                                grant_change_logs[]
 
   @@index([email], map: "idx_users_email")
+  @@index([business_access_status, trial_ends_at], map: "idx_users_business_trial_status_end")
   @@schema("public")
 }
 
@@ -2335,3 +2342,4 @@ model business_support_jobs {
   @@index([status,available_at],map:"business_support_job_claim")
   @@schema("public")
 }
+

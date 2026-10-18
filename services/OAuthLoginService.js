@@ -5,6 +5,7 @@ const { OAuthProvider } = require('./OAuthProvider');
 const { AuthIdentityService } = require('./AuthIdentityService');
 const { digest, seal, open } = require('../utils/freeAuthSecrets');
 const { browserHash, bucket, activeUser } = require('./FreeAuthStore');
+const { SIGNUP_CONSENT_VERSION } = require('../utils/freeAuthPolicy');
 class OAuthLoginService {
   constructor(db = prisma, env = process.env, provider = new OAuthProvider(env)) {
     this.db = db;
@@ -12,13 +13,23 @@ class OAuthLoginService {
     this.provider = provider;
     this.identity = new AuthIdentityService(db, env);
   }
-  async start({ provider, intent, browserProof, userId = null, sessionId = null, ip = 'unknown' }) {
+  async start({
+    provider,
+    intent,
+    browserProof,
+    userId = null,
+    sessionId = null,
+    ip = 'unknown',
+    consentVersion = null,
+  }) {
     if (
       !['login', 'signup', 'link', 'reauth'].includes(intent) ||
       !['google', 'kakao'].includes(provider) ||
       (['link', 'reauth'].includes(intent) && !userId)
     )
       throw new AppError('소셜 인증 요청을 확인해 주세요.', 400);
+    if (intent === 'signup' && consentVersion !== SIGNUP_CONSENT_VERSION)
+      throw new AppError('가입 약관과 연령 확인을 다시 진행해 주세요.', 400);
     const browser = browserHash(browserProof, this.env),
       id = crypto.randomUUID(),
       state = crypto.randomBytes(32).toString('base64url'),
@@ -33,8 +44,8 @@ class OAuthLoginService {
     const allowed = await this.db.$transaction(async (tx) => {
       if (!(await bucket(tx, digest('oauth-ip', ip, this.env), 30, 900))) return false;
       await tx.$executeRawUnsafe(
-        `INSERT INTO auth_oauth_flows(id,provider,state_hash,browser_hash,nonce,verifier_ciphertext,intent,user_id,session_id,expires_at)
-    VALUES($1::uuid,$2,$3,$4,$5,$6,$7,$8,$9::uuid,now()+interval '10 minutes')`,
+        `INSERT INTO auth_oauth_flows(id,provider,state_hash,browser_hash,nonce,verifier_ciphertext,intent,user_id,session_id,expires_at,consent_version)
+    VALUES($1::uuid,$2,$3,$4,$5,$6,$7,$8,$9::uuid,now()+interval '10 minutes',$10)`,
         id,
         provider,
         digest('oauth-state', state, this.env),
@@ -43,7 +54,8 @@ class OAuthLoginService {
         seal(verifier, id, this.env),
         intent,
         userId,
-        sessionId
+        sessionId,
+        intent === 'signup' ? consentVersion : null
       );
       return true;
     });
@@ -99,11 +111,14 @@ class OAuthLoginService {
       if (row.user_id && (!actor || actor.id !== row.user_id || actor.sid !== row.session_id))
         throw new AppError('연결을 시작한 계정으로 다시 로그인해 주세요.', 401);
       const profile = open(row.result_ciphertext, row.id, this.env);
+      if (row.intent === 'signup' && row.consent_version !== SIGNUP_CONSENT_VERSION)
+        throw new AppError('가입 약관과 연령 확인을 다시 진행해 주세요.', 400);
       const user = await this.identity.resolve(
         tx,
         { ...profile, provider: row.provider },
         row.intent,
-        row.user_id
+        row.user_id,
+        row.consent_version
       );
       let result;
       if (row.intent === 'link') result = { linked: true };
@@ -124,3 +139,4 @@ class OAuthLoginService {
   }
 }
 module.exports = { OAuthLoginService };
+

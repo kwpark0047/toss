@@ -47,6 +47,8 @@ export const adminAPI = {
     api.get('/admin/store-link-requests', { params: { status } }),
   approveLinkRequest: (id) => api.post(`/admin/store-link-requests/${id}/approve`),
   rejectLinkRequest: (id) => api.post(`/admin/store-link-requests/${id}/reject`),
+  businessTrials: (status = 'trialing') => api.get('/admin/business-trials', { params: { status } }),
+  approveBusinessTrial: (id) => api.post(`/admin/business-trials/${id}/approve`),
 };
 
 export const planRequestsAPI = {
@@ -229,3 +231,4 @@ export const exportAPI = {
       `종합보고서_${storeId}_${startDate}_${endDate}.pdf`
     ),
 };
+

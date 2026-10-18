@@ -48,6 +48,9 @@ export default function SuperAdminDashboard() {
   const [coverage, setCoverage] = useState(null);
   const [linkReqs, setLinkReqs] = useState([]);
   const [linkBusy, setLinkBusy] = useState(null);
+  const [businessTrials, setBusinessTrials] = useState([]);
+  const [trialFilter, setTrialFilter] = useState('trialing');
+  const [trialBusy, setTrialBusy] = useState(null);
 
   const readSection = useCallback(async (key, request, apply, message) => {
     try {
@@ -57,6 +60,7 @@ export default function SuperAdminDashboard() {
     } catch { fail(key, message); }
   }, []);
   const loadLinkReqs = useCallback(() => readSection('links', () => adminAPI.linkRequests('pending'), d => setLinkReqs(d.requests || []), '연동 요청을 불러오지 못했습니다.'), [readSection]);
+  const loadBusinessTrials = useCallback(() => readSection('businessTrials', () => adminAPI.businessTrials(trialFilter), d => setBusinessTrials(d.accounts || []), '체험 계정 현황을 불러오지 못했습니다.'), [readSection, trialFilter]);
   const loadCoverage = useCallback(() => readSection('coverage', () => adminAPI.enrichmentCoverage(), setCoverage, '정보 보강 현황을 불러오지 못했습니다.'), [readSection]);
   const loadDashboard = useCallback(async (isCancelled = () => false) => {
     // A section paints as soon as it completes; do not fan out nested DB queries.
@@ -66,9 +70,10 @@ export default function SuperAdminDashboard() {
       () => loadCoverage(),
       () => readSection('trend', () => adminAPI.platformTrend(14), d => setTrend(d.daily || []), '추이를 불러오지 못했습니다.'),
       () => loadLinkReqs(),
+      () => loadBusinessTrials(),
     ];
     for (const task of tasks) { if (isCancelled()) break; await task(); }
-  }, [readSection, loadCoverage, loadLinkReqs]);
+  }, [readSection, loadCoverage, loadLinkReqs, loadBusinessTrials]);
   useEffect(() => {
     let cancelled = false;
     void loadDashboard(() => cancelled);
@@ -83,6 +88,18 @@ export default function SuperAdminDashboard() {
       setLinkReqs(prev => prev.filter(r => r.id !== id));
     } catch { fail('decision', '승인·거절 처리에 실패했습니다. 요청 상태를 새로고침해 주세요.'); loadLinkReqs(); }
     finally { setLinkBusy(null); }
+  };
+
+  const approveTrial = async (id) => {
+    setTrialBusy(id);
+    try {
+      await adminAPI.approveBusinessTrial(id);
+      await loadBusinessTrials();
+    } catch {
+      fail('businessTrials', '정식 이용 승인에 실패했습니다. 목록을 새로고침해 상태를 확인해 주세요.');
+    } finally {
+      setTrialBusy(null);
+    }
   };
 
   const fetchStores = useCallback(async () => {
@@ -230,6 +247,59 @@ export default function SuperAdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* 1개월 사업자 체험 및 정식 이용 승인 */}
+      <section aria-labelledby="business-trials-heading" className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div>
+            <h2 id="business-trials-heading" className="text-sm font-black flex items-center gap-2"><Clock size={15} className="text-orange-300" aria-hidden="true" /> 사업자 체험 · 정식 이용 승인</h2>
+            <p className="mt-1 text-[11px] text-slate-400">신규 가입 계정의 1개월 체험 기간과 승인 상태를 확인합니다.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="sr-only" htmlFor="business-trial-filter">체험 계정 상태</label>
+            <select id="business-trial-filter" value={trialFilter} onChange={(event) => setTrialFilter(event.target.value)} className="h-9 rounded-lg bg-slate-900 border border-white/10 px-2 text-xs text-white">
+              <option value="trialing">체험 중</option>
+              <option value="expired">체험 만료</option>
+              <option value="approved">정식 승인</option>
+              <option value="all">전체 체험 계정</option>
+            </select>
+            <button type="button" onClick={() => void loadBusinessTrials()} className="h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:text-white">새로고침</button>
+          </div>
+        </div>
+        {businessTrials.length === 0 ? (
+          <p className="rounded-xl bg-white/[0.03] p-4 text-sm text-slate-400">표시할 계정이 없습니다.</p>
+        ) : (
+          <div className="space-y-2">
+            {businessTrials.map((account) => {
+              const expired = account.effective_status === 'expired';
+              const approved = account.effective_status === 'approved';
+              const endAt = account.trial_ends_at ? new Date(account.trial_ends_at) : null;
+              const daysRemaining = endAt ? Math.max(0, Math.ceil((endAt.getTime() - Date.now()) / 86400000)) : null;
+              return (
+                <div key={account.id} className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl bg-white/[0.03] border border-white/10 p-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-black truncate">{account.name || '이름 미등록'}</p>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${approved ? 'bg-emerald-500/15 text-emerald-300' : expired ? 'bg-rose-500/15 text-rose-300' : 'bg-amber-500/15 text-amber-300'}`}>
+                        {approved ? '정식 승인' : expired ? '체험 만료' : '체험 중'}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[11px] text-slate-400 break-all">{account.phone || '휴대전화 미등록'} · {account.email || '이메일 미등록'}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      체험 {account.trial_started_at ? new Date(account.trial_started_at).toLocaleDateString('ko-KR') : '-'} ~ {endAt ? endAt.toLocaleDateString('ko-KR') : '-'}
+                      {!approved && !expired && daysRemaining !== null ? ` · ${daysRemaining}일 남음` : ''}
+                      {account.business_approved_at ? ` · 승인 ${new Date(account.business_approved_at).toLocaleDateString('ko-KR')}` : ''}
+                    </p>
+                  </div>
+                  {!approved && <button type="button" disabled={trialBusy === account.id} onClick={() => void approveTrial(account.id)} className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-3 text-xs font-black text-emerald-300 hover:bg-emerald-500/25 disabled:opacity-50">
+                    {trialBusy === account.id ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />} 정식 이용 승인
+                  </button>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {/* 매장 정보 커버리지 위젯 */}
       {coverage && (
@@ -418,3 +488,4 @@ export default function SuperAdminDashboard() {
     </div>
   );
 }
+

@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const bcrypt = require('bcryptjs');
 const { DirectEmailSignupService } = require('../../services/DirectEmailSignupService');
 const { SIGNUP_CONSENT_VERSION } = require('../../utils/freeAuthPolicy');
+const { decryptPhone } = require('../../utils/phoneEncryption');
 
 function fixture({ existing = false, bucketHits = [1, 1], sessionError = null } = {}) {
   const calls = { event: null, inserted: null, issued: 0, sql: [] };
@@ -18,7 +19,7 @@ function fixture({ existing = false, bucketHits = [1, 1], sessionError = null } 
       if (sql.includes('SELECT id FROM users')) return existing ? [{ id: 8 }] : [];
       if (sql.includes('INSERT INTO users')) {
         calls.inserted = args;
-        return [{ id: 21, name: args[0], email: args[1], password: args[2], role: 'user', auth_status: 'active', email_verified_at: null }];
+        return [{ id: 21, name: args[0], email: args[1], phone: args[2], password: args[3], role: 'user', auth_status: 'active', email_verified_at: null, business_access_status: 'trialing' }];
       }
       return [{}];
     },
@@ -36,29 +37,31 @@ function fixture({ existing = false, bucketHits = [1, 1], sessionError = null } 
 }
 
 const signup = (overrides = {}) => ({
-  name: '  강원  ', email: ' Owner@Example.COM ', password: 'Password123',
+  name: '  강원  ', phone: '01012345678', email: ' Owner@Example.COM ', password: 'Password123',
   passwordConfirm: 'Password123', agreeTerms: true, agreePrivacy: true,
   confirmAge14: true, consentVersion: SIGNUP_CONSENT_VERSION, turnstileToken: 'verified-before-service',
   ...overrides,
 });
 
-test('creates an email-unverified user, records consent, and issues session within one transaction', async () => {
+test('creates a phone-and-email-unverified user with one-month trial and issues session transactionally', async () => {
   const { service, calls } = fixture();
   const result = await service.register(signup(), '203.0.113.10');
   assert.equal(calls.inserted[0], '강원');
   assert.equal(calls.inserted[1], 'owner@example.com');
-  assert.equal(await bcrypt.compare('Password123', calls.inserted[2]), true);
+  assert.equal(decryptPhone(calls.inserted[2]), '01012345678');
+  assert.equal(await bcrypt.compare('Password123', calls.inserted[3]), true);
   assert.equal(result.user.id, 21);
   assert.equal(result.token, 'access');
   assert.equal(calls.issued, 1);
   const lockQueries = calls.sql.filter((sql) => sql.includes('pg_advisory_xact_lock'));
-  assert.equal(lockQueries.length, 2);
-  assert.ok(lockQueries.every((sql) => /SELECT\\s+1\\s+AS\\s+locked\\s+FROM\\s+\\(SELECT\\s+pg_advisory_xact_lock/i.test(sql)));
-  assert.match(calls.event[2], /direct-email-unverified/);
+  assert.equal(lockQueries.length, 3);
+  assert.ok(lockQueries.every((sql) => /SELECT\s+1\s+AS\s+locked\s+FROM\s+\(SELECT\s+pg_advisory_xact_lock/i.test(sql)));
+  assert.match(calls.sql.find((sql) => sql.includes('INSERT INTO users')), /now\(\)\+interval '1 month'/);
+  assert.match(calls.event[2], /phone-unverified:trial-1-month/);
   assert.match(calls.event[2], /terms\+privacy:age14/);
 });
 
-test('refuses duplicate email without issuing a second account session', async () => {
+test('refuses duplicate phone or email without issuing a second account session', async () => {
   const { service, calls } = fixture({ existing: true });
   await assert.rejects(service.register(signup(), '203.0.113.10'), (error) => error.statusCode === 409);
   assert.equal(calls.issued, 0);

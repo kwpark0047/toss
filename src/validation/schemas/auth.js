@@ -89,6 +89,7 @@ const phoneRegisterSchema = z
   .strict();
 const registrationRequestSchema = z.union([phoneRegisterSchema, registerSchema]);
 const simpleSignupSchema = z.object({
+  phone: normalizedPhoneSchema,
   email: emailSchema,
   password: passwordSchema,
   passwordConfirm: z.string(),

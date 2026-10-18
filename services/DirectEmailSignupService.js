@@ -5,6 +5,7 @@ const sessions = require('./AuthSessionService');
 const { AppError } = require('../utils/errorHandler');
 const { normalizeEmail, SIGNUP_CONSENT_VERSION } = require('../utils/freeAuthPolicy');
 const safeUser = require('../utils/publicUser');
+const { normalizePhone, encryptPhone, phoneSearchCandidates } = require('../utils/phoneEncryption');
 
 function digest(value, env) {
   // The signing key is already mandatory for login/session issuance. Never persist raw email/IP in abuse buckets.
@@ -21,6 +22,7 @@ class DirectEmailSignupService {
 
   async register(input, ip = 'unknown') {
     const email = normalizeEmail(input.email);
+    const phone = normalizePhone(input.phone);
     if (input.consentVersion !== SIGNUP_CONSENT_VERSION)
       throw new AppError('가입 동의 내용을 새로 확인해 주세요.', 400);
 
@@ -28,7 +30,11 @@ class DirectEmailSignupService {
       const result = await this.db.$transaction(async (tx) => {
         await tx.$executeRawUnsafe("SET LOCAL lock_timeout='3000ms'");
         await tx.$executeRawUnsafe("SET LOCAL statement_timeout='8000ms'");
-        const keys = [`direct-signup:email:${digest(email, this.env)}`, `direct-signup:ip:${digest(ip, this.env)}`].sort();
+        const keys = [
+          `direct-signup:email:${digest(email, this.env)}`,
+          `direct-signup:phone:${digest(phone, this.env)}`,
+          `direct-signup:ip:${digest(ip, this.env)}`,
+        ].sort();
         for (const key of keys)
           await tx.$queryRawUnsafe(
             'SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended($1,0))) AS lock_result',
@@ -42,19 +48,24 @@ class DirectEmailSignupService {
         if (limits.some((allowed) => !allowed))
           throw new AppError('가입 요청이 많습니다. 잠시 후 다시 시도해 주세요.', 429);
 
+        const phoneCandidates = phoneSearchCandidates(phone);
+        const phoneParams = phoneCandidates.map((_, index) => `$${index + 2}`).join(', ');
         const existing = await tx.$queryRawUnsafe(
-          'SELECT id FROM users WHERE lower(email)=lower($1) LIMIT 1',
-          email
+          `SELECT id FROM users WHERE lower(email)=lower($1) OR phone IN (${phoneParams}) LIMIT 1`,
+          email,
+          ...phoneCandidates
         );
         if (existing.length)
-          throw new AppError('이미 사용 중인 이메일입니다. 로그인해 주세요.', 409);
+          throw new AppError('이미 사용 중인 이메일 또는 휴대전화번호입니다. 로그인해 주세요.', 409);
 
         const passwordHash = await bcrypt.hash(input.password, 12);
         const rows = await tx.$queryRawUnsafe(
-          `INSERT INTO users(name,email,password,role,profile_step,password_login_enabled,email_verified_at)
-           VALUES($1,$2,$3,'user',1,true,NULL) RETURNING *`,
+          `INSERT INTO users(name,email,phone,password,role,profile_step,password_login_enabled,email_verified_at,
+                             business_access_status,trial_started_at,trial_ends_at)
+           VALUES($1,$2,$3,$4,'user',1,true,NULL,'trialing',now(),now()+interval '1 month') RETURNING *`,
           typeof input.name === 'string' && input.name.trim() ? input.name.trim().slice(0, 100) : '위마켓 회원',
           email,
+          encryptPhone(phone),
           passwordHash
         );
         const user = rows[0];
@@ -62,7 +73,7 @@ class DirectEmailSignupService {
           'INSERT INTO auth_account_events(id,user_id,event,operation_id) VALUES($1::uuid,$2,$3,$4::uuid)',
           crypto.randomUUID(),
           user.id,
-          `signup:direct-email-unverified:${SIGNUP_CONSENT_VERSION}:terms+privacy:age14`,
+          `signup:direct-email-phone-unverified:trial-1-month:${SIGNUP_CONSENT_VERSION}:terms+privacy:age14`,
           crypto.randomUUID()
         );
         const pair = await this.sessions.issue(user, tx);
@@ -71,7 +82,7 @@ class DirectEmailSignupService {
       return result;
     } catch (error) {
       if (error?.code === 'P2002' || error?.code === '23505')
-        throw new AppError('이미 사용 중인 이메일입니다. 로그인해 주세요.', 409);
+        throw new AppError('이미 사용 중인 이메일 또는 휴대전화번호입니다. 로그인해 주세요.', 409);
       throw error;
     }
   }
