@@ -21,9 +21,10 @@ jest.mock('../../../config/prisma', () => ({
     update: jest.fn(),
     delete: jest.fn(),
   },
-  users: { findUnique: jest.fn(), findFirst: jest.fn() },
+  users: { findUnique: jest.fn(), findFirst: jest.fn(), create: jest.fn() },
   $transaction: jest.fn(),
 }));
+jest.mock('../../../utils/planQuota', () => ({ assertPlanQuota: jest.fn().mockResolvedValue(undefined) }));
 
 const prisma = require('../../../config/prisma');
 const staffService = require('../../../services/StaffService');
@@ -35,15 +36,85 @@ describe('StaffService account security', () => {
     prisma.staff.findFirst.mockResolvedValue(null);
   });
 
-  it('매니저는 직원을 다시 매니저로 승격할 수 없다', async () => {
+  it.each(['staff', 'manager', 'kitchen'])('매니저는 %s 계정 역할을 변경할 수 없다', async (role) => {
     prisma.staff.findUnique.mockResolvedValue({ id: 2, store_id: 3, role: 'staff', is_active: 1 });
     prisma.stores.findUnique.mockResolvedValue({ user_id: 99 });
     prisma.staff.findFirst.mockResolvedValue({ role: 'manager', is_active: 1 });
 
-    await expect(staffService.updateStaffRole(2, 'manager', 7, 'manager')).rejects.toMatchObject({
+    await expect(staffService.updateStaffRole(2, role, 7, 'manager')).rejects.toMatchObject({
       statusCode: 403,
     });
     expect(prisma.staff.update).not.toHaveBeenCalled();
+  });
+
+  it.each(['staff', 'manager', 'kitchen'])('매니저는 신규 %s 계정을 만들 수 없다', async (role) => {
+    prisma.stores.findUnique.mockResolvedValue({ user_id: 99 });
+    prisma.staff.findFirst.mockResolvedValue({ role: 'manager', is_active: 1 });
+
+    await expect(staffService.createStaff({
+      storeId: 3, name: '팀원', email: 'team@example.com', password: 'pass12345', role,
+    }, 7, 'staff')).rejects.toMatchObject({ statusCode: 403 });
+    expect(prisma.users.create).not.toHaveBeenCalled();
+  });
+
+  it.each(['staff', 'manager', 'kitchen'])('매니저는 %s 계정을 추가할 수 없다', async (role) => {
+    prisma.stores.findUnique.mockResolvedValue({ user_id: 99 });
+    prisma.staff.findFirst.mockResolvedValueOnce({ role: 'manager', is_active: 1 });
+
+    await expect(
+      staffService.addExistingUser({ storeId: 3, userId: 8, role }, 7)
+    ).rejects.toMatchObject({ statusCode: 403 });
+    expect(prisma.staff.create).not.toHaveBeenCalled();
+  });
+
+  it.each(['staff', 'manager', 'kitchen'])('사업자 오너는 %s 계정을 추가할 수 있다', async (role) => {
+    prisma.stores.findUnique.mockResolvedValue({ user_id: 1 });
+    prisma.staff.findFirst.mockResolvedValue(null);
+    prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+    prisma.staff.count = jest.fn().mockResolvedValue(0);
+    prisma.staff.create.mockResolvedValue({
+      id: 20,
+      user_id: 8,
+      role,
+      users: { name: '팀원', email: 'team@example.com', phone: null },
+    });
+
+    await expect(
+      staffService.addExistingUser({ storeId: 3, userId: 8, role }, 1)
+    ).resolves.toMatchObject({ role });
+  });
+
+  it('오너는 비활성화했던 기존 계정을 요금제 한도 검사 후 복구할 수 있다', async () => {
+    prisma.stores.findUnique.mockResolvedValue({ user_id: 1 });
+    prisma.staff.findFirst.mockResolvedValue({ id: 20, user_id: 8, is_active: 0 });
+    prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+    prisma.staff.update.mockResolvedValue({ id: 20, user_id: 8, role: 'kitchen', users: { name: '팀원' } });
+
+    await expect(
+      staffService.addExistingUser({ storeId: 3, userId: 8, role: 'kitchen' }, 1)
+    ).resolves.toMatchObject({ id: 20, role: 'kitchen' });
+    expect(prisma.staff.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 20 },
+      data: { role: 'kitchen', is_active: 1 },
+    }));
+  });
+
+  it('매니저는 일반 직원도 매장에서 삭제할 수 없다', async () => {
+    prisma.staff.findUnique.mockResolvedValue({ id: 2, store_id: 3, role: 'staff', user_id: 8 });
+    prisma.stores.findUnique.mockResolvedValue({ user_id: 1 });
+    prisma.staff.findFirst.mockResolvedValue({ role: 'manager', is_active: 1 });
+
+    await expect(staffService.deleteStaff(2, 7, 'manager')).rejects.toMatchObject({ statusCode: 403 });
+    expect(prisma.staff.delete).not.toHaveBeenCalled();
+  });
+
+  it.each(['staff', 'manager', 'kitchen'])('사업자 오너는 %s 계정의 매장 접근을 삭제할 수 있다', async (role) => {
+    prisma.staff.findUnique.mockResolvedValue({ id: 2, store_id: 3, role, user_id: 8 });
+    prisma.stores.findUnique.mockResolvedValue({ user_id: 1 });
+    prisma.staff.update.mockResolvedValue({ id: 2 });
+
+    await expect(staffService.deleteStaff(2, 1, 'owner')).resolves.toEqual({ id: 2 });
+    expect(prisma.staff.update).toHaveBeenCalledWith({ where: { id: 2 }, data: { is_active: 0 } });
   });
 
   it('승격 가능한 역할 목록 밖의 role을 거부한다', async () => {

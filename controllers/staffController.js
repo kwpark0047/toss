@@ -25,7 +25,7 @@ exports.selfRegister = async (req, res) => {
 };
 
 exports.createStaff = async (req, res) => {
-  const result = await staffService.createStaff(req.body, req.user.id);
+  const result = await staffService.createStaff(req.body, req.user.id, req.user.role);
   res.created(result, '직원이 생성되었습니다.');
 };
 
@@ -61,16 +61,21 @@ exports.updateStaffRole = async (req, res) => {
 exports.deleteStaff = async (req, res) => {
   const staffId = parseId(req.params.id, '직원 ID');
   await staffService.deleteStaff(staffId, req.user.id, req.user.role);
-  res.success({ success: true }, '직원이 삭제되었습니다.');
+  res.success({ success: true }, '해당 매장의 계정 접근이 해제되었습니다.');
 };
 
 exports.lookupUser = async (req, res) => {
-  const result = await staffService.lookupUser(req.query.phone, req.query.storeId, req.user.id);
+  const result = await staffService.lookupUser(
+    req.query.phone,
+    req.query.storeId,
+    req.user.id,
+    req.user.role
+  );
   res.success(result);
 };
 
 exports.addExistingUser = async (req, res) => {
-  const result = await staffService.addExistingUser(req.body, req.user.id);
+  const result = await staffService.addExistingUser(req.body, req.user.id, req.user.role);
   res.created(result, '팀원이 추가되었습니다.');
 };
 

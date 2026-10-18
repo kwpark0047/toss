@@ -59,7 +59,7 @@ describe('StaffService.createStaff', () => {
         { storeId: STORE_ID, name: '신입', email: 'new@test.com', password: 'pass1234' },
         OWNER_ID
       )
-    ).rejects.toThrow('권한이 없습니다');
+    ).rejects.toThrow('사업자 오너만 매장 계정을 관리할 수 있습니다');
     expect(prisma.users.create).not.toHaveBeenCalled();
   });
 
@@ -84,7 +84,7 @@ describe('StaffService.createStaff', () => {
         },
         OWNER_ID
       )
-    ).rejects.toThrow('오너만');
+    ).rejects.toThrow('사업자 오너만 매장 계정을 관리할 수 있습니다');
   });
 
   it('유효하지 않은 역할은 거부된다 (400)', async () => {

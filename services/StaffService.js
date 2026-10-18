@@ -22,6 +22,16 @@ const parseTime = (value, fieldName) => {
 };
 
 class StaffService {
+  async assertAccountAdmin(storeId, callerUserId, callerRole) {
+    if (callerRole === 'super_admin') return 'super_admin';
+    const { getStoreRole } = require('../middleware/storeAuth');
+    const currentRole = await getStoreRole(callerUserId, storeId);
+    if (currentRole !== 'owner') {
+      throw new AppError('사업자 오너만 매장 계정을 관리할 수 있습니다.', 403);
+    }
+    return currentRole;
+  }
+
   async getMyRole(userId, storeId) {
     const store = await prisma.stores.findUnique({ where: { id: storeId } });
     if (store && store.user_id === userId) {
@@ -48,6 +58,7 @@ class StaffService {
       name: s.users.name,
       email: s.users.email,
       role: s.role,
+      is_active: s.is_active !== 0,
       created_at: s.created_at,
     }));
   }
@@ -72,7 +83,7 @@ class StaffService {
     return { id: newStaff.id, name: newStaff.users.name, role: 'owner' };
   }
 
-  async createStaff({ storeId, name, email, password, role }, callerUserId) {
+  async createStaff({ storeId, name, email, password, role }, callerUserId, callerRole) {
     if (!storeId || !email || !password || !name?.trim()) {
       throw new AppError('필수 정보가 누락되었습니다.', 400);
     }
@@ -83,15 +94,7 @@ class StaffService {
       throw new AppError('유효하지 않은 역할입니다.', 400);
     }
 
-    // 매장 관리 권한 확인 (오너/매니저) — 미인증 사용자의 타 매장 직원 생성 차단
-    const { getStoreRole } = require('../middleware/storeAuth');
-    const myRole = await getStoreRole(callerUserId, storeId);
-    if (!myRole || (myRole !== 'owner' && myRole !== 'manager')) {
-      throw new AppError('직원 추가 권한이 없습니다.', 403);
-    }
-    if (assignedRole === 'manager' && myRole !== 'owner') {
-      throw new AppError('매니저 역할은 오너만 부여할 수 있습니다.', 403);
-    }
+    await this.assertAccountAdmin(storeId, callerUserId, callerRole);
 
     const normalizedEmail = email.trim().toLowerCase();
     const existingUser = await prisma.users.findUnique({ where: { email: normalizedEmail } });
@@ -215,17 +218,7 @@ class StaffService {
     if (!ASSIGNABLE_ROLES.includes(role)) throw new AppError('유효하지 않은 역할입니다.', 400);
     if (target.role === 'owner') throw new AppError('오너 역할은 수정할 수 없습니다.', 403);
 
-    let currentRole = callerRole;
-    if (callerRole !== 'super_admin') {
-      const { getStoreRole } = require('../middleware/storeAuth');
-      currentRole = await getStoreRole(callerUserId, target.store_id);
-      if (currentRole !== 'owner' && currentRole !== 'manager') {
-        throw new AppError('직원 역할 수정 권한이 없습니다.', 403);
-      }
-    }
-    if (role === 'manager' && currentRole !== 'owner' && currentRole !== 'super_admin') {
-      throw new AppError('매니저 역할은 오너만 부여할 수 있습니다.', 403);
-    }
+    const currentRole = await this.assertAccountAdmin(target.store_id, callerUserId, callerRole);
     const updated = await prisma.staff.update({ where: { id: target.id }, data: { role } });
     void auditLogService.record({
       actorUserId: callerUserId,
@@ -246,21 +239,14 @@ class StaffService {
     });
     if (!target) throw new AppError('직원을 찾을 수 없습니다.', 404);
     if (target.role === 'owner') throw new AppError('오너 계정은 삭제할 수 없습니다.', 403);
-    if (callerRole !== 'super_admin') {
-      const { getStoreRole } = require('../middleware/storeAuth');
-      const currentRole = await getStoreRole(callerUserId, target.store_id);
-      if (currentRole !== 'owner' && currentRole !== 'manager') {
-        throw new AppError('직원 삭제 권한이 없습니다.', 403);
-      }
-      if (currentRole === 'manager' && target.role === 'manager') {
-        throw new AppError('매니저는 다른 매니저를 삭제할 수 없습니다.', 403);
-      }
-    }
-    const deleted = await prisma.staff.delete({ where: { id: target.id } });
+    await this.assertAccountAdmin(target.store_id, callerUserId, callerRole);
+    // Keep attendance, schedules and order attribution. Removing this membership
+    // revokes access to this store without deleting the user's global account.
+    const deleted = await prisma.staff.update({ where: { id: target.id }, data: { is_active: 0 } });
     void auditLogService.record({
       actorUserId: callerUserId,
       actorRole: callerRole,
-      action: 'STAFF_DELETED',
+      action: 'STAFF_ACCESS_REVOKED',
       resourceType: 'staff',
       resourceId: target.id,
       storeId: target.store_id,
@@ -269,13 +255,9 @@ class StaffService {
     return deleted;
   }
 
-  async lookupUser(phone, storeId, callerUserId) {
+  async lookupUser(phone, storeId, callerUserId, callerRole) {
     if (!storeId) throw new AppError('매장 ID가 필요합니다.', 400);
-    const { getStoreRole } = require('../middleware/storeAuth');
-    const myRole = await getStoreRole(callerUserId, storeId);
-    if (!myRole || (myRole !== 'owner' && myRole !== 'manager')) {
-      throw new AppError('팀원 조회 권한이 없습니다.', 403);
-    }
+    await this.assertAccountAdmin(storeId, callerUserId, callerRole);
 
     if (!phone) throw new AppError('휴대폰 번호가 필요합니다.', 400);
     const normalized = phone.replace(/\D/g, '');
@@ -299,32 +281,44 @@ class StaffService {
 
     return {
       found: true,
-      alreadyStaff: !!existing,
+      alreadyStaff: !!existing && existing.is_active !== 0,
       user: { id: user.id, name: user.name || '(이름 미등록)', phone: masked },
     };
   }
 
-  async addExistingUser({ storeId, userId, role }, callerUserId) {
+  async addExistingUser({ storeId, userId, role }, callerUserId, callerRole) {
     if (!storeId || !userId) throw new AppError('storeId와 userId가 필요합니다.', 400);
 
-    const { getStoreRole } = require('../middleware/storeAuth');
-    const myRole = await getStoreRole(callerUserId, storeId);
-    if (!myRole || (myRole !== 'owner' && myRole !== 'manager')) {
-      throw new AppError('직원 추가 권한이 없습니다.', 403);
-    }
+    await this.assertAccountAdmin(storeId, callerUserId, callerRole);
 
     const assignedRole = role || 'staff';
     if (!ASSIGNABLE_ROLES.includes(assignedRole)) {
       throw new AppError('유효하지 않은 역할입니다.', 400);
     }
-    if (assignedRole === 'manager' && myRole !== 'owner') {
-      throw new AppError('매니저 역할은 오너만 부여할 수 있습니다.', 403);
-    }
-
     const existing = await prisma.staff.findFirst({
       where: { store_id: parseInt(storeId), user_id: parseInt(userId) },
     });
-    if (existing) throw new AppError('이미 해당 매장의 팀원입니다.', 409);
+    if (existing && existing.is_active !== 0) throw new AppError('이미 해당 매장의 팀원입니다.', 409);
+
+    if (existing) {
+      const restored = await prisma.$transaction(async (tx) => {
+        await require('../utils/planQuota').assertPlanQuota(tx, storeId, 'maxStaff');
+        return tx.staff.update({
+          where: { id: existing.id },
+          data: { role: assignedRole, is_active: 1 },
+          include: { users: { select: { name: true, email: true, phone: true } } },
+        });
+      });
+      void auditLogService.record({
+        actorUserId: callerUserId,
+        action: 'STAFF_ACCESS_RESTORED',
+        resourceType: 'staff',
+        resourceId: existing.id,
+        storeId: parseInt(storeId),
+        after: { role: restored.role },
+      });
+      return { id: restored.id, user_id: restored.user_id, name: restored.users.name, role: restored.role };
+    }
 
     const newStaff = await prisma.$transaction(async (tx) => {
       await require('../utils/planQuota').assertPlanQuota(tx, storeId, 'maxStaff');
