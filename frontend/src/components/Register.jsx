@@ -91,7 +91,7 @@ export default function Register() {
             {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
             <label className="block text-sm font-medium text-slate-700">
               휴대전화번호
-              <input aria-label="휴대전화번호" type="tel" autoComplete="tel" inputMode="tel" required maxLength={13} pattern="01[0-9][- ]?[0-9]{3,4}[- ]?[0-9]{4}" title="01012345678 또는 010-1234-5678 형식으로 입력해 주세요." value={phone} onChange={(event) => setPhone(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-900" />
+              <input aria-label="휴대전화번호" type="tel" autoComplete="tel" inputMode="tel" required maxLength={13} pattern="01[0-9]-?[0-9]{3,4}-?[0-9]{4}" title="01012345678 또는 010-1234-5678 형식으로 입력해 주세요." value={phone} onChange={(event) => setPhone(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-900" />
             </label>
             <label className="block text-sm font-medium text-slate-700">
               이메일
