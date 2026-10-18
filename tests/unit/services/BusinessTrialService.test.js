@@ -1,12 +1,14 @@
 const { BusinessTrialService } = require('../../../services/BusinessTrialService');
 
-function makeDb({ updated = [], current = [], listed = [] } = {}) {
+function makeDb({ updated = [], current = [], listed = [], locked = [], stores = [] } = {}) {
   const calls = [];
   const tx = {
     $queryRawUnsafe: jest.fn(async (sql, ...args) => {
       calls.push({ sql, args });
       if (sql.includes('UPDATE public.users')) return updated;
       if (sql.includes('SELECT id, business_access_status')) return current;
+      if (sql.includes('SELECT id, email, trial_started_at')) return locked;
+      if (sql.includes('SELECT id FROM public.stores')) return stores;
       return listed;
     }),
     $executeRawUnsafe: jest.fn(async (sql, ...args) => calls.push({ sql, args })),
@@ -45,6 +47,36 @@ describe('BusinessTrialService', () => {
   test('returns conflict when an account is already approved', async () => {
     const db = makeDb({ current: [{ id: 7, business_access_status: 'approved' }] });
     await expect(new BusinessTrialService(db).approve(7, 99)).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  test('revokes formal approval transactionally and audits it', async () => {
+    const db = makeDb({ updated: [{ id: 7, business_access_status: 'trialing' }] });
+    const result = await new BusinessTrialService(db).revokeApproval(7, 99);
+    expect(result.business_access_status).toBe('trialing');
+    expect(db.calls[0].sql).toContain("business_access_status='trialing'");
+    expect(db.calls.some(({ args }) => args.includes('business-trial:approval-revoked:admin:99'))).toBe(true);
+  });
+
+  test('anonymizes trial identity, revokes sessions and preserves finance references', async () => {
+    const db = makeDb({ locked: [{ id: 7, email: 'trial@example.com', trial_started_at: new Date() }] });
+    const result = await new BusinessTrialService(db).deleteAccount(7, 99);
+    expect(result).toMatchObject({ deleted: true, anonymized: true, financialRecordsRetained: true });
+    expect(db.calls.some(({ sql }) => sql.includes("auth_status='deletion_pending'") && sql.includes('email=NULL'))).toBe(true);
+    expect(db.calls.some(({ sql }) => sql.includes('UPDATE public.auth_sessions SET revoked_at'))).toBe(true);
+    expect(db.calls.some(({ args }) => args.includes('business-trial:account-deleted:admin:99'))).toBe(true);
+  });
+
+  test('refuses to remove a trial account that owns stores', async () => {
+    const db = makeDb({ locked: [{ id: 7, email: 'trial@example.com', trial_started_at: new Date() }], stores: [{ id: 3 }] });
+    await expect(new BusinessTrialService(db).deleteAccount(7, 99)).rejects.toMatchObject({ statusCode: 409 });
+    expect(db.calls.some(({ sql }) => sql.includes("auth_status='deletion_pending'"))).toBe(false);
+  });
+
+  test('does not permit super-admin accounts to be deleted through the trial action', async () => {
+    const db = makeDb({ locked: [] });
+    await expect(new BusinessTrialService(db).deleteAccount(7, 99)).rejects.toMatchObject({ statusCode: 404 });
+    expect(db.calls[0].sql).toContain("COALESCE(role,'user') <> 'super_admin'");
+    expect(db.calls.some(({ sql }) => sql.includes("auth_status='deletion_pending'"))).toBe(false);
   });
 });
 

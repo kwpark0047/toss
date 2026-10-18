@@ -561,6 +561,8 @@ router.post(
   adminOnly,
   businessTrialController.approve
 );
+router.post('/business-trials/:id/revoke-approval', authMiddleware, adminOnly, businessTrialController.revokeApproval);
+router.delete('/business-trials/:id', authMiddleware, adminOnly, businessTrialController.deleteAccount);
 
 // ── AI 동적 가격 책정 ───────────────────────────────────────────────────────
 /**

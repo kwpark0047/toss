@@ -8,7 +8,7 @@ import MiniBarChart from './MiniBarChart';
 import StoreDetailModal from './StoreDetailModal';
 import StoreEnrichmentModal from './StoreEnrichmentModal';
 import Icon from '../../components/ui/Icon';
-import { Check, ChevronLeft, ChevronRight, Clock, Gift, Link2, Loader2, Search, Settings, Sparkles, Store, Users, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Clock, Gift, Link2, Loader2, RotateCcw, Search, Settings, Sparkles, Store, Trash2, Users, X } from 'lucide-react';
 
 const INFO_BADGE = {
   good: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
@@ -51,6 +51,7 @@ export default function SuperAdminDashboard() {
   const [businessTrials, setBusinessTrials] = useState([]);
   const [trialFilter, setTrialFilter] = useState('trialing');
   const [trialBusy, setTrialBusy] = useState(null);
+  const [trialAction, setTrialAction] = useState(null);
 
   const readSection = useCallback(async (key, request, apply, message) => {
     try {
@@ -100,6 +101,22 @@ export default function SuperAdminDashboard() {
     } finally {
       setTrialBusy(null);
     }
+  };
+
+  const runTrialAction = async () => {
+    if (!trialAction) return;
+    const { id, kind } = trialAction;
+    setTrialBusy(id);
+    try {
+      if (kind === 'revoke') await adminAPI.revokeBusinessTrialApproval(id);
+      else await adminAPI.deleteBusinessTrialAccount(id);
+      setTrialAction(null);
+      await loadBusinessTrials();
+    } catch {
+      fail('businessTrials', kind === 'revoke'
+        ? '승인 취소에 실패했습니다. 상태를 새로고침해 확인해 주세요.'
+        : '계정 정리에 실패했습니다. 소유 매장이나 보존 대상 기록을 확인해 주세요.');
+    } finally { setTrialBusy(null); }
   };
 
   const fetchStores = useCallback(async () => {
@@ -291,9 +308,20 @@ export default function SuperAdminDashboard() {
                       {account.business_approved_at ? ` · 승인 ${new Date(account.business_approved_at).toLocaleDateString('ko-KR')}` : ''}
                     </p>
                   </div>
-                  {!approved && <button type="button" disabled={trialBusy === account.id} onClick={() => void approveTrial(account.id)} className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-3 text-xs font-black text-emerald-300 hover:bg-emerald-500/25 disabled:opacity-50">
-                    {trialBusy === account.id ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />} 정식 이용 승인
-                  </button>}
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    {!approved && <button type="button" disabled={trialBusy === account.id} onClick={() => void approveTrial(account.id)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-3 text-xs font-black text-emerald-300 hover:bg-emerald-500/25 disabled:opacity-50">
+                      {trialBusy === account.id ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />} 정식 이용 승인
+                    </button>}
+                    {approved && <button type="button" disabled={trialBusy === account.id} onClick={() => setTrialAction({ id: account.id, kind: 'revoke' })} className="inline-flex h-9 items-center gap-1 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 text-xs font-bold text-amber-200 disabled:opacity-50"><RotateCcw size={13} aria-hidden="true" /> 승인 취소</button>}
+                    <button type="button" disabled={trialBusy === account.id} onClick={() => setTrialAction({ id: account.id, kind: 'delete', confirmation: '' })} className="inline-flex h-9 items-center gap-1 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 text-xs font-bold text-rose-200 disabled:opacity-50"><Trash2 size={13} aria-hidden="true" /> 계정 삭제</button>
+                  </div>
+                  {trialAction?.id === account.id && (
+                    <div role="alertdialog" aria-label={trialAction.kind === 'revoke' ? '승인 취소 확인' : '계정 삭제 확인'} className="w-full rounded-lg border border-white/15 bg-slate-950 p-3 text-xs">
+                      <p className="font-bold text-white">{trialAction.kind === 'revoke' ? '정식 이용 승인을 취소할까요?' : '로그인과 개인정보를 정리합니다. 매장·재무·감사 기록은 보존됩니다.'}</p>
+                      {trialAction.kind === 'revoke' ? <p className="mt-1 text-slate-400">체험 종료일이 지났다면 계정의 이용이 제한됩니다.</p> : <label className="mt-2 block text-slate-300">계속하려면 ‘삭제’를 입력하세요.<input aria-label="삭제 확인 문구" value={trialAction.confirmation} onChange={(event) => setTrialAction(current => ({ ...current, confirmation: event.target.value }))} className="mt-1 block h-9 w-full rounded-md border border-white/15 bg-slate-900 px-2 text-white" /></label>}
+                      <div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => setTrialAction(null)} className="rounded-md px-3 py-2 text-slate-300">취소</button><button type="button" disabled={trialBusy === account.id || (trialAction.kind === 'delete' && trialAction.confirmation !== '삭제')} onClick={() => void runTrialAction()} className="rounded-md bg-rose-600 px-3 py-2 font-bold text-white disabled:opacity-40">{trialAction.kind === 'revoke' ? '승인 취소 확인' : '계정 정리 확인'}</button></div>
+                    </div>
+                  )}
                 </div>
               );
             })}
