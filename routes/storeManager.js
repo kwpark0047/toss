@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
-const { getStoreRole } = require('../middleware/storeAuth');
+const { getStoreRole, blockExpiredTrialWrite } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const { AppError } = require('../utils/errorHandler');
 const StoreManagerService = require('../services/StoreManagerService');
@@ -24,11 +24,14 @@ router.use(auth);
 router.use(
   '/stores/:storeId',
   catchAsync(async (req, res, next) => {
-    const actualRole = await getStoreRole(req.user.id, store(req));
+    const storeId = store(req);
+    const actualRole = await getStoreRole(req.user.id, storeId);
     req.managerRole = req.user.role === 'super_admin' ? 'super_admin' : actualRole;
     req.isManagerOwner = actualRole === 'owner';
     if (!['owner', 'manager', 'super_admin'].includes(req.managerRole))
       throw new AppError('매장 관리자 권한이 필요합니다.', 403);
+    if (req.user.role !== 'super_admin' && (await blockExpiredTrialWrite(storeId, req, res)))
+      return;
     res.set('Cache-Control', 'no-store');
     next();
   })
@@ -61,3 +64,4 @@ router.get(
   catchAsync(async (req, res) => res.success(await service.evaluate(store(req), req.params.id)))
 );
 module.exports = router;
+

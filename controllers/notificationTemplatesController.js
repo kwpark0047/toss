@@ -1,8 +1,24 @@
 const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
-const { getStoreRole } = require('../middleware/storeAuth');
+const {
+  getStoreRole,
+  assertStoreCanAccess,
+  assertStoreCanWrite,
+} = require('../middleware/storeAuth');
 
-const ALLOWED_TYPES = ['NEW_ORDER', 'ORDER_STATUS', 'LOW_STOCK', 'NEW_REVIEW', 'NEW_RESERVATION', 'MANAGER_CALL', 'SETTLEMENT', 'SYSTEM', 'STORE_LINK_CREATED', 'STORE_LINK_APPROVED', 'STORE_LINK_REJECTED'];
+const ALLOWED_TYPES = [
+  'NEW_ORDER',
+  'ORDER_STATUS',
+  'LOW_STOCK',
+  'NEW_REVIEW',
+  'NEW_RESERVATION',
+  'MANAGER_CALL',
+  'SETTLEMENT',
+  'SYSTEM',
+  'STORE_LINK_CREATED',
+  'STORE_LINK_APPROVED',
+  'STORE_LINK_REJECTED',
+];
 const ALLOWED_CHANNELS = ['push', 'socket', 'alimtalk', 'all'];
 
 // 매장 관리 권한(owner/manager)만 템플릿을 쓰기/조회할 수 있도록 확인.
@@ -11,7 +27,13 @@ async function hasStorePermission(req, storeId) {
   if (!storeId) return false;
   if (req.user?.role === 'super_admin') return true;
   const role = await getStoreRole(req.user?.id, Number(storeId));
-  return role === 'owner' || role === 'manager';
+  if (role !== 'owner' && role !== 'manager') return false;
+  await assertStoreCanAccess(Number(storeId));
+  return true;
+}
+
+async function assertStoreWriteAllowed(req, storeId) {
+  if (storeId && req.user?.role !== 'super_admin') await assertStoreCanWrite(Number(storeId));
 }
 
 /**
@@ -27,10 +49,7 @@ const getTemplates = async (req, res, next) => {
     }
 
     const where = {
-      OR: [
-        { store_id: Number(store_id) },
-        { store_id: null }
-      ]
+      OR: [{ store_id: Number(store_id) }, { store_id: null }],
     };
     if (type && ALLOWED_TYPES.includes(type)) where.type = type;
     if (is_active === 'true') where.is_active = true;
@@ -38,16 +57,26 @@ const getTemplates = async (req, res, next) => {
 
     const templates = await prisma.notification_templates.findMany({
       where,
-      orderBy: [{ store_id: { sort: 'asc', nulls: 'first' } }, { type: 'asc' }]
+      orderBy: [{ store_id: { sort: 'asc', nulls: 'first' } }, { type: 'asc' }],
     });
 
-    const parsed = templates.map(t => ({
+    const parsed = templates.map((t) => ({
       ...t,
-      variables: t.variables ? (() => { try { return JSON.parse(t.variables); } catch { return null; } })() : null
+      variables: t.variables
+        ? (() => {
+            try {
+              return JSON.parse(t.variables);
+            } catch {
+              return null;
+            }
+          })()
+        : null,
     }));
 
     res.success(parsed, '알림 템플릿 목록 조회 완료');
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -58,7 +87,7 @@ const getTemplate = async (req, res, next) => {
   try {
     const { id } = req.params;
     const template = await prisma.notification_templates.findUnique({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
     });
     if (!template) return next(new AppError('템플릿을 찾을 수 없습니다.', 404));
     // 매장 템플릿은 해당 매장 권한 필요 (전역 템플릿 store_id=null은 조회 허용)
@@ -68,9 +97,19 @@ const getTemplate = async (req, res, next) => {
 
     res.success({
       ...template,
-      variables: template.variables ? (() => { try { return JSON.parse(template.variables); } catch { return null; } })() : null
+      variables: template.variables
+        ? (() => {
+            try {
+              return JSON.parse(template.variables);
+            } catch {
+              return null;
+            }
+          })()
+        : null,
     });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -90,6 +129,7 @@ const createTemplate = async (req, res, next) => {
       // 다른 매장에 템플릿을 심는 것 방지 (store_id는 권한 검증된 값만 사용)
       return next(new AppError('해당 매장에 대한 권한이 없습니다.', 403));
     }
+    await assertStoreWriteAllowed(req, store_id ? Number(store_id) : null);
 
     if (!type || !title || !message) {
       return next(new AppError('type, title, message는 필수 항목입니다.', 400));
@@ -98,7 +138,9 @@ const createTemplate = async (req, res, next) => {
       return next(new AppError(`유효하지 않은 type입니다. 허용: ${ALLOWED_TYPES.join(', ')}`, 400));
     }
     if (channel && !ALLOWED_CHANNELS.includes(channel)) {
-      return next(new AppError(`유효하지 않은 channel입니다. 허용: ${ALLOWED_CHANNELS.join(', ')}`, 400));
+      return next(
+        new AppError(`유효하지 않은 channel입니다. 허용: ${ALLOWED_CHANNELS.join(', ')}`, 400)
+      );
     }
 
     const template = await prisma.notification_templates.create({
@@ -109,12 +151,14 @@ const createTemplate = async (req, res, next) => {
         title,
         message,
         variables: variables ? JSON.stringify(variables) : null,
-        is_active: is_active !== undefined ? is_active : true
-      }
+        is_active: is_active !== undefined ? is_active : true,
+      },
     });
 
     res.created(template, '알림 템플릿이 생성되었습니다.');
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -127,22 +171,26 @@ const updateTemplate = async (req, res, next) => {
     const { type, channel, title, message, variables, is_active } = req.body;
 
     const existing = await prisma.notification_templates.findUnique({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
     });
     if (!existing) return next(new AppError('템플릿을 찾을 수 없습니다.', 404));
 
     // 권한: 전역 템플릿은 super_admin만, 매장 템플릿은 해당 매장 owner/manager만
     if (existing.store_id === null) {
-      if (req.user?.role !== 'super_admin') return next(new AppError('전역 템플릿은 플랫폼 관리자만 수정할 수 있습니다.', 403));
+      if (req.user?.role !== 'super_admin')
+        return next(new AppError('전역 템플릿은 플랫폼 관리자만 수정할 수 있습니다.', 403));
     } else if (!(await hasStorePermission(req, existing.store_id))) {
       return next(new AppError('해당 매장에 대한 권한이 없습니다.', 403));
     }
+    await assertStoreWriteAllowed(req, existing.store_id);
 
     if (type && !ALLOWED_TYPES.includes(type)) {
       return next(new AppError(`유효하지 않은 type입니다. 허용: ${ALLOWED_TYPES.join(', ')}`, 400));
     }
     if (channel && !ALLOWED_CHANNELS.includes(channel)) {
-      return next(new AppError(`유효하지 않은 channel입니다. 허용: ${ALLOWED_CHANNELS.join(', ')}`, 400));
+      return next(
+        new AppError(`유효하지 않은 channel입니다. 허용: ${ALLOWED_CHANNELS.join(', ')}`, 400)
+      );
     }
 
     const template = await prisma.notification_templates.update({
@@ -153,12 +201,14 @@ const updateTemplate = async (req, res, next) => {
         ...(title !== undefined && { title }),
         ...(message !== undefined && { message }),
         ...(variables !== undefined && { variables: JSON.stringify(variables) }),
-        ...(is_active !== undefined && { is_active })
-      }
+        ...(is_active !== undefined && { is_active }),
+      },
     });
 
     res.success(template, '알림 템플릿이 수정되었습니다.');
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -173,13 +223,15 @@ const deleteTemplate = async (req, res, next) => {
 
     // 권한: 전역 템플릿은 super_admin만, 매장 템플릿은 해당 매장 owner/manager만
     if (existing.store_id === null) {
-      if (req.user?.role !== 'super_admin') return next(new AppError('전역 템플릿은 플랫폼 관리자만 삭제할 수 있습니다.', 403));
+      if (req.user?.role !== 'super_admin')
+        return next(new AppError('전역 템플릿은 플랫폼 관리자만 삭제할 수 있습니다.', 403));
     } else if (!(await hasStorePermission(req, existing.store_id))) {
       return next(new AppError('해당 매장에 대한 권한이 없습니다.', 403));
     }
+    await assertStoreWriteAllowed(req, existing.store_id);
 
     await prisma.notification_templates.delete({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
     });
     res.success({ id: Number(id) }, '알림 템플릿이 삭제되었습니다.');
   } catch (err) {
@@ -193,5 +245,6 @@ module.exports = {
   getTemplate,
   createTemplate,
   updateTemplate,
-  deleteTemplate
+  deleteTemplate,
 };
+

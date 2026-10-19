@@ -10,6 +10,9 @@ const jwt = require('jsonwebtoken');
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'tables-route-test-secret';
 
 const mockPrisma = {
+  $queryRawUnsafe: jest
+    .fn()
+    .mockResolvedValue([{ business_access_status: 'approved', trial_ends_at: null }]),
   stores: { findUnique: jest.fn() },
   staff: { findFirst: jest.fn() },
   tables: { findMany: jest.fn() },
@@ -115,6 +118,24 @@ describe('table route tenant authorization', () => {
     expect(mockTable.update).toHaveBeenCalledWith('10', { table_number: 'B1' });
   });
 
+  test('체험 만료 사업자의 테이블 수정은 실제 라우트에서도 차단한다', async () => {
+    mockPrisma.$queryRawUnsafe.mockResolvedValue([
+      {
+        business_access_status: 'trialing',
+        trial_ends_at: new Date(Date.now() - 60_000),
+      },
+    ]);
+
+    const response = await request(app)
+      .put('/api/tables/10')
+      .set('Authorization', `Bearer ${OWNER_TOKEN}`)
+      .send({ table_number: 'B1' });
+
+    expect(response.status).toBe(403);
+    expect(response.body.code).toBe('TRIAL_EXPIRED');
+    expect(mockTable.update).not.toHaveBeenCalled();
+  });
+
   test('layout 테이블이 URL 매장과 다르면 갱신하지 않는다', async () => {
     mockPrisma.tables.findMany.mockResolvedValue([{ id: 10, store_id: 43 }]);
 
@@ -139,3 +160,4 @@ describe('table route tenant authorization', () => {
     expect(mockTable.updateLayout).toHaveBeenCalledWith('42', layout);
   });
 });
+

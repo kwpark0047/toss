@@ -9,6 +9,7 @@ const storeLinkController = require('../controllers/storeLinkController');
 const dynamicPricingController = require('../controllers/dynamicPricingController');
 const customerSegmentationController = require('../controllers/customerSegmentationController');
 const grantTemplateController = require('../controllers/grantTemplateController');
+const businessTrialController = require('../controllers/businessTrialController');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 
@@ -552,6 +553,39 @@ router.post(
   storeLinkController.rejectRequest
 );
 
+// ── 신규 사업자 1개월 체험 및 정식 이용 승인 (super_admin) ────────────────
+router.get('/business-trials', authMiddleware, adminOnly, businessTrialController.list);
+router.post(
+  '/business-trials/:id/approve',
+  authMiddleware,
+  adminOnly,
+  businessTrialController.approve
+);
+router.post(
+  '/business-trials/:id/revoke-approval',
+  authMiddleware,
+  adminOnly,
+  businessTrialController.revokeApproval
+);
+router.post(
+  '/business-trials/:id/restrict',
+  authMiddleware,
+  adminOnly,
+  businessTrialController.restrictAccess
+);
+router.post(
+  '/business-trials/:id/restore',
+  authMiddleware,
+  adminOnly,
+  businessTrialController.restoreAccess
+);
+router.delete(
+  '/business-trials/:id',
+  authMiddleware,
+  adminOnly,
+  businessTrialController.deleteAccount
+);
+
 // ── AI 동적 가격 책정 ───────────────────────────────────────────────────────
 /**
  * @swagger
@@ -844,3 +878,4 @@ router.get(
 );
 
 module.exports = router;
+

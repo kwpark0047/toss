@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const prisma = require('../config/prisma');
 const StoreManagerService = require('./StoreManagerService');
 const { AppError } = require('../utils/errorHandler');
+const { assertUserCanAccess, assertUserCanWrite } = require('../middleware/businessTrialAccess');
 const { nextState, summarize } = require('../utils/businessSupportAnalysis');
 const identifier = (value) => {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value)))
@@ -27,7 +28,11 @@ class BusinessSupportService {
     const owner = rows[0].user_id === actor.id;
     if (!owner && actor.role !== 'super_admin')
       throw new AppError('지원 접근 권한이 없습니다.', 403);
+    if (owner) await assertUserCanAccess(rows[0].user_id);
     return { ...rows[0], owner };
+  }
+  async assertOwnerWrite(store) {
+    if (store.owner) await assertUserCanWrite(store.user_id);
   }
   async enrollment(storeId, actor) {
     const store = await this.context(this.db, storeId, actor);
@@ -46,6 +51,7 @@ class BusinessSupportService {
     return this.db.$transaction(async (tx) => {
       const store = await this.context(tx, storeId, actor, true);
       if (!store.owner) throw new AppError('실제 매장 소유자만 동의할 수 있습니다.', 403);
+      await this.assertOwnerWrite(store);
       if (enabled && !store.is_active)
         throw new AppError('운영 중인 매장만 지원에 등록할 수 있습니다.', 409);
       await tx.$executeRawUnsafe(
@@ -80,6 +86,12 @@ class BusinessSupportService {
       attempts=CASE WHEN business_support_jobs.status='running' THEN business_support_jobs.attempts ELSE 0 END,available_at=now(),updated_at=now()`,
       storeId
     );
+  }
+  async requestRescan(storeId, actor) {
+    const store = await this.context(this.db, storeId, actor);
+    await this.assertOwnerWrite(store);
+    await this.markDirty(storeId);
+    return { queued: true };
   }
   async list(actor, storeId, cursor = '0:0', limit = 30) {
     if (storeId) await this.context(this.db, storeId, actor);
@@ -208,6 +220,7 @@ class BusinessSupportService {
     note = noteText(note);
     return this.db.$transaction(async (tx) => {
       const store = await this.context(tx, storeId, actor, true);
+      await this.assertOwnerWrite(store);
       const old = await tx.$queryRawUnsafe(
         'SELECT * FROM business_support_events WHERE operation_id=$1::uuid',
         operationId
@@ -288,6 +301,8 @@ class BusinessSupportService {
     });
   }
   async evaluate(storeId, id, actor) {
+    const store = await this.context(this.db, storeId, actor);
+    await this.assertOwnerWrite(store);
     const detail = await this.detail(storeId, id, actor);
     if (!detail.action_id || !['running', 'completed'].includes(detail.status))
       throw new AppError('실행한 QR 제안만 평가할 수 있습니다.', 409);
@@ -316,3 +331,4 @@ class BusinessSupportService {
   }
 }
 module.exports = BusinessSupportService;
+

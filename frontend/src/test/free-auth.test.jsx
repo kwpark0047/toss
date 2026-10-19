@@ -10,7 +10,7 @@ beforeEach(()=>{vi.clearAllMocks();mock.config.mockResolvedValue({enabled:true,g
 it('offers Google first and gates signup on both legal consent and a fresh challenge',async()=>{
  render(<MemoryRouter><FreeAuthOptions mode="signup"/></MemoryRouter>);
  const google=await screen.findByRole('button',{name:'Google로 계속하기'});expect(google).toBeDisabled();
- fireEvent.click(screen.getByLabelText('이용약관에 동의합니다'));fireEvent.click(screen.getByLabelText('개인정보 처리방침에 동의합니다'));fireEvent.click(screen.getByRole('button',{name:'보안 확인'}));expect(google).toBeEnabled();
+ fireEvent.click(screen.getByLabelText('이용약관에 동의합니다'));fireEvent.click(screen.getByLabelText('개인정보 처리방침에 동의합니다'));fireEvent.click(screen.getByRole('button',{name:'보안 확인'}));expect(google).toBeDisabled();fireEvent.click(screen.getByLabelText('만 14세 이상입니다'));expect(google).toBeEnabled();
  expect(screen.getAllByRole('button').findIndex(x=>x.textContent==='Google로 계속하기')).toBeLessThan(screen.getAllByRole('button').findIndex(x=>x.textContent==='카카오로 계속하기'));
 });
 it('sends one email challenge and requires explicit code verification before login',async()=>{
@@ -24,6 +24,11 @@ it('sends one email challenge and requires explicit code verification before log
 it('unconfigured provider does not offer a fake login success',async()=>{
  mock.config.mockResolvedValue({enabled:false});render(<MemoryRouter><FreeAuthOptions mode="signup"/></MemoryRouter>);
  await screen.findByText(/무료 인증은 설정을 준비 중/);expect(screen.queryByRole('button',{name:'Google로 계속하기'})).toBeNull();
+});
+it('hides the optional free-auth setup notice on the login screen when the feature is disabled',async()=>{
+ mock.config.mockResolvedValue({enabled:false});render(<MemoryRouter><FreeAuthOptions mode="login"/></MemoryRouter>);
+ await waitFor(()=>expect(mock.config).toHaveBeenCalled());
+ expect(screen.queryByText(/무료 인증은 설정을 준비 중입니다/)).toBeNull();
 });
 it('keeps legacy providers available when the feature flag has no configured OAuth provider',async()=>{
  const availability=vi.fn();mock.config.mockResolvedValue({enabled:true,google:false,kakao:false,email:false});
@@ -63,4 +68,5 @@ it('removes a consumed email challenge after successful recent authentication',a
  await waitFor(()=>expect(onResult).toHaveBeenCalledWith({reauthProof:'recent-proof'}));
  expect(screen.queryByLabelText('6자리 이메일 인증번호')).toBeNull();
 });
+
 

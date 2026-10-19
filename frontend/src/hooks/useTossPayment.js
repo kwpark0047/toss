@@ -36,7 +36,16 @@ export function useTossPayment() {
 
   // 토스페이 결제 실행
   const initiateTossPayment = useCallback(
-    async ({ orderId, storeId, totalAmount, pointAmount = 0, tossUserKey, phone, capability }) => {
+    async ({
+      orderId,
+      storeId,
+      totalAmount,
+      pointAmount = 0,
+      tossUserKey,
+      phone,
+      capability,
+      preparedPayment,
+    }) => {
       setLoading(true);
       setError(null);
       setPaymentResult(null);
@@ -58,15 +67,17 @@ export function useTossPayment() {
         }
 
         // 1. 서버에서 결제 준비 (Ready)
-        const readyResponse = await paymentsAPI.prepare(
-          {
-            order_id: orderId,
-            store_id: storeId,
-            amount: totalAmount,
-            method: 'CARD',
-          },
-          capability
-        );
+        const readyResponse =
+          preparedPayment ||
+          (await paymentsAPI.prepare(
+            {
+              order_id: orderId,
+              store_id: storeId,
+              amount: totalAmount,
+              method: 'CARD',
+            },
+            capability
+          ));
         const payment = readyResponse?.data ?? readyResponse;
         if (!payment?.payment_id || !payment?.order_number) {
           throw new Error('결제 준비 응답이 올바르지 않습니다. 주문 내역을 확인해 주세요.');
@@ -154,6 +165,9 @@ export function useTossPayment() {
           const redirectMetadata = `?payment_id=${payment.payment_id}&phone=${encodeURIComponent(phone || '')}&tossUserKey=${tossUserKey || ''}`;
 
           await tossPayments.requestPayment('카드', {
+            // Official SDK full-page mode avoids a stalled third-party iframe.
+            // The same-tab return preserves the pending payment capability.
+            windowTarget: 'self',
             amount: totalAmount,
             orderId: payment.order_number,
             orderName: `WeMarket 주문 - ${payment.order_number}`,
@@ -216,3 +230,4 @@ export function useTossPayment() {
 }
 
 export default useTossPayment;
+

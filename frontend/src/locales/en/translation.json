@@ -284,6 +284,15 @@
     "notify_phone": "📱 Order notification number",
     "notify_phone_saved": "Saved number entered. Edit to receive at a different number.",
     "notify_phone_hint": "Get order status updates via SMS. (Optional)",
+    "notify_phone_invalid": "Enter a valid mobile number, such as 010-1234-5678.",
+    "items_unit": " items",
+    "open_cart": "Open cart",
+    "minimize": "Keep browsing menu",
+    "split_payment_pending": "A split payment is already pending. Resume it before changing the cart.",
+    "split_payment_card_only": "Split payment currently supports credit cards. Select credit card to continue.",
+    "remove_item": "Remove {{name}}",
+    "decrease_quantity": "Decrease {{name}} quantity",
+    "increase_quantity": "Increase {{name}} quantity",
     "select_payment": "💳 Select payment method",
     "select_payment_guide": "Please select a payment method",
     "popular_combo": "Popular combos that taste even better together",
@@ -671,3 +680,4 @@
     "cancelled": "Cancelled"
   }
 }
+

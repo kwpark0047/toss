@@ -28,12 +28,15 @@ export default function StoreLocator() {
   const [coords, setCoords] = useState(null); // { lat, lng }
   const [stores, setStores] = useState([]);
   const [types, setTypes] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [locating, setLocating] = useState(false);
   const [geoMsg, setGeoMsg] = useState('');
   const [view, setView] = useState('grid'); // grid | list | map (그리드 기본)
   const [favorites, setFavorites] = useState(new Set());
+  const searchSequence = useRef(0);
   const customerPhone = (() => { try { return localStorage.getItem('wm_customer_phone'); } catch { return null; } })();
 
   useEffect(() => {
@@ -102,8 +105,14 @@ export default function StoreLocator() {
   }, [customerPhone, favorites]);
 
   const search = useCallback(async (over = {}) => {
+    const sequence = ++searchSequence.current;
+    const requestedPage = Math.max(1, Number(over.page) || 1);
+    const appendResults = over.append === true && requestedPage > 1;
     setLoading(true);
-    setError(null);
+    if (!appendResults) {
+      setError(null);
+      setHasMore(false);
+    }
     try {
       const params = {
         district: (over.district ?? district) || undefined,
@@ -112,21 +121,36 @@ export default function StoreLocator() {
         lat: (over.coords ?? coords)?.lat,
         lng: (over.coords ?? coords)?.lng,
         limit: 12,
+        page: requestedPage,
       };
       const res = await storesAPI.searchPublic(params);
       const data = res?.data || res;
-      setStores((data.stores || []).filter(s => isDisplayableStoreName(s.name)));
-      if (data.facets?.businessTypes?.length) setTypes(data.facets.businessTypes);
+      if (sequence !== searchSequence.current) return;
+      const results = (Array.isArray(data?.stores) ? data.stores : Array.isArray(data) ? data : [])
+        .filter(s => s && isDisplayableStoreName(s.name));
+      setStores(previous => {
+        if (!appendResults) return results;
+        const byId = new Map(previous.map(store => [store.id, store]));
+        results.forEach(store => byId.set(store.id, store));
+        return Array.from(byId.values());
+      });
+      const availableTypes = data?.facets?.businessTypes;
+      if (Array.isArray(availableTypes)) setTypes(availableTypes);
+      setPage(requestedPage);
+      setHasMore(Boolean(data?.pagination?.hasMore));
       setError(null);
     } catch (err) {
-      setStores([]);
+      if (sequence !== searchSequence.current) return;
+      if (!appendResults) setStores([]);
       if (!err.response) setError('network');
       else if (err.response.status === 502 || err.response.status === 503) setError('server_sleeping');
       else setError('api');
     } finally {
-      setLoading(false);
+      if (sequence === searchSequence.current) setLoading(false);
     }
   }, [district, businessType, keyword, coords]);
+
+  useEffect(() => () => { searchSequence.current += 1; }, []);
 
   useEffect(() => { search(); /* 최초 로드 */ }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -145,7 +169,7 @@ export default function StoreLocator() {
   };
 
   return (
-    <section id="locations" className="py-24 px-6 bg-white relative">
+    <section id="locations" className="wm-store-locator py-24 px-6 bg-white relative">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">매장 위치</span>
@@ -268,7 +292,7 @@ export default function StoreLocator() {
         </div>
 
         {/* 결과 */}
-        {loading ? (
+        {loading && stores.length === 0 ? (
           <div className={view === 'map' ? '' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}>
             {view === 'map'
               ? <div className="skeleton h-[420px] rounded-3xl" />
@@ -308,7 +332,8 @@ export default function StoreLocator() {
           /* ── 지도 보기 (기본) ── */
           <div>
             <StoreMapLeaflet stores={stores} coords={coords} />
-            {!stores.some(s => s.latitude != null) && (
+              {!stores.some(s => Number.isFinite(Number(s.latitude)) && Number.isFinite(Number(s.longitude))
+                && Math.abs(Number(s.latitude)) <= 90 && Math.abs(Number(s.longitude)) <= 180) && (
               <p className="text-xs text-gray-400 mt-2 text-center">※ 좌표가 등록된 매장만 지도에 표시됩니다. 리스트/그리드로 전체를 확인하세요.</p>
             )}
           </div>
@@ -403,7 +428,17 @@ export default function StoreLocator() {
             ))}
           </div>
         )}
+        {stores.length > 0 && hasMore && (
+          <div className="flex justify-center mt-8">
+            <button type="button" onClick={() => search({ page: page + 1, append: true })} disabled={loading}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-orange-200 bg-white px-6 text-sm font-black text-orange-700 transition-colors hover:bg-orange-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500 disabled:cursor-wait disabled:opacity-60"
+              aria-label="매장 검색 결과 더 보기">
+              {loading ? '불러오는 중…' : error ? '다시 시도' : '매장 더 보기'} <span aria-hidden="true">({stores.length}개 확인)</span>
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
 }
+

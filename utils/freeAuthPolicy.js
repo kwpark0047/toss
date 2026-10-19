@@ -1,4 +1,5 @@
 const { AppError } = require('./errorHandler');
+const SIGNUP_CONSENT_VERSION = 'platform-terms-privacy-2026-10-17-age14-v1';
 function normalizeEmail(value) {
   if (
     typeof value !== 'string' ||
@@ -12,6 +13,9 @@ function normalizeEmail(value) {
 }
 function publicConfig(env = process.env) {
   const enabled = env.FREE_AUTH_ENABLED === 'true';
+  // Keep the low-friction password signup independently controllable. Enabling it
+  // must not implicitly turn on OAuth, email OTP, account linking, or reauth.
+  const simpleSignupEnabled = env.FREE_AUTH_SIMPLE_SIGNUP_ENABLED === 'true';
   const protectedForms = !!(
     env.TURNSTILE_SITE_KEY &&
     env.TURNSTILE_SECRET_KEY &&
@@ -19,6 +23,12 @@ function publicConfig(env = process.env) {
   );
   return {
     enabled,
+    simpleSignup:
+      simpleSignupEnabled &&
+      !!(env.TURNSTILE_SITE_KEY && env.TURNSTILE_SECRET_KEY) &&
+      !!policyUrl(env.FREE_AUTH_TERMS_URL, env) &&
+      !!policyUrl(env.FREE_AUTH_PRIVACY_URL, env),
+    signupConsentVersion: SIGNUP_CONSENT_VERSION,
     google: enabled && protectedForms && !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
     googleReauth: false,
     kakao: enabled && protectedForms && !!(env.KAKAO_REST_API_KEY && env.KAKAO_CLIENT_SECRET),
@@ -32,10 +42,22 @@ function publicConfig(env = process.env) {
         (env.MAIL_FROM || env.SMTP_FROM) &&
         env.EMAIL_AUTH_PEPPER
       ),
-    turnstileSiteKey: enabled ? env.TURNSTILE_SITE_KEY || null : null,
+    turnstileSiteKey: enabled || simpleSignupEnabled ? env.TURNSTILE_SITE_KEY || null : null,
     termsUrl: policyUrl(env.FREE_AUTH_TERMS_URL, env),
     privacyUrl: policyUrl(env.FREE_AUTH_PRIVACY_URL, env),
   };
+}
+function assertSignupConsent(body, config = publicConfig()) {
+  if (body?.intent !== 'signup' && body?.purpose !== 'signup') return false;
+  if (
+    body.agreeTerms !== true ||
+    body.agreePrivacy !== true ||
+    !config.termsUrl ||
+    !config.privacyUrl
+  )
+    throw new AppError('이용약관·개인정보 처리방침을 확인하고 동의해 주세요.', 400);
+  if (body.confirmAge14 !== true) throw new AppError('만 14세 이상만 가입할 수 있습니다.', 400);
+  return true;
 }
 function policyUrl(value, env) {
   try {
@@ -73,4 +95,12 @@ function frontendOrigin(env = process.env) {
     throw new AppError('인증 주소 설정을 확인해 주세요.', 503);
   }
 }
-module.exports = { normalizeEmail, publicConfig, assertProviderProfile, frontendOrigin };
+module.exports = {
+  normalizeEmail,
+  publicConfig,
+  assertProviderProfile,
+  frontendOrigin,
+  assertSignupConsent,
+  SIGNUP_CONSENT_VERSION,
+};
+

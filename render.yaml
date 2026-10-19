@@ -14,7 +14,9 @@ services:
     # --include=dev 는 필수다. 이 서비스는 NODE_ENV=production 이고 npm 의 omit 기본값이
     # 그 경우 dev 로 전환되므로, prisma CLI(devDependency)가 설치되지 않아
     # postinstall(prisma generate) 이 exit 127 로 죽고 빌드 전체가 실패한다.
-    buildCommand: npm ci --include=dev && node scripts/deploy-migrations.cjs --apply && npx prisma generate
+    # Builds must be side-effect free. Apply migrations only through the explicit,
+    # reviewed `npm run db:migrate:prod` command after a production backup/check.
+    buildCommand: npm ci --include=dev && npx prisma generate
     startCommand: node --import tsx index.mts
     healthCheckPath: /api/health
     autoDeploy: false
@@ -32,6 +34,17 @@ services:
       - key: JWT_REFRESH_SECRET
         sync: false
       - key: PHONE_ENC_KEY
+        sync: false
+      # ── 간편 이메일 가입 (검증 후 운영자가 명시적으로 활성화) ──
+      - key: FREE_AUTH_SIMPLE_SIGNUP_ENABLED
+        value: false
+      - key: FREE_AUTH_TERMS_URL
+        value: https://wemarket-saas.vercel.app/platform/terms.html
+      - key: FREE_AUTH_PRIVACY_URL
+        value: https://wemarket-saas.vercel.app/platform/privacy.html
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
         sync: false
       - key: BILLING_SCHEDULER_ENABLED
         value: false
@@ -104,3 +117,4 @@ services:
         sync: false
       - key: SEED_KEY
         sync: false
+

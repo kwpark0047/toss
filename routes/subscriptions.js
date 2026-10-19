@@ -6,14 +6,21 @@ const billing = require('../services/SaaSBillingService');
 const { AppError } = require('../utils/errorHandler');
 const catchAsync = require('../utils/catchAsync');
 const router = express.Router({ mergeParams: true });
-router.use('/:storeId', authMiddleware, checkStorePermission('store:update'), (req, res, next) => {
-  req.storeId = Number(req.params.storeId);
-  if (!Number.isSafeInteger(req.storeId) || req.storeId <= 0)
-    return next(new AppError('유효한 매장 ID가 필요합니다.', 400));
-  if (!['owner', 'super_admin'].includes(req.storeRole))
-    return next(new AppError('구독 관리는 매장 소유자만 가능합니다.', 403));
-  return next();
-});
+// Expired trials must still be able to start/repair/cancel billing. The shared
+// guard continues to reject suspended, fraud-review, and rejected accounts.
+router.use(
+  '/:storeId',
+  authMiddleware,
+  checkStorePermission('store:update', 'store_id', { allowExpiredTrialWrite: true }),
+  (req, res, next) => {
+    req.storeId = Number(req.params.storeId);
+    if (!Number.isSafeInteger(req.storeId) || req.storeId <= 0)
+      return next(new AppError('유효한 매장 ID가 필요합니다.', 400));
+    if (!['owner', 'super_admin'].includes(req.storeRole))
+      return next(new AppError('구독 관리는 매장 소유자만 가능합니다.', 403));
+    return next();
+  }
+);
 router.get(
   '/:storeId',
   catchAsync(async (req, res) => res.success(await billing.summary(req.storeId)))
@@ -84,3 +91,4 @@ router.post(
   })
 );
 module.exports = router;
+

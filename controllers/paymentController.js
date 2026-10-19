@@ -25,6 +25,26 @@ const assertStoreAccess = async (user, storeId, permission = 'payments:manage') 
 };
 
 const paymentController = {
+  retryPayment: catchAsync(async (req, res) => {
+    const {
+      verifyCustomerHistoryCapability,
+      createOrderCapability,
+    } = require('../utils/orderCapability');
+    const proof = verifyCustomerHistoryCapability(req.get('x-customer-history-capability'));
+    const service = new PaymentService(req.app.get('io'));
+    const result = await require('../services/PaymentRetry')({
+      db: prisma,
+      provider: TossAPI,
+      prepare: (data, tx) => service.preparePayment(data, tx),
+      orderId: req.params.orderId,
+      proof,
+    });
+    res.json({
+      success: true,
+      ...result,
+      order_capability: createOrderCapability({ id: result.order_id, store_id: result.store_id }),
+    });
+  }),
   createPayment: catchAsync(async (req, res) => {
     const io = req.app.get('io');
     const paymentService = new PaymentService(io);
@@ -240,3 +260,4 @@ const paymentController = {
 };
 
 module.exports = paymentController;
+

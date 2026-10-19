@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ordersAPI, getSocket } from '../../api';
+import { ordersAPI, paymentsAPI, getSocket } from '../../api';
+import { useTossPayment } from '../../hooks/useTossPayment';
 import { motion } from 'framer-motion';
 import ManagerCallSheet from './ManagerCallSheet';
 import ChatDrawer from './ChatDrawer';
@@ -21,6 +22,32 @@ const OrderHistory = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const retryLock = useRef(false);
+    const [retryingId, setRetryingId] = useState(null);
+    const [retryError, setRetryError] = useState('');
+    const { initiateTossPayment } = useTossPayment();
+    const retryPayment = async (order) => {
+        if (retryLock.current) return;
+        retryLock.current = true;
+        setRetryingId(order.id);
+        setRetryError('');
+        try {
+            const response = await paymentsAPI.retry(order.id, localStorage.getItem('wm_customer_history_capability'));
+            const payment = response?.data ?? response;
+            const result = await initiateTossPayment({
+                orderId: order.id, storeId: payment.store_id, totalAmount: payment.amount,
+                capability: payment.order_capability, preparedPayment: payment,
+            });
+            if (!result.success) setRetryError(result.error);
+        } catch (error) {
+            setRetryError(error.response?.data?.error?.message || error.response?.data?.message ||
+                (typeof error.response?.data?.error === 'string' ? error.response.data.error : null) ||
+                error.message || '결제를 다시 시작하지 못했습니다.');
+        } finally {
+            retryLock.current = false;
+            setRetryingId(null);
+        }
+    };
 
     // 매니저 호출 관련 상태
     const [showCallSheet, setShowCallSheet] = useState(false);
@@ -154,6 +181,7 @@ const OrderHistory = () => {
             </header>
 
             <main className="max-w-md mx-auto px-4 pt-6 space-y-8">
+                {retryError && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{retryError}</p>}
                 {orders.length === 0 ? (
                     <div className="py-20 flex flex-col items-center justify-center text-center">
                         <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
@@ -255,6 +283,14 @@ const OrderHistory = () => {
                                                         <span className="font-black text-orange-600 text-2xl tracking-tighter">{formatPrice(order.total_amount, true)}</span>
                                                     </div>
                                                     <div className="flex gap-2">
+                                                        {order.status === 'pending' && order.payment_status === 'pending' &&
+                                                            order.payments?.length > 0 && order.payments.every(p => p.method === 'CARD' && p.status === 'READY') && (
+                                                            <button disabled={retryingId !== null} onClick={() => retryPayment(order)}
+                                                                aria-label={`${order.order_number} 결제 다시 시도`}
+                                                                className="px-4 py-3 rounded-2xl bg-orange-600 text-white text-sm font-bold disabled:opacity-50">
+                                                                {retryingId === order.id ? '결제 확인 중…' : '결제 다시 시도'}
+                                                            </button>
+                                                        )}
                                                         <motion.button
                                                             whileTap={{ scale: 0.95 }}
                                                             onClick={() => setSelectedOrderDetail(order)}
@@ -431,3 +467,4 @@ const OrderHistory = () => {
 };
 
 export default OrderHistory;
+

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
@@ -94,4 +94,45 @@ describe('payment release blockers', () => {
     expect(onPaymentMethodChange).toHaveBeenCalledWith('kakao');
     expect(screen.queryByText('현재 준비 중입니다')).not.toBeInTheDocument();
   });
+
+  it('uses natural Korean for the credit card order action and minimizes the cart without blocking menu browsing', async () => {
+    i18n.addResourceBundle('ko', 'translation', {
+      cart_modal: {
+        title: '장바구니',
+        order_with_method: '{{method}} 주문하기',
+        easy_payment: '간편결제',
+        easy_payment_desc: '앱으로 결제',
+        standard_payment: '일반결제',
+        standard_payment_desc: '매장 결제',
+        minimize: '메뉴 보며 계속 담기',
+        open_cart: '장바구니 열기',
+        items_unit: '개',
+      },
+    }, true, true);
+
+    render(
+      <I18nextProvider i18n={i18n}>
+        <CartModal
+          isOpen
+          onClose={vi.fn()}
+          cart={[]}
+          onUpdateQuantity={vi.fn()}
+          onOrder={vi.fn()}
+          isOrdering={false}
+          totalPrice={0}
+        />
+      </I18nextProvider>
+    );
+
+    expect(screen.getByRole('button', { name: '신용카드 주문하기' })).toBeDisabled();
+    const sheet = screen.getByRole('dialog', { name: '장바구니' });
+    expect(sheet).toHaveClass('max-h-[90dvh]');
+
+    await userEvent.click(screen.getByRole('button', { name: '메뉴 보며 계속 담기' }));
+    expect(screen.queryByRole('dialog', { name: '장바구니' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '장바구니' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '장바구니 열기' }));
+    expect(screen.getByRole('dialog', { name: '장바구니' })).toBeInTheDocument();
+  });
 });
+

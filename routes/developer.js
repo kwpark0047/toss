@@ -7,6 +7,23 @@
 const router = require('express').Router();
 const authMiddleware = require('../middleware/auth');
 const developerController = require('../controllers/developerController');
+const catchAsync = require('../utils/catchAsync');
+const { blockExpiredTrialWrite } = require('../middleware/storeAuth');
+
+// Every store-scoped developer API read checks restriction state; all writes
+// are additionally denied for expired trials by the shared business policy.
+router.use(
+  '/stores/:storeId',
+  authMiddleware,
+  catchAsync(async (req, res, next) => {
+    if (
+      req.user?.role !== 'super_admin' &&
+      (await blockExpiredTrialWrite(req.params.storeId, req, res))
+    )
+      return;
+    next();
+  })
+);
 
 /**
  * @swagger
@@ -187,6 +204,11 @@ router.delete('/stores/:storeId/webhooks/:id', authMiddleware, developerControll
  *       200:
  *         description: 전송 로그 목록 반환
  */
-router.get('/stores/:storeId/webhook-deliveries', authMiddleware, developerController.getDeliveryLogs);
+router.get(
+  '/stores/:storeId/webhook-deliveries',
+  authMiddleware,
+  developerController.getDeliveryLogs
+);
 
 module.exports = router;
+

@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const { adminOnly } = require('../middleware/auth');
-const { getStoreRole } = require('../middleware/storeAuth');
+const { getStoreRole, blockExpiredTrialWrite } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const { AppError } = require('../utils/errorHandler');
 const credentials = require('../services/ProviderCredentialService');
@@ -18,6 +18,7 @@ router.use(
       throw new AppError('유효한 매장 ID가 필요합니다.', 400);
     if (req.user.role !== 'super_admin' && (await getStoreRole(req.user.id, id)) !== 'owner')
       throw new AppError('매장 소유주만 인증정보를 관리할 수 있습니다.', 403);
+    if (req.user.role !== 'super_admin' && (await blockExpiredTrialWrite(id, req, res))) return;
     next();
   })
 );
@@ -47,3 +48,4 @@ for (const prefix of ['/global', '/stores/:storeId']) {
   );
 }
 module.exports = router;
+

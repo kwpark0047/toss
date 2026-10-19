@@ -284,6 +284,15 @@
     "notify_phone": "📱 接收订单通知的手机号",
     "notify_phone_saved": "已输入保存的号码。如需更改请编辑。",
     "notify_phone_hint": "输入后可短信接收订单状态。（可选）",
+    "notify_phone_invalid": "请输入有效的手机号码。",
+    "items_unit": "件",
+    "open_cart": "打开购物车",
+    "minimize": "继续浏览菜单",
+    "split_payment_pending": "已有分账付款正在处理中，请先继续完成付款再修改购物车。",
+    "split_payment_card_only": "分账付款目前仅支持信用卡，请选择信用卡继续。",
+    "remove_item": "删除{{name}}",
+    "decrease_quantity": "减少{{name}}数量",
+    "increase_quantity": "增加{{name}}数量",
     "select_payment": "💳 选择支付方式",
     "select_payment_guide": "请选择支付方式",
     "popular_combo": "一起吃更好吃的人气组合",
@@ -671,3 +680,4 @@
     "cancelled": "已取消"
   }
 }
+

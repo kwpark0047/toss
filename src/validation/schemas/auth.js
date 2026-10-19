@@ -88,6 +88,28 @@ const phoneRegisterSchema = z
   })
   .strict();
 const registrationRequestSchema = z.union([phoneRegisterSchema, registerSchema]);
+const simpleSignupSchema = z
+  .object({
+    phone: normalizedPhoneSchema,
+    email: emailSchema,
+    password: passwordSchema,
+    passwordConfirm: z.string(),
+    name: nameSchema.optional(),
+    agreeTerms: z.literal(true, { errorMap: () => ({ message: '약관에 동의해야 합니다.' }) }),
+    agreePrivacy: z.literal(true, {
+      errorMap: () => ({ message: '개인정보 처리에 동의해야 합니다.' }),
+    }),
+    confirmAge14: z.literal(true, {
+      errorMap: () => ({ message: '만 14세 이상만 가입할 수 있습니다.' }),
+    }),
+    consentVersion: z.string().min(1).max(100),
+    turnstileToken: z.string().min(1).max(2048),
+  })
+  .strict()
+  .refine((data) => data.password === data.passwordConfirm, {
+    message: '비밀번호가 일치하지 않습니다.',
+    path: ['passwordConfirm'],
+  });
 
 // 관리자 로그인
 const adminLoginSchema = z.object({
@@ -189,6 +211,7 @@ module.exports = {
   loginSchema,
   registerSchema,
   registrationRequestSchema,
+  simpleSignupSchema,
   signupOtpRequestSchema,
   signupOtpVerifySchema,
   adminLoginSchema,

@@ -89,6 +89,7 @@ router.post(
  *         description: 결제 준비 정보
  */
 router.post('/ready', orderCapability, paymentController.preparePayment);
+router.post('/order/:orderId/retry', paymentController.retryPayment);
 
 /**
  * @swagger
@@ -422,3 +423,4 @@ router.post(
 router.post('/order/:orderId/confirm-transfer', authMiddleware, paymentController.confirmTransfer);
 
 module.exports = router;
+

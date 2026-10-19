@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { formatWon } from '../../utils/format';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,8 @@ import Button from '../common/Button';
 import EmptyState from '../common/EmptyState';
 import { vibrateClick } from '../../utils/notificationSound';
 import LazyImage from '../common/LazyImage';
+import TogetherPaymentSheet from '../customer/payment/TogetherPaymentSheet';
+import { formatCustomerPhone, isValidCustomerMobilePhone } from '../../utils/customerPhone';
 
 // ── 결제수단 정의 (번역 함수로 생성) ────────────────────────────────
 const getPaymentGroups = (t) => [
@@ -32,15 +34,10 @@ const getPaymentGroups = (t) => [
   },
 ];
 
-const formatPhoneInput = (value) => {
-  const d = value.replace(/\D/g, '').slice(0, 11);
-  if (d.length < 4) return d;
-  if (d.length < 8) return `${d.slice(0, 3)}-${d.slice(3)}`;
-  return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
-};
-
-const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice, notifyPhone = '', onNotifyPhoneChange, paymentMethod = 'card', onPaymentMethodChange, menuItems = [], _storeId, onAddToCartClick }) => {
+const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, onSplitPayment, isOrdering, totalPrice, notifyPhone = '', onNotifyPhoneChange, paymentMethod = 'card', onPaymentMethodChange, menuItems = [], _storeId, onAddToCartClick }) => {
   const { t } = useTranslation();
+  const [compact, setCompact] = useState(false);
+  const [isSplitPaymentOpen, setIsSplitPaymentOpen] = useState(false);
   const PAYMENT_GROUPS = getPaymentGroups(t);
   const METHOD_MAP = Object.fromEntries(
     PAYMENT_GROUPS.flatMap(g => g.methods).map(m => [m.id, m])
@@ -66,38 +63,85 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
 
   const selectedMethodData = METHOD_MAP[paymentMethod];
   const selectedGroup = PAYMENT_GROUPS.find(g => g.methods.some(m => m.id === paymentMethod));
+  const phoneIsValid = !notifyPhone || isValidCustomerMobilePhone(notifyPhone);
+  const splitCart = useMemo(() => cart.map(item => ({
+    product_id: item.menuItem.id,
+    product_name: item.menuItem.name,
+    price: item.unitPrice,
+    quantity: item.quantity,
+    cart_item_id: item.cartItemId,
+  })), [cart]);
+  const closeCart = () => {
+    setCompact(false);
+    onClose?.();
+  };
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div
+          {!compact && <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={closeCart}
             className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-          />
+          />}
 
-          <motion.div
+          {compact ? (
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              role="region"
+              aria-label={t('cart_modal.title')}
+              className="fixed inset-x-3 bottom-3 z-50 mx-auto flex max-w-[480px] items-center justify-between gap-3 rounded-2xl border border-black/5 bg-white/95 p-3 shadow-xl backdrop-blur-xl dark:bg-slate-900/95"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold cust-text-main">{t('cart_modal.title')} · {cart.reduce((sum, item) => sum + item.quantity, 0)}{t('cart_modal.items_unit')}</p>
+                <p className="text-sm font-black text-primary">{formatWon(totalPrice)}</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <button type="button" onClick={() => setCompact(false)} className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                  {t('cart_modal.open_cart')}
+                </button>
+                <button type="button" aria-label={t('common.close')} onClick={closeCart} className="rounded-full p-2 text-grey-500 hover:bg-grey-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                  <Icon icon="X" size="md" />
+                </button>
+              </div>
+            </motion.div>
+          ) : <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] z-50 cust-bg-card rounded-t-[32px] max-h-[90vh] overflow-hidden tds-stack flex-col shadow-2xl bottom-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('cart_modal.title')}
+            className="fixed inset-x-0 bottom-0 mx-auto flex max-h-[90dvh] w-full max-w-[480px] flex-col overflow-hidden rounded-t-[32px] shadow-2xl cust-bg-card bottom-sheet"
           >
             {/* Handle */}
-            <div className="w-12 h-1.5 bg-grey-200 dark:bg-white/10 rounded-full mx-auto my-3" />
+            <div className="relative flex h-8 shrink-0 items-center justify-center">
+              <div className="w-12 h-1.5 bg-grey-200 dark:bg-white/10 rounded-full" />
+              <button
+                type="button"
+                aria-label={t('cart_modal.minimize')}
+                onClick={() => setCompact(true)}
+                className="absolute right-3 rounded-lg px-2 py-1 text-xs font-semibold text-grey-500 hover:bg-grey-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+              >
+                {t('cart_modal.minimize')}
+              </button>
+            </div>
             
             <div className="tds-stack-h tds-gap-4 tds-p-6 tds-p-4 items-center justify-between border-b cust-border">
               <h2 className="tds-text-bold text-xl cust-text-main">{t('cart_modal.title')}</h2>
-              <button onClick={onClose} aria-label={t('common.close')} className="tds-p-2 hover:bg-grey-100 dark:hover:bg-white/10 rounded-full transition-colors">
+              <button onClick={closeCart} aria-label={t('common.close')} className="tds-p-2 hover:bg-grey-100 dark:hover:bg-white/10 rounded-full transition-colors">
                 <Icon icon="X" size="md" />
               </button>
             </div>
 
-            <div className="tds-stack tds-gap-4 tds-p-4 tds-p-3 flex-1 overflow-y-auto">
-              {cart.length === 0 ? (
+            <div className="tds-stack tds-gap-4 tds-p-4 tds-p-3 min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                  {cart.length === 0 ? (
                 <EmptyState icon="🛒" title={t('cart_modal.empty_title')} description={t('cart_modal.empty_desc')} />
               ) : (
                 <>
@@ -118,6 +162,8 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                           <div className="tds-stack-h tds-gap-2 items-start justify-between">
                             <h3 className="tds-text-bold cust-text-main text-sm leading-tight truncate">{item.menuItem.name}</h3>
                             <button 
+                              type="button"
+                              aria-label={t('cart_modal.remove_item', { name: item.menuItem.name })}
                               onClick={() => {
                                 vibrateClick();
                                 onUpdateQuantity(item.cartItemId, -item.quantity);
@@ -138,6 +184,8 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                             
                             <div className="tds-stack-h tds-gap-2 items-center bg-grey-100 dark:bg-white/5 rounded-full tds-p-1 tds-p-0.5">
                               <button 
+                                type="button"
+                                aria-label={t('cart_modal.decrease_quantity', { name: item.menuItem.name })}
                                 onClick={() => {
                                   vibrateClick();
                                   onUpdateQuantity(item.cartItemId, -1);
@@ -148,6 +196,8 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                               </button>
                               <span className="tds-small font-black w-3 text-center cust-text-main">{item.quantity}</span>
                               <button 
+                                type="button"
+                                aria-label={t('cart_modal.increase_quantity', { name: item.menuItem.name })}
                                 onClick={() => {
                                   vibrateClick();
                                   onUpdateQuantity(item.cartItemId, 1);
@@ -217,8 +267,16 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                   </div>
                   <span className="tds-small font-bold text-blue-900 dark:text-blue-300">{t('cart_modal.split_payment')}</span>
                 </div>
-                <button className="tds-small font-bold text-blue-600 dark:text-blue-400 underline">{t('cart_modal.split_payment_setting')}</button>
+                <button
+                  type="button"
+                  disabled={cart.length === 0 || isOrdering || paymentMethod !== 'card'}
+                  onClick={() => setIsSplitPaymentOpen(true)}
+                  className="tds-small font-bold text-blue-600 dark:text-blue-400 underline disabled:cursor-not-allowed disabled:opacity-50"
+                >{t('cart_modal.split_payment_setting')}</button>
               </div>
+              {paymentMethod !== 'card' && (
+                <p className="-mt-2 text-xs text-grey-500">{t('cart_modal.split_payment_card_only')}</p>
+              )}
 
               {/* 알림 받을 번호 */}
               <div className="tds-p-3 cust-bg-card rounded-xl border cust-border">
@@ -229,12 +287,16 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                   id="notify-phone"
                   type="tel"
                   inputMode="numeric"
+                  autoComplete="tel-national"
+                  maxLength={13}
                   value={notifyPhone}
-                  onChange={(e) => onNotifyPhoneChange?.(formatPhoneInput(e.target.value))}
+                  aria-invalid={!phoneIsValid}
+                  aria-describedby="notify-phone-help"
+                  onChange={(e) => onNotifyPhoneChange?.(formatCustomerPhone(e.target.value))}
                   placeholder="010-0000-0000"
-                  className="w-full bg-grey-50 dark:bg-white/5 border border-grey-200 dark:border-white/10 rounded-xl tds-p-3 tds-p-2.5 tds-small font-bold cust-text-main placeholder:text-grey-400 outline-none focus:border-primary" />
-                <p className="tds-small text-grey-400 mt-1">
-                  {notifyPhone ? t('cart_modal.notify_phone_saved') : t('cart_modal.notify_phone_hint')}
+                  className={`w-full rounded-xl border bg-grey-50 tds-p-3 tds-p-2.5 tds-small font-bold cust-text-main outline-none placeholder:text-grey-400 dark:bg-white/5 dark:border-white/10 ${phoneIsValid ? 'border-grey-200 focus:border-primary' : 'border-red-500 focus:border-red-500'}`} />
+                <p id="notify-phone-help" className={`tds-small mt-1 ${phoneIsValid ? 'text-grey-400' : 'text-red-600'}`}>
+                  {notifyPhone ? (phoneIsValid ? t('cart_modal.notify_phone_saved') : t('cart_modal.notify_phone_invalid')) : t('cart_modal.notify_phone_hint')}
                 </p>
               </div>
 
@@ -379,7 +441,21 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                 })()}
               </Button>
             </div>
-          </motion.div>
+          </motion.div>}
+          <TogetherPaymentSheet
+            isOpen={isSplitPaymentOpen && isOpen}
+            onClose={() => setIsSplitPaymentOpen(false)}
+            isSubmitting={isOrdering}
+            cart={splitCart}
+            totalAmount={totalPrice}
+            onConfirm={async (splitData) => {
+              if (!onSplitPayment) return;
+              const result = await onSplitPayment(splitData);
+              if (result?.success) setIsSplitPaymentOpen(false);
+            }}
+            theme={{ primaryColor: '#2563eb' }}
+            formatPrice={formatWon}
+          />
         </>
       )}
     </AnimatePresence>
@@ -387,3 +463,4 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
 };
 
 export default CartModal;
+

@@ -21,6 +21,7 @@ const tenantModels = [
 ];
 const mockPrisma = {
   stores: { findUnique: jest.fn() },
+  $queryRawUnsafe: jest.fn(),
   staff: { findFirst: jest.fn(), findUnique: jest.fn() },
 };
 for (const model of tenantModels) {
@@ -154,6 +155,9 @@ describe('multi-tenant route authorization', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPrisma.stores.findUnique.mockResolvedValue({ user_id: 1 });
+    mockPrisma.$queryRawUnsafe.mockResolvedValue([
+      { business_access_status: 'approved', trial_ends_at: null },
+    ]);
     mockPrisma.staff.findFirst.mockResolvedValue(null);
     for (const model of tenantModels) {
       mockPrisma[model].findUnique.mockResolvedValue({ store_id: 42 });
@@ -204,6 +208,30 @@ describe('multi-tenant route authorization', () => {
     expect(allowed.status).toBe(200);
   });
 
+  test('new option template creation requires store membership and respects trial expiry', async () => {
+    const app = appFor('options');
+    const outsider = await request(app)
+      .post('/')
+      .set('Authorization', `Bearer ${OUTSIDER_TOKEN}`)
+      .send({ store_id: 42, name: '옵션', options: [] });
+    expect(outsider.status).toBe(403);
+    expect(mockOk).not.toHaveBeenCalled();
+
+    mockPrisma.$queryRawUnsafe.mockResolvedValue([
+      {
+        business_access_status: 'trialing',
+        trial_ends_at: new Date(Date.now() - 60_000),
+      },
+    ]);
+    const expired = await request(app)
+      .post('/')
+      .set('Authorization', `Bearer ${OWNER_TOKEN}`)
+      .send({ store_id: 42, name: '옵션', options: [] });
+    expect(expired.status).toBe(403);
+    expect(expired.body.code).toBe('TRIAL_EXPIRED');
+    expect(mockOk).not.toHaveBeenCalled();
+  });
+
   test('mixed-store category sort is rejected before any mutation', async () => {
     mockPrisma.categories.findMany.mockResolvedValue([
       { id: 10, store_id: 42 },
@@ -234,3 +262,4 @@ describe('multi-tenant route authorization', () => {
     expect(mockAIPromptService.listPrompts).toHaveBeenCalledTimes(1);
   });
 });
+

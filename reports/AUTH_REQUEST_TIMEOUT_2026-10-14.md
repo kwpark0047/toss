@@ -22,3 +22,13 @@
 
 무료 서버 재기동 자체가 사라지는 변경은 아니다. health 대기 중 지연은 남을 수 있다. 실제 45초 timeout의 모든 가능 원인을 해결했다는 주장은 하지 않는다.
 최고관리자가 기존 공급자 설정 화면에 Coolsms API key·secret·등록 발신번호를 안전하게 등록해야 실제 회원가입 문자 수신 검증이 가능하다. 비밀값은 채팅/보고서에 기록하지 않는다.
+
+## 배포 결과
+
+- main·RC 커밋 `cac2afa328747869b5f26b341634e824a643acf3` 푸시 완료.
+- 프론트 production build 통과, 41.41초. 기존 chunk 크기 경고 유지.
+- Vercel `dpl_7iZSx9ssgfMoK9DQpKmTcgFzYTQi` READY, 운영 alias 반영 완료. 첫 배포는 Not authorized 응답으로 실패했고, whoami 및 해당 프로젝트 접근 확인 후 동일 산출물 재시도 성공. 원인은 확정하지 않았다.
+- 운영 HTML HTTP 200, 커밋 cac2afa 확인. 브라우저 PWA 업데이트 후 같은 커밋과 회원가입 화면 확인 (`auth-readiness-live-20261014.jpg`). 실제 번호 입력·발송 없음.
+- 백엔드는 변경 없이 a52d326 유지, health HTTP 200 / DB connected 확인.
+- 서버 cold start 조건 전체 브라우저 E2E 및 SMS 실제 수신은 미검증. 기존 격리 테스트의 준비 지연·실패·중복 전송 금지 검증과 구분한다.
+

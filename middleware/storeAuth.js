@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const { AppError } = require('../utils/errorHandler');
+const { assertUserCanAccess, assertUserCanWrite } = require('./businessTrialAccess');
 
 const rolePermissions = {
   owner: [
@@ -36,6 +37,46 @@ const rolePermissions = {
   kitchen: ['orders:read', 'orders:update'],
 };
 
+const isMutation = (method) => ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+
+async function blockExpiredTrialWrite(storeId, req, res, { allowExpiredTrialWrite = false } = {}) {
+  const store = await prisma.stores.findUnique({
+    where: { id: Number(storeId) },
+    select: { user_id: true },
+  });
+  if (!store) return false;
+  try {
+    // Expired trials retain read-only access. Suspended/review/rejected tenants
+    // are stopped on both reads and writes; a mutation cannot bypass the gate.
+    await assertUserCanAccess(store.user_id);
+    if (isMutation(req.method) && !allowExpiredTrialWrite) await assertUserCanWrite(store.user_id);
+    return false;
+  } catch (error) {
+    if (error.statusCode !== 403) throw error;
+    res
+      .status(403)
+      .json({ error: error.message, code: error.code || 'BUSINESS_ACCESS_RESTRICTED' });
+    return true;
+  }
+}
+
+async function getStoreBusinessOwner(storeId) {
+  const store = await prisma.stores.findUnique({
+    where: { id: Number(storeId) },
+    select: { user_id: true },
+  });
+  if (!store) throw new AppError('매장을 찾을 수 없습니다.', 404);
+  return store.user_id;
+}
+
+async function assertStoreCanAccess(storeId) {
+  await assertUserCanAccess(await getStoreBusinessOwner(storeId));
+}
+
+async function assertStoreCanWrite(storeId) {
+  await assertUserCanWrite(await getStoreBusinessOwner(storeId));
+}
+
 /**
  * 사용자의 매장 내 역할을 확인 (Prisma 기반)
  */
@@ -64,7 +105,7 @@ const getStoreRole = async (userId, storeId) => {
 /**
  * 매장 권한 체크 미들웨어
  */
-const checkStorePermission = (requiredPermission) => {
+const checkStorePermission = (requiredPermission, storeIdField = 'store_id', options = {}) => {
   return async (req, res, next) => {
     try {
       if (!req.user) {
@@ -79,7 +120,10 @@ const checkStorePermission = (requiredPermission) => {
 
       // 권한 체크 대상 storeId 추출
       const storeId =
-        req.params.storeId || req.query.store_id || (req.body && req.body.store_id) || req.storeId;
+        req.params.storeId ||
+        req.query.store_id ||
+        (req.body && req.body[storeIdField]) ||
+        req.storeId;
 
       if (!storeId) {
         return res.status(400).json({ error: '매장 ID가 필요합니다' });
@@ -96,6 +140,10 @@ const checkStorePermission = (requiredPermission) => {
           .status(403)
           .json({ error: '해당 매장에 대한 권한이 없거나 존재하지 않는 매장입니다' });
       }
+
+      // Preserve read access after a trial ends, but stop writes for every member
+      // of the trial store until a platform administrator approves the account.
+      if (await blockExpiredTrialWrite(storeId, req, res, options)) return;
 
       const permissions = rolePermissions[role] || [];
 
@@ -156,6 +204,8 @@ const checkStorePermissionForObject = (model) => {
           .json({ error: '해당 매장에 대한 권한이 없거나 존재하지 않는 매장입니다' });
       }
 
+      if (await blockExpiredTrialWrite(object.store_id, req, res)) return;
+
       req.storeId = object.store_id;
       req.storeRole = role;
       next();
@@ -201,6 +251,8 @@ const checkStorePermissionForObjectBatch = (model) => {
           .status(403)
           .json({ error: '해당 매장에 대한 권한이 없거나 존재하지 않는 매장입니다' });
       }
+
+      if (await blockExpiredTrialWrite(rows[0].store_id, req, res)) return;
 
       req.storeId = rows[0].store_id;
       req.storeRole = role;
@@ -253,6 +305,8 @@ const checkUniformStoreMutation = (model) => {
           .status(403)
           .json({ error: '해당 매장에 대한 권한이 없거나 존재하지 않는 매장입니다' });
       }
+
+      if (await blockExpiredTrialWrite(storeIds[0], req, res)) return;
 
       req.storeId = storeIds[0];
       req.storeRole = role;
@@ -317,6 +371,8 @@ function checkResourcePermission(
         return res.status(403).json({ error: '해당 매장에 대한 권한이 없습니다.' });
       }
 
+      if (await blockExpiredTrialWrite(storeId, req, res)) return;
+
       const permissions = rolePermissions[role] || [];
 
       if (role === 'owner' || permissions.includes(requiredPermission)) {
@@ -336,9 +392,13 @@ function checkResourcePermission(
 module.exports = {
   getStoreRole,
   checkStorePermission,
+  blockExpiredTrialWrite,
+  assertStoreCanAccess,
+  assertStoreCanWrite,
   checkStorePermissionForObject,
   checkStorePermissionForObjectBatch,
   checkUniformStoreMutation,
   checkResourcePermission,
   rolePermissions,
 };
+

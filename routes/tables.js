@@ -2,7 +2,11 @@ const express = require('express');
 const router = express.Router();
 const Table = require('../repositories/Table');
 const authMiddleware = require('../middleware/auth');
-const { checkStorePermission, getStoreRole } = require('../middleware/storeAuth');
+const {
+  checkStorePermission,
+  getStoreRole,
+  blockExpiredTrialWrite,
+} = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const logger = require('../utils/logger');
 const crypto = require('crypto');
@@ -30,6 +34,7 @@ const checkTablePermission = (requiredPermission) => {
       if (!role) {
         return res.status(403).json({ error: '해당 매장에 대한 권한이 없습니다.' });
       }
+      if (await blockExpiredTrialWrite(tableStoreId, req, res)) return;
       const permissions = require('../middleware/storeAuth').rolePermissions[role] || [];
       if (role === 'owner' || permissions.includes(requiredPermission)) {
         req.storeId = tableStoreId;
@@ -311,3 +316,4 @@ router.delete(
 );
 
 module.exports = router;
+

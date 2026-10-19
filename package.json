@@ -8,12 +8,13 @@
   },
   "scripts": {
     "start": "node --import tsx index.mts",
-    "build": "prisma generate && npm --prefix frontend ci && npm --prefix frontend run build",
+    "build": "prisma generate && npm --prefix frontend ci --prefer-offline --no-audit --no-fund && npm --prefix frontend run build",
     "cloudflare-build": "npm --prefix frontend ci && npm --prefix frontend run build",
     "vercel-build": "cd frontend && npm run build",
     "db:push": "node scripts/guard-db-push.js && npx prisma db push",
     "db:push:force": "node scripts/guard-db-push.js && npx prisma db push --accept-data-loss",
     "db:migrate": "npx prisma migrate dev",
+    "db:migrate:plan": "node scripts/deploy-migrations.cjs",
     "db:migrate:prod": "node scripts/deploy-migrations.cjs --apply",
     "db:migrate:staging": "node scripts/migrate-staging.js",
     "db:migrate:baseline": "npx prisma migrate resolve --applied 20260101000000_baseline",
@@ -169,3 +170,4 @@
     "winston-transport": "^4.9.0"
   }
 }
+

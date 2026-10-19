@@ -275,6 +275,12 @@ class PaymentService {
         pendingPayment = await prisma.payments.findFirst({
           where: { order_id: orderData.id, status: 'READY' },
         });
+        if (
+          pendingPayment?.toss_transaction_id &&
+          pendingPayment.toss_transaction_id !== orderIdString
+        ) {
+          throw new AppError('결제 요청이 갱신되었습니다. 최신 결제창을 이용해 주세요.', 409);
+        }
       }
     }
     if (!orderData) throw new AppError('주문 정보를 찾을 수 없습니다.', 404);
@@ -633,16 +639,19 @@ class PaymentService {
     return { success: true, message: '결제 취소 및 환불 처리가 완료되었습니다.' };
   }
 
-  async preparePayment({ order_id, store_id, order_name, amount, method, checkout_url }) {
+  async preparePayment(
+    { order_id, store_id, order_name, amount, method, checkout_url },
+    db = prisma
+  ) {
     let targetStoreId = store_id;
     let targetAmount = amount;
     let orderNumber = null;
 
     if (order_id) {
-      const order = await prisma.orders.findUnique({ where: { id: parseInt(order_id) } });
+      const order = await db.orders.findUnique({ where: { id: parseInt(order_id) } });
       if (!order) throw new AppError('주문 정보를 찾을 수 없습니다.', 404);
       orderNumber = order.order_number;
-      const paid = await prisma.payments.aggregate({
+      const paid = await db.payments.aggregate({
         where: { order_id: order.id, status: 'DONE' },
         _sum: { amount: true },
       });
@@ -654,7 +663,7 @@ class PaymentService {
     if (!targetAmount) throw new AppError('결제할 잔액이 없습니다.', 400);
 
     if (order_id) {
-      const existing = await prisma.payments.findFirst({
+      const existing = await db.payments.findFirst({
         where: { order_id: parseInt(order_id), status: 'READY' },
         orderBy: { id: 'desc' },
       });
@@ -665,7 +674,7 @@ class PaymentService {
         return {
           paymentId: existing.id,
           payment_id: existing.id,
-          order_number: orderNumber,
+          order_number: existing.toss_transaction_id || orderNumber,
           amount: existing.amount,
         };
       }
@@ -673,7 +682,7 @@ class PaymentService {
 
     let payment;
     try {
-      payment = await prisma.payments.create({
+      payment = await db.payments.create({
         data: {
           order_id: order_id ? parseInt(order_id) : null,
           store_id: parseInt(targetStoreId),
@@ -688,7 +697,7 @@ class PaymentService {
       });
     } catch (error) {
       if (error.code !== 'P2002' || !order_id) throw error;
-      payment = await prisma.payments.findFirst({
+      payment = await db.payments.findFirst({
         where: { order_id: parseInt(order_id), status: 'READY' },
         orderBy: { id: 'desc' },
       });
@@ -757,7 +766,12 @@ class PaymentService {
     // [보안] 로그 출금 전 카드키 마스킹 - 원본 노출 방지
     const maskedPaymentKey = maskPaymentKey(paymentKey);
 
-    const order = await prisma.orders.findFirst({ where: { order_number: tossOrderId } });
+    const mappedPayment = await prisma.payments.findFirst({
+      where: { toss_transaction_id: tossOrderId },
+    });
+    const order = mappedPayment
+      ? await prisma.orders.findUnique({ where: { id: mappedPayment.order_id } })
+      : await prisma.orders.findFirst({ where: { order_number: tossOrderId } });
 
     if (!order) {
       logger.warn(
@@ -804,7 +818,8 @@ class PaymentService {
           paymentKey,
           tossOrderId,
           data.totalAmount,
-          data.customerKey
+          data.customerKey,
+          mappedPayment?.id
         );
         if (result.alreadyDone) {
           logger.info(`[Webhook/Toss] 이미 처리된 결제: orderId=${tossOrderId}`);
@@ -1051,3 +1066,4 @@ class PaymentService {
 module.exports = PaymentService;
 module.exports.PaymentAmountMismatchError = PaymentAmountMismatchError;
 module.exports.maskCardNumber = maskCardNumber;
+

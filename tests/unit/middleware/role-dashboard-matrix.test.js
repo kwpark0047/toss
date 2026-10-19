@@ -1,10 +1,17 @@
 jest.mock('../../../config/prisma', () => ({
   stores: { findUnique: jest.fn() },
+  $queryRawUnsafe: jest.fn(),
   staff: { findFirst: jest.fn() },
 }));
 jest.mock('../../../utils/logger', () => ({ error: jest.fn() }));
 const db = require('../../../config/prisma'),
   { checkStorePermission } = require('../../../middleware/storeAuth');
+beforeEach(() => {
+  jest.clearAllMocks();
+  db.$queryRawUnsafe.mockResolvedValue([
+    { business_access_status: 'approved', trial_ends_at: null },
+  ]);
+});
 test.each([
   ['owner', 'store:update', true],
   ['owner', 'payments:collect', true],
@@ -46,3 +53,4 @@ test('unassigned user cannot access any other store dashboard', async () => {
   expect(res.status).toHaveBeenCalledWith(403);
   expect(next).not.toHaveBeenCalled();
 });
+

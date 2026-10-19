@@ -5,6 +5,28 @@ const { AppError } = require('../utils/errorHandler');
 const digest = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const accessSecret = () => process.env.JWT_SECRET;
 const refreshSecret = () => process.env.JWT_REFRESH_SECRET || accessSecret();
+const blockedBusinessStatuses = new Set(['suspended', 'fraud_review', 'rejected']);
+function assertBusinessAccountActive(user) {
+  const status = user.business_access_status;
+  if (status === 'suspended')
+    throw new AppError(
+      '사업자 계정이 일시 중단되었습니다. 최고관리자에게 문의해 주세요.',
+      403,
+      'BUSINESS_ACCOUNT_SUSPENDED'
+    );
+  if (status === 'fraud_review')
+    throw new AppError(
+      '사업자 계정이 안전성 검토로 일시 제한되었습니다.',
+      403,
+      'BUSINESS_ACCOUNT_REVIEW'
+    );
+  if (status === 'rejected')
+    throw new AppError(
+      '사업자 계정 이용이 중단되었습니다. 최고관리자에게 문의해 주세요.',
+      403,
+      'BUSINESS_ACCOUNT_REJECTED'
+    );
+}
 function tokens(user, sid) {
   const token = jwt.sign(
     { id: user.id, name: user.name, role: user.role || 'user', type: 'access', sid },
@@ -34,11 +56,12 @@ module.exports = {
   async issue(user, transaction = null) {
     const issue = async (tx) => {
       const locked = await tx.$queryRawUnsafe(
-        'SELECT id,auth_status FROM users WHERE id=$1 FOR UPDATE',
+        'SELECT id,auth_status,business_access_status FROM users WHERE id=$1 FOR UPDATE',
         user.id
       );
       if (!locked[0] || locked[0].auth_status !== 'active')
         throw new AppError('로그인이 필요합니다.', 401);
+      assertBusinessAccountActive(locked[0]);
       const sid = crypto.randomUUID(),
         pair = tokens(user, sid);
       await tx.authSession.create({
@@ -69,6 +92,7 @@ module.exports = {
         session.user.auth_status === 'deletion_pending'
       )
         throw new AppError('세션이 만료되었습니다.', 401);
+      assertBusinessAccountActive(session.user);
       // Primary account role replaces the stale JWT snapshot, including admin removal.
       return { ...decoded, name: session.user.name, role: session.user.role || 'user' };
     });
@@ -89,6 +113,13 @@ module.exports = {
         session.user.auth_status === 'deletion_pending'
       )
         return null;
+      if (blockedBusinessStatuses.has(session.user.business_access_status)) {
+        await tx.authSession.updateMany({
+          where: { id: session.id, revoked_at: null },
+          data: { revoked_at: new Date() },
+        });
+        return null;
+      }
       if (session.refresh_hash !== digest(refreshToken)) {
         await tx.authSession.updateMany({
           where: { id: session.id, revoked_at: null },
@@ -131,3 +162,4 @@ module.exports = {
     if (io) io.in(`auth-session:${decoded.sid}`).disconnectSockets(true);
   },
 };
+

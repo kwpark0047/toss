@@ -142,6 +142,27 @@ describe('PaymentService', () => {
   // preparePayment
   // ─────────────────────────────────────────────────────────
   describe('preparePayment', () => {
+    test('webhook resolves a retry PG reference to the original local payment', async () => {
+      prisma.payments.findFirst.mockResolvedValue({
+        id: 77,
+        order_id: 5,
+        toss_transaction_id: 'ORD-R-1',
+      });
+      prisma.orders.findUnique.mockResolvedValue({
+        id: 5,
+        store_id: 2,
+        order_number: 'ORD-ORIGINAL',
+      });
+      TossAPI.getPayment.mockResolvedValue({ status: 'DONE', totalAmount: 10000 });
+      const approve = jest
+        .spyOn(service, 'processApproval')
+        .mockResolvedValue({ alreadyDone: true });
+      await service.handleTossWebhook({
+        eventType: 'PAYMENT_STATUS_CHANGED',
+        data: { status: 'DONE', paymentKey: 'fixture-key', orderId: 'ORD-R-1', totalAmount: 10000 },
+      });
+      expect(approve).toHaveBeenCalledWith('fixture-key', 'ORD-R-1', 10000, undefined, 77);
+    });
     test('creates a READY payment with store_id and amount', async () => {
       prisma.payments.create.mockResolvedValue({ id: 99, amount: 50000 });
 
@@ -1040,3 +1061,4 @@ describe('maskCardNumber (front6-back4 정책)', () => {
     expect(maskCardNumber('****')).toBeNull();
   });
 });
+

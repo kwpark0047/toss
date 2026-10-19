@@ -73,6 +73,19 @@ const sanitizeTossResponse = (data: any): any => {
 };
 
 const TossAPI = {
+  getPaymentByOrderId: async (orderId: string) => {
+    if (!TOSS_SECRET_KEY) throw new Error('Toss is not configured');
+    return tossCircuit.call(async () => {
+      try {
+        const response = await axios.get(`https://api.tosspayments.com/v1/payments/orders/${encodeURIComponent(orderId)}`,
+          { headers: getAuthHeader(), timeout: 10000 });
+        return response.data;
+      } catch (error: any) {
+        if (error.response?.status === 404 && error.response?.data?.code === 'NOT_FOUND_PAYMENT') return null;
+        throw Object.assign(new Error('PG 결제 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.'), { statusCode: 503 });
+      }
+    });
+  },
   issueBillingKeyFromAuth: async (authKey: string, customerKey: string) => {
     if (!TOSS_SECRET_KEY) throw new Error('Toss billing is not configured');
     return tossCircuit.call(async () => {
@@ -469,3 +482,4 @@ const TossAPI = {
 };
 
 export default TossAPI;
+

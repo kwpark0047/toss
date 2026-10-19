@@ -75,6 +75,14 @@ export const ordersAPI = {
 };
 
 export const paymentsAPI = {
+  retry: (orderId, historyCapability) =>
+    api.post(
+      `/payments/order/${orderId}/retry`,
+      {},
+      {
+        headers: { 'x-customer-history-capability': historyCapability },
+      }
+    ),
   create: (data, capability, walletCapability) =>
     api.post('/payments', data, {
       headers: {
@@ -131,3 +139,4 @@ export const paymentsAPI = {
       headers: { 'x-order-capability': capability },
     }),
 };
+

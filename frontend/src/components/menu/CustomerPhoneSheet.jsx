@@ -251,6 +251,14 @@ export default function CustomerPhoneSheet({
   const inputRef = useRef(null);
 
   useEffect(() => {
+    const active = isOpen && step === 'idle';
+    window.dispatchEvent(new CustomEvent('wemarket:customer-registration', { detail: active }));
+    return () => {
+      if (active) window.dispatchEvent(new CustomEvent('wemarket:customer-registration', { detail: false }));
+    };
+  }, [isOpen, step]);
+
+  useEffect(() => {
     if (!isOpen || !storeId || !totalAmount) return;
     pointsAPI
       .calculateEarn(totalAmount, storeId)
@@ -624,3 +632,4 @@ export default function CustomerPhoneSheet({
     </div>
   );
 }
+

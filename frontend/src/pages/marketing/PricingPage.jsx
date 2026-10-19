@@ -24,8 +24,9 @@ export default function PricingPage() {
   const plans = [{
     name: '무료 (Free)',
     price: 0,
-    desc: '기본 매장 운영 및 QR 코드 생성을 지원하는 스타터 요금제',
-    features: ['테이블별 무제한 QR 코드 생성', '기본 모바일 웹 메뉴판 렌더링', '실시간 조리 대기열 (기본 KDS)', '기본 일일 매출 통계 조회', '직원 권한 격리 (Staff 1명)'],
+    desc: '가입 즉시 1개월간 기본 매장 운영 기능을 무료로 체험하는 플랜',
+    trialNote: true,
+    features: ['가입일부터 1개월 무료 체험', '테이블별 QR 코드 생성', '모바일 웹 메뉴판 및 주문', '실시간 조리 대기열 (기본 KDS)', '기본 일일 매출 통계', '체험 종료 후 최고관리자 정식 승인 시 계속 이용'],
     cta: '무료로 시작',
     color: 'border-slate-900 bg-slate-950/40',
     popular: false
@@ -119,6 +120,9 @@ export default function PricingPage() {
           <p className="text-slate-500 text-sm max-w-xl mx-auto leading-relaxed mb-8">
             복잡한 하드웨어 설치 수수료 없이, 무약정 월 구독 방식으로 편안하게 이용하세요. 매장 성격에 맞춰 유연하게 변환할 수 있습니다.
           </p>
+          <p className="mx-auto mb-8 max-w-2xl rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-sm leading-relaxed text-orange-950">
+            무료(Free)는 가입일부터 1개월 동안 체험할 수 있습니다. 체험 종료 후 최고관리자의 정식 이용 승인을 받으면 이용을 이어갈 수 있으며, 승인 전 유료 요금제 자동 전환이나 자동 결제는 없습니다.
+          </p>
 
           {/* 연 결제 할인 토글 */}
           <div className="flex items-center justify-center gap-3">
@@ -144,13 +148,23 @@ export default function PricingPage() {
 
               <div>
                 <h3 className="text-xl font-black text-slate-900 mb-2">{plan.name}</h3>
-                <p className="text-slate-500 text-xs leading-relaxed mb-6 h-12">{plan.desc}</p>
+                <p className="text-slate-500 text-xs leading-relaxed mb-6 min-h-12">{plan.desc}</p>
                 <div className="flex items-baseline gap-1.5 border-b border-slate-200 pb-6 mb-6">
                   <span className="text-4xl font-black font-mono text-slate-900">
                     {plan.price === 0 ? '₩0' : `₩${getPrice(plan.price).toLocaleString('ko-KR')}`}
                   </span>
                   <span className="text-xs text-slate-400 font-bold">/월</span>
                 </div>
+
+                {plan.trialNote && <div className="mb-6 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-left">
+                  <p className="text-sm font-black text-orange-950">이용 흐름</p>
+                  <ol className="mt-2 space-y-1.5 text-xs leading-relaxed text-orange-900">
+                    <li>1. 가입 즉시 기본 기능 1개월 체험</li>
+                    <li>2. 체험 기간과 매장 운영 기능을 확인</li>
+                    <li>3. 계속 이용하려면 최고관리자 정식 승인</li>
+                  </ol>
+                  <p className="mt-2 text-[11px] leading-relaxed text-orange-900/80">체험 만료 후 승인 전까지 정식 이용이 제한될 수 있습니다. 유료 요금제 전환은 별도 선택입니다.</p>
+                </div>}
 
                 <ul className="space-y-3.5 mb-8">
                   {plan.features.map((feat, fidx) => <li key={fidx} className="flex items-start gap-2.5 text-xs text-slate-600">
@@ -181,3 +195,4 @@ export default function PricingPage() {
       </footer>
     </div>;
 }
+

@@ -38,6 +38,11 @@ const authMiddleware = async (req, res, next) => {
     if (err.name === 'TokenExpiredError') {
       return res.status(401).json({ error: '토큰이 만료되었습니다.', code: 'TOKEN_EXPIRED' });
     }
+    if (Number.isInteger(err.statusCode)) {
+      return res
+        .status(err.statusCode)
+        .json({ error: err.message, ...(err.code ? { code: err.code } : {}) });
+    }
     return res.status(401).json({ error: '유효하지 않은 토큰입니다.' });
   }
 };
@@ -66,3 +71,4 @@ module.exports = authMiddleware;
 module.exports.authMiddleware = authMiddleware;
 module.exports.optionalAuth = optionalAuth;
 module.exports.adminOnly = adminOnly;
+

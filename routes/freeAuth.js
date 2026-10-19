@@ -2,19 +2,29 @@ const router = require('express').Router();
 const prisma = require('../config/prisma'),
   auth = require('../middleware/auth');
 const { AppError } = require('../utils/errorHandler');
-const { publicConfig, frontendOrigin } = require('../utils/freeAuthPolicy');
+const {
+  publicConfig,
+  frontendOrigin,
+  assertSignupConsent,
+  SIGNUP_CONSENT_VERSION,
+} = require('../utils/freeAuthPolicy');
 const { TurnstileVerifier } = require('../services/TurnstileVerifier');
 const { EmailAuthService } = require('../services/EmailAuthService');
 const { AuthIdentityService } = require('../services/AuthIdentityService');
 const { OAuthLoginService } = require('../services/OAuthLoginService');
 const { AccountLifecycleService } = require('../services/AccountLifecycleService');
+const { DirectEmailSignupService } = require('../services/DirectEmailSignupService');
+const { validateBody } = require('../middleware/validate');
+const { simpleSignupSchema } = require('../src/validation/schemas/auth');
 const { consumeProof } = require('../services/FreeAuthStore');
 const { setTokenCookies, clearTokenCookies } = require('../utils/tokenCookies');
+const { authSchemaReady } = require('../utils/freeAuthReadiness');
 const email = new EmailAuthService(),
   identity = new AuthIdentityService(),
   oauth = new OAuthLoginService(),
   life = new AccountLifecycleService(),
   turnstile = new TurnstileVerifier();
+const directSignup = new DirectEmailSignupService();
 const wrap = (fn) => (req, res, next) =>
   Promise.resolve()
     .then(() => fn(req, res))
@@ -34,21 +44,48 @@ router.get(
   '/config',
   wrap(async (_req, res) => {
     const config = publicConfig();
-    if (config.enabled) {
+    if (config.enabled || config.simpleSignup) {
       const rows = await prisma.$queryRawUnsafe(
-        "SELECT to_regclass('public.auth_oauth_flows') IS NOT NULL AS ready"
+        `SELECT
+          to_regclass('public.users') IS NOT NULL AS users_ready,
+          to_regclass('public.auth_oauth_flows') IS NOT NULL AS oauth_ready,
+          to_regclass('public.auth_abuse_buckets') IS NOT NULL AS abuse_ready,
+          to_regclass('public.auth_account_events') IS NOT NULL AS account_events_ready,
+          to_regclass('public.auth_sessions') IS NOT NULL AS sessions_ready,
+          (SELECT count(*) = 5
+             FROM information_schema.columns
+            WHERE table_schema='public' AND table_name='users'
+              AND column_name IN ('business_access_status','trial_started_at','trial_ends_at','business_approved_at','business_approved_by'))
+            AS signup_schema_ready`
       );
-      if (!rows[0]?.ready)
+      const row = rows[0] || {};
+      const ready = authSchemaReady(row, config);
+      if (!ready)
         return res.success({
           ...config,
           enabled: false,
+          simpleSignup: false,
           google: false,
           kakao: false,
           email: false,
+          turnstileSiteKey: null,
           setupRequired: true,
         });
     }
     res.success(config);
+  })
+);
+router.post(
+  '/signup/simple',
+  validateBody(simpleSignupSchema),
+  wrap(async (req, res) => {
+    const config = publicConfig();
+    if (!config.simpleSignup)
+      throw new AppError('간편 가입을 위한 약관·보안 설정이 완료되지 않았습니다.', 503);
+    if (!assertSignupConsent({ ...req.body, purpose: 'signup' }, config))
+      throw new AppError('가입 약관·연령 확인을 완료해 주세요.', 400);
+    await turnstile.verify(req.body.turnstileToken, 'signup');
+    result(res, await directSignup.register(req.body, req.ip));
   })
 );
 // Existing linked social accounts still need MFA when new enrollment is off.
@@ -68,17 +105,6 @@ router.use((_req, _res, next) =>
 );
 const actor = auth.authMiddleware,
   optional = auth.optionalAuth;
-function consent(body) {
-  if (body.intent === 'signup' || body.purpose === 'signup') {
-    if (
-      body.agreeTerms !== true ||
-      body.agreePrivacy !== true ||
-      !publicConfig().termsUrl ||
-      !publicConfig().privacyUrl
-    )
-      throw new AppError('이용약관·개인정보 처리방침을 확인하고 동의해 주세요.', 400);
-  }
-}
 function authenticatedPurpose(req) {
   if (['link', 'reauth'].includes(req.body.purpose || req.body.intent) && !req.user?.sid)
     throw new AppError('기존 계정으로 먼저 로그인해 주세요.', 401);
@@ -98,7 +124,7 @@ router.post(
   optional,
   wrap(async (req, res) => {
     if (!publicConfig().email) throw new AppError('이메일 인증 설정이 필요합니다.', 503);
-    consent(req.body);
+    const signingUp = assertSignupConsent(req.body);
     authenticatedPurpose(req);
     await turnstile.verify(
       req.body.turnstileToken,
@@ -112,6 +138,7 @@ router.post(
     res.success(
       await email.request({
         ...req.body,
+        consentVersion: signingUp ? SIGNUP_CONSENT_VERSION : null,
         userId: ['link', 'reauth'].includes(req.body.purpose) ? req.user.id : null,
         sessionId: req.user?.sid || null,
         ip: req.ip,
@@ -142,7 +169,7 @@ router.post(
   wrap(async (req, res) => {
     if (!publicConfig()[req.params.provider] || !['google', 'kakao'].includes(req.params.provider))
       throw new AppError('소셜 로그인 설정이 필요합니다.', 503);
-    consent(req.body);
+    const signingUp = assertSignupConsent(req.body);
     authenticatedPurpose(req);
     await turnstile.verify(
       req.body.turnstileToken,
@@ -156,6 +183,7 @@ router.post(
     res.success(
       await oauth.start({
         ...req.body,
+        consentVersion: signingUp ? SIGNUP_CONSENT_VERSION : null,
         provider: req.params.provider,
         userId: ['link', 'reauth'].includes(req.body.intent) ? req.user.id : null,
         sessionId: req.user?.sid || null,
@@ -225,3 +253,4 @@ router.post(
   })
 );
 module.exports = router;
+

@@ -467,3 +467,26 @@ test('very old unknown provider effects stop for reconciliation rather than risk
   assert.equal(f.getCalls(), 1);
   assert.equal(await db.ledger.count({ where: { payment_id: f.payment.id } }), 0);
 });
+
+test('concurrent checkout retries reuse one READY payment and never create another order', async () => {
+  const order=await db.orders.create({data:{store_id:store.id,order_number:crypto.randomUUID(),total_amount:10000,payment_status:'pending',status:'pending'}});
+  const retry=require('../../services/PaymentRetry');
+  const service=new (require('../../services/PaymentService'))();
+  const args={db,provider:{getPaymentByOrderId:async()=>null},prepare:(data,tx)=>service.preparePayment(data,tx),
+    orderId:order.id,proof:{storeId:store.id,orderIds:[order.id]}};
+  const results=await Promise.all(Array.from({length:6},()=>retry(args)));
+  assert.equal(new Set(results.map(r=>r.payment_id)).size,1);
+  assert.equal(await db.payments.count({where:{order_id:order.id}}),1);
+  assert.equal(await db.orders.count({where:{order_number:order.order_number}}),1);
+  args.provider.getPaymentByOrderId=async merchantId=>merchantId===order.order_number?
+    {orderId:merchantId,status:'EXPIRED',totalAmount:10000,balanceAmount:10000}:null;
+  const reopened=await Promise.all(Array.from({length:6},()=>retry(args)));
+  assert.equal(new Set(reopened.map(r=>r.order_number)).size,1);
+  assert.notEqual(reopened[0].order_number,order.order_number);
+  assert.equal(reopened[0].payment_id,results[0].payment_id);
+  assert.equal(await db.payments.count({where:{order_id:order.id}}),1);
+  await db.orders.update({where:{id:order.id},data:{payment_status:'paid'}});
+  await assert.rejects(retry(args));
+  await assert.rejects(retry({...args,proof:{storeId:store.id+1,orderIds:[order.id]}}));
+});
+

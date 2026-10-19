@@ -285,13 +285,22 @@
     "notify_phone": "📱 주문 알림 받을 번호",
     "notify_phone_saved": "저장된 번호가 입력되었어요. 다른 번호로 받으려면 수정하세요.",
     "notify_phone_hint": "입력하시면 주문 상태를 문자로 안내받을 수 있어요. (선택)",
+    "notify_phone_invalid": "휴대전화 번호 형식을 확인해 주세요. 예: 010-1234-5678",
+    "items_unit": "개",
+    "open_cart": "장바구니 열기",
+    "minimize": "메뉴 보며 계속 담기",
+    "split_payment_pending": "기존 분할 결제가 진행 중입니다. 장바구니를 변경하기 전에 결제를 이어서 진행해 주세요.",
+    "split_payment_card_only": "분할 결제는 현재 신용카드로 진행할 수 있어요. 결제수단을 신용카드로 선택해 주세요.",
+    "remove_item": "{{name}} 삭제",
+    "decrease_quantity": "{{name}} 수량 줄이기",
+    "increase_quantity": "{{name}} 수량 늘리기",
     "select_payment": "💳 결제 수단 선택",
     "select_payment_guide": "결제 수단을 선택해주세요",
     "popular_combo": "함께 먹으면 더 맛있는 인기조합",
     "popular_menu": "인기 메뉴",
     "recommended_pairing": "추천 페어링",
     "add": "추가하기",
-    "order_with_method": "{{method}}으로 주문하기",
+    "order_with_method": "{{method}} 주문하기",
     "easy_payment": "간편결제",
     "easy_payment_desc": "앱으로 빠르게 결제",
     "standard_payment": "일반결제",
@@ -672,3 +681,4 @@
     "cancelled": "취소됨"
   }
 }
+

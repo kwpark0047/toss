@@ -40,6 +40,7 @@ import LanguageSelector from "@/components/menu/LanguageSelector";
 import TinkerBell from "@/components/ai/TinkerBell";
 import { loadTinkerBellSettings } from "@/utils/tinkerbell";
 import { useTossPayment } from "@/hooks/useTossPayment";
+import { getPhoneDigits, isValidCustomerMobilePhone } from "@/utils/customerPhone";
 
 /** 순수 함수: 항목이 최근 7일 이내 생성되었는지 확인 */
 const isNewItem = item => {
@@ -166,9 +167,11 @@ const MenuPage = () => {
   // 주문 알림 받을 번호 — 저장된 번호로 자동 초기화 (재방문 고객)
   const [notifyPhone, setNotifyPhone] = useState(() => {
     try {
-      const d = (localStorage.getItem('wm_customer_phone') || '').replace(/\D/g, '');
-      if (d.length === 11) return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
-      if (d.length >= 4) return d;
+      const saved = localStorage.getItem('wm_customer_phone') || '';
+      if (isValidCustomerMobilePhone(saved)) {
+        const d = getPhoneDigits(saved);
+        return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+      }
     } catch {/* 무시 */}
     return '';
   });
@@ -463,11 +466,17 @@ const handleOptionConfirm = useCallback((quantity, selectedOptions, totalPrice) 
     });
   }, []);
   const checkoutAttempt = useRef(null);
+  const splitCheckoutAttempt = useRef(null);
 const handleOrder = useCallback(async () => {
     if (!storeId || cart.length === 0) return;
     if (checkoutAttempt.current?.busy) return;
     if (!storeOpen) {
       toast.error(t('order.cannot_order'));
+      return;
+    }
+    const notifyDigits = getPhoneDigits(notifyPhone);
+    if (notifyPhone && !isValidCustomerMobilePhone(notifyDigits)) {
+      toast.error(t('cart_modal.notify_phone_invalid'));
       return;
     }
     setIsOrdering(true);
@@ -478,8 +487,7 @@ const handleOrder = useCallback(async () => {
     const attempt = checkoutAttempt.current;
     attempt.busy = true;
     try {
-      const notifyDigits = notifyPhone.replace(/\D/g, '');
-      const hasPhone = notifyDigits.length >= 10;
+      const hasPhone = isValidCustomerMobilePhone(notifyDigits);
 
       // 전화번호 미입력(거부) 시 FCM 푸시 토큰을 발급받아 대체 알림 채널로 사용
       let fcmToken = null;
@@ -513,17 +521,14 @@ const handleOrder = useCallback(async () => {
           customer_fcm_token: fcmToken
         } : {})
       };
-      // 재방문 자동입력을 위해 유효 번호 저장
-      if (hasPhone) {
-        try {
-          localStorage.setItem('wm_customer_phone', notifyDigits);
-        } catch {/* 무시 */}
-      }
 const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKey: attempt.key });
       attempt.order = order;
       const orderData_ = order?.data || order || {};
       const createdOrderId = orderData_.id;
       if (!createdOrderId) throw new Error('주문 생성 결과에 주문 ID가 없습니다.');
+      if (hasPhone) {
+        try { localStorage.setItem('wm_customer_phone', notifyDigits); } catch {/* 무시 */}
+      }
 
       // AI 추천 전환(주문 성공) 어트리뷰션 기록 — 실패해도 주문 흐름은 방해하지 않음
       trackOrderConversion(
@@ -585,6 +590,127 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       setIsOrdering(false);
     }
   }, [storeId, cart, storeOpen, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t]);
+
+  const handleSplitPayment = useCallback(async splitData => {
+    if (!storeId || cart.length === 0 || !storeOpen) return { success: false };
+    if (splitCheckoutAttempt.current?.busy) return { success: false };
+    const notifyDigits = getPhoneDigits(notifyPhone);
+    if (notifyPhone && !isValidCustomerMobilePhone(notifyDigits)) {
+      toast.error(t('cart_modal.notify_phone_invalid'));
+      return { success: false };
+    }
+
+    const fingerprint = JSON.stringify({ storeId, tableNumber, cart, totalPrice, notifyDigits });
+    if (splitCheckoutAttempt.current?.order && splitCheckoutAttempt.current.fingerprint !== fingerprint) {
+      toast.error(t('cart_modal.split_payment_pending'));
+      return { success: false };
+    }
+    if (splitCheckoutAttempt.current?.fingerprint !== fingerprint) {
+      splitCheckoutAttempt.current = {
+        fingerprint,
+        key: crypto.randomUUID(),
+        order: null,
+        splitConfig: null,
+        readyPayment: null,
+        busy: false,
+      };
+    }
+    const attempt = splitCheckoutAttempt.current;
+    const configKey = JSON.stringify({ splitType: splitData.split_type, people: splitData.people_count });
+    if (attempt.readyPayment && attempt.readyPayment.amount !== Number(splitData.amount)) {
+      toast.error(t('cart_modal.split_payment_pending'));
+      return { success: false };
+    }
+
+    attempt.busy = true;
+    setIsOrdering(true);
+    try {
+      if (!attempt.order) {
+        const orderData = {
+          store_id: storeId,
+          table_number: tableNumber,
+          items: cart.map(item => ({
+            product_id: item.menuItem.id,
+            product_name: item.menuItem.name,
+            price: item.unitPrice,
+            quantity: item.quantity,
+            subtotal: item.unitPrice * item.quantity,
+            options: item.selectedOptions,
+          })),
+          total_amount: totalPrice,
+          payment_method: 'card',
+          is_split_payment: true,
+          split_type: splitData.split_type,
+          ...(notifyDigits ? { customer_phone: notifyDigits } : {}),
+        };
+        const response = await ordersAPI.create(orderData, { idempotencyKey: attempt.key });
+        attempt.order = response?.data || response;
+        if (!attempt.order?.id || !attempt.order?.order_capability) {
+          throw new Error('분할 주문 정보를 확인하지 못했습니다.');
+        }
+      }
+
+      const order = attempt.order;
+      if (attempt.splitConfig !== configKey && !attempt.readyPayment) {
+        await paymentsAPI.splitRequest({
+          order_id: order.id,
+          split_type: splitData.split_type,
+          num_people: splitData.people_count || 2,
+        }, order.order_capability);
+        attempt.splitConfig = configKey;
+      }
+
+      if (!attempt.readyPayment) {
+        const response = await paymentsAPI.splitPay({
+          order_id: order.id,
+          amount: Number(splitData.amount),
+          payer_phone: notifyDigits || undefined,
+          split_type: splitData.split_type,
+          payment_method: 'card',
+        }, order.order_capability);
+        const payload = response?.data?.data || response?.data || response;
+        if (!payload?.payment_id || !payload?.pg_order_id || Number(payload.amount) !== Number(splitData.amount)) {
+          throw new Error('분할 결제 준비 정보를 확인하지 못했습니다.');
+        }
+        attempt.readyPayment = {
+          payment_id: payload.payment_id,
+          amount: Number(payload.amount),
+          order_number: payload.pg_order_id,
+        };
+      }
+
+      const result = await initiateTossPayment({
+        orderId: order.id,
+        storeId,
+        totalAmount: attempt.readyPayment.amount,
+        phone: notifyDigits || undefined,
+        capability: order.order_capability,
+        preparedPayment: attempt.readyPayment,
+      });
+      if (!result?.success) {
+        toast.error(result?.error || t('order.failed'));
+        return { success: false };
+      }
+      if (notifyDigits) {
+        try { localStorage.setItem('wm_customer_phone', notifyDigits); } catch {/* 무시 */}
+      }
+      setIsCartOpen(false);
+      if (!result.pendingRedirect) {
+        toast.success(t('order.success'));
+        setCurrentOrderId(order.id);
+        setCurrentOrderCapability(order.order_capability);
+        setCurrentOrderAmount(Number(order.total_amount ?? totalPrice));
+        setIsOrderStatusOpen(true);
+      }
+      return { success: true };
+    } catch (error) {
+      toast.error(error.response?.data?.error || error.message || t('order.failed'));
+      return { success: false };
+    } finally {
+      attempt.busy = false;
+      setIsOrdering(false);
+    }
+  }, [storeId, cart, storeOpen, tableNumber, totalPrice, notifyPhone, initiateTossPayment, t]);
 
   // Stable callbacks for JSX props (prevents child re-renders from inline closures)
   const handleOpenOrderHistory = useCallback(() => navigate('/order-history'), [navigate]);
@@ -678,7 +804,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       <CartButton totalItems={totalItems} totalPrice={totalPrice} onClick={handleOpenCart} />
 
       {/* Cart Modal */}
-      <CartModal isOpen={isCartOpen} onClose={handleCloseCart} cart={cart} onUpdateQuantity={updateQuantity} onOrder={handleOrder} isOrdering={isOrdering} totalPrice={totalPrice} notifyPhone={notifyPhone} onNotifyPhoneChange={setNotifyPhone} paymentMethod={paymentMethod} onPaymentMethodChange={setPaymentMethod} menuItems={menuItems} storeId={storeId} onAddToCartClick={handleAddToCartClick} />
+      <CartModal isOpen={isCartOpen} onClose={handleCloseCart} cart={cart} onUpdateQuantity={updateQuantity} onOrder={handleOrder} onSplitPayment={handleSplitPayment} isOrdering={isOrdering} totalPrice={totalPrice} notifyPhone={notifyPhone} onNotifyPhoneChange={setNotifyPhone} paymentMethod={paymentMethod} onPaymentMethodChange={setPaymentMethod} menuItems={menuItems} storeId={storeId} onAddToCartClick={handleAddToCartClick} />
 
       {/* Order Status Modal */}
       {storeId && <OrderStatusModal isOpen={isOrderStatusOpen} onClose={handleCloseOrderStatus} orderId={currentOrderId} capability={currentOrderCapability} storeId={storeId} tableNumber={tableNumber} onWriteReview={handleWriteReview} />}

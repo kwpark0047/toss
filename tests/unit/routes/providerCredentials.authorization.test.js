@@ -8,7 +8,10 @@ jest.mock('../../../middleware/auth', () => {
     req.user.role === 'super_admin' ? next() : res.sendStatus(403);
   return auth;
 });
-jest.mock('../../../middleware/storeAuth', () => ({ getStoreRole: jest.fn() }));
+jest.mock('../../../middleware/storeAuth', () => ({
+  getStoreRole: jest.fn(),
+  blockExpiredTrialWrite: jest.fn().mockResolvedValue(false),
+}));
 jest.mock('../../../services/ProviderCredentialService', () => ({
   list: jest.fn().mockResolvedValue([]),
   save: jest.fn().mockResolvedValue({ saved: true }),
@@ -18,7 +21,7 @@ jest.mock('../../../services/ProviderCredentialService', () => ({
 const express = require('express');
 const request = require('supertest');
 const credentials = require('../../../services/ProviderCredentialService');
-const { getStoreRole } = require('../../../middleware/storeAuth');
+const { getStoreRole, blockExpiredTrialWrite } = require('../../../middleware/storeAuth');
 const app = express();
 app.use(express.json(), (req, res, next) => {
   res.success = (data) => res.json({ data });
@@ -29,6 +32,7 @@ app.use((err, req, res, next) => res.status(err.statusCode || 500).json({ error:
 beforeEach(() => {
   jest.clearAllMocks();
   getStoreRole.mockResolvedValue(null);
+  blockExpiredTrialWrite.mockResolvedValue(false);
 });
 for (const [method, path] of [
   ['get', ''],
@@ -56,6 +60,7 @@ test('owner saving credentials uses authorized URL store and rejects body store 
   expect(res.status).toBe(200);
   expect(res.headers['cache-control']).toBe('no-store');
   expect(credentials.save).toHaveBeenCalledWith('tossplace', 3, { api_key: 'fixture-key' }, 7);
+  expect(blockExpiredTrialWrite).toHaveBeenCalledWith(3, expect.any(Object), expect.any(Object));
 });
 test('anonymous and malformed store requests cannot read credentials', async () => {
   expect((await request(app).get('/api/provider-credentials/stores/3')).status).toBe(401);
@@ -68,3 +73,4 @@ test('anonymous and malformed store requests cannot read credentials', async () 
   ).toBe(400);
   expect(credentials.list).not.toHaveBeenCalled();
 });
+

@@ -10,6 +10,9 @@ const jwt = require('jsonwebtoken');
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'waiting-route-test-secret';
 
 const mockPrisma = {
+  $queryRawUnsafe: jest.fn(async () => [
+    { business_access_status: 'approved', trial_ends_at: null, auth_status: 'active' },
+  ]),
   waiting_list: { findUnique: jest.fn() },
   stores: { findUnique: jest.fn() },
   staff: { findFirst: jest.fn() },
@@ -42,7 +45,10 @@ function buildApp() {
 // 앱 인스턴스를 한 번만 생성해 재사용한다. (mock은 beforeEach에서 초기화됨)
 const app = buildApp();
 
-const token = jwt.sign({ id: 7, role: 'owner', type: 'access' }, process.env.JWT_SECRET);
+const token = jwt.sign(
+  { id: 7, role: 'owner', type: 'access', sid: 'waiting-test-session' },
+  process.env.JWT_SECRET
+);
 
 describe('waiting route security', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -92,3 +98,4 @@ describe('waiting route security', () => {
     );
   });
 });
+

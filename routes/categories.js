@@ -5,6 +5,8 @@ const categoriesController = require('../controllers/categoriesController');
 const prisma = require('../config/prisma');
 const {
   checkResourcePermission,
+  checkStorePermission,
+  blockExpiredTrialWrite,
   getStoreRole,
   rolePermissions,
 } = require('../middleware/storeAuth');
@@ -31,12 +33,11 @@ const checkSortPermission = async (req, res, next) => {
       return res.status(400).json({ error: '정렬할 카테고리 목록이 필요합니다.' });
     }
 
-    const categoryIds = orders.map((o) => parseInt(o.id)).filter((id) => !isNaN(id));
+    const categoryIds = orders.map((order) => parseInt(order.id)).filter((id) => !isNaN(id));
     if (categoryIds.length !== orders.length) {
       return res.status(400).json({ error: '유효하지 않은 카테고리 ID가 포함되어 있습니다.' });
     }
 
-    // 요청된 모든 카테고리 조회
     const categories = await prisma.categories.findMany({
       where: { id: { in: categoryIds } },
       select: { id: true, store_id: true },
@@ -46,18 +47,18 @@ const checkSortPermission = async (req, res, next) => {
       return res.status(404).json({ error: '존재하지 않는 카테고리가 있습니다.' });
     }
 
-    // 서로 다른 매장의 카테고리를 섞어 정렬할 수 없음
-    const storeIds = [...new Set(categories.map((c) => c.store_id))];
+    const storeIds = [...new Set(categories.map((category) => category.store_id))];
     if (storeIds.length !== 1) {
       return res.status(400).json({ error: '다른 매장의 카테고리는 함께 정렬할 수 없습니다.' });
     }
 
-    // 단일 매장에 대한 권한 확인
     const storeId = storeIds[0];
     const role = await getStoreRole(req.user.id, storeId);
     if (!role) {
       return res.status(403).json({ error: '해당 매장에 대한 권한이 없습니다.' });
     }
+    if (await blockExpiredTrialWrite(storeId, req, res)) return;
+
     const permissions = rolePermissions[role] || [];
     if (role === 'owner' || permissions.includes('items:manage')) {
       req.storeId = storeId;
@@ -150,7 +151,12 @@ router.put('/sort', authMiddleware, checkSortPermission, categoriesController.up
  *       201:
  *         description: 카테고리 생성 완료
  */
-router.post('/', authMiddleware, categoriesController.createCategory);
+router.post(
+  '/',
+  authMiddleware,
+  checkStorePermission('items:manage'),
+  categoriesController.createCategory
+);
 
 /**
  * @swagger
@@ -232,3 +238,4 @@ router.get('/', categoriesController.getAllCategories);
 router.get('/:id', categoriesController.getCategoryById);
 
 module.exports = router;
+

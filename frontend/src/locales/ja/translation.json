@@ -284,6 +284,15 @@
     "notify_phone": "📱 注文通知先の電話番号",
     "notify_phone_saved": "保存された番号が入力されました。変更する場合は編集してください。",
     "notify_phone_hint": "注文状況をSMSで受け取れます。（任意）",
+    "notify_phone_invalid": "有効な携帯電話番号を入力してください。",
+    "items_unit": "点",
+    "open_cart": "カートを開く",
+    "minimize": "メニューを見ながら追加",
+    "split_payment_pending": "分割払いが進行中です。カートを変更する前に決済を続けてください。",
+    "split_payment_card_only": "分割払いは現在クレジットカードに対応しています。カードを選択してください。",
+    "remove_item": "{{name}}を削除",
+    "decrease_quantity": "{{name}}の数量を減らす",
+    "increase_quantity": "{{name}}の数量を増やす",
     "select_payment": "💳 お支払い方法を選択",
     "select_payment_guide": "お支払い方法を選択してください",
     "popular_combo": "一緒に食べると更においしい人気コンボ",
@@ -671,3 +680,4 @@
     "cancelled": "キャンセル済み"
   }
 }
+

@@ -9,6 +9,7 @@ import { storesAPI } from '../api/stores';
 import { getRecentStores } from '../utils/recentStores';
 import LanguageSwitcher from '../components/common/LanguageSwitcher';
 import { Award, BadgeCheck, CalendarDays, Check, ChevronRight, Clock, Crown, Gift, Heart, Quote, ShieldCheck, Sparkles, Store, TrendingUp, UserPlus } from 'lucide-react';
+import './LandingPage.css';
 
 const LandingPage = () => {
     const { user } = useAuth();
@@ -94,10 +95,12 @@ const LandingPage = () => {
     const pricingPlans = [
         {
             name: t('pricingPlan.free.name', '무료'), price: t('pricingPlan.free.price', '₩0'), period: t('pricingPlan.free.period', '/월'),
+            trialNote: '가입 즉시 1개월 체험 · 체험 종료 후 최고관리자 정식 승인 필요',
             features: [
                 t('pricingPlan.free.features.qrCode', 'QR 코드 생성'),
                 t('pricingPlan.free.features.orderNotification', '주문 알림 (웹)'),
-                t('pricingPlan.free.features.basicStats', '기본 매출 통계')
+                t('pricingPlan.free.features.basicStats', '기본 매출 통계'),
+                '체험 종료 후 승인 시 계속 이용',
             ],
             cta: t('pricingPlan.free.cta', '무료로 시작'), popular: false,
         },
@@ -198,8 +201,8 @@ const LandingPage = () => {
         <div className="min-h-screen bg-white text-gray-900">
 
             {/* ── 헤더 ── */}
-            <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <header className="wm-site-header fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+                <div className="wm-site-header-inner max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                     <Link to="/" className="flex items-center gap-2">
                         <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center">
                             <span className="text-white font-black text-lg">W</span>
@@ -241,7 +244,8 @@ const LandingPage = () => {
                         <LanguageSwitcher />
                     </div>
 
-                    <button className="md:hidden p-2 text-gray-600" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                    <button className="md:hidden p-2 text-gray-600" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'} aria-expanded={mobileMenuOpen}>
                         {mobileMenuOpen ? <Icon icon="X" size="lg" /> : <Icon icon="Menu" size="lg" />}
                     </button>
                 </div>
@@ -262,8 +266,15 @@ const LandingPage = () => {
                                 )
                             ))}
                             <div className="pt-4 border-t border-gray-100 space-y-3">
-                                <Link to="/auth" className="block text-center py-3 text-gray-700 font-bold border border-gray-200 rounded-full">로그인</Link>
-                                <Link to="/register" className="block text-center py-3 bg-orange-500 text-white rounded-full font-bold hover:bg-orange-600 transition-colors">무료로 시작하기</Link>
+                                {user ? (
+                                    <button onClick={() => { setMobileMenuOpen(false); navigate('/admin'); }}
+                                        className="block w-full text-center py-3 bg-orange-500 text-white rounded-full font-bold hover:bg-orange-600 transition-colors">대시보드</button>
+                                ) : (
+                                    <>
+                                        <Link to="/auth" className="block text-center py-3 text-gray-700 font-bold border border-gray-200 rounded-full">로그인</Link>
+                                        <Link to="/register" className="block text-center py-3 bg-orange-500 text-white rounded-full font-bold hover:bg-orange-600 transition-colors">매장 시작하기</Link>
+                                    </>
+                                )}
                                 <LanguageSwitcher />
                             </div>
                         </motion.div>
@@ -274,8 +285,7 @@ const LandingPage = () => {
             {/* ══════════════════════════════════════════════
                 히어로 섹션
             ══════════════════════════════════════════════ */}
-            <section className="pt-28 pb-20 px-6 relative overflow-hidden"
-                style={{ background: 'linear-gradient(135deg, #fff7ed 0%, #ffffff 45%, #f8faff 100%)' }}>
+            <section className="wm-hero pt-28 pb-20 px-6 relative overflow-hidden">
                 {/* 장식 블러 원 */}
                 <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-40 blur-3xl pointer-events-none"
                     style={{ background: 'radial-gradient(circle, rgba(251,146,60,0.25) 0%, transparent 70%)' }} />
@@ -285,22 +295,22 @@ const LandingPage = () => {
 
                     {/* 왼쪽 텍스트 */}
                     <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.7 }} className="flex-1">
+                        transition={{ duration: 0.7 }} className="wm-hero-copy flex-1">
                         <motion.div
                             initial={{ opacity: 0, y: 10, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ duration: 0.5, delay: 0.1 }}
-                            className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-6">
-                            <Icon icon="Sparkles" size="md" className="animate-pulse" /> 모두의 메뉴판 플랫폼
+                            className="wm-hero-kicker inline-flex items-center gap-2 px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-6">
+                            <Icon icon="Sparkles" size="md" /> QR 주문부터 매장 운영까지
                         </motion.div>
                         <motion.h1
-                            className="text-4xl md:text-6xl font-black leading-[1.15] mb-6 text-gray-900 text-balance [word-break:keep-all]"
+                            className="wm-hero-title text-4xl md:text-6xl font-black leading-[1.15] mb-6 text-gray-900 text-balance [word-break:keep-all]"
                             initial="hidden" animate="show"
                             variants={{ show: { transition: { staggerChildren: 0.14, delayChildren: 0.15 } } }}
                         >
                             {[
-                                <><span className="text-gray-900">1인 자영업자</span>에게</>,
-                                <><span className="ai-gradient-text">AI 지원 단골리스트</span>를</>,
-                                <>만들어 드립니다.</>,
+                                <>주문은 간편하게,</>,
+                                <><span className="ai-gradient-text">매장 운영은 똑똑하게.</span></>,
+                                <><span className="text-gray-900">위마켓 하나로 시작하세요.</span></>,
                             ].map((line, i) => (
                                 <motion.span
                                     key={i}
@@ -314,29 +324,28 @@ const LandingPage = () => {
                                 </motion.span>
                             ))}
                         </motion.h1>
-                        <p className="text-lg text-gray-500 mb-8 leading-relaxed max-w-lg">
-                            위마켓은 종이 메뉴판과 복잡한 POS를 대체하는 올인원 QR 메뉴판 플랫폼입니다.
-                            테이블마다 QR 코드 하나로 주문, 결제, 대기까지 한번에.
+                        <p className="wm-hero-description text-lg text-gray-500 mb-8 leading-relaxed max-w-lg">
+                            고객은 앱 설치 없이 QR로 메뉴를 보고 주문하고, 사장님은 주문·주방·매출을 한 곳에서 관리합니다.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                 onClick={() => navigate('/register')}
-                                className="flex items-center justify-center gap-2 px-8 py-4 bg-orange-500 text-white rounded-full font-bold text-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200">
-                                무료로 시작하기 <Icon icon="ChevronRight" size="md" />
+                                className="wm-primary-cta flex items-center justify-center gap-2 px-8 py-4 bg-orange-500 text-white rounded-full font-bold text-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200">
+                                매장 시작하기 <Icon icon="ChevronRight" size="md" />
                             </motion.button>
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                 onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
-                                className="flex items-center justify-center gap-2 px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full font-bold text-lg hover:border-orange-300 hover:text-orange-500 transition-colors">
+                                className="wm-secondary-cta flex items-center justify-center gap-2 px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full font-bold text-lg hover:border-orange-300 hover:text-orange-500 transition-colors">
                                 <Icon icon="Play" size="md" className="fill-current" /> 데모 체험하기
                             </motion.button>
                         </div>
 
                         {/* 통계 */}
-                        <div className="flex gap-8 mt-12 pt-8 border-t border-gray-100">
+                        <div className="wm-proof-points flex gap-8 mt-12 pt-8 border-t border-gray-100">
                             {[
-                                { value: '1,000+', label: '등록 매장', icon: "Store" },
-                                { value: '500만+', label: '누적 주문', icon: "ShoppingCart" },
-                                { value: '4.9★',   label: '평균 평점',  icon: "Star" },
+                                { value: 'QR', label: '앱 설치 없이 주문', icon: "QrCode" },
+                                { value: 'LIVE', label: '주방에 실시간 전달', icon: "Bell" },
+                                { value: 'AI',   label: '매출 분석 지원',  icon: "TrendingUp" },
                             ].map(stat => (
                                 <div key={stat.label} className="flex items-center gap-2.5">
                                     <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
@@ -354,7 +363,7 @@ const LandingPage = () => {
                     {/* 오른쪽: 인터랙티브 폰 목업 */}
                     <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.7, delay: 0.2 }}
-                        className="flex-1 flex justify-center items-center gap-4">
+                        className="wm-hero-visual flex-1 flex justify-center items-center gap-4">
 
                         {/* 미니 시스템 모니터 */}
                         <div className="hidden lg:flex flex-col w-48 bg-slate-950 rounded-2xl p-4 gap-2 shadow-2xl self-center">
@@ -506,7 +515,7 @@ const LandingPage = () => {
                     style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
                 <div className="max-w-7xl mx-auto relative z-10">
                         <div className="text-center mb-16">
-                            <span classcn="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">{t('features.title', '기능 소개')}</span>
+                            <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">{t('features.title', '기능 소개')}</span>
                             <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">{t('features.title', '매장 운영에 필요한 모든 것')}</h2>
                             <p className="text-gray-500 text-lg">{t('features.subtitle', '종이 메뉴판, 복잡한 POS, 예약 수첩… 이제 위마켓 하나로 통합하세요.')}</p>
                         </div>
@@ -900,10 +909,8 @@ const LandingPage = () => {
             {/* ══════════════════════════════════════════════
                 매장 위치 (지역·업종·고객위치 검색)
             ══════════════════════════════════════════════ */}
-            <div id="locations" className="py-24 px-6 bg-gradient-to-b from-white to-slate-50/50">
-                <div className="max-w-7xl mx-auto">
-                    <StoreLocator />
-                </div>
+            <div className="wm-location-shell">
+                <StoreLocator />
             </div>
 
             {/* ══════════════════════════════════════════════
@@ -1016,7 +1023,7 @@ const LandingPage = () => {
                         {[
                             { value: '4.9', suffix: '/ 5.0', label: '평균 사용자 평점', note: '1,200+ 리뷰 기준' },
                             { value: '97', suffix: '%', label: '재계약률', note: '최근 12개월 기준' },
-                            { value: '14', suffix: '일', label: '무료 체험 기간', note: '카드 등록 불필요' },
+                            { value: '1', suffix: '개월', label: '무료 체험 기간', note: '종료 후 정식 승인으로 계속 이용' },
                         ].map((s, i) => (
                             <div key={i} className="text-center py-8 px-6 bg-gray-50 rounded-2xl border border-gray-100">
                                 <p className="text-4xl font-black text-gray-900 mb-1">
@@ -1238,7 +1245,7 @@ const LandingPage = () => {
                     <div className="text-center mb-16">
                         <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">요금제</span>
                         <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">합리적인 가격, 강력한 기능</h2>
-                        <p className="text-gray-500">결제 수수료 별도 · VAT 포함 가격 · 연간 결제시 2개월 무료</p>
+                        <p className="text-gray-500">Free는 가입일부터 1개월 체험 · 이후 정식 승인 필요 · 유료 자동 전환 없음</p>
                     </div>
                     <div className="grid md:grid-cols-3 gap-6 items-center">
                         {pricingPlans.map((plan, i) => (
@@ -1261,6 +1268,12 @@ const LandingPage = () => {
                                     <span className="text-4xl font-black">{plan.price}</span>
                                     <span className="mb-1 text-sm text-gray-400">{plan.period}</span>
                                 </div>
+                                {plan.trialNote && (
+                                    <div className="mb-6 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm leading-relaxed text-orange-950">
+                                        <p className="font-black">첫 1개월은 무료 체험</p>
+                                        <p className="mt-1 text-xs text-orange-900/80">체험이 끝나면 최고관리자에게 정식 이용 승인을 신청해 주세요. 자동으로 유료 요금제로 전환되지 않습니다.</p>
+                                    </div>
+                                )}
                                 <div className="space-y-3 mb-8 flex-1">
                                     {plan.features.map(f => (
                                         <div key={f} className="flex items-center gap-2.5">
@@ -1300,7 +1313,8 @@ const LandingPage = () => {
                             <span className="text-orange-500">스마트하게</span>{' '}
                             운영하세요
                         </h2>
-                        <p className="text-gray-500 text-lg mb-3">14일 무료 체험 · 신용카드 불필요</p>
+                        <p className="text-gray-500 text-lg mb-3">1개월 무료 체험 · 자동 유료 전환 없음</p>
+                        <p className="text-sm text-gray-500 mb-6">체험 종료 후 최고관리자 정식 승인을 받으면 이용을 이어갈 수 있습니다.</p>
                         <div className="flex items-center justify-center gap-4 mb-10 text-sm text-gray-400">
                             <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-500" /> 설치 불필요</span>
                             <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-500" /> 계약 없음</span>
@@ -1366,3 +1380,4 @@ const LandingPage = () => {
 };
 
 export default LandingPage;
+

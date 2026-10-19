@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Store, Menu, X, ChevronDown, ChevronUp, Search, BookOpen, QrCode, Smartphone } from 'lucide-react';
+import { Store, Menu, X, ChevronDown, ChevronUp, Search, BookOpen, QrCode, Smartphone, CreditCard, Monitor, Gift, BarChart3, RefreshCw } from 'lucide-react';
 export default function GuidesPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,7 +25,7 @@ export default function GuidesPage() {
   const onboardingSteps = [{
     step: '01',
     title: '매장 회원가입 & 점포 등록',
-    desc: '간단한 이메일 가입 후 "매장 생성" 양식에 맞춰 상호명, 업종, 주소 정보를 등록합니다.',
+    desc: '휴대전화번호·이메일·비밀번호로 가입한 뒤 "매장 생성"에서 상호명, 업종, 주소 정보를 등록합니다. 가입 즉시 Free 1개월 체험이 시작됩니다.',
     icon: Store
   }, {
     step: '02',
@@ -51,7 +51,7 @@ export default function GuidesPage() {
     a: '푸드트럭 점주 전용 모바일 대시보드에서 "실시간 GPS 위치 동기화" 스위치를 켜면, HTML5 Geolocation API가 점주의 모바일 기기 좌표를 30초 주기로 전송합니다. 전송된 정보는 실시간으로 한글 행정동 주소로 역지오코딩 변환되어 메인 지도에 반영됩니다.'
   }, {
     q: '매장 내부 인터넷 연결이 갑자기 끊어지면 주문이 날아가나요?',
-    a: '아니요, 위마켓은 PWA(Progressive Web App) 오프라인 모드를 정교하게 내장하고 있습니다. 손님의 단말기 및 주방 화면은 브라우저 내 IndexedDB 보안 버퍼 메모리에 거래 내역을 암호화 보존해 둡니다. 네트워크가 복구되는 즉시 일괄 동기화(Batch Sync)되어 DB 원장에 정상 반영됩니다.'
+    a: '연결이 끊긴 동안 서버에 도달하지 않은 주문은 접수로 확정되지 않을 수 있습니다. 주문 화면의 접수 결과를 확인하고, 네트워크 복구 후 주문·결제 상태를 다시 조회해 주세요. 외부 POS·카드단말기의 오프라인 승인 내역도 각 업체의 원본 기록과 대조해야 합니다.'
   }, {
     q: '토스페이먼츠 라이브 가맹점 키 발급 및 승인 절차는 어떻게 되나요?',
     a: '위마켓 사업자 설정 탭에서 사업자 정보를 입력한 뒤, 토스페이먼츠 온라인 계약을 신청하시면 2~3일 이내에 상용 결제 클라이언트 키와 시크릿 키가 발급됩니다. 발급된 키를 관리자 콘솔에 등록하는 즉시 실결제창이 활성화됩니다.'
@@ -63,6 +63,18 @@ export default function GuidesPage() {
     }));
   };
   const filteredFaqs = faqs.filter(faq => faq.q.includes(searchQuery) || faq.a.includes(searchQuery));
+  const integrationSources = [
+    { title: 'POS·포스기', icon: Monitor, description: '매출 원장, 주문번호, 할인·취소, 부가세를 가져와 위마켓 주문과 비교합니다.' },
+    { title: '키오스크·테이블오더', icon: Smartphone, description: '주문 채널과 주문 시각·품목·금액을 모아 QR 주문과 채널별 실적을 비교합니다.' },
+    { title: '카드단말기·PG', icon: CreditCard, description: '승인·취소·환불·입금 내역을 매출 원장과 대사합니다. 결제 승인 자체를 위마켓이 대신하지 않습니다.' },
+    { title: '포인트·멤버십', icon: Gift, description: '적립·사용·취소와 고객 동의 범위를 확인해 재방문 분석에 활용합니다.' },
+  ];
+  const integrationSteps = [
+    ['1. 원본 준비', '사용 업체의 공식 API·제휴 범위를 확인하거나 관리자 화면에서 CSV 원장을 내려받습니다. 업체 사이트가 있다고 공개 매출 API가 있다는 뜻은 아닙니다.'],
+    ['2. 연결 등록', '매장 관리자 → 데이터 통합·성장 메뉴에서 채널·업체·수집 방식을 등록합니다. API 키는 업체 서버에서 위마켓 수집 API를 호출할 때만 사용하고 브라우저에 넣지 않습니다.'],
+    ['3. 미리보기·정규화', 'CSV 양식을 맞추고 먼저 미리보기합니다. 거래 시각·통화·상태·주문키·환불 누계를 검토한 후 확인된 자료만 수집합니다. 중복 이벤트는 제외됩니다.'],
+    ['4. 합계·차이 확인', '현재 통합 센터에서는 선택 기간의 주문 매출·건수와 채널별 합계, 수집 이력을 확인합니다. 주문별 POS·PG 정산 대사는 업체별 식별자 매핑과 실제 원장 검증을 마친 뒤 제공해야 합니다.'],
+  ];
   return <div className="min-h-screen bg-white text-slate-900 font-sans">
       {/* 프리미엄 내비게이션 바 */}
       <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
@@ -149,6 +161,46 @@ export default function GuidesPage() {
         </div>
       </section>
 
+      {/* POS·주변 장비 연동 및 데이터 분석 */}
+      <section className="border-y border-slate-200 bg-slate-50/70 py-16 sm:py-20" aria-labelledby="integration-guide-title">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <header className="mx-auto mb-10 max-w-3xl text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-600"><BarChart3 aria-hidden="true" className="h-6 w-6" /></div>
+            <h3 id="integration-guide-title" className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">매장 장비 데이터를 연결해 한눈에 분석하기</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-600">POS, 키오스크, 카드단말기, 포인트 기기의 원장을 위마켓 주문·고객 데이터와 모아 채널별 매출과 정산 차이를 확인합니다.</p>
+          </header>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {integrationSources.map(({ title, icon: Icon, description }) => <article key={title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <Icon aria-hidden="true" className="mb-4 h-5 w-5 text-orange-600" />
+              <h4 className="font-bold text-slate-900">{title}</h4>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+            </article>)}
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex sm:items-start sm:gap-3">
+            <RefreshCw aria-hidden="true" className="mb-2 h-5 w-5 shrink-0 text-amber-700 sm:mb-0" />
+            <p className="text-sm leading-6 text-amber-950"><strong>현재 제공 범위:</strong> 공통 CSV 가져오기와 인증된 API 이벤트 수집 구조, 선택 기간의 주문·채널 합계와 수집 이력을 제공합니다. 업체별 자동 API 어댑터와 주문별 POS·PG 정산 대사는 계약·공식 권한·원본 데이터 검증이 끝난 뒤 활성화합니다. 연결 등록만으로 자동 동기화나 대사가 완료되지는 않으며, 실제 원본 데이터가 들어오기 전에는 운영 연동 완료로 표시하지 않습니다.</p>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="데이터 연동 단계">
+            {integrationSteps.map(([title, description]) => <article key={title} className="rounded-2xl border border-slate-200 bg-white p-5">
+              <h4 className="font-bold text-slate-900">{title}</h4>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+            </article>)}
+          </div>
+
+          <div className="mt-8 grid gap-5 rounded-2xl bg-slate-900 p-5 text-white sm:grid-cols-[1fr_auto] sm:items-center sm:p-7">
+            <div>
+              <h4 className="flex items-center gap-2 font-bold"><BarChart3 aria-hidden="true" className="h-5 w-5 text-orange-400" /> 모은 데이터로 확인할 수 있는 것</h4>
+              <p className="mt-2 text-sm leading-6 text-slate-300">현재는 선택한 기간의 주문 기준 순매출·주문 수와 채널별 합계, 기존 CRM 고객 수와 수집 이력을 확인할 수 있습니다. 검증된 원본이 갖춰지면 취소·환불, 승인액·정산액 차이와 포인트·재방문 흐름을 대사·분석 대상으로 확장합니다. AI 매장 매니저는 연결된 출처와 분석 기간을 표시하고, 데이터가 부족하면 판단을 보류합니다.</p>
+              <p className="mt-2 text-xs leading-5 text-slate-400">전화번호·카드번호·비밀번호 등 불필요한 민감정보는 업로드하지 마세요. 카드 승인·포인트 실행은 해당 원천 시스템에서 처리하며, 같은 주문의 POS·PG 기록을 매출로 중복 합산하지 않습니다.</p>
+            </div>
+            <Link to="/auth" className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-orange-600"><BookOpen aria-hidden="true" className="h-4 w-4" />사업자 로그인 후 데이터 통합 센터 열기</Link>
+          </div>
+        </div>
+      </section>
+
       {/* 자주 묻는 질문 (FAQ) 아코디언 */}
       <section className="pb-20 sm:pb-24 lg:pb-36 max-w-3xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
@@ -191,3 +243,4 @@ export default function GuidesPage() {
       </footer>
     </div>;
 }
+

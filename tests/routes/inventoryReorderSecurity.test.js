@@ -10,6 +10,9 @@ const jwt = require('jsonwebtoken');
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'inventory-reorder-route-test-secret';
 
 const mockPrisma = {
+  $queryRawUnsafe: jest
+    .fn()
+    .mockResolvedValue([{ business_access_status: 'approved', trial_ends_at: null }]),
   stores: { findUnique: jest.fn() },
   staff: { findFirst: jest.fn() },
 };
@@ -65,3 +68,4 @@ describe('inventory reorder route security', () => {
     expect(mockReorderController.list).not.toHaveBeenCalled();
   });
 });
+

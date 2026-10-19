@@ -41,7 +41,11 @@ test('actual manager router restricts foreign tenants, staff and manager executi
   const auth = (req, res, next) => { if (!req.headers['x-user']) return res.status(401).end(); req.user = { id: 7, role: req.headers['x-user'] === 'platform' ? 'super_admin' : 'user' }; next(); };
   const context = { module: { exports: {} }, require: name => {
     if (name === '../middleware/auth') return auth;
-    if (name === '../middleware/storeAuth') return { getStoreRole: async (_id, sid) => ({ 3: 'owner', 4: 'manager', 5: 'staff' })[sid] };
+    if (name === '../middleware/storeAuth') return {
+      getStoreRole: async (_id, sid) => ({ 3: 'owner', 4: 'manager', 5: 'staff' })[sid],
+      // Trial expiry is exercised separately; keep this role/action suite focused.
+      blockExpiredTrialWrite: async () => false,
+    };
     if (name === '../services/StoreManagerService') return Service;
     if (name === '../utils/catchAsync') return require('../../utils/catchAsync');
     if (name === '../utils/errorHandler') return require('../../utils/errorHandler');
@@ -63,3 +67,4 @@ test('actual manager router restricts foreign tenants, staff and manager executi
   await request(app).post('/manager/stores/6/actions/test/approve').set('x-user', 'platform').expect(403);
   await request(app).post('/manager/stores/3/actions/test/approve').set('x-user', 'yes').expect(200);
 });
+

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Download, X, Smartphone } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWA';
@@ -9,15 +9,22 @@ export default function PWAInstallBanner() {
   const [dismissed, setDismissed] = useState(
     () => sessionStorage.getItem('pwa-banner-dismissed') === '1'
   );
+  const [customerRegistration, setCustomerRegistration] = useState(false);
 
-  // 테이블 QR 스캔 주문 고객 및 푸드트럭 탐색 지도 손님에게 불필요한 설치 유도를 방지하여 이탈율 최소화 (0-Friction)
-  const isCustomerPage = 
-    location.pathname.startsWith('/menu/') || 
-    location.pathname.startsWith('/foodtruck/') || 
-    location.pathname.startsWith('/kiosk/') ||
-    location.pathname.startsWith('/legal/');
+  useEffect(() => {
+    const handleCustomerRegistration = (event) => setCustomerRegistration(event.detail === true);
+    window.addEventListener('wemarket:customer-registration', handleCustomerRegistration);
+    return () => window.removeEventListener('wemarket:customer-registration', handleCustomerRegistration);
+  }, []);
 
-  if (!canInstall || dismissed || isCustomerPage || location.pathname.startsWith('/admin')) return null;
+  // The install prompt is intentionally visible only while an account is being
+  // registered. Keep this component mounted globally so it can capture
+  // beforeinstallprompt even if the browser fires it before the user opens
+  // the registration screen.
+  const isAccountRegistration = location.pathname === '/register';
+  const isCustomerRegistration = location.pathname.startsWith('/menu/') && customerRegistration;
+
+  if (!canInstall || dismissed || (!isAccountRegistration && !isCustomerRegistration)) return null;
 
   const handleInstall = async () => {
     const accepted = await install();
@@ -30,7 +37,7 @@ export default function PWAInstallBanner() {
   };
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-6 md:w-96">
+    <div className={`fixed ${isCustomerRegistration ? 'top-4' : 'bottom-4'} left-4 right-4 z-[70] md:left-auto md:right-6 md:w-96`}>
       <div className="bg-gray-900 border border-orange-500/30 rounded-2xl p-4 shadow-2xl shadow-black/50 flex items-start gap-3">
         <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shrink-0">
           <Smartphone size={20} className="text-white" />
@@ -58,3 +65,4 @@ export default function PWAInstallBanner() {
     </div>
   );
 }
+

@@ -63,7 +63,12 @@ router.get(
  *       201:
  *         description: 템플릿 생성 완료
  */
-router.post('/', authMiddleware, catchAsync(optionTemplatesController.createTemplate));
+router.post(
+  '/',
+  authMiddleware,
+  checkStorePermission('items:manage'),
+  catchAsync(optionTemplatesController.createTemplate)
+);
 
 /**
  * @swagger
@@ -122,3 +127,4 @@ router.delete(
 );
 
 module.exports = router;
+

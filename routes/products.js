@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const { validateBody, validateQuery, validateParams } = require('../middleware/validate');
-const { checkStorePermissionForObject } = require('../middleware/storeAuth');
+const { checkStorePermissionForObject, checkStorePermission } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const productsController = require('../controllers/productsController');
 const {
@@ -165,7 +165,12 @@ router.delete(
  *       201:
  *         description: 일괄 등록 완료
  */
-router.post('/bulk', authMiddleware, catchAsync(productsController.bulkCreate));
+router.post(
+  '/bulk',
+  authMiddleware,
+  checkStorePermission('items:manage'),
+  catchAsync(productsController.bulkCreate)
+);
 
 /**
  * @swagger
@@ -189,6 +194,12 @@ router.post('/bulk', authMiddleware, catchAsync(productsController.bulkCreate));
  *       200:
  *         description: 가져오기 완료
  */
-router.post('/import', authMiddleware, catchAsync(productsController.importFromStore));
+router.post(
+  '/import',
+  authMiddleware,
+  checkStorePermission('items:manage', 'target_store_id'),
+  catchAsync(productsController.importFromStore)
+);
 
 module.exports = router;
+

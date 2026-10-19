@@ -192,10 +192,12 @@ const SoloModeBanner = ({ myStaffId, attendance, storeId, onSelfRegister, selfRe
                 {selfRegLoading ? '활성화 중...' : '셀프 근태 추적 시작'}
               </button>
             )}
-            <button onClick={onAddStaff}
-              className="px-6 py-3 bg-white/5 border border-white/10 text-slate-400 rounded-2xl font-black text-xs tracking-widest flex items-center gap-2 hover:text-white hover:bg-white/10 transition-all">
-              <Icon icon="Plus" size="md" /> 팀원 초대하기
-            </button>
+            {onAddStaff && (
+              <button onClick={onAddStaff}
+                className="px-6 py-3 bg-white/5 border border-white/10 text-slate-400 rounded-2xl font-black text-xs tracking-widest flex items-center gap-2 hover:text-white hover:bg-white/10 transition-all">
+                <Icon icon="Plus" size="md" /> 팀원 초대하기
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -448,8 +450,8 @@ const StaffManager = () => {
   };
 
   const handleDelete = async (id, name) => {
-    if (!confirm(`${name} 직원을 삭제하시겠습니까?`)) return;
-    try { await staffAPI.delete(id); fetchStaff(); } catch (e) { handleApiError(e, '직원 삭제 실패'); }
+    if (!confirm(`${name} 계정의 이 매장 접근을 해제할까요? 다른 매장 접근과 근태·주문 이력은 유지됩니다.`)) return;
+    try { await staffAPI.delete(id); fetchStaff(); } catch (e) { handleApiError(e, '매장 접근 해제 실패'); }
   };
 
   const handleClockIn = async (staffId) => {
@@ -493,7 +495,8 @@ const StaffManager = () => {
   );
 
   const canManage = myRole === 'owner' || myRole === 'manager';
-  const isSoloStore = staff.filter(s => s.role !== 'owner').length === 0;
+  const canManageAccounts = myRole === 'owner';
+  const isSoloStore = staff.filter(s => s.role !== 'owner' && s.is_active !== false).length === 0;
 
   return (
     <div className="max-w-6xl mx-auto pb-20 px-4">
@@ -518,7 +521,7 @@ const StaffManager = () => {
             <span className="text-amber-400 font-black text-[10px] tracking-widest uppercase">SOLO MODE</span>
           </div>
         ) : (
-          canManage && tab === 0 && (
+          canManageAccounts && tab === 0 && (
             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
               onClick={() => setShowAddModal(true)}
               className="h-14 px-8 bg-orange-500 text-white rounded-2xl flex items-center gap-3 font-black text-[10px] tracking-widest shadow-2xl shadow-orange-500/30">
@@ -545,11 +548,11 @@ const StaffManager = () => {
 
       <AnimatePresence mode="wait">
         {tab === 0 && (
-          <TeamTab key="team" staff={staff} myRole={myRole} canManage={canManage}
+          <TeamTab key="team" staff={staff} myRole={myRole} canManage={canManageAccounts}
             onRoleChange={handleRoleChange} onDelete={handleDelete}
             isSoloStore={isSoloStore} myStaffId={myStaffId} attendance={attendance}
             onSelfRegister={handleSelfRegister} selfRegLoading={selfRegLoading}
-            onAddStaff={() => setShowAddModal(true)} onGoAttend={() => setTab(1)}
+            onAddStaff={canManageAccounts ? () => setShowAddModal(true) : null} onGoAttend={() => setTab(1)}
             storeId={storeId}
           />
         )}
@@ -570,7 +573,7 @@ const StaffManager = () => {
         )}
       </AnimatePresence>
 
-      {showAddModal && (
+      {showAddModal && canManageAccounts && (
         <AddStaffModal storeId={storeId} myRole={myRole}
           onClose={() => setShowAddModal(false)}
           onSave={() => { setShowAddModal(false); fetchStaff(); }}
@@ -601,7 +604,8 @@ const TeamTab = ({ staff, myRole, canManage, onRoleChange, onDelete, isSoloStore
     );
   }
 
-  const counts = Object.fromEntries(Object.keys(ROLES).map(r => [r, staff.filter(s => s.role === r).length]));
+  const activeStaff = staff.filter((member) => member.is_active !== false);
+  const counts = Object.fromEntries(Object.keys(ROLES).map(r => [r, activeStaff.filter(s => s.role === r).length]));
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
@@ -631,7 +635,7 @@ const TeamTab = ({ staff, myRole, canManage, onRoleChange, onDelete, isSoloStore
         {staff.map(member => {
           const role = ROLES[member.role] || ROLES.staff;
           const ScopedIcon = role.icon;
-          const canEdit = canManage && (myRole === 'owner' || member.role !== 'manager');
+          const canEdit = canManage && member.role !== 'owner' && member.is_active !== false;
           const isEditing = editingId === member.id;
 
           return (
@@ -691,8 +695,8 @@ const TeamTab = ({ staff, myRole, canManage, onRoleChange, onDelete, isSoloStore
                 </div>
               )}
 
-              <p className="text-slate-600 text-[10px] font-bold tracking-widest uppercase mt-4">
-                입사 {fmtDate(member.created_at)}
+              <p className={`text-[10px] font-bold tracking-widest uppercase mt-4 ${member.is_active === false ? 'text-rose-400' : 'text-slate-600'}`}>
+                {member.is_active === false ? '매장 접근 해제' : '입사'} {fmtDate(member.created_at)}
               </p>
             </motion.div>
           );
@@ -711,7 +715,9 @@ const AttendTab = ({ staff, attendance, loading, date, onDateChange, onClockIn, 
     }
   }
 
-  const visibleStaff = isSoloStore ? staff.filter(s => s.role !== 'owner') : staff;
+  const visibleStaff = staff.filter((member) =>
+    member.is_active !== false && (!isSoloStore || member.role !== 'owner')
+  );
   const working = visibleStaff.filter(s => activeMap[s.id] && !activeMap[s.id].clock_out);
   const done    = visibleStaff.filter(s => activeMap[s.id] && activeMap[s.id].clock_out);
   const absent  = visibleStaff.filter(s => !activeMap[s.id]);
@@ -952,9 +958,7 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const roleOptions = Object.entries(ROLES).filter(([c]) =>
-    c !== 'owner' && (c !== 'manager' || myRole === 'owner')
-  );
+  const roleOptions = Object.entries(ROLES).filter(([code]) => code !== 'owner');
 
   const formatPhone = (v) => {
     const d = v.replace(/\D/g, '').slice(0, 11);
@@ -998,7 +1002,7 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
   const handleCreateNew = async (e) => {
     e.preventDefault(); setError('');
     if (!form.name || !form.email || !form.password) { setError('모든 필드를 입력해주세요.'); return; }
-    if (form.password.length < 6) { setError('비밀번호는 6자 이상이어야 합니다.'); return; }
+    if (form.password.length < 8) { setError('비밀번호는 8자 이상이어야 합니다.'); return; }
     setLoading(true);
     try {
       await staffAPI.create({ ...form, storeId: parseInt(storeId) });
@@ -1144,7 +1148,7 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
               {[
                 { label: '이름',     field: 'name',     type: 'text',     placeholder: '홍길동' },
                 { label: '이메일',   field: 'email',    type: 'email',    placeholder: 'staff@example.com' },
-                { label: '비밀번호', field: 'password', type: 'password', placeholder: '6자 이상' },
+                { label: '비밀번호', field: 'password', type: 'password', placeholder: '8자 이상' },
               ].map(({ label, field, type, placeholder }) => (
                 <div key={field} className="space-y-2">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{label}</label>
@@ -1182,3 +1186,4 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
 };
 
 export default StaffManager;
+

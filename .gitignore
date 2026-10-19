@@ -58,3 +58,12 @@ coverage/
 
 # Agent 작업 디렉토리
 .omo/
+
+# Local audit artifacts and compiler caches can contain large historical trees,
+# screenshots, or operational evidence. Preserve them on disk, but keep them
+# out of ordinary source-release changes unless a specific item is reviewed.
+.codex-tmp/
+frontend/.codex-tmp/
+reports/
+.tmp/
+

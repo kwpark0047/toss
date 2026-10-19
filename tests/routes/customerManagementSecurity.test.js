@@ -10,6 +10,9 @@ const jwt = require('jsonwebtoken');
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'customer-management-test-secret';
 
 const mockPrisma = {
+  $queryRawUnsafe: jest.fn(async () => [
+    { business_access_status: 'approved', trial_ends_at: null, auth_status: 'active' },
+  ]),
   stores: { findUnique: jest.fn() },
   staff: { findFirst: jest.fn() },
 };
@@ -27,7 +30,10 @@ jest.mock('../../controllers/customerController', () => mockController);
 const router = require('../../routes/customers');
 
 const tokenFor = (id, role = 'manager') =>
-  jwt.sign({ id, role, type: 'access' }, process.env.JWT_SECRET);
+  jwt.sign(
+    { id, role, type: 'access', sid: 'customer-management-test-session' },
+    process.env.JWT_SECRET
+  );
 
 const buildApp = () => {
   const app = express();
@@ -67,3 +73,4 @@ describe('customer management tenant boundaries', () => {
     expect(response.status).toBe(401);
   });
 });
+

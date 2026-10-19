@@ -15,15 +15,19 @@ describe('production migration deployment', () => {
     expect(migration).toMatch(/BOOLEAN NOT NULL DEFAULT false/);
   });
 
-  test('Render applies pending migrations before generating Prisma Client', () => {
+  test('Render build generates Prisma Client without applying database migrations', () => {
     const renderConfig = fs
       .readFileSync(path.join(__dirname, '../../../render.yaml'), 'utf8')
       .split('\n')
       .find((line) => line.includes('buildCommand:'));
-    const deployIndex = renderConfig.indexOf('node scripts/deploy-migrations.cjs --apply');
     const generateIndex = renderConfig.indexOf('prisma generate');
 
-    expect(deployIndex).toBeGreaterThan(-1);
-    expect(generateIndex).toBeGreaterThan(deployIndex);
+    expect(renderConfig).toMatch(/npm ci --include=dev/);
+    expect(generateIndex).toBeGreaterThan(-1);
+    expect(renderConfig).not.toMatch(/migrate|--apply/i);
+    expect(require('../../../package.json').scripts['db:migrate:prod']).toBe(
+      'node scripts/deploy-migrations.cjs --apply'
+    );
   });
 });
+

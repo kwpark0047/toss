@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, ShoppingBag, CreditCard, ChevronRight, CheckCircle2, Info } from 'lucide-react';
-import Icon from '../ui/Icon';
+import { X, ShoppingBag, ChevronRight, CheckCircle2, Info } from 'lucide-react';
+import Icon from '../../ui/Icon';
 
 /**
  * [TogetherPaymentSheet]
@@ -18,7 +18,8 @@ const TogetherPaymentSheet = React.memo(({
     theme,
     formatPrice,
     socket,
-    tableId
+    tableId,
+    isSubmitting = false
 }) => {
     const [splitMode, setSplitMode] = useState('EQUAL');
     const [peopleCount, setPeopleCount] = useState(2);
@@ -65,13 +66,13 @@ const TogetherPaymentSheet = React.memo(({
         }
     }, [splitMode, totalAmount, peopleCount, cart, selectedItems]);
 
-    const handlePaymentStart = () => {
+    const handlePaymentStart = async () => {
         if (myAmount <= 0) {
             alert('결제할 금액이 0원입니다. 품목을 선택하거나 인원수를 확인해주세요.');
             return;
         }
 
-        onConfirm({
+        await onConfirm({
             split_type: splitMode,
             amount: myAmount,
             is_split_payment: true,
@@ -196,7 +197,9 @@ const TogetherPaymentSheet = React.memo(({
                                             </button>
                                             <span className="w-6 text-center font-black text-lg text-gray-900">{peopleCount}</span>
                                             <button
-                                                onClick={() => setPeopleCount(peopleCount + 1)}
+                                                disabled={peopleCount >= 20 || isSubmitting}
+                                                aria-label="인원 한 명 추가"
+                                                onClick={() => setPeopleCount(Math.min(20, peopleCount + 1))}
                                                 className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold hover:bg-blue-100"
                                             >
                                                 +
@@ -265,11 +268,12 @@ const TogetherPaymentSheet = React.memo(({
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={handlePaymentStart}
+                            disabled={isSubmitting}
                             className="w-full py-6 text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-500/30 flex items-center justify-center gap-3 overflow-hidden group relative"
                             style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}
                         >
                             <Icon icon="CreditCard" />
-                            내 몫만 결제하기
+                            {isSubmitting ? '결제 준비 중…' : '내 몫만 결제하기'}
                             <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" />
                         </motion.button>
                     </div>
@@ -280,3 +284,4 @@ const TogetherPaymentSheet = React.memo(({
 });
 
 export default TogetherPaymentSheet;
+

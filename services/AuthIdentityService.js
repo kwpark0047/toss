@@ -6,6 +6,7 @@ const prisma = require('../config/prisma'),
 const { AppError } = require('../utils/errorHandler');
 const { lock, activeUser, browserHash, recentProof, bucket } = require('./FreeAuthStore');
 const { digest } = require('../utils/freeAuthSecrets');
+const { SIGNUP_CONSENT_VERSION } = require('../utils/freeAuthPolicy');
 const safeUser = require('../utils/publicUser');
 class AuthIdentityService {
   constructor(db = prisma, env = process.env) {
@@ -16,8 +17,11 @@ class AuthIdentityService {
     tx,
     { provider, subject, email = null, name = '위마켓 회원' },
     intent,
-    userId = null
+    userId = null,
+    consentVersion = null
   ) {
+    if (intent === 'signup' && consentVersion !== SIGNUP_CONSENT_VERSION)
+      throw new AppError('가입 약관과 연령 확인을 다시 진행해 주세요.', 400);
     await lock(
       tx,
       ...[email ? `email:${email}` : null, `identity:${provider}:${subject}`].filter(Boolean)
@@ -70,7 +74,7 @@ class AuthIdentityService {
         'INSERT INTO auth_account_events(id,user_id,event,operation_id) VALUES($1::uuid,$2,$3,$4::uuid)',
         crypto.randomUUID(),
         user.id,
-        'signup:terms-privacy-v1',
+        `signup:${SIGNUP_CONSENT_VERSION}`,
         crypto.randomUUID()
       );
     }
@@ -120,7 +124,8 @@ class AuthIdentityService {
       tx,
       { provider: 'email', subject: row.email, email: row.email },
       row.purpose,
-      row.user_id
+      row.user_id,
+      row.consent_version
     );
     if (row.purpose === 'link') return { linked: true };
     if (row.purpose === 'reauth') {
@@ -210,3 +215,4 @@ class AuthIdentityService {
   }
 }
 module.exports = { AuthIdentityService };
+

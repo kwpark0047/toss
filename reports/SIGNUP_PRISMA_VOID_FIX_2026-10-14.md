@@ -17,3 +17,13 @@
 ## 반영 상태
 
 로컬 코드·실제 Prisma/DB 회귀 완료. 운영 배포 SHA와 확인 결과는 배포 후 기록한다. 실제 SMS 수신·신규 회원 가입 전 과정은 별도 미검증이며 이번 테스트를 그 증거로 대체하지 않는다.
+
+## 운영 반영 결과
+
+- 커밋 `a52d326495b4eb7d0f6e88ba430bf7b8ce96adf1` main·RC 공개 푸시 완료.
+- Render `dep-db7ma9l9fdbs73eomfkg`, 2026-10-14 20:21 KST Live 확인. 프론트 변경·배포 및 DB migration 없음.
+- 운영 `/api/health`: HTTP 200, DB connected, revision a52d326 일치 (`signup-prisma-live.json`). 배포 전 응답이 이전 SHA였던 시도는 최종 성공으로 계산하지 않았다.
+- 추가 인증 라우트/CSRF 회귀: `tests/unit/routes/authCsrfToken.test.js` 8/8 통과 (`signup-prisma-auth-regression.log`).
+- 포맷팅 후 실제 Prisma 잠금 회귀 재검증 통과 (`signup-prisma-lock-green.log`).
+- Render 증거 `signup-prisma-render-live-20261014.jpg`. 실제 SMS 발송 및 운영 OTP challenge 변경은 수행하지 않았다.
+

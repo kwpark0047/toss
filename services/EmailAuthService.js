@@ -1,7 +1,7 @@
 const crypto = require('node:crypto');
 const prisma = require('../config/prisma');
 const { AppError } = require('../utils/errorHandler');
-const { normalizeEmail } = require('../utils/freeAuthPolicy');
+const { normalizeEmail, SIGNUP_CONSENT_VERSION } = require('../utils/freeAuthPolicy');
 const { digest, seal, open } = require('../utils/freeAuthSecrets');
 const { lock, bucket, browserHash } = require('./FreeAuthStore');
 const { AuthMailService } = require('./AuthMailService');
@@ -18,6 +18,7 @@ class EmailAuthService {
     userId = null,
     sessionId = null,
     ip = 'unknown',
+    consentVersion = null,
   }) {
     const email = normalizeEmail(input),
       browser = browserHash(browserProof, this.env);
@@ -26,6 +27,8 @@ class EmailAuthService {
       (['link', 'reauth'].includes(purpose) && !userId)
     )
       throw new AppError('인증 요청을 확인해 주세요.', 400);
+    if (purpose === 'signup' && consentVersion !== SIGNUP_CONSENT_VERSION)
+      throw new AppError('가입 약관과 연령 확인을 다시 진행해 주세요.', 400);
     if (!this.mail.configured()) throw new AppError('이메일 발송 설정이 필요합니다.', 503);
     const id = crypto.randomUUID(),
       code = String(crypto.randomInt(100000, 1000000)),
@@ -54,8 +57,8 @@ class EmailAuthService {
         email
       );
       await tx.$executeRawUnsafe(
-        `INSERT INTO auth_email_challenges(id,email,purpose,user_id,browser_hash,otp_hash,link_hash,expires_at,dispatch_payload,session_id)
-    VALUES($1::uuid,$2,$3,$4,$5,$6,$7,now()+interval '10 minutes',$8,$9::uuid)`,
+        `INSERT INTO auth_email_challenges(id,email,purpose,user_id,browser_hash,otp_hash,link_hash,expires_at,dispatch_payload,session_id,consent_version)
+    VALUES($1::uuid,$2,$3,$4,$5,$6,$7,now()+interval '10 minutes',$8,$9::uuid,$10)`,
         id,
         email,
         purpose,
@@ -64,7 +67,8 @@ class EmailAuthService {
         digest('email-otp', `${id}:${code}`, this.env),
         digest('email-link', `${id}:${token}`, this.env),
         seal({ email, code, id, token }, id, this.env),
-        sessionId
+        sessionId,
+        purpose === 'signup' ? consentVersion : null
       );
       return { id };
     });
@@ -125,7 +129,8 @@ class EmailAuthService {
         row.browser_hash !== browser ||
         row.used_at ||
         new Date(row.expires_at) <= new Date() ||
-        row.attempts >= 5
+        row.attempts >= 5 ||
+        (row.purpose === 'signup' && row.consent_version !== SIGNUP_CONSENT_VERSION)
       )
         return { error: true };
       const viaLink = typeof token === 'string';
@@ -166,3 +171,4 @@ class EmailAuthService {
   }
 }
 module.exports = { EmailAuthService };
+

@@ -2,6 +2,7 @@ const prisma = require('../../../config/prisma');
 
 jest.mock('../../../config/prisma', () => ({
   stores: { findUnique: jest.fn() },
+  $queryRawUnsafe: jest.fn(),
   staff: { findFirst: jest.fn() },
   products: { findUnique: jest.fn(), findMany: jest.fn() },
   tables: { findMany: jest.fn() },
@@ -21,8 +22,15 @@ const mockRes = () => {
   return res;
 };
 
+const resetMocks = () => {
+  jest.resetAllMocks();
+  prisma.$queryRawUnsafe.mockResolvedValue([
+    { business_access_status: 'approved', trial_ends_at: null },
+  ]);
+};
+
 describe('getStoreRole', () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(resetMocks);
 
   test('only considers active staff memberships', async () => {
     prisma.stores.findUnique.mockResolvedValue({ user_id: 99 });
@@ -50,7 +58,12 @@ describe('getStoreRole', () => {
 });
 
 describe('checkStorePermission manager capabilities', () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => {
+    resetMocks();
+    prisma.$queryRawUnsafe.mockResolvedValue([
+      { business_access_status: 'approved', trial_ends_at: null },
+    ]);
+  });
 
   test.each(['settings:read', 'settings:write', 'products:write', 'orders:update'])(
     '매니저는 %s 권한을 가진다',
@@ -80,10 +93,124 @@ describe('checkStorePermission manager capabilities', () => {
 
     expect(next).not.toHaveBeenCalled();
   });
+
+  test('체험 만료 매장의 쓰기 요청은 모든 매장 구성원에게 차단된다', async () => {
+    prisma.stores.findUnique
+      .mockResolvedValueOnce({ user_id: 99 })
+      .mockResolvedValueOnce({ user_id: 99 });
+    prisma.staff.findFirst.mockResolvedValue({ role: 'manager' });
+    prisma.$queryRawUnsafe.mockResolvedValue([
+      {
+        business_access_status: 'trialing',
+        trial_ends_at: new Date(Date.now() - 60_000),
+      },
+    ]);
+    const res = mockRes();
+    const next = jest.fn();
+
+    await checkStorePermission('settings:write')(
+      { method: 'PATCH', user: { id: 7, role: 'manager' }, params: { storeId: '10' } },
+      res,
+      next
+    );
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'TRIAL_EXPIRED' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test('expired trial may still use subscription routes to recover paid access', async () => {
+    prisma.stores.findUnique.mockResolvedValue({ user_id: 7 });
+    prisma.$queryRawUnsafe.mockResolvedValue([
+      {
+        business_access_status: 'trialing',
+        trial_ends_at: new Date(Date.now() - 60_000),
+      },
+    ]);
+    const next = jest.fn();
+    await checkStorePermission('store:update', 'store_id', { allowExpiredTrialWrite: true })(
+      { method: 'POST', user: { id: 7, role: 'owner' }, params: { storeId: '10' } },
+      mockRes(),
+      next
+    );
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  test('billing exception does not allow suspended business accounts', async () => {
+    prisma.stores.findUnique.mockResolvedValue({ user_id: 7 });
+    prisma.$queryRawUnsafe.mockResolvedValue([
+      { business_access_status: 'suspended', trial_ends_at: null },
+    ]);
+    const res = mockRes();
+    const next = jest.fn();
+    await checkStorePermission('store:update', 'store_id', { allowExpiredTrialWrite: true })(
+      { method: 'POST', user: { id: 7, role: 'owner' }, params: { storeId: '10' } },
+      res,
+      next
+    );
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test.each(['suspended', 'fraud_review'])(
+    '중단/안전성 검토 매장은 GET도 모든 직원에게 차단된다 (%s)',
+    async (business_access_status) => {
+      prisma.stores.findUnique.mockResolvedValue({ user_id: 99 });
+      prisma.staff.findFirst.mockResolvedValue({ role: 'manager' });
+      prisma.$queryRawUnsafe.mockResolvedValue([{ business_access_status, trial_ends_at: null }]);
+      const res = mockRes();
+      const next = jest.fn();
+      await checkStorePermission('orders:read')(
+        { method: 'GET', user: { id: 7, role: 'manager' }, params: { storeId: '10' } },
+        res,
+        next
+      );
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code:
+            business_access_status === 'suspended'
+              ? 'BUSINESS_ACCOUNT_SUSPENDED'
+              : 'BUSINESS_ACCOUNT_REVIEW',
+        })
+      );
+      expect(next).not.toHaveBeenCalled();
+    }
+  );
+
+  test('대상 매장 필드가 별도 이름이어도 체험 만료를 검사한다', async () => {
+    prisma.stores.findUnique
+      .mockResolvedValueOnce({ user_id: 7 })
+      .mockResolvedValueOnce({ user_id: 7 });
+    prisma.$queryRawUnsafe.mockResolvedValue([
+      {
+        business_access_status: 'trialing',
+        trial_ends_at: new Date(Date.now() - 60_000),
+      },
+    ]);
+    const res = mockRes();
+    const next = jest.fn();
+
+    await checkStorePermission('items:manage', 'target_store_id')(
+      {
+        method: 'POST',
+        user: { id: 7, role: 'owner' },
+        params: {},
+        query: {},
+        body: { target_store_id: 10 },
+      },
+      res,
+      next
+    );
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'TRIAL_EXPIRED' }));
+    expect(next).not.toHaveBeenCalled();
+  });
 });
 
 describe('checkStorePermissionForObject', () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(resetMocks);
 
   test('rejects unauthenticated requests', async () => {
     const res = mockRes();
@@ -106,7 +233,12 @@ describe('checkStorePermissionForObject', () => {
 
     next.mockClear();
     await mw(
-      { user: { role: 'customer' }, orderCapability: { orderId: 1 }, params: { id: '1' } },
+      {
+        method: 'POST',
+        user: { role: 'customer' },
+        orderCapability: { orderId: 1 },
+        params: { id: '1' },
+      },
       mockRes(),
       next
     );
@@ -149,6 +281,50 @@ describe('checkStorePermissionForObject', () => {
     expect(req.storeRole).toBe('owner');
   });
 
+  test('blocks object updates when the owning business trial has expired', async () => {
+    const res = mockRes();
+    const next = jest.fn();
+    prisma.products.findUnique.mockResolvedValue({ id: 5, store_id: 3 });
+    prisma.stores.findUnique
+      .mockResolvedValueOnce({ user_id: 7 })
+      .mockResolvedValueOnce({ user_id: 7 });
+    prisma.$queryRawUnsafe.mockResolvedValue([
+      {
+        business_access_status: 'trialing',
+        trial_ends_at: new Date(Date.now() - 60_000),
+      },
+    ]);
+
+    await checkStorePermissionForObject('products')(
+      { method: 'PATCH', user: { id: 7, role: 'owner' }, params: { id: '5' } },
+      res,
+      next
+    );
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'TRIAL_EXPIRED' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test('keeps object reads available after expiry while checking account restrictions', async () => {
+    const next = jest.fn();
+    prisma.products.findUnique.mockResolvedValue({ id: 5, store_id: 3 });
+    prisma.stores.findUnique.mockResolvedValue({ user_id: 7 });
+    prisma.$queryRawUnsafe.mockResolvedValue([
+      {
+        business_access_status: 'trialing',
+        trial_ends_at: new Date(Date.now() - 60_000),
+      },
+    ]);
+    await checkStorePermissionForObject('products')(
+      { method: 'GET', user: { id: 7, role: 'owner' }, params: { id: '5' } },
+      mockRes(),
+      next
+    );
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(prisma.$queryRawUnsafe).toHaveBeenCalledTimes(1);
+  });
+
   test('rejects non-members with 403', async () => {
     const res = mockRes();
     const next = jest.fn();
@@ -168,7 +344,7 @@ describe('checkStorePermissionForObject', () => {
 });
 
 describe('checkStorePermissionForObjectBatch', () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(resetMocks);
 
   test('rejects unauthenticated requests', async () => {
     const res = mockRes();
@@ -215,10 +391,35 @@ describe('checkStorePermissionForObjectBatch', () => {
     expect(req.storeId).toBe(3);
     expect(req.storeRole).toBe('owner');
   });
+
+  test('blocks batch table changes when the owning business trial has expired', async () => {
+    const res = mockRes();
+    const next = jest.fn();
+    prisma.products.findMany.mockResolvedValue([{ id: 5, store_id: 3 }]);
+    prisma.stores.findUnique
+      .mockResolvedValueOnce({ user_id: 7 })
+      .mockResolvedValueOnce({ user_id: 7 });
+    prisma.$queryRawUnsafe.mockResolvedValue([
+      {
+        business_access_status: 'trialing',
+        trial_ends_at: new Date(Date.now() - 60_000),
+      },
+    ]);
+
+    await checkStorePermissionForObjectBatch('products')(
+      { method: 'PATCH', user: { id: 7, role: 'owner' }, params: { id: '5' } },
+      res,
+      next
+    );
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'TRIAL_EXPIRED' }));
+    expect(next).not.toHaveBeenCalled();
+  });
 });
 
 describe('checkUniformStoreMutation', () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(resetMocks);
 
   test('rejects unauthenticated requests', async () => {
     const res = mockRes();
@@ -286,4 +487,30 @@ describe('checkUniformStoreMutation', () => {
     expect(req.storeId).toBe(3);
     expect(req.storeRole).toBe('owner');
   });
+
+  test('blocks uniform table mutations when the owning business trial has expired', async () => {
+    const res = mockRes();
+    const next = jest.fn();
+    prisma.tables.findMany.mockResolvedValue([{ id: 1, store_id: 3 }]);
+    prisma.stores.findUnique
+      .mockResolvedValueOnce({ user_id: 7 })
+      .mockResolvedValueOnce({ user_id: 7 });
+    prisma.$queryRawUnsafe.mockResolvedValue([
+      {
+        business_access_status: 'trialing',
+        trial_ends_at: new Date(Date.now() - 60_000),
+      },
+    ]);
+
+    await checkUniformStoreMutation('tables')(
+      { method: 'PATCH', user: { id: 7, role: 'owner' }, body: { items: [{ id: 1 }] } },
+      res,
+      next
+    );
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'TRIAL_EXPIRED' }));
+    expect(next).not.toHaveBeenCalled();
+  });
 });
+

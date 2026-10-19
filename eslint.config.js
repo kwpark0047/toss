@@ -6,6 +6,11 @@ module.exports = [
   {
     ignores: [
       'node_modules/**',
+      // Audit evidence may contain historical repository snapshots. Lint only
+      // application sources, never copied releases or local test artifacts.
+      'reports/**',
+      '.codex-tmp/**',
+      'frontend/.codex-tmp/**',
       // 프론트엔드는 자체 eslint(frontend/eslint.config.js)로 린트 (브라우저 환경)
       'frontend/**',
       'print-agent/**',
@@ -100,3 +105,4 @@ module.exports = [
   // Prettier 충돌 규칙 비활성화 (ESLint + Prettier 공존)
   prettier,
 ];
+

@@ -42,9 +42,7 @@ router.post(
   '/stores/:storeId/rescan',
   rateLimit({ windowMs: 60000, limit: 3 }),
   catchAsync(async (req, res) => {
-    await service.context(service.db, store(req), req.user);
-    await service.markDirty(store(req));
-    res.success({ queued: true });
+    res.success(await service.requestRescan(store(req), req.user));
   })
 );
 router.get(
@@ -76,3 +74,4 @@ router.post(
   )
 );
 module.exports = router;
+

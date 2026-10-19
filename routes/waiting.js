@@ -3,7 +3,11 @@ const router = express.Router();
 const waitingController = require('../controllers/waitingController');
 const { createAIRateLimiter } = require('../utils/aiRateLimiter');
 const authMiddleware = require('../middleware/auth');
-const { checkStorePermission, getStoreRole } = require('../middleware/storeAuth');
+const {
+  checkStorePermission,
+  getStoreRole,
+  blockExpiredTrialWrite,
+} = require('../middleware/storeAuth');
 const { verifyWaitingCapability } = require('../utils/orderCapability');
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
@@ -30,6 +34,7 @@ const checkWaitingPermission = (requiredPermission) => {
       if (!role) {
         return res.status(403).json({ error: '해당 매장에 대한 권한이 없습니다.' });
       }
+      if (await blockExpiredTrialWrite(storeId, req, res)) return;
       const permissions = require('../middleware/storeAuth').rolePermissions[role] || [];
       if (role === 'owner' || permissions.includes(requiredPermission)) {
         req.storeId = storeId;
@@ -322,3 +327,4 @@ module.exports = router;
 router.post('/toggle-favorite', waitingController.toggleFavorite);
 
 module.exports = router;
+

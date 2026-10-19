@@ -17,12 +17,18 @@ jest.mock('../../../services/aiService', () => ({
 }));
 jest.mock('../../../middleware/storeAuth', () => ({
   getStoreRole: jest.fn(),
+  assertStoreCanAccess: jest.fn().mockResolvedValue(undefined),
+  assertStoreCanWrite: jest.fn().mockResolvedValue(undefined),
 }));
 
 const ReviewsService = require('../../../services/ReviewsService');
 const prisma = require('../../../config/prisma');
 const aiService = require('../../../services/aiService');
-const { getStoreRole } = require('../../../middleware/storeAuth');
+const {
+  getStoreRole,
+  assertStoreCanAccess,
+  assertStoreCanWrite,
+} = require('../../../middleware/storeAuth');
 
 describe('ReviewsService', () => {
   let svc;
@@ -132,6 +138,32 @@ describe('ReviewsService', () => {
         '해당 매장에 대한 권한이 없습니다.'
       );
     });
+
+    test.each(['staff', 'kitchen'])('%s 계정은 매장 리뷰 관리에 접근할 수 없다', async (role) => {
+      prisma.reviews.findUnique.mockResolvedValue({
+        id: 1,
+        store_id: 1,
+        stores: { id: 1, name: '테스트' },
+      });
+      getStoreRole.mockResolvedValue(role);
+      await expect(svc.loadReviewWithPermission(1, { id: 7, role })).rejects.toMatchObject({
+        statusCode: 403,
+      });
+      expect(assertStoreCanAccess).not.toHaveBeenCalled();
+    });
+
+    test('manager can access review management subject to the business access policy', async () => {
+      prisma.reviews.findUnique.mockResolvedValue({
+        id: 1,
+        store_id: 1,
+        stores: { id: 1, name: '테스트' },
+      });
+      getStoreRole.mockResolvedValue('manager');
+      await expect(
+        svc.loadReviewWithPermission(1, { id: 7, role: 'manager' })
+      ).resolves.toMatchObject({ id: 1 });
+      expect(assertStoreCanAccess).toHaveBeenCalledWith(1);
+    });
   });
 
   describe('generateAiReply', () => {
@@ -186,3 +218,4 @@ describe('ReviewsService', () => {
     });
   });
 });
+
