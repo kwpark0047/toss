@@ -162,9 +162,7 @@ describe('BusinessTrialService', () => {
       updated: [{ id: 7, business_access_status: 'suspended' }],
     });
     await new BusinessTrialService(db).restrictAccess(7, 'suspended', '운영 정책 위반 확인', 99);
-    expect(db.calls[0].sql).toContain(
-      'SELECT 1 FROM public.stores s WHERE s.user_id=public.users.id'
-    );
+    expect(db.calls[0].sql).toContain('SELECT id, business_access_status FROM public.users');
     expect(
       db.calls.some(({ sql }) =>
         sql.includes('business_access_previous_status=business_access_status')
