@@ -561,8 +561,30 @@ router.post(
   adminOnly,
   businessTrialController.approve
 );
-router.post('/business-trials/:id/revoke-approval', authMiddleware, adminOnly, businessTrialController.revokeApproval);
-router.delete('/business-trials/:id', authMiddleware, adminOnly, businessTrialController.deleteAccount);
+router.post(
+  '/business-trials/:id/revoke-approval',
+  authMiddleware,
+  adminOnly,
+  businessTrialController.revokeApproval
+);
+router.post(
+  '/business-trials/:id/restrict',
+  authMiddleware,
+  adminOnly,
+  businessTrialController.restrictAccess
+);
+router.post(
+  '/business-trials/:id/restore',
+  authMiddleware,
+  adminOnly,
+  businessTrialController.restoreAccess
+);
+router.delete(
+  '/business-trials/:id',
+  authMiddleware,
+  adminOnly,
+  businessTrialController.deleteAccount
+);
 
 // ── AI 동적 가격 책정 ───────────────────────────────────────────────────────
 /**
@@ -856,4 +878,3 @@ router.get(
 );
 
 module.exports = router;
-
