@@ -11,7 +11,10 @@ test('real provider routes deny staff, foreign owners and non-admin global write
   const service = { list: async scope => { calls.push(scope); return []; }, save: async (_provider, scope) => { calls.push(scope); return { saved: true }; } };
   const context = { module: { exports: {} }, require: name => {
     if (name === '../middleware/auth') return auth;
-    if (name === '../middleware/storeAuth') return { getStoreRole: async (_user, store) => store === 3 ? 'owner' : store === 4 ? 'staff' : null };
+    if (name === '../middleware/storeAuth') return {
+      getStoreRole: async (_user, store) => store === 3 ? 'owner' : store === 4 ? 'staff' : null,
+      blockExpiredTrialWrite: async () => false,
+    };
     if (name === '../services/ProviderCredentialService') return service;
     if (name === '../utils/catchAsync') return require('../../utils/catchAsync');
     if (name === '../utils/errorHandler') return require('../../utils/errorHandler');
