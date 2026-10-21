@@ -1000,6 +1000,7 @@ model users {
   business_support_enrollments business_support_enrollments[]
   business_support_assignments business_support_cases[]
   business_support_events business_support_events[]
+  business_support_messages business_support_messages[]
   auth_sessions AuthSession[]
   customer_ai_consents customer_ai_consents[]
   id                                                               Int                      @id @default(autoincrement())
@@ -2310,6 +2311,7 @@ model business_support_cases {
   action manager_actions? @relation(fields:[store_id,action_id],references:[store_id,id],onDelete:NoAction)
   assignee users? @relation(fields:[assignee_id],references:[id],onDelete:NoAction)
   events business_support_events[]
+  messages business_support_messages[]
   @@unique([store_id,id])
   @@unique([store_id,snapshot_id])
   @@index([priority,created_at,id],map:"business_support_queue")
@@ -2330,6 +2332,21 @@ model business_support_events {
   support_case business_support_cases @relation(fields:[store_id,case_id],references:[store_id,id],onDelete:NoAction)
   actor users @relation(fields:[actor_id],references:[id],onDelete:NoAction)
   @@index([store_id,case_id,created_at],map:"business_support_event_case")
+  @@schema("public")
+}
+model business_support_messages {
+  id String @id @db.Uuid
+  store_id Int
+  case_id String @db.Uuid
+  author_id Int
+  author_role String
+  visibility String
+  operation_id String @unique @db.Uuid
+  body String
+  created_at DateTime @default(now()) @db.Timestamptz
+  support_case business_support_cases @relation(fields:[store_id,case_id],references:[store_id,id],onDelete:NoAction)
+  author users @relation(fields:[author_id],references:[id],onDelete:NoAction)
+  @@index([store_id,case_id,created_at,id],map:"business_support_message_thread")
   @@schema("public")
 }
 model business_support_jobs {
