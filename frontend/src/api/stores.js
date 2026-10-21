@@ -17,6 +17,8 @@ export const storesAPI = {
   removeFavorite: (customerPhone, storeId) =>
     api.delete('/stores/favorites', { data: { customer_phone: customerPhone, store_id: storeId } }),
   getFavorites: (customerPhone) => api.get('/stores/favorites/' + customerPhone),
+  // 고객 메뉴 화면용 매장 팅커벨 설정 (공개)
+  getTinkerbellSettings: (id) => api.get('/stores/' + id + '/tinkerbell-settings'),
 };
 
 export const storeAccountAPI = {

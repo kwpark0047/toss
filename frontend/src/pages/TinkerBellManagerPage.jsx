@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { loadTinkerBellSettings, saveTinkerBellSettings } from '../utils/tinkerbell';
+import { adminAPI } from '../api/admin';
+import { DEFAULT_TINKERBELL_SETTINGS, fromServerTinkerBellSettings, toServerTinkerBellSettings } from '../utils/tinkerbell';
 import TinkerBell from '../components/ai/TinkerBell';
 import Icon from '../components/ui/Icon';
 import { BarChart3, ChevronRight, Globe, Info, RefreshCw, Sparkles, Sun, TrendingUp, ShoppingCart, Type, CloudRain, Snowflake, Flame } from 'lucide-react';
@@ -143,7 +144,11 @@ function Toggle({ on, onChange, label, desc }) {
 // ── 메인 페이지 ────────────────────────────────────────────────────────────────
 export default function TinkerBellManagerPage() {
   const { storeId: routeStoreId } = useParams();
-  const [saved,        setSaved]        = useState(loadTinkerBellSettings);
+  const navigate = useNavigate();
+  const storeId = isValidStoreId(routeStoreId ?? '') ? Number(routeStoreId) : null;
+  const [loadState,    setLoadState]    = useState(storeId ? 'loading' : 'idle'); // idle | loading | ready | error
+  const [saving,       setSaving]       = useState(false);
+  const [saved,        setSaved]        = useState(DEFAULT_TINKERBELL_SETTINGS);
   const [enabled,      setEnabled]      = useState(saved.enabled);
   const [lang,         setLang]         = useState(saved.lang);
   const [weather,      setWeather]      = useState('sun');
@@ -152,25 +157,66 @@ export default function TinkerBellManagerPage() {
   const [triggerKey,   setTriggerKey]   = useState(0);
   const [lastAdded,    setLastAdded]    = useState(null);
   const [customMsg,    setCustomMsg]    = useState(saved.customMsg);
-  const [aiRecEnabled, setAiRecEnabled] = useState(saved.aiRecommendation ?? true);
+  const [aiRecEnabled, setAiRecEnabled] = useState(saved.aiRecommendation);
   const [activeTab,    setActiveTab]    = useState('settings');
-  const [previewStoreId, setPreviewStoreId] = useState(routeStoreId ?? '');
+  const [storeInput,   setStoreInput]   = useState('');
+  const [reloadKey,    setReloadKey]    = useState(0);
+
+  const applySettings = (s) => {
+    setSaved(s);
+    setEnabled(s.enabled);
+    setLang(s.lang);
+    setVoiceEnabled(s.voiceEnabled);
+    setLargeFont(s.largeFont);
+    setCustomMsg(s.customMsg || '');
+    setAiRecEnabled(s.aiRecommendation);
+  };
+
+  // 매장 설정 불러오기
+  useEffect(() => {
+    if (!storeId) return;
+    let cancelled = false;
+    setLoadState('loading');
+    adminAPI.getTinkerbellSettings(storeId)
+      .then(res => {
+        if (cancelled) return;
+        applySettings(fromServerTinkerBellSettings(res?.data || res));
+        setLoadState('ready');
+      })
+      .catch(() => { if (!cancelled) setLoadState('error'); });
+    return () => { cancelled = true; };
+  }, [storeId, reloadKey]);
 
   const current = { ...saved, enabled, lang, voiceEnabled, largeFont, customMsg, aiRecommendation: aiRecEnabled };
   const dirty = ['enabled', 'lang', 'voiceEnabled', 'largeFont', 'customMsg', 'aiRecommendation']
-    .some(k => current[k] !== saved[k]);
+    .some(k => (current[k] ?? '') !== (saved[k] ?? ''));
+  const canSave = loadState === 'ready' && dirty && !saving;
 
-  const storeIdInvalid = previewStoreId.trim() !== '' && !isValidStoreId(previewStoreId);
-  const aiStoreId = aiRecEnabled && isValidStoreId(previewStoreId) ? Number(previewStoreId) : null;
-  const statsStoreId = isValidStoreId(previewStoreId) ? Number(previewStoreId) : null;
+  // AI 추천 미리보기는 서버에 저장된 설정이 ON일 때만 동작한다 (서버도 같은 기준으로 차단)
+  const aiStoreId = storeId && saved.enabled && saved.aiRecommendation && aiRecEnabled ? storeId : null;
+  const storeInputInvalid = storeInput.trim() !== '' && !isValidStoreId(storeInput);
 
   const replay = () => setTriggerKey(k => k + 1);
 
-  // 설정 저장 (이 브라우저의 localStorage에 영속화)
-  const handleSave = () => {
-    const ok = saveTinkerBellSettings(current);
-    if (ok) setSaved(current);
-    toast[ok ? 'success' : 'error'](ok ? '팅커벨 설정이 저장되었습니다.' : '설정 저장에 실패했습니다.');
+  const goToStore = (e) => {
+    e.preventDefault();
+    if (!isValidStoreId(storeInput)) return;
+    navigate(`/admin/stores/${Number(storeInput)}/tinkerbell`);
+  };
+
+  // 설정 저장 (매장별 서버 저장 → 고객 메뉴 화면에 반영)
+  const handleSave = async () => {
+    if (!canSave) return;
+    setSaving(true);
+    try {
+      const res = await adminAPI.updateTinkerbellSettings(storeId, toServerTinkerBellSettings(current));
+      applySettings(fromServerTinkerBellSettings(res?.data || res));
+      toast.success('팅커벨 설정이 저장되었습니다. 고객 메뉴 화면에 바로 적용됩니다.');
+    } catch (err) {
+      toast.error(err?.response?.data?.error || '설정 저장에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const demoAdd = (item) => {
@@ -205,10 +251,10 @@ export default function TinkerBellManagerPage() {
             <button
               type="button"
               onClick={handleSave}
-              disabled={!dirty}
+              disabled={!canSave}
               className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-black hover:bg-orange-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-              <Icon icon="Save" size="md" />
-              {dirty ? '설정 저장' : '저장됨'}
+              {saving ? <Icon icon="Loader2" size="md" className="animate-spin" /> : <Icon icon="Save" size="md" />}
+              {saving ? '저장 중' : loadState === 'ready' && !dirty ? '저장됨' : '설정 저장'}
             </button>
           </div>
         </div>
@@ -236,11 +282,48 @@ export default function TinkerBellManagerPage() {
               {/* 설정 패널 */}
               <div className="space-y-5">
 
-                {/* 저장 범위 안내 */}
-                <div className="flex items-start gap-2 px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-400">
-                  <Info size={14} className="flex-shrink-0 mt-0.5" />
-                  <span>설정은 지금 사용 중인 브라우저에 저장됩니다. 다른 기기나 고객 화면에는 아직 반영되지 않습니다.</span>
-                </div>
+                {/* 대상 매장 */}
+                {!storeId ? (
+                  <form onSubmit={goToStore} className={`${CARD} space-y-3`}>
+                    <div>
+                      <h3 className="text-sm font-black text-white">설정할 매장 선택</h3>
+                      <p className="text-xs text-slate-400 mt-0.5">팅커벨 설정은 매장마다 따로 저장됩니다. 매장 ID를 입력해 불러오세요.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        aria-label="매장 ID"
+                        type="text"
+                        inputMode="numeric"
+                        value={storeInput}
+                        onChange={e => setStoreInput(e.target.value)}
+                        placeholder="예: 12"
+                        aria-invalid={storeInputInvalid}
+                        className={INPUT}
+                      />
+                      <button type="submit" disabled={!isValidStoreId(storeInput)}
+                        className="px-4 py-2.5 bg-orange-500 text-white rounded-xl text-sm font-black hover:bg-orange-600 transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed">
+                        불러오기
+                      </button>
+                    </div>
+                    {storeInputInvalid && <p className="text-xs text-red-400">매장 ID는 숫자로 입력해 주세요.</p>}
+                    <p className="text-xs text-slate-500">매장을 고르기 전에도 아래에서 미리보기는 해볼 수 있지만 저장은 되지 않습니다.</p>
+                  </form>
+                ) : (
+                  <div role="status" className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-400">
+                    <span className="flex items-center gap-2">
+                      <Info size={14} className="flex-shrink-0" />
+                      {loadState === 'loading' && `${storeId}번 매장 설정을 불러오는 중입니다…`}
+                      {loadState === 'ready' && `${storeId}번 매장 설정입니다. 저장하면 이 매장의 고객 메뉴 화면에 바로 적용됩니다.`}
+                      {loadState === 'error' && <span className="text-red-400">{storeId}번 매장 설정을 불러오지 못했습니다. 저장하려면 다시 불러와 주세요.</span>}
+                    </span>
+                    {loadState === 'error' && (
+                      <button type="button" onClick={() => setReloadKey(k => k + 1)} className={`${GHOST_BTN} px-3 py-1.5 text-xs`}>
+                        <RefreshCw size={11} />
+                        다시 불러오기
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* 활성화 */}
                 <div className={CARD}>
@@ -317,24 +400,13 @@ export default function TinkerBellManagerPage() {
                     label="AI 기반 동적 추천 활성화"
                     desc="OmniRoute AI가 날씨, 시간, 고객 이력을 기반으로 메뉴를 추천합니다"
                   />
-                  {aiRecEnabled && (
-                    <div>
-                      <label htmlFor="tb-preview-store" className="block text-xs text-slate-400 mb-2">미리보기용 매장 ID (선택사항)</label>
-                      <input
-                        id="tb-preview-store"
-                        type="text"
-                        inputMode="numeric"
-                        value={previewStoreId}
-                        onChange={e => setPreviewStoreId(e.target.value)}
-                        placeholder="매장 ID를 입력하면 AI 추천을 미리볼 수 있습니다"
-                        aria-invalid={storeIdInvalid}
-                        className={INPUT}
-                      />
-                      {storeIdInvalid
-                        ? <p className="text-xs text-red-400 mt-2">매장 ID는 숫자로 입력해 주세요.</p>
-                        : aiStoreId && <p className="text-xs text-slate-500 mt-2">미리보기 중 이 매장 메뉴로 AI 추천을 1회 요청합니다. 추천 통계에는 기록되지 않습니다.</p>}
-                    </div>
-                  )}
+                  <p className="text-xs text-slate-500">
+                    {!aiRecEnabled
+                      ? '꺼져 있으면 고객 화면에서 유료 AI를 호출하지 않고 기본 추천 문구만 보여줍니다. (기본값: 꺼짐)'
+                      : aiStoreId
+                        ? '미리보기에서 이 매장 메뉴로 AI 추천을 요청합니다. 추천 통계에는 기록되지 않습니다.'
+                        : '켜면 고객이 메뉴 화면을 볼 때마다 AI 호출 비용이 생깁니다. 저장한 뒤 미리보기에서 AI 추천을 확인할 수 있습니다.'}
+                  </p>
                 </div>
 
                 {/* 접근성 설정 */}
@@ -459,11 +531,11 @@ export default function TinkerBellManagerPage() {
                       아래 수치는 <span className="font-bold text-orange-400">예시 데이터</span>입니다.
                     </p>
                   </div>
-                  {statsStoreId && (
-                    <Link to={`/admin/stores/${statsStoreId}/recommendation-stats`}
+                  {storeId && (
+                    <Link to={`/admin/stores/${storeId}/recommendation-stats`}
                       className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-black hover:bg-orange-600 transition-colors whitespace-nowrap">
                       <BarChart3 size={14} />
-                      {statsStoreId}번 매장 실제 추천 성과
+                      {storeId}번 매장 실제 추천 성과
                     </Link>
                   )}
                 </div>

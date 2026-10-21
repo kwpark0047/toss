@@ -30,7 +30,7 @@ function AdminLayoutInner({ children, storeId, user, storeRole, handleLogout, lo
     { label: t('home'), icon: 'LayoutDashboard', path: '/admin' },
     { label: t('orders'), icon: 'UtensilsCrossed', path: `/admin/stores/${storeId}/orders` },
     { label: t('products'), icon: 'ShoppingBag', path: `/admin/stores/${storeId}/menu` },
-    { label: t('ai'), icon: 'Sparkles', path: '/admin/tinkerbell' },
+    { label: t('ai'), icon: 'Sparkles', path: `/admin/stores/${storeId}/tinkerbell` },
   ] : filteredNavItems.slice(0, 4);
 
   useEffect(() => {
@@ -237,7 +237,7 @@ const AdminLayout = ({ children }) => {
     { label: t('notificationTemplates'),   icon: 'Bell',              path: `/admin/stores/${storeId}/notifications`,          show: !!storeId, roles: [] },
     { label: t('systemStatus'),   icon: 'Activity',     path: '/admin/system-status', roles: [] },
     { label: '공통 API 설정', icon: 'KeyRound', path: '/admin/provider-settings', roles: ['super_admin'] },
-    { label: t('aiTinkerbell'),     icon: 'Sparkles',     path: '/admin/tinkerbell',   roles: [] },
+    { label: t('aiTinkerbell'),     icon: 'Sparkles',     path: storeId ? `/admin/stores/${storeId}/tinkerbell` : '/admin/tinkerbell',   roles: [] },
     { label: t('bulkSms'), icon: 'Smartphone',   path: '/admin/bulk-sms',     roles: ['super_admin'] },
     { label: t('localCommunity'), icon: 'Building2',    path: '/admin/community',    roles: [] },
     { label: t('board'),        icon: 'MessageSquare', path: '/board',             id: 'board', roles: [] },
