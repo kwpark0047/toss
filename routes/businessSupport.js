@@ -2,6 +2,7 @@ const router = require('express').Router();
 const auth = require('../middleware/auth');
 const catchAsync = require('../utils/catchAsync');
 const { AppError } = require('../utils/errorHandler');
+const { normalizeSupportFilters } = require('../utils/businessSupportAnalysis');
 const Service = require('../services/BusinessSupportService');
 const rateLimit = require('express-rate-limit').rateLimit;
 const service = new Service();
@@ -24,7 +25,10 @@ router.get(
 const list = async (req, res) => {
   const cursor = String(req.query.cursor || '0:0');
   if (!/^[0-3]:\d{1,15}$/.test(cursor)) throw new AppError('유효한 페이지 커서가 필요합니다.', 400);
-  res.success(await service.list(req.user, req.params.storeId ? store(req) : null, cursor));
+  const filters = normalizeSupportFilters(req.query);
+  res.success(
+    await service.list(req.user, req.params.storeId ? store(req) : null, cursor, 30, filters)
+  );
 };
 router.get('/cases', catchAsync(list));
 router.get('/stores/:storeId/cases', catchAsync(list));
@@ -57,6 +61,13 @@ router.post(
   '/stores/:storeId/cases/:id/evaluate',
   catchAsync(async (req, res) =>
     res.success(await service.evaluate(store(req), req.params.id, req.user))
+  )
+);
+router.post(
+  '/stores/:storeId/cases/:id/messages',
+  rateLimit({ windowMs: 60000, limit: 30 }),
+  catchAsync(async (req, res) =>
+    res.success(await service.addMessage(store(req), req.params.id, req.user, req.body || {}))
   )
 );
 router.post(

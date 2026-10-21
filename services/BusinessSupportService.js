@@ -2,7 +2,13 @@ const crypto = require('crypto');
 const prisma = require('../config/prisma');
 const StoreManagerService = require('./StoreManagerService');
 const { AppError } = require('../utils/errorHandler');
-const { nextState, summarize } = require('../utils/businessSupportAnalysis');
+const {
+  nextState,
+  summarize,
+  normalizeSupportFilters,
+  normalizeSupportMessage,
+  buildSupportPlaybooks,
+} = require('../utils/businessSupportAnalysis');
 const identifier = (value) => {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value)))
     throw new AppError('유효한 작업 ID가 필요합니다.', 400);
@@ -81,19 +87,28 @@ class BusinessSupportService {
       storeId
     );
   }
-  async list(actor, storeId, cursor = '0:0', limit = 30) {
+  async list(actor, storeId, cursor = '0:0', limit = 30, inputFilters = {}) {
     if (storeId) await this.context(this.db, storeId, actor);
     else if (actor.role !== 'super_admin') throw new AppError('최고관리자 권한이 필요합니다.', 403);
+    const filters = normalizeSupportFilters(inputFilters);
     const [priority, sequence] = String(cursor).split(':').map(Number);
-    // Priority plus sequence keyset: bounded pages without per-store analysis.
+    // Priority plus sequence keyset: bounded, tenant-scoped pages without per-store analysis.
     const rows = await this.db.$queryRawUnsafe(
       `SELECT c.*,s.name AS store_name FROM business_support_cases c JOIN stores s ON s.id=c.store_id
       WHERE ($1::int IS NULL OR c.store_id=$1) AND (c.priority,c.sequence)>($2::int,$3::bigint) AND ($4::boolean OR c.status!='draft')
-      ORDER BY c.priority,c.sequence LIMIT $5`,
+      AND ($5::text IS NULL OR c.status=$5)
+      AND ($6::int IS NULL OR c.priority=$6)
+      AND ($7::text IS NULL OR c.evidence->>'quality'=$7)
+      AND ($8::text IS NULL OR position(lower($8) in lower(s.name))>0)
+      ORDER BY c.priority,c.sequence LIMIT $9`,
       storeId || null,
       priority,
       sequence,
       actor.role === 'super_admin',
+      filters.status,
+      filters.priority,
+      filters.quality,
+      filters.search || null,
       limit + 1
     );
     const items = rows.slice(0, limit).map((r) => ({ ...r, sequence: String(r.sequence) }));
@@ -142,7 +157,91 @@ class BusinessSupportService {
       storeId,
       id
     );
-    return { ...rows[0], sequence: String(rows[0].sequence), events };
+    const messages = await this.db.$queryRawUnsafe(
+      `SELECT id,store_id,case_id,author_id,author_role,visibility,body,created_at
+      FROM business_support_messages WHERE store_id=$1 AND case_id=$2::uuid${actor.role === 'super_admin' ? '' : " AND visibility='owner'"}
+      ORDER BY created_at,id`,
+      storeId,
+      id
+    );
+    return {
+      ...rows[0],
+      sequence: String(rows[0].sequence),
+      events,
+      messages,
+      playbooks: buildSupportPlaybooks(rows[0].evidence),
+    };
+  }
+  async addMessage(storeId, id, actor, input = {}) {
+    identifier(id);
+    identifier(input.operation_id);
+    const body = normalizeSupportMessage(input.body);
+    const visibility = input.visibility == null ? 'owner' : input.visibility;
+    if (!['owner', 'internal'].includes(visibility))
+      throw new AppError('메시지 공개 범위가 올바르지 않습니다.', 400);
+    if (visibility === 'internal' && actor.role !== 'super_admin')
+      throw new AppError('내부 메모는 최고관리자만 작성할 수 있습니다.', 403);
+
+    return this.db.$transaction(async (tx) => {
+      await this.context(tx, storeId, actor, true);
+      const cases = await tx.$queryRawUnsafe(
+        'SELECT id,status FROM business_support_cases WHERE store_id=$1 AND id=$2::uuid FOR UPDATE',
+        storeId,
+        id
+      );
+      if (!cases.length || (actor.role !== 'super_admin' && cases[0].status === 'draft'))
+        throw new AppError('지원 사례를 찾을 수 없습니다.', 404);
+
+      const existing = await tx.$queryRawUnsafe(
+        'SELECT id,store_id,case_id,author_id,author_role,visibility,body FROM business_support_messages WHERE operation_id=$1::uuid',
+        input.operation_id
+      );
+      if (existing.length) {
+        const row = existing[0];
+        if (
+          row.store_id !== storeId ||
+          row.case_id !== id ||
+          row.author_id !== actor.id ||
+          row.author_role !== actor.role ||
+          row.visibility !== visibility ||
+          row.body !== body
+        )
+          throw new AppError('이미 다른 내용에 사용된 메시지 ID입니다.', 409);
+        return { id: row.id, already_applied: true };
+      }
+
+      const inserted = await tx.$queryRawUnsafe(
+        `INSERT INTO business_support_messages(id,store_id,case_id,author_id,author_role,visibility,operation_id,body)
+        VALUES($1::uuid,$2,$3::uuid,$4,$5,$6,$7::uuid,$8)
+        ON CONFLICT(operation_id) DO NOTHING RETURNING id`,
+        crypto.randomUUID(),
+        storeId,
+        id,
+        actor.id,
+        actor.role,
+        visibility,
+        input.operation_id,
+        body
+      );
+      if (inserted.length) return { id: inserted[0].id, already_applied: false };
+
+      const raced = await tx.$queryRawUnsafe(
+        'SELECT id,store_id,case_id,author_id,author_role,visibility,body FROM business_support_messages WHERE operation_id=$1::uuid',
+        input.operation_id
+      );
+      const row = raced[0];
+      if (
+        !row ||
+        row.store_id !== storeId ||
+        row.case_id !== id ||
+        row.author_id !== actor.id ||
+        row.author_role !== actor.role ||
+        row.visibility !== visibility ||
+        row.body !== body
+      )
+        throw new AppError('이미 다른 내용에 사용된 메시지 ID입니다.', 409);
+      return { id: row.id, already_applied: true };
+    });
   }
   async createFromSnapshot(storeId, snapshot, operations = {}, tx = this.db) {
     await this.eligible(tx, storeId);

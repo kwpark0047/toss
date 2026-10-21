@@ -1,7 +1,7 @@
 import {render,screen,fireEvent,waitFor} from '@testing-library/react';
 import {MemoryRouter,Routes,Route} from 'react-router-dom';
 import {test,expect,vi,beforeEach} from 'vitest';
-const api=vi.hoisted(()=>({list:vi.fn(),overview:vi.fn(),enrollment:vi.fn(),enroll:vi.fn(),detail:vi.fn(),transition:vi.fn(),rescan:vi.fn(),evaluate:vi.fn()}));
+const api=vi.hoisted(()=>({list:vi.fn(),overview:vi.fn(),enrollment:vi.fn(),enroll:vi.fn(),detail:vi.fn(),transition:vi.fn(),message:vi.fn(),rescan:vi.fn(),evaluate:vi.fn()}));
 vi.mock('../api/businessSupport',()=>({businessSupportAPI:api}));
 import BusinessSupportCenter from '../components/admin/BusinessSupportCenter';
 beforeEach(()=>{vi.clearAllMocks();api.list.mockResolvedValue({data:{items:[],next_cursor:null}});api.overview.mockResolvedValue({data:{enrolled_stores:2,cases:[],jobs:[]}});api.enrollment.mockResolvedValue({data:{enabled:true,can_consent:true}});});
@@ -16,6 +16,17 @@ test('failure is visible and retry restores the list',async()=>{
   expect(await screen.findByRole('alert')).toHaveTextContent('불러오지 못했습니다');
   fireEvent.click(screen.getByRole('button',{name:'다시 조회'}));
   expect(await screen.findByText('아직 지원 제안이 없습니다.')).toBeVisible();
+});
+test('platform operators can filter the server support queue by priority, quality and store name',async()=>{
+  mount();
+  await screen.findByText('아직 지원 제안이 없습니다.');
+  fireEvent.change(screen.getByRole('combobox',{name:'우선순위'}),{target:{value:'1'}});
+  fireEvent.change(screen.getByRole('combobox',{name:'자료 품질'}),{target:{value:'insufficient'}});
+  fireEvent.change(screen.getByRole('textbox',{name:'매장명'}),{target:{value:'부천 푸드트럭'}});
+  fireEvent.click(screen.getByRole('button',{name:'조건 적용'}));
+  await waitFor(()=>expect(api.list).toHaveBeenLastCalledWith(undefined,null,{
+    status:'',priority:'1',quality:'insufficient',search:'부천 푸드트럭'
+  }));
 });
 test('owner must explicitly consent and missing data is not a successful analysis',async()=>{
   api.enrollment.mockResolvedValue({data:{enabled:false,can_consent:true}});
@@ -32,6 +43,16 @@ test('read-only support case has an acknowledgement instead of QR execution',asy
  expect(await screen.findByRole('button',{name:'확인·조치 완료'})).toBeVisible();
  expect(screen.queryByRole('button',{name:'QR 노출 시작'})).not.toBeInTheDocument();
  expect(screen.getByText('자료 부족')).toBeVisible();
+});
+test('owner can reply in the support inbox but cannot see or create internal notes',async()=>{
+ const row={id:'case',store_id:3,store_name:'테스트 매장',status:'sent',priority:1,snapshot_id:'snapshot',action_id:null,evidence:{quality:'observed',as_of:new Date().toISOString(),facts:{},insights:[]},events:[],messages:[{id:'message',author_role:'super_admin',visibility:'owner',body:'매장 영업 상태를 확인해 주세요.',created_at:new Date().toISOString()}]};
+ api.list.mockResolvedValue({data:{items:[row]}});api.detail.mockResolvedValue({data:row});api.message.mockResolvedValue({data:{id:'reply'}});
+ mount('/admin/stores/3/support');fireEvent.click(await screen.findByRole('button',{name:'근거·지원안'}));
+ expect(await screen.findByText('매장 영업 상태를 확인해 주세요.')).toBeVisible();
+ expect(screen.queryByText('최고관리자에게만 보이는 내부 메모')).not.toBeInTheDocument();
+ fireEvent.change(screen.getByLabelText('사업자에게 답변'),{target:{value:'확인 후 답변드리겠습니다.'}});
+ fireEvent.click(screen.getByRole('button',{name:'메시지 보내기'}));
+ await waitFor(()=>expect(api.message).toHaveBeenCalledWith(3,'case',expect.objectContaining({visibility:'owner',body:'확인 후 답변드리겠습니다.'})));
 });
 test('approved QR action waits for explicit in-app confirmation',async()=>{
  HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
