@@ -8,7 +8,11 @@ jest.mock('../../../middleware/auth', () => {
     req.user.role === 'super_admin' ? next() : res.sendStatus(403);
   return auth;
 });
-jest.mock('../../../middleware/storeAuth', () => ({ getStoreRole: jest.fn() }));
+// 체험·제재 가드는 별도 테스트에서 검증 — 여기서는 통과(false)로 둔다
+jest.mock('../../../middleware/storeAuth', () => ({
+  getStoreRole: jest.fn(),
+  blockExpiredTrialWrite: jest.fn().mockResolvedValue(false),
+}));
 jest.mock('../../../services/ProviderCredentialService', () => ({
   list: jest.fn().mockResolvedValue([]),
   save: jest.fn().mockResolvedValue({ saved: true }),
