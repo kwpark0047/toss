@@ -54,6 +54,17 @@ test('global public provider keys apply across stores and cannot be saved in a s
   const row = (await service.list(3)).find(row => row.provider === 'weather');
   assert.equal(row.read_only, true); assert.deepEqual(row.masked, {});
 });
+test('data.go.kr URL-encoded KMA authentication key is decoded once before encrypted storage', async () => {
+  const service = new ProviderCredentialService(database());
+  await service.save('weather', null, { api_key: 'fixture-weather-key%3D%3D' }, 1);
+  assert.equal((await service.resolve('weather')).values.api_key, 'fixture-weather-key==');
+  await service.save('weather', null, { api_key: 'fixture-weather-key==' }, 1);
+  assert.equal((await service.resolve('weather')).values.api_key, 'fixture-weather-key==');
+  await assert.rejects(
+    service.save('weather', null, { api_key: 'fixture-weather-key%ZZ' }, 1),
+    /URL 인코딩/
+  );
+});
 test('store Naver override wins and explicit disabled setting blocks environment fallback', async () => {
   const service = new ProviderCredentialService(database());
   await service.save('naver', null, { client_id: 'global-id', client_secret: 'global-secret' }, 1);
@@ -66,22 +77,26 @@ test('store Naver override wins and explicit disabled setting blocks environment
   await service.remove('naver', 3); assert.equal((await service.resolve('naver', 3)).source, 'global');
 });
 test('weather cache is station/key specific, missing keys and errors are explicitly marked fallback', async () => {
-  let key = 'fixture-weather-key', requests = 0, failing = false;
+  let key = 'fixture-weather-key', requests = 0, failing = false, lastRequest;
   const context = { module: { exports: {} }, require: name => {
     if (name === './ProviderCredentialService') return { resolve: async () => key ? { values: { api_key: key } } : null };
     if (name === '../utils/logger') return { apiLogger: { warn() {} } };
-    if (name === 'axios') return { get: async (_url, { params }) => { requests++; if (failing) throw new Error('Secret URL must not leak'); const parts = Array(26).fill('0'); parts[0] = '202610071200'; parts[1] = params.stn; parts[11] = params.stn === '108' ? '20' : '25'; parts[13] = '50'; return { data: parts.join(' ') }; } };
+    if (name === 'axios') return { get: async (url, { params }) => { requests++; lastRequest = { url, params }; if (failing) throw new Error('Secret URL must not leak'); return { data: { response: { header: { resultCode: '00' }, body: { items: { item: [ { category: 'T1H', obsrValue: params.nx === 60 ? '20' : '25' }, { category: 'REH', obsrValue: '50' }, { category: 'RN1', obsrValue: '강수없음' }, { category: 'PTY', obsrValue: '0' } ] } } } } }; } };
     return require(name);
   } };
   vm.runInNewContext(fs.readFileSync('services/weatherService.js', 'utf8'), context);
   const service = context.module.exports;
   assert.equal((await service.getCurrentWeather('108')).temp, 20);
   assert.equal((await service.getCurrentWeather('159')).temp, 25);
+  assert.equal(lastRequest.url, 'https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst');
+  assert.equal(lastRequest.params.serviceKey, key);
+  assert.equal(lastRequest.params.dataType, 'JSON');
+  assert.equal(lastRequest.params.nx, 63);
   await service.getCurrentWeather('108'); assert.equal(requests, 2);
   key = 'fixture-rotated-key'; await service.getCurrentWeather('108'); assert.equal(requests, 3);
   failing = true; assert.equal((await service.getCurrentWeather('101')).is_fallback, true);
   key = null; assert.equal((await service.getCurrentWeather('108')).source, 'unavailable');
-  assert.equal(service.parseSfctm2('invalid provider error body'), null);
+  assert.equal(service.parseNowcast([{ category: 'T1H', obsrValue: 'invalid' }]), null);
   await assert.rejects(service.getCurrentWeather('108&authKey=evil'));
 });
 
