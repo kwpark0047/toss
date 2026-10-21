@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wing, Spark, speak } from './WizardTinkerbell';
 import { getBtypeLabel } from './BusinessTypePicker';
@@ -78,12 +78,20 @@ export function getStep1Guide(focus, form, customBtype) {
 }
 
 export default function Step1InlineGuide({ focus, form, customBtype, voiceEnabled }) {
-  const { msg, happy } = getStep1Guide(focus, form, customBtype);
+  // getStep1Guide chooses from several friendly prompts. Keep that choice stable
+  // while the typewriter updates its own state, otherwise every tick selects a
+  // new random message and restarts the timer before any text can be displayed.
+  const { msg, happy } = useMemo(
+    () => getStep1Guide(focus, form, customBtype),
+    [focus, form.name, form.business_type, customBtype]
+  );
   const [typed, setTyped]   = useState('');
   const [sparks, setSparks] = useState([]);
   const typingRef  = useRef(null);
   const sparkId    = useRef(0);
   const prevFocus  = useRef(null);
+  const messageRef = useRef(msg);
+  messageRef.current = msg;
 
   // 타이핑 애니메이션
   useEffect(() => {
@@ -102,8 +110,7 @@ export default function Step1InlineGuide({ focus, form, customBtype, voiceEnable
   useEffect(() => {
     if (focus !== prevFocus.current) {
       prevFocus.current = focus;
-      const g = getStep1Guide(focus, form, customBtype);
-      speak(g.msg, voiceEnabled);
+      speak(messageRef.current, voiceEnabled);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus, voiceEnabled]);
