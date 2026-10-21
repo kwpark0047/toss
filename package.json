@@ -4,7 +4,7 @@
   "description": "WeMarket QR Menu Platform API",
   "main": "dist/index.mjs",
   "engines": {
-    "node": ">=22.22.0"
+    "node": ">=22.22.0 <23"
   },
   "scripts": {
     "start": "node --import tsx index.mts",
@@ -29,6 +29,7 @@
     "postinstall": "node -e \"if(!process.env.VERCEL && !process.env.CF_PAGES){require('child_process').execSync('prisma generate',{stdio:'inherit'})}\"",
     "seed": "node scripts/seed_production_direct.js",
     "backfill:mask-card-numbers": "node scripts/mask_card_numbers.js",
+    "pretest": "prisma generate",
     "test": "node scripts/run-jest.cjs --config jest.config.js tests/unit tests/routes --coverage",
     "test:unit": "node scripts/run-jest.cjs --config jest.config.js tests/unit tests/routes --detectOpenHandles",
     "test:routes": "node scripts/run-jest.cjs --config jest.config.js tests/routes",
