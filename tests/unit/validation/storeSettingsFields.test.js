@@ -16,7 +16,9 @@ describe('매장 설정 저장 필드 (StoreSettings 페이로드)', () => {
   });
 
   test('객체 테마도 허용 (Store.update가 직렬화)', () => {
-    expect(updateStoreSchema.parse({ theme: { primaryColor: '#000000' } }).theme).toEqual({ primaryColor: '#000000' });
+    expect(updateStoreSchema.parse({ theme: { primaryColor: '#000000' } }).theme).toEqual({
+      primaryColor: '#000000',
+    });
   });
 
   test('잘못된 시간·JSON은 거부', () => {
@@ -27,6 +29,8 @@ describe('매장 설정 저장 필드 (StoreSettings 페이로드)', () => {
   });
 
   test('요금제·SMS 권한 등 관리 전용 필드는 여전히 제거된다', () => {
-    expect(updateStoreSchema.parse({ plan: 'enterprise', can_send_sms: true, user_id: 9 })).toEqual({});
+    expect(updateStoreSchema.parse({ plan: 'enterprise', can_send_sms: true, user_id: 9 })).toEqual(
+      {}
+    );
   });
 });

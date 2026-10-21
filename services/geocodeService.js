@@ -150,8 +150,10 @@ function toCandidate({ roadAddress, jibunAddress, placeName, zipCode, lat, lng, 
 
 function rethrowProviderError(err) {
   const status = err?.response?.status;
-  if (status === 429) throw new GeocodeProviderError('주소 검색 요청이 많아요. 잠시 후 다시 시도해 주세요.', 429);
-  if (status === 401 || status === 403) throw new GeocodeProviderError('주소 검색 서비스 인증에 실패했어요.', 503);
+  if (status === 429)
+    throw new GeocodeProviderError('주소 검색 요청이 많아요. 잠시 후 다시 시도해 주세요.', 429);
+  if (status === 401 || status === 403)
+    throw new GeocodeProviderError('주소 검색 서비스 인증에 실패했어요.', 503);
   throw new GeocodeProviderError('주소 검색 서비스에 연결하지 못했어요.', 502);
 }
 
@@ -168,7 +170,8 @@ async function kakaoSearch(query, size) {
       out.push(
         toCandidate({
           roadAddress: d.road_address?.address_name,
-          jibunAddress: d.address?.address_name || (d.address_type !== 'ROAD' ? d.address_name : null),
+          jibunAddress:
+            d.address?.address_name || (d.address_type !== 'ROAD' ? d.address_name : null),
           placeName: d.road_address?.building_name,
           zipCode: d.road_address?.zone_no,
           lat: d.y,
@@ -219,7 +222,8 @@ async function ncpSearch(query, size) {
         toCandidate({
           roadAddress: a.roadAddress,
           jibunAddress: a.jibunAddress,
-          zipCode: (a.addressElements || []).find((e) => e.types?.includes('POSTAL_CODE'))?.longName,
+          zipCode: (a.addressElements || []).find((e) => e.types?.includes('POSTAL_CODE'))
+            ?.longName,
           lat: a.y,
           lng: a.x,
           source: 'ncp',

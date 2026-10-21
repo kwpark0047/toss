@@ -11,7 +11,8 @@ const storeService = new StoreService();
  * 그 사이 사장님이 직접 위치를 지정했다면 덮어쓰지 않도록 좌표가 비어 있을 때만 갱신한다.
  */
 function geocodeNewStoreInBackground(store) {
-  if (!store?.id || !store.address || store.latitude != null || !geocodeService.isConfigured()) return;
+  if (!store?.id || !store.address || store.latitude != null || !geocodeService.isConfigured())
+    return;
   geocodeService
     .geocode(store.address)
     .then(async (coord) => {
@@ -22,7 +23,9 @@ function geocodeNewStoreInBackground(store) {
       });
       if (count) storeService.flushStoreCache(store.id);
     })
-    .catch((err) => logger.warn({ storeId: store.id, error: err.message }, '신규 매장 지오코딩 실패'));
+    .catch((err) =>
+      logger.warn({ storeId: store.id, error: err.message }, '신규 매장 지오코딩 실패')
+    );
 }
 
 const storeController = {
@@ -200,7 +203,9 @@ const storeController = {
   async searchLocation(req, res) {
     if (!geocodeService.isConfigured()) {
       // 502/503은 프론트의 콜드스타트 재시도를 유발하므로 424(외부 의존성 실패)로 응답
-      return res.status(424).json({ success: false, error: '주소 검색 서비스가 설정되지 않았습니다.' });
+      return res
+        .status(424)
+        .json({ success: false, error: '주소 검색 서비스가 설정되지 않았습니다.' });
     }
     try {
       // Express 5에서는 req.query 재할당이 무시될 수 있어 검증된 값을 우선 사용
@@ -209,7 +214,9 @@ const storeController = {
       res.success({ query: q, results });
     } catch (err) {
       if (err instanceof geocodeService.GeocodeProviderError) {
-        return res.status(err.status === 429 ? 429 : 424).json({ success: false, error: err.message });
+        return res
+          .status(err.status === 429 ? 429 : 424)
+          .json({ success: false, error: err.message });
       }
       throw err;
     }
