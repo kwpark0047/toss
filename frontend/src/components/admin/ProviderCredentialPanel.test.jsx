@@ -13,7 +13,7 @@ describe('store provider credentials', () => {
   it('saves SMS secrets only in the global scope and clears inputs', async () => {
     api.get.mockResolvedValue({data:[{provider:'coolsms',label:'SMS · Coolsms',fields:['api_key','api_secret','sender'],registered:false,configured:false,source:'none',enabled:true,masked:{},adapter:true}]});
     render(<ProviderCredentialPanel global />);
-    const key=await screen.findByLabelText('SMS · Coolsms API 키');
+    const key=await screen.findByLabelText('SMS · Coolsms SMS_API_KEY · API 키');
     fireEvent.change(key,{target:{value:'fixture-api-key'}});
     fireEvent.change(screen.getByLabelText('SMS · Coolsms SMS_API_SECRET · API 시크릿'),{target:{value:'fixture-api-secret'}});
     fireEvent.change(screen.getByLabelText('SMS · Coolsms SMS_SENDER · 등록 발신번호'),{target:{value:'01000000000'}});
