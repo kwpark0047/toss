@@ -505,6 +505,7 @@ button, [role="button"], a, summary, label { touch-action: manipulation; }
 .admin-light .bg-orange-500.text-white { color: #fff !important; }
 /* 의도적 다크 영역(모달 등)은 다크 유지 (더 높은 특이도로 재지정) */
 .admin-light .admin-dark-scope .text-white { color: #fff !important; }
+.admin-light .admin-dark-scope.text-white { color: #fff !important; }
 .admin-light .admin-dark-scope .text-slate-200, .admin-light .admin-dark-scope .text-slate-300 { color: #cbd5e1 !important; }
 .admin-light .admin-dark-scope .text-slate-400 { color: #94a3b8 !important; }
 .admin-light .admin-dark-scope .text-slate-500, .admin-light .admin-dark-scope .text-slate-600 { color: #64748b !important; }
