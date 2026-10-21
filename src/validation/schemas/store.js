@@ -14,6 +14,37 @@ const phoneSchema = z
 const accountNumberSchema = z.string().regex(/^\d{10,14}$/, '계좌번호는 10~14자리 숫자입니다.');
 const bankCodeSchema = z.string().min(2).max(20);
 
+// 영업시간 "HH:MM" (24:00 허용)
+const timeOfDaySchema = z.string().regex(/^(([01]\d|2[0-3]):[0-5]\d|24:00)$/, '시간은 HH:MM 형식이어야 합니다.');
+
+// JSON 문자열로 저장하는 필드 (요일별 영업시간·테마)
+const jsonStringSchema = (max) =>
+  z
+    .string()
+    .max(max)
+    .refine((s) => {
+      try {
+        const v = JSON.parse(s);
+        return v !== null && typeof v === 'object';
+      } catch {
+        return false;
+      }
+    }, 'JSON 객체 형식이어야 합니다.');
+
+// 매장 좌표는 위도·경도를 함께 보내야 하고(둘 다 null로 지우는 것은 허용), 대한민국 범위 안이어야 한다
+function refineCoordinatePair(data, ctx) {
+  const { latitude: lat, longitude: lng } = data;
+  if (lat === undefined && lng === undefined) return;
+  if (lat === null && lng === null) return;
+  if (lat == null || lng == null) {
+    ctx.addIssue({ code: 'custom', path: [lat == null ? 'latitude' : 'longitude'], message: '위도와 경도는 함께 입력해야 합니다.' });
+    return;
+  }
+  if (!(lat > 33 && lat < 39 && lng > 124 && lng < 132)) {
+    ctx.addIssue({ code: 'custom', path: ['latitude'], message: '대한민국 범위를 벗어난 좌표입니다.' });
+  }
+}
+
 // 매장 생성
 const createStoreSchema = z.object({
   name: z.string().min(1, '매장명은 필수입니다.').max(200),
@@ -30,7 +61,7 @@ const createStoreSchema = z.object({
   longitude: z.number().min(-180).max(180).optional(),
   timezone: z.string().default('Asia/Seoul'),
   currency: z.string().length(3).default('KRW'),
-});
+}).superRefine(refineCoordinatePair);
 
 // 매장 수정
 const updateStoreSchema = z.object({
@@ -50,6 +81,18 @@ const updateStoreSchema = z.object({
   timezone: z.string().optional(),
   currency: z.string().length(3).optional(),
   isActive: z.boolean().optional(),
+  // 매장 설정 화면(StoreSettings·StoreForm)이 보내는 필드 — Store.update가 저장한다
+  description: z.string().max(2000).optional().nullable(),
+  business_type: z.string().max(50).optional(),
+  open_time: timeOfDaySchema.optional().nullable(),
+  close_time: timeOfDaySchema.optional().nullable(),
+  business_hours: jsonStringSchema(5000).optional().nullable(),
+  theme: z.union([jsonStringSchema(10000), z.record(z.string(), z.unknown())]).optional().nullable(),
+}).superRefine(refineCoordinatePair);
+
+// 매장 위치 지정용 주소 검색
+const locationSearchQuerySchema = z.object({
+  q: z.string().trim().min(2, '검색어는 2자 이상 입력해 주세요.').max(100),
 });
 
 // 사업자 정보
@@ -205,6 +248,7 @@ module.exports = {
   storeRouteParamSchema: z.object({ storeId: z.coerce.number().int().positive() }),
   createStoreSchema,
   updateStoreSchema,
+  locationSearchQuerySchema,
   businessInfoSchema,
   accountSchema,
   storeSettingsSchema,

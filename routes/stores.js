@@ -7,6 +7,7 @@ const catchAsync = require('../utils/catchAsync');
 const storeController = require('../controllers/storeController');
 const subscriptionController = require('../controllers/subscriptionController');
 const idempotency = require('../middleware/idempotency');
+const rateLimit = require('express-rate-limit').rateLimit;
 const { validateBody, validateQuery, validateParams } = require('../middleware/validate');
 const {
   createStoreSchema,
@@ -16,6 +17,7 @@ const {
   storeSearchQuerySchema,
   subscriptionPaymentMethodSchema,
   storeIdParamSchema,
+  locationSearchQuerySchema,
 } = require('../src/validation/schemas');
 
 const bridgeStoreId = (req, _res, next) => {
@@ -249,6 +251,40 @@ router.put(
   checkStorePermission('store:update'),
   validateBody(updateStoreSchema),
   catchAsync(storeController.updateStore)
+);
+
+/**
+ * @swagger
+ * /api/stores/{id}/location/search:
+ *   get:
+ *     tags: [Stores]
+ *     summary: 매장 위치 지정용 주소 검색 (도로명·지번·건물명 후보)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema: { type: string, minLength: 2, maxLength: 100 }
+ *     responses:
+ *       200:
+ *         description: 주소 후보 목록 (lat/lng 포함)
+ *       429:
+ *         description: 요청 과다
+ */
+router.get(
+  '/:id/location/search',
+  authMiddleware,
+  rateLimit({ windowMs: 60000, limit: 30 }),
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('store:update'),
+  validateQuery(locationSearchQuerySchema),
+  catchAsync(storeController.searchLocation)
 );
 
 /**
