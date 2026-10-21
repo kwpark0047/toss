@@ -11,6 +11,13 @@ const businessNumberSchema = z
 const phoneSchema = z
   .string()
   .regex(/^01[0-9][0-9]{7,8}$/, '유효하지 않은 한국 전화번호 형식입니다.');
+// Optional phone fields are submitted by browser forms as an empty string.
+// Normalize common display separators before validating and store empty input as absent.
+const optionalPhoneSchema = z.preprocess((value) => {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.replace(/[\s()-]/g, '') : undefined;
+}, phoneSchema.optional());
 const accountNumberSchema = z.string().regex(/^\d{10,14}$/, '계좌번호는 10~14자리 숫자입니다.');
 const bankCodeSchema = z.string().min(2).max(20);
 
@@ -65,7 +72,7 @@ const createStoreSchema = z
       .string()
       .regex(/^\d{5}$/, '우편번호는 5자리입니다.')
       .optional(),
-    phone: phoneSchema.optional(),
+    phone: optionalPhoneSchema,
     businessNumber: businessNumberSchema.optional(),
     category: z.string().max(100).optional(),
     latitude: z.number().min(-90).max(90).optional(),
@@ -86,7 +93,7 @@ const updateStoreSchema = z
       .regex(/^\d{5}$/)
       .optional()
       .nullable(),
-    phone: phoneSchema.optional().nullable(),
+    phone: z.union([optionalPhoneSchema, z.null()]),
     businessNumber: businessNumberSchema.optional().nullable(),
     category: z.string().max(100).optional().nullable(),
     latitude: z.number().min(-90).max(90).optional().nullable(),
@@ -124,7 +131,7 @@ const businessInfoSchema = z.object({
     .string()
     .regex(/^\d{5}$/)
     .optional(),
-  phone: phoneSchema.optional(),
+  phone: optionalPhoneSchema,
   fax: z.string().max(20).optional().nullable(),
   email: z.string().email().max(255).optional().nullable(),
   establishedDate: z
@@ -277,5 +284,6 @@ module.exports = {
   subscriptionPaymentMethodSchema,
   businessNumberSchema,
   phoneSchema,
+  optionalPhoneSchema,
   accountNumberSchema,
 };
