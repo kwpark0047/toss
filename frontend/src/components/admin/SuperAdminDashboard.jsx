@@ -49,7 +49,9 @@ export default function SuperAdminDashboard() {
   const [linkReqs, setLinkReqs] = useState([]);
   const [linkBusy, setLinkBusy] = useState(null);
   const [businessTrials, setBusinessTrials] = useState([]);
-  const [trialFilter, setTrialFilter] = useState('trialing');
+  // Show every business lifecycle state by default so newly signed-up accounts
+  // already marked approved are not hidden from the super-admin overview.
+  const [trialFilter, setTrialFilter] = useState('all');
   const [trialBusy, setTrialBusy] = useState(null);
   const [trialAction, setTrialAction] = useState(null);
 
@@ -279,14 +281,14 @@ export default function SuperAdminDashboard() {
             <p className="mt-1 text-[11px] text-slate-400">신규 가입 계정의 1개월 체험 기간과 승인 상태를 확인합니다.</p>
           </div>
           <div className="flex items-center gap-2">
-            <label className="sr-only" htmlFor="business-trial-filter">체험 계정 상태</label>
+            <label className="sr-only" htmlFor="business-trial-filter">사업자 계정 상태</label>
             <select id="business-trial-filter" value={trialFilter} onChange={(event) => setTrialFilter(event.target.value)} className="h-9 rounded-lg bg-slate-900 border border-white/10 px-2 text-xs text-white">
               <option value="trialing">체험 중</option>
               <option value="expired">체험 만료</option>
               <option value="approved">정식 승인</option>
               <option value="suspended">이용 중단</option>
               <option value="fraud_review">안전성 검토</option>
-              <option value="all">전체 체험 계정</option>
+              <option value="all">전체 사업자 계정</option>
             </select>
             <button type="button" onClick={() => void loadBusinessTrials()} className="h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:text-white">새로고침</button>
           </div>

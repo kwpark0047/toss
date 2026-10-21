@@ -28,6 +28,15 @@ test('lists trial accounts with expiry-aware status and a bounded limit', async 
   assert.match(sql, /business_access_status='trialing' AND trial_ends_at > now\(\)/);
   assert.deepEqual(args, [100]);
   assert.match(sql, /CASE WHEN business_access_status='trialing' AND trial_ends_at <= now\(\)/);
+  assert.match(sql, /COALESCE\(role,'user'\) <> 'super_admin'/);
+});
+
+test('all business-account states exclude super-admin accounts', async () => {
+  const db = makeDb();
+  await new BusinessTrialService(db).list('all');
+  const [{ sql }] = db.calls;
+  assert.match(sql, /business_access_status IN \('trialing','approved','suspended','fraud_review'\)/);
+  assert.match(sql, /COALESCE\(role,'user'\) <> 'super_admin'/);
 });
 
 test('rejects unsupported list filters', async () => {

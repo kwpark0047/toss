@@ -38,6 +38,7 @@ test('shows trial dates and lets a super admin grant formal access', async () =>
 
   render(<Dashboard />);
   await waitFor(() => expect(mocks.trials).toHaveBeenCalled());
+  expect(mocks.trials).toHaveBeenCalledWith('all');
   expect(await screen.findByText(/trial@example\.com/)).toBeInTheDocument();
   expect(screen.getByText(/체험 2026\. 10\. 18\./)).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /정식 이용 승인/ }));

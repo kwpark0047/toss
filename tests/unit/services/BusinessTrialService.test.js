@@ -42,7 +42,7 @@ describe('BusinessTrialService', () => {
       100
     );
     expect(db.$queryRawUnsafe).toHaveBeenCalledWith(
-      expect.stringContaining('EXISTS (\n      SELECT 1 FROM public.stores'),
+      expect.stringMatching(/EXISTS \(\s*SELECT 1 FROM public\.stores/),
       100
     );
   });

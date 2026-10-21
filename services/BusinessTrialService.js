@@ -17,9 +17,10 @@ class BusinessTrialService {
     const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 50, 1), 100);
     // All historic users inherit approved access for compatibility, but only
     // show actual business accounts here: trial signups or users owning a store.
-    const businessAccountFilter = `AND (trial_started_at IS NOT NULL OR EXISTS (
-      SELECT 1 FROM public.stores s WHERE s.user_id=public.users.id
-    ))`;
+    const businessAccountFilter = `AND COALESCE(role,'user') <> 'super_admin'
+      AND (trial_started_at IS NOT NULL OR EXISTS (
+        SELECT 1 FROM public.stores s WHERE s.user_id=public.users.id
+      ))`;
     const predicate =
       status === 'all'
         ? `business_access_status IN ('trialing','approved','suspended','fraud_review') AND auth_status='active' ${businessAccountFilter}`
