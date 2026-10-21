@@ -30,6 +30,7 @@ function load(file,db){
    CREATE TABLE orders(id serial PRIMARY KEY,store_id int,status text,created_at timestamp);INSERT INTO orders(store_id,status,created_at) VALUES(3,'pending',now()-interval '30 minutes');`);
   await client.query(fs.readFileSync('prisma/migrations/20261007030000_ai_store_manager/migration.sql','utf8').replaceAll('"public".',`"${schema}".`));
   await client.query(fs.readFileSync('prisma/migrations/20261014010000_business_support/migration.sql','utf8'));
+  await client.query(fs.readFileSync('prisma/migrations/20261021010000_business_support_messages/migration.sql','utf8'));
   const db=adapter(pool);db.$transaction=async work=>{const tx=await pool.connect();try{await tx.query('BEGIN');const result=await work(adapter(tx));await tx.query('COMMIT');return result;}catch(e){await tx.query('ROLLBACK');throw e;}finally{tx.release();}};
   const Service=load('services/BusinessSupportService.js',db),Worker=load('services/BusinessSupportWorker.js',db);
   const service=new Service(db),owner={id:7,role:'store_admin'},platform={id:9,role:'super_admin'},foreign={id:8,role:'store_admin'};
@@ -52,6 +53,16 @@ function load(file,db){
   const send=await Promise.all([service.transition(3,id,'send',platform,op,'test'),service.transition(3,id,'send',platform,op,'test')]);
   assert.equal(send.filter(r=>r.already_applied).length,1);
   await assert.rejects(service.transition(3,id,'send',owner,op,'test'),e=>e.statusCode===409);
+  const messageOperation=crypto.randomUUID();
+  const internalMessage=await service.addMessage(3,id,platform,{operation_id:messageOperation,body:'  운영팀 내부 확인  ',visibility:'internal'});
+  const repeatedMessage=await service.addMessage(3,id,platform,{operation_id:messageOperation,body:'운영팀 내부 확인',visibility:'internal'});
+  assert.equal(repeatedMessage.already_applied,true);
+  const ownerReply=await service.addMessage(3,id,owner,{operation_id:crypto.randomUUID(),body:'확인했습니다.'});
+  const ownerDetail=await service.detail(3,id,owner),platformDetail=await service.detail(3,id,platform);
+  assert.equal(ownerDetail.messages.some(message=>message.id===internalMessage.id),false,'internal notes stay private');
+  assert.equal(platformDetail.messages.some(message=>message.id===ownerReply.id),true,'platform sees owner replies');
+  assert.equal((await client.query('SELECT COUNT(*)::int AS n FROM business_support_messages WHERE case_id=$1',[id])).rows[0].n,2,'retry creates no duplicate');
+  await assert.rejects(service.addMessage(3,id,owner,{operation_id:crypto.randomUUID(),body:'not internal',visibility:'internal'}),e=>e.statusCode===403);
   await assert.rejects(service.manager.transition(3,aid,'approve',7),e=>e.statusCode===409);
   await service.transition(3,id,'changes',owner,crypto.randomUUID(),'change');
   await service.transition(3,id,'send',platform,crypto.randomUUID(),'revised');
@@ -82,7 +93,7 @@ function load(file,db){
   assert.equal((await worker.process(stale)).status,'lease_lost');
   await worker.process(replacement);
   await assert.rejects(client.query('INSERT INTO business_support_cases(id,store_id,snapshot_id,priority,evidence) VALUES($1,4,$2,1,$3)',[crypto.randomUUID(),sid,{}]),e=>e.code==='23503');
-  assert.equal((await client.query('SELECT COUNT(*)::int AS count FROM pg_class WHERE relnamespace=$1::regnamespace AND relname LIKE $2 AND relrowsecurity',[schema,'business_support_%'])).rows[0].count,4);
+  assert.equal((await client.query('SELECT COUNT(*)::int AS count FROM pg_class WHERE relnamespace=$1::regnamespace AND relname LIKE $2 AND relrowsecurity',[schema,'business_support_%'])).rows[0].count,5);
   await client.query(`CREATE TABLE phone_otps(id serial PRIMARY KEY,phone text NOT NULL,otp text NOT NULL,expires_at timestamp NOT NULL,verified boolean NOT NULL DEFAULT false,used boolean NOT NULL DEFAULT false,created_at timestamp NOT NULL DEFAULT now());`);
   const OTP=load('services/RegistrationOtpService.js',db);let code;
   const otp=new OTP(db,async(_phone,text)=>{code=text.match(/\d{6}/)[0];return {sent:true};},{NODE_ENV:'production',JWT_SECRET:'isolated-postgres-fixture'});
@@ -109,6 +120,6 @@ function load(file,db){
   const evaluation=await service.evaluate(4,case4.id,foreign);assert.equal(evaluation.verdict,'insufficient');assert.equal(evaluation.causal,false);
   await service.evaluate(4,case4.id,foreign);
   assert.equal((await client.query("SELECT COUNT(*)::int AS n FROM business_support_events WHERE case_id=$1 AND event='evaluate'",[case4.id])).rows[0].n,1);
-  console.log(JSON.stringify({passed:true,realPostgres:true,operatingDB:false,checks:['owner consent','draft privacy','foreign tenant denial','platform approval denial','idempotent concurrent send','linked action bypass blocked','change request and resend','concurrent QR execution once','stop after withdrawal','worker exclusive claim','backoff and sanitized errors','lease exhaustion DLQ','manual recovery','tenant FK','RLS','OTP hashed at rest','tampered signup proof rejected','concurrent signup exactly once','OTP consumed atomically']}));
+  console.log(JSON.stringify({passed:true,realPostgres:true,operatingDB:false,checks:['owner consent','draft privacy','foreign tenant denial','platform approval denial','idempotent concurrent send','internal message privacy','support message idempotency','owner internal-note denial','linked action bypass blocked','change request and resend','concurrent QR execution once','stop after withdrawal','worker exclusive claim','backoff and sanitized errors','lease exhaustion DLQ','manual recovery','tenant FK','RLS','OTP hashed at rest','tampered signup proof rejected','concurrent signup exactly once','OTP consumed atomically']}));
  }finally{await pool.end();await client.query(`DROP SCHEMA "${schema}" CASCADE`);}
 })().catch(e=>{console.error(e.stack);process.exitCode=1;}).finally(()=>client.end());
