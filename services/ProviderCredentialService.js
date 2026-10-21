@@ -51,6 +51,17 @@ function definition(provider, storeId) {
   return item;
 }
 const scope = (storeId) => (storeId ? `store:${storeId}` : 'global');
+// data.go.kr may present the General Authentication Key in URL-encoded form
+// (for example, trailing padding as %3D). Store the decoded token so Axios
+// encodes it exactly once when it builds the KMA request query string.
+function normalizeProviderValue(provider, field, value) {
+  if (provider !== 'weather' || field !== 'api_key' || !value.includes('%')) return value;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    throw new AppError('기상청 API 키의 URL 인코딩 형식을 확인하세요.', 400);
+  }
+}
 class ProviderCredentialService {
   constructor(db = prisma) {
     this.db = db;
@@ -182,7 +193,7 @@ class ProviderCredentialService {
         /[\r\n]/.test(input[field])
       )
         throw new AppError(`${field} 형식과 길이를 확인하세요.`, 400);
-      values[field] = input[field].trim();
+      values[field] = normalizeProviderValue(provider, field, input[field].trim());
       if (provider === 'coolsms' && field === 'sender' && !/^\d{8,11}$/.test(values[field]))
         throw new AppError('등록된 발신번호는 8~11자리 숫자로 입력하세요.', 400);
       if (field === 'api_keys') {
@@ -258,12 +269,7 @@ class ProviderCredentialService {
           if (!Array.isArray(response.data?.LOCALDATA_072404?.row))
             throw new Error('Invalid response');
         } else {
-          const response = await axios.get(
-            'https://apihub.kma.go.kr/api/typ01/url/kma_sfctm2.php',
-            { params: { stn: '108', help: 0, authKey: credential.values.api_key }, timeout: 8000 }
-          );
-          if (!require('./weatherService').parseSfctm2(String(response.data)))
-            throw new Error('Invalid weather');
+          await require('./weatherService').fetchCurrentWeather('108', credential.values.api_key);
         }
         status = 'verified';
         message = '공식 공급자 조회가 정상 응답했습니다.';
