@@ -2,8 +2,26 @@ import { PrismaClient } from '../prisma/app/generated/prisma/index.js';
 import crypto from 'crypto';
 import logger from '../utils/logger.js';
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/wemarket_test';
-const REPLICA_URL = process.env.REPLICA_URL || DATABASE_URL; // 레플리카 키 누락 시 자동으로 주 데이터베이스로 가용 폴백
+const normalizeRuntimeDatabaseUrl = (value: string): string => {
+  // Supabase Transaction Pooler (6543)는 Prisma의 named prepared statements와
+  // 충돌할 수 있다 (PostgreSQL 42P05: prepared statement already exists).
+  // Prisma 5의 PgBouncer 호환 모드를 적용하되 직접 연결(Session pooler 5432)은 유지한다.
+  try {
+    const url = new URL(value);
+    if (url.protocol.startsWith('postgres') && url.port === '6543') {
+      url.searchParams.set('pgbouncer', 'true');
+      return url.toString();
+    }
+  } catch {
+    // Prisma가 잘못된 URL을 구체적인 구성 오류로 보고하게 원본 문자열을 넘긴다.
+  }
+  return value;
+};
+
+const DATABASE_URL = normalizeRuntimeDatabaseUrl(
+  process.env.DATABASE_URL || 'postgresql://localhost:5432/wemarket_test'
+);
+const REPLICA_URL = normalizeRuntimeDatabaseUrl(process.env.REPLICA_URL || DATABASE_URL); // 레플리카 키 누락 시 주 DB로 폴백
 
 // 1. 주 데이터베이스 클라이언트 생성 (CUD - 쓰기 전용 세션 풀)
 const prismaPrimary = new PrismaClient({
