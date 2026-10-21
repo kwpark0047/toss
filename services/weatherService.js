@@ -5,7 +5,7 @@ const { apiLogger } = require('../utils/logger');
 class WeatherService {
   constructor() {
     this.stationCache = new Map();
-    this.baseUrl = 'https://apihub.kma.go.kr/api/typ01/url/kma_sfctm2.php';
+    this.baseUrl = 'https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst';
     this.cachedWeather = null;
     this.lastFetchTime = null;
     this.CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
@@ -29,28 +29,13 @@ class WeatherService {
       const cacheKey = `${stn}:${require('crypto').createHash('sha256').update(credential.values.api_key).digest('hex')}`;
       cached = this.stationCache.get(cacheKey);
       if (cached && Date.now() - cached.at < this.CACHE_DURATION) return cached.value;
-      const response = await axios.get(this.baseUrl, {
-        params: { stn, help: 0, authKey: credential.values.api_key },
-        timeout: 5000,
-      });
-      const dataText = response.data;
-
-      const parsedData = this.parseSfctm2(dataText);
-      if (parsedData) {
-        const value = {
-          ...parsedData,
-          station: stn,
-          source: 'kma',
-          is_fallback: false,
-          fetched_at: new Date().toISOString(),
-        };
-        if (this.stationCache.size >= 64)
-          this.stationCache.delete(this.stationCache.keys().next().value);
-        this.stationCache.set(cacheKey, { value, at: Date.now() });
-        return value;
-      } else {
-        throw new Error('No valid weather data found in response');
-      }
+      const value = await this.fetchCurrentWeather(stn, credential.values.api_key);
+      value.is_fallback = false;
+      value.fetched_at = new Date().toISOString();
+      if (this.stationCache.size >= 64)
+        this.stationCache.delete(this.stationCache.keys().next().value);
+      this.stationCache.set(cacheKey, { value, at: Date.now() });
+      return value;
     } catch (error) {
       apiLogger.warn({ code: error.code || 'WEATHER_UNAVAILABLE' }, 'Weather provider unavailable');
       // Return a safe fallback or cached data if available
@@ -73,6 +58,89 @@ class WeatherService {
             fetched_at: null,
           };
     }
+  }
+
+  /**
+   * Fetch current observations using the data.go.kr KMA short-range forecast
+   * service. This API expects the public portal's ServiceKey, not an API Hub
+   * authKey. Errors intentionally omit the request URL and credential.
+   */
+  async fetchCurrentWeather(stn = '108', apiKey = null) {
+    stn = String(stn);
+    if (!/^\d{1,4}$/.test(stn)) throw new Error('Invalid weather station');
+    if (!apiKey) {
+      const credential = await credentials.resolve('weather');
+      apiKey = credential?.values?.api_key;
+    }
+    if (!apiKey) throw new Error('Weather credentials missing');
+    const grid = WeatherService.getGridByStation(stn);
+    const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    // Ultra-short nowcast is published hourly; avoid requesting the current
+    // hour before its observation package is normally available.
+    if (kstNow.getUTCMinutes() < 20) kstNow.setUTCHours(kstNow.getUTCHours() - 1);
+    const baseDate = kstNow.toISOString().slice(0, 10).replace(/-/g, '');
+    const baseTime = `${String(kstNow.getUTCHours()).padStart(2, '0')}00`;
+    const response = await axios.get(this.baseUrl, {
+      params: {
+        serviceKey: apiKey,
+        pageNo: 1,
+        numOfRows: 100,
+        dataType: 'JSON',
+        base_date: baseDate,
+        base_time: baseTime,
+        nx: grid.nx,
+        ny: grid.ny,
+      },
+      timeout: 8000,
+    });
+    const body = response.data?.response;
+    if (body?.header?.resultCode && body.header.resultCode !== '00')
+      throw new Error('Weather provider rejected request');
+    const parsed = this.parseNowcast(body?.body?.items?.item);
+    if (!parsed) throw new Error('Weather provider returned no current observation');
+    return { ...parsed, timestamp: `${baseDate}${baseTime}`, station: stn, source: 'kma' };
+  }
+
+  static getGridByStation(stn) {
+    const grids = {
+      108: [60, 127],
+      112: [98, 76],
+      133: [89, 90],
+      143: [58, 74],
+      146: [67, 100],
+      152: [102, 84],
+      156: [69, 107],
+      159: [63, 89],
+      162: [73, 134],
+      165: [50, 67],
+      168: [92, 131],
+      170: [60, 121],
+      172: [55, 124],
+      174: [56, 125],
+      177: [59, 123],
+      184: [60, 127],
+      192: [60, 127],
+      202: [60, 127],
+    };
+    const [nx, ny] = grids[stn] || grids[108];
+    return { nx, ny };
+  }
+
+  parseNowcast(items) {
+    if (!items) return null;
+    const rows = Array.isArray(items) ? items : [items];
+    const values = Object.fromEntries(rows.map((item) => [item.category, item.obsrValue]));
+    const temp = Number(values.T1H);
+    const humidity = Number(values.REH);
+    if (!Number.isFinite(temp) || !Number.isFinite(humidity) || humidity < 0 || humidity > 100)
+      return null;
+    const rawRain = values.RN1;
+    const rain = rawRain == null || rawRain === '강수없음' || rawRain === '-' ? 0 : Number(rawRain);
+    if (!Number.isFinite(rain) || rain < 0) return null;
+    const pty = Number(values.PTY || 0);
+    const isRaining = pty > 0 || rain > 0;
+    const condition = pty === 3 || pty === 7 ? '눈' : isRaining ? '비' : '강수 없음';
+    return { temp, humidity, rain, isRaining, condition };
   }
 
   /**
