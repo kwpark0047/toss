@@ -1,4 +1,5 @@
 const Receipt = require('../repositories/Receipt');
+const TinkerbellSettings = require('../repositories/TinkerbellSettings');
 const StoreTier = require('../repositories/StoreTier');
 const prisma = require('../config/prisma');
 const catchAsync = require('../utils/catchAsync');
@@ -58,6 +59,20 @@ const storeSettingsController = {
 
     await Receipt.update(req.params.storeId, filteredData);
     res.success(null, '영수증 설정이 업데이트되었습니다.');
+  }),
+
+  // AI 팅커벨 설정 조회 (관리자·고객 공용 — 민감 정보 없음)
+  getTinkerbellSettings: catchAsync(async (req, res) => {
+    const storeId = req.params.storeId ?? req.params.id;
+    res.success(await TinkerbellSettings.findByStoreId(storeId));
+  }),
+
+  // AI 팅커벨 설정 저장
+  updateTinkerbellSettings: catchAsync(async (req, res) => {
+    const { data, error } = TinkerbellSettings.sanitize(req.body);
+    if (error) return res.status(400).json({ success: false, error });
+    const saved = await TinkerbellSettings.upsert(req.params.storeId, data);
+    res.success(saved, '팅커벨 설정이 저장되었습니다.');
   }),
 
   // 매장 등급 설정 조회

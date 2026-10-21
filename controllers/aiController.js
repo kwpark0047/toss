@@ -2,6 +2,7 @@ const aiService = require('../services/aiService');
 const Product = require('../repositories/Product');
 const Order = require('../repositories/Order');
 const Store = require('../repositories/Store');
+const TinkerbellSettings = require('../repositories/TinkerbellSettings');
 const catchAsync = require('../utils/catchAsync');
 const weatherService = require('../services/weatherService');
 const WeatherService = require('../services/weatherService');
@@ -342,6 +343,12 @@ const aiController = {
 
     if (!store_id) {
       return res.status(400).json({ error: 'store_id가 필요합니다.' });
+    }
+
+    // 매장이 팅커벨 AI 추천을 켠 경우에만 유료 AI를 호출한다 (기본 OFF)
+    const tinkerbell = await TinkerbellSettings.findByStoreId(store_id);
+    if (!tinkerbell.enabled || !tinkerbell.ai_recommendation) {
+      return res.json({ recommendations: [], source: 'disabled' });
     }
 
     const hour = new Date().getHours();
