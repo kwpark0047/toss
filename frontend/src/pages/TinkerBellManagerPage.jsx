@@ -1,19 +1,21 @@
 import { useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { loadTinkerBellSettings, saveTinkerBellSettings } from '../utils/tinkerbell';
 import TinkerBell from '../components/ai/TinkerBell';
 import Icon from '../components/ui/Icon';
-import { ChevronRight, Globe, Info, RefreshCw, Sparkles, Sun, TrendingUp, ShoppingCart, Type, CloudRain, Snowflake, Flame } from 'lucide-react';
+import { BarChart3, ChevronRight, Globe, Info, RefreshCw, Sparkles, Sun, TrendingUp, ShoppingCart, Type, CloudRain, Snowflake, Flame } from 'lucide-react';
 
 // ── 데모용 메뉴 데이터 (미리보기용) ─────────────────────────────────────────
+// TinkerBell의 날씨별 추천 필터가 category_id / isHot / isCold 를 본다
 const PREVIEW_MENU = [
-  { id:1, name:'시그니처 라떼',   cat:'coffee',  isPopular:true,  isSoldOut:false },
-  { id:2, name:'말차 라떼',       cat:'non-coffee', isPopular:true, isSoldOut:false },
-  { id:3, name:'자몽 에이드',     cat:'ade',     isPopular:true,  isSoldOut:false },
-  { id:4, name:'크렘 브륄레',     cat:'dessert', isPopular:false, isSoldOut:false },
-  { id:5, name:'아메리카노',      cat:'coffee',  isPopular:true,  isSoldOut:false },
-  { id:6, name:'복숭아 아이스티', cat:'ade',     isPopular:false, isSoldOut:true  },
+  { id:1, name:'시그니처 라떼',   category_id:'coffee',     isHot:true,  isPopular:true,  isSoldOut:false },
+  { id:2, name:'말차 라떼',       category_id:'non-coffee', isHot:true,  isPopular:true,  isSoldOut:false },
+  { id:3, name:'자몽 에이드',     category_id:'ade',        isCold:true, isPopular:true,  isSoldOut:false },
+  { id:4, name:'크렘 브륄레',     category_id:'dessert',                 isPopular:false, isSoldOut:false },
+  { id:5, name:'아메리카노',      category_id:'coffee',     isHot:true,  isPopular:true,  isSoldOut:false },
+  { id:6, name:'복숭아 아이스티', category_id:'ade',        isCold:true, isPopular:false, isSoldOut:true  },
 ];
 
 const PREVIEW_ITEMS = [
@@ -25,10 +27,10 @@ const PREVIEW_ITEMS = [
 
 // ── 통계 카드 (목 데이터) ────────────────────────────────────────────────────
 const STATS = [
-  { label:'이번 달 추천 건수',    value:'1,247',  delta:'+18%', icon: Sparkles,    color:'from-amber-500 to-orange-500',    bg:'bg-amber-50',    txt:'text-amber-600' },
-  { label:'추천 후 주문 전환율',  value:'64.3%',  delta:'+5.2%',icon: TrendingUp,  color:'from-emerald-500 to-teal-500',   bg:'bg-emerald-50',  txt:'text-emerald-600' },
-  { label:'평균 추가 주문 메뉴',  value:'1.8개',  delta:'+0.3', icon: ShoppingCart, color:'from-sky-500 to-blue-500',       bg:'bg-sky-50',      txt:'text-sky-600' },
-  { label:'큰 글씨 모드 사용',    value:'24.1%',  delta:'+3.1%',icon: Type,         color:'from-purple-500 to-violet-500',  bg:'bg-purple-50',   txt:'text-purple-600' },
+  { label:'이번 달 추천 건수',    value:'1,247',  delta:'+18%', icon: Sparkles,     tone:'bg-amber-500/10 text-amber-400' },
+  { label:'추천 후 주문 전환율',  value:'64.3%',  delta:'+5.2%',icon: TrendingUp,   tone:'bg-emerald-500/10 text-emerald-400' },
+  { label:'평균 추가 주문 메뉴',  value:'1.8개',  delta:'+0.3', icon: ShoppingCart, tone:'bg-sky-500/10 text-sky-400' },
+  { label:'큰 글씨 모드 사용',    value:'24.1%',  delta:'+3.1%',icon: Type,         tone:'bg-violet-500/10 text-violet-400' },
 ];
 
 // ── 언어 옵션 ────────────────────────────────────────────────────────────────
@@ -41,20 +43,35 @@ const LANGS = [
 
 // ── 날씨/상황 옵션 ────────────────────────────────────────────────────────────
 const WEATHERS = [
-  { code:'sun',  label:'맑음',  icon: Sun,       color:'text-amber-500'  },
-  { code:'rain', label:'비',    icon: CloudRain,  color:'text-blue-500'   },
-  { code:'cold', label:'추위',  icon: Snowflake,  color:'text-cyan-500'   },
-  { code:'hot',  label:'더위',  icon: Flame,      color:'text-red-500'    },
+  { code:'sun',  label:'맑음',  icon: Sun,        color:'text-amber-400' },
+  { code:'rain', label:'비',    icon: CloudRain,  color:'text-blue-400'  },
+  { code:'cold', label:'추위',  icon: Snowflake,  color:'text-cyan-400'  },
+  { code:'hot',  label:'더위',  icon: Flame,      color:'text-red-400'   },
 ];
 
+const CUSTOM_MSG_MAX = 80;
+
+// 공용 관리자 스타일
+const CARD = 'rounded-3xl bg-white/5 border border-white/10 p-6';
+const INPUT = 'w-full px-4 py-2.5 text-sm bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 outline-none focus:border-orange-500/50 focus-visible:ring-2 focus-visible:ring-orange-400/40 transition-all';
+const GHOST_BTN = 'flex items-center gap-2 bg-white/5 border border-white/10 text-slate-300 rounded-xl font-bold hover:bg-white/10 transition-colors';
+const chipClass = (selected) =>
+  `flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold border transition-all ${selected
+    ? 'bg-orange-500 text-white border-orange-500'
+    : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'}`;
+
+const isValidStoreId = (v) => /^[1-9]\d*$/.test(String(v).trim());
+
 // ── 폰 프레임 미리보기 ────────────────────────────────────────────────────────
-function PhonePreview({ lang, weather, voiceEnabled, largeFont, triggerKey, lastAddedItem, aiRecEnabled, previewStoreId }) {
-   return (
-     <div className="relative mx-auto" style={{ width: 280, height: 560 }}>
+// 고객 화면을 흉내 내므로 항상 밝은 화면이다. admin-dark-scope로 라이트 테마 오버라이드를 막아
+// 말풍선(bg-slate-900 + text-white)이 라이트 테마에서도 읽히게 한다.
+function PhonePreview({ lang, weather, voiceEnabled, largeFont, triggerKey, lastAddedItem, aiStoreId }) {
+  return (
+    <div className="admin-dark-scope relative mx-auto" style={{ width: 280, height: 560 }}>
       {/* 폰 외곽선 */}
-      <div className="absolute inset-0 rounded-[2.8rem] border-[10px] border-slate-900 bg-white shadow-2xl shadow-slate-900/40 overflow-hidden">
+      <div className="absolute inset-0 rounded-[2.8rem] border-[10px] border-slate-800 bg-white overflow-hidden">
         {/* 노치 */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-4 bg-slate-900 rounded-b-2xl z-10" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-4 bg-slate-800 rounded-b-2xl z-10" />
 
         {/* 화면 콘텐츠 */}
         <div className="absolute inset-0 bg-slate-50 pt-6 overflow-hidden">
@@ -76,31 +93,30 @@ function PhonePreview({ lang, weather, voiceEnabled, largeFont, triggerKey, last
                 <span className="text-lg">{item.emoji}</span>
                 <div className="flex-1 min-w-0">
                   <p className={`font-bold text-slate-900 truncate ${largeFont ? 'text-sm' : 'text-xs'}`}>{item.name}</p>
-                  <p className={`text-slate-400 font-medium ${largeFont ? 'text-xs' : 'text-[10px]'}`}>{item.price.toLocaleString()}원</p>
+                  <p className={`text-slate-500 font-medium ${largeFont ? 'text-xs' : 'text-[10px]'}`}>{item.price.toLocaleString()}원</p>
                 </div>
-                <button className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm font-black flex-shrink-0">+</button>
+                <span aria-hidden="true" className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm font-black flex-shrink-0">+</span>
               </div>
             ))}
           </div>
 
-          {/* 팅커벨 오버레이 */}
-<TinkerBell
-             lang={lang}
-             weather={weather}
-             menuItems={PREVIEW_MENU}
-             voiceEnabled={voiceEnabled}
-             largeFont={largeFont}
-             mode="preview"
-             previewTrigger={triggerKey}
-             lastAddedItem={lastAddedItem}
-             storeId={aiRecEnabled && previewStoreId ? Number(previewStoreId) : null}
-             adminMode
-           />
+          {/* 팅커벨 오버레이 — 고객 화면과 같은 대사·추천 흐름을 보여준다 */}
+          <TinkerBell
+            lang={lang}
+            weather={weather}
+            menuItems={PREVIEW_MENU}
+            voiceEnabled={voiceEnabled}
+            largeFont={largeFont}
+            mode="preview"
+            previewTrigger={triggerKey}
+            lastAddedItem={lastAddedItem}
+            storeId={aiStoreId}
+          />
         </div>
       </div>
 
       {/* 홈 버튼 */}
-      <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full border-4 border-slate-900 bg-slate-800" />
+      <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full border-4 border-slate-800 bg-slate-700" />
     </div>
   );
 }
@@ -110,13 +126,15 @@ function Toggle({ on, onChange, label, desc }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <div>
-        <p className="text-sm font-bold text-slate-900">{label}</p>
+        <p className="text-sm font-bold text-white">{label}</p>
         {desc && <p className="text-xs text-slate-400 mt-0.5">{desc}</p>}
       </div>
-      <button onClick={() => onChange(!on)} className="flex-shrink-0">
+      <button type="button" role="switch" aria-checked={on} aria-label={label}
+        onClick={() => onChange(!on)}
+        className="flex-shrink-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-orange-400/40">
         {on
           ? <Icon icon="ToggleRight" size="lg" className="text-orange-500" />
-          : <Icon icon="ToggleLeft" size="lg" className="text-slate-300" />}
+          : <Icon icon="ToggleLeft" size="lg" className="text-slate-500" />}
       </button>
     </div>
   );
@@ -124,29 +142,36 @@ function Toggle({ on, onChange, label, desc }) {
 
 // ── 메인 페이지 ────────────────────────────────────────────────────────────────
 export default function TinkerBellManagerPage() {
-  const initial = loadTinkerBellSettings();
-const [enabled,      setEnabled]      = useState(initial.enabled);
-   const [lang,         setLang]         = useState(initial.lang);
-   const [weather,      setWeather]      = useState('sun');
-   const [voiceEnabled, setVoiceEnabled] = useState(initial.voiceEnabled);
-   const [largeFont,    setLargeFont]    = useState(initial.largeFont);
-   const [triggerKey,   setTriggerKey]   = useState(0);
-   const [lastAdded,    setLastAdded]    = useState(null);
-   const [customMsg,    setCustomMsg]    = useState(initial.customMsg);
-   const [aiRecEnabled, setAiRecEnabled] = useState(initial.aiRecommendation ?? true);
-   const [activeTab,    setActiveTab]    = useState('settings');
-   const [saving,       setSaving]       = useState(false);
-   const [previewStoreId, setPreviewStoreId] = useState('');
+  const { storeId: routeStoreId } = useParams();
+  const [saved,        setSaved]        = useState(loadTinkerBellSettings);
+  const [enabled,      setEnabled]      = useState(saved.enabled);
+  const [lang,         setLang]         = useState(saved.lang);
+  const [weather,      setWeather]      = useState('sun');
+  const [voiceEnabled, setVoiceEnabled] = useState(saved.voiceEnabled);
+  const [largeFont,    setLargeFont]    = useState(saved.largeFont);
+  const [triggerKey,   setTriggerKey]   = useState(0);
+  const [lastAdded,    setLastAdded]    = useState(null);
+  const [customMsg,    setCustomMsg]    = useState(saved.customMsg);
+  const [aiRecEnabled, setAiRecEnabled] = useState(saved.aiRecommendation ?? true);
+  const [activeTab,    setActiveTab]    = useState('settings');
+  const [previewStoreId, setPreviewStoreId] = useState(routeStoreId ?? '');
+
+  const current = { ...saved, enabled, lang, voiceEnabled, largeFont, customMsg, aiRecommendation: aiRecEnabled };
+  const dirty = ['enabled', 'lang', 'voiceEnabled', 'largeFont', 'customMsg', 'aiRecommendation']
+    .some(k => current[k] !== saved[k]);
+
+  const storeIdInvalid = previewStoreId.trim() !== '' && !isValidStoreId(previewStoreId);
+  const aiStoreId = aiRecEnabled && isValidStoreId(previewStoreId) ? Number(previewStoreId) : null;
+  const statsStoreId = isValidStoreId(previewStoreId) ? Number(previewStoreId) : null;
 
   const replay = () => setTriggerKey(k => k + 1);
 
-  // 설정 저장 (localStorage 영속화)
-const handleSave = () => {
-     setSaving(true);
-     const ok = saveTinkerBellSettings({ enabled, lang, voiceEnabled, largeFont, customMsg, aiRecommendation: aiRecEnabled, aiModel: 'omniroute' });
-     toast[ok ? 'success' : 'error'](ok ? '팅커벨 설정이 저장되었습니다.' : '설정 저장에 실패했습니다.');
-     setSaving(false);
-   };
+  // 설정 저장 (이 브라우저의 localStorage에 영속화)
+  const handleSave = () => {
+    const ok = saveTinkerBellSettings(current);
+    if (ok) setSaved(current);
+    toast[ok ? 'success' : 'error'](ok ? '팅커벨 설정이 저장되었습니다.' : '설정 저장에 실패했습니다.');
+  };
 
   const demoAdd = (item) => {
     setLastAdded({ name: item.name });
@@ -154,57 +179,55 @@ const handleSave = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="space-y-6 text-slate-200 max-w-7xl mx-auto p-1">
       {/* 상단 헤더 */}
-      <div className="bg-white border-b border-slate-200 px-6 py-5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+      <div className="pb-6 border-b border-white/10">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-              <Icon icon="Sparkles" size="md" className="text-white" />
+            <div className="p-2.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-xl">
+              <Sparkles size={18} />
             </div>
             <div>
-              <h1 className="text-xl font-black text-slate-900">AI 팅커벨 도우미</h1>
+              <h1 className="text-xl font-black text-white">AI 팅커벨 도우미</h1>
               <p className="text-xs text-slate-400 font-medium">고객 메뉴 AI 안내 도우미 설정 및 분석</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black ${enabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${enabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black border ${enabled ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-slate-400 border-white/10'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${enabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`} />
               {enabled ? '활성화' : '비활성화'}
             </div>
-            <button
-              onClick={replay}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl text-sm font-bold hover:bg-amber-100 transition-colors">
+            <button type="button" onClick={replay} className={`${GHOST_BTN} px-4 py-2 text-sm`}>
               <RefreshCw size={13} />
               미리보기 재시작
             </button>
             <button
+              type="button"
               onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-black hover:bg-orange-600 transition-colors disabled:opacity-40">
-              {saving ? <Icon icon="Loader2" size="md" className="animate-spin" /> : <Icon icon="Save" size="md" />}
-              설정 저장
+              disabled={!dirty}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-black hover:bg-orange-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+              <Icon icon="Save" size="md" />
+              {dirty ? '설정 저장' : '저장됨'}
             </button>
           </div>
         </div>
 
         {/* 탭 */}
-        <div className="max-w-7xl mx-auto mt-4 flex gap-1">
+        <div role="tablist" className="mt-4 flex gap-1">
           {['settings','analytics'].map(tab => (
-            <button key={tab}
+            <button key={tab} type="button" role="tab" aria-selected={activeTab === tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}>
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
               {tab === 'settings' ? '⚙️  설정 및 미리보기' : '📊  인터랙션 분석'}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-
-        {/* ── 설정 탭 ──────────────────────────────────────────────── */}
+      <div>
         <AnimatePresence mode="wait">
+          {/* ── 설정 탭 ──────────────────────────────────────────────── */}
           {activeTab === 'settings' && (
             <motion.div key="settings"
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
@@ -213,8 +236,14 @@ const handleSave = () => {
               {/* 설정 패널 */}
               <div className="space-y-5">
 
+                {/* 저장 범위 안내 */}
+                <div className="flex items-start gap-2 px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-400">
+                  <Info size={14} className="flex-shrink-0 mt-0.5" />
+                  <span>설정은 지금 사용 중인 브라우저에 저장됩니다. 다른 기기나 고객 화면에는 아직 반영되지 않습니다.</span>
+                </div>
+
                 {/* 활성화 */}
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <div className={CARD}>
                   <Toggle
                     on={enabled}
                     onChange={setEnabled}
@@ -223,7 +252,7 @@ const handleSave = () => {
                   />
                   {!enabled && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-2xl text-xs text-slate-500 border border-slate-100">
+                      <div className="flex items-center gap-2 px-4 py-3 bg-white/5 rounded-2xl text-xs text-slate-400 border border-white/10">
                         <Icon icon="Info" size="md" className="flex-shrink-0" />
                         비활성화 시 고객 메뉴 화면에 팅커벨이 표시되지 않습니다.
                       </div>
@@ -232,15 +261,15 @@ const handleSave = () => {
                 </div>
 
                 {/* 기본 언어 */}
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <div className={CARD}>
                   <div className="flex items-center gap-2 mb-4">
-                    <Globe size={16} className="text-slate-600" />
-                    <h3 className="text-sm font-black text-slate-900">기본 인사 언어</h3>
+                    <Globe size={16} className="text-slate-400" />
+                    <h3 className="text-sm font-black text-white">기본 인사 언어</h3>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {LANGS.map(l => (
-                      <button key={l.code} onClick={() => setLang(l.code)}
-                        className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold border-2 transition-all ${lang === l.code ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>
+                      <button key={l.code} type="button" aria-pressed={lang === l.code} onClick={() => setLang(l.code)}
+                        className={chipClass(lang === l.code)}>
                         <span className="text-base">{l.flag}</span>
                         {l.label}
                       </button>
@@ -253,65 +282,71 @@ const handleSave = () => {
                 </div>
 
                 {/* 날씨/상황 컨텍스트 */}
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <div className={CARD}>
                   <div className="flex items-center gap-2 mb-4">
-                    <Sun size={16} className="text-amber-500" />
-                    <h3 className="text-sm font-black text-slate-900">날씨/상황별 추천 컨텍스트 미리보기</h3>
+                    <Sun size={16} className="text-amber-400" />
+                    <h3 className="text-sm font-black text-white">날씨/상황별 추천 컨텍스트 미리보기</h3>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {WEATHERS.map(w => {
-                      const Icon = w.icon;
+                      const WeatherIcon = w.icon;
                       return (
-                        <button key={w.code} onClick={() => setWeather(w.code)}
-                          className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold border-2 transition-all ${weather === w.code ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>
-                          <Icon size={15} className={weather === w.code ? 'text-white' : w.color} />
+                        <button key={w.code} type="button" aria-pressed={weather === w.code} onClick={() => setWeather(w.code)}
+                          className={chipClass(weather === w.code)}>
+                          <WeatherIcon size={15} className={weather === w.code ? undefined : w.color} />
                           {w.label}
                         </button>
                       );
                     })}
                   </div>
                   <p className="text-xs text-slate-400 mt-3 flex items-center gap-1.5">
-                    <Icon icon="Info" />
-                    실제 서비스에서는 날씨 API와 연동하여 자동으로 상황에 맞는 메뉴를 추천합니다.
+                    <Info size={11} />
+                    미리보기에서 약 11초 뒤 이 날씨에 맞는 추천 말풍선이 나옵니다. 실제 서비스는 매장 위치의 날씨를 자동으로 씁니다.
                   </p>
                 </div>
 
-{/* AI 추천 설정 */}
-                 <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-5">
-                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                     <Sparkles size={14} className="text-amber-500" />
-                     AI 추천 설정
-                   </h3>
-                   <Toggle
-                     on={aiRecEnabled}
-                     onChange={setAiRecEnabled}
-                     label="AI 기반 동적 추천 활성화"
-                     desc="OmniRoute AI가 날씨, 시간, 고객 이력을 기반으로 메뉴를 추천합니다"
-                   />
-                   {aiRecEnabled && (
-                     <div>
-                       <p className="text-xs text-slate-400 mb-2">미리보기용 매장 ID (선택사항)</p>
-                       <input
-                         type="text"
-                         value={previewStoreId}
-                         onChange={e => setPreviewStoreId(e.target.value)}
-                         placeholder="매장 ID를 입력하면 AI 추천을 미리볼 수 있습니다"
-                         className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
-                       />
-                     </div>
-                   )}
-                 </div>
+                {/* AI 추천 설정 */}
+                <div className={`${CARD} space-y-5`}>
+                  <h3 className="text-sm font-black text-white flex items-center gap-2">
+                    <Sparkles size={14} className="text-amber-400" />
+                    AI 추천 설정
+                  </h3>
+                  <Toggle
+                    on={aiRecEnabled}
+                    onChange={setAiRecEnabled}
+                    label="AI 기반 동적 추천 활성화"
+                    desc="OmniRoute AI가 날씨, 시간, 고객 이력을 기반으로 메뉴를 추천합니다"
+                  />
+                  {aiRecEnabled && (
+                    <div>
+                      <label htmlFor="tb-preview-store" className="block text-xs text-slate-400 mb-2">미리보기용 매장 ID (선택사항)</label>
+                      <input
+                        id="tb-preview-store"
+                        type="text"
+                        inputMode="numeric"
+                        value={previewStoreId}
+                        onChange={e => setPreviewStoreId(e.target.value)}
+                        placeholder="매장 ID를 입력하면 AI 추천을 미리볼 수 있습니다"
+                        aria-invalid={storeIdInvalid}
+                        className={INPUT}
+                      />
+                      {storeIdInvalid
+                        ? <p className="text-xs text-red-400 mt-2">매장 ID는 숫자로 입력해 주세요.</p>
+                        : aiStoreId && <p className="text-xs text-slate-500 mt-2">미리보기 중 이 매장 메뉴로 AI 추천을 1회 요청합니다. 추천 통계에는 기록되지 않습니다.</p>}
+                    </div>
+                  )}
+                </div>
 
-                 {/* 접근성 설정 */}
-                 <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-5">
-                   <h3 className="text-sm font-black text-slate-900">접근성 옵션</h3>
+                {/* 접근성 설정 */}
+                <div className={`${CARD} space-y-5`}>
+                  <h3 className="text-sm font-black text-white">접근성 옵션</h3>
                   <Toggle
                     on={voiceEnabled}
                     onChange={setVoiceEnabled}
                     label="음성 안내"
                     desc="Web Speech API를 이용해 팅커벨 대사를 음성으로 읽어드립니다"
                   />
-                  <div className="h-px bg-slate-100" />
+                  <div className="h-px bg-white/10" />
                   <Toggle
                     on={largeFont}
                     onChange={setLargeFont}
@@ -321,31 +356,33 @@ const handleSave = () => {
                 </div>
 
                 {/* 커스텀 인삿말 */}
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                  <h3 className="text-sm font-black text-slate-900 mb-1">커스텀 인삿말 <span className="text-xs font-normal text-slate-400 ml-1">미출시 기능</span></h3>
+                <div className={CARD}>
+                  <h3 className="text-sm font-black text-white mb-1">커스텀 인삿말 <span className="text-xs font-normal text-slate-500 ml-1">미출시 기능</span></h3>
                   <p className="text-xs text-slate-400 mb-3">매장만의 특별한 인삿말을 설정할 수 있습니다</p>
                   <textarea
                     rows={3}
+                    maxLength={CUSTOM_MSG_MAX}
                     value={customMsg}
                     onChange={e => setCustomMsg(e.target.value)}
                     placeholder="예: 안녕하세요! 오늘의 특선 메뉴는 말차 라떼입니다 ☕"
-                    className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-2xl resize-none text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                    className={`${INPUT} rounded-2xl py-3 resize-none`}
                   />
                   <div className="flex justify-between items-center mt-2">
-                    <span className="text-xs text-slate-400">{customMsg.length}/80자</span>
-                    <span className="text-xs text-slate-300">준비 중 — 추후 업데이트 예정</span>
+                    <span className="text-xs text-slate-400">{customMsg.length}/{CUSTOM_MSG_MAX}자</span>
+                    <span className="text-xs text-slate-500">준비 중 — 추후 업데이트 예정</span>
                   </div>
                 </div>
 
                 {/* 데모: 장바구니 반응 테스트 */}
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                  <h3 className="text-sm font-black text-slate-900 mb-3">장바구니 반응 테스트</h3>
+                <div className={CARD}>
+                  <h3 className="text-sm font-black text-white mb-3">장바구니 반응 테스트</h3>
                   <p className="text-xs text-slate-400 mb-4">버튼을 눌러 팅커벨이 장바구니 추가에 어떻게 반응하는지 미리보기에서 확인하세요</p>
                   <div className="flex flex-wrap gap-2">
                     {PREVIEW_ITEMS.map(item => (
-                      <button key={item.name}
+                      <button key={item.name} type="button"
                         onClick={() => demoAdd(item)}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-orange-50 border border-orange-100 text-orange-700 rounded-xl text-xs font-bold hover:bg-orange-100 transition-colors">
+                        disabled={!enabled}
+                        className={`${GHOST_BTN} px-4 py-2.5 text-xs disabled:opacity-40 disabled:cursor-not-allowed`}>
                         <span>{item.emoji}</span>
                         {item.name} 담기
                       </button>
@@ -356,24 +393,23 @@ const handleSave = () => {
 
               {/* 미리보기 패널 */}
               <div className="xl:sticky xl:top-20 xl:self-start space-y-4">
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <div className={CARD}>
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h3 className="text-sm font-black text-slate-900">실시간 미리보기</h3>
+                      <h3 className="text-sm font-black text-white">실시간 미리보기</h3>
                       <p className="text-xs text-slate-400 mt-0.5">고객 화면 시뮬레이션</p>
                     </div>
-                    <button onClick={replay}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors">
+                    <button type="button" onClick={replay} className={`${GHOST_BTN} gap-1.5 px-3 py-1.5 text-xs`}>
                       <RefreshCw size={11} />
                       재시작
                     </button>
                   </div>
 
-{enabled
-                     ? <PhonePreview lang={lang} weather={weather} voiceEnabled={voiceEnabled} largeFont={largeFont} triggerKey={triggerKey} lastAddedItem={lastAdded} aiRecEnabled={aiRecEnabled} previewStoreId={previewStoreId} />
-                     : (
+                  {enabled
+                    ? <PhonePreview lang={lang} weather={weather} voiceEnabled={voiceEnabled} largeFont={largeFont} triggerKey={triggerKey} lastAddedItem={lastAdded} aiStoreId={aiStoreId} />
+                    : (
                       <div className="mx-auto" style={{ width: 280, height: 420 }}>
-                        <div className="w-full h-full rounded-3xl bg-slate-100 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 text-slate-400">
+                        <div className="w-full h-full rounded-3xl bg-white/5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-3 text-slate-400">
                           <Sparkles size={28} className="opacity-30" />
                           <p className="text-sm font-bold">팅커벨 비활성화 중</p>
                           <p className="text-xs text-center px-6">활성화 토글을 켜면<br />미리보기가 표시됩니다</p>
@@ -383,11 +419,12 @@ const handleSave = () => {
                 </div>
 
                 {/* 현재 설정 요약 */}
-                <div className="bg-slate-900 rounded-3xl p-5 text-sm space-y-2.5">
+                <div className="rounded-3xl bg-white/5 border border-white/10 p-5 text-sm space-y-2.5">
                   <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">현재 설정</p>
                   {[
                     { label:'언어', value: LANGS.find(l => l.code === lang)?.label },
                     { label:'컨텍스트', value: WEATHERS.find(w => w.code === weather)?.label },
+                    { label:'AI 추천', value: aiRecEnabled ? 'ON' : 'OFF' },
                     { label:'음성 안내', value: voiceEnabled ? 'ON' : 'OFF' },
                     { label:'큰 글씨', value: largeFont ? 'ON' : 'OFF' },
                     { label:'상태', value: enabled ? '활성화' : '비활성화', highlight: enabled },
@@ -397,6 +434,7 @@ const handleSave = () => {
                       <span className={`font-black ${row.highlight ? 'text-emerald-400' : 'text-white'}`}>{row.value}</span>
                     </div>
                   ))}
+                  {dirty && <p className="pt-2 text-xs font-bold text-orange-400">저장하지 않은 변경 사항이 있습니다</p>}
                 </div>
               </div>
             </motion.div>
@@ -409,33 +447,40 @@ const handleSave = () => {
               className="space-y-6">
 
               {/* 안내 배너 */}
-              <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-3xl p-6 text-white">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
-                    <Sparkles size={22} className="text-white" />
+              <div className="rounded-3xl bg-orange-500/10 border border-orange-500/20 p-6">
+                <div className="flex items-start gap-4 flex-wrap">
+                  <div className="w-12 h-12 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <Sparkles size={22} />
                   </div>
-                  <div>
-                    <h2 className="text-lg font-black mb-1">AI 팅커벨 ROI 분석</h2>
-                    <p className="text-white/80 text-sm leading-relaxed">
+                  <div className="flex-1 min-w-[200px]">
+                    <h2 className="text-lg font-black text-white mb-1">AI 팅커벨 ROI 분석</h2>
+                    <p className="text-slate-300 text-sm leading-relaxed">
                       팅커벨의 추천이 실제 주문으로 이어진 비율과 고객 경험 지표를 확인하세요.<br />
-                      <span className="font-bold">데모 데이터</span>입니다 — 실제 매장 연동 시 실시간 집계됩니다.
+                      아래 수치는 <span className="font-bold text-orange-400">예시 데이터</span>입니다.
                     </p>
                   </div>
+                  {statsStoreId && (
+                    <Link to={`/admin/stores/${statsStoreId}/recommendation-stats`}
+                      className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-black hover:bg-orange-600 transition-colors whitespace-nowrap">
+                      <BarChart3 size={14} />
+                      {statsStoreId}번 매장 실제 추천 성과
+                    </Link>
+                  )}
                 </div>
               </div>
 
               {/* KPI 카드 */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 {STATS.map(s => {
-                  const Icon = s.icon;
+                  const StatIcon = s.icon;
                   return (
-                    <div key={s.label} className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                      <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-4 shadow-lg`}>
-                        <Icon size={18} className="text-white" />
+                    <div key={s.label} className={CARD}>
+                      <div className={`w-11 h-11 rounded-2xl ${s.tone} flex items-center justify-center mb-4`}>
+                        <StatIcon size={18} />
                       </div>
-                      <p className="text-3xl font-black text-slate-900">{s.value}</p>
-                      <p className="text-xs text-slate-500 font-medium mt-1">{s.label}</p>
-                      <div className={`inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs font-black ${s.bg} ${s.txt}`}>
+                      <p className="text-3xl font-black text-white">{s.value}</p>
+                      <p className="text-xs text-slate-400 font-medium mt-1">{s.label}</p>
+                      <div className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-400">
                         <TrendingUp size={10} />
                         {s.delta} 전월 대비
                       </div>
@@ -446,8 +491,8 @@ const handleSave = () => {
 
               {/* 인기 추천 메뉴 */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                  <h3 className="text-sm font-black text-slate-900 mb-4">팅커벨 추천 TOP 5</h3>
+                <div className={CARD}>
+                  <h3 className="text-sm font-black text-white mb-4">팅커벨 추천 TOP 5</h3>
                   <div className="space-y-3">
                     {[
                       { name:'시그니처 라떼',   count:384, rate:'71%' },
@@ -457,14 +502,14 @@ const handleSave = () => {
                       { name:'크렘 브륄레',     count:134, rate:'69%' },
                     ].map((item, i) => (
                       <div key={item.name} className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 text-xs font-black flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                        <span className="w-6 h-6 rounded-full bg-white/5 text-slate-400 text-xs font-black flex items-center justify-center flex-shrink-0">{i + 1}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-bold text-slate-900 truncate">{item.name}</span>
-                            <span className="text-xs font-black text-orange-500 ml-2">{item.rate}</span>
+                            <span className="text-sm font-bold text-white truncate">{item.name}</span>
+                            <span className="text-xs font-black text-orange-400 ml-2">{item.rate}</span>
                           </div>
-                          <div className="w-full bg-slate-100 rounded-full h-1.5">
-                            <div className="bg-gradient-to-r from-orange-500 to-rose-500 h-1.5 rounded-full" style={{ width: item.rate }} />
+                          <div className="w-full bg-white/10 rounded-full h-1.5">
+                            <div className="bg-orange-500 h-1.5 rounded-full" style={{ width: item.rate }} />
                           </div>
                         </div>
                         <span className="text-xs text-slate-400 font-medium flex-shrink-0">{item.count}건</span>
@@ -473,8 +518,8 @@ const handleSave = () => {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                  <h3 className="text-sm font-black text-slate-900 mb-4">시간대별 팅커벨 활동</h3>
+                <div className={CARD}>
+                  <h3 className="text-sm font-black text-white mb-4">시간대별 팅커벨 활동</h3>
                   <div className="space-y-2">
                     {[
                       { time:'08:00 – 10:00', label:'모닝 러시',  bar:'45%',  count: 62 },
@@ -485,18 +530,18 @@ const handleSave = () => {
                     ].map(row => (
                       <div key={row.time} className="flex items-center gap-3">
                         <div className="w-24 flex-shrink-0">
-                          <p className="text-[10px] font-black text-slate-900">{row.label}</p>
-                          <p className="text-[9px] text-slate-400">{row.time}</p>
+                          <p className="text-[10px] font-black text-white">{row.label}</p>
+                          <p className="text-[9px] text-slate-500">{row.time}</p>
                         </div>
-                        <div className="flex-1 bg-slate-100 rounded-full h-2">
-                          <div className="bg-gradient-to-r from-amber-400 to-orange-500 h-2 rounded-full" style={{ width: row.bar }} />
+                        <div className="flex-1 bg-white/10 rounded-full h-2">
+                          <div className="bg-amber-500 h-2 rounded-full" style={{ width: row.bar }} />
                         </div>
-                        <span className="text-xs text-slate-500 font-medium w-12 text-right flex-shrink-0">{row.count}건</span>
+                        <span className="text-xs text-slate-400 font-medium w-12 text-right flex-shrink-0">{row.count}건</span>
                       </div>
                     ))}
                   </div>
 
-                  <div className="mt-5 pt-4 border-t border-slate-100">
+                  <div className="mt-5 pt-4 border-t border-white/10">
                     <div className="flex items-center gap-2 text-xs text-slate-400">
                       <Info size={12} />
                       런치 피크타임에 팅커벨 활동이 가장 활발합니다
@@ -506,8 +551,8 @@ const handleSave = () => {
               </div>
 
               {/* 언어별 사용 분포 */}
-              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                <h3 className="text-sm font-black text-slate-900 mb-4">언어별 이용 고객 분포</h3>
+              <div className={CARD}>
+                <h3 className="text-sm font-black text-white mb-4">언어별 이용 고객 분포</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
                     { lang:'ko', label:'한국어', flag:'🇰🇷', pct:74, color:'bg-orange-500' },
@@ -517,9 +562,9 @@ const handleSave = () => {
                   ].map(l => (
                     <div key={l.lang} className="text-center">
                       <div className="text-3xl mb-1">{l.flag}</div>
-                      <p className="text-2xl font-black text-slate-900">{l.pct}%</p>
+                      <p className="text-2xl font-black text-white">{l.pct}%</p>
                       <p className="text-xs text-slate-400 font-medium">{l.label}</p>
-                      <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
+                      <div className="w-full bg-white/10 rounded-full h-1.5 mt-2">
                         <div className={`${l.color} h-1.5 rounded-full`} style={{ width: `${l.pct}%` }} />
                       </div>
                     </div>
@@ -528,7 +573,7 @@ const handleSave = () => {
               </div>
 
               {/* CTA */}
-              <div className="bg-slate-900 rounded-3xl p-7 flex items-center justify-between gap-6 flex-wrap">
+              <div className="rounded-3xl bg-white/5 border border-white/10 p-7 flex items-center justify-between gap-6 flex-wrap">
                 <div>
                   <h3 className="text-lg font-black text-white">팅커벨로 매출을 높이세요</h3>
                   <p className="text-sm text-slate-400 mt-1">
@@ -536,8 +581,9 @@ const handleSave = () => {
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setActiveTab('settings')}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-orange-500/30 hover:shadow-xl transition-all whitespace-nowrap">
+                  className="flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-2xl font-bold text-sm hover:bg-orange-600 transition-colors whitespace-nowrap">
                   설정 바로가기
                   <ChevronRight size={16} />
                 </button>
