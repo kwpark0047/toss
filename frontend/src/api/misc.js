@@ -135,6 +135,7 @@ export const aiAPI = {
   generateMenuImage: (data) => api.post('/ai/generate-menu-image', data),
   generateInstagramCopy: (data) => api.post('/ai/instagram', data),
   scanMenuImage: (data) => api.post('/ai/scan-menu-image', data),
+  tinkerbellRec: (data) => api.post('/ai/tinkerbell-rec', data),
 };
 
 export const weatherAPI = {

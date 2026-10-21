@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMotionSafe } from '../../hooks/useMotionSafe';
 import { trackImpressions, trackRecommendationClick } from '../../utils/recommendationTracking';
+import { aiAPI } from '../../api';
 
 // ── 팅커벨 녹음 음성 파일 매핑 (한국어) ──────────────────────────────────────
 // 해당 상황에 녹음 mp3가 있으면 재생, 없으면 브라우저 TTS로 폴백.
@@ -172,6 +173,9 @@ const I18N = {
   },
 };
 
+// 서버 프롬프트로 넘길 날씨 문구 (미리보기에서 날씨를 직접 고른 경우에만 사용)
+const WEATHER_LABEL_KO = { sun: '맑음', rain: '비', cold: '추움', hot: '더움' };
+
 const VOICE_LANG = { ko: 'ko-KR', en: 'en-US', ja: 'ja-JP', zh: 'zh-CN', tl: 'fil-PH', vi: 'vi-VN', id: 'id-ID', th: 'th-TH', ms: 'ms-MY' };
 
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -248,6 +252,7 @@ const Spark = ({ x, y, size, angle }) => (
 // ────────────────────────────────────────────────────────────────────────────
 export default function TinkerBell({
    lang = 'ko',
+   weather: weatherOverride = null,
    weatherData = null,
    menuItems = [],
    lastAddedItem = null,
@@ -259,9 +264,10 @@ export default function TinkerBell({
    adminMode = false,
    storeId = null,
  }) {
-  const weather = weatherData?.isRaining ? 'rain' : 
-                  (weatherData?.temp < 10 ? 'cold' : 
-                  (weatherData?.temp > 28 ? 'hot' : 'sun'));
+  // weather('sun'|'rain'|'cold'|'hot')를 직접 넘기면 weatherData보다 우선한다 (관리자 미리보기용)
+  const weather = weatherOverride || (weatherData?.isRaining ? 'rain' :
+                  (weatherData?.temp < 10 ? 'cold' :
+                  (weatherData?.temp > 28 ? 'hot' : 'sun')));
 
   const { _isAnimationSafe, motionIntensity } = useMotionSafe();
 const [isHappy,  setIsHappy]  = useState(false);
@@ -282,33 +288,27 @@ const typingRef  = useRef(null);
        if (!storeId || !menuItems.length) return;
        setAiLoading(true);
        try {
-           const res = await fetch('/api/ai/tinkerbell-rec', {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({
-                   store_id: storeId,
-                   weather: weatherData?.isRaining ? '비' :
-                            (weatherData?.temp < 10 ? '비' : '맑음'),
-                   mood: '보통',
-               }),
+           // 날씨는 직접 지정한 경우에만 보낸다. 생략하면 서버가 매장 위치의 실시간 날씨를 사용한다.
+           const data = await aiAPI.tinkerbellRec({
+               store_id: storeId,
+               ...(weatherOverride ? { weather: WEATHER_LABEL_KO[weatherOverride] } : {}),
+               mood: '보통',
            });
-if (res.ok) {
-                const data = await res.json();
-                if (data.recommendations?.length) {
-                    setAiRecs(data.recommendations);
-                    trackImpressions(
-                        Number(storeId),
-                        data.recommendations,
-                        'tinkerbell',
-                        'tinkerbell',
-                        weatherData ? { temp: weatherData.temp, isRaining: weatherData.isRaining } : undefined,
-                        new Date().getHours() < 12 ? 'morning' : 'evening'
-                    ).catch(() => { /* 추적 실패는 무시 */ });
-                }
-            }
+           if (data?.recommendations?.length) {
+               setAiRecs(data.recommendations);
+               // 관리자 미리보기는 실제 고객 노출이 아니므로 추천 성과 통계에 기록하지 않는다
+               if (mode !== 'preview') trackImpressions(
+                   Number(storeId),
+                   data.recommendations,
+                   'tinkerbell',
+                   'tinkerbell',
+                   weatherData ? { temp: weatherData.temp, isRaining: weatherData.isRaining } : undefined,
+                   new Date().getHours() < 12 ? 'morning' : 'evening'
+               ).catch(() => { /* 추적 실패는 무시 */ });
+           }
        } catch { /* AI 추천 실패 시 하드코딩 폴백 */ }
        setAiLoading(false);
-   }, [storeId, menuItems.length, weatherData]);
+   }, [storeId, menuItems.length, weatherData, weatherOverride, mode]);
 
   // ── 음성: 녹음 파일(mp3) 우선, 없으면 브라우저 TTS ─────────────────────────
   const audioRef = useRef(null);
