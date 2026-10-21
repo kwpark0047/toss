@@ -1,4 +1,4 @@
-import { canSeeAdminMenu, resolveAdminStoreId } from '../../utils/adminMenuAccess';
+import { canSeeAdminMenu, resolveAdminProfileDisplayName, resolveAdminStoreId } from '../../utils/adminMenuAccess';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -16,7 +16,7 @@ import { storesAPI } from '../../api';
 import Icon from '../../components/ui/Icon';
 import '../../styles/adminDashboard.css';
 
-function AdminLayoutInner({ children, storeId, user, storeRole, handleLogout, location, filteredNavItems }) {
+function AdminLayoutInner({ children, storeId, user, profileDisplayName, storeRole, handleLogout, location, filteredNavItems }) {
   const { themeId } = useAdminTheme();
   const { t } = useTranslation(undefined, { keyPrefix: 'admin' });
   const tc = TC[themeId] || TC.obsidian;
@@ -70,9 +70,9 @@ function AdminLayoutInner({ children, storeId, user, storeRole, handleLogout, lo
   const profile = <div className={`rounded-xl border p-3 ${tc.profile}`}>
     <div className="mb-3 flex items-center gap-3">
       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-semibold ${tc.avatarBg} ${tc.textStrong}`}>
-        {user?.name?.charAt(0) || <Icon icon="UserCircle" size="sm" />}
+        {profileDisplayName?.charAt(0) || <Icon icon="UserCircle" size="sm" />}
       </div>
-      <div className="min-w-0"><p className={`truncate text-sm font-semibold ${tc.textStrong}`}>{user?.name || t('nameNotSet')}</p>
+      <div className="min-w-0"><p className={`truncate text-sm font-semibold ${tc.textStrong}`}>{profileDisplayName}</p>
         <p className={`text-xs ${tc.textMuted}`}>{user?.role === 'super_admin' ? t('superAdmin') : storeRole === 'manager' ? '매니저' : storeRole === 'kitchen' ? '주방' : user?.role === 'staff' ? t('staff') : t('admin')}</p></div>
     </div>
     {(!user?.name || !user?.email) && <Link to="/admin/profile" onClick={() => setMoreOpen(false)} className="mb-2 block text-xs text-orange-500">{t('completeProfile')}</Link>}
@@ -153,9 +153,15 @@ const AdminLayout = ({ children }) => {
   const isPublicBoardPath = isBoardPath && !location.pathname.startsWith('/board/write') && !location.pathname.startsWith('/board/edit');
 
   const storeId = resolveAdminStoreId(location.pathname, user?.role, selectedStore?.id);
-
   const [storeInfo, setStoreInfo] = useState(null);
   const [storeRole, setStoreRole] = useState(null);
+  const profileDisplayName = resolveAdminProfileDisplayName({
+    role: user?.role,
+    storeName:
+      storeInfo?.name ||
+      (String(selectedStore?.id) === String(storeId) ? selectedStore?.name : undefined),
+    userName: user?.name,
+  });
   useEffect(() => {
     let cancelled = false;
     setStoreRole(null);
@@ -169,16 +175,19 @@ const AdminLayout = ({ children }) => {
   }, [storeId, user?.id, user?.role]);
 
   useEffect(() => {
+    let cancelled = false;
+    setStoreInfo(null);
     if (storeId) {
       storesAPI.getById(storeId)
         .then(json => {
           const data = json.data || json;
-          setStoreInfo(data);
+          if (!cancelled) setStoreInfo(data);
         })
         .catch(err => console.error('Failed to fetch store info inside sidebar:', err));
     } else {
       Promise.resolve().then(() => setStoreInfo(null));
     }
+    return () => { cancelled = true; };
   }, [storeId]);
 
   if (!user && !isPublicBoardPath) {
@@ -255,6 +264,7 @@ const AdminLayout = ({ children }) => {
       <AdminLayoutInner
         storeId={storeId}
         user={user}
+        profileDisplayName={profileDisplayName}
         storeRole={storeRole}
         handleLogout={handleLogout}
         location={location}

@@ -19,3 +19,8 @@ export function canSeeAdminMenu(path, platformRole, storeRole) {
   if (storeRole === 'manager' && /\/plan$|\/legal$/.test(path)) return false;
   return true;
 }
+
+export function resolveAdminProfileDisplayName({ role, storeName, userName } = {}) {
+  if (role === 'super_admin') return userName || '위마켓 최고 관리자';
+  return String(storeName || '').trim() || userName || '이름 미설정';
+}
