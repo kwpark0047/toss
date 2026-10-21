@@ -70,10 +70,10 @@ async function main() {
       await context.addInitScript(token => localStorage.setItem('token', token), 'eyJhbGciOiJIUzI1NiJ9.' + adminPayload + '.fixture');
       await page.goto(`http://127.0.0.1:${server.address().port}/admin/provider-settings`);
       await page.getByRole('heading', { name: '전체 매장 공통 API 설정', exact: true }).waitFor();
-      await page.getByRole('textbox', { name: '기상청 API 키', exact: true }).fill('fixture-weather-key-1234');
+      await page.getByRole('textbox', { name: '기상청 data.go.kr 일반 인증키', exact: true }).fill('fixture-weather-key-1234');
       await page.getByRole('button', { name: '저장', exact: true }).click();
       await page.getByText('현재 값: ••••1234', { exact: true }).waitFor();
-      assert.equal(await page.getByRole('textbox', { name: '기상청 API 키', exact: true }).inputValue(), '');
+      assert.equal(await page.getByRole('textbox', { name: '기상청 data.go.kr 일반 인증키', exact: true }).inputValue(), '');
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
       assert.deepEqual(errors, []);
       await context.close();
