@@ -10,6 +10,8 @@ const jwt = require('jsonwebtoken');
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'customer-management-test-secret';
 
 const mockPrisma = {
+  // businessTrialAccess(체험·제재 가드)가 사용자 상태를 raw SQL로 조회 — 빈 결과는 제한 없음
+  $queryRawUnsafe: jest.fn().mockResolvedValue([]),
   stores: { findUnique: jest.fn() },
   staff: { findFirst: jest.fn() },
 };

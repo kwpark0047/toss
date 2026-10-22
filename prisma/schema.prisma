@@ -987,6 +987,10 @@ model users {
   auth_status String @default("active")
   // Existing accounts stay approved; new direct-signup accounts are assigned a one-month trial.
   business_access_status String @default("approved")
+  business_access_note String?
+  business_access_previous_status String?
+  business_access_updated_at DateTime @default(now()) @db.Timestamptz(6)
+  business_access_updated_by Int?
   trial_started_at DateTime? @db.Timestamptz(6)
   trial_ends_at DateTime? @db.Timestamptz(6)
   business_approved_at DateTime? @db.Timestamptz(6)
