@@ -3,6 +3,10 @@ const prisma = require('../config/prisma');
 const { phoneSearchCandidates } = require('../utils/phoneEncryption');
 const AlimtalkService = require('../services/AlimtalkService');
 const { getStoreRole } = require('../middleware/storeAuth');
+const {
+  verifyCustomerChannelCapability,
+  verifyWaitingCapability,
+} = require('../utils/orderCapability');
 
 const activeFoodTruckClients = new Map();
 
@@ -293,9 +297,11 @@ function registerSocketHandlers(io) {
     });
 
     // ── 고객 주문 알림 ───────────────────────────────────
-    socket.on('join-customer-orders', ({ phone }) => {
-      const normalized = phone.replace(/[^0-9]/g, '');
-      socket.join(`customer-orders-${normalized}`);
+    // 번호만으로는 구독할 수 없고, 번호 등록 시 발급한 채널 토큰이 있어야 한다.
+    socket.on('join-customer-orders', ({ token } = {}) => {
+      const capability = verifyCustomerChannelCapability(token);
+      if (!capability?.customer_phone) return;
+      socket.join(`customer-orders-${capability.customer_phone}`);
     });
 
     // ── 스마트 웨이팅 ────────────────────────────────────
@@ -303,12 +309,17 @@ function registerSocketHandlers(io) {
       socket.join(`store - waiting - ${storeId}`);
     });
 
-    socket.on('join-my-waiting', ({ phone }) => {
-      socket.join(`customer - waiting - ${phone}`);
+    // 대기 등록 때 받은 waiting capability로만 내 대기 알림을 구독한다.
+    socket.on('join-my-waiting', ({ capability } = {}) => {
+      const payload = verifyWaitingCapability(capability);
+      if (!payload?.customer_phone) return;
+      socket.join(`customer - waiting - ${payload.customer_phone}`);
     });
 
-    socket.on('leave-my-waiting', ({ phone }) => {
-      socket.leave(`customer - waiting - ${phone}`);
+    socket.on('leave-my-waiting', ({ capability } = {}) => {
+      const payload = verifyWaitingCapability(capability);
+      if (!payload?.customer_phone) return;
+      socket.leave(`customer - waiting - ${payload.customer_phone}`);
     });
 
     socket.on('update-waiting-status', (data) => {

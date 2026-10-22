@@ -302,9 +302,13 @@ export default function CustomerPhoneSheet({
       setStep('done');
       // 개인화 추천(F9)·재방문 편의를 위해 고객 전화번호 저장
       try { localStorage.setItem('wm_customer_phone', digits); } catch { /* 저장 실패 무시 */ }
+      // 주문 알림 채널은 서버가 발급한 토큰으로만 구독된다 (번호만으로는 구독 불가)
+      if (res.channel_token) {
+        try { localStorage.setItem('wm_customer_channel', res.channel_token); } catch { /* 저장 실패 무시 */ }
+      }
       const socket = getSocket();
-      if (socket && res.socket_channel) {
-        socket.emit('join-customer-orders', { phone: digits });
+      if (socket && res.channel_token) {
+        socket.emit('join-customer-orders', { token: res.channel_token });
       }
       requestNotificationPermission().then(token => {
         if (token && storeId) {

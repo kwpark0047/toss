@@ -67,7 +67,10 @@ export const waitingAPI = {
       {},
       { headers: capability ? { 'x-waiting-capability': capability } : undefined }
     ),
-  getMyWaiting: (phone) => api.get(`/waiting/my/${phone}`),
+  getMyWaiting: (phone, capability) =>
+    api.get(`/waiting/my/${phone}`, {
+      headers: capability ? { 'x-waiting-capability': capability } : undefined,
+    }),
   getAISuggestions: (storeId, params = {}) =>
     api.get(`/waiting/store/${storeId}/ai-suggestions`, { params }),
   toggleFavorite: (storeId, phone, menuId) =>

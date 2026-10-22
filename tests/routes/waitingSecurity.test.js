@@ -91,4 +91,18 @@ describe('waiting route security', () => {
       })
     );
   });
+
+  test('내 대기 조회는 전화번호만으로는 거절하고 대기 capability가 있어야 한다', async () => {
+    expect((await request(app).get('/api/waiting/my/01012345678')).status).toBe(403);
+    const { createWaitingCapability } = require('../../utils/orderCapability');
+    const capability = createWaitingCapability({
+      id: 5,
+      store_id: 3,
+      customer_phone: '01012345678',
+    });
+    const response = await request(app)
+      .get('/api/waiting/my/01099999999')
+      .set('x-waiting-capability', capability);
+    expect(response.status).toBe(200);
+  });
 });
