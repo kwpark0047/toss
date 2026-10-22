@@ -38,7 +38,7 @@ import LegalFooter from "@/components/customer/LegalFooter";
 import { weatherAPI } from "@/api/misc";
 import LanguageSelector from "@/components/menu/LanguageSelector";
 import TinkerBell from "@/components/ai/TinkerBell";
-import { loadTinkerBellSettings } from "@/utils/tinkerbell";
+import { fromServerTinkerBellSettings } from "@/utils/tinkerbell";
 import { useTossPayment } from "@/hooks/useTossPayment";
 
 /** 순수 함수: 항목이 최근 7일 이내 생성되었는지 확인 */
@@ -219,7 +219,17 @@ const {
   useEffect(() => {
     i18n.changeLanguage(lang);
   }, [i18n, lang]);
-  const [tinkerSettings] = useState(() => loadTinkerBellSettings());
+  // 매장 사장님이 관리자 화면에서 저장한 팅커벨 설정 (실패 시 기본값: 표시 ON, AI 추천 OFF)
+  const { data: tinkerSettings } = useQuery({
+    queryKey: ["tinkerbellSettings", storeId],
+    queryFn: async () => {
+      const raw = await storesAPI.getTinkerbellSettings(storeId);
+      return fromServerTinkerBellSettings(raw?.data || raw);
+    },
+    enabled: isNumericStoreId,
+    staleTime: 300000,
+    retry: 1
+  });
   const [lastAddedItem, _setLastAddedItem] = useState(null);
   const {
     data: weatherData
@@ -730,7 +740,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 
       <LanguageSelector currentLang={lang} onSelectLang={handleLangChange} />
 
-      <TinkerBell lang={lang} menuItems={menuItems} weatherData={weatherData} voiceEnabled={tinkerSettings?.voiceEnabled} largeFont={tinkerSettings?.largeFont} lastAddedItem={lastAddedItem} onAddToCart={item => handleAddToCartClick(item)} />
+      {tinkerSettings?.enabled !== false && <TinkerBell lang={lang} menuItems={menuItems} weatherData={weatherData} voiceEnabled={tinkerSettings?.voiceEnabled ?? true} largeFont={tinkerSettings?.largeFont ?? false} lastAddedItem={lastAddedItem} storeId={tinkerSettings?.aiRecommendation ? Number(storeId) : null} />}
     </div>
     </div>
   );

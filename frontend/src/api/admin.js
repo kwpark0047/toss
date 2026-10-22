@@ -14,6 +14,9 @@ export const adminAPI = {
   getReceiptSettings: (storeId) => api.get(`/admin/stores/${storeId}/receipt-settings`),
   updateReceiptSettings: (storeId, data) =>
     api.put(`/admin/stores/${storeId}/receipt-settings`, data),
+  getTinkerbellSettings: (storeId) => api.get(`/admin/stores/${storeId}/tinkerbell-settings`),
+  updateTinkerbellSettings: (storeId, data) =>
+    api.put(`/admin/stores/${storeId}/tinkerbell-settings`, data),
   // 매장 정보 보강 (네이버 지역검색 API) — super_admin 전용, 커서 기반 배치
   enrichStores: ({ limit = 10, afterId = 0 } = {}) =>
     api.post('/admin/enrich-stores', { limit, afterId }),
@@ -47,10 +50,12 @@ export const adminAPI = {
     api.get('/admin/store-link-requests', { params: { status } }),
   approveLinkRequest: (id) => api.post(`/admin/store-link-requests/${id}/approve`),
   rejectLinkRequest: (id) => api.post(`/admin/store-link-requests/${id}/reject`),
-  businessTrials: (status = 'trialing') => api.get('/admin/business-trials', { params: { status } }),
+  businessTrials: (status = 'trialing') =>
+    api.get('/admin/business-trials', { params: { status } }),
   approveBusinessTrial: (id) => api.post(`/admin/business-trials/${id}/approve`),
   revokeBusinessTrialApproval: (id) => api.post(`/admin/business-trials/${id}/revoke-approval`),
-  deleteBusinessTrialAccount: (id) => api.delete(`/admin/business-trials/${id}`, { data: { confirm: '삭제' } }),
+  deleteBusinessTrialAccount: (id) =>
+    api.delete(`/admin/business-trials/${id}`, { data: { confirm: '삭제' } }),
 };
 
 export const planRequestsAPI = {
@@ -233,4 +238,3 @@ export const exportAPI = {
       `종합보고서_${storeId}_${startDate}_${endDate}.pdf`
     ),
 };
-

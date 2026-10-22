@@ -292,6 +292,64 @@ router.put(
 
 /**
  * @swagger
+ * /api/admin/stores/{storeId}/tinkerbell-settings:
+ *   get:
+ *     tags: [Admin]
+ *     summary: 매장 AI 팅커벨 설정 조회
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 팅커벨 설정 (저장 전이면 기본값, AI 추천 기본 OFF)
+ *   put:
+ *     tags: [Admin]
+ *     summary: 매장 AI 팅커벨 설정 저장
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               enabled: { type: boolean }
+ *               lang: { type: string, enum: [ko, en, ja, zh] }
+ *               voice_enabled: { type: boolean }
+ *               large_font: { type: boolean }
+ *               custom_msg: { type: string, maxLength: 80 }
+ *               ai_recommendation: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: 저장된 팅커벨 설정
+ */
+router.get(
+  '/stores/:storeId/tinkerbell-settings',
+  authMiddleware,
+  checkStorePermission('settings:read'),
+  storeSettingsController.getTinkerbellSettings
+);
+router.put(
+  '/stores/:storeId/tinkerbell-settings',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  storeSettingsController.updateTinkerbellSettings
+);
+
+/**
+ * @swagger
  * /api/admin/stores/{storeId}/tier-settings:
  *   get:
  *     tags: [Admin]
@@ -561,8 +619,18 @@ router.post(
   adminOnly,
   businessTrialController.approve
 );
-router.post('/business-trials/:id/revoke-approval', authMiddleware, adminOnly, businessTrialController.revokeApproval);
-router.delete('/business-trials/:id', authMiddleware, adminOnly, businessTrialController.deleteAccount);
+router.post(
+  '/business-trials/:id/revoke-approval',
+  authMiddleware,
+  adminOnly,
+  businessTrialController.revokeApproval
+);
+router.delete(
+  '/business-trials/:id',
+  authMiddleware,
+  adminOnly,
+  businessTrialController.deleteAccount
+);
 
 // ── AI 동적 가격 책정 ───────────────────────────────────────────────────────
 /**
@@ -856,4 +924,3 @@ router.get(
 );
 
 module.exports = router;
-

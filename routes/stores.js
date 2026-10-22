@@ -5,6 +5,7 @@ const { checkStorePermission } = require('../middleware/storeAuth');
 const { requireUnexpiredTrial } = require('../middleware/businessTrialAccess');
 const catchAsync = require('../utils/catchAsync');
 const storeController = require('../controllers/storeController');
+const storeSettingsController = require('../controllers/storeSettingsController');
 const subscriptionController = require('../controllers/subscriptionController');
 const idempotency = require('../middleware/idempotency');
 const { validateBody, validateQuery, validateParams } = require('../middleware/validate');
@@ -418,6 +419,27 @@ router.get(
 
 /**
  * @swagger
+ * /api/stores/{id}/tinkerbell-settings:
+ *   get:
+ *     tags: [Stores]
+ *     summary: 매장 AI 팅커벨 설정 조회 (고객 메뉴 화면용)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: 팅커벨 표시·음성·AI 추천 설정
+ */
+router.get(
+  '/:id/tinkerbell-settings',
+  validateParams(storeIdParamSchema),
+  storeSettingsController.getTinkerbellSettings
+);
+
+/**
+ * @swagger
  * /api/stores/{id}/subscription/payment-method:
  *   post:
  *     tags: [Stores]
@@ -455,4 +477,3 @@ router.post(
 );
 
 module.exports = router;
-
