@@ -1,16 +1,21 @@
-jest.mock('../../../config/prisma', () => ({
-  waiting_list: {
-    count: jest.fn(),
-    findMany: jest.fn(),
-    findFirst: jest.fn(),
-    findUnique: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-  },
-  stores: {
-    findUnique: jest.fn(),
-  },
-}));
+jest.mock('../../../config/prisma', () => {
+  const mock = {
+    $executeRaw: jest.fn().mockResolvedValue(1),
+    waiting_list: {
+      count: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    stores: {
+      findUnique: jest.fn(),
+    },
+  };
+  mock.$transaction = jest.fn((fn) => fn(mock));
+  return mock;
+});
 jest.mock('../../../utils/phoneEncryption', () => ({
   encryptPhone: jest.fn((phone) => `enc_${phone}`),
   decryptPhoneFields: jest.fn((entry) => ({ ...entry, customer_phone: '01012345678' })),
@@ -58,6 +63,33 @@ describe('WaitingService', () => {
   describe('register', () => {
     beforeEach(() => {
       prisma.stores.findUnique.mockResolvedValue({ name: '테스트매장' });
+    });
+
+    test.each([
+      [{ party_size: '0' }, '인원'],
+      [{ party_size: 'abc' }, '인원'],
+      [{ party_size: '51' }, '인원'],
+      [{ customer_phone: '123' }, '휴대폰'],
+      [{ store_id: 'x' }, '매장'],
+    ])('잘못된 입력 %o 은 400으로 거절한다', async (patch, word) => {
+      await expect(
+        svc.register({ store_id: '1', customer_phone: '01012345678', party_size: '2', ...patch })
+      ).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining(word) });
+      expect(prisma.waiting_list.create).not.toHaveBeenCalled();
+    });
+
+    test('매장 단위 잠금 안에서 번호를 정하고, 한국 자정 기준으로 오늘 번호를 찾는다', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-10-22T00:30:00Z')); // KST 09:30
+      prisma.waiting_list.findFirst.mockResolvedValueOnce(null);
+      prisma.waiting_list.findFirst.mockResolvedValueOnce({ queue_number: 8 });
+      prisma.waiting_list.create.mockResolvedValue({ id: 2, queue_number: 9, status: 'waiting' });
+      await svc.register({ store_id: '1', customer_phone: '010-1234-5678', party_size: 2 });
+      jest.useRealTimers();
+      expect(prisma.$executeRaw).toHaveBeenCalled();
+      expect(prisma.waiting_list.findFirst.mock.calls[1][0].where.created_at.gte).toEqual(
+        new Date('2026-10-21T15:00:00.000Z')
+      );
+      expect(prisma.waiting_list.create.mock.calls[0][0].data.queue_number).toBe(9);
     });
 
     test('대기 등록에 성공한다', async () => {
