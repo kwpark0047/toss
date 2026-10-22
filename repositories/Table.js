@@ -53,10 +53,15 @@ const Table = {
   },
 
   // [매장 ID + 테이블 번호로 테이블 조회]
+  // QR 링크의 "1번"과 저장된 "1"(또는 그 반대)이 섞여 있어도 같은 테이블로 찾는다.
   findByStoreAndTable: async (storeId, tableNumber) => {
-    return await prisma.tables.findFirst({
-      where: { store_id: parseInt(storeId), table_number: tableNumber },
+    const raw = String(tableNumber).trim();
+    const base = raw.replace(/번$/, '');
+    const candidates = [...new Set([raw, base, `${base}번`])];
+    const rows = await prisma.tables.findMany({
+      where: { store_id: parseInt(storeId), table_number: { in: candidates } },
     });
+    return rows.find((row) => row.table_number === raw) || rows[0] || null;
   },
 
   // [QR 코드로 테이블 및 매장 정보 조회]

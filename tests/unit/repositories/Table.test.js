@@ -80,3 +80,32 @@ describe('Table.occupyActiveForStore', () => {
     });
   });
 });
+
+describe('Table.findByStoreAndTable', () => {
+  beforeEach(() => {
+    mockPrisma.tables.findMany = jest.fn();
+  });
+
+  test('QR의 "1번"과 저장된 "1"을 같은 테이블로 찾는다', async () => {
+    mockPrisma.tables.findMany.mockResolvedValueOnce([{ id: 5, table_number: '1' }]);
+    const table = await Table.findByStoreAndTable(3, '1번');
+    expect(table).toEqual({ id: 5, table_number: '1' });
+    expect(mockPrisma.tables.findMany.mock.calls[0][0].where).toEqual({
+      store_id: 3,
+      table_number: { in: ['1번', '1', '1번'].filter((v, i, a) => a.indexOf(v) === i) },
+    });
+  });
+
+  test('저장된 이름이 "1번"이면 "1"로도 찾고, 정확히 일치하는 이름을 우선한다', async () => {
+    mockPrisma.tables.findMany.mockResolvedValueOnce([
+      { id: 6, table_number: '1번' },
+      { id: 7, table_number: '1' },
+    ]);
+    expect(await Table.findByStoreAndTable(3, '1')).toEqual({ id: 7, table_number: '1' });
+  });
+
+  test('없으면 null', async () => {
+    mockPrisma.tables.findMany.mockResolvedValueOnce([]);
+    expect(await Table.findByStoreAndTable(3, '룸9')).toBeNull();
+  });
+});

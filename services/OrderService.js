@@ -94,11 +94,8 @@ class OrderService {
     const storeIdNum = parseInt(store_id);
     let resolvedTableId = null;
     let resolvedTableName = null;
-    let lookupStr =
+    const lookupStr =
       table_number || (table_id && isNaN(parseInt(table_id)) ? String(table_id) : null);
-    if (lookupStr && lookupStr.endsWith('번')) {
-      lookupStr = lookupStr.replace('번', '');
-    }
 
     if (lookupStr) {
       const table = await Table.findByStoreAndTable(storeIdNum, lookupStr);

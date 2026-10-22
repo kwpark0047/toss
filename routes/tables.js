@@ -162,7 +162,7 @@ router.get(
   '/qr/:qrCode',
   catchAsync(async (req, res) => {
     const table = await Table.findByQrCode(req.params.qrCode);
-    if (!table) return res.status(404).json({ error: '?�효?��? ?��? QR 코드?�니??' });
+    if (!table) return res.status(404).json({ error: '유효하지 않은 QR 코드입니다.' });
     res.success(table);
   })
 );
@@ -258,11 +258,11 @@ router.post(
   authMiddleware,
   catchAsync(async (req, res) => {
     const existing = await Table.findById(req.params.id);
-    if (!existing) return res.status(404).json({ error: '?�이블을 찾을 ???�습?�다.' });
+    if (!existing) return res.status(404).json({ error: '테이블을 찾을 수 없습니다.' });
 
     if (req.user.role !== 'super_admin') {
       const role = await getStoreRole(req.user.id, existing.store_id);
-      if (!role) return res.status(403).json({ error: '?�당 매장???�??권한???�습?�다.' });
+      if (!role) return res.status(403).json({ error: '해당 매장에 대한 권한이 없습니다.' });
     }
 
     const newQrCode = `qr_${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`;
@@ -271,7 +271,7 @@ router.post(
     if (io) {
       io.emit('table-updated', { store_id: table.store_id, table_id: table.id });
     }
-    res.success(table, 'QR 코드가 ?�생?�되?�습?�다.');
+    res.success(table, 'QR 코드가 재생성되었습니다.');
   })
 );
 
