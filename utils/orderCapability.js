@@ -141,32 +141,6 @@ function verifyWaitingCapability(token) {
   }
 }
 
-// 전화번호 기반 주문 알림 소켓 채널 구독 권한 (번호만 알아서는 남의 알림을 받을 수 없게)
-function createCustomerChannelCapability(phone) {
-  const secret = getSecret();
-  if (!secret) throw new Error('Order capability secret is not configured');
-  return jwt.sign(
-    {
-      type: 'customer_channel_capability',
-      customer_phone: String(phone).replace(/\D/g, ''),
-      iat: Math.floor(Date.now() / 1000),
-    },
-    secret,
-    { expiresIn: '30d' }
-  );
-}
-
-function verifyCustomerChannelCapability(token) {
-  const secret = getSecret();
-  if (!secret || !token) return null;
-  try {
-    const payload = jwt.verify(token, secret);
-    return payload.type === 'customer_channel_capability' ? payload : null;
-  } catch {
-    return null;
-  }
-}
-
 function verifyWalletCapability(token) {
   const secret = getSecret();
   if (!secret || !token) return null;
@@ -189,6 +163,4 @@ module.exports = {
   verifyWalletCapability,
   createWaitingCapability,
   verifyWaitingCapability,
-  createCustomerChannelCapability,
-  verifyCustomerChannelCapability,
 };

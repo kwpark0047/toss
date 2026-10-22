@@ -3,10 +3,7 @@ const prisma = require('../config/prisma');
 const { phoneSearchCandidates } = require('../utils/phoneEncryption');
 const AlimtalkService = require('../services/AlimtalkService');
 const { getStoreRole } = require('../middleware/storeAuth');
-const {
-  verifyCustomerChannelCapability,
-  verifyWaitingCapability,
-} = require('../utils/orderCapability');
+const { verifyWaitingCapability } = require('../utils/orderCapability');
 
 const activeFoodTruckClients = new Map();
 
@@ -297,12 +294,6 @@ function registerSocketHandlers(io) {
     });
 
     // ── 고객 주문 알림 ───────────────────────────────────
-    // 번호만으로는 구독할 수 없고, 번호 등록 시 발급한 채널 토큰이 있어야 한다.
-    socket.on('join-customer-orders', ({ token } = {}) => {
-      const capability = verifyCustomerChannelCapability(token);
-      if (!capability?.customer_phone) return;
-      socket.join(`customer-orders-${capability.customer_phone}`);
-    });
 
     // ── 스마트 웨이팅 ────────────────────────────────────
     socket.on('join-store-waiting', ({ storeId }) => {

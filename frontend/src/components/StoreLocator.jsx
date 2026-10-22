@@ -6,7 +6,7 @@ import { storesAPI } from '../api/stores';
 import { ordersAPI } from '../api/orders';
 import StoreMapLeaflet from './StoreMapLeaflet';
 import HighlightBanner from './HighlightBanner';
-import { onOrderUpdated, joinOrderRoom, joinCustomerOrders } from '../utils/socket';
+import { onOrderUpdated, joinOrderRoom } from '../utils/socket';
 import { bizLabel } from '../utils/businessType';
 import { isDisplayableStoreName } from '../utils/storeName';
 import Icon from './ui/Icon';
@@ -67,10 +67,9 @@ export default function StoreLocator() {
       if (statusMounted.current) setOrderStatus(payload.status);
     });
 
-    if (customerPhone) joinCustomerOrders(customerPhone);
 
     return () => { off(); statusMounted.current = false; };
-  }, [orderIdParam, customerPhone]);
+  }, [orderIdParam]);
 
   useEffect(() => {
     if (orderStatus !== 'cancelled') return;

@@ -6,7 +6,6 @@ const { normalizePhone, encryptPhone, phoneSearchCandidates } = require('../util
 const { haversineKm } = require('../utils/geo');
 const logger = require('../utils/logger');
 const { AppError } = require('../utils/errorHandler');
-const { createCustomerChannelCapability } = require('../utils/orderCapability');
 
 class CustomerService {
   // 고객 휴대폰 번호 통합 등록 (phone-join)
@@ -174,14 +173,6 @@ class CustomerService {
       next_tier: nextTier
         ? { name: nextTier.tier_name, remaining: nextTier.min_spent - txResult.newTotalSpent }
         : null,
-      socket_channel: `customer-orders-${rawPhone}`,
-      channel_token: (() => {
-        try {
-          return createCustomerChannelCapability(rawPhone);
-        } catch {
-          return null; // 시크릿 미설정 시 실시간 알림만 생략
-        }
-      })(),
     };
   }
 

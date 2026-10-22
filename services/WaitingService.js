@@ -66,9 +66,11 @@ class WaitingService {
       });
 
       if (existing) {
-        throw new AppError('이미 대기 등록이 되어 있습니다.', 400, undefined, {
-          existing: decryptPhoneFields(existing),
-        });
+        // 번호만 넣어 남의 대기 정보(이름·번호)를 받아 가지 못하도록 순번만 알려준다.
+        throw new AppError(
+          `이미 대기 등록이 되어 있습니다. (대기 번호 ${existing.queue_number}번)`,
+          400
+        );
       }
 
       // 오늘(KST) 마지막 대기 번호 조회 — 서버 시간대와 무관하게 한국 자정에 1번부터 시작

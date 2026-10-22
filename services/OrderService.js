@@ -582,11 +582,6 @@ class OrderService {
 
     // 실시간 대시보드 (store_${storeId}_dashboard 룸) 알림 — DashboardBroadcastService 전담 채널
     dashboardBroadcastService.notifyOrderChange(order.store_id, payload);
-
-    if (order.customer_phone) {
-      const normalized = normalizePhone(decryptPhone(order.customer_phone));
-      this.io.to(`customer-orders-${normalized}`).emit('order-status-updated', payload);
-    }
   }
 
   async _sendOrderAlimtalk(order, status, extraData = {}) {

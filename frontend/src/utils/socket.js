@@ -130,19 +130,6 @@ export const joinOrderRoom = (orderId) => {
   socket.emit('join-order', orderId);
 };
 
-// 전화번호 기반 고객 알림 채널 구독 — 번호 등록 때 서버가 발급한 채널 토큰이 있어야 한다
-export const joinCustomerOrders = () => {
-  let token = null;
-  try {
-    token = localStorage.getItem('wm_customer_channel');
-  } catch {
-    /* 접근 불가 시 구독 생략 */
-  }
-  if (!token) return;
-  if (!socket.connected) socket.connect();
-  socket.emit('join-customer-orders', { token });
-};
-
 // 연결 상태 이벤트
 export const onConnect = (callback) => {
   socket.on('connect', callback);

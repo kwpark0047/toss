@@ -635,7 +635,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       {optionModalItem && <OptionSelectionModal key={optionModalItem.id} isOpen={!!optionModalItem} onClose={handleCloseOptionModal} onConfirm={handleOptionConfirm} item={optionModalItem} optionGroups={optionModalGroups} />}
 
       {/* 주문 후 핸드폰 번호 등록 (포인트·알림·회원가입 통합) */}
-      <CustomerPhoneSheet isOpen={isPhoneSheetOpen} onClose={handleClosePhoneSheet} storeId={storeId} orderId={currentOrderId} totalAmount={currentOrderAmount} storeName={profile?.store_name || t('menu.store_name_default')} />
+      <CustomerPhoneSheet isOpen={isPhoneSheetOpen} onClose={handleClosePhoneSheet} storeId={storeId} orderId={currentOrderId} orderCapability={currentOrderCapability} totalAmount={currentOrderAmount} storeName={profile?.store_name || t('menu.store_name_default')} />
 
       {/* 전자상거래법 §13 필수 사업자 정보 표시 */}
       <LegalFooter storeId={storeId} />

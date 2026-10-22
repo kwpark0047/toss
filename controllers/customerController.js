@@ -1,6 +1,7 @@
 const CustomerService = require('../services/CustomerService');
 const StoreCustomer = require('../repositories/StoreCustomer');
 const prisma = require('../config/prisma');
+const { verifyOrderCapability } = require('../utils/orderCapability');
 
 const customerService = new CustomerService();
 
@@ -16,10 +17,16 @@ const customerController = {
     if (!order_id) {
       return res.status(400).json({ success: false, message: '주문 정보가 필요합니다.' });
     }
-    // capability: 서버가 검증한 주문 컨텍스트 — 금액은 클라이언트 입력이 아닌 DB 주문으로 산정
+    // 주문할 때 받은 order capability로 본인 주문임을 증명해야 한다 (남의 주문 번호로 적립 불가)
+    const capability = verifyOrderCapability(req.get('x-order-capability'));
+    if (!capability || Number(capability.orderId) !== Number(order_id)) {
+      return res
+        .status(403)
+        .json({ success: false, message: '주문 확인 정보가 없거나 만료되었습니다.' });
+    }
     const result = await customerService.phoneJoin(req.body, {
-      orderId: order_id,
-      storeId: store_id,
+      orderId: capability.orderId,
+      storeId: capability.storeId,
     });
     if (result.duplicate) {
       return res.json({ success: false, message: result.message, already_joined: true });
