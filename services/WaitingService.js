@@ -120,7 +120,8 @@ class WaitingService {
    * 대기 상태 변경 (상태 전이 검증 포함)
    */
   async updateStatus(id, status) {
-    const validStatuses = ['waiting', 'called', 'entered', 'cancelled'];
+    // no_show: 호출했지만 오지 않은 손님 (호출된 상태에서만 지정)
+    const validStatuses = ['waiting', 'called', 'entered', 'cancelled', 'no_show'];
     if (!validStatuses.includes(status)) {
       throw new AppError('유효하지 않은 대기 상태입니다.', 400);
     }
@@ -134,6 +135,7 @@ class WaitingService {
     const invalidTransitions = {
       cancelled: ['waiting', 'called', 'entered', 'cancelled'],
       entered: ['waiting', 'called', 'entered', 'cancelled'],
+      no_show: ['waiting', 'called', 'entered', 'cancelled', 'no_show'],
     };
 
     if (invalidTransitions[existing.status]?.includes(status)) {
@@ -149,8 +151,8 @@ class WaitingService {
     }
 
     // called에서는 entered, cancelled만 허용
-    if (existing.status === 'called' && !['entered', 'cancelled'].includes(status)) {
-      throw new AppError('호출된 고객은 입장 또는 취소만 가능합니다.', 400);
+    if (existing.status === 'called' && !['entered', 'cancelled', 'no_show'].includes(status)) {
+      throw new AppError('호출된 고객은 입장, 취소 또는 노쇼만 가능합니다.', 400);
     }
 
     const updated = await prisma.waiting_list.update({

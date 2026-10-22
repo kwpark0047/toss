@@ -146,6 +146,15 @@ describe('WaitingService', () => {
       prisma.waiting_list.findUnique.mockResolvedValue({ store_id: 1 });
     });
 
+    test('호출된 손님은 노쇼로 처리할 수 있고, 대기 중 손님은 바로 노쇼 처리할 수 없다', async () => {
+      prisma.waiting_list.findUnique.mockResolvedValueOnce({ store_id: 1, status: 'called' });
+      prisma.waiting_list.update.mockResolvedValue({ id: 1, status: 'no_show', store_id: 1 });
+      expect((await svc.updateStatus(1, 'no_show')).status).toBe('no_show');
+
+      prisma.waiting_list.findUnique.mockResolvedValueOnce({ store_id: 1, status: 'waiting' });
+      await expect(svc.updateStatus(2, 'no_show')).rejects.toMatchObject({ statusCode: 400 });
+    });
+
     test('대기 상태를 변경한다', async () => {
       prisma.waiting_list.update.mockResolvedValue({ id: 1, status: 'called', store_id: 1 });
       const result = await svc.updateStatus(1, 'called');

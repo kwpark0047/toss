@@ -12,6 +12,7 @@ const STATUS_META = {
   called: { label: '호출됨', badge: 'bg-blue-100 text-blue-700 border-blue-200' },
   entered: { label: '입장', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
   cancelled: { label: '취소', badge: 'bg-gray-100 text-gray-500 border-gray-200' },
+  no_show: { label: '노쇼', badge: 'bg-orange-100 text-orange-700 border-orange-200' },
 };
 
 // 단순한 알림음 생성 (Web Audio API)
@@ -152,7 +153,7 @@ const WaitingManager = () => {
                     if (notificationEnabled) {
                         sendBrowserNotification(
                             '대기 호출',
-                            `${entry?.customer_name || '고객'}님 #{entry?.queue_number}번 입장 안내`
+                            `${entry?.customer_name || '고객'}님 #${entry?.queue_number}번 입장 안내`
                         );
                     }
                     // TTS 음성 안내
@@ -198,7 +199,7 @@ const WaitingManager = () => {
         if (activeTab === 'ALL') return true;
         if (activeTab === 'ACTIVE') return filterByTab(e.status);
         if (activeTab === 'ENTERED') return e.status === 'entered';
-        if (activeTab === 'CANCELLED') return e.status === 'cancelled';
+        if (activeTab === 'CANCELLED') return e.status === 'cancelled' || e.status === 'no_show';
         return filterByTab(e.status);
     });
 
@@ -223,7 +224,7 @@ const WaitingManager = () => {
     const tabs = [
         { id: 'ACTIVE', label: '대기/호출' },
         { id: 'ENTERED', label: '입장' },
-        { id: 'CANCELLED', label: '취소' },
+        { id: 'CANCELLED', label: '취소·노쇼' },
         { id: 'ALL', label: '전체' },
     ];
 
@@ -409,6 +410,7 @@ const WaitingManager = () => {
                                 onCall={() => handleStatus(e.id, 'called', '호출', e)}
                                 onEnter={() => handleStatus(e.id, 'entered', '입장', e)}
                                 onCancel={() => handleStatus(e.id, 'cancelled', '취소', e)}
+                                onNoShow={() => handleStatus(e.id, 'no_show', '노쇼', e)}
                                 onResendCall={() => handleResendNotification(e.id, 'call', e)}
                                 onResendCancel={() => handleResendNotification(e.id, 'cancel', e)}
                             />
@@ -440,7 +442,7 @@ const StatCard = ({ icon, iconBg, iconColor, label, value, trend, sub }) => (
 // 대기 카드 컴포넌트
 const WaitingCard = ({
     entry, meta, waitedMinutes, isCalled, isWaiting,
-    onCall, onEnter, onCancel, onResendCall, onResendCancel,
+    onCall, onEnter, onCancel, onNoShow, onResendCall, onResendCancel,
 }) => (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col gap-3">
         <div className="flex items-start justify-between gap-2">
@@ -456,7 +458,7 @@ const WaitingCard = ({
                     </p>
                 </div>
             </div>
-            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${meta.className}`}>
+            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${meta.badge}`}>
                 {meta.label}
             </span>
         </div>
@@ -490,7 +492,7 @@ const WaitingCard = ({
 
         {isCalled && (
             <div className="space-y-2 mt-auto">
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                     <button
                         onClick={onEnter}
                         className="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-colors"
@@ -502,6 +504,12 @@ const WaitingCard = ({
                         className="flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-sm font-bold transition-colors"
                     >
                         <XCircle size={15} /> 취소
+                    </button>
+                    <button
+                        onClick={onNoShow}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-xl text-sm font-bold transition-colors"
+                    >
+                        <Clock size={15} /> 노쇼
                     </button>
                 </div>
                 {/* 재발송 버튼들 */}
