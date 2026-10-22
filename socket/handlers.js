@@ -7,6 +7,32 @@ const { verifyWaitingCapability } = require('../utils/orderCapability');
 
 const activeFoodTruckClients = new Map();
 
+// 직원 호출 남용 방지: 같은 기기 10초에 1회, 같은 테이블 15초에 1회, 매장당 1분에 30회
+const MANAGER_CALL_LIMITS = {
+  socketMs: 10_000,
+  tableMs: 15_000,
+  storeWindowMs: 60_000,
+  storeMax: 30,
+};
+const managerCallLog = { socket: new Map(), table: new Map(), store: new Map() };
+
+function checkManagerCallLimit(socketId, storeId, tableName, now = Date.now()) {
+  const tableKey = `${storeId}:${tableName || ''}`;
+  if (now - (managerCallLog.socket.get(socketId) || 0) < MANAGER_CALL_LIMITS.socketMs) return false;
+  if (now - (managerCallLog.table.get(tableKey) || 0) < MANAGER_CALL_LIMITS.tableMs) return false;
+  const recent = (managerCallLog.store.get(storeId) || []).filter(
+    (t) => now - t < MANAGER_CALL_LIMITS.storeWindowMs
+  );
+  if (recent.length >= MANAGER_CALL_LIMITS.storeMax) return false;
+  recent.push(now);
+  managerCallLog.store.set(storeId, recent);
+  managerCallLog.socket.set(socketId, now);
+  managerCallLog.table.set(tableKey, now);
+  if (managerCallLog.table.size > 5000) managerCallLog.table.clear();
+  if (managerCallLog.socket.size > 5000) managerCallLog.socket.clear();
+  return true;
+}
+
 const deny = (ack, code, message) => {
   if (typeof ack === 'function') ack({ ok: false, code, message });
 };
@@ -221,10 +247,39 @@ function registerSocketHandlers(io) {
 
     // ── 매니저 호출 ──────────────────────────────────────
     // ── 매장 매니저 호출 (DB 기록 및 직원 연결 정밀 체크 고도화) ─────────────────
-    socket.on('manager-call', async (data) => {
-      const { storeId, tableName, type } = data;
+    socket.on('manager-call', async (data = {}) => {
+      const storeId = Number(data.storeId);
+      const tableName = typeof data.tableName === 'string' ? data.tableName.slice(0, 40) : null;
+      const type = typeof data.type === 'string' ? data.type.slice(0, 40) : null;
+
+      if (!Number.isInteger(storeId) || storeId <= 0) {
+        socket.emit('manager-call-ack', {
+          success: false,
+          message: '매장 정보를 확인할 수 없습니다.',
+        });
+        return;
+      }
+      if (!checkManagerCallLimit(socket.id, storeId, tableName)) {
+        socket.emit('manager-call-ack', {
+          success: false,
+          message: '방금 호출이 접수되었습니다. 잠시 후 다시 눌러 주세요.',
+        });
+        return;
+      }
 
       try {
+        const store = await prisma.stores.findUnique({
+          where: { id: storeId },
+          select: { id: true },
+        });
+        if (!store) {
+          socket.emit('manager-call-ack', {
+            success: false,
+            message: '매장 정보를 확인할 수 없습니다.',
+          });
+          return;
+        }
+
         // 1. 매장 룸('store - ${storeId}')에 연결된 활성 스태프 소켓 개수 정밀 체크 (SLA 가용 확인)
         const room = io.sockets.adapter.rooms.get(`store - ${storeId}`);
         const isStaffConnected = room && room.size >= 1; // 기기 연결 세션 파악
@@ -332,4 +387,7 @@ function registerSocketHandlers(io) {
   });
 }
 
-module.exports = { registerSocketHandlers };
+module.exports = {
+  checkManagerCallLimit,
+  registerSocketHandlers,
+};
