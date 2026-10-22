@@ -757,7 +757,18 @@ class PaymentService {
     // [보안] 로그 출금 전 카드키 마스킹 - 원본 노출 방지
     const maskedPaymentKey = maskPaymentKey(paymentKey);
 
-    const order = await prisma.orders.findFirst({ where: { order_number: tossOrderId } });
+    let order = await prisma.orders.findFirst({ where: { order_number: tossOrderId } });
+    if (!order) {
+      // 분할 결제는 토스 주문번호가 "{주문번호}-S-…" 형식이라 결제 레코드로 주문을 찾는다.
+      // 이를 놓치면 정상 분할 결제를 "주문 미생성"으로 보고 자동 취소해 버린다.
+      const payment = await prisma.payments.findFirst({
+        where: { toss_transaction_id: tossOrderId },
+        select: { order_id: true },
+      });
+      if (payment?.order_id) {
+        order = await prisma.orders.findUnique({ where: { id: payment.order_id } });
+      }
+    }
 
     if (!order) {
       logger.warn(
@@ -980,12 +991,21 @@ class PaymentService {
         });
       }
     } else if (splitType === 'ITEM') {
-      splitData.items = order.order_items.map((item) => ({
-        id: item.id,
-        name: item.product_name,
-        amount: item.subtotal,
-        status: 'PENDING',
-      }));
+      // 쿠폰 할인이 있으면 메뉴 금액 합이 주문 금액보다 크다. 할인을 메뉴 금액 비율로 나눠
+      // 항목 합계가 실제 결제할 주문 금액과 정확히 같도록 맞춘다 (끝전은 마지막 항목).
+      const items = order.order_items;
+      const subtotalSum = items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+      let allocated = 0;
+      splitData.items = items.map((item, i) => {
+        const amount =
+          i === items.length - 1
+            ? order.total_amount - allocated
+            : subtotalSum > 0
+              ? Math.floor(((item.subtotal || 0) * order.total_amount) / subtotalSum)
+              : 0;
+        allocated += amount;
+        return { id: item.id, name: item.product_name, amount, status: 'PENDING' };
+      });
     }
 
     await prisma.orders.update({
