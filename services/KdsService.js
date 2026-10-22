@@ -219,6 +219,10 @@ class KdsService {
           `[KDS Socket] KDS 실시간 브로드캐스트 전송 완료: Store ${numericStoreId}, Order ${order.order_number} → ${status}`
         );
       }
+      // 관리자 주문 화면·손님 주문 상태 화면은 'order-updated'(주문 룸 포함)를 듣는다.
+      const orderService = new (require('./OrderService'))(io);
+      orderService._emitOrderUpdate(updatedOrder, status);
+      if (status === 'cancelled') await this._afterKitchenCancel(order, orderService, io);
       void OrderEventService_1.record({
         orderId: numericOrderId,
         storeId: numericStoreId,
@@ -240,6 +244,69 @@ class KdsService {
     }
   }
   /**
+   * 주방 취소 후처리: 관리자 취소(OrderService.cancelOrder)와 같은 재고·포인트·알림 처리에 더해
+   * 온라인 결제는 자동 환불하고, 현장 결제나 환불 실패는 매장에 "환불 필요" 알림을 남긴다.
+   */
+  async _afterKitchenCancel(order, orderService, io) {
+    if (order.status !== 'pending') {
+      await orderService
+        ._restoreInventory(order.id)
+        .catch((e) => logger_1.default.error(`[KDS Cancel] 재고 복구 실패: ${e.message}`));
+    }
+    await orderService
+      ._revertPointsOnCancel(order.id)
+      .catch((e) => logger_1.default.error(`[KDS Cancel] 포인트 회수 실패: ${e.message}`));
+    orderService._sendOrderAlimtalk(order, 'cancelled').catch((e) => logger_1.default.error(e));
+
+    const payments = await prisma_1.default.payments.findMany({
+      where: { order_id: order.id, status: 'DONE' },
+      select: { id: true, method: true, payment_key: true },
+    });
+    if (!payments.length) return;
+
+    const offline = payments.some((p) => !p.payment_key);
+    let failure = null;
+    if (!offline) {
+      try {
+        const PaymentService = require('./PaymentService');
+        await new PaymentService(io).processCancellation(order.id, '주방에서 주문 취소');
+        return;
+      } catch (e) {
+        failure = e.message;
+        logger_1.default.error(`[KDS Cancel] 자동 환불 실패: Order ${order.id} ${e.message}`);
+      }
+    }
+
+    const message = offline
+      ? `주문 #${order.order_number}이 주방에서 취소되었습니다. 현장 결제 금액을 손님께 환불한 뒤 결제 취소를 기록해 주세요.`
+      : `주문 #${order.order_number} 자동 환불에 실패했습니다(${failure}). 주문 관리에서 결제를 취소해 주세요.`;
+    const notification = await prisma_1.default.notifications
+      .create({
+        data: {
+          store_id: order.store_id,
+          type: 'REFUND_REQUIRED',
+          title: '💸 환불 필요',
+          message,
+          data: JSON.stringify({ orderId: order.id, offline }),
+          is_read: false,
+          priority: 'high',
+          link: `/admin/stores/${order.store_id}/orders`,
+        },
+      })
+      .catch((e) => logger_1.default.error(`[KDS Cancel] 환불 알림 저장 실패: ${e.message}`));
+    if (io) {
+      io.to(`store - ${order.store_id}`).emit('manager-notification', {
+        id: notification?.id,
+        type: 'REFUND_REQUIRED',
+        title: '💸 환불 필요',
+        message,
+        data: { orderId: order.id, offline },
+        priority: 'high',
+        created_at: notification?.created_at || new Date(),
+      });
+    }
+  }
+  /**
    * 주방 주문 영수증 슬립 텍스트 포맷터 및 Base64 인코더
    */
   formatKitchenSlip(order) {
@@ -249,7 +316,7 @@ class KdsService {
     slip += `주문번호 : ${order.order_number}\n`;
     slip += `구  분   : ${order.is_takeout ? '포장(TAKEOUT)' : '매장(DINE-IN)'}\n`;
     if (order.table_name) {
-      slip += `테이블   : ${order.table_name}번\n`;
+      slip += `테이블   : ${String(order.table_name).replace(/번$/, '')}번\n`;
     }
     slip += `주문시간 : ${new Date(order.created_at).toLocaleString('ko-KR')}\n`;
     slip += `------------------------------\n`;
