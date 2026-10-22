@@ -92,6 +92,8 @@ const canonicalOrderSchema = z.object({
   user_coupon_id: wireId.optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
+  // 위치 정확도(미터). 실내 GPS 오차로 매장 안 손님이 막히지 않도록 반경 판정에 반영한다.
+  location_accuracy: z.number().min(0).max(100000).optional(),
   total_amount: priceSchema,
   payment_method: z
     .enum([

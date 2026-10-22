@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { isStoreOpenAt, getTodayHoursAt } from "@/utils/businessHours";
+import { getOrderPosition } from "@/utils/orderLocation";
 import { Loader2, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { storesAPI } from "@/api/stores";
 import { resolveThemeStyle } from "@/lib/themePresets";
@@ -435,10 +436,12 @@ const handleOrder = useCallback(async () => {
           fcmToken = null;
         }
       }
+      const position = tableNumber ? await getOrderPosition() : null;
       const orderData = {
         store_id: storeId,
         // URL 파라미터(테이블 번호 문자열) → 백엔드에서 table_id(정수)로 변환
         ...(tableNumber ? { table_number: tableNumber } : {}),
+        ...(position || {}),
         items: cart.map(item => ({
           product_id: item.menuItem.id,
           product_name: item.menuItem.name,
