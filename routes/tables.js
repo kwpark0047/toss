@@ -73,8 +73,17 @@ router.get(
   authMiddleware,
   checkStorePermission('order:read'),
   catchAsync(async (req, res) => {
-    const tables = await Table.findByStoreId(req.params.storeId);
-    res.success(tables);
+    const [tables, bills] = await Promise.all([
+      Table.findByStoreId(req.params.storeId),
+      Table.openBillsByStore(req.params.storeId),
+    ]);
+    // 같은 테이블의 추가 주문을 합친 미결제 계산서를 함께 내려준다.
+    res.success(
+      tables.map((table) => ({
+        ...table,
+        ...(bills.get(table.id) || { open_order_count: 0, open_amount: 0 }),
+      }))
+    );
   })
 );
 

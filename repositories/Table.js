@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const crypto = require('crypto');
+const { kstNow, kstDayRange } = require('../utils/kstTime');
 
 /**
  * 테이블 모델 (Prisma 기반)
@@ -50,6 +51,30 @@ const Table = {
         is_active: true,
       },
     });
+  },
+
+  // [테이블별 미결제 계산서] 오늘(KST) 취소되지 않았고 결제가 끝나지 않은 주문 합계
+  // 같은 테이블의 추가 주문을 한 계산서로 보기 위해 사용한다.
+  openBillsByStore: async (storeId) => {
+    const today = kstNow().toISOString().slice(0, 10);
+    const rows = await prisma.orders.groupBy({
+      by: ['table_id'],
+      where: {
+        store_id: parseInt(storeId),
+        table_id: { not: null },
+        status: { not: 'cancelled' },
+        payment_status: { in: ['pending', 'partial'] },
+        created_at: { gte: kstDayRange(today).startOfDay },
+      },
+      _sum: { total_amount: true },
+      _count: { _all: true },
+    });
+    return new Map(
+      rows.map((row) => [
+        row.table_id,
+        { open_order_count: row._count._all, open_amount: row._sum.total_amount || 0 },
+      ])
+    );
   },
 
   // [매장 ID + 테이블 번호로 테이블 조회]

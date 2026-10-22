@@ -746,6 +746,14 @@ const TableManager = () => {
                   </span>
                 </div>
 
+                {/* 오늘 이 테이블의 미결제 주문 합계 (추가 주문 포함) */}
+                {table.open_order_count > 0 && (
+                  <div className="mb-3 lg:mb-4 flex items-center justify-between rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-[10px] lg:text-[11px] font-black text-rose-300">
+                    <span>미결제 {table.open_order_count}건</span>
+                    <span className="tabular-nums">₩{Number(table.open_amount || 0).toLocaleString()}</span>
+                  </div>
+                )}
+
                 {/* QR + 재생성 버튼 */}
                 <div className="flex gap-2 mb-3 lg:mb-5">
                   <button onClick={() => setShowQrModal(table)}
