@@ -28,10 +28,10 @@ const PREVIEW_ITEMS = [
 
 // ── 통계 카드 (목 데이터) ────────────────────────────────────────────────────
 const STATS = [
-  { label:'이번 달 추천 건수',    value:'1,247',  delta:'+18%', icon: Sparkles,     tone:'bg-amber-500/10 text-amber-400' },
-  { label:'추천 후 주문 전환율',  value:'64.3%',  delta:'+5.2%',icon: TrendingUp,   tone:'bg-emerald-500/10 text-emerald-400' },
-  { label:'평균 추가 주문 메뉴',  value:'1.8개',  delta:'+0.3', icon: ShoppingCart, tone:'bg-sky-500/10 text-sky-400' },
-  { label:'큰 글씨 모드 사용',    value:'24.1%',  delta:'+3.1%',icon: Type,         tone:'bg-violet-500/10 text-violet-400' },
+  { label:'이번 달 추천 건수',    value:'1,247',  delta:'+18%', icon: Sparkles,     tone:'bg-amber-50 text-amber-600' },
+  { label:'추천 후 주문 전환율',  value:'64.3%',  delta:'+5.2%',icon: TrendingUp,   tone:'bg-emerald-50 text-emerald-600' },
+  { label:'평균 추가 주문 메뉴',  value:'1.8개',  delta:'+0.3', icon: ShoppingCart, tone:'bg-sky-50 text-sky-600' },
+  { label:'큰 글씨 모드 사용',    value:'24.1%',  delta:'+3.1%',icon: Type,         tone:'bg-violet-50 text-violet-600' },
 ];
 
 // ── 언어 옵션 ────────────────────────────────────────────────────────────────
@@ -44,22 +44,22 @@ const LANGS = [
 
 // ── 날씨/상황 옵션 ────────────────────────────────────────────────────────────
 const WEATHERS = [
-  { code:'sun',  label:'맑음',  icon: Sun,        color:'text-amber-400' },
-  { code:'rain', label:'비',    icon: CloudRain,  color:'text-blue-400'  },
-  { code:'cold', label:'추위',  icon: Snowflake,  color:'text-cyan-400'  },
-  { code:'hot',  label:'더위',  icon: Flame,      color:'text-red-400'   },
+  { code:'sun',  label:'맑음',  icon: Sun,        color:'text-amber-500' },
+  { code:'rain', label:'비',    icon: CloudRain,  color:'text-blue-500'  },
+  { code:'cold', label:'추위',  icon: Snowflake,  color:'text-cyan-500'  },
+  { code:'hot',  label:'더위',  icon: Flame,      color:'text-red-500'   },
 ];
 
 const CUSTOM_MSG_MAX = 80;
 
 // 공용 관리자 스타일
-const CARD = 'rounded-3xl bg-white/5 border border-white/10 p-6';
-const INPUT = 'w-full px-4 py-2.5 text-sm bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 outline-none focus:border-orange-500/50 focus-visible:ring-2 focus-visible:ring-orange-400/40 transition-all';
-const GHOST_BTN = 'flex items-center gap-2 bg-white/5 border border-white/10 text-slate-300 rounded-xl font-bold hover:bg-white/10 transition-colors';
+const CARD = 'rounded-3xl bg-white border border-slate-200 shadow-sm p-6';
+const INPUT = 'w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 outline-none focus:border-orange-500/50 focus-visible:ring-2 focus-visible:ring-orange-400/40 transition-all';
+const GHOST_BTN = 'flex items-center gap-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-100 transition-colors';
 const chipClass = (selected) =>
-  `flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold border transition-all ${selected
-    ? 'bg-orange-500 text-white border-orange-500'
-    : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'}`;
+  `flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold border-2 transition-all ${selected
+    ? 'bg-white text-slate-900 border-slate-900'
+    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`;
 
 const isValidStoreId = (v) => /^[1-9]\d*$/.test(String(v).trim());
 
@@ -127,15 +127,15 @@ function Toggle({ on, onChange, label, desc }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <div>
-        <p className="text-sm font-bold text-white">{label}</p>
-        {desc && <p className="text-xs text-slate-400 mt-0.5">{desc}</p>}
+        <p className="text-sm font-bold text-slate-900">{label}</p>
+        {desc && <p className="text-xs text-slate-500 mt-0.5">{desc}</p>}
       </div>
       <button type="button" role="switch" aria-checked={on} aria-label={label}
         onClick={() => onChange(!on)}
         className="flex-shrink-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-orange-400/40">
         {on
           ? <Icon icon="ToggleRight" size="lg" className="text-orange-500" />
-          : <Icon icon="ToggleLeft" size="lg" className="text-slate-500" />}
+          : <Icon icon="ToggleLeft" size="lg" className="text-slate-400" />}
       </button>
     </div>
   );
@@ -286,8 +286,8 @@ export default function TinkerBellManagerPage() {
                 {!storeId ? (
                   <form onSubmit={goToStore} className={`${CARD} space-y-3`}>
                     <div>
-                      <h3 className="text-sm font-black text-white">설정할 매장 선택</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">팅커벨 설정은 매장마다 따로 저장됩니다. 매장 ID를 입력해 불러오세요.</p>
+                      <h3 className="text-sm font-black text-slate-900">설정할 매장 선택</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">팅커벨 설정은 매장마다 따로 저장됩니다. 매장 ID를 입력해 불러오세요.</p>
                     </div>
                     <div className="flex gap-2">
                       <input
@@ -305,16 +305,16 @@ export default function TinkerBellManagerPage() {
                         불러오기
                       </button>
                     </div>
-                    {storeInputInvalid && <p className="text-xs text-red-400">매장 ID는 숫자로 입력해 주세요.</p>}
+                    {storeInputInvalid && <p className="text-xs text-red-600">매장 ID는 숫자로 입력해 주세요.</p>}
                     <p className="text-xs text-slate-500">매장을 고르기 전에도 아래에서 미리보기는 해볼 수 있지만 저장은 되지 않습니다.</p>
                   </form>
                 ) : (
-                  <div role="status" className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-400">
+                  <div role="status" className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-500">
                     <span className="flex items-center gap-2">
                       <Info size={14} className="flex-shrink-0" />
                       {loadState === 'loading' && `${storeId}번 매장 설정을 불러오는 중입니다…`}
                       {loadState === 'ready' && `${storeId}번 매장 설정입니다. 저장하면 이 매장의 고객 메뉴 화면에 바로 적용됩니다.`}
-                      {loadState === 'error' && <span className="text-red-400">{storeId}번 매장 설정을 불러오지 못했습니다. 저장하려면 다시 불러와 주세요.</span>}
+                      {loadState === 'error' && <span className="text-red-600">{storeId}번 매장 설정을 불러오지 못했습니다. 저장하려면 다시 불러와 주세요.</span>}
                     </span>
                     {loadState === 'error' && (
                       <button type="button" onClick={() => setReloadKey(k => k + 1)} className={`${GHOST_BTN} px-3 py-1.5 text-xs`}>
@@ -335,7 +335,7 @@ export default function TinkerBellManagerPage() {
                   />
                   {!enabled && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-3 bg-white/5 rounded-2xl text-xs text-slate-400 border border-white/10">
+                      <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-2xl text-xs text-slate-500 border border-slate-200">
                         <Icon icon="Info" size="md" className="flex-shrink-0" />
                         비활성화 시 고객 메뉴 화면에 팅커벨이 표시되지 않습니다.
                       </div>
@@ -346,8 +346,8 @@ export default function TinkerBellManagerPage() {
                 {/* 기본 언어 */}
                 <div className={CARD}>
                   <div className="flex items-center gap-2 mb-4">
-                    <Globe size={16} className="text-slate-400" />
-                    <h3 className="text-sm font-black text-white">기본 인사 언어</h3>
+                    <Globe size={16} className="text-slate-500" />
+                    <h3 className="text-sm font-black text-slate-900">기본 인사 언어</h3>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {LANGS.map(l => (
@@ -358,7 +358,7 @@ export default function TinkerBellManagerPage() {
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-slate-400 mt-3 flex items-center gap-1.5">
+                  <p className="text-xs text-slate-500 mt-3 flex items-center gap-1.5">
                     <Info size={11} />
                     고객이 실제 화면에서 언어를 변경하면 팅커벨이 자동으로 해당 언어로 인사합니다.
                   </p>
@@ -367,8 +367,8 @@ export default function TinkerBellManagerPage() {
                 {/* 날씨/상황 컨텍스트 */}
                 <div className={CARD}>
                   <div className="flex items-center gap-2 mb-4">
-                    <Sun size={16} className="text-amber-400" />
-                    <h3 className="text-sm font-black text-white">날씨/상황별 추천 컨텍스트 미리보기</h3>
+                    <Sun size={16} className="text-amber-600" />
+                    <h3 className="text-sm font-black text-slate-900">날씨/상황별 추천 컨텍스트 미리보기</h3>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {WEATHERS.map(w => {
@@ -382,7 +382,7 @@ export default function TinkerBellManagerPage() {
                       );
                     })}
                   </div>
-                  <p className="text-xs text-slate-400 mt-3 flex items-center gap-1.5">
+                  <p className="text-xs text-slate-500 mt-3 flex items-center gap-1.5">
                     <Info size={11} />
                     미리보기에서 약 11초 뒤 이 날씨에 맞는 추천 말풍선이 나옵니다. 실제 서비스는 매장 위치의 날씨를 자동으로 씁니다.
                   </p>
@@ -390,8 +390,8 @@ export default function TinkerBellManagerPage() {
 
                 {/* AI 추천 설정 */}
                 <div className={`${CARD} space-y-5`}>
-                  <h3 className="text-sm font-black text-white flex items-center gap-2">
-                    <Sparkles size={14} className="text-amber-400" />
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <Sparkles size={14} className="text-amber-600" />
                     AI 추천 설정
                   </h3>
                   <Toggle
@@ -411,14 +411,14 @@ export default function TinkerBellManagerPage() {
 
                 {/* 접근성 설정 */}
                 <div className={`${CARD} space-y-5`}>
-                  <h3 className="text-sm font-black text-white">접근성 옵션</h3>
+                  <h3 className="text-sm font-black text-slate-900">접근성 옵션</h3>
                   <Toggle
                     on={voiceEnabled}
                     onChange={setVoiceEnabled}
                     label="음성 안내"
                     desc="Web Speech API를 이용해 팅커벨 대사를 음성으로 읽어드립니다"
                   />
-                  <div className="h-px bg-white/10" />
+                  <div className="h-px bg-slate-100" />
                   <Toggle
                     on={largeFont}
                     onChange={setLargeFont}
@@ -429,8 +429,8 @@ export default function TinkerBellManagerPage() {
 
                 {/* 커스텀 인삿말 */}
                 <div className={CARD}>
-                  <h3 className="text-sm font-black text-white mb-1">커스텀 인삿말 <span className="text-xs font-normal text-slate-500 ml-1">미출시 기능</span></h3>
-                  <p className="text-xs text-slate-400 mb-3">매장만의 특별한 인삿말을 설정할 수 있습니다</p>
+                  <h3 className="text-sm font-black text-slate-900 mb-1">커스텀 인삿말 <span className="text-xs font-normal text-slate-500 ml-1">미출시 기능</span></h3>
+                  <p className="text-xs text-slate-500 mb-3">매장만의 특별한 인삿말을 설정할 수 있습니다</p>
                   <textarea
                     rows={3}
                     maxLength={CUSTOM_MSG_MAX}
@@ -440,15 +440,15 @@ export default function TinkerBellManagerPage() {
                     className={`${INPUT} rounded-2xl py-3 resize-none`}
                   />
                   <div className="flex justify-between items-center mt-2">
-                    <span className="text-xs text-slate-400">{customMsg.length}/{CUSTOM_MSG_MAX}자</span>
+                    <span className="text-xs text-slate-500">{customMsg.length}/{CUSTOM_MSG_MAX}자</span>
                     <span className="text-xs text-slate-500">준비 중 — 추후 업데이트 예정</span>
                   </div>
                 </div>
 
                 {/* 데모: 장바구니 반응 테스트 */}
                 <div className={CARD}>
-                  <h3 className="text-sm font-black text-white mb-3">장바구니 반응 테스트</h3>
-                  <p className="text-xs text-slate-400 mb-4">버튼을 눌러 팅커벨이 장바구니 추가에 어떻게 반응하는지 미리보기에서 확인하세요</p>
+                  <h3 className="text-sm font-black text-slate-900 mb-3">장바구니 반응 테스트</h3>
+                  <p className="text-xs text-slate-500 mb-4">버튼을 눌러 팅커벨이 장바구니 추가에 어떻게 반응하는지 미리보기에서 확인하세요</p>
                   <div className="flex flex-wrap gap-2">
                     {PREVIEW_ITEMS.map(item => (
                       <button key={item.name} type="button"
@@ -468,8 +468,8 @@ export default function TinkerBellManagerPage() {
                 <div className={CARD}>
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h3 className="text-sm font-black text-white">실시간 미리보기</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">고객 화면 시뮬레이션</p>
+                      <h3 className="text-sm font-black text-slate-900">실시간 미리보기</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">고객 화면 시뮬레이션</p>
                     </div>
                     <button type="button" onClick={replay} className={`${GHOST_BTN} gap-1.5 px-3 py-1.5 text-xs`}>
                       <RefreshCw size={11} />
@@ -481,7 +481,7 @@ export default function TinkerBellManagerPage() {
                     ? <PhonePreview lang={lang} weather={weather} voiceEnabled={voiceEnabled} largeFont={largeFont} triggerKey={triggerKey} lastAddedItem={lastAdded} aiStoreId={aiStoreId} />
                     : (
                       <div className="mx-auto" style={{ width: 280, height: 420 }}>
-                        <div className="w-full h-full rounded-3xl bg-white/5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-3 text-slate-400">
+                        <div className="w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 text-slate-500">
                           <Sparkles size={28} className="opacity-30" />
                           <p className="text-sm font-bold">팅커벨 비활성화 중</p>
                           <p className="text-xs text-center px-6">활성화 토글을 켜면<br />미리보기가 표시됩니다</p>
@@ -491,8 +491,8 @@ export default function TinkerBellManagerPage() {
                 </div>
 
                 {/* 현재 설정 요약 */}
-                <div className="rounded-3xl bg-white/5 border border-white/10 p-5 text-sm space-y-2.5">
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">현재 설정</p>
+                <div className="rounded-3xl bg-slate-50 border border-slate-200 p-5 text-sm space-y-2.5">
+                  <p className="text-xs font-black text-slate-500 uppercase tracking-wider mb-3">현재 설정</p>
                   {[
                     { label:'언어', value: LANGS.find(l => l.code === lang)?.label },
                     { label:'컨텍스트', value: WEATHERS.find(w => w.code === weather)?.label },
@@ -503,10 +503,10 @@ export default function TinkerBellManagerPage() {
                   ].map(row => (
                     <div key={row.label} className="flex items-center justify-between">
                       <span className="text-slate-500 font-medium">{row.label}</span>
-                      <span className={`font-black ${row.highlight ? 'text-emerald-400' : 'text-white'}`}>{row.value}</span>
+                      <span className={`font-black ${row.highlight ? 'text-emerald-600' : 'text-slate-900'}`}>{row.value}</span>
                     </div>
                   ))}
-                  {dirty && <p className="pt-2 text-xs font-bold text-orange-400">저장하지 않은 변경 사항이 있습니다</p>}
+                  {dirty && <p className="pt-2 text-xs font-bold text-orange-600">저장하지 않은 변경 사항이 있습니다</p>}
                 </div>
               </div>
             </motion.div>
@@ -519,16 +519,16 @@ export default function TinkerBellManagerPage() {
               className="space-y-6">
 
               {/* 안내 배너 */}
-              <div className="rounded-3xl bg-orange-500/10 border border-orange-500/20 p-6">
+              <div className="rounded-3xl bg-orange-50 border border-orange-200 p-6">
                 <div className="flex items-start gap-4 flex-wrap">
-                  <div className="w-12 h-12 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-white border border-orange-200 text-orange-600 rounded-2xl flex items-center justify-center flex-shrink-0">
                     <Sparkles size={22} />
                   </div>
                   <div className="flex-1 min-w-[200px]">
-                    <h2 className="text-lg font-black text-white mb-1">AI 팅커벨 ROI 분석</h2>
-                    <p className="text-slate-300 text-sm leading-relaxed">
+                    <h2 className="text-lg font-black text-slate-900 mb-1">AI 팅커벨 ROI 분석</h2>
+                    <p className="text-slate-700 text-sm leading-relaxed">
                       팅커벨의 추천이 실제 주문으로 이어진 비율과 고객 경험 지표를 확인하세요.<br />
-                      아래 수치는 <span className="font-bold text-orange-400">예시 데이터</span>입니다.
+                      아래 수치는 <span className="font-bold text-orange-600">예시 데이터</span>입니다.
                     </p>
                   </div>
                   {storeId && (
@@ -550,9 +550,9 @@ export default function TinkerBellManagerPage() {
                       <div className={`w-11 h-11 rounded-2xl ${s.tone} flex items-center justify-center mb-4`}>
                         <StatIcon size={18} />
                       </div>
-                      <p className="text-3xl font-black text-white">{s.value}</p>
-                      <p className="text-xs text-slate-400 font-medium mt-1">{s.label}</p>
-                      <div className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-400">
+                      <p className="text-3xl font-black text-slate-900">{s.value}</p>
+                      <p className="text-xs text-slate-500 font-medium mt-1">{s.label}</p>
+                      <div className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs font-black bg-emerald-50 text-emerald-600">
                         <TrendingUp size={10} />
                         {s.delta} 전월 대비
                       </div>
@@ -564,7 +564,7 @@ export default function TinkerBellManagerPage() {
               {/* 인기 추천 메뉴 */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <div className={CARD}>
-                  <h3 className="text-sm font-black text-white mb-4">팅커벨 추천 TOP 5</h3>
+                  <h3 className="text-sm font-black text-slate-900 mb-4">팅커벨 추천 TOP 5</h3>
                   <div className="space-y-3">
                     {[
                       { name:'시그니처 라떼',   count:384, rate:'71%' },
@@ -574,24 +574,24 @@ export default function TinkerBellManagerPage() {
                       { name:'크렘 브륄레',     count:134, rate:'69%' },
                     ].map((item, i) => (
                       <div key={item.name} className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-full bg-white/5 text-slate-400 text-xs font-black flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                        <span className="w-6 h-6 rounded-full bg-slate-50 text-slate-500 text-xs font-black flex items-center justify-center flex-shrink-0">{i + 1}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-bold text-white truncate">{item.name}</span>
-                            <span className="text-xs font-black text-orange-400 ml-2">{item.rate}</span>
+                            <span className="text-sm font-bold text-slate-900 truncate">{item.name}</span>
+                            <span className="text-xs font-black text-orange-600 ml-2">{item.rate}</span>
                           </div>
-                          <div className="w-full bg-white/10 rounded-full h-1.5">
+                          <div className="w-full bg-slate-100 rounded-full h-1.5">
                             <div className="bg-orange-500 h-1.5 rounded-full" style={{ width: item.rate }} />
                           </div>
                         </div>
-                        <span className="text-xs text-slate-400 font-medium flex-shrink-0">{item.count}건</span>
+                        <span className="text-xs text-slate-500 font-medium flex-shrink-0">{item.count}건</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div className={CARD}>
-                  <h3 className="text-sm font-black text-white mb-4">시간대별 팅커벨 활동</h3>
+                  <h3 className="text-sm font-black text-slate-900 mb-4">시간대별 팅커벨 활동</h3>
                   <div className="space-y-2">
                     {[
                       { time:'08:00 – 10:00', label:'모닝 러시',  bar:'45%',  count: 62 },
@@ -602,19 +602,19 @@ export default function TinkerBellManagerPage() {
                     ].map(row => (
                       <div key={row.time} className="flex items-center gap-3">
                         <div className="w-24 flex-shrink-0">
-                          <p className="text-[10px] font-black text-white">{row.label}</p>
+                          <p className="text-[10px] font-black text-slate-900">{row.label}</p>
                           <p className="text-[9px] text-slate-500">{row.time}</p>
                         </div>
-                        <div className="flex-1 bg-white/10 rounded-full h-2">
+                        <div className="flex-1 bg-slate-100 rounded-full h-2">
                           <div className="bg-amber-500 h-2 rounded-full" style={{ width: row.bar }} />
                         </div>
-                        <span className="text-xs text-slate-400 font-medium w-12 text-right flex-shrink-0">{row.count}건</span>
+                        <span className="text-xs text-slate-500 font-medium w-12 text-right flex-shrink-0">{row.count}건</span>
                       </div>
                     ))}
                   </div>
 
-                  <div className="mt-5 pt-4 border-t border-white/10">
-                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <div className="mt-5 pt-4 border-t border-slate-200">
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
                       <Info size={12} />
                       런치 피크타임에 팅커벨 활동이 가장 활발합니다
                     </div>
@@ -624,7 +624,7 @@ export default function TinkerBellManagerPage() {
 
               {/* 언어별 사용 분포 */}
               <div className={CARD}>
-                <h3 className="text-sm font-black text-white mb-4">언어별 이용 고객 분포</h3>
+                <h3 className="text-sm font-black text-slate-900 mb-4">언어별 이용 고객 분포</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
                     { lang:'ko', label:'한국어', flag:'🇰🇷', pct:74, color:'bg-orange-500' },
@@ -634,9 +634,9 @@ export default function TinkerBellManagerPage() {
                   ].map(l => (
                     <div key={l.lang} className="text-center">
                       <div className="text-3xl mb-1">{l.flag}</div>
-                      <p className="text-2xl font-black text-white">{l.pct}%</p>
-                      <p className="text-xs text-slate-400 font-medium">{l.label}</p>
-                      <div className="w-full bg-white/10 rounded-full h-1.5 mt-2">
+                      <p className="text-2xl font-black text-slate-900">{l.pct}%</p>
+                      <p className="text-xs text-slate-500 font-medium">{l.label}</p>
+                      <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
                         <div className={`${l.color} h-1.5 rounded-full`} style={{ width: `${l.pct}%` }} />
                       </div>
                     </div>
@@ -645,11 +645,11 @@ export default function TinkerBellManagerPage() {
               </div>
 
               {/* CTA */}
-              <div className="rounded-3xl bg-white/5 border border-white/10 p-7 flex items-center justify-between gap-6 flex-wrap">
+              <div className="rounded-3xl bg-slate-50 border border-slate-200 p-7 flex items-center justify-between gap-6 flex-wrap">
                 <div>
-                  <h3 className="text-lg font-black text-white">팅커벨로 매출을 높이세요</h3>
-                  <p className="text-sm text-slate-400 mt-1">
-                    평균 주문당 <span className="text-amber-400 font-black">+1.8개</span> 추가 메뉴 · 신규 회원 전환율 <span className="text-emerald-400 font-black">+24%</span>
+                  <h3 className="text-lg font-black text-slate-900">팅커벨로 매출을 높이세요</h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    평균 주문당 <span className="text-amber-600 font-black">+1.8개</span> 추가 메뉴 · 신규 회원 전환율 <span className="text-emerald-600 font-black">+24%</span>
                   </p>
                 </div>
                 <button
