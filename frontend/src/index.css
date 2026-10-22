@@ -608,3 +608,6 @@ button, [role="button"], a, summary, label { touch-action: manipulation; }
 .tds-badge-popular { background-color: rgba(249, 115, 22, 0.1); color: #f97316; }
 .tds-badge-special { background-color: rgba(234, 88, 12, 0.1); color: #ea580c; }
 
+
+/* 메뉴판 미리보기는 고객 화면 그대로 보여야 하므로 아틱(라이트) 보정에서 제외 */
+.admin-light .menu-preview-scope .text-white { color: #fff !important; }
