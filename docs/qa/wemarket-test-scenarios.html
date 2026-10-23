@@ -108,6 +108,15 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--bg);padding:1px 5
 </section>
 
 <section>
+  <h2>운영 실행 결과 <small>2026-10-23 12:50 KST · 강남 테스트 매장 · PR #13 배포 전 코드</small></h2>
+  <div class="callout">
+    <p id="prodSummary"></p>
+    <ul class="findings" id="prodList"></ul>
+    <p class="note">주문·웨이팅·예약·직원 추가는 운영 DB에 실제로 만들었다가 끝에 취소·해제했습니다(서빙 완료 처리한 S1 주문 1건만 완료 상태로 남음). 실결제와 단체 문자는 하지 않았습니다.</p>
+  </div>
+</section>
+
+<section>
   <h2>테스트 계정 <small>운영 DB에 이미 시드된 강남역 매장 10곳</small></h2>
   <div class="tablewrap"><table>
     <thead><tr><th>코드</th><th>매장</th><th>업종</th><th>로그인 휴대폰</th><th>이메일</th><th>테이블</th><th>영업시간 / 휴무</th><th>시드 쿠폰 (최소금액)</th></tr></thead>
@@ -368,9 +377,15 @@ const RES = {
  'TC-48':'주방 계정은 주방 화면에서만 취소합니다(그 경로가 환불까지 처리). 관리자 취소 경로는 주방 계정에 403입니다.',
  'TC-50':'웨이팅 조회는 등록 때 받은 토큰이 있어야 하고, 쓰이지 않던 전화번호 알림 채널은 없앴습니다. 번호 등록(포인트 적립)도 본인 주문 증명이 있어야 합니다.',
 };
+const PROD = [["사장님 휴대폰 번호로 로그인","pass","10개 매장 계정 모두 로그인되고 매장 1곳씩 보임"],["비밀번호를 여러 번 틀림","pass","401 \"아이디 또는 비밀번호가 올바르지 않습니다.\" (계정 존재 숨김)"],["테이블 QR 재발급 후 옛 QR 스캔","repro","없는 QR에 404와 함께 깨진 문구 — PR #13 배포 후 해결"],["영업 중 메뉴 품절 처리","newfix","관리자 화면의 품절 변경이 저장되지 않아 품절 메뉴가 그대로 주문됨 → 상품 수정 요청 검증을 고쳐 해결"],["QR 스캔부터 주문 접수까지","repro","\"1번\" 테이블 주문이 400 \"유효한 테이블을 찾을 수 없습니다\" — PR #13 배포 후 해결"],["휴무일(토요일) 주문","repro","영업시간 외(12:52, 오늘통닭) API 주문이 접수됨 — PR #13 배포 후 거절"],["수량 0·음수·소수 주문","pass","400"],["결제 금액을 낮춰서 주문 전송","pass","409 \"상품 가격이 변경되었습니다…\""],["주문 버튼 두 번 연속 탭","pass","같은 키 두 번 → 주문 1건"],["접수 → 조리 → 완료 → 서빙","pass","조리 시작·완료·서빙 모두 200"],["주방 태블릿 두 대가 같은 주문을 동시에 누름","pass","동시 요청 2건 모두 200 (같은 상태 재시도는 멱등 처리)"],["단계 건너뛰기","pass","400 \"현재 pending 상태에서는 completed로 변경할 수 없습니다.\""],["매니저 화면에서 주문 상태 일괄 관리","pass","관리자 취소 200 (취소 사유 코드 필요)"],["직원 호출","pass","ACK 수신"],["직원 호출 연타·원격 호출","repro","1초에 5번 모두 접수 — PR #13 배포 후 제한"],["웨이팅 등록","pass","201, 대기 번호 발급"],["같은 번호로 중복 등록","repro","400이지만 기존 등록자 정보가 응답에 포함 — PR #13 배포 후 해결"],["호출했는데 손님이 안 옴","repro","노쇼 상태 400 — PR #13 배포 후 지원"],["잘못된 입력으로 웨이팅 등록","repro","인원 \"abc\" → 500과 DB 오류 원문 노출 — PR #13 배포 후 400, 운영 오류 원문 숨김"],["동시 등록 번호 중복 · 오전 9시 번호 초기화","repro","5명 동시 등록 번호 [2, 5, 4, 4, 3] 중복 — PR #13 배포 후 해결"],["전화번호만으로 남의 웨이팅·주문 엿보기","repro","토큰 없이 200, 1건 노출 — PR #13 배포 후 403"],["다른 매장 데이터 접근","pass","403"],["기존 회원을 직원으로 추가","pass","S10 계정을 S6 직원으로 추가 201, 주문 조회 200 (테스트 후 해제)"],["룸 단체 예약 등록","pass","200 (테스트 후 취소)"],["예약 확정과 거절","pass","사장 예약 목록에 방금 예약 표시"],["지난 날짜로 예약","newfix","어제 날짜 예약이 접수됨 → 예약 입력 검증 추가로 해결"],["번호만으로 남의 예약 조회·취소","pass","403"],["직원 계정의 고객 목록 접근","pass","403"],["직원 계정의 매출 통계 접근","pass","403"],["직원 계정의 메뉴 수정","newfix","직원 계정이 메뉴 가격을 수정할 수 있었음(200) → 메뉴 수정·삭제에 items:manage 권한 요구"],["새 메뉴 추가","newfix","관리자 화면과 같은 요청이 400 \"storeId 필요\"로 막혀 메뉴를 추가할 수 없었음 → 요청 검증을 관리자 형식에 맞춰 해결"],["번호만으로 남의 즐겨찾기 보기","newfix","토큰 없이 200 → 번호 등록 때 받은 손님 토큰 필요"],["인증 없는 예전 장바구니 API","newfix","토큰 없이 200 → 예전 API를 닫음(410)"]];
+const PROD_LABEL={pass:['운영 통과','f-ok'],repro:['운영에서 재현 · PR #13 배포 대기','f-bug'],newfix:['운영에서 새로 발견 · 수정함','f-fix']};
+const NEWFIX_RES={};PROD.forEach(([t,k,txt])=>{if(k==='newfix')NEWFIX_RES[t]=txt;});
 const AREAS = [...new Set(S.map(x=>x.a))];
 S.forEach((x,i)=>x.id='TC-'+String(i+1).padStart(2,'0'));
 S.forEach(x=>{ if(RES[x.id]){ x.was=x.f; x.res=RES[x.id]; x.f='fix'; } });
+S.forEach(x=>{ const hit=PROD.find(([t])=>t===x.title); if(!hit) return; x.prod=hit;
+  if(hit[1]==='newfix'){ if(!x.was) x.was=(x.f==='run'?'bug':x.f); x.f='fix'; x.res=(x.res?x.res+' ':'')+hit[2]; }
+  else if(hit[1]==='pass' && x.f==='run'){ x.f='ok'; } });
 
 const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pill = f => `<span class="pill ${FLAG[f][1]}">${FLAG[f][0]}</span>`;
@@ -385,6 +400,13 @@ document.getElementById('findings').innerHTML = newBugs
   .sort((a,b)=>order[a.was]-order[b.was])
   .map(x=>`<li>${pill(x.f)}<span><a href="#${x.id}" data-jump="${x.id}"><span class="mono">${x.id}</span></a> ${esc(x.title)} <span class="was">${FLAG[x.was][0]}</span></span></li>`).join('');
 
+{
+  const ran=S.filter(x=>x.prod);const cnt=k=>ran.filter(x=>x.prod[1]===k).length;
+  document.getElementById('prodSummary').textContent=`운영에서 ${ran.length}개 시나리오를 실행했습니다. 통과 ${cnt('pass')}개, PR #13 배포 전이라 재현된 결함 ${cnt('repro')}개, 실행하며 새로 찾아 수정한 결함 ${cnt('newfix')}개입니다.`;
+  const order={newfix:0,repro:1,pass:2};
+  document.getElementById('prodList').innerHTML=ran.filter(x=>x.prod[1]!=='pass').sort((a,b)=>order[a.prod[1]]-order[b.prod[1]]).map(x=>`<li><span class="pill ${PROD_LABEL[x.prod[1]][1]}">${PROD_LABEL[x.prod[1]][0]}</span><span><a href="#${x.id}" data-jump="${x.id}"><span class="mono">${x.id}</span></a> ${esc(x.title)} — ${esc(x.prod[2])}</span></li>`).join('');
+  document.getElementById('prodList').addEventListener('click',e=>{const a=e.target.closest('[data-jump]');if(a){e.preventDefault();openTarget(a.dataset.jump);}});
+}
 const fArea=document.getElementById('fArea');
 fArea.innerHTML='<option value="">영역 전체</option>'+AREAS.map(a=>`<option>${a}</option>`).join('');
 
@@ -395,7 +417,7 @@ function card(x){
     <dt>사전 조건</dt><dd>${esc(x.pre)}</dd>
     <dt>단계</dt><dd><ol>${x.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol></dd>
     <dt>기대 결과</dt><dd>${esc(x.exp)}</dd>
-  </dl>${x.res?`<div class="resnote"><b>해결</b> ${esc(x.res)}</div>`:''}${x.note?`<div class="flagnote ${FLAG[x.was||x.f][1]}">${x.was?`<span class="was">처음 판정: ${FLAG[x.was][0]}</span><br>`:''}${esc(x.note)}</div>`:''}</div></details>`;
+  </dl>${x.prod?`<div class="flagnote ${PROD_LABEL[x.prod[1]][1]}"><b>${PROD_LABEL[x.prod[1]][0]}</b> ${esc(x.prod[2])}</div>`:''}${x.res?`<div class="resnote"><b>해결</b> ${esc(x.res)}</div>`:''}${x.note?`<div class="flagnote ${FLAG[x.was||x.f][1]}">${x.was?`<span class="was">처음 판정: ${FLAG[x.was][0]}</span><br>`:''}${esc(x.note)}</div>`:''}</div></details>`;
 }
 const els = {a:fArea,t:document.getElementById('fType'),f:document.getElementById('fFlag'),q:document.getElementById('fText')};
 function render(){
