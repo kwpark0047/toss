@@ -502,7 +502,8 @@ button, [role="button"], a, summary, label { touch-action: manipulation; }
 /* 컬러/그라디언트 버튼 위 흰 텍스트는 유지 */
 .admin-light .bg-gradient-to-r.text-white,
 .admin-light [class*="from-orange"].text-white,
-.admin-light .bg-orange-500.text-white { color: #fff !important; }
+.admin-light .bg-orange-500.text-white,
+.admin-light :is(.bg-orange-600, .bg-blue-500, .bg-blue-600, .bg-blue-700, .bg-red-500, .bg-red-600, .bg-green-500, .bg-green-600, .bg-emerald-500, .bg-emerald-600, .bg-purple-600, .bg-slate-800, .bg-slate-900, .bg-gray-800, .bg-gray-900, .bg-black).text-white { color: #fff !important; }
 /* 의도적 다크 영역(모달 등)은 다크 유지 (더 높은 특이도로 재지정) */
 .admin-light .admin-dark-scope .text-white { color: #fff !important; }
 .admin-light .admin-dark-scope .text-slate-200, .admin-light .admin-dark-scope .text-slate-300 { color: #cbd5e1 !important; }
