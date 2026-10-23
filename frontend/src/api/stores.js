@@ -21,6 +21,9 @@ export const storesAPI = {
   getPopular: () => api.get('/stores/popular'),
   create: (data) => api.post('/stores', data),
   update: (id, data) => api.put('/stores/' + id, data),
+  // 위치 지정용 주소 후보 검색 (store:update 권한 필요)
+  searchLocation: (id, q, config = {}) =>
+    api.get('/stores/' + id + '/location/search', { params: { q }, ...config }),
   delete: (id) => api.delete('/stores/' + id),
   addFavorite: (customerPhone, storeId) =>
     api.post(

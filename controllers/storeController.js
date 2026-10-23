@@ -1,8 +1,32 @@
 const StoreService = require('../services/StoreService');
 const Store = require('../repositories/Store');
 const prisma = require('../config/prisma');
+const geocodeService = require('../services/geocodeService');
+const logger = require('../utils/logger');
 
 const storeService = new StoreService();
+
+/**
+ * 새 매장의 도로명 주소를 응답 후 백그라운드로 지오코딩한다 (실패해도 매장 생성에는 영향 없음).
+ * 그 사이 사장님이 직접 위치를 지정했다면 덮어쓰지 않도록 좌표가 비어 있을 때만 갱신한다.
+ */
+function geocodeNewStoreInBackground(store) {
+  if (!store?.id || !store.address || store.latitude != null || !geocodeService.isConfigured())
+    return;
+  geocodeService
+    .geocode(store.address)
+    .then(async (coord) => {
+      if (!coord) return;
+      const { count } = await prisma.stores.updateMany({
+        where: { id: store.id, latitude: null, longitude: null },
+        data: { latitude: coord.lat, longitude: coord.lng },
+      });
+      if (count) storeService.flushStoreCache(store.id);
+    })
+    .catch((err) =>
+      logger.warn({ storeId: store.id, error: err.message }, '신규 매장 지오코딩 실패')
+    );
+}
 
 const storeController = {
   // GET / — 전체 매장 목록 조회
@@ -151,6 +175,7 @@ const storeController = {
     }
 
     res.created(result.store, '매장이 생성되었습니다.');
+    geocodeNewStoreInBackground(result.store);
   },
 
   // GET /:id — 매장 상세 조회
@@ -172,6 +197,29 @@ const storeController = {
     const updated = await Store.update(req.params.id, req.body);
     storeService.flushStoreCache(req.params.id);
     res.success(updated, '매장 정보가 수정되었습니다.');
+  },
+
+  // GET /:id/location/search?q= — 위치 지정용 주소 후보 검색 (권한은 라우터에서 확인)
+  async searchLocation(req, res) {
+    if (!geocodeService.isConfigured()) {
+      // 502/503은 프론트의 콜드스타트 재시도를 유발하므로 424(외부 의존성 실패)로 응답
+      return res
+        .status(424)
+        .json({ success: false, error: '주소 검색 서비스가 설정되지 않았습니다.' });
+    }
+    try {
+      // Express 5에서는 req.query 재할당이 무시될 수 있어 검증된 값을 우선 사용
+      const q = req.validated?.query?.q ?? String(req.query.q || '').trim();
+      const results = await geocodeService.searchAddresses(q);
+      res.success({ query: q, results });
+    } catch (err) {
+      if (err instanceof geocodeService.GeocodeProviderError) {
+        return res
+          .status(err.status === 429 ? 429 : 424)
+          .json({ success: false, error: err.message });
+      }
+      throw err;
+    }
   },
 
   // DELETE /:id — 매장 삭제
