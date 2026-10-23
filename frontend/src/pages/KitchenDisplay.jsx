@@ -278,9 +278,9 @@ knownOrderIdsRef.current = currentIds;
   const getTimerSeverityClass = createdAtString => {
     const elapsedMs = currentTime - new Date(createdAtString).getTime();
     const mins = elapsedMs / 1000 / 60;
-    if (mins >= 10) return 'bg-rose-500/10 text-rose-500 border-rose-500/30 animate-pulse';
-    if (mins >= 5) return 'bg-amber-500/10 text-amber-500 border-amber-500/30';
-    return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+    if (mins >= 10) return 'bg-rose-500/10 text-rose-600 border-rose-500/30 animate-pulse';
+    if (mins >= 5) return 'bg-amber-500/10 text-amber-600 border-amber-500/30';
+    return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
   };
 
   // 검색 및 포장 여부에 따른 필터링 적용
@@ -355,9 +355,9 @@ knownOrderIdsRef.current = currentIds;
 return () => window.removeEventListener('keydown', handleKeyDown);
   }, [pendingOrders, preparingOrders, readyOrders, soundEnabled, fetchKdsOrders, handleUpdateStatus, speakOrderVocal]);
 
-return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 flex flex-col h-screen select-none">
+return <div className="min-h-screen bg-slate-50 text-slate-900 font-sans p-4 flex flex-col h-screen select-none">
       {/* KDS 최상단 상단바 헤더 */}
-      <header className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      <header className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200">
         <div className="flex items-center gap-3">
           <div className="bg-orange-500 text-white p-3 rounded-xl shadow-lg shadow-orange-500/10">
             <Printer className="size-5" />
@@ -365,17 +365,17 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2 tracking-tight">
               {t('kds.title')}
-              <span className="text-xs font-mono font-normal text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+              <span className="text-xs font-mono font-normal text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
                 Advanced KDS v1.2
               </span>
             </h1>
-            <p className="text-xs text-slate-400">{t('kds.subtitle')}</p>
+            <p className="text-xs text-slate-500">{t('kds.subtitle')}</p>
           </div>
         </div>
 
         {/* 상단 컨트롤 패널 (터치 피드백 강화 및 48px 터치 영역 충족) */}
         <div className="flex items-center gap-2.5">
-          {isSupported && <button onClick={connectPrinter} disabled={isConnecting} className={`px-4 h-12 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all active:scale-95 ${printerDevice ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-300'}`}>
+          {isSupported && <button onClick={connectPrinter} disabled={isConnecting} className={`px-4 h-12 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all active:scale-95 ${printerDevice ? 'bg-blue-500/10 border-blue-500/30 text-blue-600' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-700'}`}>
               <Bluetooth className={`size-4 ${isConnecting ? 'animate-pulse' : ''}`} />
               <span className="font-mono text-xs uppercase font-bold">
                 {printerDevice ? 'PRINTER ON' : 'CONNECT PRINTER'}
@@ -383,7 +383,7 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
             </button>}
 
           {/* 소켓 연결 표시등 */}
-          <div className={`flex items-center gap-1.5 px-4 h-12 rounded-xl text-xs font-mono border ${socketStatus === 'CONNECTED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 animate-pulse'}`}>
+          <div className={`flex items-center gap-1.5 px-4 h-12 rounded-xl text-xs font-mono border ${socketStatus === 'CONNECTED' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 border-rose-500/20 animate-pulse'}`}>
             {socketStatus === 'CONNECTED' ? <>
                 <Wifi className="size-3.5" />
                 <span>ONLINE</span>
@@ -394,19 +394,19 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
           </div>
 
           {/* AI TTS 라이브 스피커 토글 (48px 터치 영역 충족) */}
-          <button onClick={() => setVoiceEnabled(!voiceEnabled)} className={`px-4 h-12 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all active:scale-95 ${voiceEnabled ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
+          <button onClick={() => setVoiceEnabled(!voiceEnabled)} className={`px-4 h-12 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all active:scale-95 ${voiceEnabled ? 'bg-rose-500/10 border-rose-500/30 text-rose-600' : 'bg-white border-slate-200 text-slate-500'}`}>
             <Icon icon="Megaphone" />
             <span className="font-mono text-xs uppercase font-bold">{voiceEnabled ? 'VOICE ON' : 'VOICE OFF'}</span>
           </button>
 
           {/* 사운드 활성 토글 (48px 터치 영역 충족) */}
-          <button onClick={() => setSoundEnabled(!soundEnabled)} className={`px-4 h-12 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all active:scale-95 ${soundEnabled ? 'bg-orange-500/10 border-orange-500/30 text-orange-400' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
+          <button onClick={() => setSoundEnabled(!soundEnabled)} className={`px-4 h-12 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all active:scale-95 ${soundEnabled ? 'bg-orange-500/10 border-orange-500/30 text-orange-600' : 'bg-white border-slate-200 text-slate-500'}`}>
             {soundEnabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
             <span className="font-mono text-xs uppercase font-bold">{soundEnabled ? 'BELL ON' : 'BELL MUTED'}</span>
           </button>
 
           {/* 수동 리프레시 버튼 (48px 터치 영역 충족) */}
-          <button onClick={() => fetchKdsOrders(true)} disabled={loading} className="w-12 h-12 rounded-xl border border-slate-850 bg-slate-900 hover:bg-slate-850 text-slate-300 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center">
+          <button onClick={() => fetchKdsOrders(true)} disabled={loading} className="w-12 h-12 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center">
             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -415,7 +415,7 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
       {/* 필터 툴바 */}
       <div className="flex flex-wrap items-center justify-between gap-3 my-3">
         {/* 포장/매장 필터 칩 (48px 터치 영역 충족 및 모션 효과 적용) */}
-        <div className="flex bg-slate-900 p-1 rounded-2xl border border-slate-800">
+        <div className="flex bg-white p-1 rounded-2xl border border-slate-200">
           {[{
           id: 'ALL',
           label: t('kds.filters.all')
@@ -425,53 +425,53 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
         }, {
           id: 'TAKEOUT',
           label: t('kds.filters.takeout')
-        }].map(opt => <button key={opt.id} onClick={() => setFilteredType(opt.id)} className={`px-5 h-10 rounded-xl text-xs font-bold transition-all active:scale-95 ${filterType === opt.id ? 'bg-orange-500 text-white shadow-md shadow-orange-500/10' : 'text-slate-400 hover:text-slate-200'}`}>
+        }].map(opt => <button key={opt.id} onClick={() => setFilteredType(opt.id)} className={`px-5 h-10 rounded-xl text-xs font-bold transition-all active:scale-95 ${filterType === opt.id ? 'bg-orange-500 text-white shadow-md shadow-orange-500/10' : 'text-slate-500 hover:text-slate-900'}`}>
               {opt.label}
             </button>)}
         </div>
 
         {/* 대기 주문 검색 바 */}
         <div className="relative max-w-md w-full md:w-80">
-          <input type="text" placeholder={t('kds.search_placeholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-orange-500 placeholder-slate-500 transition-all" />
-          {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-3 text-slate-500 hover:text-slate-300">
+          <input type="text" placeholder={t('kds.search_placeholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-orange-500 placeholder-slate-400 transition-all" />
+          {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-3 text-slate-500 hover:text-slate-700">
               <XCircle className="size-4" />
             </button>}
         </div>
       </div>
 
-      {error && <div role="alert" className="p-4 text-red-400">{error}</div>}
+      {error && <div role="alert" className="p-4 text-red-600">{error}</div>}
       {loading && orders.length === 0 ? (/* 스켈레톤 로딩 */
     <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map(col => <div key={col} className="bg-slate-900/40 rounded-xl border border-slate-850 p-4 animate-pulse flex flex-col gap-4">
-              <div className="h-4 bg-slate-800 rounded w-1/3"></div>
-              <div className="h-32 bg-slate-800 rounded-lg"></div>
-              <div className="h-32 bg-slate-800 rounded-lg"></div>
+          {[1, 2, 3].map(col => <div key={col} className="bg-slate-100 rounded-xl border border-slate-200 p-4 animate-pulse flex flex-col gap-4">
+              <div className="h-4 bg-slate-200 rounded w-1/3"></div>
+              <div className="h-32 bg-slate-200 rounded-lg"></div>
+              <div className="h-32 bg-slate-200 rounded-lg"></div>
             </div>)}
         </div>) : (/* 메인 3컬럼 KDS 보드 레이아웃 */
     <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 overflow-hidden min-h-0">
           {/* 컬럼 1: 접수 대기 (PENDING) */}
-          <div className="bg-slate-900/30 rounded-xl border border-slate-900 flex flex-col min-h-0">
-            <div className="p-3.5 bg-slate-900/50 border-b border-slate-850 flex items-center justify-between">
-              <h2 className="text-xs font-bold text-amber-400 tracking-wider flex items-center gap-2">
+          <div className="bg-slate-100/70 rounded-xl border border-slate-200 flex flex-col min-h-0">
+            <div className="p-3.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
+              <h2 className="text-xs font-bold text-amber-600 tracking-wider flex items-center gap-2">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
                 {t('kds.columns.pending')}
               </h2>
-              <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400">
+              <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-600">
                 {pendingOrders.length}
               </span>
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-h-0">
-              {pendingOrders.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-10">
+              {pendingOrders.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 py-10">
                   <Clock className="size-8 stroke-[1.5] mb-2 opacity-50" />
                   <p className="text-xs">{t('kds.empty.pending')}</p>
-                </div> : pendingOrders.map(order => <div key={order.id} className="bg-slate-900 border border-amber-500/20 hover:border-amber-500/40 rounded-xl overflow-hidden transition-all shadow-sm">
-                    <div className="p-3.5 border-b border-slate-850/60 bg-amber-500/[0.02] flex items-center justify-between">
+                </div> : pendingOrders.map(order => <div key={order.id} className="bg-white border border-amber-500/20 hover:border-amber-500/40 rounded-xl overflow-hidden transition-all shadow-sm">
+                    <div className="p-3.5 border-b border-slate-200 bg-amber-500/[0.02] flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-sm text-slate-100">
+                        <span className="font-mono font-bold text-sm text-slate-900">
                           #{order.order_number.slice(-4)}
                         </span>
-                        <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                        <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${order.is_takeout ? 'bg-orange-500/10 text-orange-600' : 'bg-blue-500/10 text-blue-600'}`}>
                           {(order.is_takeout || !order.table_id) ? t('kds.labels.takeout') : `${order.table_name || t('kds.labels.table_fallback')}번`}
                         </span>
                       </div>
@@ -485,11 +485,11 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
 
                       {/* 주문 내역 */}
                     <div className="p-3.5 flex flex-col gap-2">
-                      <ul className="divide-y divide-slate-850/50">
+                      <ul className="divide-y divide-slate-100">
                         {order.items.map(item => <li key={item.id} className="py-1.5 flex flex-col text-xs">
                             <div className="flex items-center justify-between">
-                              <span className="font-medium text-slate-200">{item.product_name}</span>
-                              <span className="font-mono font-bold text-orange-400 text-sm">x{item.quantity}</span>
+                              <span className="font-medium text-slate-800">{item.product_name}</span>
+                              <span className="font-mono font-bold text-orange-600 text-sm">x{item.quantity}</span>
                             </div>
                             {item.options && <div className="text-[10px] text-slate-500 mt-0.5 font-sans leading-relaxed">
                                 {Object.entries(JSON.parse(item.options)).map(([k, v]) => `${k}: ${v}`).join(', ')}
@@ -497,8 +497,8 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
                           </li>)}
                       </ul>
 
-                      {order.notes && <div className="text-[10px] bg-slate-950 p-2.5 rounded-lg text-slate-400 border border-slate-900 leading-relaxed">
-                          <strong className="text-amber-500">{t('kds.labels.notes')}</strong> {order.notes}
+                      {order.notes && <div className="text-[10px] bg-slate-50 p-2.5 rounded-lg text-slate-500 border border-slate-200 leading-relaxed">
+                          <strong className="text-amber-600">{t('kds.labels.notes')}</strong> {order.notes}
                         </div>}
 
                       {/* 액션 버튼 (48px 터치 영역 충족 및 스케일 모션 적용) */}
@@ -512,28 +512,28 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
           </div>
 
           {/* 컬럼 2: 조리 중 (PREPARING) */}
-          <div className="bg-slate-900/30 rounded-xl border border-slate-900 flex flex-col min-h-0">
-            <div className="p-3.5 bg-slate-900/50 border-b border-slate-850 flex items-center justify-between">
-              <h2 className="text-xs font-bold text-sky-400 tracking-wider flex items-center gap-2">
+          <div className="bg-slate-100/70 rounded-xl border border-slate-200 flex flex-col min-h-0">
+            <div className="p-3.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
+              <h2 className="text-xs font-bold text-sky-600 tracking-wider flex items-center gap-2">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
                 {t('kds.columns.preparing')}
               </h2>
-              <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-400">
+              <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-600">
                 {preparingOrders.length}
               </span>
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-h-0">
-              {preparingOrders.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-10">
+              {preparingOrders.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 py-10">
                   <Printer className="size-8 stroke-[1.5] mb-2 opacity-50" />
                   <p className="text-xs">{t('kds.empty.preparing')}</p>
-                </div> : preparingOrders.map(order => <div key={order.id} className="bg-slate-900 border border-sky-500/20 hover:border-sky-500/40 rounded-xl overflow-hidden transition-all shadow-sm">
-                    <div className="p-3.5 border-b border-slate-850/60 bg-sky-500/[0.02] flex items-center justify-between">
+                </div> : preparingOrders.map(order => <div key={order.id} className="bg-white border border-sky-500/20 hover:border-sky-500/40 rounded-xl overflow-hidden transition-all shadow-sm">
+                    <div className="p-3.5 border-b border-slate-200 bg-sky-500/[0.02] flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-sm text-slate-100">
+                        <span className="font-mono font-bold text-sm text-slate-900">
                           #{order.order_number.slice(-4)}
                         </span>
-                        <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                        <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${order.is_takeout ? 'bg-orange-500/10 text-orange-600' : 'bg-blue-500/10 text-blue-600'}`}>
                           {(order.is_takeout || !order.table_id) ? t('kds.labels.takeout') : `${order.table_name || t('kds.labels.table_fallback')}번`}
                         </span>
                       </div>
@@ -547,18 +547,18 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
 
                       {/* 인터랙티브 체크아이템 주문 상품 목록 */}
                     <div className="p-3.5 flex flex-col gap-2">
-                      <ul className="divide-y divide-slate-850/50">
+                      <ul className="divide-y divide-slate-100">
                         {order.items.map(item => {
                   const isChecked = checkedItems[`${order.id}-${item.id}`];
                   return <li key={item.id} onClick={() => toggleCheckItem(order.id, item.id)} className={`py-1.5 flex flex-col cursor-pointer transition-all ${isChecked ? 'opacity-40 line-through' : ''}`}>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                  <span className={`inline-block w-4 h-4 rounded border text-[10px] flex items-center justify-center font-bold font-mono transition-all ${isChecked ? 'bg-sky-500 border-sky-500 text-slate-950' : 'border-slate-700 hover:border-sky-500'}`}>
+                                  <span className={`inline-block w-4 h-4 rounded border text-[10px] flex items-center justify-center font-bold font-mono transition-all ${isChecked ? 'bg-sky-500 border-sky-500 text-slate-950' : 'border-slate-300 hover:border-sky-500'}`}>
                                     {isChecked && '✓'}
                                   </span>
-                                  <span className="font-medium text-slate-200">{item.product_name}</span>
+                                  <span className="font-medium text-slate-800">{item.product_name}</span>
                                 </div>
-                                <span className="font-mono font-bold text-sky-400 text-sm">x{item.quantity}</span>
+                                <span className="font-mono font-bold text-sky-600 text-sm">x{item.quantity}</span>
                               </div>
                               {item.options && <div className="text-[10px] text-slate-500 ml-6 mt-0.5 font-sans leading-relaxed">
                                   {Object.entries(JSON.parse(item.options)).map(([k, v]) => `${k}: ${v}`).join(', ')}
@@ -567,13 +567,13 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
                 })}
                       </ul>
 
-                      {order.notes && <div className="text-[10px] bg-slate-950 p-2.5 rounded-lg text-slate-400 border border-slate-900 leading-relaxed">
-                          <strong className="text-sky-500">{t('kds.labels.notes')}</strong> {order.notes}
+                      {order.notes && <div className="text-[10px] bg-slate-50 p-2.5 rounded-lg text-slate-500 border border-slate-200 leading-relaxed">
+                          <strong className="text-sky-600">{t('kds.labels.notes')}</strong> {order.notes}
                         </div>}
 
                       {/* 슬립 인쇄 대기열 강제 재등록 단추 (48px 터치 영역 충족) */}
                       <div className="flex gap-2 mt-2">
-                        <button onClick={() => handleReprintSlip(order.id)} disabled={updatingId === order.id} title="주방 인쇄 작업 강제 추가" className="w-12 h-12 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-750 disabled:opacity-50 text-slate-400 hover:text-slate-200 rounded-xl font-medium text-xs flex items-center justify-center transition-all active:scale-95">
+                        <button onClick={() => handleReprintSlip(order.id)} disabled={updatingId === order.id} title="주방 인쇄 작업 강제 추가" className="w-12 h-12 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 disabled:opacity-50 text-slate-500 hover:text-slate-900 rounded-xl font-medium text-xs flex items-center justify-center transition-all active:scale-95">
                           <Printer className="size-4" />
                         </button>
                         
@@ -588,13 +588,13 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
           </div>
 
           {/* 컬럼 3: 수령 대기 (READY) 및 보이스 브로드캐스트 모니터링 결합 */}
-          <div className="bg-slate-900/30 rounded-xl border border-slate-900 flex flex-col min-h-0">
-            <div className="p-3.5 bg-slate-900/50 border-b border-slate-850 flex items-center justify-between">
-              <h2 className="text-xs font-bold text-emerald-400 tracking-wider flex items-center gap-2">
+          <div className="bg-slate-100/70 rounded-xl border border-slate-200 flex flex-col min-h-0">
+            <div className="p-3.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
+              <h2 className="text-xs font-bold text-emerald-600 tracking-wider flex items-center gap-2">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
                 {t('kds.columns.ready')}
               </h2>
-              <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600">
                 {readyOrders.length}
               </span>
             </div>
@@ -602,20 +602,20 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-h-0 justify-between">
               {/* 조리 완료 대기 목록 */}
               <div className="flex-1 overflow-y-auto flex flex-col gap-3">
-                {readyOrders.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 py-10">
+                {readyOrders.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 py-10">
                     <CheckCircle2 className="size-8 stroke-[1.5] mb-2 opacity-50" />
                     <p className="text-xs">{t('kds.empty.ready')}</p>
-                  </div> : readyOrders.map(order => <div key={order.id} className="bg-slate-900 border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl overflow-hidden transition-all shadow-sm">
-                      <div className="p-3.5 border-b border-slate-850/60 bg-emerald-500/[0.02] flex items-center justify-between">
+                  </div> : readyOrders.map(order => <div key={order.id} className="bg-white border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl overflow-hidden transition-all shadow-sm">
+                      <div className="p-3.5 border-b border-slate-200 bg-emerald-500/[0.02] flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-sm text-slate-100">
+                          <span className="font-mono font-bold text-sm text-slate-900">
                             #{order.order_number.slice(-4)}
                           </span>
-                          <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${order.is_takeout ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                          <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${order.is_takeout ? 'bg-orange-500/10 text-orange-600' : 'bg-blue-500/10 text-blue-600'}`}>
                             {(order.is_takeout || !order.table_id) ? t('kds.labels.takeout') : `${order.table_name || t('kds.labels.table_fallback')}번`}
                           </span>
                         </div>
-                        <div className="text-[10px] px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg font-mono font-bold">
+                        <div className="text-[10px] px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-lg font-mono font-bold">
                           CALLING...
                         </div>
                       </div>
@@ -625,25 +625,25 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
 
                       {/* 수령 정보 카드 */}
                       <div className="p-3.5 flex flex-col gap-2">
-                        <div className="bg-slate-950 p-3 rounded-xl border border-slate-850/60 flex flex-col gap-1.5">
-                          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col gap-1.5">
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500">
                             <User className="size-3.5" />
                             <span>{t('kds.info.phone')}</span>
-                            <span className="font-mono text-slate-200">
+                            <span className="font-mono text-slate-800">
                               {order.has_customer_contact ? '연락처 등록됨' : t('kds.info.no_registration')}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500">
                             <Hash className="size-3.5" />
                             <span>{t('kds.info.wait_order')}</span>
-                            <span className="font-mono text-slate-200">
+                            <span className="font-mono text-slate-800">
                               {order.queue_number ? `${order.queue_number}번` : t('kds.info.no_info')}
                             </span>
                           </div>
                         </div>
 
                         {/* 상품 요약 */}
-                        <ul className="text-xs text-slate-400 px-1 py-1 divide-y divide-slate-850/40">
+                        <ul className="text-xs text-slate-500 px-1 py-1 divide-y divide-slate-100">
                           {order.items.map(item => <li key={item.id} className="py-1 flex items-center justify-between">
                               <span>{item.product_name}</span>
                               <span className="font-mono font-bold">x{item.quantity}</span>
@@ -660,16 +660,16 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
               </div>
 
               {/* 실시간 AI 음성 방송 텍스트 브로드캐스트 현장 모니터 전광판 (UI 결합 추가) */}
-              {voiceEnabled && <div className="mt-4 p-4 rounded-2xl bg-white/[0.01] border border-white/5 space-y-3 shrink-0 text-left">
-                  <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+              {voiceEnabled && <div className="mt-4 p-4 rounded-2xl bg-white border border-slate-200 space-y-3 shrink-0 text-left">
+                  <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
                     <Icon icon="Megaphone" />
-                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-300">{t('kds.voice.title')}</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-600">{t('kds.voice.title')}</span>
                   </div>
-                  {voiceLogs.length === 0 ? <p className="text-[10px] text-slate-600 font-semibold italic text-center py-2">
+                  {voiceLogs.length === 0 ? <p className="text-[10px] text-slate-400 font-semibold italic text-center py-2">
                       {t('kds.voice.empty')}
                     </p> : <div className="space-y-1.5 max-h-24 overflow-y-auto">
                       {voiceLogs.map(log => <div key={log.id} className="flex justify-between items-center text-[9px] font-mono leading-none">
-                          <span className="text-slate-300 truncate max-w-[150px] font-bold">&gt; {log.text}</span>
+                          <span className="text-slate-700 truncate max-w-[150px] font-bold">&gt; {log.text}</span>
                           <span className="text-slate-500 shrink-0">{log.time}</span>
                         </div>)}
                     </div>}
@@ -679,46 +679,46 @@ return <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 fl
         </div>)}
 
       {/* 키보드 단축키 안내판 (inline help 가이드 적용) */}
-      <div className="my-2.5 p-3.5 bg-slate-900 border border-slate-850 rounded-2xl flex items-center gap-3 text-slate-400 flex-shrink-0">
+      <div className="my-2.5 p-3.5 bg-white border border-slate-200 rounded-2xl flex items-center gap-3 text-slate-500 flex-shrink-0">
         <Keyboard className="size-4 text-orange-500 flex-shrink-0" />
         <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-[10px] font-mono font-semibold">
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">Space</kbd>
+            <kbd className="px-1.5 py-0.5 bg-slate-50 border border-slate-200 rounded shadow-sm text-slate-800">Space</kbd>
             <span>{t('kds.shortcuts.refresh')}</span>
           </span>
-          <span className="text-slate-800">|</span>
+          <span className="text-slate-300">|</span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">1/2/3</kbd>
+            <kbd className="px-1.5 py-0.5 bg-slate-50 border border-slate-200 rounded shadow-sm text-slate-800">1/2/3</kbd>
             <span>{t('kds.shortcuts.filter')}</span>
           </span>
-          <span className="text-slate-800">|</span>
+          <span className="text-slate-300">|</span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">Q</kbd>
+            <kbd className="px-1.5 py-0.5 bg-slate-50 border border-slate-200 rounded shadow-sm text-slate-800">Q</kbd>
             <span>{t('kds.shortcuts.mute')}</span>
           </span>
-          <span className="text-slate-800">|</span>
+          <span className="text-slate-300">|</span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">P</kbd>
+            <kbd className="px-1.5 py-0.5 bg-slate-50 border border-slate-200 rounded shadow-sm text-slate-800">P</kbd>
             <span>{t('kds.shortcuts.oldest_pending')}</span>
           </span>
-          <span className="text-slate-800">|</span>
+          <span className="text-slate-300">|</span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">R</kbd>
+            <kbd className="px-1.5 py-0.5 bg-slate-50 border border-slate-200 rounded shadow-sm text-slate-800">R</kbd>
             <span>{t('kds.shortcuts.oldest_preparing')}</span>
           </span>
-          <span className="text-slate-800">|</span>
+          <span className="text-slate-300">|</span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded shadow-sm text-slate-200">C</kbd>
+            <kbd className="px-1.5 py-0.5 bg-slate-50 border border-slate-200 rounded shadow-sm text-slate-800">C</kbd>
             <span>{t('kds.shortcuts.oldest_ready')}</span>
           </span>
         </div>
       </div>
 
       {/* 쇼케이스 및 타 대시보드로 돌아가기 링크바 */}
-      <footer className="mt-2 pt-3 border-t border-slate-900 flex items-center justify-between text-xs text-slate-500">
+      <footer className="mt-2 pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
         <div className="flex items-center gap-2">
           <span>&copy; WeMarket Store Display.</span>
-          <span className="text-slate-700">|</span>
+          <span className="text-slate-300">|</span>
           <span>매장 {storeId} · 주방 전용</span>
           {socketStatus === 'CONNECTED' ? 'ORDER CHANNEL ONLINE' : 'ORDER CHANNEL RECONNECTING'}
         </div>
