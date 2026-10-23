@@ -6,6 +6,7 @@ const { normalizePhone, encryptPhone, phoneSearchCandidates } = require('../util
 const { haversineKm } = require('../utils/geo');
 const logger = require('../utils/logger');
 const { AppError } = require('../utils/errorHandler');
+const { createCustomerCapability } = require('../utils/orderCapability');
 
 class CustomerService {
   // 고객 휴대폰 번호 통합 등록 (phone-join)
@@ -173,7 +174,14 @@ class CustomerService {
       next_tier: nextTier
         ? { name: nextTier.tier_name, remaining: nextTier.min_spent - txResult.newTotalSpent }
         : null,
-      socket_channel: `customer-orders-${rawPhone}`,
+      // 즐겨찾기 등 번호 단위 기능을 쓸 때 본인 확인용으로 보낸다
+      customer_token: (() => {
+        try {
+          return createCustomerCapability(rawPhone);
+        } catch {
+          return null;
+        }
+      })(),
     };
   }
 

@@ -1,5 +1,15 @@
 import api from './client';
 
+// 번호 등록 때 받은 손님 토큰 (즐겨찾기 등 번호 단위 기능의 본인 확인)
+const customerTokenHeader = () => {
+  try {
+    const token = localStorage.getItem('wm_customer_token');
+    return token ? { 'x-customer-capability': token } : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 export const storesAPI = {
   getAll: (params = {}) => api.get('/stores', { params }),
   getMy: () => api.get('/stores/my'),
@@ -13,10 +23,18 @@ export const storesAPI = {
   update: (id, data) => api.put('/stores/' + id, data),
   delete: (id) => api.delete('/stores/' + id),
   addFavorite: (customerPhone, storeId) =>
-    api.post('/stores/favorites', { customer_phone: customerPhone, store_id: storeId }),
+    api.post(
+      '/stores/favorites',
+      { customer_phone: customerPhone, store_id: storeId },
+      { headers: customerTokenHeader() }
+    ),
   removeFavorite: (customerPhone, storeId) =>
-    api.delete('/stores/favorites', { data: { customer_phone: customerPhone, store_id: storeId } }),
-  getFavorites: (customerPhone) => api.get('/stores/favorites/' + customerPhone),
+    api.delete('/stores/favorites', {
+      data: { customer_phone: customerPhone, store_id: storeId },
+      headers: customerTokenHeader(),
+    }),
+  getFavorites: (customerPhone) =>
+    api.get('/stores/favorites/' + customerPhone, { headers: customerTokenHeader() }),
   // 고객 메뉴 화면용 매장 팅커벨 설정 (공개)
   getTinkerbellSettings: (id) => api.get('/stores/' + id + '/tinkerbell-settings'),
 };

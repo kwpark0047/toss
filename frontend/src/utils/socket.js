@@ -130,13 +130,6 @@ export const joinOrderRoom = (orderId) => {
   socket.emit('join-order', orderId);
 };
 
-// 전화번호 기반 고객 알림 채널 구독
-export const joinCustomerOrders = (phone) => {
-  if (!socket.connected) socket.connect();
-  const normalized = String(phone).replace(/[^0-9]/g, '');
-  socket.emit('join-customer-orders', { phone: normalized });
-};
-
 // 연결 상태 이벤트
 export const onConnect = (callback) => {
   socket.on('connect', callback);

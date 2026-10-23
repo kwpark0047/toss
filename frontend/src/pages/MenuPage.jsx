@@ -3,6 +3,9 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { isStoreOpenAt, getTodayHoursAt } from "@/utils/businessHours";
+import { getOrderPosition } from "@/utils/orderLocation";
+import useSharedTableCart from "@/hooks/useSharedTableCart";
 import { Loader2, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { storesAPI } from "@/api/stores";
 import { resolveThemeStyle } from "@/lib/themePresets";
@@ -120,7 +123,11 @@ const MenuPage = () => {
   } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const tableNumber = searchParams.get("table") || "1";
+  // table 파라미터가 없으면 임의 테이블(1번)로 기록하지 않고 테이블 미지정으로 주문한다.
+  const tableNumber = searchParams.get("table") || null;
+  const tableLabel = tableNumber
+    ? t('menu.table', { number: tableNumber.replace(/번$/, '') })
+    : t('menu.no_table', '테이블 미지정');
   const {
     isKiosk,
     isFullscreen,
@@ -331,83 +338,13 @@ const {
   const orderStats = [];
 
   // Helper functions
-const getTodayHours = useCallback(() => {
-    if (profile?.business_hours) {
-      // business_hours JSON이 있으면 요일별 시간 사용
-      const today = new Date().toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
-      const dayMap = {
-        'mon': 'mon', 'tue': 'tue', 'wed': 'wed', 'thu': 'thu',
-        'fri': 'fri', 'sat': 'sat', 'sun': 'sun'
-      };
-      const dayKey = dayMap[today];
-      if (dayKey && profile.business_hours[dayKey]) {
-        const dayHours = profile.business_hours[dayKey];
-        return {
-          open: dayHours.open || profile.open_time || '09:00',
-          close: dayHours.close || profile.close_time || '22:00'
-        };
-      }
-      // 해당 요일에 데이터가 없으면 기본값 반환
-      return {
-        open: profile.open_time || '09:00',
-        close: profile.close_time || '22:00'
-      };
-    }
-    if (!profile?.open_time || !profile?.close_time) return null;
-    return {
-      open: profile.open_time,
-      close: profile.close_time
-    };
-  }, [profile?.business_hours, profile?.open_time, profile?.close_time]);
-  const isStoreOpen = useCallback(() => {
-    if (profile?.business_hours) {
-      // business_hours JSON이 있으면 요일별 영업시간 로직 사용
-      const today = new Date().toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
-      const dayMap = {
-        'mon': 'mon', 'tue': 'tue', 'wed': 'wed', 'thu': 'thu',
-        'fri': 'fri', 'sat': 'sat', 'sun': 'sun'
-      };
-      const dayKey = dayMap[today];
-      if (dayKey && profile.business_hours[dayKey]) {
-        const dayHours = profile.business_hours[dayKey];
-        const isClosed = dayHours.closed || false;
-        if (isClosed) return false; // 휴무일
-        
-        const now = new Date();
-        const currentTime = now.getHours() * 60 + now.getMinutes();
-        const openTime = (dayHours.open ? dayHours.open.split(':')[0] : '0') * 60 + 
-                          (dayHours.open ? dayHours.open.split(':')[1] : '0');
-        const closeTime = (dayHours.close ? dayHours.close.split(':')[0] : '22') * 60 + 
-                          (dayHours.close ? dayHours.close.split(':')[1] : '0');
-        
-        if (closeTime < openTime) return currentTime >= openTime || currentTime < closeTime;
-        return currentTime >= openTime && currentTime < closeTime;
-      }
-      // business_hours가 있지만 해당 요일 데이터가 없으면 기본 시간 사용
-      if (!profile?.open_time || !profile?.close_time) return true;
-      const now = new Date();
-      const currentTime = now.getHours() * 60 + now.getMinutes();
-      const [openHour, openMin] = profile.open_time.split(":").map(Number);
-      const [closeHour, closeMin] = profile.close_time.split(":").map(Number);
-      const openTime = openHour * 60 + openMin;
-      const closeTime = closeHour * 60 + closeMin;
-      if (closeTime < openTime) return currentTime >= openTime || currentTime < closeTime;
-      return currentTime >= openTime && currentTime < closeTime;
-    }
-    if (!profile?.open_time || !profile?.close_time) return true; // 시간 미설정 시 항상 영업 중
-    const now = new Date();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-    try {
-      const [openHour, openMin] = profile.open_time.split(":").map(Number);
-      const [closeHour, closeMin] = profile.close_time.split(":").map(Number);
-      const openTime = openHour * 60 + openMin;
-      const closeTime = closeHour * 60 + closeMin;
-      if (closeTime < openTime) return currentTime >= openTime || currentTime < closeTime;
-      return currentTime >= openTime && currentTime < closeTime;
-    } catch {
-      return true;
-    }
-  }, [profile?.business_hours, profile?.open_time, profile?.close_time]);
+const hoursInput = useMemo(() => ({
+    businessHours: profile?.business_hours,
+    openTime: profile?.open_time,
+    closeTime: profile?.close_time
+  }), [profile?.business_hours, profile?.open_time, profile?.close_time]);
+  const getTodayHours = useCallback(() => getTodayHoursAt(hoursInput), [hoursInput]);
+  const isStoreOpen = useCallback(() => isStoreOpenAt(hoursInput), [hoursInput]);
 
   // Computed values
   const todayHours = getTodayHours();
@@ -420,6 +357,8 @@ const filteredItems = useMemo(() => {
       return category?.name === selectedCategory;
     });
   }, [selectedCategory, menuItems, categories, t]);
+  // 같은 테이블 손님끼리 장바구니 공유 (TC-22)
+  useSharedTableCart({ storeId, tableNumber, cart, setCart, menuItems });
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
 
@@ -500,10 +439,12 @@ const handleOrder = useCallback(async () => {
           fcmToken = null;
         }
       }
+      const position = tableNumber ? await getOrderPosition() : null;
       const orderData = {
         store_id: storeId,
-        table_number: tableNumber,
         // URL 파라미터(테이블 번호 문자열) → 백엔드에서 table_id(정수)로 변환
+        ...(tableNumber ? { table_number: tableNumber } : {}),
+        ...(position || {}),
         items: cart.map(item => ({
           product_id: item.menuItem.id,
           product_name: item.menuItem.name,
@@ -588,8 +529,10 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       setCurrentOrderCapability(orderData_.order_capability);
       setCurrentOrderAmount(Number(orderData_.total_amount ?? totalPrice));
       setIsOrderStatusOpen(true);
-    } catch {
-      toast.error(t('order.failed'));
+    } catch (err) {
+      // 영업시간·매장 반경·품절 등 서버가 알려준 이유를 그대로 보여준다
+      const reason = err?.response?.data?.message || err?.response?.data?.error;
+      toast.error(reason || t('order.failed'));
     } finally {
       attempt.busy = false;
       setIsOrdering(false);
@@ -654,7 +597,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 
       {/* Header */}
       {Object.values(cachedSections).some(Boolean) && <div role="status" className="px-4 py-2 bg-orange-50 text-orange-800 text-xs">저장된 메뉴를 먼저 표시하고 있습니다. 최신 가격과 품절 정보를 확인 중입니다.</div>}
-      <MenuHeader storeName={profile?.store_name || t('menu.store_name_default')} tableNumber={tableNumber} onOrderHistoryClick={handleOpenOrderHistory} onCallStaffClick={() => setShowCallSheet(true)} />
+      <MenuHeader storeName={profile?.store_name || t('menu.store_name_default')} tableNumber={tableNumber?.replace(/번$/, '')} onOrderHistoryClick={handleOpenOrderHistory} onCallStaffClick={() => setShowCallSheet(true)} />
 
       {/* Store Info */}
       <StoreInfoBanner storeName={profile?.store_name} description={profile?.description} phone={profile?.phone} address={profile?.address} isOpen={storeOpen} todayHours={todayHours} />
@@ -700,24 +643,20 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       {optionModalItem && <OptionSelectionModal key={optionModalItem.id} isOpen={!!optionModalItem} onClose={handleCloseOptionModal} onConfirm={handleOptionConfirm} item={optionModalItem} optionGroups={optionModalGroups} />}
 
       {/* 주문 후 핸드폰 번호 등록 (포인트·알림·회원가입 통합) */}
-      <CustomerPhoneSheet isOpen={isPhoneSheetOpen} onClose={handleClosePhoneSheet} storeId={storeId} orderId={currentOrderId} totalAmount={currentOrderAmount} storeName={profile?.store_name || t('menu.store_name_default')} />
+      <CustomerPhoneSheet isOpen={isPhoneSheetOpen} onClose={handleClosePhoneSheet} storeId={storeId} orderId={currentOrderId} orderCapability={currentOrderCapability} totalAmount={currentOrderAmount} storeName={profile?.store_name || t('menu.store_name_default')} />
 
       {/* 전자상거래법 §13 필수 사업자 정보 표시 */}
       <LegalFooter storeId={storeId} />
 
       {/* 매니저 호출 시트 및 채팅 드로어 */}
       <ManagerCallSheet isOpen={showCallSheet} onClose={() => setShowCallSheet(false)} store={profile} table={{
-          name: t('menu.table', {
-            number: tableNumber
-          })
+          name: tableLabel
         }} onOpenChat={() => setShowChatDrawer(true)} onVoiceCall={type => {
           const socket = ordersAPI.getSocket();
           if (socket) {
             socket.emit('manager-call', {
               storeId: parseInt(storeId),
-              tableName: t('menu.table', {
-                number: tableNumber
-              }),
+              tableName: tableLabel,
               type
             });
             // 서버 handlers.js의 manager-call 처리 후 manager-call-ack 수신
@@ -731,9 +670,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
           id: parseInt(storeId),
           ...profile
         }} table={{
-          name: t('menu.table', {
-            number: tableNumber
-          })
+          name: tableLabel
         }} customerInfo={{
           phone: notifyPhone
         }} />

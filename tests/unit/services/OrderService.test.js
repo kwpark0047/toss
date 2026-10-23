@@ -221,6 +221,21 @@ describe('OrderService', () => {
     });
   });
 
+  describe('createOrder — 영업시간', () => {
+    test('휴무일·영업시간 외에는 서버에서 주문을 거절한다', async () => {
+      const closedAllWeek = JSON.stringify(
+        Object.fromEntries(
+          ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((d) => [d, { closed: true }])
+        )
+      );
+      Store.findById.mockResolvedValue({ id: 1, name: '휴무매장', business_hours: closedAllWeek });
+      await expect(
+        svc.createOrder({ store_id: 1, items: [{ product_id: 100, quantity: 1 }], total_amount: 1 })
+      ).rejects.toThrow('영업시간');
+      expect(Order.create).not.toHaveBeenCalled();
+    });
+  });
+
   describe('createOrder — 쿠폰 검증', () => {
     beforeEach(() => {
       Store.findById.mockResolvedValue({ id: 1, name: '테스트매장' });
@@ -458,6 +473,15 @@ describe('OrderService', () => {
   });
 
   describe('cancelOrder', () => {
+    test('주방 계정은 관리자 취소 경로를 쓸 수 없다 (주방 화면 취소로 환불 처리)', async () => {
+      Order.findById.mockResolvedValue({ id: 9, status: 'preparing', store_id: 1 });
+      const storeAuth = require('../../../middleware/storeAuth');
+      const spy = jest.spyOn(storeAuth, 'getStoreRole').mockResolvedValue('kitchen');
+      await expect(svc.cancelOrder(9, 5, 'user')).rejects.toThrow('권한이 없습니다');
+      expect(Order.updateStatus).not.toHaveBeenCalledWith(9, 'cancelled');
+      spy.mockRestore();
+    });
+
     test('이미 취소된 주문은 성공 반환', async () => {
       Order.findById.mockResolvedValue({ id: 1, status: 'cancelled', store_id: 1 });
       const result = await svc.cancelOrder(1, 'user1', 'super_admin');

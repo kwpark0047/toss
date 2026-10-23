@@ -10,6 +10,7 @@ const printService = require('./printService');
 const logger = require('../utils/logger');
 const { encryptPhone, decryptPhone, normalizePhone } = require('../utils/phoneEncryption');
 const { AppError } = require('../utils/errorHandler');
+const { isStoreOpenAt } = require('../utils/businessHours');
 const { assertOrderStatusTransition } = require('../utils/orderStatus');
 const auditLogService = require('./AuditLogService');
 const orderEventService = require('./OrderEventService');
@@ -64,6 +65,17 @@ class OrderService {
     if (!items || items.length === 0) {
       throw new AppError('주문 상품이 없습니다.', 400);
     }
+
+    // 화면에서만 막던 영업시간을 서버에서도 확인한다 (휴무일·영업시간 외 API 직접 주문 차단)
+    if (
+      !isStoreOpenAt({
+        businessHours: store.business_hours,
+        openTime: store.open_time,
+        closeTime: store.close_time,
+      })
+    ) {
+      throw new AppError('지금은 영업시간이 아니라 주문할 수 없습니다.', 409);
+    }
     const rawPhone = phone || customer_phone;
     if (user_coupon_id) {
       if (!rawPhone) {
@@ -78,14 +90,17 @@ class OrderService {
       }
     }
 
-    if (table_id && latitude && longitude && store.latitude && store.longitude) {
+    // 테이블 주문(table_id 또는 QR의 table_number)은 위치가 오면 매장 반경을 확인한다.
+    // 위치 정확도만큼은 여유를 둬 실내 GPS 오차로 매장 안 손님이 막히지 않게 한다(최대 1km).
+    if ((table_id || table_number) && latitude && longitude && store.latitude && store.longitude) {
       const distanceKm = getDistanceFromLatLonInKm(
         latitude,
         longitude,
         store.latitude,
         store.longitude
       );
-      if (distanceKm > 0.5) {
+      const slackKm = Math.min(Number(data.location_accuracy) || 0, 1000) / 1000;
+      if (distanceKm - slackKm > 0.5) {
         throw new AppError('매장 반경 500m 밖에서는 주문할 수 없습니다.', 403);
       }
     }
@@ -94,11 +109,8 @@ class OrderService {
     const storeIdNum = parseInt(store_id);
     let resolvedTableId = null;
     let resolvedTableName = null;
-    let lookupStr =
+    const lookupStr =
       table_number || (table_id && isNaN(parseInt(table_id)) ? String(table_id) : null);
-    if (lookupStr && lookupStr.endsWith('번')) {
-      lookupStr = lookupStr.replace('번', '');
-    }
 
     if (lookupStr) {
       const table = await Table.findByStoreAndTable(storeIdNum, lookupStr);
@@ -324,7 +336,8 @@ class OrderService {
     if (userRole !== 'super_admin') {
       const { getStoreRole } = require('../middleware/storeAuth');
       const role = await getStoreRole(userId, order.store_id);
-      const allowed = ['owner', 'manager', 'staff', 'kitchen'];
+      // 주방 계정은 주방 화면(KDS) 취소를 쓴다 — 그 경로가 환불·환불 필요 알림까지 처리한다.
+      const allowed = ['owner', 'manager', 'staff'];
       if (!role || !allowed.includes(role))
         throw new AppError('해당 매장에 대한 권한이 없습니다.', 403);
     }
@@ -585,11 +598,6 @@ class OrderService {
 
     // 실시간 대시보드 (store_${storeId}_dashboard 룸) 알림 — DashboardBroadcastService 전담 채널
     dashboardBroadcastService.notifyOrderChange(order.store_id, payload);
-
-    if (order.customer_phone) {
-      const normalized = normalizePhone(decryptPhone(order.customer_phone));
-      this.io.to(`customer-orders-${normalized}`).emit('order-status-updated', payload);
-    }
   }
 
   async _sendOrderAlimtalk(order, status, extraData = {}) {

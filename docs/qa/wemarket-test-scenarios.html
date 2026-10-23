@@ -1,0 +1,439 @@
+<title>위마켓 현장 테스트 시나리오</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: 주문표(티켓) 모티프 — 상단 요약 → 계정표 → 스토리 → 필터 가능한 시나리오 카드 목록 */
+:root{
+  --bg:#F4F6F5; --paper:#FFFFFF; --fg:#18201D; --muted:#5C6964; --line:#DCE3E0;
+  --accent:#0E6B53; --accent-soft:#E2F1EB;
+  --bug:#B3261E; --bug-soft:#FBE9E7; --gap:#8A5A00; --gap-soft:#FFF3D6;
+  --chk:#3D5A80; --chk-soft:#E6EDF6; --ok:#1E7A3C; --ok-soft:#E3F3E7;
+  --sans:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --paper:#18201D; --fg:#E7EEEB; --muted:#9AA8A3; --line:#2C3833;
+  --accent:#4FC7A2; --accent-soft:#163A30;
+  --bug:#FF8A80; --bug-soft:#3A1A18; --gap:#F2C14E; --gap-soft:#3A2E10;
+  --chk:#9DB8E0; --chk-soft:#1C2836; --ok:#7BD99A; --ok-soft:#173222; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --paper:#18201D; --fg:#E7EEEB; --muted:#9AA8A3; --line:#2C3833;
+  --accent:#4FC7A2; --accent-soft:#163A30;
+  --bug:#FF8A80; --bug-soft:#3A1A18; --gap:#F2C14E; --gap-soft:#3A2E10;
+  --chk:#9DB8E0; --chk-soft:#1C2836; --ok:#7BD99A; --ok-soft:#173222; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 64px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;gap:40px}
+h1,h2,h3{text-wrap:balance;line-height:1.3;margin:0}
+h1{font-size:30px;font-weight:700}
+h2{font-size:21px;font-weight:700;display:flex;gap:10px;align-items:baseline}
+h2 small{font-size:13px;color:var(--muted);font-weight:500}
+p{margin:0}
+.lead{color:var(--muted);max-width:68ch}
+.eyebrow{font-size:12px;letter-spacing:.08em;color:var(--accent);font-weight:700}
+header{display:grid;gap:10px}
+section{display:grid;gap:16px}
+.mono{font-family:var(--mono);font-size:13px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+td.wrapcell{white-space:normal;min-width:180px}
+th{font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.04em;background:var(--bg)}
+tr:last-child td{border-bottom:0}
+.note{font-size:13px;color:var(--muted)}
+.callout{border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:16px 18px;display:grid;gap:10px}
+.findings{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.findings li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
+.findings li a{color:inherit}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.f-bug{background:var(--bug-soft);color:var(--bug)}
+.f-gap{background:var(--gap-soft);color:var(--gap)}
+.f-chk{background:var(--chk-soft);color:var(--chk)}
+.f-ok{background:var(--ok-soft);color:var(--ok)}
+.f-fix{background:var(--accent-soft);color:var(--accent)}
+.was{font-size:12px;color:var(--muted);text-decoration:line-through}
+.resnote{border-radius:8px;padding:10px 12px;font-size:14px;background:var(--accent-soft);color:var(--fg);border-left:3px solid var(--accent)}
+.stories{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.story{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:6px;align-content:start}
+.story .who{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.04em}
+.story p{font-size:14px}
+.story .ref{font-size:12px;color:var(--muted)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding-block:10px;z-index:5;border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.filters select,.filters input{font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--fg)}
+.filters input{flex:1 1 180px;min-width:0}
+.filters select:focus-visible,.filters input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.count{font-size:13px;color:var(--muted);margin-left:auto}
+.list{display:grid;gap:10px}
+details.sc{background:var(--paper);border:1px solid var(--line);border-radius:10px}
+details.sc[open]{border-color:var(--accent)}
+summary{list-style:none;cursor:pointer;padding:12px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+summary::-webkit-details-marker{display:none}
+.sid{font-family:var(--mono);font-size:13px;color:var(--muted);min-width:44px}
+.stitle{font-weight:500;min-width:0}
+.stags{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.tag{font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.body{padding:0 16px 16px;display:grid;gap:12px;border-top:1px dashed var(--line);padding-top:14px}
+.kv{display:grid;grid-template-columns:88px 1fr;gap:6px 14px;font-size:14px}
+.kv dt{color:var(--muted);font-size:13px}
+.kv dd{margin:0;min-width:0}
+.kv ol{margin:0;padding-left:20px}
+.flagnote{border-radius:8px;padding:10px 12px;font-size:14px}
+code{font-family:var(--mono);font-size:12.5px;background:var(--bg);padding:1px 5px;border-radius:4px;word-break:break-all}
+@media (max-width:560px){
+  summary{grid-template-columns:auto 1fr}
+  .stags{grid-column:1/-1;justify-content:flex-start}
+  .kv{grid-template-columns:1fr}
+  .kv dt{margin-top:6px}
+  h1{font-size:25px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">WEMARKET-TOSS · QA 계획 · 2026-10-22</div>
+  <h1>위마켓 현장 테스트 시나리오</h1>
+  <p class="lead">강남역 테스트 사업자 10곳을 실제 식당처럼 운영한다고 가정하고, 사장·매니저·홀 직원·주방·손님이 겪는 상황을 150개 시나리오로 정리했습니다(TC-01~50 기본, TC-51~150 확장: 예약·쿠폰·포인트·리뷰·고객관리·메뉴·재고·매출·직원·계정·키오스크·알림·장애·접근성). 각 시나리오는 코드(<code>D:\wemarket-toss\250105</code>)를 직접 읽고 확인한 동작을 기대 결과로 적었고, 코드에서 결함이 의심되거나 기능이 없는 곳은 따로 표시했습니다. 2026-10-23 기준으로 결함 의심·미구현·확인 필요 항목은 모두 코드에서 수정·확인을 마쳤고(<a href="https://github.com/kwpark0047/toss/pull/13">PR #13</a>, 배포 대기), 각 시나리오에 원래 판정과 해결 내용을 함께 적었습니다.</p>
+</header>
+
+<section>
+  <h2>판정 현황 <small>확장에서 새로 찾은 결함 · 처음 판정 → 현재</small></h2>
+  <div class="callout">
+    <ul class="findings" id="findings"></ul>
+    <p class="note">모든 수정은 자동 테스트(백엔드 1,400여 개, 통합 114개, 회귀 21개, 프론트 232개)로 확인했습니다. 운영 서버에는 PR #13을 병합·배포해야 반영됩니다. 번호를 누르면 해당 시나리오로 이동합니다.</p>
+  </div>
+</section>
+
+<section>
+  <h2>운영 실행 결과 <small>2026-10-23 12:50 KST · 강남 테스트 매장 · PR #13 배포 전 코드</small></h2>
+  <div class="callout">
+    <p id="prodSummary"></p>
+    <ul class="findings" id="prodList"></ul>
+    <p class="note">주문·웨이팅·예약·직원 추가는 운영 DB에 실제로 만들었다가 끝에 취소·해제했습니다(서빙 완료 처리한 S1 주문 1건만 완료 상태로 남음). 실결제와 단체 문자는 하지 않았습니다.</p>
+  </div>
+</section>
+
+<section>
+  <h2>테스트 계정 <small>운영 DB에 이미 시드된 강남역 매장 10곳</small></h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>코드</th><th>매장</th><th>업종</th><th>로그인 휴대폰</th><th>이메일</th><th>테이블</th><th>영업시간 / 휴무</th><th>시드 쿠폰 (최소금액)</th></tr></thead>
+    <tbody id="acct"></tbody>
+  </table></div>
+  <p class="note">비밀번호는 <code>test</code> + 휴대폰 번호입니다 (예: <code>test01012345671</code>). 테이블 이름은 시드에서 <code>1번</code>, <code>룸1</code>, <code>바1</code> 형식으로 만들어졌습니다 (<code>scripts/seed_gangnam_test_owners.js</code>). 직원·주방 역할 테스트에는 다른 매장 사장 계정을 직원으로 추가해 쓰는 방식을 권합니다. 직원 추가, 주문, 결제, 웨이팅 등록은 모두 운영 DB에 기록이 남으므로 실행 전에 승인을 받고, 결제는 토스 테스트 키 환경에서만 진행합니다.</p>
+</section>
+
+<section>
+  <h2>사용자 스토리 <small>역할별 18개</small></h2>
+  <div class="stories" id="stories"></div>
+</section>
+
+<section id="scenarios">
+  <h2>상황별 테스트 시나리오 <small>150개</small></h2>
+  <div class="filters" role="search">
+    <select id="fArea" aria-label="영역"></select>
+    <select id="fType" aria-label="유형"><option value="">유형 전체</option><option>정상</option><option>예외</option><option>실패</option></select>
+    <select id="fFlag" aria-label="판정"><option value="">판정 전체</option><option value="bug">결함 의심</option><option value="gap">미구현</option><option value="chk">확인 필요</option><option value="fix">수정 완료</option><option value="run">실행 대기</option><option value="ok">정상 확인</option></select>
+    <input id="fText" type="search" placeholder="검색 (예: 쿠폰, 주방, 오늘통닭)" aria-label="검색">
+    <span class="count" id="count"></span>
+  </div>
+  <div class="list" id="list"></div>
+</section>
+
+<section>
+  <h2>실행 방법 제안</h2>
+  <div class="callout">
+    <p>PR #13 배포 후에는 "수정 완료" 항목부터 운영에서 다시 돌려 보고, 이어서 나머지 시나리오를 영역 순서(매장 준비 → QR 주문 → 결제 → 주방 → 홀·호출 → 웨이팅 → 권한·보안)로 돌리는 것을 권합니다. 한 회차에 매장 하나를 "기준 매장"으로 정해 처음부터 끝까지 한 손님의 하루를 따라가면 상태 전이 누락을 찾기 쉽습니다. 일일향(S1)은 룸과 단체 쿠폰이 있어 범위가 가장 넓고, 오늘통닭(S5)은 자정을 넘는 영업시간, 슬로우캘리(S2)와 마치래빗(S7)은 주말 휴무 검증에 씁니다.</p>
+  </div>
+</section>
+</div>
+
+<script>
+const FLAG = {bug:['결함 의심','f-bug'],gap:['미구현','f-gap'],chk:['확인 필요','f-chk'],ok:['정상 확인','f-ok'],fix:['수정 완료','f-fix'],run:['실행 대기','f-chk']};
+
+const STORES = [
+ ['S1','일일향 강남역3호점','중식당','01012345671','test1','홀 10 · 룸 3','매일 11:00–21:00','단체 회식 10%(100,000) · 첫 방문 3,000원(20,000)'],
+ ['S2','슬로우캘리 강남역점','샐러드','01012345672','test2','홀 6','11:00–21:00 / 토·일 휴무','포케 1,000원(10,000) · 수프 무료(15,000)'],
+ ['S3','한방삼계탕','삼계탕','01012345673','test3','홀 14','매일 10:30–22:00','복날 2,000원(38,000) · 4인 5%(76,000)'],
+ ['S4','아여수','해물·생선','01012345674','test4','홀 8','11:00–23:00 / 일 휴무','담금주 서비스(138,000) · 점심 1,000원(12,000)'],
+ ['S5','오늘통닭 강남역점','치킨','01012345675','test5','홀 16','매일 16:00–02:00','2마리 3,000원(40,000) · 단체 10%(150,000)'],
+ ['S6','청담돈가스 본점','돈가스','01012345676','test6','홀 10','매일 10:00–22:00','점심 500원(11,000) · 2인 1,000원(22,000)'],
+ ['S7','마치래빗 샐러드 강남역점','샐러드','01012345677','test7','홀 6','10:30–19:20 / 토·일 휴무','비건 1,000원(9,000) · 브로콜리 10%(15,000)'],
+ ['S8','덤벨푸드 강남','샐러드','01012345678','test8','홀 3 · 바 4','매일 09:00–21:30','수프 1,000원(15,000) · 포장 5%(10,000)'],
+ ['S9','꽃보다라면','라면','01012345679','test9','홀 8','11:00–23:00 / 일 휴무','저녁 2,000원(30,000) · 정식 1,000원(10,000)'],
+ ['S10','소림사 서초점','베이커리','01012345680','test10','홀 2','매일 08:00–21:30','소금빵 1,000원(12,000) · 아메리카노 500원(3,500)'],
+];
+
+const STORIES = [
+ ['사장님','점심 피크 전에 휴대폰 번호로 로그인해 오늘 매장 상태(주문·웨이팅·호출)를 한 화면에서 보고 싶다.','/admin 대시보드 · auth/login'],
+ ['사장님','재료가 떨어진 메뉴를 바로 품절 처리해서 손님이 주문하지 못하게 하고 싶다.','products is_sold_out → 주문 시 409'],
+ ['사장님','테이블 QR을 잃어버리거나 유출되면 새로 발급해 옛 QR을 무효로 만들고 싶다.','tables/:id/regenerate-qr'],
+ ['사장님','아르바이트생을 직원으로 등록하고 역할(매니저·홀·주방)에 맞는 화면만 보게 하고 싶다.','staff · storeAuth rolePermissions'],
+ ['손님','자리에서 QR을 찍고 메뉴를 골라 직원을 부르지 않고 바로 주문하고 싶다.','/qr/:qrCode → /menu/:storeId?table='],
+ ['손님','토스로 바로 결제하거나, 일행과 N분의 1로 나눠 결제하고 싶다.','payments/ready·confirm · split'],
+ ['손님','받은 쿠폰을 주문에 적용해 할인받고 싶다.','orders user_coupon_id'],
+ ['손님','물이나 앞접시가 필요할 때 버튼 하나로 직원을 부르고, 접수됐는지 알고 싶다.','socket manager-call / ack'],
+ ['손님','줄이 길 때 휴대폰 번호로 웨이팅을 걸고, 차례가 오면 알림톡으로 안내받고 싶다.','waiting/register · 알림톡'],
+ ['주방','새 주문이 들어오면 화면에 바로 뜨고, 조리 시작·완료를 눌러 홀과 손님에게 알리고 싶다.','KDS · print_jobs · sendFoodReady'],
+ ['홀 직원','현금·카드·계좌이체로 받은 결제를 시스템에 기록하고 싶다.','confirm-cash / store-card / transfer'],
+ ['매니저','손님이 취소를 원하면 주문을 취소하고 결제도 환불 처리하고 싶다.','orders/:id/cancel · payments/order/:id/cancel'],
+ ["손님","회식 룸을 미리 예약하고, 예약 확정·취소를 알림으로 받고 싶다.","reservations/register · capability"],
+ ["사장님","단골에게 쿠폰을 보내고 다시 오게 만들고 싶다.","coupons · campaigns · bulk SMS"],
+ ["손님","먹을 때마다 포인트가 쌓이고 다음에 쓰고 싶다.","phone-join · points · wallet"],
+ ["사장님","오늘·이번 달 매출과 정산 예정액을 정확히 알고 싶다.","analytics · settlements · export"],
+ ["직원","출근·퇴근을 기록하고 내 근무 스케줄을 보고 싶다.","staff clock-in/out · schedules"],
+ ["손님","카운터 키오스크에서 포장 주문을 빨리 끝내고 싶다.","/kiosk/:storeId"]
+];
+
+const S = [
+// 매장 준비
+{a:'매장 준비',t:'정상',f:'ok',r:'사장',s:'S1',title:'사장님 휴대폰 번호로 로그인',pre:'S1 계정이 시드되어 있음',steps:['/auth 접속','01012345671 / test01012345671 입력','로그인'],exp:'관리자 홈(/admin)으로 이동하고 일일향 강남역3호점 1곳이 보인다. 토큰은 2시간, 갱신 토큰은 7일.',note:'로그인 식별자는 휴대폰 번호(숫자만 정규화)와 이메일을 모두 받는다. 010-1234-5671처럼 하이픈을 넣어도 통과해야 한다.'},
+{a:'매장 준비',t:'실패',f:'chk',r:'사장',s:'S2',title:'비밀번호를 여러 번 틀림',pre:'S2 계정',steps:['틀린 비밀번호로 5회 이상 연속 로그인','올바른 비밀번호로 다시 로그인'],exp:'틀릴 때마다 계정 존재 여부를 드러내지 않는 같은 오류 문구가 나오고, 반복 시 일정 시간 차단된다.',note:'로그인 라우트에 전용 잠금 로직이 보이지 않았다. 전역 rate limit이 어디까지 막는지 실제로 확인해야 한다.'},
+{a:'매장 준비',t:'예외',f:'bug',r:'사장 → 손님',s:'S3',title:'테이블 QR 재발급 후 옛 QR 스캔',pre:'S3 홀 5번 테이블 QR 출력본 보관',steps:['관리자 > 테이블에서 5번 QR 재발급','보관해 둔 옛 QR로 접속'],exp:'옛 QR은 "유효하지 않은 QR 코드입니다" 안내와 함께 주문 화면에 들어가지 못하고, 새 QR은 정상 동작한다.',note:'routes/tables.js 165·261·265행의 오류 문구가 깨진 문자(인코딩 손상)로 저장되어 있어, 손님에게 깨진 메시지가 그대로 보일 가능성이 높다.'},
+{a:'매장 준비',t:'정상',f:'ok',r:'사장',s:'S6',title:'기존 회원을 직원으로 추가',pre:'S10 계정(01012345680)을 S6 직원 후보로 사용 · 운영 DB 쓰기 승인 필요',steps:['S6 사장 로그인 > 직원 관리','01012345680 조회(lookup-user) 후 역할 staff로 추가','S10 계정으로 다시 로그인'],exp:'S10 계정에서 자기 매장과 함께 청담돈가스가 직원 권한으로 보이고, 주문 처리·현장결제 기록만 가능하다.',note:'staff 역할 권한: orders:manage, order:read, payments:collect.'},
+{a:'매장 준비',t:'정상',f:'ok',r:'직원 → 사장',s:'S9',title:'직원 가입 요청과 사장 승인',pre:'운영 DB 쓰기 승인 필요',steps:['직원 후보가 매장에 직원 등록 요청(self-register 또는 staff-requests)','S9 사장이 요청 목록에서 승인','반대로 다른 요청은 거절'],exp:'승인된 계정만 매장 화면에 접근하고, 거절된 계정은 403을 받는다. 대기 건수 배지가 줄어든다.',note:''},
+{a:'매장 준비',t:'정상',f:'ok',r:'사장 → 손님',s:'S5',title:'영업 중 메뉴 품절 처리',pre:'S5 영업시간(16:00–02:00) 중',steps:['사장이 대표 치킨 메뉴를 품절로 변경','손님 폰에서 메뉴 새로고침 후 담기 시도','이미 장바구니에 담아 둔 다른 손님이 주문'],exp:'메뉴에 품절 표시가 붙고, 미리 담아 둔 손님도 주문 시 "품절된 상품이 포함되어 있습니다" (409)를 받는다.',note:'서버 검증: utils/orderPricing.js is_sold_out.'},
+{a:'매장 준비',t:'예외',f:'ok',r:'사장 → 손님',s:'S6',title:'손님이 담아 둔 사이 가격 변경',pre:'손님이 로스카츠를 장바구니에 담아 둠',steps:['사장이 해당 메뉴 가격 1,000원 인상','손님이 새로고침 없이 주문'],exp:'"상품 가격이 변경되었습니다. 메뉴를 새로고침한 후 다시 주문해 주세요." (409)가 나오고 주문은 생성되지 않는다.',note:'assertClientTotal이 서버 합계와 비교한다.'},
+
+// 주문
+{a:'QR 주문',t:'정상',f:'bug',r:'손님',s:'S1',title:'QR 스캔부터 주문 접수까지',pre:'S1 홀 1번 테이블 QR · 영업시간 중',steps:['QR 스캔(/qr/:code)','메뉴에서 짜장면 2, 탕수육 1 담기','주문하기'],exp:'주문이 접수되고 주문 상태 화면이 열린다. 관리자 주문 화면과 주방 화면에 새 주문이 실시간으로 뜬다.',note:'QR은 /menu/:storeId?table=1번 으로 이동하는데, 서버(OrderService.createOrder)는 테이블 이름에서 "번"을 지운 "1"로 조회한다. 시드 테이블 이름은 "1번"이라 "유효한 테이블을 찾을 수 없습니다"(400)로 주문이 막힐 가능성이 높다. 가장 먼저 확인할 항목.'},
+{a:'QR 주문',t:'정상',f:'bug',r:'손님',s:'S6',title:'영업 중인데 영업 종료로 표시',pre:'S6 영업시간(10:00–22:00) 중, 예: 오후 2시',steps:['메뉴 화면 진입','상단 영업 상태 배너와 담기 버튼 확인'],exp:'"영업 중"으로 표시되고 담기·주문이 된다.',note:'MenuPage.jsx isStoreOpen이 시·분 문자열을 숫자로 바꾸지 않고 더해 "10:00"이 600이 아닌 "60000"이 된다. business_hours가 객체로 내려오면 모든 매장이 항상 영업 종료로 판정된다. 시드는 business_hours를 JSON 문자열로 저장해 이 분기를 타지 않을 수도 있으니 실제 화면 확인 필요.'},
+{a:'QR 주문',t:'예외',f:'gap',r:'손님',s:'S2',title:'휴무일(토요일) 주문',pre:'토요일, S2 휴무',steps:['메뉴 화면 진입 후 주문 시도','같은 내용을 API(POST /api/orders)로 직접 전송'],exp:'화면과 API 모두 휴무 안내와 함께 주문을 거절한다.',note:'영업시간 검사는 화면(MenuPage)에만 있고 서버 주문 생성에는 없다. API를 직접 부르거나 화면 시계가 틀리면 휴무일에도 주문이 들어간다.'},
+{a:'QR 주문',t:'예외',f:'chk',r:'손님',s:'S5',title:'자정 넘어 새벽 1시 30분 주문',pre:'S5 영업 16:00–02:00, 새벽 01:30',steps:['메뉴 진입','주문'],exp:'영업 중으로 판단되어 주문된다. 02:00 이후에는 차단된다.',note:'자정을 넘는 영업시간 분기는 있으나 위 영업시간 계산 결함의 영향을 같이 받는다. 요일 판단도 전날(영업 시작일) 기준인지 확인 필요.'},
+{a:'QR 주문',t:'실패',f:'ok',r:'손님',s:'S8',title:'필수 옵션을 고르지 않고 주문',pre:'S8 샐러드 메뉴에 필수 옵션 그룹(드레싱 선택) 추가 · 시드에는 옵션이 없음',steps:['옵션 선택 없이 담기','주문'],exp:'화면에서 옵션 선택을 요구하고, 우회해도 서버가 "필수 옵션을 선택해 주세요: 드레싱" (409)로 막는다.',note:''},
+{a:'QR 주문',t:'실패',f:'ok',r:'손님',s:'S9',title:'수량 0·음수·소수 주문',pre:'API 도구 사용',steps:['quantity 0, -1, 1.5로 각각 주문 전송'],exp:'모두 "상품 수량이 올바르지 않습니다" (400).',note:''},
+{a:'QR 주문',t:'실패',f:'ok',r:'손님',s:'S9',title:'결제 금액을 낮춰서 주문 전송',pre:'API 도구 사용',steps:['라면 2개(실제 합계)를 total_amount 1000으로 전송'],exp:'409로 거절되고 주문이 생기지 않는다. 서버는 상품 가격을 DB 기준으로 다시 계산한다.',note:''},
+{a:'QR 주문',t:'실패',f:'ok',r:'손님',s:'S10',title:'재고보다 많이 주문',pre:'S10 소금빵 재고 수량을 3으로 설정',steps:['소금빵 5개 주문'],exp:'"\'소금빵\' 재고 부족 (재고 3개)" (409).',note:'재고 차감은 주방이 조리 시작할 때 일어난다. 접수 대기 중 다른 주문이 재고를 넘길 수 있는지도 함께 본다.'},
+{a:'QR 주문',t:'예외',f:'ok',r:'손님',s:'S3',title:'주문 버튼 두 번 연속 탭',pre:'느린 네트워크(개발자도구 3G)',steps:['주문 버튼을 빠르게 두 번 누름'],exp:'주문은 1건만 생긴다. 같은 Idempotency-Key 재요청은 기존 결과를 돌려주거나 409(처리 중)를 준다.',note:'orders POST에 idempotency 미들웨어 적용됨.'},
+{a:'QR 주문',t:'정상',f:'ok',r:'손님',s:'S3',title:'쿠폰 적용 주문',pre:'손님 번호로 "복날 보양 2,000원 할인"(최소 38,000원) 쿠폰 발급',steps:['삼계탕 2개(38,000원 이상) 담기','전화번호 입력 후 쿠폰 선택','주문'],exp:'2,000원이 할인된 금액으로 주문되고 쿠폰은 사용됨 처리된다.',note:''},
+{a:'QR 주문',t:'실패',f:'ok',r:'손님',s:'S3',title:'최소 주문금액 미달 쿠폰',pre:'위 쿠폰 보유',steps:['삼계탕 1개만 담고 쿠폰 적용 주문'],exp:'"최소 38,000원 이상 주문 시 사용 가능합니다." (400).',note:''},
+{a:'QR 주문',t:'실패',f:'ok',r:'손님',s:'S1',title:'다른 사람 쿠폰으로 주문',pre:'A 번호로 발급된 쿠폰 ID',steps:['B 번호로 그 쿠폰 ID를 넣어 주문'],exp:'"본인에게 발급된 쿠폰만 사용할 수 있습니다." (403). 번호 없이 쿠폰만 넣으면 400.',note:''},
+{a:'QR 주문',t:'예외',f:'gap',r:'손님',s:'S4',title:'매장 밖(500m 초과)에서 QR 주문',pre:'QR 사진을 집에서 촬영해 둠',steps:['위치 권한 허용 상태로 매장에서 1km 떨어진 곳에서 주문','위치 권한 거부 상태로 다시 주문'],exp:'위치가 있으면 "매장 반경 500m 밖에서는 주문할 수 없습니다." (403).',note:'좌표를 보내지 않으면 검사를 건너뛴다. 위치 거부만으로 원격 장난 주문을 막지 못한다.'},
+{a:'QR 주문',t:'예외',f:'bug',r:'손님',s:'S7',title:'테이블 정보 없는 메뉴 링크로 주문',pre:'매장 공유 링크 /menu/:storeId (table 없음)',steps:['링크로 접속해 주문'],exp:'포장/테이블 미지정으로 접수되거나 테이블 선택을 요구한다.',note:'MenuPage는 table 파라미터가 없으면 "1"을 기본값으로 쓴다. 1번 테이블 주문으로 잘못 기록되거나(이름이 "1"인 테이블이 있을 때) 400으로 실패한다.'},
+{a:'QR 주문',t:'정상',f:'chk',r:'손님 2명',s:'S1',title:'같은 테이블 두 사람 장바구니 공유',pre:'룸1에서 휴대폰 2대',steps:['두 폰이 같은 QR로 접속','A가 담고 B 화면 확인','B가 주문'],exp:'A가 담은 메뉴가 B 화면에 실시간으로 보이고, 주문 후 양쪽 장바구니가 비워진다.',note:'cart/:tableId와 table-cart 소켓 룸이 있다. 실제 화면에서 동기화가 붙어 있는지 확인 필요.'},
+{a:'QR 주문',t:'정상',f:'chk',r:'손님 → 홀',s:'S5',title:'같은 테이블 추가 주문',pre:'7번 테이블에서 1차 주문 접수',steps:['30분 뒤 같은 QR로 맥주 2 추가 주문','관리자 테이블 화면 확인'],exp:'추가 주문이 같은 테이블에 이어 붙어 테이블 합계가 늘고, 주방에는 추가분만 뜬다.',note:'주문은 건별로 저장된다. 테이블 단위 계산서(합산)가 화면에서 제공되는지 확인 필요.'},
+
+// 결제
+{a:'결제',t:'정상',f:'ok',r:'손님',s:'S6',title:'토스 결제로 선결제',pre:'토스 테스트 키 환경(운영 실결제 금지)',steps:['주문 시 토스 결제 선택','결제창에서 테스트 카드로 승인'],exp:'/payment/success로 돌아오고 주문이 결제 완료 상태가 된다. 매장 화면에 결제 완료로 뜬다.',note:'결제 준비·승인·금액 검증 흐름은 자동 테스트(PaymentService)로 확인했습니다. 실제 토스 결제창은 실결제가 일어나므로 토스 테스트 키를 쓰는 스테이징에서만 실행합니다.'},
+{a:'결제',t:'실패',f:'ok',r:'손님',s:'S6',title:'결제창에서 취소',pre:'위와 같음',steps:['결제창을 닫거나 취소'],exp:'/payment/fail 안내가 나오고 주문은 미결제로 남으며, 다시 결제할 수 있다. 같은 금액의 결제 준비(READY)는 재사용된다.',note:''},
+{a:'결제',t:'실패',f:'ok',r:'공격자',s:'S6',title:'결제 승인 금액 위변조',pre:'API 도구',steps:['승인 요청의 amount를 주문 금액보다 낮게 변조'],exp:'"결제 금액이 주문 정보와 일치하지 않습니다." (400), 결제 미승인.',note:''},
+{a:'결제',t:'정상',f:'ok',r:'홀 직원',s:'S4',title:'현금 결제 기록',pre:'staff 역할 계정 · 후불 주문',steps:['손님에게 현금 수령','주문 상세에서 현금 결제 확인'],exp:'결제 완료로 바뀐다. 같은 버튼을 다시 눌러도 "이미 처리 중인 결제입니다" (409)로 중복 기록되지 않는다.',note:'confirm-cash / confirm-store-card / confirm-transfer 모두 같은 경로.'},
+{a:'결제',t:'정상',f:'ok',r:'홀 직원',s:'S4',title:'계좌이체 확인 기록',pre:'계좌이체 선택 주문',steps:['입금 확인 후 이체 확인 처리','취소된 주문에 같은 처리 시도'],exp:'정상 주문은 결제 완료, 취소된 주문은 "취소된 주문입니다." (409).',note:''},
+{a:'결제',t:'정상',f:'chk',r:'손님 4명',s:'S1',title:'4명이 N분의 1 분할 결제',pre:'룸2, 120,000원 주문 · 토스 테스트 키',steps:['분할 결제 4명 설정','4명이 각자 결제','분할 상태 조회'],exp:'1인당 30,000원씩 결제되고, 4번째 결제 후 주문이 결제 완료가 된다.',note:'인원은 2~20명, 온라인 결제만 허용. 금액이 나눠떨어지지 않을 때(예: 100,000원 3명) 끝전 처리 확인 필요.'},
+{a:'결제',t:'실패',f:'ok',r:'손님',s:'S1',title:'분할 인원 1명·21명 / 동시 결제',pre:'분할 결제 주문',steps:['인원 1, 21로 설정 시도','두 사람이 같은 순간 결제 시작'],exp:'인원 오류는 "분할 인원은 2명 이상 20명 이하여야 합니다." (400), 동시 결제는 한 명만 진행되고 나머지는 "다른 분할 결제가 이미 진행 중입니다." (409).',note:''},
+{a:'결제',t:'예외',f:'ok',r:'매니저',s:'S3',title:'부분 환불',pre:'토스로 결제된 주문 1건, 현금 결제 주문 1건',steps:['토스 결제 주문에서 메뉴 1개 금액만 부분 환불','현금 주문에 부분 환불 시도','같은 작업 키로 다른 금액 재요청'],exp:'토스 건은 부분 환불, 현금 건은 "현장 결제와 포인트는 전체 환불로 처리해 주세요." (409), 키 재사용 다른 금액은 422.',note:''},
+{a:'결제',t:'예외',f:'chk',r:'시스템',s:'S6',title:'토스 웹훅 중복·지연 도착',pre:'스테이징 · 웹훅 재전송 가능',steps:['같은 결제 완료 웹훅을 2회 전송','승인 응답보다 웹훅이 먼저 도착하게 함'],exp:'결제 상태는 한 번만 바뀌고, 순서가 바뀌어도 최종 상태가 같다.',note:'PaymentWebhookInbox·대사(Reconciliation) 서비스가 있다. 실제 동작은 확인 필요.'},
+
+// 주방
+{a:'주방',t:'정상',f:'ok',r:'주방',s:'S6',title:'접수 → 조리 → 완료 → 서빙',pre:'kitchen 역할 계정, 주방 화면(/admin/stores/:id/kitchen)',steps:['새 주문 확인','조리 시작','조리 완료','서빙 완료'],exp:'조리 시작 때 주방 프린트 작업이 등록되고 재고가 차감된다. 조리 완료 때 손님 번호로 "음식 준비 완료" 알림톡이 간다.',note:''},
+{a:'주방',t:'예외',f:'ok',r:'주방 2대',s:'S5',title:'주방 태블릿 두 대가 같은 주문을 동시에 누름',pre:'주방 화면 2대',steps:['두 화면에서 같은 주문의 조리 시작을 동시에 누름'],exp:'한 대만 성공하고 다른 한 대는 "주문 상태가 변경되었습니다. 새로고침해 주세요." (409).',note:''},
+{a:'주방',t:'실패',f:'ok',r:'주방',s:'S5',title:'단계 건너뛰기',pre:'접수 상태 주문',steps:['조리 단계 없이 서빙 완료로 바로 변경 시도(API)'],exp:'"현재 pending 상태에서는 completed로 변경할 수 없습니다." (400).',note:'관리자 주문 화면 경로는 pending → completed 직행을 허용한다(ORDER_STATUS_TRANSITIONS). 의도된 차이인지 확인.'},
+{a:'주방',t:'정상',f:'bug',r:'주방 → 손님',s:'S6',title:'조리 완료가 손님 화면에 바로 반영',pre:'손님이 주문 상태 화면을 열어 둠',steps:['주방에서 조리 완료 누름','손님 화면 확인'],exp:'손님 화면이 새로고침 없이 "조리 완료"로 바뀐다.',note:'주방 경로(KdsService)는 kitchen·store 룸에 "order_updated"만 보내고, 손님 화면과 관리자 주문 화면은 "order-updated"(하이픈)를 듣는다. 주문 룸(order - id)에도 보내지 않아 손님 화면이 갱신되지 않을 가능성이 높다.'},
+{a:'주방',t:'예외',f:'bug',r:'주방',s:'S1',title:'결제 완료 주문을 주방에서 취소',pre:'토스로 선결제된 주문',steps:['주방 화면에서 재료 소진으로 취소','결제 상태 확인'],exp:'주문 취소와 함께 환불이 진행되거나, 최소한 매장 화면에 "환불 필요" 경고가 뜬다.',note:'주방 취소 경로는 주문 상태만 바꾸고 결제 취소를 호출하지 않는다. 손님 돈이 환불되지 않은 채 주문만 취소될 수 있다.'},
+
+// 홀·호출
+{a:'홀·호출',t:'정상',f:'ok',r:'손님 → 홀',s:'S9',title:'직원 호출',pre:'홀 직원이 관리자 화면에 접속',steps:['손님이 직원호출 > "물 주세요"','관리자 화면 확인'],exp:'관리자 화면에 "3번에서 물 주세요 호출" 알림이 뜨고, 손님에게 "직원이 실시간 연결되어 있습니다" 확인이 온다.',note:'호출은 알림 테이블에 기록되어 대시보드 누적 집계에 쓰인다.'},
+{a:'홀·호출',t:'예외',f:'ok',r:'손님',s:'S9',title:'직원 아무도 접속 안 한 상태에서 호출',pre:'매장 관리자 화면 모두 종료',steps:['손님이 직원 호출'],exp:'손님에게 "현재 홀 직원이 바쁘지만, 호출 신호가 정상 접수되었습니다." 안내가 오고, 나중에 접속한 직원이 미확인 호출을 볼 수 있다.',note:''},
+{a:'홀·호출',t:'실패',f:'gap',r:'악성 사용자',s:'S2',title:'직원 호출 연타·원격 호출',pre:'소켓 클라이언트',steps:['직원 호출을 1초에 10번씩 1분간 전송','매장 밖에서 다른 매장 ID로 호출 전송'],exp:'일정 횟수 이상은 차단되고, 매장 밖·다른 매장 호출은 거절된다.',note:'manager-call 소켓 이벤트는 로그인·테이블 검증·횟수 제한이 없고, 보낼 때마다 DB 알림이 1건씩 생긴다.'},
+{a:'홀·호출',t:'정상',f:'ok',r:'매니저',s:'S4',title:'매니저 화면에서 주문 상태 일괄 관리',pre:'manager 역할 계정, 주문 3건',steps:['/admin/stores/:id/manager 진입','주문 상태를 접수 → 조리 → 완료로 변경'],exp:'변경이 주방·손님 화면에 반영되고 완료 시 포인트 적립이 처리된다.',note:''},
+
+// 웨이팅
+{a:'웨이팅',t:'정상',f:'ok',r:'손님',s:'S3',title:'웨이팅 등록',pre:'점심 피크, 테이블 만석 가정',steps:['매장 웨이팅 화면에서 이름·번호·인원 2명 입력','등록'],exp:'오늘 대기 번호가 발급되고 "웨이팅 등록" 알림톡이 간다. 관리자 웨이팅 목록에 바로 뜬다.',note:''},
+{a:'웨이팅',t:'실패',f:'ok',r:'손님',s:'S3',title:'같은 번호로 중복 등록',pre:'위 등록 상태',steps:['같은 번호로 다시 등록'],exp:'"이미 대기 등록이 되어 있습니다." (400) 와 함께 기존 대기 정보가 보인다.',note:''},
+{a:'웨이팅',t:'예외',f:'gap',r:'홀 직원',s:'S3',title:'호출했는데 손님이 안 옴',pre:'대기 손님 호출 후 10분 경과',steps:['직원이 호출','손님 미방문 처리 시도'],exp:'"노쇼"로 기록되고 다음 손님이 호출된다.',note:'대기 상태는 waiting·called·entered·cancelled 뿐이라 노쇼는 취소로만 처리된다. 노쇼 통계·재호출 제한이 없다.'},
+{a:'웨이팅',t:'실패',f:'gap',r:'손님',s:'S6',title:'잘못된 입력으로 웨이팅 등록',pre:'API 도구',steps:['인원 0, 인원 "abc", 인원 100','전화번호 "123"','없는 매장 ID'],exp:'각각 친절한 400 오류로 거절된다.',note:'waiting/register에는 입력 검증 스키마가 없다. 인원 문자는 서버 오류(500), 이상한 번호는 그대로 저장될 수 있다.'},
+{a:'웨이팅',t:'예외',f:'bug',r:'손님 다수',s:'S5',title:'동시 등록 번호 중복 · 오전 9시 번호 초기화',pre:'스테이징, 동시 요청 도구',steps:['서로 다른 번호 5개로 동시에 등록','오전 8시 50분과 9시 10분(KST)에 각각 등록'],exp:'대기 번호가 겹치지 않고, 번호는 자정(KST)에만 1번부터 다시 시작한다.',note:'다음 번호를 "마지막 번호 + 1"로 트랜잭션 없이 계산해 동시 등록 시 같은 번호가 나올 수 있다. "오늘" 기준이 서버 시간(setHours(0))이라 서버가 UTC면 한국 시간 오전 9시에 번호가 초기화된다.'},
+{a:'웨이팅',t:'실패',f:'ok',r:'손님',s:'S7',title:'내 대기 취소 / 남의 대기 취소',pre:'두 손님이 각각 대기 중',steps:['A가 본인 대기 취소','A가 B의 대기 ID로 취소 시도'],exp:'본인 것은 취소되고 알림톡이 간다. 남의 것은 "본인의 대기만 취소할 수 있습니다." (403).',note:''},
+
+// 권한·보안
+{a:'권한·보안',t:'실패',f:'chk',r:'주방',s:'S6',title:'주방 계정이 할 수 없는 일',pre:'kitchen 역할 계정',steps:['메뉴 관리·정산·직원 관리 화면 접근','주문 취소 API 호출'],exp:'메뉴·정산·직원은 403. 주문 취소는 정책에 따라 허용 또는 차단.',note:'kitchen 권한은 orders:read·orders:update뿐인데, 주문 취소 서비스는 kitchen 역할도 허용한다(OrderService.cancelOrder). 주방이 주문을 취소할 수 있어야 하는지 정책 결정 필요.'},
+{a:'권한·보안',t:'실패',f:'ok',r:'다른 매장 사장',s:'S1·S2',title:'다른 매장 데이터 접근',pre:'S1 사장 로그인',steps:['S2 매장 ID로 /admin/stores/:id/orders 접속','S2 주문 목록 API 직접 호출'],exp:'화면은 접근 거부, API는 403. S2 데이터가 한 줄도 노출되지 않는다.',note:''},
+{a:'권한·보안',t:'실패',f:'bug',r:'타인',s:'S3',title:'전화번호만으로 남의 웨이팅·주문 엿보기',pre:'다른 손님의 휴대폰 번호를 알고 있음',steps:['GET /api/waiting/my/{그 번호} 호출','소켓으로 join-customer-orders {phone: 그 번호} 전송'],exp:'본인 확인(대기 등록 시 받은 토큰 등) 없이는 아무것도 보이지 않는다.',note:'두 경로 모두 인증 없이 번호만으로 동작한다. 남의 대기 정보와 주문 상태 알림을 받아볼 수 있어 개인정보 문제가 된다.'},
+// ── TC-51~150 (2026-10-23 확장) ──
+{"a":"예약","t":"정상","f":"run","r":"손님","s":"S1","title":"룸 단체 예약 등록","pre":"S1 룸1(5인) 비어 있음","steps":["매장 페이지에서 예약 선택","내일 19:00, 5명, 이름·번호 입력","예약 신청"],"exp":"예약이 접수되고 손님에게 예약 접수 알림톡이 간다. 사장 예약 관리 화면에 바로 뜬다.","note":"POST /api/reservations/register"},
+{"a":"예약","t":"정상","f":"run","r":"사장","s":"S1","title":"예약 확정과 거절","pre":"예약 2건 접수 상태","steps":["1건 확정","1건 거절(사유 입력)"],"exp":"상태가 각각 확정·거절로 바뀌고 손님에게 결과 알림이 간다.","note":""},
+{"a":"예약","t":"실패","f":"run","r":"손님","s":"S3","title":"지난 날짜로 예약","pre":"API 도구 또는 날짜 선택기 조작","steps":["어제 날짜로 예약 신청"],"exp":"\"지난 날짜는 예약할 수 없습니다\"류의 400으로 거절된다.","note":""},
+{"a":"예약","t":"예외","f":"run","r":"손님 2명","s":"S1","title":"같은 룸 같은 시간 중복 예약","pre":"룸1 내일 19:00 확정 예약 있음","steps":["다른 손님이 같은 룸·시간으로 신청"],"exp":"두 번째 예약은 거절되거나 대기로 접수되고, 사장 화면에 겹침이 표시된다.","note":"예약 겹침 검증이 있는지 실행으로 확인한다."},
+{"a":"예약","t":"정상","f":"run","r":"손님","s":"S6","title":"내 예약 조회와 취소","pre":"예약 접수 때 받은 확인 토큰 보유","steps":["내 예약 화면 열기","예약 취소"],"exp":"내 예약만 보이고 취소되면 사장 화면에도 취소로 반영된다.","note":"조회·취소는 reservation capability가 있어야 한다."},
+{"a":"예약","t":"실패","f":"run","r":"타인","s":"S6","title":"번호만으로 남의 예약 조회·취소","pre":"다른 손님 번호와 예약 ID를 앎","steps":["토큰 없이 GET /api/reservations/my/{번호}","토큰 없이 취소 요청"],"exp":"둘 다 403으로 거절된다.","note":""},
+{"a":"예약","t":"정상","f":"run","r":"홀 직원","s":"S1","title":"예약 손님 도착 후 테이블 배정","pre":"오늘 19:00 확정 예약","steps":["손님 도착 확인","룸1 배정 후 QR 주문"],"exp":"예약이 방문 완료로 바뀌고 룸1 주문이 예약 손님 주문으로 이어진다.","note":""},
+{"a":"예약","t":"실패","f":"run","r":"손님","s":"S4","title":"휴무일 예약","pre":"S4는 일요일 휴무","steps":["다음 일요일 12:00 예약 신청"],"exp":"휴무일 안내와 함께 거절된다.","note":"예약에 영업시간·휴무 검증이 있는지 실행으로 확인한다."},
+{"a":"쿠폰·포인트","t":"정상","f":"run","r":"사장","s":"S6","title":"정액·정률 쿠폰 만들기","pre":"S6 사장 로그인","steps":["\"점심 500원 할인\"(정액, 최소 11,000원) 생성","\"2인 10%\"(정률, 최소 22,000원) 생성"],"exp":"두 쿠폰이 목록에 활성으로 표시된다.","note":""},
+{"a":"쿠폰·포인트","t":"정상","f":"run","r":"사장 → 손님","s":"S6","title":"고객에게 쿠폰 발급과 지갑 표시","pre":"단골 고객 번호 1개","steps":["고객 관리에서 쿠폰 발급","손님이 /wallet 열기"],"exp":"손님 지갑에 쿠폰이 미사용으로 보인다.","note":""},
+{"a":"쿠폰·포인트","t":"정상","f":"run","r":"손님","s":"S5","title":"정률 쿠폰 금액 계산","pre":"\"단체 회식 10%\"(최소 150,000원) 보유","steps":["치킨 등 150,000원 담기","쿠폰 적용 주문"],"exp":"15,000원이 할인된 135,000원으로 주문된다.","note":"할인은 서버가 상품 합계 기준으로 계산한다."},
+{"a":"쿠폰·포인트","t":"실패","f":"run","r":"손님","s":"S6","title":"이미 쓴 쿠폰 다시 사용","pre":"한 번 사용된 쿠폰","steps":["같은 쿠폰으로 다시 주문"],"exp":"\"유효하지 않은 쿠폰입니다.\" (400).","note":""},
+{"a":"쿠폰·포인트","t":"예외","f":"run","r":"매니저","s":"S6","title":"쿠폰 쓴 주문을 취소하면 쿠폰 복구","pre":"쿠폰 적용 주문 1건","steps":["주문 취소","손님 지갑 확인"],"exp":"쿠폰이 다시 미사용으로 돌아온다.","note":"취소 시 쿠폰 상태 복원이 되는지 실행으로 확인한다."},
+{"a":"쿠폰·포인트","t":"정상","f":"run","r":"손님","s":"S9","title":"주문 후 번호 등록으로 포인트 적립","pre":"방금 주문한 기기(주문 증명 보유)","steps":["주문 완료 화면에서 번호 입력","적립"],"exp":"주문 금액 기준 포인트가 적립되고 등급과 다음 등급까지 금액이 보인다.","note":"phone-join은 해당 주문의 order capability가 있어야 한다."},
+{"a":"쿠폰·포인트","t":"실패","f":"run","r":"손님","s":"S9","title":"같은 주문으로 두 번 적립","pre":"이미 적립한 주문","steps":["다시 번호 등록"],"exp":"\"이미 포인트가 적립된 주문입니다.\"로 안내되고 포인트는 그대로다.","note":""},
+{"a":"쿠폰·포인트","t":"정상","f":"run","r":"손님","s":"S10","title":"포인트로 결제하고 취소","pre":"포인트 5,000점 보유","steps":["3,500원 아메리카노를 포인트로 결제","매니저가 주문 취소"],"exp":"결제 시 포인트가 차감되고 취소 시 다시 돌아온다.","note":""},
+{"a":"쿠폰·포인트","t":"정상","f":"run","r":"손님","s":"S3","title":"포인트 내역 확인","pre":"적립·사용 이력 있음","steps":["/points/history 열기"],"exp":"날짜·매장·적립/사용 금액이 최신순으로 보인다.","note":""},
+{"a":"쿠폰·포인트","t":"정상","f":"run","r":"사장","s":"S3","title":"포인트 적립률 변경","pre":"기본 적립률","steps":["포인트 설정에서 적립률 3% → 5%","새 주문 후 번호 등록"],"exp":"새 주문부터 5%로 적립된다.","note":""},
+{"a":"리뷰","t":"정상","f":"run","r":"손님","s":"S6","title":"주문 후 리뷰 작성","pre":"수령 완료 주문","steps":["주문 상태 화면에서 리뷰 쓰기","별점 5, 사진 1장, 내용 입력"],"exp":"리뷰가 매장 페이지와 사장 리뷰 관리에 보인다.","note":""},
+{"a":"리뷰","t":"실패","f":"run","r":"타인","s":"S6","title":"주문 없이 리뷰 작성","pre":"API 도구","steps":["주문 ID 없이 리뷰 등록 요청"],"exp":"주문 확인 없이 쓰는 리뷰는 거절된다.","note":"리뷰 작성 시 주문 확인 여부를 실행으로 확인한다."},
+{"a":"리뷰","t":"정상","f":"run","r":"사장","s":"S1","title":"리뷰 답글","pre":"리뷰 1건","steps":["답글 작성"],"exp":"매장 페이지에 사장님 답글로 표시된다.","note":""},
+{"a":"리뷰","t":"예외","f":"run","r":"사장","s":"S1","title":"부적절한 리뷰 숨김","pre":"욕설 리뷰 1건","steps":["숨김 또는 신고"],"exp":"손님 화면에서 사라지고 관리 화면에는 숨김으로 남는다.","note":""},
+{"a":"리뷰","t":"예외","f":"run","r":"손님","s":"S6","title":"큰 사진(20MB) 첨부","pre":"고해상도 사진","steps":["리뷰에 20MB 사진 첨부"],"exp":"자동 압축되어 올라가거나 용량 안내와 함께 거절된다. 화면이 멈추지 않는다.","note":""},
+{"a":"고객관리·마케팅","t":"정상","f":"run","r":"사장","s":"S5","title":"고객 목록 조회","pre":"적립 고객 다수","steps":["고객 관리 열기"],"exp":"방문 횟수·이용 금액·등급이 보이고 전화번호는 마스킹된다.","note":""},
+{"a":"고객관리·마케팅","t":"실패","f":"run","r":"홀 직원","s":"S5","title":"직원 계정의 고객 목록 접근","pre":"staff 역할 계정","steps":["고객 관리 화면·API 접근"],"exp":"403. staff 권한에는 customers:read가 없다.","note":""},
+{"a":"고객관리·마케팅","t":"정상","f":"run","r":"손님","s":"S3","title":"누적 금액으로 등급 상승","pre":"다음 등급까지 5,000원 남은 고객","steps":["24,000원 주문 후 번호 등록"],"exp":"등급이 자동으로 올라가고 적립률이 새 등급 기준이 된다.","note":""},
+{"a":"고객관리·마케팅","t":"정상","f":"run","r":"사장","s":"S9","title":"재방문 캠페인 만들기","pre":"30일 미방문 고객 존재","steps":["캠페인에서 대상 \"30일 미방문\" 선택","쿠폰 첨부 후 예약 발송"],"exp":"대상 수가 미리 보이고 예약 시각에 발송된다.","note":""},
+{"a":"고객관리·마케팅","t":"정상","f":"run","r":"사장","s":"S9","title":"단체 문자 발송","pre":"수신 동의·거부 고객 섞여 있음","steps":["단체 문자 작성","발송"],"exp":"수신 거부 고객은 제외되고 발송 결과(성공·실패 수)가 기록된다.","note":"실제 문자 비용이 발생하므로 테스트 번호로만 실행."},
+{"a":"고객관리·마케팅","t":"실패","f":"run","r":"사장","s":"S9","title":"문자 공급자 오류","pre":"스테이징에서 공급자 키 무효화","steps":["단체 문자 발송"],"exp":"실패로 기록되고 사장에게 이유가 안내된다. 돈이 빠져나간 것처럼 보이지 않는다.","note":""},
+{"a":"고객관리·마케팅","t":"정상","f":"run","r":"사장","s":"S3","title":"알림톡 발송 내역 확인","pre":"웨이팅·주문 알림톡 발송 이력","steps":["알림톡 콘솔 열기"],"exp":"발송 시각·종류·성공 여부가 보이고 번호는 마스킹된다.","note":""},
+{"a":"고객관리·마케팅","t":"정상","f":"run","r":"사장","s":"S3","title":"알림 문구 템플릿 수정","pre":"기본 템플릿","steps":["\"음식 준비 완료\" 문구 수정","주방에서 조리 완료"],"exp":"손님이 받는 알림에 수정된 문구가 쓰인다.","note":""},
+{"a":"메뉴 관리","t":"정상","f":"run","r":"사장","s":"S8","title":"새 메뉴 추가","pre":"S8 사장 로그인","steps":["메뉴 추가(사진·가격·카테고리)","손님 메뉴 새로고침"],"exp":"새 메뉴가 해당 카테고리에 바로 보인다.","note":""},
+{"a":"메뉴 관리","t":"정상","f":"run","r":"사장","s":"S8","title":"옵션 그룹 설정","pre":"샐러드 메뉴","steps":["드레싱(필수, 1개)","토핑 추가(선택, 최대 3개, 개당 1,000원) 설정","손님이 옵션 골라 주문"],"exp":"옵션 가격이 합산되고 필수 미선택·4개 선택은 막힌다.","note":""},
+{"a":"메뉴 관리","t":"정상","f":"run","r":"사장","s":"S2","title":"카테고리 순서 변경","pre":"카테고리 3개","steps":["순서를 끌어 바꾸기"],"exp":"손님 메뉴 탭 순서가 같은 순서로 바뀐다.","note":""},
+{"a":"메뉴 관리","t":"실패","f":"run","r":"홀 직원","s":"S2","title":"직원 계정의 메뉴 수정","pre":"staff 역할 계정","steps":["메뉴 가격 수정 시도"],"exp":"403. 매니저는 가능하고 staff는 불가.","note":""},
+{"a":"메뉴 관리","t":"정상","f":"run","r":"사장","s":"S5","title":"영업 시작 전 품절 일괄 해제","pre":"어제 품절 메뉴 5개","steps":["일괄 선택 후 판매 중으로 변경"],"exp":"5개 모두 판매 중으로 바뀐다.","note":""},
+{"a":"메뉴 관리","t":"정상","f":"run","r":"사장","s":"S7","title":"내 다른 매장 메뉴 가져오기","pre":"같은 사장이 매장 2개 보유 (테스트용 추가 매장 필요)","steps":["다른 매장 메뉴 가져오기"],"exp":"선택한 메뉴가 옵션과 함께 복사된다.","note":""},
+{"a":"메뉴 관리","t":"실패","f":"run","r":"다른 매장 사장","s":"S7","title":"남의 매장 메뉴 가져오기","pre":"S7 사장 로그인","steps":["S1 매장 ID로 가져오기 요청"],"exp":"403.","note":""},
+{"a":"메뉴 관리","t":"정상","f":"run","r":"사장","s":"S10","title":"메뉴판 디자인(비주얼 빌더) 변경","pre":"기본 레이아웃","steps":["그리드 → 매거진 변경 후 저장","손님 메뉴 열기"],"exp":"손님 화면이 매거진 레이아웃으로 보인다.","note":""},
+{"a":"메뉴 관리","t":"정상","f":"run","r":"사장","s":"S10","title":"시간대 할인(동적 가격)","pre":"20:00~21:30 빵 30% 할인 설정","steps":["20:30에 소금빵 주문"],"exp":"할인가로 표시되고 서버도 같은 금액으로 계산한다(가격 불일치 409가 나지 않는다).","note":"동적 가격이 서버 가격 계산에도 들어가는지 실행으로 확인한다."},
+{"a":"메뉴 관리","t":"예외","f":"run","r":"사장 → 손님","s":"S8","title":"담아 둔 메뉴가 판매 중단됨","pre":"손님이 메뉴를 담아 둠","steps":["사장이 그 메뉴를 판매 중단","손님 주문"],"exp":"\"판매 중단된 상품입니다\"로 거절된다.","note":""},
+{"a":"재고","t":"정상","f":"run","r":"사장","s":"S10","title":"재고 수량 관리","pre":"소금빵 재고 20","steps":["소금빵 3개 주문","주방 조리 시작"],"exp":"조리 시작 때 재고가 17로 줄어든다.","note":""},
+{"a":"재고","t":"정상","f":"run","r":"주방","s":"S10","title":"재고 0이 되면 자동 품절","pre":"재고 2","steps":["2개 주문 후 조리 시작"],"exp":"재고 0이 되며 자동으로 품절 표시된다.","note":""},
+{"a":"재고","t":"정상","f":"run","r":"사장","s":"S10","title":"재고 부족 알림","pre":"최소 재고 5 설정","steps":["재고가 4가 되는 주문 처리"],"exp":"매장 알림에 재고 부족이 뜬다.","note":""},
+{"a":"재고","t":"예외","f":"run","r":"매니저","s":"S10","title":"조리 시작 후 취소하면 재고 복구","pre":"조리 중 주문(재고 차감됨)","steps":["주문 취소"],"exp":"차감된 재고가 돌아오고 품절이었다면 다시 판매 중이 된다.","note":""},
+{"a":"재고","t":"정상","f":"run","r":"사장","s":"S8","title":"발주 제안","pre":"최근 판매 이력","steps":["재고 관리에서 발주 제안 보기"],"exp":"품목별 권장 발주량이 이유와 함께 보인다.","note":""},
+{"a":"매출·정산","t":"정상","f":"run","r":"사장","s":"S5","title":"자정 넘는 날의 일 매출","pre":"23:50과 00:10(KST)에 주문 각 1건","steps":["매출 통계에서 날짜별 보기"],"exp":"두 주문이 각각 다른 날짜로 집계된다(한국 시간 기준).","note":""},
+{"a":"매출·정산","t":"정상","f":"run","r":"사장","s":"S6","title":"취소·부분 환불이 매출에 반영","pre":"정상·취소·부분 환불 주문","steps":["오늘 매출 확인"],"exp":"취소 주문은 빠지고 부분 환불은 환불액만큼 줄어든다.","note":""},
+{"a":"매출·정산","t":"정상","f":"run","r":"사장","s":"S6","title":"정산 내역","pre":"토스 결제 여러 건","steps":["정산 화면 열기"],"exp":"결제 금액·수수료·정산 예정액이 기간별로 맞게 보인다.","note":""},
+{"a":"매출·정산","t":"정상","f":"run","r":"사장","s":"S1","title":"매출 리포트 내보내기","pre":"한 달 매출","steps":["PDF와 엑셀로 내보내기"],"exp":"파일이 받아지고 화면 합계와 같다. 고객 번호는 마스킹된다.","note":""},
+{"a":"매출·정산","t":"실패","f":"run","r":"홀 직원","s":"S1","title":"직원 계정의 매출 통계 접근","pre":"staff 역할 계정","steps":["매출 통계 화면·API 접근"],"exp":"403. staff 권한에는 stats:read가 없다.","note":""},
+{"a":"매출·정산","t":"정상","f":"run","r":"사장","s":"S5","title":"실시간 대시보드 반영","pre":"대시보드 열어 둠","steps":["새 주문 1건 접수"],"exp":"새로고침 없이 오늘 매출·주문 수가 늘어난다.","note":""},
+{"a":"매출·정산","t":"정상","f":"run","r":"사장","s":"S4","title":"결제 수단별 합계","pre":"현금·카드·토스·이체 주문 섞임","steps":["결제 수단별 집계 보기"],"exp":"수단별 합계의 합이 총매출과 같다.","note":""},
+{"a":"매출·정산","t":"정상","f":"run","r":"사장","s":"S4","title":"영수증 설정","pre":"기본 영수증","steps":["상호·사업자번호·하단 문구 수정","영수증 출력"],"exp":"출력물에 수정한 내용이 들어간다.","note":""},
+{"a":"직원 운영","t":"정상","f":"run","r":"홀 직원","s":"S6","title":"출근·퇴근 기록","pre":"staff 계정","steps":["출근","4시간 뒤 퇴근"],"exp":"근무 시간이 기록되고 사장 근태 화면에 보인다.","note":""},
+{"a":"직원 운영","t":"실패","f":"run","r":"홀 직원","s":"S6","title":"출근 중복 기록","pre":"이미 출근 상태","steps":["다시 출근"],"exp":"이미 출근 중이라는 안내로 막힌다.","note":""},
+{"a":"직원 운영","t":"정상","f":"run","r":"사장","s":"S6","title":"근무 스케줄 짜기","pre":"직원 3명","steps":["다음 주 스케줄 생성","1건 수정, 1건 삭제"],"exp":"직원별 화면에 바뀐 스케줄이 보인다.","note":""},
+{"a":"직원 운영","t":"정상","f":"run","r":"사장","s":"S6","title":"퇴사 직원 비활성화","pre":"staff 계정 1개","steps":["직원 비활성화","그 계정으로 매장 화면 접근"],"exp":"즉시 403으로 막힌다.","note":""},
+{"a":"직원 운영","t":"예외","f":"run","r":"사장","s":"S6","title":"로그인 중인 직원의 역할 변경","pre":"manager로 로그인 중인 직원","steps":["역할을 staff로 변경","그 직원이 메뉴 수정 시도"],"exp":"다시 로그인하지 않아도 바로 403 (역할은 요청마다 DB에서 확인).","note":""},
+{"a":"직원 운영","t":"실패","f":"run","r":"주방","s":"S5","title":"다른 매장 직원을 담당자로 지정","pre":"주방 화면","steps":["다른 매장 직원 ID로 담당자 지정 요청"],"exp":"\"해당 매장의 활성 직원만 담당자로 지정할 수 있습니다.\" (400).","note":""},
+{"a":"직원 운영","t":"정상","f":"run","r":"직원","s":"S5","title":"직원 활동 점수","pre":"주문 처리 이력","steps":["직원 순위 화면 열기"],"exp":"처리 건수 등 기준으로 점수가 보인다.","note":""},
+{"a":"직원 운영","t":"예외","f":"run","r":"사장","s":"S5","title":"담당 주문이 있는 직원 삭제","pre":"직원이 담당한 조리 중 주문","steps":["직원 삭제"],"exp":"주문은 그대로 남고 담당자 표시만 비거나 \"퇴사\"로 보인다. 화면 오류가 없다.","note":""},
+{"a":"계정·보안","t":"정상","f":"run","r":"예비 사장","s":"-","title":"휴대폰 인증 회원가입","pre":"새 번호","steps":["인증번호 요청","6자리 입력","가입"],"exp":"가입되고 매장 설정 마법사로 이동한다.","note":"실제 문자가 발송되므로 테스트 번호로만."},
+{"a":"계정·보안","t":"실패","f":"run","r":"예비 사장","s":"-","title":"인증번호 5번 틀림","pre":"인증번호 요청 직후","steps":["틀린 번호 5번 입력"],"exp":"\"인증 시도 횟수를 초과했습니다\" 후 재요청해야 한다.","note":""},
+{"a":"계정·보안","t":"실패","f":"run","r":"예비 사장","s":"-","title":"1분 안에 인증번호 재요청","pre":"방금 요청함","steps":["바로 다시 요청"],"exp":"\"인증번호는 1분 뒤 다시 요청해 주세요.\" (429).","note":""},
+{"a":"계정·보안","t":"정상","f":"run","r":"사장","s":"-","title":"소셜 로그인","pre":"카카오·구글 계정","steps":["소셜 로그인으로 가입·로그인"],"exp":"계정이 만들어지고 같은 소셜 계정으로 다시 들어오면 같은 계정이다.","note":""},
+{"a":"계정·보안","t":"정상","f":"run","r":"사장","s":"S1","title":"2단계 인증 켜고 로그인","pre":"S1 계정","steps":["계정 보안에서 2단계 인증 설정","로그아웃 후 로그인"],"exp":"비밀번호 다음에 인증 코드를 요구하고, 맞아야 들어간다.","note":""},
+{"a":"계정·보안","t":"예외","f":"run","r":"사장","s":"S2","title":"로그인 2시간 뒤 계속 사용","pre":"로그인 후 2시간 경과","steps":["화면 조작"],"exp":"갱신 토큰으로 자동 연장되어 끊기지 않는다. 7일이 지나면 로그인 화면으로 간다.","note":""},
+{"a":"계정·보안","t":"실패","f":"run","r":"사장","s":"S2","title":"로그아웃한 토큰 재사용","pre":"로그아웃 전 토큰 복사","steps":["그 토큰으로 API 호출"],"exp":"401.","note":""},
+{"a":"계정·보안","t":"정상","f":"run","r":"사장","s":"S2","title":"비밀번호 변경 후 다른 기기","pre":"PC·휴대폰 동시 로그인","steps":["PC에서 비밀번호 변경","휴대폰에서 조작"],"exp":"다른 기기는 다시 로그인해야 한다.","note":"세션 무효화 정책을 실행으로 확인한다."},
+{"a":"계정·보안","t":"실패","f":"run","r":"사장","s":"-","title":"탈퇴 요청 계정 로그인","pre":"탈퇴 대기(deletion_pending) 계정","steps":["로그인"],"exp":"\"아이디 또는 비밀번호가 올바르지 않습니다.\" 와 같은 문구로 막힌다.","note":""},
+{"a":"계정·보안","t":"정상","f":"run","r":"운영자","s":"-","title":"운영자 전용 화면","pre":"super_admin 계정과 일반 사장 계정","steps":["사업자 지원센터·공급자 설정 화면 접근"],"exp":"운영자만 열리고 일반 사장은 접근 거부된다.","note":""},
+{"a":"키오스크·검색","t":"정상","f":"run","r":"손님","s":"S10","title":"키오스크 포장 주문","pre":"매장 태블릿에서 /kiosk/:storeId","steps":["메뉴 담기","현장 결제 선택 후 주문"],"exp":"주문 번호가 크게 표시되고 주방에 포장 주문으로 뜬다.","note":""},
+{"a":"키오스크·검색","t":"예외","f":"run","r":"손님","s":"S10","title":"키오스크 방치","pre":"장바구니에 담은 채 자리 비움","steps":["일정 시간 입력 없음"],"exp":"장바구니가 비워지고 처음 화면으로 돌아간다.","note":""},
+{"a":"키오스크·검색","t":"정상","f":"run","r":"손님","s":"-","title":"매장 이름으로 검색","pre":"검색 페이지","steps":["\"돈가스\" 검색"],"exp":"청담돈가스 본점이 결과에 나온다.","note":"검색 페이지는 /api/stores/search를 쓴다 (/api/stores?q=는 검색어를 쓰지 않음)."},
+{"a":"키오스크·검색","t":"예외","f":"run","r":"손님","s":"-","title":"위치 거부 상태로 주변 매장","pre":"위치 권한 거부","steps":["주변 매장 보기"],"exp":"위치 없이 기본 지역(강남역 등) 기준으로 보여주고 안내 문구가 뜬다.","note":""},
+{"a":"키오스크·검색","t":"실패","f":"bug","r":"타인","s":"-","title":"번호만으로 남의 즐겨찾기 보기","pre":"다른 손님의 휴대폰 번호","steps":["GET /api/stores/favorites/{번호}"],"exp":"본인 확인 없이는 즐겨찾기가 보이지 않는다.","note":"routes/stores.js의 즐겨찾기 조회·추가·삭제가 인증 없이 번호만으로 동작한다. 남의 단골 매장 목록을 볼 수 있다."},
+{"a":"키오스크·검색","t":"정상","f":"run","r":"손님","s":"S4","title":"매장 소개 페이지","pre":"매장 slug","steps":["/store/:slug 열기"],"exp":"소개·영업시간·메뉴·리뷰가 보이고 휴무일이 맞게 표시된다.","note":""},
+{"a":"키오스크·검색","t":"실패","f":"bug","r":"악성 사용자","s":"-","title":"인증 없는 예전 장바구니 API","pre":"API 도구","steps":["GET·POST·DELETE /api/cart/{임의 테이블 ID}"],"exp":"로그인·테이블 확인 없이는 남의 테이블 장바구니를 읽거나 지울 수 없다.","note":"routes/cart.js는 인증 없이 테이블 ID만으로 동작한다. 지금 메뉴 화면은 쓰지 않으므로(공유 장바구니는 소켓 방식) 막거나 없애는 것이 맞다."},
+{"a":"알림·출력","t":"정상","f":"run","r":"사장","s":"S6","title":"새 주문 웹 푸시와 알림음","pre":"관리자 화면 알림 허용","steps":["손님 주문"],"exp":"푸시 알림과 소리가 나고 주문 화면 맨 위에 뜬다.","note":""},
+{"a":"알림·출력","t":"예외","f":"run","r":"사장","s":"S6","title":"브라우저 알림 거부 상태","pre":"알림 권한 거부","steps":["손님 주문"],"exp":"푸시는 없지만 화면 안 알림(소켓)으로 새 주문이 보인다.","note":""},
+{"a":"알림·출력","t":"정상","f":"run","r":"주방","s":"S1","title":"주방 주문서 출력","pre":"프린트 에이전트 연결","steps":["조리 시작"],"exp":"주방 주문서가 한 번 출력되고 테이블은 \"1번\"처럼 한 번만 붙는다.","note":""},
+{"a":"알림·출력","t":"예외","f":"run","r":"주방","s":"S1","title":"프린터 꺼진 상태","pre":"프린터 전원 끔","steps":["조리 시작","프린터 켜기"],"exp":"출력 작업이 대기했다가 켜지면 출력된다. 같은 상태 재시도로 중복 출력되지 않는다.","note":""},
+{"a":"알림·출력","t":"예외","f":"run","r":"손님","s":"S9","title":"번호 없이 주문한 손님의 완료 알림","pre":"번호 입력 거부, 알림 허용","steps":["주문","주방 조리 완료"],"exp":"알림톡 대신 웹 푸시로 완료 알림을 받는다.","note":""},
+{"a":"알림·출력","t":"정상","f":"run","r":"사장","s":"S9","title":"알림 모두 읽음과 비우기","pre":"안 읽은 알림 10개","steps":["모두 읽음","알림 비우기"],"exp":"배지 숫자가 0이 되고 목록이 비워진다. 다른 매장 알림은 건드리지 않는다.","note":""},
+{"a":"알림·출력","t":"정상","f":"run","r":"사장","s":"S9","title":"직원 호출 현황판","pre":"호출 3건","steps":["대시보드 호출 현황 확인","1건 처리(읽음)"],"exp":"남은 호출 수가 2로 줄고 테이블·요청 내용이 보인다.","note":""},
+{"a":"장애·성능","t":"예외","f":"run","r":"손님","s":"S7","title":"서버가 잠든 상태에서 첫 접속","pre":"한동안 요청 없음 (Render 슬립)","steps":["QR로 메뉴 열기"],"exp":"\"서버를 깨우는 중\" 안내 후 30초 안에 메뉴가 뜬다.","note":""},
+{"a":"장애·성능","t":"예외","f":"run","r":"손님","s":"S3","title":"주문 중 네트워크 끊김","pre":"개발자도구로 오프라인 전환","steps":["주문 버튼","온라인 복구 후 다시 주문"],"exp":"실패 안내 후 다시 시도해도 주문은 1건만 생긴다.","note":""},
+{"a":"장애·성능","t":"예외","f":"run","r":"손님·주방","s":"S6","title":"소켓 재연결 후 상태 맞추기","pre":"손님 주문 상태 화면","steps":["30초 오프라인","그사이 주방이 조리 완료","온라인 복구"],"exp":"복구 후 상태가 조리 완료로 맞춰진다.","note":""},
+{"a":"장애·성능","t":"예외","f":"run","r":"손님 다수","s":"S1","title":"같은 와이파이에서 단체 주문","pre":"매장 와이파이(같은 공인 IP)에서 휴대폰 10대","steps":["1분 안에 각자 3~4건 주문"],"exp":"정상 손님 주문이 막히지 않는다.","note":"주문 제한이 IP·매장 기준 1분 30건이라 큰 단체석에서는 걸릴 수 있다. 실제로 걸리면 한도를 조정한다."},
+{"a":"장애·성능","t":"예외","f":"run","r":"시스템","s":"S6","title":"결제 승인 응답 유실","pre":"스테이징, 승인 직후 서버 응답 끊김","steps":["결제 승인","대사(정합성 점검) 실행"],"exp":"토스에는 결제됐는데 주문이 미결제로 남는 건이 대사로 정리된다.","note":""},
+{"a":"장애·성능","t":"예외","f":"run","r":"손님","s":"S7","title":"완전 오프라인","pre":"비행기 모드","steps":["메뉴 페이지 새로고침"],"exp":"오프라인 안내 화면이 뜬다.","note":""},
+{"a":"장애·성능","t":"정상","f":"run","r":"손님","s":"S5","title":"메뉴가 많은 매장 로딩","pre":"메뉴 39개(S5), 저사양 휴대폰","steps":["QR로 메뉴 열기"],"exp":"3초 안에 첫 화면이 보이고 스크롤이 끊기지 않는다.","note":""},
+{"a":"장애·성능","t":"예외","f":"run","r":"사장","s":"S1","title":"DB 연결 오류","pre":"스테이징에서 DB 차단","steps":["주문 화면 열기"],"exp":"\"잠시 후 다시 시도\" 안내가 뜨고 내부 오류 내용은 보이지 않는다.","note":""},
+{"a":"접근성·기타","t":"정상","f":"run","r":"외국인 손님","s":"S6","title":"영어·일본어 메뉴","pre":"휴대폰 언어 영어","steps":["메뉴 열기","언어를 일본어로 변경"],"exp":"화면 문구가 언어에 맞게 바뀌고 주문이 정상 동작한다.","note":""},
+{"a":"접근성·기타","t":"정상","f":"run","r":"시각장애 손님","s":"S3","title":"화면 낭독기로 주문","pre":"VoiceOver 또는 TalkBack","steps":["메뉴 탐색","담기","주문"],"exp":"버튼과 가격이 읽히고 끝까지 주문할 수 있다.","note":""},
+{"a":"접근성·기타","t":"정상","f":"run","r":"사장","s":"S1","title":"관리자 다크 모드","pre":"다크 테마","steps":["주문·메뉴·웨이팅 화면 확인"],"exp":"제목·버튼 글자가 배경과 충분히 구분된다.","note":""},
+{"a":"접근성·기타","t":"정상","f":"run","r":"사장 → 손님","s":"S2","title":"AI 추천 켜고 끄기","pre":"팅커벨 AI 추천 기본 꺼짐","steps":["손님 메뉴 확인","사장이 AI 추천 켜기","다시 확인"],"exp":"꺼져 있을 땐 추천 영역이 없고 켜면 나타난다.","note":""},
+{"a":"접근성·기타","t":"정상","f":"run","r":"사장","s":"-","title":"여러 매장 한눈에 보기","pre":"매장 2개 이상 가진 계정","steps":["슈퍼바이저 대시보드 열기"],"exp":"매장별 오늘 매출·주문·호출이 보이고 내 매장만 나온다.","note":""},
+{"a":"접근성·기타","t":"정상","f":"run","r":"사장 → 운영자","s":"S8","title":"요금제 업그레이드 요청","pre":"기본 요금제","steps":["상위 요금제 신청","운영자 승인"],"exp":"승인 후 상위 요금제 기능이 열린다.","note":""}
+];
+
+// 2026-10-23 해결 내용 (PR #13)
+const RES = {
+ 'TC-02':'같은 아이디로 15분에 10번 실패하면 막는 계정 단위 제한을 추가했습니다 (IP 단위 제한과 함께 동작).',
+ 'TC-03':'깨진 오류 문구 4곳을 바로잡았습니다. 옛 QR은 "유효하지 않은 QR 코드입니다."로 안내됩니다.',
+ 'TC-08':'"1"과 "1번"을 같은 테이블로 찾도록 고쳐 시드 매장 QR 주문이 됩니다.',
+ 'TC-09':'영업시간 계산을 다시 만들었습니다. JSON 문자열 영업시간, 휴무일, 자정 넘는 영업을 한국 시간 기준으로 판단합니다.',
+ 'TC-10':'서버도 휴무일·영업시간 외 주문을 409로 거절하고, 손님 화면에 그 이유를 보여줍니다.',
+ 'TC-11':'전날 시작해 자정을 넘긴 영업(예: 금 16:00~02:00의 토 01:30)을 영업 중으로 판단합니다.',
+ 'TC-20':'메뉴가 위치를 보내도록 하고 QR 주문(table_number)에도 500m 확인을 적용했습니다. GPS 오차만큼 여유를 두며, 위치를 거부해도 주문은 됩니다.',
+ 'TC-21':'테이블 정보가 없으면 1번 테이블이 아니라 "테이블 미지정"으로 주문됩니다.',
+ 'TC-22':'같은 QR로 접속한 기기끼리 장바구니가 실시간으로 맞춰지고, 한 사람이 주문하면 모두의 장바구니가 비워집니다. 서버는 테이블 방 안에서 중계만 해 DB 변경이 없습니다.',
+ 'TC-23':'테이블 관리 카드에 오늘 미결제 주문 건수와 합계(추가 주문 포함)를 표시합니다.',
+ 'TC-29':'1/N 끝전 처리는 정상이었습니다. 메뉴별 분할이 쿠폰 할인을 빼먹던 문제를 고쳐 합계가 주문 금액과 같습니다.',
+ 'TC-32':'중복 웹훅은 한 번만 반영됨을 확인했고, 분할 결제 웹훅을 "주문 없음"으로 보고 자동 취소하던 문제를 고쳤습니다.',
+ 'TC-36':'주방 상태 변경이 손님 주문 화면과 관리자 주문 화면에도 실시간으로 전달됩니다.',
+ 'TC-37':'주방 취소 시 재고·포인트를 되돌리고, 온라인 결제는 자동 환불, 현장 결제나 환불 실패는 "환불 필요" 알림을 띄웁니다.',
+ 'TC-40':'같은 기기 10초, 같은 테이블 15초, 매장 1분 30회로 제한하고 없는 매장 호출은 거절합니다.',
+ 'TC-44':'호출된 손님을 "노쇼"로 처리하는 상태와 관리자 버튼을 추가했습니다.',
+ 'TC-45':'인원(1~50명), 휴대폰 번호, 매장 ID, 이름 길이를 검증해 400으로 안내합니다.',
+ 'TC-46':'매장 단위 잠금으로 번호를 발급해 겹치지 않고, 한국 자정에 1번부터 다시 시작합니다.',
+ 'TC-48':'주방 계정은 주방 화면에서만 취소합니다(그 경로가 환불까지 처리). 관리자 취소 경로는 주방 계정에 403입니다.',
+ 'TC-50':'웨이팅 조회는 등록 때 받은 토큰이 있어야 하고, 쓰이지 않던 전화번호 알림 채널은 없앴습니다. 번호 등록(포인트 적립)도 본인 주문 증명이 있어야 합니다.',
+};
+const PROD = [["사장님 휴대폰 번호로 로그인","pass","10개 매장 계정 모두 로그인되고 매장 1곳씩 보임"],["비밀번호를 여러 번 틀림","pass","401 \"아이디 또는 비밀번호가 올바르지 않습니다.\" (계정 존재 숨김)"],["테이블 QR 재발급 후 옛 QR 스캔","repro","없는 QR에 404와 함께 깨진 문구 — PR #13 배포 후 해결"],["영업 중 메뉴 품절 처리","newfix","관리자 화면의 품절 변경이 저장되지 않아 품절 메뉴가 그대로 주문됨 → 상품 수정 요청 검증을 고쳐 해결"],["QR 스캔부터 주문 접수까지","repro","\"1번\" 테이블 주문이 400 \"유효한 테이블을 찾을 수 없습니다\" — PR #13 배포 후 해결"],["휴무일(토요일) 주문","repro","영업시간 외(12:52, 오늘통닭) API 주문이 접수됨 — PR #13 배포 후 거절"],["수량 0·음수·소수 주문","pass","400"],["결제 금액을 낮춰서 주문 전송","pass","409 \"상품 가격이 변경되었습니다…\""],["주문 버튼 두 번 연속 탭","pass","같은 키 두 번 → 주문 1건"],["접수 → 조리 → 완료 → 서빙","pass","조리 시작·완료·서빙 모두 200"],["주방 태블릿 두 대가 같은 주문을 동시에 누름","pass","동시 요청 2건 모두 200 (같은 상태 재시도는 멱등 처리)"],["단계 건너뛰기","pass","400 \"현재 pending 상태에서는 completed로 변경할 수 없습니다.\""],["매니저 화면에서 주문 상태 일괄 관리","pass","관리자 취소 200 (취소 사유 코드 필요)"],["직원 호출","pass","ACK 수신"],["직원 호출 연타·원격 호출","repro","1초에 5번 모두 접수 — PR #13 배포 후 제한"],["웨이팅 등록","pass","201, 대기 번호 발급"],["같은 번호로 중복 등록","repro","400이지만 기존 등록자 정보가 응답에 포함 — PR #13 배포 후 해결"],["호출했는데 손님이 안 옴","repro","노쇼 상태 400 — PR #13 배포 후 지원"],["잘못된 입력으로 웨이팅 등록","repro","인원 \"abc\" → 500과 DB 오류 원문 노출 — PR #13 배포 후 400, 운영 오류 원문 숨김"],["동시 등록 번호 중복 · 오전 9시 번호 초기화","repro","5명 동시 등록 번호 [2, 5, 4, 4, 3] 중복 — PR #13 배포 후 해결"],["전화번호만으로 남의 웨이팅·주문 엿보기","repro","토큰 없이 200, 1건 노출 — PR #13 배포 후 403"],["다른 매장 데이터 접근","pass","403"],["기존 회원을 직원으로 추가","pass","S10 계정을 S6 직원으로 추가 201, 주문 조회 200 (테스트 후 해제)"],["룸 단체 예약 등록","pass","200 (테스트 후 취소)"],["예약 확정과 거절","pass","사장 예약 목록에 방금 예약 표시"],["지난 날짜로 예약","newfix","어제 날짜 예약이 접수됨 → 예약 입력 검증 추가로 해결"],["번호만으로 남의 예약 조회·취소","pass","403"],["직원 계정의 고객 목록 접근","pass","403"],["직원 계정의 매출 통계 접근","pass","403"],["직원 계정의 메뉴 수정","newfix","직원 계정이 메뉴 가격을 수정할 수 있었음(200) → 메뉴 수정·삭제에 items:manage 권한 요구"],["새 메뉴 추가","newfix","관리자 화면과 같은 요청이 400 \"storeId 필요\"로 막혀 메뉴를 추가할 수 없었음 → 요청 검증을 관리자 형식에 맞춰 해결"],["번호만으로 남의 즐겨찾기 보기","newfix","토큰 없이 200 → 번호 등록 때 받은 손님 토큰 필요"],["인증 없는 예전 장바구니 API","newfix","토큰 없이 200 → 예전 API를 닫음(410)"]];
+const PROD_LABEL={pass:['운영 통과','f-ok'],repro:['운영에서 재현 · PR #13 배포 대기','f-bug'],newfix:['운영에서 새로 발견 · 수정함','f-fix']};
+const NEWFIX_RES={};PROD.forEach(([t,k,txt])=>{if(k==='newfix')NEWFIX_RES[t]=txt;});
+const AREAS = [...new Set(S.map(x=>x.a))];
+S.forEach((x,i)=>x.id='TC-'+String(i+1).padStart(2,'0'));
+S.forEach(x=>{ if(RES[x.id]){ x.was=x.f; x.res=RES[x.id]; x.f='fix'; } });
+S.forEach(x=>{ const hit=PROD.find(([t])=>t===x.title); if(!hit) return; x.prod=hit;
+  if(hit[1]==='newfix'){ if(!x.was) x.was=(x.f==='run'?'bug':x.f); x.f='fix'; x.res=(x.res?x.res+' ':'')+hit[2]; }
+  else if(hit[1]==='pass' && x.f==='run'){ x.f='ok'; } });
+
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pill = f => `<span class="pill ${FLAG[f][1]}">${FLAG[f][0]}</span>`;
+
+document.getElementById('acct').innerHTML = STORES.map(r=>`<tr><td class="mono">${r[0]}</td><td>${esc(r[1])}</td><td>${r[2]}</td><td class="mono">${r[3]}</td><td class="mono">${r[4]}@wemarket.kr</td><td>${r[5]}</td><td>${r[6]}</td><td class="wrapcell">${esc(r[7])}</td></tr>`).join('');
+document.getElementById('stories').innerHTML = STORIES.map((s,i)=>`<div class="story"><div class="who">US-${String(i+1).padStart(2,'0')} · ${s[0]}</div><p>${esc(s[1])}</p><div class="ref">${esc(s[2])}</div></div>`).join('');
+
+const order = {bug:0,gap:1,chk:2};
+const newBugs = S.filter(x=>!x.was && x.f==='bug');
+document.getElementById('findings').innerHTML = newBugs
+  .map(x=>`<li>${pill(x.f)}<span><a href="#${x.id}" data-jump="${x.id}"><span class="mono">${x.id}</span></a> ${esc(x.title)} <span class="was">확장에서 새로 발견</span></span></li>`).join('') + S.filter(x=>x.was)
+  .sort((a,b)=>order[a.was]-order[b.was])
+  .map(x=>`<li>${pill(x.f)}<span><a href="#${x.id}" data-jump="${x.id}"><span class="mono">${x.id}</span></a> ${esc(x.title)} <span class="was">${FLAG[x.was][0]}</span></span></li>`).join('');
+
+{
+  const ran=S.filter(x=>x.prod);const cnt=k=>ran.filter(x=>x.prod[1]===k).length;
+  document.getElementById('prodSummary').textContent=`운영에서 ${ran.length}개 시나리오를 실행했습니다. 통과 ${cnt('pass')}개, PR #13 배포 전이라 재현된 결함 ${cnt('repro')}개, 실행하며 새로 찾아 수정한 결함 ${cnt('newfix')}개입니다.`;
+  const order={newfix:0,repro:1,pass:2};
+  document.getElementById('prodList').innerHTML=ran.filter(x=>x.prod[1]!=='pass').sort((a,b)=>order[a.prod[1]]-order[b.prod[1]]).map(x=>`<li><span class="pill ${PROD_LABEL[x.prod[1]][1]}">${PROD_LABEL[x.prod[1]][0]}</span><span><a href="#${x.id}" data-jump="${x.id}"><span class="mono">${x.id}</span></a> ${esc(x.title)} — ${esc(x.prod[2])}</span></li>`).join('');
+  document.getElementById('prodList').addEventListener('click',e=>{const a=e.target.closest('[data-jump]');if(a){e.preventDefault();openTarget(a.dataset.jump);}});
+}
+const fArea=document.getElementById('fArea');
+fArea.innerHTML='<option value="">영역 전체</option>'+AREAS.map(a=>`<option>${a}</option>`).join('');
+
+function card(x){
+  return `<details class="sc" id="${x.id}"><summary><span class="sid">${x.id}</span><span class="stitle">${esc(x.title)}</span><span class="stags"><span class="tag">${x.a}</span><span class="tag">${x.t}</span><span class="tag">${x.s}</span>${pill(x.f)}</span></summary>
+  <div class="body"><dl class="kv">
+    <dt>역할</dt><dd>${esc(x.r)}</dd>
+    <dt>사전 조건</dt><dd>${esc(x.pre)}</dd>
+    <dt>단계</dt><dd><ol>${x.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol></dd>
+    <dt>기대 결과</dt><dd>${esc(x.exp)}</dd>
+  </dl>${x.prod?`<div class="flagnote ${PROD_LABEL[x.prod[1]][1]}"><b>${PROD_LABEL[x.prod[1]][0]}</b> ${esc(x.prod[2])}</div>`:''}${x.res?`<div class="resnote"><b>해결</b> ${esc(x.res)}</div>`:''}${x.note?`<div class="flagnote ${FLAG[x.was||x.f][1]}">${x.was?`<span class="was">처음 판정: ${FLAG[x.was][0]}</span><br>`:''}${esc(x.note)}</div>`:''}</div></details>`;
+}
+const els = {a:fArea,t:document.getElementById('fType'),f:document.getElementById('fFlag'),q:document.getElementById('fText')};
+function render(){
+  const q=els.q.value.trim().toLowerCase();
+  const rows=S.filter(x=>(!els.a.value||x.a===els.a.value)&&(!els.t.value||x.t===els.t.value)&&(!els.f.value||x.f===els.f.value)
+    &&(!q||[x.id,x.title,x.r,x.pre,x.exp,x.note,x.s,STORES.find(s=>x.s.includes(s[0]))?.[1]||''].join(' ').toLowerCase().includes(q)));
+  document.getElementById('list').innerHTML=rows.map(card).join('')||'<p class="note">조건에 맞는 시나리오가 없습니다. 필터를 바꿔 보세요.</p>';
+  document.getElementById('count').textContent=`${rows.length} / ${S.length}개`;
+}
+Object.values(els).forEach(e=>e.addEventListener('input',render));
+render();
+function openTarget(id){
+  if(!id)return; const el=document.getElementById(id);
+  if(!el){Object.values(els).forEach(e=>e.value='');render();}
+  const t=document.getElementById(id); if(t){t.open=true;t.scrollIntoView({block:'start'});}
+}
+document.getElementById('findings').addEventListener('click',e=>{const a=e.target.closest('[data-jump]');if(a){e.preventDefault();openTarget(a.dataset.jump);}});
+if(/^#TC-\d{2}$/.test(location.hash))openTarget(location.hash.slice(1));
+</script>

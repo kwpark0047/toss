@@ -13,15 +13,34 @@ class ReservationsService {
    * 예약 등록
    */
   async register(data, io) {
-    const { store_id, customer_name, customer_phone, party_size, reservation_time, notes } = data;
+    const { store_id, customer_name, notes } = data;
+    const storeId = Number(store_id);
+    const partySize = Number(data.party_size);
+    const customer_phone = String(data.customer_phone || '').replace(/\D/g, '');
+    const reservationTime = new Date(data.reservation_time);
+    if (!Number.isInteger(storeId) || storeId <= 0) {
+      throw new AppError('유효하지 않은 매장 ID입니다.', 400);
+    }
+    if (!/^01\d{8,9}$/.test(customer_phone)) {
+      throw new AppError('휴대폰 번호를 정확히 입력해 주세요.', 400);
+    }
+    if (!Number.isInteger(partySize) || partySize < 1 || partySize > 100) {
+      throw new AppError('인원은 1명 이상 100명 이하로 입력해 주세요.', 400);
+    }
+    if (Number.isNaN(reservationTime.getTime())) {
+      throw new AppError('예약 시간을 확인해 주세요.', 400);
+    }
+    if (reservationTime.getTime() < Date.now() - 5 * 60 * 1000) {
+      throw new AppError('지난 시간으로는 예약할 수 없습니다.', 400);
+    }
 
     const entry = await prisma.reservations.create({
       data: {
-        store_id: parseInt(store_id),
+        store_id: storeId,
         customer_name,
         customer_phone: encryptPhone(customer_phone),
-        party_size: parseInt(party_size),
-        reservation_time: new Date(reservation_time),
+        party_size: partySize,
+        reservation_time: reservationTime,
         notes,
         status: 'PENDING',
       },

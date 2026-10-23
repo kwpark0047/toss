@@ -7,6 +7,7 @@ const {
 } = require('../utils/phoneEncryption');
 const alimtalkService = require('./AlimtalkService');
 const logger = require('../utils/logger');
+const { kstNow, kstDayRange } = require('../utils/kstTime');
 
 class WaitingService {
   /**
@@ -33,44 +34,68 @@ class WaitingService {
    * 대기 등록
    */
   async register(data) {
-    const { store_id, customer_name, customer_phone, party_size } = data;
+    const { store_id, customer_name } = data;
+    const storeId = Number(store_id);
+    const partySize = Number(data.party_size);
+    const customer_phone = String(data.customer_phone || '').replace(/\D/g, '');
+    if (!Number.isInteger(storeId) || storeId <= 0) {
+      throw new AppError('유효하지 않은 매장 ID입니다.', 400);
+    }
+    if (!/^01\d{8,9}$/.test(customer_phone)) {
+      throw new AppError('휴대폰 번호를 정확히 입력해 주세요.', 400);
+    }
+    if (!Number.isInteger(partySize) || partySize < 1 || partySize > 50) {
+      throw new AppError('인원은 1명 이상 50명 이하로 입력해 주세요.', 400);
+    }
+    if (customer_name != null && String(customer_name).length > 50) {
+      throw new AppError('이름은 50자 이하로 입력해 주세요.', 400);
+    }
     const encPhone = encryptPhone(customer_phone);
 
-    // 이미 대기 중인 고객 확인
-    const existing = await prisma.waiting_list.findFirst({
-      where: {
-        store_id: parseInt(store_id),
-        customer_phone: { in: [encPhone, customer_phone] },
-        status: { in: ['waiting', 'called'] },
-      },
-    });
+    // 같은 매장의 동시 등록을 직렬화해 대기 번호가 겹치지 않게 한다.
+    const { entry, newQueueNumber } = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(4207, ${storeId})`;
 
-    if (existing) {
-      throw new AppError('이미 대기 등록이 되어 있습니다.', 400, undefined, {
-        existing: decryptPhoneFields(existing),
+      // 이미 대기 중인 고객 확인
+      const existing = await tx.waiting_list.findFirst({
+        where: {
+          store_id: storeId,
+          customer_phone: { in: [encPhone, customer_phone] },
+          status: { in: ['waiting', 'called'] },
+        },
       });
-    }
 
-    // 오늘 마지막 대기 번호 조회
-    const lastEntry = await prisma.waiting_list.findFirst({
-      where: {
-        store_id: parseInt(store_id),
-        created_at: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
-      },
-      orderBy: { queue_number: 'desc' },
-    });
+      if (existing) {
+        // 번호만 넣어 남의 대기 정보(이름·번호)를 받아 가지 못하도록 순번만 알려준다.
+        throw new AppError(
+          `이미 대기 등록이 되어 있습니다. (대기 번호 ${existing.queue_number}번)`,
+          400
+        );
+      }
 
-    const newQueueNumber = (lastEntry?.queue_number || 0) + 1;
+      // 오늘(KST) 마지막 대기 번호 조회 — 서버 시간대와 무관하게 한국 자정에 1번부터 시작
+      const today = kstNow().toISOString().slice(0, 10);
+      const lastEntry = await tx.waiting_list.findFirst({
+        where: {
+          store_id: storeId,
+          created_at: { gte: kstDayRange(today).startOfDay },
+        },
+        orderBy: { queue_number: 'desc' },
+      });
 
-    const entry = await prisma.waiting_list.create({
-      data: {
-        store_id: parseInt(store_id),
-        customer_name,
-        customer_phone: encPhone,
-        party_size: parseInt(party_size),
-        queue_number: newQueueNumber,
-        status: 'waiting',
-      },
+      const queueNumber = (lastEntry?.queue_number || 0) + 1;
+
+      const created = await tx.waiting_list.create({
+        data: {
+          store_id: storeId,
+          customer_name,
+          customer_phone: encPhone,
+          party_size: partySize,
+          queue_number: queueNumber,
+          status: 'waiting',
+        },
+      });
+      return { entry: created, newQueueNumber: queueNumber };
     });
 
     const result = decryptPhoneFields(entry);
@@ -95,7 +120,8 @@ class WaitingService {
    * 대기 상태 변경 (상태 전이 검증 포함)
    */
   async updateStatus(id, status) {
-    const validStatuses = ['waiting', 'called', 'entered', 'cancelled'];
+    // no_show: 호출했지만 오지 않은 손님 (호출된 상태에서만 지정)
+    const validStatuses = ['waiting', 'called', 'entered', 'cancelled', 'no_show'];
     if (!validStatuses.includes(status)) {
       throw new AppError('유효하지 않은 대기 상태입니다.', 400);
     }
@@ -109,6 +135,7 @@ class WaitingService {
     const invalidTransitions = {
       cancelled: ['waiting', 'called', 'entered', 'cancelled'],
       entered: ['waiting', 'called', 'entered', 'cancelled'],
+      no_show: ['waiting', 'called', 'entered', 'cancelled', 'no_show'],
     };
 
     if (invalidTransitions[existing.status]?.includes(status)) {
@@ -124,8 +151,8 @@ class WaitingService {
     }
 
     // called에서는 entered, cancelled만 허용
-    if (existing.status === 'called' && !['entered', 'cancelled'].includes(status)) {
-      throw new AppError('호출된 고객은 입장 또는 취소만 가능합니다.', 400);
+    if (existing.status === 'called' && !['entered', 'cancelled', 'no_show'].includes(status)) {
+      throw new AppError('호출된 고객은 입장, 취소 또는 노쇼만 가능합니다.', 400);
     }
 
     const updated = await prisma.waiting_list.update({

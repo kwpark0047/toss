@@ -85,6 +85,24 @@ describe('checkStorePermission manager capabilities', () => {
 describe('checkStorePermissionForObject', () => {
   beforeEach(() => jest.resetAllMocks());
 
+  test('권한을 지정하면 직원(staff)은 메뉴를 수정할 수 없고 매니저는 할 수 있다', async () => {
+    const mw = checkStorePermissionForObject('products', 'items:manage');
+    prisma.products.findUnique.mockResolvedValue({ store_id: 3 });
+    prisma.stores.findUnique.mockResolvedValue({ user_id: 99 });
+
+    prisma.staff.findFirst.mockResolvedValueOnce({ role: 'staff' });
+    const res = mockRes();
+    const next = jest.fn();
+    await mw({ user: { id: 7, role: 'user' }, params: { id: '1' } }, res, next);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+
+    prisma.staff.findFirst.mockResolvedValueOnce({ role: 'manager' });
+    const next2 = jest.fn();
+    await mw({ user: { id: 8, role: 'user' }, params: { id: '1' } }, mockRes(), next2);
+    expect(next2).toHaveBeenCalledTimes(1);
+  });
+
   test('rejects unauthenticated requests', async () => {
     const res = mockRes();
     const next = jest.fn();

@@ -41,7 +41,7 @@ describe('ReservationsService', () => {
         customer_name: '홍길동',
         customer_phone: '01012345678',
         party_size: '4',
-        reservation_time: '2026-07-15T18:00:00',
+        reservation_time: new Date(Date.now() + 86400000).toISOString(),
         notes: '',
       });
       expect(encryptPhone).toHaveBeenCalledWith('01012345678');
@@ -57,12 +57,33 @@ describe('ReservationsService', () => {
           customer_name: '홍',
           customer_phone: '01012345678',
           party_size: '2',
-          reservation_time: '2026-07-15T18:00:00',
+          reservation_time: new Date(Date.now() + 86400000).toISOString(),
         },
         io
       );
       expect(io.to).toHaveBeenCalledWith('store - 1');
       expect(io.emit).toHaveBeenCalledWith('new-reservation', expect.anything());
+    });
+  });
+
+  describe('register — 입력 검증', () => {
+    test.each([
+      [{ reservation_time: new Date(Date.now() - 86400000).toISOString() }, '지난 시간'],
+      [{ party_size: '0' }, '인원'],
+      [{ customer_phone: '123' }, '휴대폰'],
+      [{ reservation_time: 'not-a-date' }, '예약 시간'],
+    ])('%o 는 400으로 거절한다', async (patch, word) => {
+      await expect(
+        svc.register({
+          store_id: '1',
+          customer_name: '홍',
+          customer_phone: '01012345678',
+          party_size: '2',
+          reservation_time: new Date(Date.now() + 86400000).toISOString(),
+          ...patch,
+        })
+      ).rejects.toThrow(word);
+      expect(prisma.reservations.create).not.toHaveBeenCalled();
     });
   });
 

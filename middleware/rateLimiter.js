@@ -73,6 +73,25 @@ const authLimiter = rateLimit({
   handler: makeHandler('로그인 시도가 너무 많습니다. 15분 후 다시 시도해주세요.', 'auth'),
 });
 
+// ── 3-1. 계정 단위 로그인 실패 제한: 같은 아이디 10회 실패 / 15분
+// IP를 바꿔 가며 한 계정의 비밀번호를 추측하는 시도를 막는다.
+const loginAccountLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) => {
+    const raw = String(req.body?.identifier || req.body?.phone || req.body?.email || '')
+      .trim()
+      .toLowerCase();
+    const id = raw.includes('@') ? raw : raw.replace(/D/g, '');
+    return `login:${id || req.ip}`;
+  },
+  handler: makeHandler('로그인 시도가 너무 많습니다. 15분 후 다시 시도해주세요.', 'auth'),
+});
+
 // ── 4. SMS / 외부 비용 API: 3 req / 10분 / IP ────────────────────────────────
 const smsLimiter = rateLimit({
   windowMs: 10 * 60_000,
@@ -97,6 +116,7 @@ module.exports = {
   publicLimiter,
   orderLimiter,
   authLimiter,
+  loginAccountLimiter,
   smsLimiter,
   paymentLimiter,
 };

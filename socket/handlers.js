@@ -3,8 +3,45 @@ const prisma = require('../config/prisma');
 const { phoneSearchCandidates } = require('../utils/phoneEncryption');
 const AlimtalkService = require('../services/AlimtalkService');
 const { getStoreRole } = require('../middleware/storeAuth');
+const { verifyWaitingCapability } = require('../utils/orderCapability');
 
 const activeFoodTruckClients = new Map();
+
+// 직원 호출 남용 방지: 같은 기기 10초에 1회, 같은 테이블 15초에 1회, 매장당 1분에 30회
+const MANAGER_CALL_LIMITS = {
+  socketMs: 10_000,
+  tableMs: 15_000,
+  storeWindowMs: 60_000,
+  storeMax: 30,
+};
+const managerCallLog = { socket: new Map(), table: new Map(), store: new Map() };
+
+function isValidSharedCart(payload) {
+  if (!payload || !Array.isArray(payload.cart) || payload.cart.length > 60) return false;
+  if (!Number.isFinite(payload.version)) return false;
+  try {
+    return JSON.stringify(payload.cart).length <= 30_000;
+  } catch {
+    return false;
+  }
+}
+
+function checkManagerCallLimit(socketId, storeId, tableName, now = Date.now()) {
+  const tableKey = `${storeId}:${tableName || ''}`;
+  if (now - (managerCallLog.socket.get(socketId) || 0) < MANAGER_CALL_LIMITS.socketMs) return false;
+  if (now - (managerCallLog.table.get(tableKey) || 0) < MANAGER_CALL_LIMITS.tableMs) return false;
+  const recent = (managerCallLog.store.get(storeId) || []).filter(
+    (t) => now - t < MANAGER_CALL_LIMITS.storeWindowMs
+  );
+  if (recent.length >= MANAGER_CALL_LIMITS.storeMax) return false;
+  recent.push(now);
+  managerCallLog.store.set(storeId, recent);
+  managerCallLog.socket.set(socketId, now);
+  managerCallLog.table.set(tableKey, now);
+  if (managerCallLog.table.size > 5000) managerCallLog.table.clear();
+  if (managerCallLog.socket.size > 5000) managerCallLog.socket.clear();
+  return true;
+}
 
 const deny = (ack, code, message) => {
   if (typeof ack === 'function') ack({ ok: false, code, message });
@@ -220,10 +257,39 @@ function registerSocketHandlers(io) {
 
     // ── 매니저 호출 ──────────────────────────────────────
     // ── 매장 매니저 호출 (DB 기록 및 직원 연결 정밀 체크 고도화) ─────────────────
-    socket.on('manager-call', async (data) => {
-      const { storeId, tableName, type } = data;
+    socket.on('manager-call', async (data = {}) => {
+      const storeId = Number(data.storeId);
+      const tableName = typeof data.tableName === 'string' ? data.tableName.slice(0, 40) : null;
+      const type = typeof data.type === 'string' ? data.type.slice(0, 40) : null;
+
+      if (!Number.isInteger(storeId) || storeId <= 0) {
+        socket.emit('manager-call-ack', {
+          success: false,
+          message: '매장 정보를 확인할 수 없습니다.',
+        });
+        return;
+      }
+      if (!checkManagerCallLimit(socket.id, storeId, tableName)) {
+        socket.emit('manager-call-ack', {
+          success: false,
+          message: '방금 호출이 접수되었습니다. 잠시 후 다시 눌러 주세요.',
+        });
+        return;
+      }
 
       try {
+        const store = await prisma.stores.findUnique({
+          where: { id: storeId },
+          select: { id: true },
+        });
+        if (!store) {
+          socket.emit('manager-call-ack', {
+            success: false,
+            message: '매장 정보를 확인할 수 없습니다.',
+          });
+          return;
+        }
+
         // 1. 매장 룸('store - ${storeId}')에 연결된 활성 스태프 소켓 개수 정밀 체크 (SLA 가용 확인)
         const room = io.sockets.adapter.rooms.get(`store - ${storeId}`);
         const isStaffConnected = room && room.size >= 1; // 기기 연결 세션 파악
@@ -274,6 +340,39 @@ function registerSocketHandlers(io) {
       socket.join(`table - cart - ${tableId}`);
     });
 
+    // 메뉴 화면 공유 장바구니: 같은 매장·같은 테이블 이름의 기기끼리만 장바구니 상태를 중계한다.
+    // 서버는 저장하지 않는다. 크기·빈도를 제한해 방을 어지럽히지 못하게 한다.
+    socket.on('shared-cart:join', ({ storeId, tableName } = {}) => {
+      const sid = Number(storeId);
+      const name =
+        typeof tableName === 'string' ? tableName.trim().replace(/번$/, '').slice(0, 40) : '';
+      if (!Number.isInteger(sid) || sid <= 0 || !name) return;
+      if (socket.data.sharedCartRoom) socket.leave(socket.data.sharedCartRoom);
+      socket.data.sharedCartRoom = `shared-cart:${sid}:${name}`;
+      socket.join(socket.data.sharedCartRoom);
+    });
+
+    socket.on('shared-cart:leave', () => {
+      if (socket.data.sharedCartRoom) socket.leave(socket.data.sharedCartRoom);
+      socket.data.sharedCartRoom = null;
+    });
+
+    socket.on('shared-cart:request', () => {
+      const room = socket.data.sharedCartRoom;
+      if (room) socket.to(room).emit('shared-cart:request');
+    });
+
+    socket.on('shared-cart:state', (payload = {}) => {
+      const room = socket.data.sharedCartRoom;
+      if (!room || !isValidSharedCart(payload)) return;
+      const now = Date.now();
+      const recent = (socket.data.sharedCartTimes || []).filter((t) => now - t < 1000);
+      if (recent.length >= 10) return;
+      recent.push(now);
+      socket.data.sharedCartTimes = recent;
+      socket.to(room).emit('shared-cart:state', { cart: payload.cart, version: payload.version });
+    });
+
     // ── 분할 결제 테이블 룸 (PaymentService._emitSplitUpdate와 쌍) ──
     socket.on('join-table-payment', ({ tableId }) => {
       socket.join(`table - ${tableId}`);
@@ -293,22 +392,23 @@ function registerSocketHandlers(io) {
     });
 
     // ── 고객 주문 알림 ───────────────────────────────────
-    socket.on('join-customer-orders', ({ phone }) => {
-      const normalized = phone.replace(/[^0-9]/g, '');
-      socket.join(`customer-orders-${normalized}`);
-    });
 
     // ── 스마트 웨이팅 ────────────────────────────────────
     socket.on('join-store-waiting', ({ storeId }) => {
       socket.join(`store - waiting - ${storeId}`);
     });
 
-    socket.on('join-my-waiting', ({ phone }) => {
-      socket.join(`customer - waiting - ${phone}`);
+    // 대기 등록 때 받은 waiting capability로만 내 대기 알림을 구독한다.
+    socket.on('join-my-waiting', ({ capability } = {}) => {
+      const payload = verifyWaitingCapability(capability);
+      if (!payload?.customer_phone) return;
+      socket.join(`customer - waiting - ${payload.customer_phone}`);
     });
 
-    socket.on('leave-my-waiting', ({ phone }) => {
-      socket.leave(`customer - waiting - ${phone}`);
+    socket.on('leave-my-waiting', ({ capability } = {}) => {
+      const payload = verifyWaitingCapability(capability);
+      if (!payload?.customer_phone) return;
+      socket.leave(`customer - waiting - ${payload.customer_phone}`);
     });
 
     socket.on('update-waiting-status', (data) => {
@@ -330,4 +430,8 @@ function registerSocketHandlers(io) {
   });
 }
 
-module.exports = { registerSocketHandlers };
+module.exports = {
+  isValidSharedCart,
+  checkManagerCallLimit,
+  registerSocketHandlers,
+};

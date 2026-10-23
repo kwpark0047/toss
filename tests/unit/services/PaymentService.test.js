@@ -343,6 +343,23 @@ describe('PaymentService', () => {
   // ─────────────────────────────────────────────────────────
   // processCancellation
   // ─────────────────────────────────────────────────────────
+  describe('setupSplitPayment (ITEM)', () => {
+    test('쿠폰 할인이 있으면 항목 금액 합계를 실제 주문 금액에 맞춘다', async () => {
+      prisma.orders.findUnique.mockResolvedValue({
+        id: 3,
+        total_amount: 27000,
+        order_items: [
+          { id: 1, product_name: 'A', subtotal: 10000 },
+          { id: 2, product_name: 'B', subtotal: 20000 },
+        ],
+      });
+      prisma.orders.update.mockResolvedValue({});
+      const result = await service.setupSplitPayment(3, 'ITEM');
+      expect(result.items.map((i) => i.amount)).toEqual([9000, 18000]);
+      expect(result.items.reduce((sum, i) => sum + i.amount, 0)).toBe(27000);
+    });
+  });
+
   describe('processCancellation', () => {
     let durableRefund;
     beforeEach(() => {
@@ -441,6 +458,31 @@ describe('PaymentService', () => {
       expect(
         require('../../../services/PaymentCompensationService').autoCancel
       ).toHaveBeenCalledWith('key_mang', expect.stringContaining('토스측 오류'));
+    });
+
+    test('분할 결제 주문번호(…-S-…)는 결제 레코드로 주문을 찾고 자동 취소하지 않는다', async () => {
+      prisma.orders.findFirst.mockResolvedValue(null);
+      prisma.payments.findFirst.mockResolvedValueOnce({ order_id: 7 });
+      prisma.orders.findUnique.mockResolvedValue({ id: 7, store_id: 1, order_number: 'ORD-7' });
+      TossAPI.getPayment.mockResolvedValue({ status: 'DONE', totalAmount: 5000 });
+      const approve = jest
+        .spyOn(service, 'processApproval')
+        .mockResolvedValue({ alreadyDone: false });
+
+      await service.handleTossWebhook({
+        eventType: 'PAYMENT_STATUS_CHANGED',
+        data: {
+          status: 'DONE',
+          paymentKey: 'key_split',
+          orderId: 'ORD-7-S-abc',
+          totalAmount: 5000,
+        },
+      });
+
+      expect(
+        require('../../../services/PaymentCompensationService').autoCancel
+      ).not.toHaveBeenCalled();
+      expect(approve).toHaveBeenCalledWith('key_split', 'ORD-7-S-abc', 5000, undefined);
     });
 
     test('calls processApproval when order exists', async () => {
