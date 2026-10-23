@@ -27,3 +27,15 @@ describe('직원 호출 남용 방지', () => {
     expect(checkManagerCallLimit('y', 103, '99번', t + 100)).toBe(false);
   });
 });
+
+describe('공유 장바구니 중계 검증', () => {
+  const { isValidSharedCart } = require('../../../socket/handlers');
+  test('정상 장바구니는 통과', () => {
+    expect(isValidSharedCart({ cart: [{ quantity: 1 }], version: 1 })).toBe(true);
+  });
+  test('항목 수·크기·버전이 잘못되면 거절', () => {
+    expect(isValidSharedCart({ cart: new Array(61).fill({}), version: 1 })).toBe(false);
+    expect(isValidSharedCart({ cart: [{ x: 'a'.repeat(40000) }], version: 1 })).toBe(false);
+    expect(isValidSharedCart({ cart: [], version: 'x' })).toBe(false);
+  });
+});

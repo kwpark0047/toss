@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { isStoreOpenAt, getTodayHoursAt } from "@/utils/businessHours";
 import { getOrderPosition } from "@/utils/orderLocation";
+import useSharedTableCart from "@/hooks/useSharedTableCart";
 import { Loader2, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { storesAPI } from "@/api/stores";
 import { resolveThemeStyle } from "@/lib/themePresets";
@@ -356,6 +357,8 @@ const filteredItems = useMemo(() => {
       return category?.name === selectedCategory;
     });
   }, [selectedCategory, menuItems, categories, t]);
+  // 같은 테이블 손님끼리 장바구니 공유 (TC-22)
+  useSharedTableCart({ storeId, tableNumber, cart, setCart, menuItems });
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
 
@@ -526,8 +529,10 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       setCurrentOrderCapability(orderData_.order_capability);
       setCurrentOrderAmount(Number(orderData_.total_amount ?? totalPrice));
       setIsOrderStatusOpen(true);
-    } catch {
-      toast.error(t('order.failed'));
+    } catch (err) {
+      // 영업시간·매장 반경·품절 등 서버가 알려준 이유를 그대로 보여준다
+      const reason = err?.response?.data?.message || err?.response?.data?.error;
+      toast.error(reason || t('order.failed'));
     } finally {
       attempt.busy = false;
       setIsOrdering(false);

@@ -16,6 +16,16 @@ const MANAGER_CALL_LIMITS = {
 };
 const managerCallLog = { socket: new Map(), table: new Map(), store: new Map() };
 
+function isValidSharedCart(payload) {
+  if (!payload || !Array.isArray(payload.cart) || payload.cart.length > 60) return false;
+  if (!Number.isFinite(payload.version)) return false;
+  try {
+    return JSON.stringify(payload.cart).length <= 30_000;
+  } catch {
+    return false;
+  }
+}
+
 function checkManagerCallLimit(socketId, storeId, tableName, now = Date.now()) {
   const tableKey = `${storeId}:${tableName || ''}`;
   if (now - (managerCallLog.socket.get(socketId) || 0) < MANAGER_CALL_LIMITS.socketMs) return false;
@@ -330,6 +340,39 @@ function registerSocketHandlers(io) {
       socket.join(`table - cart - ${tableId}`);
     });
 
+    // 메뉴 화면 공유 장바구니: 같은 매장·같은 테이블 이름의 기기끼리만 장바구니 상태를 중계한다.
+    // 서버는 저장하지 않는다. 크기·빈도를 제한해 방을 어지럽히지 못하게 한다.
+    socket.on('shared-cart:join', ({ storeId, tableName } = {}) => {
+      const sid = Number(storeId);
+      const name =
+        typeof tableName === 'string' ? tableName.trim().replace(/번$/, '').slice(0, 40) : '';
+      if (!Number.isInteger(sid) || sid <= 0 || !name) return;
+      if (socket.data.sharedCartRoom) socket.leave(socket.data.sharedCartRoom);
+      socket.data.sharedCartRoom = `shared-cart:${sid}:${name}`;
+      socket.join(socket.data.sharedCartRoom);
+    });
+
+    socket.on('shared-cart:leave', () => {
+      if (socket.data.sharedCartRoom) socket.leave(socket.data.sharedCartRoom);
+      socket.data.sharedCartRoom = null;
+    });
+
+    socket.on('shared-cart:request', () => {
+      const room = socket.data.sharedCartRoom;
+      if (room) socket.to(room).emit('shared-cart:request');
+    });
+
+    socket.on('shared-cart:state', (payload = {}) => {
+      const room = socket.data.sharedCartRoom;
+      if (!room || !isValidSharedCart(payload)) return;
+      const now = Date.now();
+      const recent = (socket.data.sharedCartTimes || []).filter((t) => now - t < 1000);
+      if (recent.length >= 10) return;
+      recent.push(now);
+      socket.data.sharedCartTimes = recent;
+      socket.to(room).emit('shared-cart:state', { cart: payload.cart, version: payload.version });
+    });
+
     // ── 분할 결제 테이블 룸 (PaymentService._emitSplitUpdate와 쌍) ──
     socket.on('join-table-payment', ({ tableId }) => {
       socket.join(`table - ${tableId}`);
@@ -388,6 +431,7 @@ function registerSocketHandlers(io) {
 }
 
 module.exports = {
+  isValidSharedCart,
   checkManagerCallLimit,
   registerSocketHandlers,
 };
