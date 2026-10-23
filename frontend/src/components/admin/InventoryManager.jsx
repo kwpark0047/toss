@@ -36,7 +36,7 @@ function Pagination({ current, total, onChange }) {
       <button
         key={p}
         onClick={() => onChange(p)}
-        className={`w-8 h-8 rounded-lg text-xs font-black transition-all ${p === current ? 'bg-orange-500 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+        className={`w-8 h-8 rounded-lg text-xs font-black transition-all ${p === current ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
       >
         {p}
       </button>
@@ -49,28 +49,28 @@ function Pagination({ current, total, onChange }) {
 const STATUS_META = {
   ok: {
     label: '정상',
-    color: 'text-emerald-400',
+    color: 'text-emerald-600',
     bg: 'bg-emerald-500/10',
     icon: CheckCircle,
     border: 'border-emerald-500/30',
   },
   low: {
     label: '저재고',
-    color: 'text-amber-400',
+    color: 'text-amber-600',
     bg: 'bg-amber-500/10',
     icon: AlertCircle,
     border: 'border-amber-500/30',
   },
   out: {
     label: '품절',
-    color: 'text-red-400',
+    color: 'text-red-600',
     bg: 'bg-red-500/10',
     icon: XCircle,
     border: 'border-red-500/30',
   },
   unlimited: {
     label: '무제한',
-    color: 'text-slate-400',
+    color: 'text-slate-500',
     bg: 'bg-slate-500/10',
     icon: Package,
     border: 'border-slate-500/20',
@@ -87,12 +87,12 @@ const REASON_LABELS = {
 
 function SummaryCard({ icon: Icon, label, value, color, bg }) {
   return (
-    <div className={`flex items-center gap-4 px-6 py-4 rounded-2xl ${bg} border border-white/5`}>
+    <div className="flex items-center gap-4 px-6 py-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bg}`}>
         <Icon size={22} className={color} />
       </div>
       <div>
-        <p className="text-2xl font-black text-white leading-none">{value}</p>
+        <p className="text-2xl font-black text-slate-900 leading-none">{value}</p>
         <p className="text-[11px] text-slate-500 font-bold mt-0.5">{label}</p>
       </div>
     </div>
@@ -171,20 +171,20 @@ function AdjustModal({ product, onClose, onSuccess }) {
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-md shadow-2xl shadow-black/50"
+        className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl shadow-black/50"
       >
-        <div className="p-6 border-b border-white/5">
+        <div className="p-6 border-b border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-black text-white text-lg leading-tight">{product.name}</h3>
+              <h3 className="font-black text-slate-900 text-lg leading-tight">{product.name}</h3>
               <p className="text-xs text-slate-500 mt-0.5">
                 현재 재고:{' '}
-                <span className="text-white font-bold">
+                <span className="text-slate-900 font-bold">
                   {product.stock_quantity === null ? '무제한' : `${product.stock_quantity}개`}
                 </span>
               </p>
             </div>
-            <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-slate-400">
+            <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500">
               <X size={18} />
             </button>
           </div>
@@ -192,7 +192,7 @@ function AdjustModal({ product, onClose, onSuccess }) {
 
         <div className="p-6">
           {/* 모드 탭 */}
-          <div className="flex gap-2 mb-6 bg-white/5 p-1 rounded-xl">
+          <div className="flex gap-2 mb-6 bg-slate-100 p-1 rounded-xl">
             {[
               { key: 'adjust', label: '입출고' },
               { key: 'set', label: '직접 설정' },
@@ -201,7 +201,7 @@ function AdjustModal({ product, onClose, onSuccess }) {
                 key={t.key}
                 onClick={() => setMode(t.key)}
                 className={`flex-1 py-2 rounded-lg text-xs font-black transition-all
-                                    ${mode === t.key ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-slate-400 hover:text-white'}`}
+                                    ${mode === t.key ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 {t.label}
               </button>
@@ -218,8 +218,8 @@ function AdjustModal({ product, onClose, onSuccess }) {
                     className={`py-2.5 rounded-xl text-xs font-black transition-all border
                                             ${
                                               reason === r
-                                                ? 'bg-orange-500/20 border-orange-500/50 text-orange-400'
-                                                : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'
+                                                ? 'bg-orange-500/20 border-orange-500/50 text-orange-600'
+                                                : 'bg-slate-100 border-slate-200 text-slate-500 hover:border-slate-300'
                                             }`}
                   >
                     {REASON_LABELS[r]}
@@ -228,13 +228,13 @@ function AdjustModal({ product, onClose, onSuccess }) {
               </div>
 
               <div>
-                <label className="text-[11px] font-black text-slate-400 mb-2 block">
+                <label className="text-[11px] font-black text-slate-500 mb-2 block">
                   {reason === 'MANUAL_OUT' ? '차감 수량 (음수 자동)' : '수량'}
                 </label>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setChange((v) => String((Number(v) || 0) - 1))}
-                    className="w-10 h-10 rounded-xl bg-white/5 text-white flex items-center justify-center hover:bg-white/10 transition-all"
+                    className="w-10 h-10 rounded-xl bg-slate-100 text-slate-900 flex items-center justify-center hover:bg-slate-200 transition-all"
                   >
                     <Minus size={14} />
                   </button>
@@ -243,11 +243,11 @@ function AdjustModal({ product, onClose, onSuccess }) {
                     value={change}
                     onChange={(e) => setChange(e.target.value)}
                     placeholder="0"
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white font-black text-center focus:outline-none focus:border-orange-500/50"
+                    className="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-black text-center focus:outline-none focus:border-orange-500/50"
                   />
                   <button
                     onClick={() => setChange((v) => String((Number(v) || 0) + 1))}
-                    className="w-10 h-10 rounded-xl bg-white/5 text-white flex items-center justify-center hover:bg-white/10 transition-all"
+                    className="w-10 h-10 rounded-xl bg-slate-100 text-slate-900 flex items-center justify-center hover:bg-slate-200 transition-all"
                   >
                     <Plus size={14} />
                   </button>
@@ -255,7 +255,7 @@ function AdjustModal({ product, onClose, onSuccess }) {
               </div>
 
               <div>
-                <label className="text-[11px] font-black text-slate-400 mb-2 block">
+                <label className="text-[11px] font-black text-slate-500 mb-2 block">
                   메모 (선택)
                 </label>
                 <input
@@ -263,14 +263,14 @@ function AdjustModal({ product, onClose, onSuccess }) {
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="사유 메모..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-orange-500/50"
+                  className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-orange-500/50"
                 />
               </div>
             </div>
           ) : (
             <div className="space-y-4">
               <div>
-                <label className="text-[11px] font-black text-slate-400 mb-2 block">
+                <label className="text-[11px] font-black text-slate-500 mb-2 block">
                   재고 수량 (빈칸 = 무제한)
                 </label>
                 <input
@@ -279,11 +279,11 @@ function AdjustModal({ product, onClose, onSuccess }) {
                   onChange={(e) => setQty(e.target.value)}
                   placeholder="무제한은 빈칸"
                   min="0"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white font-black focus:outline-none focus:border-orange-500/50"
+                  className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-black focus:outline-none focus:border-orange-500/50"
                 />
               </div>
               <div>
-                <label className="text-[11px] font-black text-slate-400 mb-2 block">
+                <label className="text-[11px] font-black text-slate-500 mb-2 block">
                   저재고 경고 임계치
                 </label>
                 <input
@@ -291,14 +291,14 @@ function AdjustModal({ product, onClose, onSuccess }) {
                   value={threshold}
                   onChange={(e) => setThreshold(e.target.value)}
                   min="0"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white font-black focus:outline-none focus:border-orange-500/50"
+                  className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-black focus:outline-none focus:border-orange-500/50"
                 />
               </div>
             </div>
           )}
 
           {error && (
-            <div className="mt-3 text-xs text-red-400 bg-red-500/10 px-3 py-2 rounded-xl">
+            <div className="mt-3 text-xs text-red-600 bg-red-500/10 px-3 py-2 rounded-xl">
               {error}
             </div>
           )}
@@ -339,15 +339,15 @@ function HistoryModal({ product, onClose }) {
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-lg shadow-2xl shadow-black/50 overflow-hidden"
+        className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl shadow-black/50 overflow-hidden"
         style={{ maxHeight: '80vh' }}
       >
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
           <div>
-            <h3 className="font-black text-white text-lg">{product.name} 재고 이력</h3>
+            <h3 className="font-black text-slate-900 text-lg">{product.name} 재고 이력</h3>
             <p className="text-xs text-slate-500 mt-0.5">최근 변동 내역</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-slate-400">
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500">
             <X size={18} />
           </button>
         </div>
@@ -358,12 +358,12 @@ function HistoryModal({ product, onClose }) {
             </div>
           ) : history.length === 0 ? (
             <EmptyState
-              tone="dark"
+              tone="light"
               icon={<History size={40} className="text-slate-600" aria-hidden="true" />}
               title="이력이 없습니다"
             />
           ) : (
-            <div className="divide-y divide-white/[0.03]">
+            <div className="divide-y divide-slate-100">
               {history.map((h) => (
                 <div key={h.id} className="flex items-center gap-4 px-6 py-4">
                   <div
@@ -371,18 +371,18 @@ function HistoryModal({ product, onClose }) {
                                         ${h.change > 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}
                   >
                     {h.change > 0 ? (
-                      <TrendingUp size={15} className="text-emerald-400" />
+                      <TrendingUp size={15} className="text-emerald-600" />
                     ) : (
-                      <TrendingDown size={15} className="text-red-400" />
+                      <TrendingDown size={15} className="text-red-600" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-black text-white">
+                      <span className="text-xs font-black text-slate-900">
                         {REASON_LABELS[h.reason] || h.reason}
                       </span>
                       <span
-                        className={`text-xs font-black ${h.change > 0 ? 'text-emerald-400' : 'text-red-400'}`}
+                        className={`text-xs font-black ${h.change > 0 ? 'text-emerald-600' : 'text-red-600'}`}
                       >
                         {h.change > 0 ? `+${h.change}` : h.change}개
                       </span>
@@ -687,29 +687,29 @@ export default function InventoryManager() {
           icon={Package}
           label="재고 관리 메뉴"
           value={summary.total_managed}
-          color="text-slate-300"
-          bg="bg-slate-800/50"
+          color="text-slate-600"
+          bg="bg-slate-100"
         />
         <SummaryCard
           icon={XCircle}
           label="품절"
           value={summary.out_of_stock}
-          color="text-red-400"
-          bg="bg-red-500/5"
+          color="text-red-600"
+          bg="bg-red-50"
         />
         <SummaryCard
           icon={AlertCircle}
           label="저재고 경고"
           value={summary.low_stock}
-          color="text-amber-400"
-          bg="bg-amber-500/5"
+          color="text-amber-600"
+          bg="bg-amber-50"
         />
         <SummaryCard
           icon={CheckCircle}
           label="재고 정상"
           value={summary.ok}
-          color="text-emerald-400"
-          bg="bg-emerald-500/5"
+          color="text-emerald-600"
+          bg="bg-emerald-50"
         />
       </div>
 
@@ -935,11 +935,11 @@ export default function InventoryManager() {
       </div>
 
       {/* 재고 테이블 */}
-      <div className="bg-slate-900/50 backdrop-blur-sm border border-white/5 rounded-3xl overflow-hidden">
+      <div className="bg-white border border-slate-200 shadow-sm rounded-3xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/5">
+              <tr className="border-b border-slate-200">
                 <th className="text-left px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
                   메뉴
                 </th>
@@ -960,7 +960,7 @@ export default function InventoryManager() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.03]">
+            <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
                   <td colSpan={6} className="py-16 text-center">
@@ -972,7 +972,7 @@ export default function InventoryManager() {
                 <tr>
                   <td colSpan={6}>
                     <EmptyState
-                      tone="dark"
+                      tone="light"
                       icon={<Package size={40} className="text-slate-600" aria-hidden="true" />}
                       title="메뉴가 없습니다"
                       description="메뉴를 추가하면 재고를 관리할 수 있어요."
@@ -988,7 +988,7 @@ export default function InventoryManager() {
                       key={product.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className={`hover:bg-white/[0.02] transition-all
+                      className={`hover:bg-slate-50 transition-all
                                             ${status === 'out' ? 'bg-red-500/[0.03]' : status === 'low' ? 'bg-amber-500/[0.02]' : ''}`}
                     >
                       <td className="px-6 py-4">
@@ -997,15 +997,15 @@ export default function InventoryManager() {
                             <img
                               src={product.image_url}
                               alt={product.name}
-                              className="w-10 h-10 rounded-xl object-cover flex-shrink-0 ring-1 ring-white/10"
+                              className="w-10 h-10 rounded-xl object-cover flex-shrink-0 ring-1 ring-slate-200"
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0">
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
                               <Package size={14} className="text-slate-600" />
                             </div>
                           )}
                           <div>
-                            <p className="text-sm font-bold text-white">{product.name}</p>
+                            <p className="text-sm font-bold text-slate-900">{product.name}</p>
                             <p className="text-[10px] text-slate-500">
                               {product.price?.toLocaleString()}원
                             </p>
@@ -1013,7 +1013,7 @@ export default function InventoryManager() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-slate-500">
                           {product.categories?.name || '미분류'}
                         </span>
                       </td>
@@ -1021,12 +1021,12 @@ export default function InventoryManager() {
                         <span
                           className={`text-xl font-black ${
                             status === 'out'
-                              ? 'text-red-400'
+                              ? 'text-red-600'
                               : status === 'low'
-                                ? 'text-amber-400'
+                                ? 'text-amber-600'
                                 : status === 'unlimited'
                                   ? 'text-slate-500'
-                                  : 'text-white'
+                                  : 'text-slate-900'
                           }`}
                         >
                           {product.stock_quantity === null ? '∞' : product.stock_quantity}
@@ -1049,14 +1049,14 @@ export default function InventoryManager() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => setHistoryTarget(product)}
-                            className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-slate-300 transition-all"
+                            className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-all"
                             title="이력 보기"
                           >
                             <History size={14} />
                           </button>
                           <button
                             onClick={() => setAdjustTarget(product)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400 rounded-xl text-[11px] font-black transition-all"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-600 rounded-xl text-[11px] font-black transition-all"
                           >
                             <Edit3 size={11} />
                             조정
@@ -1073,7 +1073,7 @@ export default function InventoryManager() {
 
         {/* 페이지네이션 */}
         {pagination.total_pages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-white/5">
+          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200">
             <span className="text-xs text-slate-600">총 {pagination.total}개 메뉴</span>
             <Pagination
               current={pagination.page}
