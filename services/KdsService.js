@@ -220,9 +220,18 @@ class KdsService {
         );
       }
       // 관리자 주문 화면·손님 주문 상태 화면은 'order-updated'(주문 룸 포함)를 듣는다.
+      // 상태 변경은 이미 저장됐으므로 전파·후처리 실패가 요청 실패(500)로 번지지 않게 한다.
       const orderService = new (require('./OrderService'))(io);
-      orderService._emitOrderUpdate(updatedOrder, status);
-      if (status === 'cancelled') await this._afterKitchenCancel(order, orderService, io);
+      try {
+        orderService._emitOrderUpdate(updatedOrder, status);
+      } catch (e) {
+        logger_1.default.error(`[KDS Socket] order-updated 전파 실패: ${e.message}`);
+      }
+      if (status === 'cancelled') {
+        await this._afterKitchenCancel(order, orderService, io).catch((e) =>
+          logger_1.default.error(`[KDS Cancel] 취소 후처리 실패: Order ${order.id} ${e.message}`)
+        );
+      }
       void OrderEventService_1.record({
         orderId: numericOrderId,
         storeId: numericStoreId,
