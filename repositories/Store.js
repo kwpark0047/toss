@@ -224,9 +224,13 @@ const Store = {
       })
       .then(flattenStore);
 
-    // 관련 캐시 무효화
-    cache.del(`store:${id}`);
-    cache.del('stores:all');
+    // Profile entries are stored without Redis tags, so tag invalidation alone
+    // can leave an old location in L2. Finish explicit deletion before replying.
+    await Promise.all([
+      cache.del(`store:${id}`),
+      cache.del(`store:${id}:profile`),
+      cache.del('stores:all'),
+    ]);
 
     return updatedStore;
   },
