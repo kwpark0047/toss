@@ -54,7 +54,8 @@ class WaitingService {
 
     // 같은 매장의 동시 등록을 직렬화해 대기 번호가 겹치지 않게 한다.
     const { entry, newQueueNumber } = await prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(4207, ${storeId})`;
+      // Prisma는 숫자를 bigint로 넘기므로 (int, int) 시그니처에 맞게 캐스팅하고, void 결과 대신 1을 돌려준다.
+      await tx.$queryRaw`SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(4207, ${storeId}::int)) AS lock_result`;
 
       // 이미 대기 중인 고객 확인
       const existing = await tx.waiting_list.findFirst({

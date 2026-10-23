@@ -1,6 +1,6 @@
 jest.mock('../../../config/prisma', () => {
   const mock = {
-    $executeRaw: jest.fn().mockResolvedValue(1),
+    $queryRaw: jest.fn().mockResolvedValue([{ locked: 1 }]),
     waiting_list: {
       count: jest.fn(),
       findMany: jest.fn(),
@@ -85,7 +85,7 @@ describe('WaitingService', () => {
       prisma.waiting_list.create.mockResolvedValue({ id: 2, queue_number: 9, status: 'waiting' });
       await svc.register({ store_id: '1', customer_phone: '010-1234-5678', party_size: 2 });
       jest.useRealTimers();
-      expect(prisma.$executeRaw).toHaveBeenCalled();
+      expect(prisma.$queryRaw).toHaveBeenCalled();
       expect(prisma.waiting_list.findFirst.mock.calls[1][0].where.created_at.gte).toEqual(
         new Date('2026-10-21T15:00:00.000Z')
       );
