@@ -302,6 +302,10 @@ export default function CustomerPhoneSheet({
       setStep('done');
       // 개인화 추천(F9)·재방문 편의를 위해 고객 전화번호 저장
       try { localStorage.setItem('wm_customer_phone', digits); } catch { /* 저장 실패 무시 */ }
+      // 즐겨찾기 등 번호 단위 기능용 본인 확인 토큰
+      if (res.customer_token) {
+        try { localStorage.setItem('wm_customer_token', res.customer_token); } catch { /* 저장 실패 무시 */ }
+      }
       requestNotificationPermission().then(token => {
         if (token && storeId) {
           customersAPI.registerFcmToken(digits, storeId, token).catch(() => {});

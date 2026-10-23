@@ -141,6 +141,28 @@ function verifyWaitingCapability(token) {
   }
 }
 
+// 손님 본인 확인 토큰: 주문 증명으로 번호를 등록한 기기에 발급 (즐겨찾기 등 번호 단위 기능용)
+function createCustomerCapability(phone) {
+  const secret = getSecret();
+  if (!secret) throw new Error('Order capability secret is not configured');
+  return jwt.sign(
+    { type: 'customer_capability', customer_phone: String(phone).replace(/\D/g, '') },
+    secret,
+    { expiresIn: '180d' }
+  );
+}
+
+function verifyCustomerCapability(token) {
+  const secret = getSecret();
+  if (!secret || !token) return null;
+  try {
+    const payload = jwt.verify(token, secret);
+    return payload.type === 'customer_capability' ? payload : null;
+  } catch {
+    return null;
+  }
+}
+
 function verifyWalletCapability(token) {
   const secret = getSecret();
   if (!secret || !token) return null;
@@ -163,4 +185,6 @@ module.exports = {
   verifyWalletCapability,
   createWaitingCapability,
   verifyWaitingCapability,
+  createCustomerCapability,
+  verifyCustomerCapability,
 };

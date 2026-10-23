@@ -1,5 +1,17 @@
 const express = require('express');
 const router = express.Router();
+const { verifyCustomerCapability } = require('../utils/orderCapability');
+
+// 즐겨찾기는 번호만으로 보거나 바꿀 수 없다. 번호 등록 때 받은 손님 토큰의 번호만 쓴다.
+const requireCustomerCapability = (req, res, next) => {
+  const capability = verifyCustomerCapability(req.get('x-customer-capability'));
+  if (!capability?.customer_phone) {
+    return res.status(401).json({ success: false, error: '본인 확인이 필요합니다.' });
+  }
+  if (req.params.phone !== undefined) req.params.phone = capability.customer_phone;
+  if (req.body && typeof req.body === 'object') req.body.customer_phone = capability.customer_phone;
+  next();
+};
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
 const { requireUnexpiredTrial } = require('../middleware/businessTrialAccess');
@@ -103,7 +115,11 @@ router.get('/popular', catchAsync(storeController.getPopular));
  *       200:
  *         description: 관심 매장 목록
  */
-router.get('/favorites/:phone', catchAsync(storeController.getFavorites));
+router.get(
+  '/favorites/:phone',
+  requireCustomerCapability,
+  catchAsync(storeController.getFavorites)
+);
 
 /**
  * @swagger
@@ -125,7 +141,7 @@ router.get('/favorites/:phone', catchAsync(storeController.getFavorites));
  *       201:
  *         description: 추가 완료
  */
-router.post('/favorites', catchAsync(storeController.addFavorite));
+router.post('/favorites', requireCustomerCapability, catchAsync(storeController.addFavorite));
 
 /**
  * @swagger
@@ -147,7 +163,7 @@ router.post('/favorites', catchAsync(storeController.addFavorite));
  *       200:
  *         description: 삭제 완료
  */
-router.delete('/favorites', catchAsync(storeController.removeFavorite));
+router.delete('/favorites', requireCustomerCapability, catchAsync(storeController.removeFavorite));
 
 /**
  * @swagger
