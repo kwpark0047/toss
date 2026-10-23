@@ -143,18 +143,18 @@ const ProfileField = ({
     <div
       className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
         editing
-          ? 'border-orange-500/50 bg-slate-800/60'
-          : 'border-white/5 bg-slate-900/50 hover:border-white/10'
+          ? 'border-orange-300 bg-white shadow-sm'
+          : 'border-slate-200 bg-white shadow-sm hover:border-slate-300'
       }`}
     >
       {/* 필드 헤더 */}
       <div className="flex items-center gap-3 px-5 pt-4 pb-3">
         <div
           className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-            editing ? 'bg-orange-500/20' : 'bg-white/5'
+            editing ? 'bg-orange-50' : 'bg-slate-100'
           }`}
         >
-          <Icon className={`w-4 h-4 ${editing ? 'text-orange-400' : 'text-slate-400'}`} />
+          <Icon className={`w-4 h-4 ${editing ? 'text-orange-600' : 'text-slate-500'}`} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">
@@ -162,7 +162,7 @@ const ProfileField = ({
           </p>
           {!editing && (
             <p
-              className={`text-sm font-semibold truncate ${hasValue ? 'text-white' : 'text-slate-600 italic'}`}
+              className={`text-sm font-semibold truncate ${hasValue ? 'text-slate-900' : 'text-slate-500 italic'}`}
             >
               {hasValue ? value : placeholder}
             </p>
@@ -172,7 +172,7 @@ const ProfileField = ({
           <button
             onClick={openEdit}
             aria-label={`${label} ${hasValue ? '수정' : '추가'}`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 text-xs font-semibold transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 text-xs font-semibold transition-all"
           >
             <Edit2 className="w-3 h-3" />
             {hasValue ? '수정' : '추가'}
@@ -209,10 +209,10 @@ const ProfileField = ({
                 if (e.key === 'Escape') handleCancel();
               }}
               placeholder={placeholder}
-              className={`w-full px-4 py-3 rounded-xl bg-slate-800 border text-sm font-medium text-white placeholder-slate-600 focus:outline-none transition-all ${
+              className={`w-full px-4 py-3 rounded-xl bg-slate-50 border text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none transition-all ${
                 fieldError
                   ? 'border-red-500 focus:border-red-400'
-                  : 'border-white/10 focus:border-orange-500'
+                  : 'border-slate-200 focus:border-orange-500'
               }`}
             />
 
@@ -221,7 +221,7 @@ const ProfileField = ({
                 role="alert"
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-1.5 text-xs text-red-400 font-medium"
+                className="flex items-center gap-1.5 text-xs text-red-600 font-medium"
               >
                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                 {fieldError}
@@ -245,7 +245,7 @@ const ProfileField = ({
               <button
                 onClick={handleCancel}
                 disabled={loading}
-                className="flex items-center gap-1.5 px-4 py-2 bg-white/5 text-slate-400 hover:text-white text-xs font-medium rounded-xl transition-all"
+                className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-500 hover:text-slate-900 text-xs font-medium rounded-xl transition-all"
               >
                 <X className="w-3.5 h-3.5" /> 취소
               </button>
@@ -254,7 +254,7 @@ const ProfileField = ({
                 <button
                   onClick={handleClear}
                   disabled={loading}
-                  className="ml-auto flex items-center gap-1.5 px-3 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-medium rounded-xl transition-all"
+                  className="ml-auto flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium rounded-xl transition-all"
                 >
                   <Trash2 className="w-3.5 h-3.5" /> 삭제
                 </button>
@@ -319,26 +319,26 @@ const PasswordCard = ({ changePassword }) => {
     <div
       className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
         open
-          ? 'border-orange-500/50 bg-slate-800/60'
-          : 'border-white/5 bg-slate-900/50 hover:border-white/10'
+          ? 'border-orange-300 bg-white shadow-sm'
+          : 'border-slate-200 bg-white shadow-sm hover:border-slate-300'
       }`}
     >
       <div className="flex items-center gap-3 px-5 pt-4 pb-3">
         <div
-          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${open ? 'bg-orange-500/20' : 'bg-white/5'}`}
+          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${open ? 'bg-orange-50' : 'bg-slate-100'}`}
         >
-          <Lock className={`w-4 h-4 ${open ? 'text-orange-400' : 'text-slate-400'}`} />
+          <Lock className={`w-4 h-4 ${open ? 'text-orange-600' : 'text-slate-500'}`} />
         </div>
         <div className="flex-1">
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">
             비밀번호
           </p>
-          <p className="text-sm font-semibold text-white">••••••••</p>
+          <p className="text-sm font-semibold text-slate-900">••••••••</p>
         </div>
         {!open && (
           <button
             onClick={() => setOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 text-xs font-semibold transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 text-xs font-semibold transition-all"
           >
             <Edit2 className="w-3 h-3" /> 변경
           </button>
@@ -357,7 +357,7 @@ const PasswordCard = ({ changePassword }) => {
           >
             {fields.map(({ key, label, placeholder }) => (
               <div key={key}>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">{label}</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">{label}</label>
                 <div className="relative">
                   <input
                     type={show ? 'text' : 'password'}
@@ -367,15 +367,15 @@ const PasswordCard = ({ changePassword }) => {
                       setErrors((p) => ({ ...p, [key]: '' }));
                     }}
                     placeholder={placeholder}
-                    className={`w-full px-4 py-3 pr-10 rounded-xl bg-slate-800 border text-sm font-medium text-white placeholder-slate-600 focus:outline-none transition-all ${
-                      errors[key] ? 'border-red-500' : 'border-white/10 focus:border-orange-500'
+                    className={`w-full px-4 py-3 pr-10 rounded-xl bg-slate-50 border text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none transition-all ${
+                      errors[key] ? 'border-red-500' : 'border-slate-200 focus:border-orange-500'
                     }`}
                   />
                   {key === 'current' && (
                     <button
                       type="button"
                       onClick={() => setShow((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
                     >
                       {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -385,7 +385,7 @@ const PasswordCard = ({ changePassword }) => {
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="mt-1 flex items-center gap-1 text-xs text-red-400 font-medium"
+                    className="mt-1 flex items-center gap-1 text-xs text-red-600 font-medium"
                   >
                     <AlertCircle className="w-3.5 h-3.5" /> {errors[key]}
                   </motion.p>
@@ -393,7 +393,7 @@ const PasswordCard = ({ changePassword }) => {
                 {/* 실시간 일치 표시 */}
                 {key === 'confirm' && form.confirm && !errors.confirm && (
                   <p
-                    className={`mt-1 text-xs font-medium ${form.next === form.confirm ? 'text-emerald-400' : 'text-red-400'}`}
+                    className={`mt-1 text-xs font-medium ${form.next === form.confirm ? 'text-emerald-600' : 'text-red-600'}`}
                   >
                     {form.next === form.confirm
                       ? '✓ 비밀번호가 일치합니다'
@@ -424,7 +424,7 @@ const PasswordCard = ({ changePassword }) => {
                   setErrors({});
                   setForm({ current: '', next: '', confirm: '' });
                 }}
-                className="px-4 py-2.5 bg-white/5 text-slate-400 hover:text-white text-xs font-medium rounded-xl transition-all"
+                className="px-4 py-2.5 bg-slate-100 text-slate-500 hover:text-slate-900 text-xs font-medium rounded-xl transition-all"
               >
                 취소
               </button>
@@ -509,21 +509,21 @@ const TwoFactorCard = ({ enabled, onSend, onVerify }) => {
     <div
       className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
         open
-          ? 'border-orange-500/50 bg-slate-800/60'
-          : 'border-white/5 bg-slate-900/50 hover:border-white/10'
+          ? 'border-orange-300 bg-white shadow-sm'
+          : 'border-slate-200 bg-white shadow-sm hover:border-slate-300'
       }`}
     >
       <div className="flex items-center gap-3 px-5 pt-4 pb-3">
         <div
-          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${enabled ? 'bg-emerald-500/20' : 'bg-white/5'}`}
+          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${enabled ? 'bg-emerald-50' : 'bg-slate-100'}`}
         >
-          <ShieldCheck className={`w-4 h-4 ${enabled ? 'text-emerald-400' : 'text-slate-400'}`} />
+          <ShieldCheck className={`w-4 h-4 ${enabled ? 'text-emerald-600' : 'text-slate-500'}`} />
         </div>
         <div className="flex-1">
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">
             2단계 인증 (2FA)
           </p>
-          <p className={`text-sm font-semibold ${enabled ? 'text-emerald-400' : 'text-slate-500'}`}>
+          <p className={`text-sm font-semibold ${enabled ? 'text-emerald-600' : 'text-slate-500'}`}>
             {enabled ? '활성화됨 — 로그인 시 인증번호 필요' : '비활성화됨'}
           </p>
         </div>
@@ -532,8 +532,8 @@ const TwoFactorCard = ({ enabled, onSend, onVerify }) => {
             onClick={() => startFlow(enabled ? 'DISABLE' : 'ENABLE')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
               enabled
-                ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300'
-                : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300'
+                ? 'bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700'
+                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700'
             }`}
           >
             <ShieldCheck className="w-3 h-3" /> {enabled ? '비활성화' : '활성화'}
@@ -551,23 +551,23 @@ const TwoFactorCard = ({ enabled, onSend, onVerify }) => {
             transition={{ duration: 0.2 }}
             className="px-5 pb-4 space-y-3"
           >
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               {purpose === 'ENABLE' ? '활성화' : '비활성화'} 인증번호가 등록된 핸드폰으로
               전송되었습니다. 6자리를 입력해주세요.
             </p>
-            {info && <p className="text-xs text-emerald-400 font-medium">{info}</p>}
+            {info && <p className="text-xs text-emerald-600 font-medium">{info}</p>}
             {error && (
-              <p className="flex items-center gap-1 text-xs text-red-400 font-medium">
+              <p className="flex items-center gap-1 text-xs text-red-600 font-medium">
                 <AlertCircle className="w-3.5 h-3.5" /> {error}
               </p>
             )}
             {devOtp && (
-              <p className="text-[11px] text-amber-400 font-medium">
+              <p className="text-[11px] text-amber-600 font-medium">
                 개발 모드 인증번호: <span className="font-mono font-bold">{devOtp}</span>
               </p>
             )}
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1.5">인증번호</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">인증번호</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -576,7 +576,7 @@ const TwoFactorCard = ({ enabled, onSend, onVerify }) => {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="6자리 인증번호"
-                className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-white/10 text-sm font-mono font-bold tracking-[0.4em] text-center text-white placeholder-slate-600 focus:outline-none focus:border-orange-500 transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-mono font-bold tracking-[0.4em] text-center text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 transition-all"
               />
             </div>
             <div className="flex items-center gap-2 pt-1">
@@ -596,7 +596,7 @@ const TwoFactorCard = ({ enabled, onSend, onVerify }) => {
                 type="button"
                 onClick={handleResend}
                 disabled={sending}
-                className="px-3 py-3 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 text-xs font-semibold transition-all disabled:opacity-50 flex items-center gap-1"
+                className="px-3 py-3 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 text-xs font-semibold transition-all disabled:opacity-50 flex items-center gap-1"
               >
                 <RefreshCw className="w-3.5 h-3.5" /> 재전송
               </button>
@@ -605,7 +605,7 @@ const TwoFactorCard = ({ enabled, onSend, onVerify }) => {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="text-xs text-slate-500 hover:text-slate-300 transition-colors font-medium"
+                className="text-xs text-slate-500 hover:text-slate-700 transition-colors font-medium"
               >
                 취소
               </button>
@@ -707,19 +707,19 @@ const ProfilePage = () => {
       </div>
 
       {/* 완성률 */}
-      <div className="mb-6 p-5 rounded-2xl bg-slate-900/70 border border-white/5">
+      <div className="mb-6 p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
         <div className="flex items-end justify-between mb-3">
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
               프로필 완성도
             </p>
-            <p className="text-2xl font-black text-white">
+            <p className="text-2xl font-black text-slate-900">
               {pct}
-              <span className="text-sm text-slate-400 ml-1">%</span>
+              <span className="text-sm text-slate-500 ml-1">%</span>
             </p>
           </div>
           {pct === 100 ? (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/20">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-xl border border-emerald-200">
               <Check className="w-3.5 h-3.5" /> 완성
             </span>
           ) : (
@@ -728,7 +728,7 @@ const ProfilePage = () => {
             </span>
           )}
         </div>
-        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
