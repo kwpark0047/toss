@@ -1,0 +1,9 @@
+{
+  "expected": "f3a77752fdf0f54b7084a0b141b144e551c14db5",
+  "backend": {
+    "revision": "f3a77752fdf0f54b7084a0b141b144e551c14db5",
+    "status": "ok",
+    "db": "connected"
+  },
+  "frontendRevision": "f3a77752fdf0f54b7084a0b141b144e551c14db5"
+}
