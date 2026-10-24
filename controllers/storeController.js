@@ -5,6 +5,9 @@ const geocodeService = require('../services/geocodeService');
 const logger = require('../utils/logger');
 
 const storeService = new StoreService();
+// Temporary, bounded incident diagnostic on the existing authorized test-store
+// route only. No new endpoint or change to authentication/tenant checks.
+let geocodeAuthDiagnosticCount = 0;
 
 /**
  * 새 매장의 도로명 주소를 응답 후 백그라운드로 지오코딩한다 (실패해도 매장 생성에는 영향 없음).
@@ -214,9 +217,23 @@ const storeController = {
       res.success({ query: q, results });
     } catch (err) {
       if (err instanceof geocodeService.GeocodeProviderError) {
+        let diagnostic;
+        if (
+          Number(req.params.id) === 3 &&
+          req.get?.('X-Location-Diagnostic') === 'kakao-auth-incident' &&
+          err.providerDiagnostic &&
+          geocodeAuthDiagnosticCount < 3
+        ) {
+          geocodeAuthDiagnosticCount++;
+          diagnostic = {
+            ...err.providerDiagnostic,
+            revision: process.env.RENDER_GIT_COMMIT || process.env.APP_COMMIT_SHA || null,
+          };
+          logger.warn('[GeocodeAuthDiagnostic]', diagnostic);
+        }
         return res
           .status(err.status === 429 ? 429 : 424)
-          .json({ success: false, error: err.message });
+          .json({ success: false, error: err.message, ...(diagnostic ? { diagnostic } : {}) });
       }
       throw err;
     }

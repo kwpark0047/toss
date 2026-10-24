@@ -148,12 +148,56 @@ function toCandidate({ roadAddress, jibunAddress, placeName, zipCode, lat, lng, 
   };
 }
 
-function rethrowProviderError(err) {
+// Temporary auth diagnosis: never retain the Axios error, request headers, key,
+// search text, or arbitrary response fields. Removed after the incident review.
+function providerAuthDiagnostic(err, provider) {
+  const credential = provider === 'kakao' ? KAKAO_KEY() : NCP_KEY();
+  const secrets = [KAKAO_KEY(), NCP_ID(), NCP_KEY(), err?.config?.params?.query].filter(
+    (value) => typeof value === 'string' && value.length > 0
+  );
+  const scrub = (value) => {
+    if (typeof value !== 'string') return null;
+    let text = value;
+    for (const secret of secrets) {
+      for (const form of new Set([secret, secret.trim(), encodeURIComponent(secret)])) {
+        if (form) text = text.split(form).join('[REDACTED]');
+      }
+    }
+    return require('../utils/logRedaction')
+      .text(text)
+      .replace(/\bKakaoAK\s+[^\s,;]+/gi, 'KakaoAK [REDACTED]')
+      .replace(/\b[a-f0-9]{32,}\b/gi, '[REDACTED]')
+      .replace(/[\r\n\t]/g, ' ')
+      .slice(0, 400);
+  };
+  return {
+    provider,
+    upstreamStatus: err.response.status,
+    errorType: scrub(err.response.data?.errorType || err.response.data?.error?.errorCode),
+    upstreamMessage: scrub(err.response.data?.message || err.response.data?.error?.message),
+    credential: {
+      present: Boolean(credential),
+      length: credential.length,
+      surroundingWhitespace: credential !== credential.trim(),
+      containsPrefix: credential.startsWith('KakaoAK'),
+      fingerprint: credential
+        ? require('node:crypto').createHash('sha256').update(credential).digest('hex').slice(0, 12)
+        : null,
+    },
+  };
+}
+
+function rethrowProviderError(err, provider) {
   const status = err?.response?.status;
   if (status === 429)
     throw new GeocodeProviderError('주소 검색 요청이 많아요. 잠시 후 다시 시도해 주세요.', 429);
-  if (status === 401 || status === 403)
-    throw new GeocodeProviderError('주소 검색 서비스 인증에 실패했어요.', 503);
+  if (status === 401 || status === 403) {
+    const error = new GeocodeProviderError('주소 검색 서비스 인증에 실패했어요.', 503);
+    Object.defineProperty(error, 'providerDiagnostic', {
+      value: providerAuthDiagnostic(err, provider),
+    });
+    throw error;
+  }
   throw new GeocodeProviderError('주소 검색 서비스에 연결하지 못했어요.', 502);
 }
 
@@ -181,7 +225,7 @@ async function kakaoSearch(query, size) {
       );
     }
   } catch (err) {
-    rethrowProviderError(err);
+    rethrowProviderError(err, 'kakao');
   }
   // 주소 결과가 없으면 키워드(건물명·상호) 검색으로 보완
   if (out.filter(Boolean).length === 0) {
@@ -204,7 +248,7 @@ async function kakaoSearch(query, size) {
         );
       }
     } catch (err) {
-      rethrowProviderError(err);
+      rethrowProviderError(err, 'kakao');
     }
   }
   return out.filter(Boolean);
@@ -231,7 +275,7 @@ async function ncpSearch(query, size) {
       )
       .filter(Boolean);
   } catch (err) {
-    rethrowProviderError(err);
+    rethrowProviderError(err, 'ncp');
   }
 }
 

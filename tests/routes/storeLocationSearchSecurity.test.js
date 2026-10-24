@@ -134,4 +134,53 @@ describe('매장 위치 주소 검색 인가', () => {
       .set('Authorization', `Bearer ${tokenFor({ id: 1, role: 'owner' })}`);
     expect(res.status).toBe(429);
   });
+
+  test('ordinary store requests keep provider diagnostic details private', async () => {
+    const error = new mockGeocode.GeocodeProviderError('인증 오류', 503);
+    error.providerDiagnostic = {
+      provider: 'kakao',
+      upstreamStatus: 403,
+      upstreamMessage: 'disabled service',
+    };
+    mockGeocode.searchAddresses.mockRejectedValueOnce(error);
+    const res = await request(app)
+      .get(url())
+      .set('X-Location-Diagnostic', 'kakao-auth-incident')
+      .set('Authorization', `Bearer ${tokenFor({ id: 1, role: 'owner' })}`);
+    expect(res.status).toBe(424);
+    expect(res.body).toEqual({ success: false, error: '인증 오류' });
+  });
+
+  test('authorized test-store request can retrieve the same redacted runtime log event', async () => {
+    mockPrisma.stores.findUnique.mockResolvedValue({ id: 3, user_id: 1 });
+    const error = new mockGeocode.GeocodeProviderError('인증 오류', 503);
+    error.providerDiagnostic = {
+      provider: 'kakao',
+      upstreamStatus: 403,
+      upstreamMessage: 'disabled service',
+    };
+    mockGeocode.searchAddresses.mockRejectedValueOnce(error);
+    const logger = require('../../utils/logger');
+    const warn = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+    try {
+      const res = await request(app)
+        .get('/api/stores/3/location/search?q=cityhall')
+        .set('X-Location-Diagnostic', 'kakao-auth-incident')
+        .set('Authorization', `Bearer ${tokenFor({ id: 1, role: 'owner' })}`);
+      expect(res.status).toBe(424);
+      expect(res.body.diagnostic).toMatchObject(error.providerDiagnostic);
+      expect(warn).toHaveBeenCalledWith('[GeocodeAuthDiagnostic]', res.body.diagnostic);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  test('diagnostic header does not bypass authentication', async () => {
+    const res = await request(app)
+      .get('/api/stores/3/location/search?q=cityhall')
+      .set('X-Location-Diagnostic', 'kakao-auth-incident');
+    expect(res.status).toBe(401);
+    expect(res.body.diagnostic).toBeUndefined();
+    expect(mockGeocode.searchAddresses).not.toHaveBeenCalled();
+  });
 });

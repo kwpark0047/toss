@@ -18,6 +18,33 @@ describe('geocodeService.searchAddresses', () => {
     process.env = originalEnv;
   });
 
+  test('captures only redacted provider auth details, never request headers or search text', async () => {
+    const query = 'private diagnostic address';
+    axios.get.mockRejectedValueOnce({
+      response: {
+        status: 403,
+        data: {
+          errorType: 'NotAuthorizedError',
+          message: `App(123) disabled OPEN_MAP_AND_LOCAL service. kakao-key ${query}`,
+          authorization: 'KakaoAK kakao-key',
+        },
+      },
+      config: { params: { query }, headers: { Authorization: 'KakaoAK kakao-key' } },
+    });
+    const error = await geocode.searchAddresses(query).catch((err) => err);
+    expect(error.providerDiagnostic).toMatchObject({
+      provider: 'kakao',
+      upstreamStatus: 403,
+      errorType: 'NotAuthorizedError',
+    });
+    const diagnostic = JSON.stringify(error.providerDiagnostic);
+    expect(diagnostic).toContain('OPEN_MAP_AND_LOCAL');
+    expect(diagnostic).not.toContain('kakao-key');
+    expect(diagnostic).not.toContain(query);
+    expect(diagnostic).not.toContain('Authorization');
+    expect(error.message).toBe('주소 검색 서비스 인증에 실패했어요.');
+  });
+
   test('도로명·지번 주소를 함께 담은 후보 목록을 반환한다', async () => {
     axios.get.mockResolvedValueOnce({
       data: {
@@ -123,21 +150,19 @@ describe('geocodeService.searchAddresses', () => {
   test('카카오 실패 시 NCP로 폴백한다', async () => {
     process.env.NCP_GEOCODE_KEY_ID = 'id';
     process.env.NCP_GEOCODE_KEY = 'key';
-    axios.get
-      .mockRejectedValueOnce({ response: { status: 500 } })
-      .mockResolvedValueOnce({
-        data: {
-          addresses: [
-            {
-              roadAddress: '서울 중구 세종대로 110',
-              jibunAddress: '서울 중구 태평로1가 31',
-              x: '126.9778',
-              y: '37.5663',
-              addressElements: [{ types: ['POSTAL_CODE'], longName: '04524' }],
-            },
-          ],
-        },
-      });
+    axios.get.mockRejectedValueOnce({ response: { status: 500 } }).mockResolvedValueOnce({
+      data: {
+        addresses: [
+          {
+            roadAddress: '서울 중구 세종대로 110',
+            jibunAddress: '서울 중구 태평로1가 31',
+            x: '126.9778',
+            y: '37.5663',
+            addressElements: [{ types: ['POSTAL_CODE'], longName: '04524' }],
+          },
+        ],
+      },
+    });
     const results = await geocode.searchAddresses('세종대로 110');
     expect(results[0]).toMatchObject({ source: 'ncp', zipCode: '04524' });
   });
