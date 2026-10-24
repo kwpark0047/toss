@@ -13,6 +13,10 @@ Prisma로 적용되었고 `_prisma_migrations`의 성공 이력을 확인했다.
 이 PR은 이미 적용한 SQL을 저장소 이력에 반영한다. 기존 마이그레이션의
 내용이나 체크섬은 변경하지 않았다.
 
+일반 PostgreSQL CI 서비스에는 Supabase의 `anon`, `authenticated` 역할이
+없으므로 CI에서 마이그레이션 전에 NOLOGIN 역할을 준비한다.
+`scripts/ci/supabase-roles.sql`은 CI의 임시 DB에서만 사용하며 권한을 부여하지 않는다.
+
 ## 확인한 결과
 
 - `anon`, `authenticated` 각각 SELECT / INSERT / UPDATE / DELETE 직접 실행:

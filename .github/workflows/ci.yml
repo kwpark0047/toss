@@ -156,6 +156,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --prefer-offline --no-audit --no-fund
+      - name: Prepare Supabase roles in disposable CI database
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file scripts/ci/supabase-roles.sql
       - run: node scripts/deploy-migrations.cjs --apply
       - run: npx prisma generate
       - name: Actual PostgreSQL financial, session and canonical gates
@@ -319,6 +321,9 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      - name: Prepare Supabase roles in disposable CI database
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file scripts/ci/supabase-roles.sql
+
       - name: Run database migrations
         run: node scripts/deploy-migrations.cjs --apply
 
@@ -378,6 +383,9 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
+
+      - name: Prepare Supabase roles in disposable CI database
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file scripts/ci/supabase-roles.sql
 
       - name: Run database migrations
         run: node scripts/deploy-migrations.cjs --apply
