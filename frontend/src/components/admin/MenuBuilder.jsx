@@ -64,6 +64,17 @@ const MenuBuilder = () => {
     const [reloadKey, setReloadKey] = useState(0);
     const [saveLoading, setSaveLoading] = useState(false);
     const [previewMode, setPreviewMode] = useState('mobile');
+    const previewViewportRef = useRef(null);
+    const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
+    useEffect(() => {
+        const viewport = previewViewportRef.current;
+        if (!viewport) return;
+        const observer = new ResizeObserver(([entry]) => {
+            setPreviewSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+        });
+        observer.observe(viewport);
+        return () => observer.disconnect();
+    }, [loading]);
     const [activeTab, setActiveTab] = useState('style');
     const [bannerUploading, setBannerUploading] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -180,6 +191,11 @@ const MenuBuilder = () => {
     const storeTitle = theme.logoText || store?.name || '매장 이름';
     const showBanner = Boolean(theme.bannerImageUrl) && !bannerFailed;
     const cardRadiusValue = radiusOptions.find(r => r.id === theme.cardRadius)?.css || '1.5rem';
+    const frameWidth = previewMode === 'tablet' ? 788 : 395;
+    const frameHeight = previewMode === 'tablet' ? 920 : 780;
+    const previewScale = previewSize.width && previewSize.height
+        ? Math.min(1, previewSize.width / frameWidth, previewSize.height / frameHeight)
+        : 1;
 
     return (
         <div className="tds-stack tds-gap-6 w-full min-h-[720px] h-[calc(100vh-140px)]">
@@ -445,13 +461,16 @@ const MenuBuilder = () => {
                     <span className="text-xs text-slate-400">· {previewMode === 'mobile' ? '375px' : previewMode === 'tablet' ? '768px' : '전체'}</span>
                 </div>
 
-                <div className="menu-preview-scope tds-stack items-center flex-1 min-h-0 w-full overflow-auto">
-                    <motion.div
-                        layout
+                <div ref={previewViewportRef} className="menu-preview-scope tds-stack items-center flex-1 min-h-0 min-w-0 w-full overflow-hidden">
+                    <div className="relative shrink-0" style={previewMode === 'desktop'
+                        ? { width: '100%', height: '100%' }
+                        : { width: frameWidth * previewScale, height: frameHeight * previewScale }}>
+                    <div
+                        style={previewMode === 'desktop' ? undefined : { transform: `scale(${previewScale})`, transformOrigin: 'top left' }}
                         className={`relative shrink-0 overflow-hidden bg-white shadow-2xl ${previewMode === 'mobile'
-                            ? 'box-content w-[375px] h-[760px] max-h-[calc(100%-20px)] border-[10px] border-slate-900 rounded-[3rem]'
+                            ? 'box-content w-[375px] h-[760px] border-[10px] border-slate-900 rounded-[3rem]'
                             : previewMode === 'tablet'
-                                ? 'box-content w-[768px] h-[900px] max-h-[calc(100%-20px)] border-[10px] border-slate-900 rounded-[2rem]'
+                                ? 'box-content w-[768px] h-[900px] border-[10px] border-slate-900 rounded-[2rem]'
                                 : 'w-full h-full border border-slate-200 rounded-[2rem]'}`}
                     >
                         {/* 디바이스 프레임 디테일 — 노치는 상태바 영역에만 두어 콘텐츠를 가리지 않는다 */}
@@ -542,7 +561,8 @@ const MenuBuilder = () => {
                                 </div>
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
+                    </div>
                 </div>
             </main>
         </div>
