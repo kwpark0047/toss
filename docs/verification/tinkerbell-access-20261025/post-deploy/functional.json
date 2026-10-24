@@ -1,0 +1,46 @@
+{
+  "checks": [
+    {
+      "name": "save-reload-public-off",
+      "passed": true
+    },
+    {
+      "name": "ai-on",
+      "passed": true
+    },
+    {
+      "name": "customer-browser",
+      "passed": true
+    }
+  ],
+  "original": {
+    "enabled": true,
+    "lang": "ko",
+    "voice_enabled": true,
+    "large_font": false,
+    "custom_msg": "",
+    "ai_recommendation": false
+  },
+  "ai": {
+    "source": "ai",
+    "count": 1,
+    "names": [
+      "갑오징어쟁반짜장"
+    ]
+  },
+  "browser": {
+    "responses": [
+      {
+        "url": "https://wemarket-eiw4.onrender.com/api/stores/3/tinkerbell-settings",
+        "status": 200
+      },
+      {
+        "url": "https://wemarket-eiw4.onrender.com/api/ai/tinkerbell-rec",
+        "status": 200
+      }
+    ],
+    "errors": []
+  },
+  "restored": true,
+  "passed": true
+}

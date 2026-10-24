@@ -33,6 +33,10 @@ Prisma로 적용되었고 `_prisma_migrations`의 성공 이력을 확인했다.
 
 ## 증빙
 
+PR #26 병합 후 새 운영 버전에서 수행한 결과는
+[운영 배포 후 검증](post-deploy/README.md)에 별도로 기록했다.
+아래 자료는 병합 전 검증 기록으로 보존한다.
+
 - [접근 차단 검증 JSON](access.json): 역할별 결과, RLS, 마이그레이션 이력.
 - [기능 검증 JSON](functional.json): 저장·조회, AI ON/OFF, 브라우저, 복구 결과.
 - [고객 화면 캡처](customer.png).
