@@ -208,7 +208,7 @@ export default function StoreLocationEditor({ storeId, initial = {}, onSaved }) 
         <div ref={mapElRef} className="w-full h-[280px] sm:h-[340px] rounded-3xl overflow-hidden border border-white/10 bg-slate-800 z-0" role="region" aria-label="매장 위치 지도. 지도를 누르거나 핀을 드래그해 위치를 조정할 수 있어요." />
         {mapStatus === 'loading' && <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-slate-400" role="status">지도를 불러오는 중…</div>}
         {mapStatus === 'error' && <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-slate-400" role="alert">지도를 불러오지 못했어요. 주소 검색 결과로 위치를 지정할 수 있어요.</div>}
-        {mapStatus === 'ready' && <p className="absolute bottom-3 left-3 z-[400] bg-slate-900/85 text-[11px] font-bold text-slate-300 px-3 py-1.5 rounded-xl">지도를 누르거나 핀을 끌어 정확한 위치로 옮기세요</p>}
+        {mapStatus === 'ready' && <p className="pointer-events-none absolute bottom-3 left-3 right-3 z-[400] rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold leading-relaxed text-slate-900 shadow-sm">지도를 누르거나 핀을 끌어 정확한 위치로 옮기세요</p>}
       </div>
 
       {/* 변경 미리보기 + 확인 */}
