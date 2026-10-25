@@ -486,7 +486,6 @@ class PaymentService {
                 ? 'COMPLETED'
                 : 'PARTIAL'
               : undefined,
-            status: isFullyPaid ? 'paid' : undefined,
             updated_at: new Date(),
           },
         });
@@ -886,7 +885,6 @@ class PaymentService {
         where: { id },
         data: {
           payment_status: full ? 'paid' : 'partial',
-          status: full && order.status === 'pending' ? 'paid' : undefined,
           updated_at: new Date(),
         },
       });

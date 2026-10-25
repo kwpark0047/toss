@@ -1,4 +1,4 @@
-import { canSeeAdminMenu, resolveAdminStoreId } from '../../utils/adminMenuAccess';
+import { canSeeAdminMenu, getAdminQuickNavItems, resolveAdminStoreId } from '../../utils/adminMenuAccess';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,12 +26,7 @@ function AdminLayoutInner({ children, storeId, user, storeRole, handleLogout, lo
   const menuPanel = useRef(null);
   const active = item => location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(`${item.path}/`));
   const pageTitle = filteredNavItems.find(active)?.label || t('adminCenter');
-  const quickNav = storeRole === 'kitchen' ? filteredNavItems.slice(0,2) : storeId ? [
-    { label: t('home'), icon: 'LayoutDashboard', path: '/admin' },
-    { label: t('orders'), icon: 'UtensilsCrossed', path: `/admin/stores/${storeId}/orders` },
-    { label: t('products'), icon: 'ShoppingBag', path: `/admin/stores/${storeId}/menu` },
-    { label: t('ai'), icon: 'Sparkles', path: `/admin/stores/${storeId}/tinkerbell` },
-  ] : filteredNavItems.slice(0, 4);
+  const quickNav = getAdminQuickNavItems(filteredNavItems, storeRole, storeId);
 
   useEffect(() => {
     Promise.resolve().then(() => setMoreOpen(false));

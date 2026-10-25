@@ -1053,6 +1053,11 @@ describe('PaymentService', () => {
       expect(result).toEqual(
         expect.objectContaining({ store_id: 2, order_id: 7, alreadyPaid: false })
       );
+      const persistedOrder = mockTx.orders.update.mock.calls.at(-1)?.[0];
+      expect(persistedOrder.data).toEqual(
+        expect.objectContaining({ payment_status: 'paid' })
+      );
+      expect(persistedOrder.data).not.toHaveProperty('status');
     });
   });
 });

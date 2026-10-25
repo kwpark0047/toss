@@ -104,6 +104,7 @@ const Product = require('../../../repositories/Product');
 const Store = require('../../../repositories/Store');
 const prisma = require('../../../config/prisma');
 const PointsService = require('../../../services/PointsService');
+const notificationService = require('../../../services/notificationService');
 
 describe('OrderService', () => {
   let svc;
@@ -448,6 +449,32 @@ describe('OrderService', () => {
       prisma.tables.findUnique.mockResolvedValue({ table_number: '1' });
       await svc.updateStatus(1, 'confirmed');
       expect(prisma.$transaction).toHaveBeenCalled();
+    });
+
+    test('재고 부족 알림에 제품과 매장 식별 정보를 전달한다', async () => {
+      prisma.order_items.findMany.mockResolvedValue([{ product_id: 100, quantity: 1 }]);
+      prisma.$transaction.mockImplementation(async (fn) =>
+        fn({
+          $queryRaw: jest.fn().mockResolvedValue([
+            { id: 100, name: '아메리카노', store_id: 1, stock_quantity: 5, low_stock_threshold: 4 },
+          ]),
+          products: { update: jest.fn().mockResolvedValue({}) },
+          stock_history: {
+            findFirst: jest.fn().mockResolvedValue(null),
+            create: jest.fn().mockResolvedValue({}),
+          },
+        })
+      );
+
+      await svc._processInventory({ id: 101 });
+
+      expect(notificationService.notifyLowStockDB).toHaveBeenCalledWith({
+        id: 100,
+        name: '아메리카노',
+        store_id: 1,
+        stock_quantity: 4,
+        low_stock_threshold: 4,
+      });
     });
 
     test('confirmed → completed 시 테이블 상태 변경', async () => {
