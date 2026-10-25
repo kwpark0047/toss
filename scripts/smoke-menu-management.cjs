@@ -46,7 +46,7 @@ async function main() {
       await page.screenshot({path:path.resolve('reports','menu-management-'+name+'.png')});
       await page.getByRole('searchbox',{name:'메뉴 검색'}).fill('라떼');assert.equal(await page.locator('.menu-product-row').count(),1);
       await page.getByRole('checkbox',{name:'카페 라떼 선택'}).check();await page.getByRole('region',{name:'선택 메뉴 일괄 작업'}).waitFor();
-      await page.getByRole('combobox',{name:'판매 상태 필터'}).selectOption('sold-out');await page.getByText('조건에 맞는 메뉴가 없습니다',{exact:true}).waitFor();assert.equal(await page.getByRole('region',{name:'선택 메뉴 일괄 작업'}).count(),0);
+      await page.getByRole('combobox',{name:'판매 상태 필터'}).selectOption('sold-out');await page.getByText('조건에 맞는 메뉴가 없습니다',{exact:true}).waitFor();await page.getByRole('region',{name:'선택 메뉴 일괄 작업'}).waitFor({state:'detached'});assert.equal(await page.getByRole('region',{name:'선택 메뉴 일괄 작업'}).count(),0);
       await page.getByRole('button',{name:'필터 초기화',exact:true}).click();assert.equal(await page.locator('.menu-product-row').count(),3);
       await page.getByRole('combobox',{name:'판매 상태 필터'}).selectOption('sold-out');assert.equal(await page.locator('.menu-product-row').count(),1);await page.getByRole('button',{name:'초콜릿 케이크',exact:true}).waitFor();
       await page.getByRole('button',{name:'필터 초기화',exact:true}).click();
