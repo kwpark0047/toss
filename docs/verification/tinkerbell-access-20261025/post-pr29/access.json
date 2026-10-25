@@ -1,0 +1,60 @@
+{
+  "checks": [
+    {
+      "role": "anon",
+      "operation": "select",
+      "blocked": true,
+      "sqlstate": "42501"
+    },
+    {
+      "role": "anon",
+      "operation": "update",
+      "blocked": true,
+      "sqlstate": "42501"
+    },
+    {
+      "role": "anon",
+      "operation": "insert",
+      "blocked": true,
+      "sqlstate": "42501"
+    },
+    {
+      "role": "anon",
+      "operation": "delete",
+      "blocked": true,
+      "sqlstate": "42501"
+    },
+    {
+      "role": "authenticated",
+      "operation": "select",
+      "blocked": true,
+      "sqlstate": "42501"
+    },
+    {
+      "role": "authenticated",
+      "operation": "update",
+      "blocked": true,
+      "sqlstate": "42501"
+    },
+    {
+      "role": "authenticated",
+      "operation": "insert",
+      "blocked": true,
+      "sqlstate": "42501"
+    },
+    {
+      "role": "authenticated",
+      "operation": "delete",
+      "blocked": true,
+      "sqlstate": "42501"
+    }
+  ],
+  "rls": {
+    "rls_enabled": true
+  },
+  "migration": {
+    "migration_name": "20261025010000_tinkerbell_settings_rls",
+    "finished_at": "2026-10-24T16:25:27.608Z"
+  },
+  "passed": true
+}
