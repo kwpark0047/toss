@@ -198,11 +198,11 @@ const MenuBuilder = () => {
         : 1;
 
     return (
-        <div className="tds-stack tds-gap-6 w-full min-h-[720px] h-[calc(100vh-140px)]">
+        <div className="menu-builder tds-stack tds-gap-6 w-full min-h-[720px] h-[calc(100vh-140px)]">
             {dataError && <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-800">메뉴 데이터를 불러오지 못했습니다.<button type="button" className="ml-3 underline" onClick={() => setReloadKey(key => key + 1)}>다시 조회</button></div>}
             {/* 상단 툴바 */}
-            <div className="tds-stack-h tds-gap-6 items-center justify-between px-6 py-4 bg-white rounded-[2rem] shadow-sm border border-slate-100 shrink-0">
-                <div className="tds-stack-h tds-gap-6 items-center">
+            <div className="menu-builder-toolbar tds-stack-h tds-gap-6 items-center justify-between px-6 py-4 bg-white rounded-[2rem] shadow-sm border border-slate-100 shrink-0">
+                <div className="menu-builder-title tds-stack-h tds-gap-6 items-center">
                     <button onClick={() => navigate(-1)} className="w-10 h-10 tds-stack items-center justify-center text-slate-400 hover:text-slate-900 transition-all rounded-xl">
                         <Icon icon="ArrowLeft" />
                     </button>
@@ -212,7 +212,7 @@ const MenuBuilder = () => {
                     </div>
                 </div>
 
-                <div className="tds-stack-h tds-gap-6 items-center">
+                <div className="menu-builder-actions tds-stack-h tds-gap-6 items-center">
                     <button
                         onClick={() => window.open(`/menu/${storeId}`, '_blank')}
                         className="tds-stack-h tds-gap-2 items-center whitespace-nowrap text-slate-500 hover:text-slate-800 text-sm font-bold transition-all"
@@ -250,7 +250,7 @@ const MenuBuilder = () => {
                 </div>
             </div>
 
-            <div className="tds-stack-h tds-gap-8 flex-1 min-h-0">
+            <div className="menu-builder-workspace tds-stack-h tds-gap-8 flex-1 min-h-0">
                 {/* 좌측 설정 패널 */}
                 <aside className="w-96 bg-white rounded-[3rem] shadow-sm border border-slate-100 tds-stack flex-col overflow-hidden shrink-0">
                     <div className="tds-stack-h border-b border-slate-50">
