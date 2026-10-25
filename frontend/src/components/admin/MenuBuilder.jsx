@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from '../../utils/format';
 import Icon from '../../components/ui/Icon';
 import { readApiList } from '../../lib/apiList';
-import './MenuBuilder.css';
 
 const defaultTheme = {
     primaryColor: '#f97316',
