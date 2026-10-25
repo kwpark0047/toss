@@ -1,0 +1,52 @@
+{
+  "expectedRevision": "f6d3745926474914784041756c0f20cb508bf397",
+  "startedAt": "2026-10-25T01:28:20.025Z",
+  "checks": [
+    {
+      "name": "save-reload-public-off",
+      "passed": true
+    },
+    {
+      "name": "ai-on",
+      "passed": true
+    },
+    {
+      "name": "customer-browser",
+      "passed": true
+    }
+  ],
+  "backendRevision": "f6d3745926474914784041756c0f20cb508bf397",
+  "original": {
+    "enabled": true,
+    "lang": "ko",
+    "voice_enabled": true,
+    "large_font": false,
+    "custom_msg": "",
+    "ai_recommendation": false
+  },
+  "ai": {
+    "source": "ai",
+    "count": 1,
+    "names": [
+      "갑오징어쟁반짜장"
+    ]
+  },
+  "browser": {
+    "responses": [
+      {
+        "url": "https://wemarket-eiw4.onrender.com/api/stores/3/tinkerbell-settings",
+        "status": 200
+      },
+      {
+        "url": "https://wemarket-eiw4.onrender.com/api/ai/tinkerbell-rec",
+        "status": 200
+      }
+    ],
+    "errors": [],
+    "recommendationCount": 3,
+    "recommendationVisible": true
+  },
+  "restored": true,
+  "passed": true,
+  "completedAt": "2026-10-25T01:29:36.113Z"
+}
