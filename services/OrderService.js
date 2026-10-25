@@ -434,7 +434,13 @@ class OrderService {
         if (result.alreadyProcessed) continue;
         if (result.newQty <= result.threshold) {
           notificationService
-            .notifyLowStockDB({ id: item.product_id, stock_quantity: result.newQty })
+            .notifyLowStockDB({
+              id: result.productId,
+              name: result.name,
+              store_id: result.store_id,
+              stock_quantity: result.newQty,
+              low_stock_threshold: result.threshold,
+            })
             .catch(() => {});
         }
         if (this.io && result.is_sold_out) {

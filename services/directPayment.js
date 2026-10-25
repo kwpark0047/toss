@@ -74,7 +74,6 @@ async function requestDirectPayment(prisma, points, ledger, data, identity) {
         where: { id: orderId },
         data: {
           payment_status: 'paid',
-          status: order.status === 'pending' ? 'paid' : undefined,
           method: 'POINT',
         },
       });
