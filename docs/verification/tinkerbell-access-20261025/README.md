@@ -33,6 +33,9 @@ Prisma로 적용되었고 `_prisma_migrations`의 성공 이력을 확인했다.
 
 ## 증빙
 
+PR #27을 포함한 후속 main `3fda0363`의 배포·재검증 결과는
+[PR #27 포함 최신 main 운영 검증](post-pr27-latest-main/README.md)에 기록했다.
+
 PR #26 병합 후 새 운영 버전에서 수행한 결과는
 [운영 배포 후 검증](post-deploy/README.md)에 별도로 기록했다.
 아래 자료는 병합 전 검증 기록으로 보존한다.
