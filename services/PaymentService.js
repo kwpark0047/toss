@@ -145,54 +145,64 @@ class PaymentService {
   // [분할 결제 처리]
   // ═════════════════════════════════════════════════════════════════
   async processSplitPayment(splitData) {
-    const { order_id, amount, payer_phone, payment_method } = splitData;
+    const { order_id, amount, payer_phone, payment_method, participant_key } = splitData;
     const requestedAmount = Number(amount);
     const method = String(payment_method || 'card').toLowerCase();
-    const allowedMethods = new Set(['card', 'toss', 'toss_pay', 'brandpay', 'kakao', 'naver']);
+    const allowedMethods = new Set(['cash', 'transfer']);
 
     if (!Number.isInteger(requestedAmount) || requestedAmount <= 0) {
       throw new AppError('분할 결제 금액이 올바르지 않습니다.', 400);
     }
     if (!allowedMethods.has(method)) {
-      throw new AppError('분할 결제는 온라인 결제 수단만 사용할 수 있습니다.', 400);
+      throw new AppError('분할 결제는 현금 또는 계좌이체만 지원합니다.', 400);
+    }
+    if (typeof participant_key !== 'string' || participant_key.length < 16 || participant_key.length > 128) {
+      throw new AppError('분할 결제 참가자 키가 올바르지 않습니다. 다시 시도해 주세요.', 400);
     }
 
     const txResult = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM public.orders WHERE id = ${Number(order_id)} FOR UPDATE`;
       const order = await tx.orders.findUnique({
         where: { id: parseInt(order_id) },
         include: {
           order_items: true,
-          payments: { where: { status: 'DONE' } },
+          payments: { where: { status: { in: ['DONE', 'READY'] }, is_partial: true } },
         },
       });
       if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
       if (!order.is_split_payment) throw new AppError('분할 결제가 설정된 주문이 아닙니다.', 409);
-
-      const currentPaid = order.payments.reduce((s, p) => s + p.amount, 0);
-      const remaining = order.total_amount - currentPaid;
-
-      if (requestedAmount > remaining) {
-        throw new AppError(
-          `결제 요청 금액(${requestedAmount.toLocaleString()}원)이 남은 금액(${remaining.toLocaleString()}원)을 초과합니다.`,
-          400
-        );
+      if (order.split_type !== 'EQUAL' || !order.split_people_count) {
+        throw new AppError('이 주문의 분할 설정을 다시 진행해 주세요.', 409);
       }
-
-      const existingReady = await tx.payments.findFirst({
-        where: { order_id: order.id, status: 'READY' },
+      if (order.split_status === 'COMPLETED' || order.payment_status === 'paid') {
+        throw new AppError('이미 정산이 완료된 주문입니다.', 409);
+      }
+      const participantHash = crypto.createHash('sha256').update(participant_key).digest('hex');
+      const existingParticipantPayment = await tx.payments.findFirst({
+        where: { order_id: order.id, split_participant_key: participantHash, is_partial: true },
       });
-      if (existingReady) {
-        if (
-          !existingReady.is_partial ||
-          !existingReady.toss_transaction_id ||
-          Number(existingReady.amount) !== requestedAmount
-        ) {
-          throw new AppError('다른 분할 결제가 이미 진행 중입니다.', 409);
-        }
-        return { payment: existingReady, order, currentPaid };
+      if (existingParticipantPayment) {
+        const currentPaid = order.payments.filter((payment) => payment.status === 'DONE').reduce((sum, payment) => sum + payment.amount, 0);
+        const reserved = order.payments.reduce((sum, payment) => sum + payment.amount, 0);
+        return { payment: existingParticipantPayment, order, currentPaid, reserved, slot: order.payments.length, alreadyRegistered: true };
+      }
+      const currentPaid = order.payments.filter((p) => p.status === 'DONE').reduce((sum, p) => sum + p.amount, 0);
+      const reserved = order.payments.reduce((sum, p) => sum + p.amount, 0);
+      const slot = order.payments.length;
+      if (slot >= order.split_people_count) throw new AppError('설정한 인원만큼 결제 요청이 등록되었습니다.', 409);
+      const baseAmount = Math.floor(Number(order.total_amount) / Number(order.split_people_count));
+      const expectedAmount = slot === order.split_people_count - 1
+        ? Number(order.total_amount) - baseAmount * (order.split_people_count - 1)
+        : baseAmount;
+      if (requestedAmount !== expectedAmount) {
+        throw new AppError(`이번 결제 금액은 ${expectedAmount.toLocaleString()}원입니다.`, 409);
+      }
+      if (reserved + requestedAmount > Number(order.total_amount)) {
+        throw new AppError('이미 등록된 결제 몫과 합산하면 주문 금액을 초과합니다.', 409);
       }
 
       const merchantOrderId = `${order.order_number}-S-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+      const paymentMethod = method.toUpperCase();
 
       const payment = await tx.payments.create({
         data: {
@@ -200,17 +210,18 @@ class PaymentService {
           store_id: order.store_id,
           order_name: `분할결제 #${order.order_number}`,
           amount: requestedAmount,
-          method: 'CARD',
+          method: paymentMethod,
           status: 'READY',
           toss_transaction_id: merchantOrderId,
           payer_phone: payer_phone ? encryptPhone(payer_phone) : null,
           is_partial: true,
+          split_participant_key: participantHash,
           created_at: new Date(),
           updated_at: new Date(),
         },
       });
 
-      return { payment, order, currentPaid };
+      return { payment, order, currentPaid, reserved: reserved + requestedAmount, slot: slot + 1 };
     });
 
     return {
@@ -218,12 +229,17 @@ class PaymentService {
       payment_id: txResult.payment.id,
       pg_order_id: txResult.payment.toss_transaction_id,
       amount: txResult.payment.amount,
-      status: 'READY',
+      status: txResult.payment.status,
       order_id: txResult.order.id,
       order_number: txResult.order.order_number,
       total_paid: txResult.currentPaid,
-      is_fully_paid: false,
-      message: '분할 결제 승인을 기다리고 있습니다.',
+      reserved_amount: txResult.reserved,
+      participant_count: txResult.slot,
+      already_registered: Boolean(txResult.alreadyRegistered),
+      is_fully_paid: txResult.currentPaid >= Number(txResult.order.total_amount),
+      message: ['cash', 'transfer'].includes(method)
+        ? '분할 몫을 등록했습니다. 매장 입금 확인을 기다리고 있습니다.'
+        : '분할 결제 승인을 기다리고 있습니다.',
     };
   }
 
@@ -640,6 +656,7 @@ class PaymentService {
     if (order_id) {
       const order = await prisma.orders.findUnique({ where: { id: parseInt(order_id) } });
       if (!order) throw new AppError('주문 정보를 찾을 수 없습니다.', 404);
+      if (order.is_split_payment) throw new AppError('분할 주문은 분할 결제 링크에서 결제해 주세요.', 409);
       orderNumber = order.order_number;
       const paid = await prisma.payments.aggregate({
         where: { order_id: order.id, status: 'DONE' },
@@ -885,11 +902,16 @@ class PaymentService {
         where: { id },
         data: {
           payment_status: full ? 'paid' : 'partial',
+          ...(order.is_split_payment ? { split_status: full ? 'COMPLETED' : 'PARTIAL' } : {}),
           updated_at: new Date(),
         },
       });
-      return { order, payment, alreadyPaid: false };
+      return { order, payment, alreadyPaid: false, full, totalPaid: Number(paid._sum.amount || 0) };
     });
+    if (!result.alreadyPaid && result.order.is_split_payment) {
+      this._emitSplitUpdate(result.order.table_id, result.order, result.totalPaid, result.full, null);
+      if (result.full) await new (require('./OrderService'))(this.io).publishPaidSplitOrder(id);
+    }
     if (!result.alreadyPaid && this.io)
       this._emitPaymentSuccess(
         result.order.store_id,
@@ -954,21 +976,21 @@ class PaymentService {
   }
 
   async setupSplitPayment(orderId, splitType, numPeople) {
-    if (!['EQUAL', 'ITEM'].includes(splitType)) {
-      throw new AppError('분할 결제 방식이 올바르지 않습니다.', 400);
+    if (splitType !== 'EQUAL') {
+      throw new AppError('현재는 인원별 균등 분할 결제만 지원합니다.', 400);
     }
     if (
       splitType === 'EQUAL' &&
-      (!Number.isInteger(Number(numPeople)) || Number(numPeople) < 2 || Number(numPeople) > 20)
+      (!Number.isInteger(Number(numPeople)) || Number(numPeople) < 2 || Number(numPeople) > 10)
     ) {
-      throw new AppError('분할 인원은 2명 이상 20명 이하여야 합니다.', 400);
+      throw new AppError('분할 인원은 2명 이상 10명 이하여야 합니다.', 400);
     }
 
-    const order = await prisma.orders.findUnique({
-      where: { id: parseInt(orderId) },
-      include: { order_items: true },
-    });
+    const order = await prisma.orders.findUnique({ where: { id: parseInt(orderId) }, include: { payments: true } });
     if (!order) throw new AppError('주문이 존재하지 않습니다.', 404);
+    if (order.payments.length > 0 && (order.split_type !== splitType || order.split_people_count !== Number(numPeople))) {
+      throw new AppError('결제가 시작된 주문의 분할 설정은 변경할 수 없습니다.', 409);
+    }
 
     const splitData = {
       order_id: order.id,
@@ -988,27 +1010,20 @@ class PaymentService {
           status: 'PENDING',
         });
       }
-    } else if (splitType === 'ITEM') {
-      // 쿠폰 할인이 있으면 메뉴 금액 합이 주문 금액보다 크다. 할인을 메뉴 금액 비율로 나눠
-      // 항목 합계가 실제 결제할 주문 금액과 정확히 같도록 맞춘다 (끝전은 마지막 항목).
-      const items = order.order_items;
-      const subtotalSum = items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
-      let allocated = 0;
-      splitData.items = items.map((item, i) => {
-        const amount =
-          i === items.length - 1
-            ? order.total_amount - allocated
-            : subtotalSum > 0
-              ? Math.floor(((item.subtotal || 0) * order.total_amount) / subtotalSum)
-              : 0;
-        allocated += amount;
-        return { id: item.id, name: item.product_name, amount, status: 'PENDING' };
-      });
     }
 
-    await prisma.orders.update({
-      where: { id: order.id },
-      data: { is_split_payment: true, split_type: splitType, split_status: 'PENDING' },
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM public.orders WHERE id = ${order.id} FOR UPDATE`;
+      const locked = await tx.orders.findUnique({ where: { id: order.id }, include: { payments: true } });
+      if (!locked) throw new AppError('주문이 존재하지 않습니다.', 404);
+      const count = splitType === 'EQUAL' ? Number(numPeople) : null;
+      if (locked.payments.length && (locked.split_type !== splitType || locked.split_people_count !== count)) {
+        throw new AppError('결제가 시작된 주문의 분할 설정은 변경할 수 없습니다.', 409);
+      }
+      await tx.orders.update({
+        where: { id: order.id },
+        data: { is_split_payment: true, split_type: splitType, split_people_count: count, split_status: locked.split_status || 'PENDING' },
+      });
     });
 
     return splitData;
@@ -1021,24 +1036,37 @@ class PaymentService {
     const order = await prisma.orders.findUnique({
       where: { id: parseInt(orderId) },
       include: {
-        payments: {
-          where: { status: 'DONE' },
-          select: { amount: true, method: true, approved_at: true },
-        },
+        payments: { where: { status: { in: ['DONE', 'READY'] }, is_partial: true }, orderBy: { id: 'asc' }, select: { id: true, amount: true, method: true, status: true, approved_at: true } },
       },
     });
     if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
 
-    const totalPaid = order.payments.reduce((sum, p) => sum + p.amount, 0);
-    const remaining = Math.max(0, order.total_amount - totalPaid);
+    const totalPaid = order.payments.filter((payment) => payment.status === 'DONE').reduce((sum, p) => sum + p.amount, 0);
+    const reservedAmount = order.payments.reduce((sum, p) => sum + p.amount, 0);
+    const remaining = Math.max(0, Number(order.total_amount) - totalPaid);
+    const nextSlot = order.payments.length;
+    const baseAmount = order.split_people_count ? Math.floor(Number(order.total_amount) / order.split_people_count) : 0;
+    const nextAmount = order.split_people_count && nextSlot < order.split_people_count
+      ? (nextSlot === order.split_people_count - 1
+        ? Number(order.total_amount) - baseAmount * (order.split_people_count - 1)
+        : baseAmount)
+      : 0;
 
     return {
       order_id: order.id,
+      store_id: order.store_id,
       order_number: order.order_number,
       total_amount: order.total_amount,
       total_paid: totalPaid,
+      reserved_amount: reservedAmount,
+      unassigned_amount: Math.max(0, Number(order.total_amount) - reservedAmount),
+      split_people_count: order.split_people_count,
+      participant_count: order.payments.length,
+      paid_count: order.payments.filter((payment) => payment.status === 'DONE').length,
+      pending_count: order.payments.filter((payment) => payment.status === 'READY').length,
+      next_amount: nextAmount,
       remaining_amount: remaining,
-      is_completed: remaining === 0,
+      is_completed: order.split_status === 'COMPLETED' && remaining === 0,
       payments: order.payments,
     };
   }

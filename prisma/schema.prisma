@@ -148,6 +148,7 @@ model orders {
   split_type         String?              @default("NONE")     // [추가] 분할 방식 (NONE, EQUAL: N분의 1, ITEM: 품목별)
   is_split_payment   Boolean?             @default(false)    // [추가] 분할 결제 여부
   split_status       String?              @default("PENDING")
+  split_people_count Int?
   handled_by_staff_id Int?
   staff              staff?               @relation(fields: [handled_by_staff_id], references: [id], onUpdate: NoAction)
   ledger             ledger[]
@@ -201,6 +202,7 @@ model payments {
   raw_response          String?
   payer_phone           String?              // [추가] 실제 결제을 진행한 사람의 전화번호
   is_partial            Boolean?             @default(false) // [추가] 부분 결제 여부
+  split_participant_key String?
   approved_at           DateTime?
   cancel_reason         String?
   ledger                ledger[]
@@ -214,6 +216,7 @@ model payments {
   @@index([order_id], map: "idx_payments_order_id")
   @@index([status], map: "idx_payments_status")
   @@index([store_id, status, created_at], map: "idx_payments_store_status_date")
+  @@unique([order_id, split_participant_key], map: "payments_order_split_participant_key_key")
   @@schema("public")
 }
 
@@ -2358,4 +2361,5 @@ model business_support_jobs {
   @@index([status,available_at],map:"business_support_job_claim")
   @@schema("public")
 }
+
 

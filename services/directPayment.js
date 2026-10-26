@@ -19,6 +19,7 @@ async function requestDirectPayment(prisma, points, ledger, data, identity) {
     await tx.$queryRaw`SELECT id FROM public.orders WHERE id = ${orderId} FOR UPDATE`;
     const order = await tx.orders.findUnique({ where: { id: orderId } });
     if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
+    if (order.is_split_payment) throw new AppError('분할 주문은 분할 결제 링크에서 결제해 주세요.', 409);
     if (order.status === 'cancelled') throw new AppError('취소된 주문입니다.', 409);
     if (data.store_id && Number(data.store_id) !== order.store_id)
       throw new AppError('매장이 일치하지 않습니다.', 403);
@@ -82,3 +83,4 @@ async function requestDirectPayment(prisma, points, ledger, data, identity) {
   });
 }
 module.exports = { requestDirectPayment };
+

@@ -88,6 +88,7 @@ const Order = {
               is_takeout: is_takeout ? 1 : 0,
               split_type: data.split_type || 'NONE',
               is_split_payment: data.is_split_payment || false,
+              split_people_count: data.split_people_count || null,
               split_status: data.split_status || 'PENDING',
               created_at: new Date(),
               updated_at: new Date(),
@@ -917,3 +918,4 @@ const Order = {
 };
 
 module.exports = Order;
+

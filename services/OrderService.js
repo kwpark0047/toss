@@ -51,6 +51,13 @@ class OrderService {
       latitude,
       longitude,
     } = data;
+    if (
+      data.is_split_payment &&
+      (data.split_type !== 'EQUAL' || !Number.isInteger(Number(data.split_people_count)) ||
+        Number(data.split_people_count) < 2 || Number(data.split_people_count) > 10)
+    ) {
+      throw new AppError('분할 인원은 2명 이상 10명 이하로 설정해 주세요.', 400);
+    }
     let discount_amount = 0;
     let serverSubtotal = 0;
     const pricedItems = [];
@@ -61,7 +68,6 @@ class OrderService {
     if (!store) {
       throw new AppError('매장을 찾을 수 없습니다.', 404);
     }
-
     if (!items || items.length === 0) {
       throw new AppError('주문 상품이 없습니다.', 400);
     }
@@ -552,6 +558,7 @@ class OrderService {
   }
 
   _notifyNewOrder(order, resolvedTableName) {
+    if (order.is_split_payment && (order.payment_status !== 'paid' || order.split_status !== 'COMPLETED')) return;
     if (!this.io) return;
     const payload = {
       orderId: order.id,
@@ -578,6 +585,16 @@ class OrderService {
       source: 'qr',
     });
     printService.createKitchenJob(order, { tableName: resolvedTableName }).catch(() => {});
+  }
+
+  async publishPaidSplitOrder(orderId) {
+    const order = await prisma.orders.findUnique({
+      where: { id: Number(orderId) },
+      include: { order_items: true, tables: { select: { table_number: true } } },
+    });
+    if (!order || !order.is_split_payment || order.payment_status !== 'paid' || order.split_status !== 'COMPLETED') return false;
+    this._notifyNewOrder(order, order.tables?.table_number || null);
+    return true;
   }
 
   _emitOrderUpdate(order, status) {
@@ -651,3 +668,4 @@ class OrderService {
 }
 
 module.exports = OrderService;
+

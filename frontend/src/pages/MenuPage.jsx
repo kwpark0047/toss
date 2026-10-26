@@ -27,6 +27,7 @@ import CategoryTabs from "@/components/menu/CategoryTabs";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import CartButton from "@/components/menu/CartButton";
 import CartModal from "@/components/menu/CartModal";
+import SplitPaymentSheet from "@/components/menu/SplitPaymentSheet";
 import OptionSelectionModal from "@/components/menu/OptionSelectionModal";
 import OrderStatusModal from "@/components/menu/OrderStatusModal";
 import CustomerPhoneSheet from "@/components/menu/CustomerPhoneSheet";
@@ -170,6 +171,9 @@ const MenuPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [splitSession, setSplitSession] = useState(null);
+  const [isSplitSheetOpen, setIsSplitSheetOpen] = useState(false);
+  const [isSplitStarting, setIsSplitStarting] = useState(false);
   // 주문 알림 받을 번호 — 저장된 번호로 자동 초기화 (재방문 고객)
   const [notifyPhone, setNotifyPhone] = useState(() => {
     try {
@@ -191,6 +195,22 @@ const MenuPage = () => {
   const [currentOrderId, setCurrentOrderId] = useState(null);
   const [currentOrderCapability, setCurrentOrderCapability] = useState(null);
   const [currentOrderAmount, setCurrentOrderAmount] = useState(0);
+  const splitOrderAttempt = useRef(null);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    const prefix = '#wm_split=';
+    if (!hash.startsWith(prefix)) return;
+    const payload = hash.slice(prefix.length);
+    const separator = payload.indexOf('.');
+    if (separator <= 0) return;
+    const orderId = Number(payload.slice(0, separator));
+    let capability;
+    try { capability = decodeURIComponent(payload.slice(separator + 1)); } catch { return; }
+    if (!Number.isSafeInteger(orderId) || orderId <= 0 || !capability) return;
+    setSplitSession({ order_id: orderId, capability, store_id: Number(storeId), tableNumber });
+    setIsSplitSheetOpen(true);
+  }, [storeId, tableNumber]);
 const {
     initiateTossPayment
   } = useTossPayment();
@@ -539,6 +559,69 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
     }
   }, [storeId, cart, storeOpen, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t]);
 
+  const handleStartSplitPayment = useCallback(async (peopleCount) => {
+    if (!storeId || !cart.length || !storeOpen || isSplitStarting) return;
+    setIsSplitStarting(true);
+    const fingerprint = JSON.stringify({ storeId, tableNumber, cart, totalPrice, notifyPhone, peopleCount });
+    if (splitOrderAttempt.current?.order && splitOrderAttempt.current.fingerprint !== fingerprint) {
+      toast.error('이전 분할 주문의 처리 상태를 확인 중입니다. 장바구니를 바꾸기 전에 다시 시도해 주세요.');
+      setIsSplitStarting(false);
+      return;
+    }
+    if (splitOrderAttempt.current?.fingerprint !== fingerprint) {
+      splitOrderAttempt.current = { fingerprint, key: crypto.randomUUID(), order: null, busy: false };
+    }
+    const attempt = splitOrderAttempt.current;
+    if (attempt.busy) { setIsSplitStarting(false); return; }
+    attempt.busy = true;
+    try {
+      if (!storeOpen) throw new Error(t('order.cannot_order'));
+      const notifyDigits = notifyPhone.replace(/\D/g, '');
+      const orderData = {
+        store_id: storeId,
+        ...(tableNumber ? { table_number: tableNumber } : {}),
+        items: cart.map((item) => ({
+          product_id: item.menuItem.id,
+          product_name: item.menuItem.name,
+          price: item.unitPrice,
+          quantity: item.quantity,
+          subtotal: item.unitPrice * item.quantity,
+          options: item.selectedOptions,
+        })),
+        total_amount: totalPrice,
+        payment_method: 'cash',
+        is_split_payment: true,
+        split_type: 'EQUAL',
+        split_people_count: Number(peopleCount),
+        ...(notifyDigits.length >= 10 ? { customer_phone: notifyDigits } : {}),
+      };
+      const created = attempt.order || await ordersAPI.create(orderData, { idempotencyKey: attempt.key });
+      attempt.order = created;
+      const order = created?.data?.data || created?.data || created || {};
+      if (!order.id || !order.order_capability) throw new Error('분할 주문 권한 정보를 받지 못했습니다. 다시 시도해 주세요.');
+
+      setSplitSession({
+        order_id: Number(order.id),
+        order_number: order.order_number,
+        total_amount: Number(order.total_amount ?? totalPrice),
+        split_people_count: Number(peopleCount),
+        capability: order.order_capability,
+        store_id: Number(storeId),
+        tableNumber,
+      });
+      splitOrderAttempt.current = null;
+      setCart([]);
+      setIsCartOpen(false);
+      setIsSplitSheetOpen(true);
+      toast.success('분할 주문을 준비했습니다. 링크를 친구에게 공유해 주세요.');
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.response?.data?.error || error?.message || '분할 주문을 만들지 못했습니다.');
+    } finally {
+      attempt.busy = false;
+      setIsSplitStarting(false);
+    }
+  }, [storeId, cart, storeOpen, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
+
   // Stable callbacks for JSX props (prevents child re-renders from inline closures)
   const handleOpenOrderHistory = useCallback(() => navigate('/order-history'), [navigate]);
   const handleOpenCart = useCallback(() => setIsCartOpen(true), []);
@@ -628,10 +711,13 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       </div>
 
       {/* Cart Button */}
-      <CartButton totalItems={totalItems} totalPrice={totalPrice} onClick={handleOpenCart} />
+      {!isCartOpen && <CartButton totalItems={totalItems} totalPrice={totalPrice} onClick={handleOpenCart} />}
 
       {/* Cart Modal */}
-      <CartModal isOpen={isCartOpen} onClose={handleCloseCart} cart={cart} onUpdateQuantity={updateQuantity} onOrder={handleOrder} isOrdering={isOrdering} totalPrice={totalPrice} notifyPhone={notifyPhone} onNotifyPhoneChange={setNotifyPhone} paymentMethod={paymentMethod} onPaymentMethodChange={setPaymentMethod} menuItems={menuItems} storeId={storeId} onAddToCartClick={handleAddToCartClick} />
+      <CartModal isOpen={isCartOpen} onClose={handleCloseCart} cart={cart} onUpdateQuantity={updateQuantity} onOrder={handleOrder} isOrdering={isOrdering} totalPrice={totalPrice} notifyPhone={notifyPhone} onNotifyPhoneChange={setNotifyPhone} paymentMethod={paymentMethod} onPaymentMethodChange={setPaymentMethod} menuItems={menuItems} storeId={storeId} onAddToCartClick={handleAddToCartClick} onStartSplitPayment={handleStartSplitPayment} isSplitStarting={isSplitStarting} />
+
+      {splitSession && !isSplitSheetOpen && <button type="button" onClick={() => setIsSplitSheetOpen(true)} className="fixed bottom-24 left-1/2 z-40 -translate-x-1/2 rounded-full bg-blue-700 px-5 py-3 text-sm font-black text-white shadow-xl">분할 결제 상태 보기</button>}
+      <SplitPaymentSheet isOpen={isSplitSheetOpen} onClose={() => setIsSplitSheetOpen(false)} session={splitSession} />
 
       {/* Order Status Modal */}
       {storeId && <OrderStatusModal isOpen={isOrderStatusOpen} onClose={handleCloseOrderStatus} orderId={currentOrderId} capability={currentOrderCapability} storeId={storeId} tableNumber={tableNumber} onWriteReview={handleWriteReview} />}
@@ -683,4 +769,5 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
   );
 };
 export default MenuPage;
+
 

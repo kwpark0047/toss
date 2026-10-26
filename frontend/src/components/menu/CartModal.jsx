@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { formatWon } from '../../utils/format';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { ChevronDown, ChevronUp, Users } from 'lucide-react';
 import Icon from '../../components/ui/Icon';
 import Button from '../common/Button';
 import EmptyState from '../common/EmptyState';
@@ -39,8 +40,17 @@ const formatPhoneInput = (value) => {
   return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
 };
 
-const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice, notifyPhone = '', onNotifyPhoneChange, paymentMethod = 'card', onPaymentMethodChange, menuItems = [], _storeId, onAddToCartClick }) => {
+const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice, notifyPhone = '', onNotifyPhoneChange, paymentMethod = 'card', onPaymentMethodChange, menuItems = [], _storeId, onAddToCartClick, onStartSplitPayment, isSplitStarting = false }) => {
   const { t } = useTranslation();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showSplitSettings, setShowSplitSettings] = useState(false);
+  const [splitPeopleCount, setSplitPeopleCount] = useState(2);
+  useEffect(() => {
+    if (isOpen) {
+      setIsCollapsed(false);
+      setShowSplitSettings(false);
+    }
+  }, [isOpen]);
   const PAYMENT_GROUPS = getPaymentGroups(t);
   const METHOD_MAP = Object.fromEntries(
     PAYMENT_GROUPS.flatMap(g => g.methods).map(m => [m.id, m])
@@ -71,29 +81,40 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div
+          {!isCollapsed && <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-          />
+          />}
 
           <motion.div
             initial={{ y: '100%' }}
-            animate={{ y: 0 }}
+            animate={{ y: 0, height: isCollapsed ? 'auto' : undefined }}
             exit={{ y: '100%' }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] z-50 cust-bg-card rounded-t-[32px] max-h-[90vh] overflow-hidden tds-stack flex-col shadow-2xl bottom-sheet"
+            className={`fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] z-50 cust-bg-card overflow-hidden tds-stack flex-col shadow-2xl bottom-sheet ${isCollapsed ? 'rounded-t-2xl border border-b-0 cust-border' : 'rounded-t-[32px] max-h-[90vh]'}`}
           >
+            {isCollapsed ? (
+              <div className="tds-stack-h items-center justify-between gap-3 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+                <button type="button" onClick={() => setIsCollapsed(false)} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-label="장바구니 다시 열기">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-500 text-white font-black">{cart.reduce((sum, item) => sum + item.quantity, 0)}</span>
+                  <span className="min-w-0"><span className="block text-sm font-black cust-text-main">장바구니 · {formatWon(totalPrice)}</span><span className="block text-xs cust-text-sub">메뉴를 계속 둘러보세요</span></span>
+                  <ChevronUp size={20} aria-hidden="true" />
+                </button>
+                <button type="button" onClick={onClose} className="rounded-full p-2 cust-text-sub hover:bg-black/5" aria-label="장바구니 닫기"><Icon icon="X" size="md" /></button>
+              </div>
+            ) : <>
             {/* Handle */}
-            <div className="w-12 h-1.5 bg-grey-200 dark:bg-white/10 rounded-full mx-auto my-3" />
+            <button type="button" onClick={() => setIsCollapsed(true)} className="w-full py-3 flex justify-center" aria-label="장바구니 접기"><span className="w-12 h-1.5 bg-grey-300 dark:bg-white/20 rounded-full" /></button>
             
             <div className="tds-stack-h tds-gap-4 tds-p-6 tds-p-4 items-center justify-between border-b cust-border">
               <h2 className="tds-text-bold text-xl cust-text-main">{t('cart_modal.title')}</h2>
-              <button onClick={onClose} aria-label={t('common.close')} className="tds-p-2 hover:bg-grey-100 dark:hover:bg-white/10 rounded-full transition-colors">
-                <Icon icon="X" size="md" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => setIsCollapsed(true)} aria-label="장바구니 접기" className="tds-p-2 hover:bg-grey-100 dark:hover:bg-white/10 rounded-full transition-colors"><ChevronDown size={20} /></button>
+                <button onClick={onClose} aria-label={t('common.close')} className="tds-p-2 hover:bg-grey-100 dark:hover:bg-white/10 rounded-full transition-colors"><Icon icon="X" size="md" /></button>
+              </div>
             </div>
 
             <div className="tds-stack tds-gap-4 tds-p-4 tds-p-3 flex-1 overflow-y-auto">
@@ -210,14 +231,23 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
             {/* === 하단: 결제 영역 === */}
             <div className="tds-p-4 tds-p-3 tds-stack tds-gap-3 bg-grey-50 dark:bg-black/20">
               {/* 분할 결제 안내 팁 */}
-              <div className="tds-stack-h tds-gap-2 tds-p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl border border-blue-100 dark:border-blue-500/20">
+              <div className="tds-stack tds-gap-2 tds-p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl border border-blue-100 dark:border-blue-500/20">
                 <div className="tds-stack-h tds-gap-2 items-center">
                   <div className="w-7 h-7 bg-blue-500 rounded-full tds-stack items-center justify-center text-white">
                     <span className="tds-small font-bold">1/N</span>
                   </div>
                   <span className="tds-small font-bold text-blue-900 dark:text-blue-300">{t('cart_modal.split_payment')}</span>
+                  <span className="ml-auto tds-caption text-blue-800 dark:text-blue-200">현금·계좌이체</span>
                 </div>
-                <button className="tds-small font-bold text-blue-600 dark:text-blue-400 underline">{t('cart_modal.split_payment_setting')}</button>
+                <button type="button" disabled={cart.length === 0 || isOrdering || isSplitStarting} onClick={() => setShowSplitSettings((value) => !value)} className="self-start tds-small font-bold text-blue-700 dark:text-blue-300 underline disabled:opacity-50">{t('cart_modal.split_payment_setting')}</button>
+                {showSplitSettings && <div className="tds-stack tds-gap-2 rounded-lg bg-white/70 dark:bg-black/20 p-3">
+                  <label htmlFor="split-people-count" className="tds-small font-bold cust-text-main">몇 명이 나누어 결제하나요?</label>
+                  <select id="split-people-count" value={splitPeopleCount} onChange={(event) => setSplitPeopleCount(Number(event.target.value))} className="w-full rounded-lg border cust-border cust-bg-card px-3 py-2 tds-small cust-text-main">
+                    {Array.from({ length: 9 }, (_, index) => index + 2).map((count) => <option key={count} value={count}>{count}명 · 1인 약 {formatWon(Math.floor(totalPrice / count))}</option>)}
+                  </select>
+                  <p className="tds-caption text-blue-900 dark:text-blue-200">각자 이 링크에서 현금 또는 계좌이체 몫을 등록합니다. 매장에서 입금을 확인하면 반영되고, 전액 확인 후 주문이 접수됩니다.</p>
+                  <button type="button" disabled={isSplitStarting || isOrdering || !cart.length} onClick={() => onStartSplitPayment?.(splitPeopleCount)} className="w-full rounded-lg bg-blue-700 px-3 py-2.5 text-sm font-black text-white disabled:opacity-50"><Users size={16} className="mr-2 inline" />{isSplitStarting ? '분할 주문 준비 중…' : `${splitPeopleCount}명 분할 주문 만들기`}</button>
+                </div>}
               </div>
 
               {/* 알림 받을 번호 */}
@@ -379,6 +409,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                 })()}
               </Button>
             </div>
+            </>}
           </motion.div>
         </>
       )}
@@ -387,3 +418,4 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
 };
 
 export default CartModal;
+
