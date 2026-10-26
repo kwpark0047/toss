@@ -119,11 +119,11 @@ export const paymentsAPI = {
     api.post('/payments/split/request', data, {
       headers: { 'x-order-capability': capability },
     }),
-  splitPay: (data, capability) =>
+  splitPay: (data, capability, idempotencyKey) =>
     api.post('/payments/split/pay', data, {
       headers: {
         'x-order-capability': capability,
-        'Idempotency-Key': crypto.randomUUID(),
+        'Idempotency-Key': idempotencyKey || crypto.randomUUID(),
       },
     }),
   splitStatus: (orderId, capability) =>
@@ -131,3 +131,4 @@ export const paymentsAPI = {
       headers: { 'x-order-capability': capability },
     }),
 };
+

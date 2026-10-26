@@ -21,6 +21,7 @@ vi.mock('../api', () => ({
 }));
 
 vi.mock('../firebase', () => ({ requestNotificationPermission: vi.fn() }));
+vi.mock('../components/common/LazyImage', () => ({ default: ({ src, alt, className }) => React.createElement('img', { src, alt, className }) }));
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 vi.mock('framer-motion', () => ({
   motion: new Proxy({}, { get: (_, tag) => ({ children, ...props }) => React.createElement(tag, props, children) }),
@@ -93,5 +94,52 @@ describe('payment release blockers', () => {
     await userEvent.click(kakaoButton);
     expect(onPaymentMethodChange).toHaveBeenCalledWith('kakao');
     expect(screen.queryByText('현재 준비 중입니다')).not.toBeInTheDocument();
+  });
+  it('collapses the cart sheet so customers can browse the menu, then restores it', async () => {
+    render(
+      <I18nextProvider i18n={i18n}>
+        <CartModal
+          isOpen
+          onClose={vi.fn()}
+          cart={[{ cartItemId: 'cart-1', menuItem: { id: 1, name: '테스트 메뉴' }, unitPrice: 5000, quantity: 2 }]}
+          onUpdateQuantity={vi.fn()}
+          onOrder={vi.fn()}
+          isOrdering={false}
+          totalPrice={10000}
+        />
+      </I18nextProvider>
+    );
+
+    await userEvent.click(screen.getAllByRole('button', { name: '장바구니 접기' })[0]);
+    expect(screen.getByText(/장바구니 ·/)).toBeInTheDocument();
+    expect(screen.getByText('메뉴를 계속 둘러보세요')).toBeInTheDocument();
+    expect(screen.queryByText('테스트 메뉴')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '장바구니 다시 열기' }));
+    expect(screen.getByText('테스트 메뉴')).toBeInTheDocument();
+  });
+
+  it('lets customers choose the number of equal payment shares before creating the split order', async () => {
+    const onStartSplitPayment = vi.fn();
+    render(
+      <I18nextProvider i18n={i18n}>
+        <CartModal
+          isOpen
+          onClose={vi.fn()}
+          cart={[{ cartItemId: 'cart-1', menuItem: { id: 1, name: '테스트 메뉴' }, unitPrice: 10000, quantity: 1 }]}
+          onUpdateQuantity={vi.fn()}
+          onOrder={vi.fn()}
+          isOrdering={false}
+          totalPrice={10000}
+          onStartSplitPayment={onStartSplitPayment}
+        />
+      </I18nextProvider>
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: '분할 결제 설정' }));
+    await userEvent.selectOptions(screen.getByLabelText('몇 명이 나누어 결제하나요?'), '3');
+    await userEvent.click(screen.getByRole('button', { name: '3명 분할 주문 만들기' }));
+
+    expect(onStartSplitPayment).toHaveBeenCalledWith(3);
   });
 });

@@ -89,6 +89,9 @@ const canonicalOrderSchema = z.object({
   customer_phone: phoneSchema.optional(),
   phone: phoneSchema.optional(),
   customer_fcm_token: z.string().max(4096).optional(),
+  is_split_payment: z.boolean().optional(),
+  split_type: z.enum(['EQUAL']).optional(),
+  split_people_count: z.number().int().min(2).max(10).optional(),
   user_coupon_id: wireId.optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
@@ -166,7 +169,11 @@ const createOrderSchema = z.preprocess(
         })),
       })),
     })),
-  ])
+  ]).superRefine((order, context) => {
+    if (order.is_split_payment && (order.split_type !== 'EQUAL' || !order.split_people_count)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: '분할 결제 설정이 올바르지 않습니다.' });
+    }
+  })
 );
 
 // 주문 상태 변경
@@ -354,3 +361,4 @@ module.exports = {
   priceSchema,
   phoneSchema,
 };
+
