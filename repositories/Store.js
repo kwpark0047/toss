@@ -38,7 +38,9 @@ function domainUpdates(data) {
       if (data[field] !== undefined)
         values[field] =
           field === 'enabled_payment_methods'
-            ? JSON.stringify(Array.isArray(data[field]) ? data[field] : [])
+          ? Array.isArray(data[field])
+            ? data[field]
+            : []
             : data[field];
     if (Object.keys(values).length)
       result[relation] = { upsert: { create: values, update: values } };

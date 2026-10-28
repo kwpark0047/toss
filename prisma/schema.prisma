@@ -821,7 +821,7 @@ model store_settlement_config {
   settlement_cycle          String?   @default("MONTHLY")
   commission_rate           Float?    @default(0.03)
   vat_rate                  Float?    @default(0.10)
-  enabled_payment_methods   String?   @default("[\"cash\",\"store_card\",\"transfer\"]")
+  enabled_payment_methods   Json?     @default("[\"cash\",\"transfer\"]")
   store_account_id          Int?
   created_at                DateTime? @default(now())
   updated_at                DateTime? @updatedAt
@@ -1006,6 +1006,10 @@ model users {
   auth_status String @default("active")
   // Existing accounts stay approved; new direct-signup accounts are assigned a one-month trial.
   business_access_status String @default("approved")
+  business_access_note String?
+  business_access_previous_status String?
+  business_access_updated_at DateTime @default(now()) @db.Timestamptz(6)
+  business_access_updated_by Int?
   trial_started_at DateTime? @db.Timestamptz(6)
   trial_ends_at DateTime? @db.Timestamptz(6)
   business_approved_at DateTime? @db.Timestamptz(6)

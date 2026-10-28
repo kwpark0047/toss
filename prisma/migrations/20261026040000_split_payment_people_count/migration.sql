@@ -19,4 +19,3 @@ END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS payments_order_split_participant_key_key
   ON public.payments (order_id, split_participant_key);
-
