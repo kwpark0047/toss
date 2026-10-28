@@ -4,6 +4,10 @@
   "outputDirectory": "frontend/dist",
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "https://wemarket-eiw4.onrender.com/api/$1"
+    },
+    {
       "handle": "filesystem"
     },
     {
