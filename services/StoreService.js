@@ -505,15 +505,16 @@ class StoreService {
     const store = await Store.findBusinessInfo(parseInt(storeId));
     if (!store) return null;
 
-    let enabledMethods = ['cash', 'store_card', 'transfer'];
-    try {
-      enabledMethods = JSON.parse(store.enabled_payment_methods || '[]');
-      if (!Array.isArray(enabledMethods)) {
-        enabledMethods = ['cash', 'store_card', 'transfer'];
+    const defaultEnabledMethods = ['cash', 'transfer'];
+    let enabledMethods = store.enabled_payment_methods;
+    if (typeof enabledMethods === 'string') {
+      try {
+        enabledMethods = JSON.parse(enabledMethods);
+      } catch {
+        enabledMethods = null;
       }
-    } catch {
-      enabledMethods = ['cash', 'store_card', 'transfer'];
     }
+    if (!Array.isArray(enabledMethods)) enabledMethods = defaultEnabledMethods;
 
     let themeSettings = null;
     try {

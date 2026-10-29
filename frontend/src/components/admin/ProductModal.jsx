@@ -8,6 +8,7 @@ import { ImagePreview } from './ImagePreview';
 import { formatFileSize } from '../../utils/fileUtils';
 import { SampleImagePicker } from './SampleImagePicker';
 import { VisualOptionEditor } from './VisualOptionEditor';
+import { normalizeMenuOptionGroups } from '../../utils/menuOptionGroups';
 import Icon from '../../components/ui/Icon';
 import { Check, Image, Info, Leaf, Package, RefreshCw, Settings, Sparkles, Upload, X, FileText, Tag, Star, Flame, AlertTriangle } from 'lucide-react';
 
@@ -212,6 +213,22 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
       } catch {
         toast.error('옵션 JSON 형식이 올바르지 않습니다.');
         setLoading(false);
+        return;
+      }
+
+      parsedOptions = normalizeMenuOptionGroups(parsedOptions);
+      const invalidOptionGroup = parsedOptions.find(group =>
+        !group.name.trim() ||
+        group.choices.length < 1 ||
+        group.choices.length > 50 ||
+        group.choices.some(choice => !choice.name.trim()) ||
+        group.min_choices > group.max_choices ||
+        group.max_choices > group.choices.length
+      );
+      if (parsedOptions.length > 10 || invalidOptionGroup) {
+        toast.error('옵션 그룹과 선택 항목을 확인해 주세요. 이름을 입력하고 최소·최대 선택 수를 맞춰야 합니다.');
+        setLoading(false);
+        setActiveTab('options');
         return;
       }
 

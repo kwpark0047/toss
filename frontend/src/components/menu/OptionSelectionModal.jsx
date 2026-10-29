@@ -9,45 +9,53 @@ import { vibrateClick } from '../../utils/notificationSound';
 const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }) => {
   const [quantity, setQuantity] = useState(1);
   const { t } = useTranslation();
-  const [selections, setSelections] = useState(() => {
-    const initial = {};
-    if (optionGroups) {
-      optionGroups.forEach(group => {
-        if (group.is_required && group.choices.length > 0) {
-          initial[group.id] = group.choices[0];
-        }
-      });
-    }
-    return initial;
-  });
+  const [selections, setSelections] = useState({});
 
+  const getGroupChoices = (group) => Array.isArray(group.choices) ? group.choices.filter(choice => choice?.is_active !== false && choice?.isActive !== false) : [];
+  const getMinChoices = (group) => Math.max(0, Number(group.min_choices ?? (group.is_required ? 1 : 0)) || 0);
+  const getMaxChoices = (group) => Math.max(1, Number(group.max_choices) || (group.type === 'checkbox' ? getGroupChoices(group).length : 1));
+  const isMultiple = (group) => group.type === 'checkbox' || getMaxChoices(group) > 1;
+  const getSelectedChoices = (group) => Array.isArray(selections[group.id]) ? selections[group.id] : [];
 
   const toggleChoice = (group, choice) => {
-    if (group.max_choices === 1) {
-      setSelections(prev => ({ ...prev, [group.id]: choice }));
-    } else {
-      // 다중 선택 로직 (필요시 구현)
+    const selected = getSelectedChoices(group);
+    const choiceId = String(choice.id ?? choice.name);
+    const alreadySelected = selected.some(item => String(item.id ?? item.name) === choiceId);
+    if (!isMultiple(group)) {
+      setSelections(prev => ({ ...prev, [group.id]: [choice] }));
+      return;
     }
+    if (alreadySelected) {
+      setSelections(prev => ({ ...prev, [group.id]: selected.filter(item => String(item.id ?? item.name) !== choiceId) }));
+      return;
+    }
+    if (selected.length >= getMaxChoices(group)) return;
+    setSelections(prev => ({ ...prev, [group.id]: [...selected, choice] }));
   };
 
+  const canConfirm = (optionGroups || []).every(group => getSelectedChoices(group).length >= getMinChoices(group));
+
   const calculateTotal = () => {
-    let base = item.price;
-    Object.values(selections).forEach(choice => {
-      base += choice.price_adjustment || 0;
+    let base = Number(item.price) || 0;
+    Object.values(selections).forEach(choices => {
+      (Array.isArray(choices) ? choices : []).forEach(choice => {
+        base += Number(choice.price_adjustment) || 0;
+      });
     });
     return base * quantity;
   };
 
   const handleConfirm = () => {
-    const selectedOptions = Object.entries(selections).map(([groupId, choice]) => {
-      const group = optionGroups.find(g => g.id === groupId);
-      return {
+    if (!canConfirm) return;
+    const selectedOptions = Object.entries(selections).flatMap(([groupId, choices]) => {
+      const group = optionGroups.find(g => String(g.id) === String(groupId));
+      return (Array.isArray(choices) ? choices : []).map(choice => ({
         groupId,
         groupName: group.name,
         choiceId: choice.id,
         choiceName: choice.name,
-        priceAdjustment: choice.price_adjustment || 0
-      };
+        priceAdjustment: Number(choice.price_adjustment) || 0
+      }));
     });
     onConfirm(quantity, selectedOptions, calculateTotal());
   };
@@ -81,35 +89,42 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
                   <div className="flex items-center justify-between">
                     <h3 className="tds-body-strong cust-text-main flex items-center gap-2">
                       {group.name}
-                      {group.is_required && <span className="bg-primary/10 text-primary text-[9px] px-1.5 py-0.5 rounded uppercase font-black">{t('option.required')}</span>}
+                      {getMinChoices(group) > 0 ? <span className="bg-primary/10 text-primary text-[9px] px-1.5 py-0.5 rounded uppercase font-black">필수 · {getMinChoices(group)}개 이상</span> : <span className="text-[10px] cust-text-sub">선택</span>}
                     </h3>
+                    {isMultiple(group) && <span className="text-[10px] cust-text-sub">최대 {getMaxChoices(group)}개</span>}
                   </div>
                   
                   <div className="grid grid-cols-1 gap-1.5">
-                    {group.choices.map((choice) => {
-                      const isSelected = selections[group.id]?.id === choice.id;
+                    {getGroupChoices(group).map((choice, choiceIndex) => {
+                      const selected = getSelectedChoices(group);
+                      const isSelected = selected.some(item => String(item.id ?? item.name) === String(choice.id ?? choice.name));
+                      const blockedByMax = isMultiple(group) && !isSelected && selected.length >= getMaxChoices(group);
+                      const choiceKey = choice.id ?? `${group.id}-${choiceIndex}`;
                       return (
                         <button
-                          key={choice.id}
+                          key={choiceKey}
+                          type="button"
                           onClick={() => {
                             vibrateClick();
                             toggleChoice(group, choice);
                           }}
-                          className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all ${
+                          disabled={blockedByMax}
+                          aria-pressed={isSelected}
+                          className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all disabled:cursor-not-allowed disabled:opacity-45 ${
                             isSelected ? 'border-primary bg-primary/5' : 'cust-border bg-white dark:bg-white/5 hover:brightness-95'
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            <div className={`${isMultiple(group) ? 'rounded' : 'rounded-full'} w-4 h-4 border-2 flex items-center justify-center transition-colors ${
                               isSelected ? 'bg-primary border-primary' : 'border-grey-200 dark:border-white/10'
                             }`}>
                               {isSelected && <Check size={10} className="text-white" strokeWidth={4} />}
                             </div>
                             <span className={`text-sm font-bold ${isSelected ? 'text-primary' : 'cust-text-main'}`}>{choice.name}</span>
                           </div>
-                          {choice.price_adjustment > 0 && (
+                          {Number(choice.price_adjustment) > 0 && (
                             <span className={`text-[11px] font-black ${isSelected ? 'text-primary' : 'text-grey-400'}`}>
-                              +{formatWon(choice.price_adjustment)}
+                              +{formatWon(Number(choice.price_adjustment))}
                             </span>
                           )}
                         </button>
@@ -151,12 +166,13 @@ const OptionSelectionModal = ({ isOpen, onClose, onConfirm, item, optionGroups }
                 size="lg" 
                 fullWidth 
                 layout="between" 
+                disabled={!canConfirm}
                 onClick={() => {
                   vibrateClick();
                   handleConfirm();
                 }}
               >
-                <span>{t('option.add_to_cart')}</span>
+                <span>{canConfirm ? t('option.add_to_cart') : '필수 옵션을 선택해 주세요'}</span>
                 <span className="bg-white/20 px-3 py-1 rounded-full text-sm">{formatWon(calculateTotal())}</span>
               </Button>
             </div>

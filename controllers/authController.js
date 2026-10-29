@@ -14,6 +14,7 @@ const {
   phoneSearchCandidates,
 } = require('../utils/phoneEncryption');
 const { setTokenCookies } = require('../utils/tokenCookies');
+const { isAllowedProfileImageUrl } = require('../utils/profileImageUrl');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET;
@@ -203,7 +204,7 @@ const getMe = async (req, res, next) => {
  */
 const updateProfile = async (req, res, next) => {
   try {
-    const { name, email, address } = req.body;
+    const { name, email, address, profileImage } = req.body;
     const userId = req.user.id;
 
     const current = await userRepository.findUnique(userId);
@@ -234,6 +235,15 @@ const updateProfile = async (req, res, next) => {
     if (address !== undefined) {
       updateData.address = address;
       if (nextStep < 4) nextStep = 4;
+    }
+
+    if (profileImage !== undefined) {
+      if (profileImage !== null && !isAllowedProfileImageUrl(profileImage, req)) {
+        return next(
+          new AppError('프로필 이미지는 위마켓에 업로드한 파일만 사용할 수 있습니다.', 400)
+        );
+      }
+      updateData.profile_image = profileImage;
     }
 
     updateData.profile_step = nextStep;

@@ -38,7 +38,9 @@ function domainUpdates(data) {
       if (data[field] !== undefined)
         values[field] =
           field === 'enabled_payment_methods'
-            ? JSON.stringify(Array.isArray(data[field]) ? data[field] : [])
+            ? Array.isArray(data[field])
+              ? data[field]
+              : []
             : data[field];
     if (Object.keys(values).length)
       result[relation] = { upsert: { create: values, update: values } };
@@ -195,8 +197,18 @@ const Store = {
   },
 
   update: async (id, data) => {
-    const { name, description, address, phone, theme, plan, latitude, longitude, can_send_sms } =
-      data;
+    const {
+      name,
+      description,
+      address,
+      phone,
+      theme,
+      plan,
+      latitude,
+      longitude,
+      can_send_sms,
+      customer_entry_mode,
+    } = data;
 
     // 테마 처리
     let themeValue = undefined;
@@ -209,6 +221,7 @@ const Store = {
     if (description !== undefined) updateData.description = description;
     if (address !== undefined) updateData.address = address;
     if (phone !== undefined) updateData.phone = phone;
+    if (customer_entry_mode !== undefined) updateData.customer_entry_mode = customer_entry_mode;
 
     if (themeValue !== undefined) updateData.theme = themeValue;
     if (plan) updateData.plan = plan;
