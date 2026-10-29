@@ -4,7 +4,52 @@ function parseProductOptions(options) {
   if (!options) return [];
   try {
     const parsed = typeof options === 'string' ? JSON.parse(options) : options;
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((group, groupIndex) => {
+      const rawChoices = Array.isArray(group?.choices)
+        ? group.choices
+        : Array.isArray(group?.items)
+          ? group.items
+          : (Array.isArray(group?.values) ? group.values : []).map((name, choiceIndex) => ({
+              id: `choice-${groupIndex + 1}-${choiceIndex + 1}`,
+              name,
+              price_adjustment: group?.prices?.[choiceIndex] || 0,
+            }));
+      const type =
+        group?.type === 'checkbox' || Number(group?.max_choices ?? group?.maxSelect) > 1
+          ? 'checkbox'
+          : 'radio';
+      const required = Boolean(group?.is_required ?? group?.required);
+      return {
+        ...group,
+        id: group?.id ?? `group-${groupIndex + 1}`,
+        name: String(group?.name || ''),
+        is_required: required,
+        min_choices: required
+          ? Math.max(1, Number(group?.min_choices ?? group?.minSelect) || 0)
+          : Math.max(0, Number(group?.min_choices ?? group?.minSelect) || 0),
+        max_choices: Math.max(
+          1,
+          Number(group?.max_choices ?? group?.maxSelect) ||
+            (type === 'radio' ? 1 : rawChoices.length || 1)
+        ),
+        choices: rawChoices.map((choice, choiceIndex) =>
+          typeof choice === 'string'
+            ? {
+                id: `choice-${groupIndex + 1}-${choiceIndex + 1}`,
+                name: choice,
+                price_adjustment: 0,
+              }
+            : {
+                ...choice,
+                id: choice?.id ?? `choice-${groupIndex + 1}-${choiceIndex + 1}`,
+                name: String(choice?.name || ''),
+                price_adjustment: Number(choice?.price_adjustment ?? choice?.price ?? 0),
+                is_active: choice?.is_active !== false && choice?.isActive !== false,
+              }
+        ),
+      };
+    });
   } catch {
     return [];
   }
@@ -72,6 +117,9 @@ function priceOrderItem(product, item, storeId) {
     if (!choice) throw new AppError(`상품 옵션이 올바르지 않습니다: ${product.name}`, 409);
 
     const choiceData = typeof choice === 'string' ? { name: choice, price_adjustment: 0 } : choice;
+    if (choiceData.is_active === false || choiceData.isActive === false) {
+      throw new AppError(`선택할 수 없는 상품 옵션입니다: ${product.name}`, 409);
+    }
     const choiceKey = `${groupKey}:${choiceData.id ?? choiceData.name}`;
     if (selectedChoiceIds.has(choiceKey)) {
       throw new AppError(`상품 옵션이 올바르지 않습니다: ${product.name}`, 409);
@@ -95,8 +143,11 @@ function priceOrderItem(product, item, storeId) {
   }
 
   for (const group of optionGroups) {
-    if (group.is_required && !selectedGroupIds.has(String(group.id ?? group.name))) {
-      throw new AppError(`필수 옵션을 선택해 주세요: ${group.name}`, 409);
+    const groupKey = String(group.id ?? group.name);
+    const selectedCount = groupChoiceCounts.get(groupKey) || 0;
+    const minChoices = Math.max(0, Number(group.min_choices ?? (group.is_required ? 1 : 0)) || 0);
+    if (selectedCount < minChoices) {
+      throw new AppError(`필수 옵션 "${group.name}"을 최소 ${minChoices}개 선택해 주세요.`, 409);
     }
   }
 

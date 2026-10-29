@@ -122,6 +122,7 @@ export default function StoreSettings() {
   const [globalClose, setGlobalClose] = useState('22:00');
   const [dayHours, setDayHours]       = useState(() => initDayHours(null));
   const [usePerDay, setUsePerDay]     = useState(false); // 요일별 개별 설정 여부
+  const [customerEntryMode, setCustomerEntryMode] = useState('menu');
 
   // 테마
   const [theme, setTheme] = useState(DEFAULT_THEME);
@@ -146,6 +147,7 @@ export default function StoreSettings() {
           .catch(() => {});
         setGlobalOpen(s.open_time  || '09:00');
         setGlobalClose(s.close_time || '22:00');
+        setCustomerEntryMode(s.customer_entry_mode === 'intro' ? 'intro' : 'menu');
 
         if (s.business_hours) {
           setDayHours(initDayHours(s.business_hours));
@@ -221,6 +223,7 @@ export default function StoreSettings() {
         close_time: globalClose,
         business_hours: usePerDay ? JSON.stringify(dayHours) : null,
         theme: JSON.stringify(theme),
+        customer_entry_mode: customerEntryMode,
       };
       await storesAPI.update(storeId, payload);
       toast.success('설정이 저장되었습니다.');
@@ -374,6 +377,45 @@ export default function StoreSettings() {
                 </button>
               </div>
             ))}
+          </div>
+        )}
+      </Section>
+
+      {/* ── QR 고객 시작 화면 ───────────────────────────────────────────── */}
+      <Section title="QR 고객 시작 화면" icon={Store} color="text-orange-500">
+        <p className="mb-4 text-sm leading-6 text-gray-500">
+          QR을 스캔한 고객이 처음 볼 화면을 선택하세요. 기존 QR 코드는 그대로 사용할 수 있습니다.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="QR 고객 시작 화면">
+          {[
+            { value: 'menu', title: '메뉴판 바로 열기', description: '스캔 후 곧바로 메뉴를 보고 주문합니다.', icon: Layout },
+            { value: 'intro', title: '매장 소개 먼저 보기', description: '매장 소개와 인기 메뉴를 확인한 뒤 메뉴판으로 이동합니다.', icon: Store },
+          ].map(({ value, title, description, icon: EntryIcon }) => {
+            const selected = customerEntryMode === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => setCustomerEntryMode(value)}
+                className={`rounded-2xl border-2 p-4 text-left transition focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-200 ${selected ? 'border-orange-500 bg-orange-50 shadow-sm' : 'border-gray-200 bg-white hover:border-orange-200'}`}
+              >
+                <span className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${selected ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                  <EntryIcon size={19} />
+                </span>
+                <span className="block text-sm font-extrabold text-gray-900">{title}</span>
+                <span className="mt-1 block text-xs leading-5 text-gray-500">{description}</span>
+                <span className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${selected ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>
+                  {selected ? '선택됨' : '선택'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {customerEntryMode === 'intro' && (
+          <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-800">
+            소개 화면에는 매장 설명·주소·운영시간·판매 중인 추천 메뉴가 표시됩니다. 소개가 비어 있으면 기본 안내와 메뉴 보기 버튼이 표시됩니다.
           </div>
         )}
       </Section>

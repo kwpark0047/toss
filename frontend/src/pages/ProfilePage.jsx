@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -17,8 +17,11 @@ import {
   Trash2,
   Save,
   RefreshCw,
+  Camera,
 } from 'lucide-react';
 import Icon from '../components/ui/Icon';
+import UserAvatar from '../components/common/UserAvatar';
+import { uploadsAPI } from '../api/misc';
 
 /* ──────────────────────────────────────────────
    유틸
@@ -635,6 +638,8 @@ const ProfilePage = () => {
   const [twoFactorReady, setTwoFactorReady] = useState(false);
   const [twoFactorError, setTwoFactorError] = useState('');
   const [profileError, setProfileError] = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef(null);
   const loadProfile = async () => {
     if (!refreshProfile) return;
     try { await refreshProfile(); setProfileError(''); }
@@ -690,6 +695,47 @@ const ProfilePage = () => {
     showToast(`2FA가 ${purpose === 'ENABLE' ? '활성화' : '비활성화'}되었습니다.`);
   };
 
+  const handleAvatarChange = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      showToast('JPG, PNG, WebP 또는 GIF 이미지를 선택해 주세요.', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('사진은 5MB 이하로 선택해 주세요.', 'error');
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await uploadsAPI.uploadImage(formData);
+      const uploaded = response.data || response;
+      if (!uploaded.url) throw new Error('업로드된 이미지 주소가 없습니다.');
+      await updateProfile({ profileImage: uploaded.url });
+      showToast('프로필 사진을 저장했습니다.');
+    } catch (error) {
+      showToast(error.response?.data?.message || '사진을 저장하지 못했습니다. 다시 시도해 주세요.', 'error');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const removeAvatar = async () => {
+    setAvatarUploading(true);
+    try {
+      await updateProfile({ profileImage: null });
+      showToast('프로필 사진을 삭제했습니다.');
+    } catch (error) {
+      showToast(error.response?.data?.message || '사진을 삭제하지 못했습니다. 다시 시도해 주세요.', 'error');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const filled = [user.name, user.email, user.address].filter(Boolean).length;
   const total = 3;
   const pct = Math.round((filled / total) * 100);
@@ -698,13 +744,23 @@ const ProfilePage = () => {
     <div className="max-w-xl mx-auto py-6 px-2">
       {profileError && <div role="alert" className="mb-4 rounded-xl border border-red-400 p-4 text-red-300">{profileError}<button type="button" className="ml-3 underline" onClick={loadProfile}>다시 시도</button></div>}
       {/* 헤더 */}
-      <div className="mb-7">
-        <h1 className="text-2xl font-extrabold text-white tracking-tight">내 프로필</h1>
-        <a href="/admin/account-security" className="inline-block mt-3 text-sm text-orange-400 underline">로그인 수단 연결·보안·회원 탈퇴</a>
-        <p className="text-slate-400 text-sm mt-1">
-          이름, 이메일 등 추가 정보는 언제든지 설정할 수 있어요
-        </p>
+      <div className="mb-7 flex items-center gap-4">
+        <UserAvatar name={user.name} imageUrl={user.profile_image} className="h-20 w-20 rounded-2xl border border-white/15 bg-slate-700 text-2xl font-bold text-white shadow-lg" />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">내 프로필</h1>
+          <p className="mt-1 truncate text-sm text-slate-300">{user.name || '이름 미설정'}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading} className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-orange-500 px-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60">
+              <Camera className="h-4 w-4" />{avatarUploading ? '저장 중…' : user.profile_image ? '사진 변경' : '로고·사진 등록'}
+            </button>
+            {user.profile_image && <button type="button" onClick={removeAvatar} disabled={avatarUploading} className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-600 px-3 text-sm text-slate-200 hover:bg-slate-800 disabled:opacity-60"><Trash2 className="h-4 w-4" />삭제</button>}
+          </div>
+          <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" aria-label="프로필 사진 파일" className="sr-only" onChange={handleAvatarChange} />
+          <p className="mt-2 text-xs text-slate-500">JPG, PNG, WebP, GIF · 최대 5MB</p>
+        </div>
+        <a href="/admin/account-security" className="hidden shrink-0 text-sm text-orange-400 underline sm:block">로그인 수단 연결·보안·회원 탈퇴</a>
       </div>
+      <a href="/admin/account-security" className="mb-5 inline-block text-sm text-orange-400 underline sm:hidden">로그인 수단 연결·보안·회원 탈퇴</a>
 
       {/* 완성률 */}
       <div className="mb-6 p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
@@ -789,7 +845,7 @@ const ProfilePage = () => {
           label="주소"
           fieldKey="address"
           value={user.address}
-          placeholder="주소를 추가하세요 (선택)"
+          placeholder="주소를 추가하세요"
           onSave={saveField('address')}
           onClear={clearField('address')}
         />

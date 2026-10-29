@@ -676,6 +676,7 @@ model stores {
   user_id                  Int
   name                     String
   description              String?
+  customer_entry_mode      String                   @default("menu") @db.VarChar(16)
   address                  String?
   phone                    String?
   theme                    String?
@@ -1025,6 +1026,7 @@ model users {
   name                                                             String?
   email                                                            String?                  @unique(map: "uq_users_email")
   phone                                                            String?                  @unique(map: "uq_users_phone")
+  profile_image                                                    String?
   address                                                          String?
   profile_step                                                     Int?                     @default(1)
   password                                                         String

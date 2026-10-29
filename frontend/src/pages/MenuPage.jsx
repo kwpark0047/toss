@@ -9,6 +9,7 @@ import useSharedTableCart from "@/hooks/useSharedTableCart";
 import { Loader2, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { storesAPI } from "@/api/stores";
 import { resolveThemeStyle } from "@/lib/themePresets";
+import { normalizeMenuOptionGroups } from "@/utils/menuOptionGroups";
 import { categoriesAPI, productsAPI } from "@/api/products";
 import { ordersAPI, paymentsAPI } from "@/api/orders";
 import { wakeupServer } from "@/api/wakeup";
@@ -42,6 +43,7 @@ import LegalFooter from "@/components/customer/LegalFooter";
 import { weatherAPI } from "@/api/misc";
 import LanguageSelector from "@/components/menu/LanguageSelector";
 import TinkerBell from "@/components/ai/TinkerBell";
+import VoiceOrderAssistant from "@/components/menu/VoiceOrderAssistant";
 import { fromServerTinkerBellSettings } from "@/utils/tinkerbell";
 import { useTossPayment } from "@/hooks/useTossPayment";
 
@@ -57,12 +59,7 @@ const isNewItem = item => {
 const getOptionsForMenuItem = (menuItems, itemId) => {
   const item = menuItems.find(i => i.id === itemId);
   if (!item?.options) return [];
-  try {
-    const parsed = typeof item.options === 'string' ? JSON.parse(item.options) : item.options;
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return normalizeMenuOptionGroups(item.options);
 };
 
 /** 콜드스타트 로딩 화면 */
@@ -189,6 +186,7 @@ const MenuPage = () => {
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [optionModalItem, setOptionModalItem] = useState(null);
   const [optionModalGroups, setOptionModalGroups] = useState([]);
+  const [voiceOrderMessage, setVoiceOrderMessage] = useState(null);
   const [isPhoneSheetOpen, setIsPhoneSheetOpen] = useState(false);
   const [showCallSheet, setShowCallSheet] = useState(false);
   const [showChatDrawer, setShowChatDrawer] = useState(false);
@@ -396,6 +394,14 @@ const filteredItems = useMemo(() => {
       name: item.name
     }));
   }, [t]);
+  const addVoiceDraftToCart = useCallback((lines) => {
+    lines.forEach(({ item, quantity, selectedOptions, unitPrice }) => {
+      addToCartDirect(item, quantity, selectedOptions, unitPrice);
+    });
+  }, [addToCartDirect]);
+  const speakVoiceOrderMessage = useCallback((text) => {
+    setVoiceOrderMessage((previous) => ({ id: (previous?.id || 0) + 1, text }));
+  }, []);
 const handleAddToCartClick = useCallback(async item => {
     if (!storeOpen) {
       toast.error(t('order.not_business_hours'));
@@ -690,6 +696,15 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 
       <ManagerFeaturedMenus storeId={storeId} menuItems={menuItems} storeOpen={storeOpen} onAddToCart={handleAddToCartClick} />
 
+      {tinkerSettings?.enabled !== false && <VoiceOrderAssistant
+        storeId={storeId}
+        menuItems={menuItems}
+        lang={lang}
+        canOrder={storeOpen}
+        onAddDraft={addVoiceDraftToCart}
+        onAssistantSpeak={speakVoiceOrderMessage}
+      />}
+
       {/* Category Tabs */}
       <CategoryTabs categories={categoryNames} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
 
@@ -763,7 +778,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 
       <LanguageSelector currentLang={lang} onSelectLang={handleLangChange} />
 
-      {tinkerSettings?.enabled !== false && <TinkerBell lang={lang} menuItems={menuItems} weatherData={weatherData} voiceEnabled={tinkerSettings?.voiceEnabled ?? true} largeFont={tinkerSettings?.largeFont ?? false} lastAddedItem={lastAddedItem} storeId={tinkerSettings?.aiRecommendation ? Number(storeId) : null} />}
+      {tinkerSettings?.enabled !== false && <TinkerBell lang={lang} menuItems={menuItems} weatherData={weatherData} voiceEnabled={tinkerSettings?.voiceEnabled ?? true} largeFont={tinkerSettings?.largeFont ?? false} lastAddedItem={lastAddedItem} voiceOrderMessage={voiceOrderMessage} storeId={tinkerSettings?.aiRecommendation ? Number(storeId) : null} />}
     </div>
     </div>
   );

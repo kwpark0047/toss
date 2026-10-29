@@ -14,6 +14,7 @@ import LanguageSwitcher from '../common/LanguageSwitcher';
 import AdminChatManager from './AdminChatManager';
 import { storesAPI } from '../../api';
 import Icon from '../../components/ui/Icon';
+import UserAvatar from '../common/UserAvatar';
 import '../../styles/adminDashboard.css';
 
 function AdminLayoutInner({ children, storeId, user, storeRole, handleLogout, location, filteredNavItems }) {
@@ -64,9 +65,7 @@ function AdminLayoutInner({ children, storeId, user, storeRole, handleLogout, lo
   ));
   const profile = <div className={`rounded-xl border p-3 ${tc.profile}`}>
     <div className="mb-3 flex items-center gap-3">
-      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-semibold ${tc.avatarBg} ${tc.textStrong}`}>
-        {user?.name?.charAt(0) || <Icon icon="UserCircle" size="sm" />}
-      </div>
+      <UserAvatar name={user?.name} imageUrl={user?.profile_image} className={`h-9 w-9 rounded-lg font-semibold ${tc.avatarBg} ${tc.textStrong}`} />
       <div className="min-w-0"><p className={`truncate text-sm font-semibold ${tc.textStrong}`}>{user?.name || t('nameNotSet')}</p>
         <p className={`text-xs ${tc.textMuted}`}>{user?.role === 'super_admin' ? t('superAdmin') : storeRole === 'manager' ? '매니저' : storeRole === 'kitchen' ? '주방' : user?.role === 'staff' ? t('staff') : t('admin')}</p></div>
     </div>

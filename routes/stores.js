@@ -102,6 +102,13 @@ router.get('/highlights', catchAsync(storeController.getHighlights));
  */
 router.get('/popular', catchAsync(storeController.getPopular));
 
+// QR 소개 페이지용 공개 정보. 정산·사업자 등록·비공개 설정은 반환하지 않는다.
+router.get(
+  '/public-intro/:id',
+  validateParams(storeIdParamSchema),
+  catchAsync(storeController.getPublicIntro)
+);
+
 /**
  * @swagger
  * /api/stores/favorites/{phone}:
