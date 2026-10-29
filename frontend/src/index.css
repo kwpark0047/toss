@@ -613,7 +613,7 @@ button, [role="button"], a, summary, label { touch-action: manipulation; }
 /* 메뉴판 미리보기는 고객 화면 그대로 보여야 하므로 아틱(라이트) 보정에서 제외 */
 .admin-light .menu-preview-scope .text-white { color: #fff !important; }
 /* Keep both editor panels usable when a fixed-width sidebar would consume the viewport. */
-@media (max-width: 639px) {
+@media (max-width: 767px) {
   .menu-builder {
     height: auto;
     min-width: 0;
