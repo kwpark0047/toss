@@ -147,7 +147,7 @@ function priceOrderItem(product, item, storeId) {
     const selectedCount = groupChoiceCounts.get(groupKey) || 0;
     const minChoices = Math.max(0, Number(group.min_choices ?? (group.is_required ? 1 : 0)) || 0);
     if (selectedCount < minChoices) {
-      throw new AppError(`${group.name} 옵션을 최소 ${minChoices}개 선택해 주세요.`, 409);
+      throw new AppError(`필수 옵션 "${group.name}"을 최소 ${minChoices}개 선택해 주세요.`, 409);
     }
   }
 
