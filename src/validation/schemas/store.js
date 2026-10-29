@@ -103,6 +103,7 @@ const updateStoreSchema = z
     isActive: z.boolean().optional(),
     // 매장 설정 화면(StoreSettings·StoreForm)이 보내는 필드 — Store.update가 저장한다
     description: z.string().max(2000).optional().nullable(),
+    customer_entry_mode: z.enum(['menu', 'intro']).optional(),
     business_type: z.string().max(50).optional(),
     open_time: timeOfDaySchema.optional().nullable(),
     close_time: timeOfDaySchema.optional().nullable(),

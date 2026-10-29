@@ -256,6 +256,7 @@ export default function TinkerBell({
    weatherData = null,
    menuItems = [],
    lastAddedItem = null,
+   voiceOrderMessage = null,
    onRecommend,
    voiceEnabled = false,
    largeFont = false,
@@ -337,14 +338,14 @@ const typingRef  = useRef(null);
   }, [lang, voiceEnabled]);
 
   // ── 말풍선 타이핑 ────────────────────────────────────────────────────────
-  const say = useCallback((ctx, text, keepOpen = false, voiceKey = null) => {
+  const say = useCallback((ctx, text, keepOpen = false, voiceKey = null, typingDelay = 34) => {
     clearTimeout(typingRef.current);
     setBubble({ show: true, ctx: ctx || '', typed: '', full: text });
     let i = 0;
     const type = () => {
       if (i <= text.length) {
         setBubble(prev => ({ ...prev, typed: text.slice(0, i++) }));
-        typingRef.current = setTimeout(type, 34);
+        typingRef.current = setTimeout(type, typingDelay);
       } else {
         speak((ctx ? ctx + '. ' : '') + text, voiceKey);
         if (!keepOpen)
@@ -353,6 +354,12 @@ const typingRef  = useRef(null);
     };
     type();
   }, [speak]);
+
+  // 음성 주문 결과를 팅커벨이 고객에게 직접 읽어 준다.
+  useEffect(() => {
+    if (!voiceOrderMessage?.text) return;
+    say('주문 확인', voiceOrderMessage.text, false, null, 12);
+  }, [voiceOrderMessage?.id, say]);
 
   // ── 반짝이 소환 ──────────────────────────────────────────────────────────
   const spawnSparks = useCallback((count = 7) => {

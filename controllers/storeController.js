@@ -189,6 +189,39 @@ const storeController = {
     res.success(store);
   },
 
+  // GET /public-intro/:id — QR 진입 소개 화면에 필요한 공개 정보만 반환
+  async getPublicIntro(req, res) {
+    const storeId = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(storeId) || storeId < 1) {
+      return res.status(400).json({ success: false, error: '매장 번호가 올바르지 않습니다.' });
+    }
+
+    const store = await prisma.stores.findFirst({
+      where: { id: storeId, is_active: { not: false } },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        address: true,
+        phone: true,
+        customer_entry_mode: true,
+        store_operating_hours: {
+          select: { open_time: true, close_time: true, business_hours: true },
+        },
+        products: {
+          where: { is_active: true, is_sold_out: false },
+          orderBy: [{ is_popular: 'desc' }, { sort_order: 'asc' }],
+          take: 3,
+          select: { id: true, name: true, description: true, price: true, image_url: true },
+        },
+      },
+    });
+
+    if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다.' });
+    const { store_operating_hours: operatingHours, ...publicStore } = store;
+    res.success({ ...publicStore, operating_hours: operatingHours || null });
+  },
+
   // PUT /:id — 매장 수정
   async updateStore(req, res) {
     const store = await Store.findById(req.params.id);
