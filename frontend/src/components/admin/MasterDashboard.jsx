@@ -827,7 +827,7 @@ const StoreDashboard = () => {
           </div>
           {lastRefresh && <span className="shrink-0 text-[10px] text-slate-500">{lastRefresh.toLocaleTimeString('ko-KR', { hour12: false })} 기준</span>}
         </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <button type="button" onClick={() => handleNav('orders')} className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left hover:border-orange-500/40 hover:bg-orange-500/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
             <span className="flex min-w-0 items-center gap-2.5"><ReceiptText size={17} className="shrink-0 text-orange-400" /><span className="min-w-0"><span className="block text-xs font-bold text-slate-200">주문 확인</span><span className="block truncate text-[10px] text-slate-500">{ordersLoadState === 'error' ? '주문 상태 확인 필요' : '신규·접수·확인 주문'}</span></span></span>
             <span className="shrink-0 text-sm font-black tabular-nums text-orange-300">{ordersLoadState === 'error' ? '확인' : ordersLoadState === 'loading' ? '…' : `${activeOrderCount}건`}</span>
@@ -836,7 +836,7 @@ const StoreDashboard = () => {
             <span className="flex min-w-0 items-center gap-2.5"><ShoppingBag size={17} className="shrink-0 text-teal-400" /><span className="min-w-0"><span className="block text-xs font-bold text-slate-200">재고·입고</span><span className="block truncate text-[10px] text-slate-500">{stockLoadState === 'error' ? '재고 상태 확인 필요' : '부족 품목과 입고 확인'}</span></span></span>
             <span className="shrink-0 text-sm font-black tabular-nums text-teal-300">{stockLoadState === 'error' ? '확인' : stockLoadState === 'loading' ? '…' : `${lowStockCount}건`}</span>
           </button>
-          <button type="button" onClick={() => handleNav('orders')} className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left hover:border-violet-500/40 hover:bg-violet-500/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
+          <button type="button" onClick={() => handleNav('orders')} className="col-span-2 flex min-h-14 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left hover:border-violet-500/40 hover:bg-violet-500/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 sm:col-span-1">
             <span className="flex min-w-0 items-center gap-2.5"><Bell size={17} className="shrink-0 text-violet-400" /><span className="min-w-0"><span className="block text-xs font-bold text-slate-200">직원 호출</span><span className="block truncate text-[10px] text-slate-500">테이블 요청 확인</span></span></span>
             <span className="shrink-0 text-sm font-black tabular-nums text-violet-300">{activeCalls.length}건</span>
           </button>
