@@ -10,7 +10,7 @@ describe('VoiceOrderAssistant customer entry point', () => {
 
     const button = screen.getByRole('button', { name: /말로 메뉴 주문하기/ });
     expect(button).toHaveClass('from-orange-500', 'to-rose-600', 'text-white');
-    expect(button).toHaveTextContent('누르고 말해 보세요');
+    expect(button).toHaveTextContent('한 번 눌러 주문');
   });
 
   it('keeps the voice action disabled with a clear reason when ordering is unavailable', () => {
@@ -22,11 +22,15 @@ describe('VoiceOrderAssistant customer entry point', () => {
     expect(screen.getByText('매장 영업시간에 이용할 수 있어요.')).toBeInTheDocument();
   });
 
-  it('shows recognized speech in the editable order text without submitting an order', () => {
+  it('starts listening on the first tap and keeps recognized speech editable without submitting an order', () => {
     let recognition;
+    const startRecognition = vi.fn();
     class FakeSpeechRecognition {
       constructor() { recognition = this; }
-      start() { this.onstart?.(); }
+      start() {
+        startRecognition();
+        this.onstart?.();
+      }
       stop() { this.onend?.(); }
       abort() {}
     }
@@ -34,12 +38,14 @@ describe('VoiceOrderAssistant customer entry point', () => {
 
     render(<VoiceOrderAssistant storeId={3} canOrder menuItems={[]} />);
     fireEvent.click(screen.getByRole('button', { name: /말로 메뉴 주문하기/ }));
-    fireEvent.click(screen.getByRole('button', { name: '말하기 시작' }));
+
+    expect(startRecognition).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', { name: '말하기 완료' })).toBeInTheDocument();
 
     const result = Object.assign([{ transcript: '짜장면 한 그릇 주세요' }], { isFinal: true });
     act(() => recognition.onresult({ results: [result] }));
 
-    expect(screen.getByLabelText(/인식된 주문 문장/)).toHaveValue('짜장면 한 그릇 주세요');
-    expect(screen.getByText(/직접 고칠 수 있어요/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/주문 문장/)).toHaveValue('짜장면 한 그릇 주세요');
+    expect(screen.getByText(/직접 입력할 수 있어요/)).toBeInTheDocument();
   });
 });
