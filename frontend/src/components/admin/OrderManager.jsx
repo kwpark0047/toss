@@ -7,6 +7,7 @@ import notificationSound from '../../utils/notificationSound';
 import { onNewOrder, onOrderUpdated } from '../../utils/socket';
 import { formatTime, formatDateTime } from '../../utils/format';
 import { handleApiError } from '../../utils/apiError';
+import { ACTIONABLE_ORDER_STATUSES } from '../../utils/orderStatus';
 import OrderCard from './OrderCard';
 import OrderDetailModal from './OrderDetailModal';
 import EmptyState from '../common/EmptyState';
@@ -155,7 +156,7 @@ const OrderManager = () => {
     return counts;
   }, [orders]);
 
-  const pendingCount = (statusCounts.paid || 0) + (statusCounts.pending || 0) + (statusCounts.confirmed || 0);
+  const pendingCount = ACTIONABLE_ORDER_STATUSES.reduce((total, status) => total + (statusCounts[status] || 0), 0);
 
   const toggleSound = useCallback(() => {
     notificationSound.init();

@@ -127,14 +127,6 @@ export default function VoiceOrderAssistant({
     }
   };
 
-  const openAndStartListening = () => {
-    setIsOpen(true);
-    setError('');
-    // Start recognition in the same user gesture so mobile browsers retain
-    // microphone activation and customers do not need a second tap.
-    startListening();
-  };
-
   const confirmDraft = () => {
     if (!draft || draft.needs_clarification || !canOrder) return;
     const safeLines = draft.items.map((line) => {
@@ -168,6 +160,14 @@ export default function VoiceOrderAssistant({
     setTranscript('');
   };
 
+  const openAndStartListening = () => {
+    setIsOpen(true);
+    setError('');
+    // Start recognition in the same user gesture so mobile browsers retain
+    // microphone activation and customers do not need a second tap.
+    startListening();
+  };
+
   return (
     <section className="mx-auto w-full max-w-6xl px-4 pt-2 sm:px-6 lg:px-8" aria-label="음성 주문">
       <button
@@ -197,7 +197,9 @@ export default function VoiceOrderAssistant({
             <header className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
               <div>
                 <h2 id="voice-order-title" className="text-lg font-black text-slate-900 dark:text-white">팅커벨 음성 주문</h2>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{isListening ? '지금 바로 말씀해 주세요. 잠시 멈추면 자동으로 듣기를 마쳐요.' : '주문 문장을 고친 뒤 내용을 확인하고 직접 승인해 주세요.'}</p>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                  {isListening ? '지금 바로 말씀해 주세요. 잠시 멈추면 자동으로 듣기를 마쳐요.' : '주문 문장을 고친 뒤 내용을 확인하고 직접 승인해 주세요.'}
+                </p>
               </div>
               <button type="button" onClick={() => { stopListening(); setIsOpen(false); }} aria-label="닫기" className="rounded-full p-2 text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 dark:text-slate-300 dark:hover:bg-slate-800"><X size={20} /></button>
             </header>

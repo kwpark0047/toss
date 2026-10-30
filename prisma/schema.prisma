@@ -654,7 +654,7 @@ model store_tinkerbell_settings {
   enabled           Boolean  @default(true)
   lang              String   @default("ko")
   voice_enabled     Boolean  @default(true)
-  voice_order_enabled Boolean  @default(true)
+  voice_order_enabled Boolean @default(true)
   large_font        Boolean  @default(false)
   custom_msg        String?  @db.VarChar(80)
   ai_recommendation Boolean  @default(false)

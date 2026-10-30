@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
-import { ordersAPI, analyticsAPI, reviewsAPI, exportAPI, inventoryAPI, getSocket } from '../../api';
+import { ordersAPI, analyticsAPI, reviewsAPI, exportAPI, inventoryAPI, categoriesAPI, productsAPI, tablesAPI, getSocket } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStore } from '../../contexts/StoreContext';
 import { useSEO } from '../../lib/useSEO';
@@ -24,6 +24,7 @@ import WeatherAlertBanner from './WeatherAlertBanner';
 import notificationSound from '../../utils/notificationSound';
 import { getLowStockCount } from '../../utils/dashboardActionItems';
 import { getStoreAdminPath } from '../../utils/adminStoreNavigation';
+import { ACTIONABLE_ORDER_STATUSES } from '../../utils/orderStatus';
 import { onNewOrder, onOrderUpdated, joinDashboard, leaveDashboard, onDashboardOrderStatusChanged, onDashboardForecastUpdate, onConnect } from '../../utils/socket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, AlertCircle, ArrowDownRight, ArrowUpRight, BadgeCheck, BarChart3, Bell, CalendarDays, ChefHat, Clock, Code2, DollarSign, Download, FileSpreadsheet, FileText, Handshake, LayoutGrid, Loader2, MessageSquareText, Plus, QrCode, ReceiptText, RefreshCw, Settings, ShieldAlert, ShoppingBag, Sparkles, Store, TrendingUp, Users, X, Zap } from 'lucide-react';
@@ -306,7 +307,10 @@ const StoreDashboard = () => {
   }, [notifications]);
   const [stats, setStats] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [activeOrderCount, setActiveOrderCount] = useState(0);
+  const [ordersLoadState, setOrdersLoadState] = useState('loading');
   const [lowStockCount, setLowStockCount] = useState(0);
+  const [stockLoadState, setStockLoadState] = useState('loading');
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('today');
   const [comparison, setComparison] = useState(null);
@@ -326,13 +330,51 @@ const StoreDashboard = () => {
   const [anomalyAlert, setAnomalyAlert] = useState(null);
   // 수요 예측 실시간 갱신 trigger (forecast_updated 소켓 이벤트 → SalesForecastWidget 재조회)
   const [forecastRefreshKey, setForecastRefreshKey] = useState(0);
+  const [setupReadiness, setSetupReadiness] = useState(null);
+  const [setupLoadState, setSetupLoadState] = useState('idle');
+  const [setupRetry, setSetupRetry] = useState(0);
 
-  /* ─── 매장 로딩 (StoreContext에서 관리) ─── */
+  /* ─── 매장 목록 로딩과 대시보드 데이터 로딩은 별도로 관리 ─── */
   useEffect(() => {
-    if (!storesLoading) {
+    if (!storesLoading && !selectedStore) {
       setLoading(false);
     }
-  }, [storesLoading]);
+  }, [storesLoading, selectedStore]);
+
+  // 첫 주문 준비 안내는 실제 메뉴·테이블 API 응답으로만 계산합니다.
+  useEffect(() => {
+    if (!selectedStore?.id || selectedStore.role !== 'owner') {
+      setSetupReadiness(null);
+      setSetupLoadState('idle');
+      return undefined;
+    }
+    let active = true;
+    setSetupLoadState('loading');
+    Promise.all([
+      categoriesAPI.getByStore(selectedStore.id),
+      productsAPI.getByStore(selectedStore.id),
+      tablesAPI.getByStore(selectedStore.id),
+    ]).then(([categoryResponse, productResponse, tableResponse]) => {
+      const toList = response => {
+        const payload = response?.data ?? response;
+        if (Array.isArray(payload)) return payload;
+        if (Array.isArray(payload?.data)) return payload.data;
+        if (Array.isArray(payload?.items)) return payload.items;
+        return null;
+      };
+      const categories = toList(categoryResponse);
+      const products = toList(productResponse);
+      const tables = toList(tableResponse);
+      if (!categories || !products || !tables) throw new Error('Unexpected setup response');
+      if (active) {
+        setSetupReadiness({ menuReady: categories.length > 0 && products.length > 0, qrReady: tables.length > 0 });
+        setSetupLoadState('ready');
+      }
+    }).catch(() => {
+      if (active) setSetupLoadState('error');
+    });
+    return () => { active = false; };
+  }, [selectedStore?.id, selectedStore?.role, setupRetry]);
 
   /* ─── 단일 매장 데이터 ─── */
   const fetchStoreData = useCallback(async (storeId, silent = false) => {
@@ -342,9 +384,14 @@ const StoreDashboard = () => {
       loadedStoreId.current = storeId;
       setStats(null);
       setRecentOrders([]);
+      setActiveOrderCount(0);
+      setOrdersLoadState('loading');
       setLowStockCount(0);
+      setStockLoadState('loading');
       setComparison(null);
       setLastRefresh(null);
+      setDataError('');
+      setLoading(true);
     }
     const sequence = ++requestSequence.current;
     if (!silent) setRefreshing(true);
@@ -356,19 +403,45 @@ const StoreDashboard = () => {
       const endDate = format(now, 'yyyy-MM-dd');
       const [sRes, oRes, cRes, stockRes] = await Promise.allSettled([ordersAPI.getStats(storeId, startDate, endDate), ordersAPI.getByStore(storeId, undefined, endDate), analyticsAPI.getComparison(storeId, timeRange === 'month' ? 'monthly' : 'weekly'), inventoryAPI.getLowStockAlerts(storeId)]);
       if (sequence !== requestSequence.current) return;
-      setDataError(sRes.status === 'rejected' || oRes.status === 'rejected' ? '매출 또는 주문 정보를 불러오지 못했습니다. 기존 표시값은 최신 정보가 아닐 수 있습니다.' : '');
+      const failedSections = [
+        [sRes, '매출'],
+        [oRes, '주문'],
+        [cRes, '비교 분석'],
+        [stockRes, '재고']
+      ].filter(([result]) => result.status === 'rejected').map(([, label]) => label);
+      setDataError(failedSections.length
+        ? `${failedSections.join('·')} 정보를 불러오지 못했습니다. 표시된 값이 최신이 아닐 수 있습니다.`
+        : '');
       if (sRes.status === 'fulfilled') setStats(sRes.value?.data ?? sRes.value);
       if (oRes.status === 'fulfilled') {
         const o = oRes.value?.data ?? oRes.value;
-        setRecentOrders(Array.isArray(o) ? o.slice(0, 10) : []);
+        const orderList = Array.isArray(o) ? o : Array.isArray(o?.orders) ? o.orders : [];
+        const actionableCount = orderList.filter(order => ACTIONABLE_ORDER_STATUSES.includes(order.status)).length;
+        setActiveOrderCount(actionableCount);
+        setRecentOrders(orderList.slice(0, 10));
+        setOrdersLoadState('ready');
+      } else {
+        setOrdersLoadState('error');
       }
       if (cRes.status === 'fulfilled') setComparison(cRes.value?.data ?? cRes.value);
-      if (stockRes.status === 'fulfilled') setLowStockCount(getLowStockCount(stockRes.value));
-      if (sRes.status === 'fulfilled' && oRes.status === 'fulfilled') setLastRefresh(new Date());
+      if (stockRes.status === 'fulfilled') {
+        setLowStockCount(getLowStockCount(stockRes.value));
+        setStockLoadState('ready');
+      } else {
+        setStockLoadState('error');
+      }
+      if (sRes.status === 'fulfilled' || oRes.status === 'fulfilled') setLastRefresh(new Date());
     } catch (e) {
       console.error('데이터 로딩 실패:', e);
+      setDataError('대시보드 정보를 불러오지 못했습니다. 다시 시도해 주세요.');
+      setOrdersLoadState('error');
+      setStockLoadState('error');
     } finally {
-      if (sequence === requestSequence.current) { setRefreshing(false); refreshingRequest.current = false; }
+      if (sequence === requestSequence.current) {
+        setLoading(false);
+        setRefreshing(false);
+        refreshingRequest.current = false;
+      }
     }
   }, [timeRange]);
 
@@ -502,7 +575,7 @@ const StoreDashboard = () => {
     const s = selectedStore || stores[0];
     navigate(getStoreAdminPath(s?.id, path));
   }, [selectedStore, stores, navigate]);
-  const pendingCount = recentOrders.filter(o => o.status === 'pending').length;
+  const pendingCount = isMultiView ? 0 : activeOrderCount;
 
   /* ── 슈퍼관리자: 플랫폼 대시보드로 분기 (단일 매장 오너 뷰 대신) ── */
   if (selectedStore?.role === 'kitchen') return <Navigate to={`/admin/stores/${selectedStore.id}/kitchen`} replace />;
@@ -596,7 +669,7 @@ const StoreDashboard = () => {
             <h1 className="text-xl font-semibold text-white truncate">
               {isMultiView ? '전체 매장' : selectedStore?.name || '매장'}
             </h1>
-            {!isMultiView && stores.length > 1 && <select aria-label="매장 선택" value={selectedStore?.id || ''} onChange={e => changeStore(parseInt(e.target.value))} className="text-[10px] font-bold bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-slate-300 outline-none max-w-[100px]">
+            {!isMultiView && stores.length > 1 && <select aria-label="매장 선택" title={selectedStore?.name || '매장 선택'} value={selectedStore?.id || ''} onChange={e => changeStore(e.target.value)} className="min-w-0 max-w-[min(42vw,240px)] text-[11px] font-bold bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-slate-300 outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
                 {stores.map(s => <option key={s.id} value={s.id} className="bg-slate-900">
                     {s.name}
                   </option>)}
@@ -745,6 +818,53 @@ const StoreDashboard = () => {
         </div>
       </div>
 
+      {/* ── 지금 처리할 일: 분석 차트보다 매장 운영 행동을 먼저 보여줍니다 ── */}
+      {!isMultiView && <section aria-labelledby="dashboard-action-queue" className="mx-1 rounded-2xl border border-orange-500/20 bg-orange-500/[0.04] p-3 sm:p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h2 id="dashboard-action-queue" className="text-sm font-black text-white">지금 처리할 일</h2>
+            <p className="mt-1 text-[11px] text-slate-500">주문과 매장 상태를 확인하고 바로 이동하세요.</p>
+          </div>
+          {lastRefresh && <span className="shrink-0 text-[10px] text-slate-500">{lastRefresh.toLocaleTimeString('ko-KR', { hour12: false })} 기준</span>}
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <button type="button" onClick={() => handleNav('orders')} className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left hover:border-orange-500/40 hover:bg-orange-500/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
+            <span className="flex min-w-0 items-center gap-2.5"><ReceiptText size={17} className="shrink-0 text-orange-400" /><span className="min-w-0"><span className="block text-xs font-bold text-slate-200">주문 확인</span><span className="block truncate text-[10px] text-slate-500">{ordersLoadState === 'error' ? '주문 상태 확인 필요' : '신규·접수·확인 주문'}</span></span></span>
+            <span className="shrink-0 text-sm font-black tabular-nums text-orange-300">{ordersLoadState === 'error' ? '확인' : ordersLoadState === 'loading' ? '…' : `${activeOrderCount}건`}</span>
+          </button>
+          <button type="button" onClick={() => handleNav('inventory')} className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left hover:border-teal-500/40 hover:bg-teal-500/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400">
+            <span className="flex min-w-0 items-center gap-2.5"><ShoppingBag size={17} className="shrink-0 text-teal-400" /><span className="min-w-0"><span className="block text-xs font-bold text-slate-200">재고·입고</span><span className="block truncate text-[10px] text-slate-500">{stockLoadState === 'error' ? '재고 상태 확인 필요' : '부족 품목과 입고 확인'}</span></span></span>
+            <span className="shrink-0 text-sm font-black tabular-nums text-teal-300">{stockLoadState === 'error' ? '확인' : stockLoadState === 'loading' ? '…' : `${lowStockCount}건`}</span>
+          </button>
+          <button type="button" onClick={() => handleNav('orders')} className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left hover:border-violet-500/40 hover:bg-violet-500/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
+            <span className="flex min-w-0 items-center gap-2.5"><Bell size={17} className="shrink-0 text-violet-400" /><span className="min-w-0"><span className="block text-xs font-bold text-slate-200">직원 호출</span><span className="block truncate text-[10px] text-slate-500">테이블 요청 확인</span></span></span>
+            <span className="shrink-0 text-sm font-black tabular-nums text-violet-300">{activeCalls.length}건</span>
+          </button>
+        </div>
+        {ordersLoadState === 'ready' && stockLoadState === 'ready' && activeOrderCount === 0 && lowStockCount === 0 && activeCalls.length === 0 && <p className="mt-3 text-center text-[11px] text-slate-500">현재 바로 처리할 항목이 없습니다.</p>}
+      </section>}
+
+      {selectedStore?.role === 'owner' && setupLoadState === 'error' && <section role="status" className="mx-1 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+        <p className="text-xs text-slate-400">첫 주문 준비 상태를 확인하지 못했습니다.</p>
+        <button type="button" onClick={() => setSetupRetry(value => value + 1)} className="min-h-10 rounded-lg border border-white/10 px-3 text-xs font-bold text-orange-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">다시 확인</button>
+      </section>}
+      {selectedStore?.role === 'owner' && setupLoadState === 'ready' && setupReadiness && (!setupReadiness.menuReady || !setupReadiness.qrReady) && <section aria-labelledby="dashboard-setup-title" className="mx-1 rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-4">
+        <div className="mb-3">
+          <h2 id="dashboard-setup-title" className="text-sm font-black text-white">첫 주문 준비</h2>
+          <p className="mt-1 text-[11px] text-slate-500">메뉴를 등록하고, 매장에 맞게 테이블 QR을 준비하세요.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button type="button" onClick={() => handleNav('menu')} className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left hover:border-blue-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
+            <span className="flex items-center gap-2.5"><ChefHat size={17} className="text-blue-400" /><span><span className="block text-xs font-bold text-slate-200">메뉴 등록</span><span className="block text-[10px] text-slate-500">카테고리와 상품을 준비합니다</span></span></span>
+            <span className={`shrink-0 text-[10px] font-bold ${setupReadiness.menuReady ? 'text-emerald-400' : 'text-orange-300'}`}>{setupReadiness.menuReady ? '완료' : '시작'}</span>
+          </button>
+          <button type="button" onClick={() => handleNav('tables')} className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left hover:border-violet-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
+            <span className="flex items-center gap-2.5"><QrCode size={17} className="text-violet-400" /><span><span className="block text-xs font-bold text-slate-200">테이블 QR 준비 <span className="font-normal text-slate-500">(선택)</span></span><span className="block text-[10px] text-slate-500">테이블 주문을 받을 매장에 권장합니다</span></span></span>
+            <span className={`shrink-0 text-[10px] font-bold ${setupReadiness.qrReady ? 'text-emerald-400' : 'text-slate-400'}`}>{setupReadiness.qrReady ? '완료' : '선택'}</span>
+          </button>
+        </div>
+      </section>}
+
       {/* ── 통계 카드 ── */}
       <div className="dashboard-metrics grid grid-cols-2 xl:grid-cols-4 gap-3 px-1">
         {[{
@@ -752,7 +872,7 @@ const StoreDashboard = () => {
         icon: DollarSign,
         color: 'text-orange-400',
         bg: 'bg-orange-500/10',
-        value: formatPrice(stats?.total_sales || 0),
+        value: stats ? formatPrice(stats.total_sales ?? 0) : '—',
         trend: comparison?.growth?.sales,
         accent: 'border-orange-500/20'
       }, {
@@ -760,7 +880,7 @@ const StoreDashboard = () => {
         icon: ShoppingBag,
         color: 'text-blue-400',
         bg: 'bg-blue-500/10',
-        value: `${stats?.total_orders || 0}건`,
+        value: stats ? `${stats.total_orders ?? 0}건` : '—',
         trend: comparison?.growth?.orders,
         accent: 'border-blue-500/20'
       }, {
@@ -768,7 +888,7 @@ const StoreDashboard = () => {
         icon: BadgeCheck,
         color: 'text-emerald-400',
         bg: 'bg-emerald-500/10',
-        value: stats?.total_orders > 0 ? `${Math.round((stats.by_status?.completed || 0) / stats.total_orders * 100)}%` : '0%',
+        value: stats ? (stats.total_orders > 0 ? `${Math.round((stats.by_status?.completed || 0) / stats.total_orders * 100)}%` : '0%') : '—',
         trend: undefined,
         accent: 'border-emerald-500/20'
       }, {
@@ -776,7 +896,7 @@ const StoreDashboard = () => {
         icon: Activity,
         color: 'text-violet-400',
         bg: 'bg-violet-500/10',
-        value: pendingCount > 0 ? `대기 ${pendingCount}건` : stats?.total_orders > 0 ? '정상' : '대기중',
+        value: !stats ? (dataError ? '확인 필요' : '확인 중') : pendingCount > 0 ? `처리 ${pendingCount}건` : '정상',
         trend: undefined,
         accent: pendingCount > 0 ? 'border-orange-500/40' : 'border-violet-500/20'
       }].map(({
@@ -807,28 +927,6 @@ const StoreDashboard = () => {
             </div>
           </div>)}
       </div>
-
-      {/* ── 차트 섹션 (Lazy Loading + Suspense) ── */}
-      {selectedStore && !isMultiView && <div className="space-y-4 px-1">
-          <Suspense fallback={<SkeletonChart />}>
-            <SalesTrendChart storeId={selectedStore.id} />
-          </Suspense>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TopProductsList storeId={selectedStore.id} />
-            <Suspense fallback={<SkeletonDonut />}>
-              <OrderStatusDonut stats={stats} />
-            </Suspense>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Suspense fallback={<SkeletonChart />}>
-              <PeakHoursBar storeId={selectedStore.id} />
-            </Suspense>
-            <Suspense fallback={<SkeletonChart />}>
-              <SalesForecastWidget storeId={selectedStore.id} refreshKey={forecastRefreshKey} />
-            </Suspense>
-          </div>
-          <RecentReviewsFeed storeId={selectedStore.id} />
-        </div>}
 
       {/* ── 빠른 실행 ── */}
       <div className="px-1">
@@ -913,7 +1011,14 @@ const StoreDashboard = () => {
                 </div>) : <div className="py-16 text-center">
                 <Store size={32} className="text-slate-600 mx-auto mb-3" />
                 <p className="text-xs text-slate-500">해당 기간 집계 데이터 없음</p>
-              </div> : recentOrders.length === 0 ? <div className="py-16 text-center px-6 space-y-3">
+            </div> : ordersLoadState === 'error' && recentOrders.length === 0 ? <div className="py-12 text-center px-6 space-y-3">
+              <AlertCircle size={28} className="mx-auto text-amber-400" />
+              <p className="text-white font-bold text-sm">주문 정보를 불러오지 못했습니다</p>
+              <p className="text-slate-500 text-xs">연결을 확인한 뒤 다시 시도해 주세요.</p>
+              <button type="button" onClick={() => fetchStoreData(selectedStore?.id)} className="min-h-10 rounded-lg border border-orange-500/30 px-4 text-xs font-bold text-orange-300 hover:bg-orange-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">주문 다시 불러오기</button>
+            </div> : ordersLoadState === 'loading' ? <div className="space-y-2 p-4" aria-label="주문 정보를 불러오는 중">
+              {[0, 1, 2].map(index => <div key={index} className="h-14 animate-pulse rounded-xl bg-white/5" />)}
+            </div> : recentOrders.length === 0 ? <div className="py-12 text-center px-6 space-y-3">
               <div className="w-16 h-16 bg-orange-500/10 rounded-2xl flex items-center justify-center mx-auto border border-orange-500/20">
                 <ShoppingBag size={28} className="text-orange-400" />
               </div>
@@ -927,7 +1032,7 @@ const StoreDashboard = () => {
                     <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-[11px] ${order.status === 'pending' ? 'bg-orange-500 text-white' : 'bg-white/10 text-slate-400'}`}>
                       #{order.order_number?.slice(-3) ?? '---'}
                     </div>
-                    {order.status === 'pending' && <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                {ACTIONABLE_ORDER_STATUSES.includes(order.status) && <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500 border border-slate-950" />
                       </span>}
@@ -962,6 +1067,28 @@ const StoreDashboard = () => {
           최근 갱신: {lastRefresh ? lastRefresh.toLocaleTimeString('ko-KR', { hour12: false }) : '아직 확인되지 않음'} · 화면을 보는 동안 60초 자동 갱신
         </p>
       </div>
+
+      {/* ── 차트 섹션 (Lazy Loading + Suspense) ── */}
+      {selectedStore && !isMultiView && <div className="space-y-4 px-1">
+          <Suspense fallback={<SkeletonChart />}>
+            <SalesTrendChart storeId={selectedStore.id} />
+          </Suspense>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <TopProductsList storeId={selectedStore.id} />
+            <Suspense fallback={<SkeletonDonut />}>
+              <OrderStatusDonut stats={stats} />
+            </Suspense>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Suspense fallback={<SkeletonChart />}>
+              <PeakHoursBar storeId={selectedStore.id} />
+            </Suspense>
+            <Suspense fallback={<SkeletonChart />}>
+              <SalesForecastWidget storeId={selectedStore.id} refreshKey={forecastRefreshKey} />
+            </Suspense>
+          </div>
+          <RecentReviewsFeed storeId={selectedStore.id} />
+        </div>}
 
       {/* ── 데이터 내보내기 ── */}
       {selectedStore && !isMultiView && <ExportPanel storeId={selectedStore.id} />}

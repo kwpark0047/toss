@@ -6,7 +6,7 @@ import { adminAPI } from '../api/admin';
 import { DEFAULT_TINKERBELL_SETTINGS, fromServerTinkerBellSettings, toServerTinkerBellSettings } from '../utils/tinkerbell';
 import TinkerBell from '../components/ai/TinkerBell';
 import Icon from '../components/ui/Icon';
-import { BarChart3, ChevronRight, Globe, Info, RefreshCw, Sparkles, Sun, TrendingUp, ShoppingCart, Type, CloudRain, Snowflake, Flame, Mic } from 'lucide-react';
+import { BarChart3, ChevronRight, Globe, Info, Mic, RefreshCw, Sparkles, Sun, TrendingUp, ShoppingCart, Type, CloudRain, Snowflake, Flame } from 'lucide-react';
 
 // ── 데모용 메뉴 데이터 (미리보기용) ─────────────────────────────────────────
 // TinkerBell의 날씨별 추천 필터가 category_id / isHot / isCold 를 본다

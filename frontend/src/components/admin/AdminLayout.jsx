@@ -56,13 +56,33 @@ function AdminLayoutInner({ children, storeId, user, storeRole, handleLogout, lo
     };
   }, [isMoreOpen]);
 
-  const navigation = onNavigate => filteredNavItems.map(item => (
-    <Link key={item.path} to={item.path} onClick={onNavigate} aria-current={active(item) ? 'page' : undefined}
-      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active(item) ? 'bg-orange-500/10 text-orange-500' : `${tc.navText} ${tc.navHover} hover:bg-white/5`}`}>
-      <Icon icon={item.icon} size="sm" />
-      <span className="min-w-0 truncate">{item.label}</span>
-    </Link>
-  ));
+  const navigation = onNavigate => {
+    const groups = [
+      { label: '운영 현황', matches: path => ['/admin', '/admin/supervisor', '/admin/system-status'].includes(path) },
+      { label: '주문·현장 운영', matches: path => /\/(orders|kitchen|alimtalk|reservations|waiting)$/.test(path) },
+      { label: '메뉴·매장 관리', matches: path => /\/(menu|visual-builder|settings|store-settings|legal|receipt|inventory|pricing|foodtruck)(\/|$)/.test(path) || path === '/foodtruck/showcase' },
+      { label: '고객·매출 성장', matches: path => /\/(customers|ai-manager|support|integrations|campaigns|recommendation-stats|settlements|plan|tinkerbell)$/.test(path) },
+      { label: '팀·서비스 설정', matches: () => true },
+    ];
+    const grouped = groups.map(group => ({ ...group, items: [] }));
+    filteredNavItems.forEach(item => {
+      const group = grouped.find(candidate => candidate.matches(item.path)) || grouped[grouped.length - 1];
+      group.items.push(item);
+    });
+    const visibleGroups = grouped.filter(group => group.items.length > 0);
+    return visibleGroups.map(group => (
+      <div key={group.label} role="group" aria-label={group.label} className="space-y-1">
+        <p className={`px-3 pb-1 pt-3 text-[10px] font-semibold ${tc.textMuted}`}>{group.label}</p>
+        {group.items.map(item => (
+          <Link key={item.path} to={item.path} onClick={onNavigate} aria-current={active(item) ? 'page' : undefined}
+            className={`flex min-h-10 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active(item) ? 'bg-orange-500/10 text-orange-500' : `${tc.navText} ${tc.navHover} hover:bg-white/5`}`}>
+            <Icon icon={item.icon} size="sm" />
+            <span className="min-w-0 truncate">{item.label}</span>
+          </Link>
+        ))}
+      </div>
+    ));
+  };
   const profile = <div className={`rounded-xl border p-3 ${tc.profile}`}>
     <div className="mb-3 flex items-center gap-3">
       <UserAvatar name={user?.name} imageUrl={user?.profile_image} className={`h-9 w-9 rounded-lg font-semibold ${tc.avatarBg} ${tc.textStrong}`} />
