@@ -23,6 +23,38 @@
 .admin-shell.admin-light .text-emerald-500 { color: #047857; }
 .admin-shell.admin-light .text-amber-500 { color: #92400e; }
 .admin-shell.admin-light .hover\:bg-white\/10:hover { background: #e2e8f0; }
+
+/* The notification monitor was authored with fixed dark panels. Keep its dark
+   palette in dark mode, but align every panel and table surface with the
+   business dashboard when the admin shell is using its light theme. */
+.admin-shell.admin-light .alimtalk-monitor-header,
+.admin-shell.admin-light .alimtalk-monitor-footer { border-color: #dbe3ec !important; }
+.admin-shell.admin-light .alimtalk-monitor-card,
+.admin-shell.admin-light .alimtalk-monitor-history {
+  background-color: #fff !important;
+  border-color: #dbe3ec !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .06) !important;
+}
+.admin-shell.admin-light .alimtalk-monitor-label {
+  background-color: #f1f5f9 !important;
+  border-color: #dbe3ec !important;
+}
+.admin-shell.admin-light .alimtalk-monitor-search {
+  background-color: #fff !important;
+  border-color: #cbd5e1 !important;
+}
+.admin-shell.admin-light .alimtalk-monitor-refresh {
+  background-color: #fff !important;
+  border-color: #cbd5e1 !important;
+}
+.admin-shell.admin-light .alimtalk-monitor-refresh:hover { background-color: #f8fafc !important; }
+.admin-shell.admin-light .alimtalk-monitor-table {
+  background-color: #fff !important;
+  border-color: #dbe3ec !important;
+}
+.admin-shell.admin-light .alimtalk-monitor-table-head { background-color: #f8fafc !important; }
+.admin-shell.admin-light .alimtalk-monitor-row:hover { background-color: #f8fafc !important; }
+
 @media (max-width: 639px) {
   .dashboard-metrics > div { padding: 12px; }
   .dashboard-metrics > div p:last-child, .dashboard-metrics > div:first-child p:last-child { font-size: 22px; }
