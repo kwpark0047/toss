@@ -81,7 +81,7 @@ async function main() {
         mainLeft: document.querySelector('.admin-content').getBoundingClientRect().left,
       }));
       assert.ok(geometry.documentWidth <= width + 1, 'no horizontal page overflow');
-      assert.ok(geometry.metricTop < 500, 'key metrics must be visible without a blank first screen');
+      assert.ok(geometry.metricTop < 500, `key metrics must be visible without a blank first screen: ${JSON.stringify(geometry)}`);
       assert.equal(geometry.sidebarDisplay === 'none', width < 1024, 'responsive sidebar');
       if (width >= 1024) assert.ok(geometry.mainLeft >= 200, 'main area sits beside sidebar');
       if (width < 1024) {
