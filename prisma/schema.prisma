@@ -492,6 +492,7 @@ model products {
   demand_forecasts       demand_forecasts[]
   dynamic_pricing_rules   dynamic_pricing_rules[]
   dynamic_price_logs      dynamic_price_logs[]
+  purchase_order_items    purchase_order_items[]
 
   @@index([store_id, category_id, is_active], map: "idx_products_store_category_active")
   @@schema("public")
@@ -742,6 +743,8 @@ model stores {
   demand_forecasts               demand_forecasts[]
   dynamic_pricing_rules          dynamic_pricing_rules[]
   dynamic_price_logs             dynamic_price_logs[]
+  suppliers                      suppliers[]
+  purchase_orders                purchase_orders[]
   customer_segments              customer_segments[]
   customer_personalizations      customer_personalizations[]
   ai_recommendations             ai_recommendations[]
@@ -2160,6 +2163,97 @@ model order_events {
   @@index([order_id, created_at], map: "idx_order_events_order_time")
   @@index([store_id, created_at], map: "idx_order_events_store_time")
   @@index([event_type, created_at], map: "idx_order_events_type_time")
+  @@schema("public")
+}
+
+model suppliers {
+  id             Int              @id @default(autoincrement())
+  store_id       Int
+  name           String           @db.VarChar(120)
+  contact_name   String?          @db.VarChar(80)
+  phone          String?          @db.VarChar(40)
+  email          String?          @db.VarChar(254)
+  notes          String?          @db.Text
+  is_active      Boolean          @default(true)
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+  stores         stores           @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  purchase_orders purchase_orders[]
+
+  @@unique([store_id, name], map: "uq_suppliers_store_name")
+  @@index([store_id, is_active], map: "idx_suppliers_store_active")
+  @@schema("public")
+}
+
+model purchase_orders {
+  id           Int                    @id @default(autoincrement())
+  store_id     Int
+  supplier_id  Int?
+  order_number String                 @db.VarChar(40)
+  status       String                 @default("DRAFT") @db.VarChar(24)
+  total_amount Int                    @default(0)
+  ordered_at   DateTime?
+  expected_at  DateTime?
+  received_at  DateTime?
+  notes        String?                @db.Text
+  created_by   Int?
+  created_at   DateTime               @default(now())
+  updated_at   DateTime               @updatedAt
+  stores       stores                 @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  suppliers    suppliers?             @relation(fields: [supplier_id], references: [id], onDelete: SetNull)
+  items        purchase_order_items[]
+  receipts     purchase_receipts[]
+
+  @@unique([store_id, order_number], map: "uq_purchase_orders_store_number")
+  @@index([store_id, status, created_at(sort: Desc)], map: "idx_purchase_orders_store_status")
+  @@schema("public")
+}
+
+model purchase_order_items {
+  id                   Int                      @id @default(autoincrement())
+  purchase_order_id    Int
+  product_id           Int?
+  product_name         String                   @db.VarChar(160)
+  unit                 String                   @default("개") @db.VarChar(24)
+  ordered_quantity     Int
+  received_quantity    Int                      @default(0)
+  unit_cost            Int                      @default(0)
+  created_at           DateTime                 @default(now())
+  purchase_orders      purchase_orders          @relation(fields: [purchase_order_id], references: [id], onDelete: Cascade)
+  products             products?                @relation(fields: [product_id], references: [id], onDelete: SetNull)
+  receipt_items        purchase_receipt_items[]
+
+  @@index([purchase_order_id], map: "idx_purchase_order_items_order")
+  @@index([product_id], map: "idx_purchase_order_items_product")
+  @@schema("public")
+}
+
+model purchase_receipts {
+  id              Int                      @id @default(autoincrement())
+  purchase_order_id Int
+  idempotency_key String                   @unique(map: "uq_purchase_receipts_idempotency") @db.VarChar(200)
+  received_by     Int?
+  received_at     DateTime                 @default(now())
+  notes           String?                  @db.Text
+  purchase_orders purchase_orders          @relation(fields: [purchase_order_id], references: [id], onDelete: Cascade)
+  items           purchase_receipt_items[]
+
+  @@index([purchase_order_id, received_at(sort: Desc)], map: "idx_purchase_receipts_order_time")
+  @@schema("public")
+}
+
+model purchase_receipt_items {
+  id                      Int                 @id @default(autoincrement())
+  receipt_id              Int
+  purchase_order_item_id  Int
+  quantity_received       Int
+  unit_cost               Int                 @default(0)
+  created_at              DateTime            @default(now())
+  purchase_receipts       purchase_receipts   @relation(fields: [receipt_id], references: [id], onDelete: Cascade)
+  purchase_order_items    purchase_order_items @relation(fields: [purchase_order_item_id], references: [id], onDelete: Restrict)
+
+  @@unique([receipt_id, purchase_order_item_id], map: "uq_purchase_receipt_order_item")
+  @@index([purchase_order_item_id], map: "idx_purchase_receipt_items_order_item")
   @@schema("public")
 }
 

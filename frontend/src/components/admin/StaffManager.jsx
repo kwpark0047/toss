@@ -7,12 +7,12 @@ import Icon from '../../components/ui/Icon';
 import { motion, AnimatePresence } from 'framer-motion';
 import Skeleton from '../common/Skeleton';
 import EmptyState from '../common/EmptyState';
-import { AlertCircle, Calendar, Check, CheckCircle2, ChefHat, ChevronDown, ChevronUp, Loader2, LogIn, LogOut, Phone, RefreshCw, Search, Sparkles, User, UserCheck, UserPlus, X, XCircle, QrCode, Timer, Wifi } from 'lucide-react';
+import { AlertCircle, Calendar, Check, CheckCircle2, ChefHat, ChevronDown, ChevronUp, Loader2, LogIn, LogOut, Phone, RefreshCw, RotateCcw, Search, Sparkles, User, UserCheck, UserPlus, X, XCircle, QrCode, Timer, Wifi } from 'lucide-react';
 
 // ── 역할 정의 ──────────────────────────────────────────────
 const ROLES = {
   owner:   { label: '오너',   color: 'bg-amber-500',   text: 'text-amber-400',   border: 'border-amber-500/30',   icon: Sparkles,  perms: ['전체 관리', '직원 관리', '통계', '정산', '메뉴', '주문'] },
-  manager: { label: '매니저', color: 'bg-blue-500',    text: 'text-blue-400',    border: 'border-blue-500/30',    icon: UserCheck, perms: ['직원 관리', '통계', '메뉴', '주문'] },
+  manager: { label: '매니저', color: 'bg-blue-500',    text: 'text-blue-400',    border: 'border-blue-500/30',    icon: UserCheck, perms: ['근태 관리', '통계', '메뉴', '주문'] },
   staff:   { label: '직원',   color: 'bg-emerald-500', text: 'text-emerald-400', border: 'border-emerald-500/30', icon: User,      perms: ['주문 처리'] },
   kitchen: { label: '주방',   color: 'bg-orange-500',  text: 'text-orange-400',  border: 'border-orange-500/30',  icon: ChefHat,   perms: ['주문 확인'] },
 };
@@ -31,7 +31,7 @@ const SOLO_CHECKLIST_ITEMS = [
 const fmt = (d) => formatTime(d);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('ko-KR') : '';
 const fmtHours = (h) => h != null ? `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m` : '-';
-const getInitials = (name = '') => name.slice(0, 2).toUpperCase();
+const getInitials = (name = '') => String(name || '').slice(0, 2).toUpperCase();
 const roleColors = ['bg-amber-500', 'bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-purple-500', 'bg-rose-500'];
 const avatarColor = (id) => roleColors[id % roleColors.length];
 
@@ -446,12 +446,21 @@ const StaffManager = () => {
   useEffect(() => { if (myStaffId && tab === 0) fetchAttendance(todayStr()); }, [myStaffId]); // eslint-disable-line
 
   const handleRoleChange = async (id, role) => {
-    try { await staffAPI.updateRole(id, role); fetchStaff(); } catch (e) { handleApiError(e, '역할 변경 실패'); }
+    try { await staffAPI.updateRole(id, role); await fetchStaff(); return true; }
+    catch (e) { handleApiError(e, '역할 변경 실패'); return false; }
   };
 
   const handleDelete = async (id, name) => {
     if (!confirm(`${name} 계정의 이 매장 접근을 해제할까요? 다른 매장 접근과 근태·주문 이력은 유지됩니다.`)) return;
-    try { await staffAPI.delete(id); fetchStaff(); } catch (e) { handleApiError(e, '매장 접근 해제 실패'); }
+    try { await staffAPI.delete(id); await fetchStaff(); } catch (e) { handleApiError(e, '매장 접근 해제 실패'); }
+  };
+
+  const handleRestore = async (member) => {
+    if (!confirm(`${member.name}님의 ${store?.name || '이 매장'} 접근을 복원할까요?`)) return;
+    try {
+      await staffAPI.addExisting({ storeId: parseInt(storeId, 10), userId: member.user_id, role: member.role });
+      await fetchStaff();
+    } catch (e) { handleApiError(e, '팀원 접근 복원 실패'); }
   };
 
   const handleClockIn = async (staffId) => {
@@ -496,7 +505,7 @@ const StaffManager = () => {
 
   const canManage = myRole === 'owner' || myRole === 'manager';
   const canManageAccounts = myRole === 'owner';
-  const isSoloStore = staff.filter(s => s.role !== 'owner' && s.is_active !== false).length === 0;
+  const isSoloStore = staff.filter(s => s.role !== 'owner').length === 0;
 
   return (
     <div className="max-w-6xl mx-auto pb-20 px-4">
@@ -508,24 +517,24 @@ const StaffManager = () => {
           <Icon icon="ArrowLeft" size="lg" />
         </motion.button>
         <div className="flex-1">
-          <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
-            HUMAN RESOURCES <Icon icon="Users" />
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight flex items-center gap-3">
+            팀원 관리 <Icon icon="Users" />
           </h1>
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">
-            {store?.name} — {isSoloStore ? '1인 매장 운영 모드' : '직원 권한 및 근태 관리'}
+          <p className="text-slate-400 text-sm mt-1">
+            {store?.name} · {isSoloStore ? '1인 매장 운영과 근태를 관리합니다.' : '역할, 매장 접근, 근태를 한곳에서 관리합니다.'}
           </p>
         </div>
         {isSoloStore ? (
           <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
             <div className="w-2 h-2 bg-amber-400 rounded-full" />
-            <span className="text-amber-400 font-black text-[10px] tracking-widest uppercase">SOLO MODE</span>
+            <span className="text-amber-400 font-semibold text-xs">1인 매장</span>
           </div>
         ) : (
           canManageAccounts && tab === 0 && (
             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
               onClick={() => setShowAddModal(true)}
-              className="h-14 px-8 bg-orange-500 text-white rounded-2xl flex items-center gap-3 font-black text-[10px] tracking-widest shadow-2xl shadow-orange-500/30">
-              <Icon icon="Plus" size="md" /> ADD STAFF
+              className="h-12 px-5 bg-orange-500 text-white rounded-xl flex items-center gap-2 font-bold text-sm shadow-lg shadow-orange-500/20 hover:bg-orange-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-300">
+              <Icon icon="Plus" size="md" /> 팀원 추가
             </motion.button>
           )
         )}
@@ -548,8 +557,8 @@ const StaffManager = () => {
 
       <AnimatePresence mode="wait">
         {tab === 0 && (
-          <TeamTab key="team" staff={staff} myRole={myRole} canManage={canManageAccounts}
-            onRoleChange={handleRoleChange} onDelete={handleDelete}
+          <TeamTab key="team" staff={staff} canManage={canManageAccounts}
+            onRoleChange={handleRoleChange} onDelete={handleDelete} onRestore={handleRestore}
             isSoloStore={isSoloStore} myStaffId={myStaffId} attendance={attendance}
             onSelfRegister={handleSelfRegister} selfRegLoading={selfRegLoading}
             onAddStaff={canManageAccounts ? () => setShowAddModal(true) : null} onGoAttend={() => setTab(1)}
@@ -574,7 +583,7 @@ const StaffManager = () => {
       </AnimatePresence>
 
       {showAddModal && canManageAccounts && (
-        <AddStaffModal storeId={storeId} myRole={myRole}
+        <AddStaffModal storeId={storeId}
           onClose={() => setShowAddModal(false)}
           onSave={() => { setShowAddModal(false); fetchStaff(); }}
         />
@@ -584,124 +593,164 @@ const StaffManager = () => {
 };
 
 // ── 팀원 탭 ──────────────────────────────────────────────
-const TeamTab = ({ staff, myRole, canManage, onRoleChange, onDelete, isSoloStore, myStaffId, attendance, onSelfRegister, selfRegLoading, onAddStaff, onGoAttend, storeId }) => {
+const TeamTab = ({ staff, canManage, onRoleChange, onDelete, onRestore, isSoloStore, myStaffId, attendance, onSelfRegister, selfRegLoading, onAddStaff, onGoAttend, storeId }) => {
   const [editingId, setEditingId] = useState(null);
   const [pendingRole, setPendingRole] = useState('');
+  const [savingRoleId, setSavingRoleId] = useState(null);
+  const [query, setQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(() => staff.some(member => member.role !== 'owner' && member.is_active !== false) ? 'active' : 'all');
 
   if (isSoloStore) {
     return (
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-        <SoloModeBanner
-          myStaffId={myStaffId}
-          attendance={attendance}
-          storeId={storeId}
-          onSelfRegister={onSelfRegister}
-          selfRegLoading={selfRegLoading}
-          onAddStaff={onAddStaff}
-          onGoAttend={onGoAttend}
-        />
+        <SoloModeBanner myStaffId={myStaffId} attendance={attendance} storeId={storeId}
+          onSelfRegister={onSelfRegister} selfRegLoading={selfRegLoading}
+          onAddStaff={onAddStaff} onGoAttend={onGoAttend} />
       </motion.div>
     );
   }
 
-  const activeStaff = staff.filter((member) => member.is_active !== false);
-  const counts = Object.fromEntries(Object.keys(ROLES).map(r => [r, activeStaff.filter(s => s.role === r).length]));
+  const activeStaff = staff.filter(member => member.role !== 'owner' && member.is_active !== false);
+  const inactiveStaff = staff.filter(member => member.role !== 'owner' && member.is_active === false);
+  const counts = Object.fromEntries(Object.keys(ROLES).map(role => [role, activeStaff.filter(member => member.role === role).length]));
+  const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR');
+  const visibleStaff = staff.filter(member => {
+    const statusMatches = statusFilter === 'all' || (statusFilter === 'active' ? member.is_active !== false : member.is_active === false);
+    const roleMatches = roleFilter === 'all' || member.role === roleFilter;
+    const queryMatches = !normalizedQuery || `${member.name || ''} ${member.email || ''}`.toLocaleLowerCase('ko-KR').includes(normalizedQuery);
+    return statusMatches && roleMatches && queryMatches;
+  });
+
+  const saveRole = async (memberId) => {
+    setSavingRoleId(memberId);
+    try {
+      const saved = await onRoleChange(memberId, pendingRole);
+      if (saved) setEditingId(null);
+    } finally { setSavingRoleId(null); }
+  };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {Object.entries(ROLES).map(([code, r]) => {
-          const Icon = r.icon;
-          return (
-            <div key={code} className={`bg-white/5 border ${r.border} rounded-[1.5rem] p-5`}>
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`w-8 h-8 ${r.color} rounded-xl flex items-center justify-center`}>
-                  <Icon size={14} className="text-white" />
-                </div>
-                <span className={`font-black text-xs tracking-widest uppercase ${r.text}`}>{r.label}</span>
-              </div>
-              <p className="text-3xl font-black text-white">{counts[code] || 0}<span className="text-sm text-slate-500 ml-1">명</span></p>
-              <div className="flex flex-wrap gap-1 mt-3">
-                {r.perms.map(p => (
-                  <span key={p} className="px-2 py-0.5 bg-white/5 text-slate-400 rounded-full text-[9px] font-bold tracking-wide">{p}</span>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -8 }} className="space-y-6">
+      <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-4 sm:p-5" aria-label="팀원 현황">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-white">팀원과 역할</h2>
+            <p className="mt-1 text-sm text-slate-400">활성 {activeStaff.length}명 · 매장 접근 해제 {inactiveStaff.length}명</p>
+          </div>
+          {canManage ? (
+            <p className="max-w-xl text-xs leading-relaxed text-slate-400">계정 추가·역할 변경·접근 복원 및 해제는 사업자 오너만 할 수 있습니다. 매장 접근을 해제해도 계정과 과거 기록은 보존됩니다.</p>
+          ) : (
+            <p className="text-xs text-slate-400">매니저는 팀원의 근태를 관리할 수 있고 계정 권한은 변경할 수 없습니다.</p>
+          )}
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {staff.map(member => {
-          const role = ROLES[member.role] || ROLES.staff;
-          const ScopedIcon = role.icon;
-          const canEdit = canManage && member.role !== 'owner' && member.is_active !== false;
-          const isEditing = editingId === member.id;
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {Object.entries(ROLES).filter(([code]) => code !== 'owner').map(([code, role]) => {
+            const RoleIcon = role.icon;
+            const selected = roleFilter === code;
+            return (
+              <button key={code} type="button" aria-pressed={selected} onClick={() => setRoleFilter(selected ? 'all' : code)}
+                className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400 ${selected ? `${role.border} bg-white/10` : 'border-white/10 bg-slate-950/40 hover:bg-white/5'}`}>
+                <span className="flex min-w-0 items-center gap-2"><RoleIcon size={16} className={role.text} /><span className="truncate text-sm font-medium text-slate-200">{role.label}</span></span>
+                <span className="text-sm font-semibold tabular-nums text-white">{counts[code] || 0}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
-          return (
-            <motion.div key={member.id} layout className="bg-white/5 backdrop-blur-xl border border-white/5 rounded-[2rem] p-6 hover:bg-white/8 transition-all group">
-              <div className="flex items-start justify-between mb-5">
-                <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 ${avatarColor(member.id)} rounded-2xl flex items-center justify-center`}>
-                    <span className="text-white font-black text-lg">{getInitials(member.name)}</span>
-                  </div>
-                  <div>
-                    <p className="text-white font-black text-lg leading-tight">{member.name}</p>
-                    <p className="text-slate-500 text-xs font-bold mt-0.5">{member.email}</p>
-                  </div>
-                </div>
-                {canEdit && (
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                    <button onClick={() => { setEditingId(member.id); setPendingRole(member.role); }}
-                      className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 hover:text-blue-400 transition-all">
-                      <Icon icon="Edit2" size={20} />
-                    </button>
-                    <button onClick={() => onDelete(member.id, member.name)}
-                      className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 hover:text-rose-400 transition-all">
-                      <Icon icon="Trash2" size={20} />
-                    </button>
-                  </div>
-                )}
-              </div>
+      <section className="space-y-4" aria-label="팀원 목록">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px_180px]">
+          <label className="relative block">
+            <span className="sr-only">팀원 이름 또는 이메일 검색</span>
+            <Search size={17} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="이름 또는 이메일 검색"
+              className="w-full rounded-xl border border-white/10 bg-slate-900 py-3 pl-10 pr-3 text-sm text-white placeholder:text-slate-500 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20" />
+          </label>
+          <label className="sr-only" htmlFor="team-role-filter">역할 필터</label>
+          <select id="team-role-filter" value={roleFilter} onChange={event => setRoleFilter(event.target.value)}
+            className="rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-sm text-white focus:border-orange-400 focus:outline-none">
+            <option value="all">모든 역할</option>
+            {Object.entries(ROLES).filter(([code]) => code !== 'owner').map(([code, role]) => <option key={code} value={code}>{role.label}</option>)}
+          </select>
+          <label className="sr-only" htmlFor="team-status-filter">계정 상태 필터</label>
+          <select id="team-status-filter" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}
+            className="rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-sm text-white focus:border-orange-400 focus:outline-none">
+            <option value="active">활성 팀원</option>
+            <option value="inactive">접근 해제</option>
+            <option value="all">전체 상태</option>
+          </select>
+        </div>
 
-              {isEditing ? (
-                <div className="flex items-center gap-2 mt-2">
-                  <select value={pendingRole} onChange={e => setPendingRole(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-white text-xs font-bold">
-                    {Object.entries(ROLES).filter(([c]) => c !== 'owner').map(([code, r]) => (
-                      <option key={code} value={code}>{r.label}</option>
-                    ))}
-                  </select>
-                  <button onClick={() => { onRoleChange(member.id, pendingRole); setEditingId(null); }}
-                    className="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center text-white">
-                    <Icon icon="Check" size={20} />
-                  </button>
-                  <button onClick={() => setEditingId(null)}
-                    className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-slate-400">
-                    <Icon icon="X" size={20} />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${role.border} bg-white/5`}>
-                    <ScopedIcon size={12} className={role.text} />
-                    <span className={`font-black text-[10px] tracking-widest uppercase ${role.text}`}>{role.label}</span>
+        {visibleStaff.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/15 bg-slate-900/40 px-5 py-12 text-center">
+            <User size={25} className="mx-auto text-slate-500" />
+            <p className="mt-3 font-semibold text-white">{staff.length ? '조건에 맞는 팀원이 없습니다.' : '등록된 팀원이 없습니다.'}</p>
+            <p className="mt-1 text-sm text-slate-400">검색어 또는 필터를 바꾸거나, 사업자 오너에게 팀원 추가를 요청하세요.</p>
+            {(query || roleFilter !== 'all' || statusFilter !== (activeStaff.length ? 'active' : 'all')) && <button type="button" onClick={() => { setQuery(''); setRoleFilter('all'); setStatusFilter(activeStaff.length ? 'active' : 'all'); }} className="mt-4 rounded-lg px-3 py-2 text-sm font-semibold text-orange-300 hover:bg-orange-400/10">필터 초기화</button>}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            {visibleStaff.map(member => {
+              const role = ROLES[member.role] || ROLES.staff;
+              const RoleIcon = role.icon;
+              const isActive = member.is_active !== false;
+              const canEdit = canManage && member.role !== 'owner' && isActive;
+              const isEditing = editingId === member.id;
+              const isSaving = savingRoleId === member.id;
+              return (
+                <article key={member.id} className={`rounded-2xl border p-4 sm:p-5 ${isActive ? 'border-white/10 bg-slate-900/70' : 'border-rose-400/20 bg-rose-950/20'}`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${avatarColor(member.id)}`}>
+                      <span className="font-bold text-white">{getInitials(member.name)}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="truncate font-semibold text-white">{member.name || '이름 미등록'}</h3>
+                        {member.role === 'owner' && <span className="rounded-full bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-300">사업자 오너</span>}
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${isActive ? 'bg-emerald-400/10 text-emerald-300' : 'bg-rose-400/10 text-rose-300'}`}>{isActive ? '활성' : '접근 해제'}</span>
+                      </div>
+                      <p className="mt-1 truncate text-sm text-slate-400">{member.email || '이메일 정보 없음'}</p>
+                    </div>
+                    {canEdit && !isEditing && <div className="flex shrink-0 gap-1">
+                      <button type="button" aria-label={`${member.name} 역할 변경`} onClick={() => { setEditingId(member.id); setPendingRole(member.role); }}
+                        className="grid h-9 w-9 place-items-center rounded-lg text-slate-300 hover:bg-blue-400/10 hover:text-blue-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300"><Icon icon="Edit2" size={17} /></button>
+                      <button type="button" aria-label={`${member.name} 매장 접근 해제`} onClick={() => onDelete(member.id, member.name)}
+                        className="grid h-9 w-9 place-items-center rounded-lg text-slate-300 hover:bg-rose-400/10 hover:text-rose-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-300"><Icon icon="User" size={17} /></button>
+                    </div>}
                   </div>
-                  <div className="flex flex-wrap gap-1 justify-end">
-                    {role.perms.slice(0, 2).map(p => (
-                      <span key={p} className="px-2 py-0.5 bg-white/5 text-slate-500 rounded-full text-[9px] font-bold">{p}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
 
-              <p className={`text-[10px] font-bold tracking-widest uppercase mt-4 ${member.is_active === false ? 'text-rose-400' : 'text-slate-600'}`}>
-                {member.is_active === false ? '매장 접근 해제' : '입사'} {fmtDate(member.created_at)}
-              </p>
-            </motion.div>
-          );
-        })}
-      </div>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
+                    {isEditing ? (
+                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                        <label className="sr-only" htmlFor={`role-${member.id}`}>새 역할</label>
+                        <select id={`role-${member.id}`} value={pendingRole} onChange={event => setPendingRole(event.target.value)} disabled={isSaving}
+                          className="min-w-[130px] flex-1 rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-sm text-white">
+                          {Object.entries(ROLES).filter(([code]) => code !== 'owner').map(([code, option]) => <option key={code} value={code}>{option.label}</option>)}
+                        </select>
+                        <button type="button" aria-label="역할 변경 저장" onClick={() => saveRole(member.id)} disabled={isSaving || pendingRole === member.role}
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50">{isSaving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />} 저장</button>
+                        <button type="button" aria-label="역할 변경 취소" onClick={() => setEditingId(null)} disabled={isSaving}
+                          className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5"><X size={15} /> 취소</button>
+                      </div>
+                    ) : (
+                      <div className="flex min-w-0 items-center gap-2">
+                        <RoleIcon size={16} className={role.text} />
+                        <span className={`font-semibold ${role.text}`}>{role.label}</span>
+                        <span className="text-xs text-slate-500">{role.perms.join(' · ')}</span>
+                      </div>
+                    )}
+                    {!isActive && canManage && <button type="button" onClick={() => onRestore(member)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/25 px-3 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-400/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-300"><RotateCcw size={15} /> 접근 복원</button>}
+                    <p className="w-full text-xs text-slate-500">등록 {fmtDate(member.created_at)}{isActive ? '' : ' · 데이터와 과거 기록은 보존됨'}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </motion.div>
   );
 };
@@ -944,7 +993,7 @@ const ReportTab = ({ report, loading, month, onMonthChange, isSoloStore, myStaff
 };
 
 // ── 직원 추가 모달 ─────────────────────────────────────────
-const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
+const AddStaffModal = ({ storeId, onClose, onSave }) => {
   // ① 휴대폰 조회 상태
   const [phone, setPhone] = useState('');
   const [lookupState, setLookupState] = useState('idle'); // idle|loading|found|notFound|alreadyStaff
@@ -1016,15 +1065,16 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+        role="dialog" aria-modal="true" aria-labelledby="add-staff-title"
+        className="bg-slate-900 border border-white/10 rounded-2xl p-5 sm:p-7 w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto">
 
         {/* Header */}
         <div className="flex items-start justify-between mb-7">
           <div>
-            <h3 className="text-3xl font-black text-white tracking-tight">ADD STAFF</h3>
-            <p className="text-xs text-slate-500 font-bold mt-1">팀원 초대 · 권한 부여</p>
+            <h3 id="add-staff-title" className="text-2xl font-bold text-white">팀원 추가</h3>
+            <p className="text-sm text-slate-400 mt-1">기존 위마켓 계정에 매장 역할을 부여하거나 새 계정을 만듭니다.</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-all">
+          <button type="button" aria-label="팀원 추가 닫기" onClick={onClose} className="grid h-10 w-10 place-items-center rounded-xl hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-300">
             <X size={20} className="text-slate-400" />
           </button>
         </div>
@@ -1035,14 +1085,18 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
           </div>
         )}
 
+        <p className="mb-5 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-slate-400">
+          기존 회원은 등록된 휴대전화 번호로 찾습니다. 새 계정은 이메일과 비밀번호로 생성합니다.
+        </p>
+
         {/* ── SECTION 1: 휴대폰 조회 (MAIN) ── */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center shrink-0">
               <span className="text-white text-[10px] font-black">1</span>
             </div>
-            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">휴대폰 번호로 초대</span>
-            <span className="ml-auto text-[10px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full font-black shrink-0">추천</span>
+            <span className="text-sm font-semibold text-white">기존 계정 찾기</span>
+            <span className="ml-auto text-xs text-slate-400">계정의 휴대전화 번호로 조회</span>
           </div>
 
           <div className="flex gap-3">
@@ -1050,6 +1104,7 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
               <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 type="tel"
+                aria-label="기존 팀원 휴대전화 번호"
                 value={phone}
                 onChange={handlePhoneChange}
                 onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
@@ -1061,7 +1116,7 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
               type="button"
               onClick={handleLookup}
               disabled={lookupState === 'loading' || phone.replace(/\D/g,'').length < 10}
-              className="px-5 py-4 bg-orange-500 text-white rounded-2xl font-black text-xs tracking-widest shadow-lg shadow-orange-500/20 hover:scale-105 transition-all disabled:opacity-40 disabled:scale-100 flex items-center gap-2 shrink-0">
+              className="px-4 py-3 bg-orange-500 text-white rounded-xl font-semibold text-sm shadow-lg shadow-orange-500/20 hover:bg-orange-400 transition-colors disabled:opacity-40 flex items-center gap-2 shrink-0">
               {lookupState === 'loading'
                 ? <Loader2 size={16} className="animate-spin" />
                 : <Search size={16} />}
@@ -1084,8 +1139,8 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
                 <span className="ml-auto text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-black shrink-0">계정 확인됨</span>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">역할 지정</label>
-                <select value={lookupRole} onChange={e => setLookupRole(e.target.value)}
+                <label className="text-sm font-medium text-slate-300" htmlFor="existing-staff-role">매장 역할</label>
+                <select id="existing-staff-role" value={lookupRole} onChange={e => setLookupRole(e.target.value)}
                   className="w-full px-5 py-3 bg-white/5 border border-white/5 rounded-xl text-white font-bold outline-none focus:border-orange-500/30 transition-all text-sm">
                   {roleOptions.map(([code, r]) => (
                     <option key={code} value={code} className="bg-slate-900">{r.label} — {r.perms.join(', ')}</option>
@@ -1093,7 +1148,7 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
                 </select>
               </div>
               <button type="button" onClick={handleAddExisting} disabled={loading}
-                className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-sm shadow-lg shadow-emerald-500/20 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                className="w-full py-3 bg-emerald-500 text-white rounded-xl font-semibold text-sm shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
                 팀원으로 등록
               </button>
@@ -1115,8 +1170,8 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
               className="mt-4 p-4 bg-slate-800/60 border border-white/5 rounded-2xl flex items-center gap-3">
               <XCircle size={16} className="text-slate-500 shrink-0" />
               <div>
-                <p className="text-slate-300 text-sm font-bold">등록된 계정이 없습니다.</p>
-                <p className="text-slate-500 text-xs mt-0.5">아래에서 신규 계정을 생성해 주세요.</p>
+                <p className="text-slate-300 text-sm font-semibold">등록된 계정이 없습니다.</p>
+                <p className="text-slate-400 text-xs mt-0.5">아래에서 새 계정을 만들어 매장 역할을 지정할 수 있습니다.</p>
               </div>
             </motion.div>
           )}
@@ -1125,7 +1180,7 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
         {/* Divider */}
         <div className="flex items-center gap-3 mb-5">
           <div className="flex-1 h-px bg-white/5" />
-          <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest">또는</span>
+          <span className="text-xs text-slate-500 font-medium">또는 새 계정 만들기</span>
           <div className="flex-1 h-px bg-white/5" />
         </div>
 
@@ -1137,7 +1192,7 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
               <div className="w-6 h-6 bg-slate-700 rounded-full flex items-center justify-center shrink-0">
                 <span className="text-white text-[10px] font-black">2</span>
               </div>
-              <span className="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-300 transition-all">신규 계정 직접 생성</span>
+              <span className="text-sm font-semibold text-slate-200">새 팀원 계정 만들기</span>
             </div>
             {showNewForm ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
           </button>
@@ -1146,30 +1201,31 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
             <motion.form initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               onSubmit={handleCreateNew} className="mt-4 space-y-4">
               {[
-                { label: '이름',     field: 'name',     type: 'text',     placeholder: '홍길동' },
+                { label: '이름',     field: 'name',     type: 'text',     placeholder: '팀원 이름' },
                 { label: '이메일',   field: 'email',    type: 'email',    placeholder: 'staff@example.com' },
-                { label: '비밀번호', field: 'password', type: 'password', placeholder: '8자 이상' },
+                { label: '초기 비밀번호', field: 'password', type: 'password', placeholder: '8자 이상' },
               ].map(({ label, field, type, placeholder }) => (
                 <div key={field} className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{label}</label>
-                  <input type={type} aria-label={label} value={form[field]} onChange={e => setForm({ ...form, [field]: e.target.value })}
+                  <label className="text-sm font-medium text-slate-300" htmlFor={`new-staff-${field}`}>{label}</label>
+                  <input id={`new-staff-${field}`} type={type} aria-label={label} value={form[field]} onChange={e => setForm({ ...form, [field]: e.target.value })}
                     placeholder={placeholder}
                     className="w-full px-5 py-4 bg-white/5 border border-white/5 rounded-2xl text-white font-bold outline-none focus:border-orange-500/30 transition-all text-sm" />
                 </div>
               ))}
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">역할</label>
-                <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}
+                <label className="text-sm font-medium text-slate-300" htmlFor="new-staff-role">매장 역할</label>
+                <select id="new-staff-role" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}
                   className="w-full px-5 py-4 bg-white/5 border border-white/5 rounded-2xl text-white font-bold outline-none focus:border-orange-500/30 transition-all text-sm">
                   {roleOptions.map(([code, r]) => (
                     <option key={code} value={code} className="bg-slate-900">{r.label} — {r.perms.join(', ')}</option>
                   ))}
                 </select>
               </div>
+              <p className="text-xs leading-relaxed text-slate-400">초기 비밀번호는 팀원에게 안전한 경로로 전달해 주세요. 비밀번호는 8자 이상이어야 합니다.</p>
               <button type="submit" disabled={loading}
-                className="w-full py-4 bg-orange-500 text-white rounded-2xl font-black text-sm shadow-lg shadow-orange-500/20 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                className="w-full py-3 bg-orange-500 text-white rounded-xl font-semibold text-sm shadow-lg shadow-orange-500/20 hover:bg-orange-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
-                직원 계정 생성 후 등록
+                계정 만들고 매장에 추가
               </button>
             </motion.form>
           )}
@@ -1177,7 +1233,7 @@ const AddStaffModal = ({ storeId, myRole, onClose, onSave }) => {
 
         {/* Cancel */}
         <button type="button" onClick={onClose}
-          className="mt-5 w-full py-3 bg-white/5 text-slate-400 rounded-2xl font-black text-xs tracking-widest hover:text-white transition-all">
+          className="mt-4 w-full py-3 bg-white/5 text-slate-300 rounded-xl font-medium text-sm hover:bg-white/10 hover:text-white transition-colors">
           취소
         </button>
       </motion.div>

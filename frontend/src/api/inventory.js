@@ -5,6 +5,15 @@ export const inventoryAPI = {
   getStoreHistory: (storeId, params = {}) =>
     api.get(`/inventory/store/${storeId}/history`, { params }),
   getLowStockAlerts: (storeId) => api.get(`/inventory/store/${storeId}/alerts`),
+  getPurchases: (storeId, params = {}) =>
+    api.get(`/inventory/store/${storeId}/purchases`, { params }),
+  createPurchaseDraft: (storeId, data) => api.post(`/inventory/store/${storeId}/purchases`, data),
+  markPurchaseOrdered: (storeId, purchaseId) =>
+    api.post(`/inventory/store/${storeId}/purchases/${purchaseId}/order`),
+  receivePurchase: (storeId, purchaseId, data, idempotencyKey) =>
+    api.post(`/inventory/store/${storeId}/purchases/${purchaseId}/receive`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey || crypto.randomUUID() },
+    }),
   adjustStock: (productId, data) => api.put(`/inventory/products/${productId}/stock`, data),
   setStock: (productId, data) => api.put(`/inventory/products/${productId}/stock/set`, data),
   getProductHistory: (productId, params = {}) =>

@@ -18,7 +18,6 @@ import MenuStoryModal from "./MenuStoryModal";
 import FloatingCallButton from "./FloatingCallButton";
 import { formatPrice } from "../../utils/format";
 import { requestTossCheckout } from "../../utils/tossCheckout";
-import { useOfflineSync } from "../../hooks/useOfflineSync";
 // 모듈화된 하위 컴포넌트들 임포트
 import MenuSkeleton from "./MenuSkeleton";
 import MenuProductList from "./MenuProductList";
@@ -86,10 +85,7 @@ const Menu = ({
 
   // 온라인/오프라인 상태 감지
   useEffect(() => {
-    const goOnline = () => {
-      setIsOnline(true);
-      processQueue();
-    };
+    const goOnline = () => setIsOnline(true);
     const goOffline = () => setIsOnline(false);
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
@@ -97,7 +93,7 @@ const Menu = ({
       window.removeEventListener('online', goOnline);
       window.removeEventListener('offline', goOffline);
     };
-  }, [processQueue]);
+  }, []);
   const [orderSuccess, setOrderSuccess] = useState(null);
   const [orderStep, setOrderStep] = useState("cart");
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
@@ -216,20 +212,6 @@ const Menu = ({
       return defaultTheme;
     }
   }, [store?.theme]);
-  const effectiveStoreId = storeIdParam || (store?.id ? String(store.id) : null);
-  const {
-    queueOperation,
-    processQueue,
-    pendingCount
-  } = useOfflineSync(effectiveStoreId);
-
-  // 오프라인 주문 대기열 처리 (네트워크 복구 시 자동 동기화)
-  useEffect(() => {
-    if (isOnline && pendingCount > 0) {
-      processQueue();
-    }
-  }, [isOnline, pendingCount, processQueue]);
-
   // 페이지 배경 및 그라디언트 스타일 계산 메모이제이션
   const styles = useMemo(() => {
     const gradientBg = `linear-gradient(135deg, ${theme.primaryColor}, ${theme.secondaryColor})`;
@@ -432,35 +414,8 @@ const Menu = ({
   const handleOrder = async () => {
     if (cart.length === 0) return;
 
-    // 오프라인일 경우 IndexedDB에 주문을 버퍼링
     if (!isOnline) {
-      const orderData = {
-        store_id: store.id,
-        table_id: table?.id || null,
-        customer_name: orderForm.customer_name || null,
-        customer_phone: orderForm.customer_phone || null,
-        notes: orderForm.notes || null,
-        payment_method: orderForm.payment_method,
-        items: cart,
-        total_amount: getTotalAmount(),
-        timestamp: Date.now(),
-        offline: true
-      };
-      await queueOperation({
-        operation: 'CREATE_ORDER',
-        data: orderData
-      });
-      setCart([]);
-      if (table?.id) {
-        cartAPI.clearCart(table.id);
-        ordersAPI.getSocket().emit('update-shared-cart', {
-          tableId: table.id,
-          action: 'clear'
-        });
-      }
-      setShowCart(false);
-      setOrderStep("cart");
-      alert('오프라인模式下 주문이 접수되었습니다. 연결 복구 시 자동으로 전송됩니다.');
+      alert('인터넷 연결 후 다시 주문해 주세요. 오프라인 주문은 자동 접수되지 않습니다.');
       return;
     }
     setLoading(true);
@@ -494,35 +449,7 @@ const Menu = ({
         Notification.requestPermission();
       }
     } catch (err) {
-      // 서버 오류 시 오프라인 버퍼에 저장
-      const orderData = {
-        store_id: store.id,
-        table_id: table?.id || null,
-        customer_name: orderForm.customer_name || null,
-        customer_phone: orderForm.customer_phone || null,
-        notes: orderForm.notes || null,
-        payment_method: orderForm.payment_method,
-        items: cart,
-        total_amount: getTotalAmount(),
-        timestamp: Date.now(),
-        offline: true,
-        error: err.response?.data?.error || '네트워크 오류'
-      };
-      await queueOperation({
-        operation: 'CREATE_ORDER',
-        data: orderData
-      });
-      alert('네트워크 오류로 주문이 보관되었습니다. 연결 복구 시 자동으로 전송됩니다.');
-      setCart([]);
-      if (table?.id) {
-        cartAPI.clearCart(table.id);
-        ordersAPI.getSocket().emit('update-shared-cart', {
-          tableId: table.id,
-          action: 'clear'
-        });
-      }
-      setShowCart(false);
-      setOrderStep("cart");
+      alert(err?.response?.data?.message || err?.response?.data?.error || '주문을 확인하지 못했습니다. 장바구니를 유지했습니다. 온라인 상태를 확인한 뒤 주문 내역에서 접수 여부를 먼저 확인해 주세요.');
     } finally {
       setLoading(false);
     }

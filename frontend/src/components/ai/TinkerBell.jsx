@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMotionSafe } from '../../hooks/useMotionSafe';
 import { trackImpressions, trackRecommendationClick } from '../../utils/recommendationTracking';
+import { buildWeatherAnnouncement, getLiveWeatherKind } from '../../utils/tinkerbellWeather';
 import { aiAPI } from '../../api';
 
 // ── 팅커벨 녹음 음성 파일 매핑 (한국어) ──────────────────────────────────────
@@ -265,10 +266,8 @@ export default function TinkerBell({
    adminMode = false,
    storeId = null,
  }) {
-  // weather('sun'|'rain'|'cold'|'hot')를 직접 넘기면 weatherData보다 우선한다 (관리자 미리보기용)
-  const weather = weatherOverride || (weatherData?.isRaining ? 'rain' :
-                  (weatherData?.temp < 10 ? 'cold' :
-                  (weatherData?.temp > 28 ? 'hot' : 'sun')));
+  // weather('sun'|'rain'|'cold'|'hot')를 직접 넘기면 미리보기 값이 우선합니다.
+  const weather = weatherOverride || getLiveWeatherKind(weatherData);
 
   const { _isAnimationSafe, motionIntensity } = useMotionSafe();
 const [isHappy,  setIsHappy]  = useState(false);
@@ -439,8 +438,15 @@ const typingRef  = useRef(null);
        const t = setTimeout(() => {
            fetchAIRec();
            const L = I18N[lang] || I18N.ko;
-           const isWarm = weather === 'rain' || weather === 'cold';
-           const isCool = weather === 'hot';
+           const announcement = weatherOverride
+             ? null
+             : buildWeatherAnnouncement(weatherData, menuItems, lang);
+           // 관리자가 고른 미리보기는 기존 대사를 유지하고, 고객에게는
+           // 최신 매장 관측과 연결된 문장이 있을 때만 날씨를 말합니다.
+           if (!weatherOverride && !announcement) return;
+           const announcedWeather = weatherOverride || announcement.kind;
+           const isWarm = announcedWeather === 'rain' || announcedWeather === 'snow' || announcedWeather === 'cold';
+           const isCool = announcedWeather === 'hot';
            let pool = isWarm
                ? menuItems.filter(m => !m.isSoldOut && (m.isHot || m.category_id?.includes('coffee') || m.category_id?.includes('non-coffee')))
                : isCool
@@ -448,17 +454,21 @@ const typingRef  = useRef(null);
                : menuItems.filter(m => !m.isSoldOut && m.isPopular);
            if (!pool.length) pool = menuItems.filter(m => !m.isSoldOut);
            if (!pool.length) return;
-           const chosen = pick(pool);
+           const chosen = announcement?.recommendation || pick(pool);
 
-           let ctx  = L.weatherCtx[weather] || '';
-           if (weatherData && weatherData.temp !== null) {
-               ctx += ` (${weatherData.temp}°C)`;
+           let ctx = '';
+           let text;
+           if (weatherOverride) {
+               ctx = L.weatherCtx[weatherOverride] || '';
+               const recipeWeather = weatherOverride === 'snow' ? 'cold' : weatherOverride;
+               text = (L.rec[recipeWeather] || L.rec.sun).replace('{n}', chosen.name || '');
+           } else {
+               text = announcement.text;
            }
-
-const text = (L.rec[weather] || L.rec.sun).replace('{n}', chosen.name || '');
             setIsBusy(true);
             spawnSparks(8);
-            say(ctx, text, false, 'cust_weather');
+            // 날씨 문장은 관측 기온·상태를 포함하므로 고정 MP3 대신 선택 언어의 TTS로 읽습니다.
+            say(ctx, text, false, weatherOverride ? 'cust_weather' : null);
 if (onRecommend) {
                 trackRecommendationClick(Number(storeId), chosen.id || chosen, 'tinkerbell').catch(() => { /* 추적 실패는 무시 */ });
                 onRecommend(chosen);
@@ -466,7 +476,7 @@ if (onRecommend) {
             setIsBusy(false);
         }, 11000);
         return () => clearTimeout(t);
-    }, [visible, weather, weatherData, menuItems, lang, adminMode, onRecommend, say, spawnSparks, fetchAIRec, storeId]);
+    }, [visible, weather, weatherOverride, weatherData, menuItems, lang, adminMode, onRecommend, say, spawnSparks, fetchAIRec, storeId]);
 
 // ── 호기심 메시지 (AI 추천 우선) ──────────────────────────────────
    useEffect(() => {

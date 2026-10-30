@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { isStoreOpenAt, getTodayHoursAt } from "@/utils/businessHours";
+import { canOrderFromMenuSnapshot } from "@/utils/customerMenuAvailability";
 import { getOrderPosition } from "@/utils/orderLocation";
 import useSharedTableCart from "@/hooks/useSharedTableCart";
 import { Loader2, UtensilsCrossed, RefreshCw } from "lucide-react";
@@ -256,20 +257,6 @@ const {
     retry: 1
   });
   const [lastAddedItem, _setLastAddedItem] = useState(null);
-  const {
-    data: weatherData
-  } = useQuery({
-    queryKey: ["currentWeather"],
-    queryFn: async () => {
-      try {
-        const res = await weatherAPI.getCurrent('108');
-        return res?.data?.data || null;
-      } catch (_err) {
-        return null;
-      }
-    },
-    staleTime: 600000
-  });
 
   /* 콜드스타트 재시도 설정: 최대 10회, 5초 간격 (최대 30초 간격) */
   const coldStartRetry = {
@@ -306,7 +293,10 @@ const {
         description: data?.description,
         open_time: data?.open_time,
         close_time: data?.close_time,
+        business_hours: data?.business_hours,
         phone: data?.phone,
+        latitude: data?.latitude != null && data.latitude !== '' && Number.isFinite(Number(data.latitude)) ? Number(data.latitude) : null,
+        longitude: data?.longitude != null && data.longitude !== '' && Number.isFinite(Number(data.longitude)) ? Number(data.longitude) : null,
         theme: parsedTheme,
         announcement: parsedTheme?.announcement || null,
         announcement_active: parsedTheme?.announcementActive || false
@@ -314,6 +304,24 @@ const {
     }, markCached('profile'), cacheOptions('profile', 'storeProfile')),
     enabled: isNumericStoreId,
     ...coldStartRetry
+  });
+
+  // 매장 좌표를 바탕으로 기상청 관측 지점을 선택합니다. 좌표가 없으면
+  // 서울 날씨를 임의로 매장 날씨처럼 안내하지 않습니다.
+  const { data: weatherData } = useQuery({
+    queryKey: ["storeWeather", storeId],
+    queryFn: async () => {
+      try {
+        const response = await weatherAPI.getByCoords(profile.latitude, profile.longitude);
+        return response?.data?.data || null;
+      } catch (_err) {
+        return null;
+      }
+    },
+    enabled: isNumericStoreId && Number.isFinite(profile?.latitude) && Number.isFinite(profile?.longitude),
+    staleTime: 600000,
+    gcTime: 30 * 60 * 1000,
+    retry: 1,
   });
 
   // 최근 본 매장 추적
@@ -367,6 +375,7 @@ const hoursInput = useMemo(() => ({
   // Computed values
   const todayHours = getTodayHours();
   const storeOpen = isStoreOpen();
+  const menuOrderable = canOrderFromMenuSnapshot(storeOpen, cachedSections);
   const categoryNames = useMemo(() => [t('menu.all_category'), ...categories.map(c => c.name)], [categories, t]);
 const filteredItems = useMemo(() => {
     if (selectedCategory === t('menu.all_category')) return menuItems;
@@ -403,8 +412,8 @@ const filteredItems = useMemo(() => {
     setVoiceOrderMessage((previous) => ({ id: (previous?.id || 0) + 1, text }));
   }, []);
 const handleAddToCartClick = useCallback(async item => {
-    if (!storeOpen) {
-      toast.error(t('order.not_business_hours'));
+    if (!menuOrderable) {
+      toast.error(storeOpen ? '저장된 메뉴를 보고 있습니다. 인터넷 연결 후 최신 가격과 재고를 확인해 주세요.' : t('order.not_business_hours'));
       return;
     }
     const options = getOptionsForMenuItem(menuItems, item.id);
@@ -414,7 +423,7 @@ const handleAddToCartClick = useCallback(async item => {
     } else {
       addToCartDirect(item, 1, [], item.price);
     }
-  }, [storeOpen, menuItems, addToCartDirect, t]);
+  }, [storeOpen, menuOrderable, menuItems, addToCartDirect, t]);
 const handleOptionConfirm = useCallback((quantity, selectedOptions, totalPrice) => {
     if (!optionModalItem) return;
     const unitPrice = totalPrice / quantity;
@@ -441,6 +450,14 @@ const handleOptionConfirm = useCallback((quantity, selectedOptions, totalPrice) 
 const handleOrder = useCallback(async () => {
     if (!storeId || cart.length === 0) return;
     if (checkoutAttempt.current?.busy) return;
+    if (!menuOrderable) {
+      toast.error('최신 메뉴와 재고를 확인할 수 있을 때 주문할 수 있습니다. 장바구니는 유지됩니다.');
+      return;
+    }
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      toast.error('인터넷 연결 후 다시 주문해 주세요. 오프라인 주문은 자동 접수되지 않습니다.');
+      return;
+    }
     if (!storeOpen) {
       toast.error(t('order.cannot_order'));
       return;
@@ -563,10 +580,14 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsOrdering(false);
     }
-  }, [storeId, cart, storeOpen, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t]);
+  }, [storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t]);
 
   const handleStartSplitPayment = useCallback(async (peopleCount) => {
-    if (!storeId || !cart.length || !storeOpen || isSplitStarting) return;
+    if (!storeId || !cart.length || !menuOrderable || isSplitStarting) return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      toast.error('인터넷 연결 후 분할 주문을 시작해 주세요. 오프라인 주문은 자동 접수되지 않습니다.');
+      return;
+    }
     setIsSplitStarting(true);
     const fingerprint = JSON.stringify({ storeId, tableNumber, cart, totalPrice, notifyPhone, peopleCount });
     if (splitOrderAttempt.current?.order && splitOrderAttempt.current.fingerprint !== fingerprint) {
@@ -581,7 +602,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
     if (attempt.busy) { setIsSplitStarting(false); return; }
     attempt.busy = true;
     try {
-      if (!storeOpen) throw new Error(t('order.cannot_order'));
+      if (!menuOrderable) throw new Error('최신 메뉴와 재고를 확인할 수 있을 때 분할 주문을 시작할 수 있습니다.');
       const notifyDigits = notifyPhone.replace(/\D/g, '');
       const orderData = {
         store_id: storeId,
@@ -626,7 +647,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsSplitStarting(false);
     }
-  }, [storeId, cart, storeOpen, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
+  }, [storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
 
   // Stable callbacks for JSX props (prevents child re-renders from inline closures)
   const handleOpenOrderHistory = useCallback(() => navigate('/order-history'), [navigate]);
@@ -689,18 +710,18 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       <MenuHeader storeName={profile?.store_name || t('menu.store_name_default')} tableNumber={tableNumber?.replace(/번$/, '')} onOrderHistoryClick={handleOpenOrderHistory} onCallStaffClick={() => setShowCallSheet(true)} />
 
       {/* Store Info */}
-      <StoreInfoBanner storeName={profile?.store_name} description={profile?.description} phone={profile?.phone} address={profile?.address} isOpen={storeOpen} todayHours={todayHours} />
+      <StoreInfoBanner storeName={profile?.store_name} description={profile?.description} phone={profile?.phone} address={profile?.address} isOpen={storeOpen} todayHours={todayHours} businessHours={profile?.business_hours} openTime={profile?.open_time} closeTime={profile?.close_time} />
 
       {/* AI 개인화 추천 (F9) */}
-      <PersonalizedRecommendations storeId={storeId} storeOpen={storeOpen} onAddToCart={handleAddToCartClick} menuItems={menuItems} />
+      <PersonalizedRecommendations storeId={storeId} storeOpen={menuOrderable} onAddToCart={handleAddToCartClick} menuItems={menuItems} />
 
-      <ManagerFeaturedMenus storeId={storeId} menuItems={menuItems} storeOpen={storeOpen} onAddToCart={handleAddToCartClick} />
+      <ManagerFeaturedMenus storeId={storeId} menuItems={menuItems} storeOpen={menuOrderable} onAddToCart={handleAddToCartClick} />
 
       {tinkerSettings?.enabled !== false && <VoiceOrderAssistant
         storeId={storeId}
         menuItems={menuItems}
         lang={lang}
-        canOrder={storeOpen}
+        canOrder={menuOrderable}
         onAddDraft={addVoiceDraftToCart}
         onAssistantSpeak={speakVoiceOrderMessage}
       />}
@@ -717,7 +738,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
               const options = getOptionsForMenuItem(menuItems, item.id);
               const isPopular = orderStats.includes(item.id);
               const isNew = isNewItem(item);
-              return <MenuItemCard key={item.id} item={item} hasOptions={options.length > 0} isPopular={isPopular} isNew={isNew} onAddToCart={handleAddToCartClick} disabled={!storeOpen} isGrid={isGridLayout} padding={isGridLayout ? cardPadding : 'L'} options={menuDisplayOptions} />;
+              return <MenuItemCard key={item.id} item={item} hasOptions={options.length > 0} isPopular={isPopular} isNew={isNew} onAddToCart={handleAddToCartClick} disabled={!menuOrderable} isGrid={isGridLayout} padding={isGridLayout ? cardPadding : 'L'} options={menuDisplayOptions} />;
             })}
           </div>}
 

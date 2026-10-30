@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isStoreOpenAt, getTodayHoursAt } from '@/utils/businessHours';
+import { isStoreOpenAt, getTodayHoursAt, getNextOpenAt } from '@/utils/businessHours';
 
 const all = (open, close) =>
   Object.fromEntries(
@@ -55,5 +55,22 @@ describe('getTodayHoursAt', () => {
       close: '21:00',
       closed: false,
     });
+  });
+});
+
+describe('getNextOpenAt', () => {
+  it('returns the next scheduled opening in Seoul time, including the next day', () => {
+    const hours = { ...all('10:00', '22:00'), sat: closed };
+    const next = getNextOpenAt({ businessHours: hours }, kst(24, '23:00'));
+    expect(next?.toISOString()).toBe('2026-10-25T01:00:00.000Z'); // 일요일 10:00 KST
+  });
+
+  it('returns today opening when it is still ahead', () => {
+    const next = getNextOpenAt({ businessHours: all('10:00', '22:00') }, kst(22, '09:15'));
+    expect(next?.toISOString()).toBe('2026-10-22T01:00:00.000Z');
+  });
+
+  it('returns null when no usable schedule is configured', () => {
+    expect(getNextOpenAt({ businessHours: { mon: closed } }, kst(22, '12:00'))).toBeNull();
   });
 });

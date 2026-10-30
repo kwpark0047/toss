@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
-import { ordersAPI, analyticsAPI, reviewsAPI, exportAPI, getSocket } from '../../api';
+import { ordersAPI, analyticsAPI, reviewsAPI, exportAPI, inventoryAPI, getSocket } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStore } from '../../contexts/StoreContext';
 import { useSEO } from '../../lib/useSEO';
@@ -22,6 +22,8 @@ import SystemStatusWidget from './SystemStatusWidget';
 import Button from '../common/Button';
 import WeatherAlertBanner from './WeatherAlertBanner';
 import notificationSound from '../../utils/notificationSound';
+import { getLowStockCount } from '../../utils/dashboardActionItems';
+import { getStoreAdminPath } from '../../utils/adminStoreNavigation';
 import { onNewOrder, onOrderUpdated, joinDashboard, leaveDashboard, onDashboardOrderStatusChanged, onDashboardForecastUpdate, onConnect } from '../../utils/socket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, AlertCircle, ArrowDownRight, ArrowUpRight, BadgeCheck, BarChart3, Bell, CalendarDays, ChefHat, Clock, Code2, DollarSign, Download, FileSpreadsheet, FileText, Handshake, LayoutGrid, Loader2, MessageSquareText, Plus, QrCode, ReceiptText, RefreshCw, Settings, ShieldAlert, ShoppingBag, Sparkles, Store, TrendingUp, Users, X, Zap } from 'lucide-react';
@@ -304,6 +306,7 @@ const StoreDashboard = () => {
   }, [notifications]);
   const [stats, setStats] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [lowStockCount, setLowStockCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('today');
   const [comparison, setComparison] = useState(null);
@@ -339,6 +342,7 @@ const StoreDashboard = () => {
       loadedStoreId.current = storeId;
       setStats(null);
       setRecentOrders([]);
+      setLowStockCount(0);
       setComparison(null);
       setLastRefresh(null);
     }
@@ -350,7 +354,7 @@ const StoreDashboard = () => {
       start.setDate(start.getDate() - (timeRange === 'month' ? 29 : timeRange === 'week' ? 6 : 0));
       const startDate = format(start, 'yyyy-MM-dd');
       const endDate = format(now, 'yyyy-MM-dd');
-      const [sRes, oRes, cRes] = await Promise.allSettled([ordersAPI.getStats(storeId, startDate, endDate), ordersAPI.getByStore(storeId, undefined, endDate), analyticsAPI.getComparison(storeId, timeRange === 'month' ? 'monthly' : 'weekly')]);
+      const [sRes, oRes, cRes, stockRes] = await Promise.allSettled([ordersAPI.getStats(storeId, startDate, endDate), ordersAPI.getByStore(storeId, undefined, endDate), analyticsAPI.getComparison(storeId, timeRange === 'month' ? 'monthly' : 'weekly'), inventoryAPI.getLowStockAlerts(storeId)]);
       if (sequence !== requestSequence.current) return;
       setDataError(sRes.status === 'rejected' || oRes.status === 'rejected' ? '매출 또는 주문 정보를 불러오지 못했습니다. 기존 표시값은 최신 정보가 아닐 수 있습니다.' : '');
       if (sRes.status === 'fulfilled') setStats(sRes.value?.data ?? sRes.value);
@@ -359,6 +363,7 @@ const StoreDashboard = () => {
         setRecentOrders(Array.isArray(o) ? o.slice(0, 10) : []);
       }
       if (cRes.status === 'fulfilled') setComparison(cRes.value?.data ?? cRes.value);
+      if (stockRes.status === 'fulfilled') setLowStockCount(getLowStockCount(stockRes.value));
       if (sRes.status === 'fulfilled' && oRes.status === 'fulfilled') setLastRefresh(new Date());
     } catch (e) {
       console.error('데이터 로딩 실패:', e);
@@ -495,7 +500,7 @@ const StoreDashboard = () => {
   }, [selectedStore?.id, fetchStoreData]);
   const handleNav = useCallback(path => {
     const s = selectedStore || stores[0];
-    navigate(s?.id ? `/admin/stores/${s.id}/${path}` : '/admin/stores/new');
+    navigate(getStoreAdminPath(s?.id, path));
   }, [selectedStore, stores, navigate]);
   const pendingCount = recentOrders.filter(o => o.status === 'pending').length;
 
@@ -537,6 +542,12 @@ const StoreDashboard = () => {
     icon: ReceiptText,
     color: 'from-orange-500 to-amber-500',
     badge: pendingCount
+  }, {
+    label: '재고·입고',
+    path: 'inventory',
+    icon: ShoppingBag,
+    color: 'from-teal-500 to-emerald-600',
+    badge: lowStockCount
   }, {
     label: '메뉴 관리',
     path: 'menu',
