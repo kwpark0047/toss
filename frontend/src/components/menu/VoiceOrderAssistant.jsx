@@ -127,6 +127,14 @@ export default function VoiceOrderAssistant({
     }
   };
 
+  const openAndStartListening = () => {
+    setIsOpen(true);
+    setError('');
+    // Start recognition in the same user gesture so mobile browsers retain
+    // microphone activation and customers do not need a second tap.
+    startListening();
+  };
+
   const confirmDraft = () => {
     if (!draft || draft.needs_clarification || !canOrder) return;
     const safeLines = draft.items.map((line) => {
@@ -164,7 +172,7 @@ export default function VoiceOrderAssistant({
     <section className="mx-auto w-full max-w-6xl px-4 pt-2 sm:px-6 lg:px-8" aria-label="음성 주문">
       <button
         type="button"
-        onClick={() => { setIsOpen(true); setError(''); }}
+        onClick={openAndStartListening}
         disabled={!canOrder}
         aria-describedby={!canOrder ? 'voice-order-unavailable' : undefined}
         className="group flex min-h-[68px] w-full items-center gap-3 rounded-2xl border border-orange-400/50 bg-gradient-to-r from-orange-500 via-orange-600 to-rose-600 px-4 py-3 text-left text-sm font-extrabold text-white shadow-lg shadow-orange-600/25 transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-75 disabled:hover:translate-y-0 disabled:hover:shadow-lg"
@@ -175,11 +183,11 @@ export default function VoiceOrderAssistant({
         <span className="min-w-0 flex-1">
           <span className="block text-base font-black leading-tight">말로 메뉴 주문하기</span>
           <span id={!canOrder ? 'voice-order-unavailable' : undefined} className="mt-1 block text-xs font-semibold text-white/90">
-            {canOrder ? '메뉴를 확인한 뒤 장바구니에 담아요' : '매장 영업시간에 이용할 수 있어요.'}
+            {canOrder ? '한 번 누르면 바로 듣기 시작해요' : '매장 영업시간에 이용할 수 있어요.'}
           </span>
         </span>
         <span className="shrink-0 rounded-full border border-white/30 bg-white/15 px-3 py-1.5 text-xs font-extrabold text-white">
-          {canOrder ? '누르고 말해 보세요' : '영업시간 확인'}
+          {canOrder ? '한 번 눌러 주문' : '영업시간 확인'}
         </span>
       </button>
 
@@ -189,7 +197,7 @@ export default function VoiceOrderAssistant({
             <header className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
               <div>
                 <h2 id="voice-order-title" className="text-lg font-black text-slate-900 dark:text-white">팅커벨 음성 주문</h2>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">말씀하신 내용을 확인하고 직접 승인해야 장바구니에 담깁니다.</p>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{isListening ? '지금 바로 말씀해 주세요. 잠시 멈추면 자동으로 듣기를 마쳐요.' : '주문 문장을 고친 뒤 내용을 확인하고 직접 승인해 주세요.'}</p>
               </div>
               <button type="button" onClick={() => { stopListening(); setIsOpen(false); }} aria-label="닫기" className="rounded-full p-2 text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 dark:text-slate-300 dark:hover:bg-slate-800"><X size={20} /></button>
             </header>
@@ -209,7 +217,7 @@ export default function VoiceOrderAssistant({
               </div>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-100">인식된 주문 문장 <span className="font-medium text-slate-500">직접 고칠 수 있어요</span></span>
+                <span className="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-100">주문 문장 <span className="font-medium text-slate-500">인식한 문장을 고치거나 직접 입력할 수 있어요</span></span>
                 <textarea
                   value={transcript}
                   onChange={(event) => { setTranscript(event.target.value.slice(0, 500)); setDraft(null); }}
