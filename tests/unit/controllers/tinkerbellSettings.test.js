@@ -32,6 +32,7 @@ describe('매장별 팅커벨 설정', () => {
       enabled: true,
       lang: 'ko',
       voice_enabled: true,
+      voice_order_enabled: true,
       large_font: false,
       custom_msg: '',
       ai_recommendation: false,
@@ -58,15 +59,17 @@ describe('매장별 팅커벨 설정', () => {
     });
   });
 
-  test.each([[{ ai_recommendation: 'true' }], [{ lang: 'fr' }], [{ custom_msg: 'a'.repeat(81) }]])(
-    '잘못된 값 %j 은 400으로 거부한다',
-    async (body) => {
-      const res = mockRes();
-      await settingsController.updateTinkerbellSettings({ params: { storeId: '5' }, body }, res);
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(prisma.store_tinkerbell_settings.upsert).not.toHaveBeenCalled();
-    }
-  );
+  test.each([
+    [{ ai_recommendation: 'true' }],
+    [{ voice_order_enabled: 'true' }],
+    [{ lang: 'fr' }],
+    [{ custom_msg: 'a'.repeat(81) }],
+  ])('잘못된 값 %j 은 400으로 거부한다', async (body) => {
+    const res = mockRes();
+    await settingsController.updateTinkerbellSettings({ params: { storeId: '5' }, body }, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(prisma.store_tinkerbell_settings.upsert).not.toHaveBeenCalled();
+  });
 
   test('AI 추천이 꺼진 매장은 AI를 호출하지 않는다', async () => {
     prisma.store_tinkerbell_settings.findUnique.mockResolvedValue({
