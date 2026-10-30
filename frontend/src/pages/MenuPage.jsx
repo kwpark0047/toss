@@ -726,15 +726,6 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
         onAssistantSpeak={speakVoiceOrderMessage}
       />}
 
-      {tinkerSettings?.enabled !== false && <VoiceOrderAssistant
-        storeId={storeId}
-        menuItems={menuItems}
-        lang={lang}
-        canOrder={storeOpen}
-        onAddDraft={addVoiceDraftToCart}
-        onAssistantSpeak={speakVoiceOrderMessage}
-      />}
-
       {/* Category Tabs */}
       <CategoryTabs categories={categoryNames} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
 
