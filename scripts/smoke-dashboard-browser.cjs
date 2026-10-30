@@ -94,7 +94,7 @@ async function main() {
       await page.screenshot({ path: path.resolve('reports', `dashboard-${name}.png`), fullPage: false });
       failStats = true;
       await page.getByRole('button', { name: '새로고침', exact: true }).click();
-      await page.getByRole('alert').filter({ hasText: '매출 또는 주문 정보를 불러오지 못했습니다' }).waitFor();
+      await page.getByRole('alert').filter({ hasText: '매출 정보를 불러오지 못했습니다' }).waitFor();
       assert.equal(errors.length, 0, errors.join('; '));
       results.push({ name, fixtureData: true, ...geometry, pageErrors: errors, failureState: 'visible' });
       await context.close();
