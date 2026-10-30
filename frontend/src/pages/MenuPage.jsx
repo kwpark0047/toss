@@ -717,7 +717,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 
       <ManagerFeaturedMenus storeId={storeId} menuItems={menuItems} storeOpen={menuOrderable} onAddToCart={handleAddToCartClick} />
 
-      {tinkerSettings?.enabled !== false && <VoiceOrderAssistant
+      {tinkerSettings?.enabled !== false && tinkerSettings?.voiceOrderEnabled !== false && <VoiceOrderAssistant
         storeId={storeId}
         menuItems={menuItems}
         lang={lang}
