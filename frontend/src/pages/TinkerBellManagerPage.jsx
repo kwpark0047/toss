@@ -6,7 +6,7 @@ import { adminAPI } from '../api/admin';
 import { DEFAULT_TINKERBELL_SETTINGS, fromServerTinkerBellSettings, toServerTinkerBellSettings } from '../utils/tinkerbell';
 import TinkerBell from '../components/ai/TinkerBell';
 import Icon from '../components/ui/Icon';
-import { BarChart3, ChevronRight, Globe, Info, RefreshCw, Sparkles, Sun, TrendingUp, ShoppingCart, Type, CloudRain, Snowflake, Flame } from 'lucide-react';
+import { BarChart3, ChevronRight, Globe, Info, RefreshCw, Sparkles, Sun, TrendingUp, ShoppingCart, Type, CloudRain, Snowflake, Flame, Mic } from 'lucide-react';
 
 // ── 데모용 메뉴 데이터 (미리보기용) ─────────────────────────────────────────
 // TinkerBell의 날씨별 추천 필터가 category_id / isHot / isCold 를 본다
@@ -153,6 +153,7 @@ export default function TinkerBellManagerPage() {
   const [lang,         setLang]         = useState(saved.lang);
   const [weather,      setWeather]      = useState('sun');
   const [voiceEnabled, setVoiceEnabled] = useState(saved.voiceEnabled);
+  const [voiceOrderEnabled, setVoiceOrderEnabled] = useState(saved.voiceOrderEnabled);
   const [largeFont,    setLargeFont]    = useState(saved.largeFont);
   const [triggerKey,   setTriggerKey]   = useState(0);
   const [lastAdded,    setLastAdded]    = useState(null);
@@ -167,6 +168,7 @@ export default function TinkerBellManagerPage() {
     setEnabled(s.enabled);
     setLang(s.lang);
     setVoiceEnabled(s.voiceEnabled);
+    setVoiceOrderEnabled(s.voiceOrderEnabled);
     setLargeFont(s.largeFont);
     setCustomMsg(s.customMsg || '');
     setAiRecEnabled(s.aiRecommendation);
@@ -187,8 +189,8 @@ export default function TinkerBellManagerPage() {
     return () => { cancelled = true; };
   }, [storeId, reloadKey]);
 
-  const current = { ...saved, enabled, lang, voiceEnabled, largeFont, customMsg, aiRecommendation: aiRecEnabled };
-  const dirty = ['enabled', 'lang', 'voiceEnabled', 'largeFont', 'customMsg', 'aiRecommendation']
+  const current = { ...saved, enabled, lang, voiceEnabled, voiceOrderEnabled, largeFont, customMsg, aiRecommendation: aiRecEnabled };
+  const dirty = ['enabled', 'lang', 'voiceEnabled', 'voiceOrderEnabled', 'largeFont', 'customMsg', 'aiRecommendation']
     .some(k => (current[k] ?? '') !== (saved[k] ?? ''));
   const canSave = loadState === 'ready' && dirty && !saving;
 
@@ -386,6 +388,21 @@ export default function TinkerBellManagerPage() {
                     <Info size={11} />
                     미리보기에서 약 11초 뒤 이 날씨에 맞는 추천 말풍선이 나옵니다. 실제 서비스는 매장 위치의 날씨를 자동으로 씁니다.
                   </p>
+                </div>
+
+                {/* 고객 메뉴 주문 설정 */}
+                <div className={`${CARD} space-y-5`}>
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <Mic size={14} className="text-orange-600" />
+                    고객 메뉴 주문
+                  </h3>
+                  <Toggle
+                    on={voiceOrderEnabled}
+                    onChange={setVoiceOrderEnabled}
+                    label="말로 메뉴 주문하기 버튼 표시"
+                    desc="켜면 이 매장의 QR 메뉴판에 음성 주문 버튼을 표시합니다"
+                  />
+                  <p className="text-xs text-slate-500">설정을 저장하면 해당 매장 고객 메뉴판에 적용됩니다. (기존 매장 기본값: 사용)</p>
                 </div>
 
                 {/* AI 추천 설정 */}
