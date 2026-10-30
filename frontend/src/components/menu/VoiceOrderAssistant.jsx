@@ -166,11 +166,21 @@ export default function VoiceOrderAssistant({
         type="button"
         onClick={() => { setIsOpen(true); setError(''); }}
         disabled={!canOrder}
-        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-extrabold text-orange-900 shadow-sm transition hover:bg-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-100 dark:hover:bg-orange-950/50"
+        aria-describedby={!canOrder ? 'voice-order-unavailable' : undefined}
+        className="group flex min-h-[68px] w-full items-center gap-3 rounded-2xl border border-orange-400/50 bg-gradient-to-r from-orange-500 via-orange-600 to-rose-600 px-4 py-3 text-left text-sm font-extrabold text-white shadow-lg shadow-orange-600/25 transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-75 disabled:hover:translate-y-0 disabled:hover:shadow-lg"
       >
-        <Mic size={18} aria-hidden="true" />
-        <span>말로 메뉴 주문하기</span>
-        <span className="text-xs font-semibold opacity-70">메뉴를 확인한 뒤 장바구니에 담아요</span>
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/20 ring-1 ring-white/30 transition group-hover:scale-105" aria-hidden="true">
+          <Mic size={21} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-base font-black leading-tight">말로 메뉴 주문하기</span>
+          <span id={!canOrder ? 'voice-order-unavailable' : undefined} className="mt-1 block text-xs font-semibold text-white/90">
+            {canOrder ? '메뉴를 확인한 뒤 장바구니에 담아요' : '매장 영업시간에 이용할 수 있어요.'}
+          </span>
+        </span>
+        <span className="shrink-0 rounded-full border border-white/30 bg-white/15 px-3 py-1.5 text-xs font-extrabold text-white">
+          {canOrder ? '누르고 말해 보세요' : '영업시간 확인'}
+        </span>
       </button>
 
       {isOpen && (

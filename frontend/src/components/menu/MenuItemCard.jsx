@@ -3,6 +3,7 @@ import { formatPriceWithOptions } from '../../lib/themePresets';
 import { vibrateClick } from '../../utils/notificationSound';
 import LazyImage from '../common/LazyImage';
 import Icon from '../../components/ui/Icon';
+import { normalizeAllergens } from '../../utils/menuMetadata';
 
 // TDS ListRow 상하 패딩 프리셋 (S/M/L/XL) — TDS ListRow 패딩과 1:1 매핑
 const PADDING = { S: 'py-2', M: 'py-3', L: 'py-4', XL: 'py-5' };
@@ -15,6 +16,7 @@ const PADDING = { S: 'py-2', M: 'py-3', L: 'py-4', XL: 'py-5' };
  */
 const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disabled, isGrid = false, padding = 'L', options }) => {
   const py = PADDING[padding] || PADDING.L;
+  const allergens = normalizeAllergens(item.allergens);
   const {
     showBadge = true,
     priceFormat = 'comma',
@@ -82,6 +84,11 @@ const MenuItemCard = ({ item, hasOptions, isPopular, isNew, onAddToCart, disable
         </div>
         {item.description && (
           <p className={`menu-desc mt-0.5 ${isGrid ? 'menu-desc-multiline min-h-8' : ''}`}>{item.description}</p>
+        )}
+        {allergens.length > 0 && (
+          <p className="mt-1 text-[11px] leading-snug text-amber-800 dark:text-amber-200" aria-label={`알레르기 유발 정보: ${allergens.join(', ')}`}>
+            알레르기 정보 · {allergens.join(' · ')}
+          </p>
         )}
         <div className={`flex items-center justify-between gap-2 ${isGrid ? 'mt-auto pt-3' : 'mt-1'}`}>
           <span className="menu-price block min-w-0 truncate">{formatPriceWithOptions(item.price, priceFormat, showPriceUnit)}</span>

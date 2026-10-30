@@ -87,3 +87,37 @@ export const getTodayHoursAt = ({ businessHours, openTime, closeTime }, date = n
   if (!openTime || !closeTime) return null;
   return { open: openTime, close: closeTime, closed: false };
 };
+
+/** 다음 영업 시작 시각을 반환합니다. 예약 시간 안내용이며, 영업 여부 판단을 대신하지 않습니다. */
+export const getNextOpenAt = ({ businessHours, openTime, closeTime }, date = new Date()) => {
+  const hours = parseBusinessHours(businessHours);
+  const seoulParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const part = (type) => Number(seoulParts.find((item) => item.type === type)?.value);
+  const year = part('year');
+  const month = part('month');
+  const day = part('day');
+  if (![year, month, day].every(Number.isFinite)) return null;
+
+  const seoulMidnightUtc = Date.UTC(year, month - 1, day);
+  for (let offset = 0; offset <= 7; offset += 1) {
+    const candidateDay = new Date(seoulMidnightUtc + offset * 24 * 60 * 60 * 1000);
+    const dayKey = DAY_KEYS[candidateDay.getUTCDay()];
+    const configured =
+      hours && Object.prototype.hasOwnProperty.call(hours, dayKey)
+        ? hours[dayKey]
+        : { open: openTime, close: closeTime, closed: false };
+    const range = rangeOf(configured);
+    if (!range) continue;
+
+    const opening = new Date(
+      seoulMidnightUtc + offset * 24 * 60 * 60 * 1000 + range.open * 60 * 1000 - 9 * 60 * 60 * 1000
+    );
+    if (opening > date) return opening;
+  }
+  return null;
+};

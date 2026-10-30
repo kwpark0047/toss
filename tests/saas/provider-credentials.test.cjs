@@ -97,6 +97,14 @@ test('weather cache is station/key specific, missing keys and errors are explici
   failing = true; assert.equal((await service.getCurrentWeather('101')).is_fallback, true);
   key = null; assert.equal((await service.getCurrentWeather('108')).source, 'unavailable');
   assert.equal(service.parseNowcast([{ category: 'T1H', obsrValue: 'invalid' }]), null);
+  const sleet = service.parseNowcast([
+    { category: 'T1H', obsrValue: '2' },
+    { category: 'REH', obsrValue: '70' },
+    { category: 'RN1', obsrValue: '1.0' },
+    { category: 'PTY', obsrValue: '2' },
+  ]);
+  assert.equal(sleet.isRaining, true);
+  assert.equal(sleet.condition, '진눈깨비');
   await assert.rejects(service.getCurrentWeather('108&authKey=evil'));
 });
 
