@@ -355,7 +355,9 @@ jobs:
       JWT_REFRESH_SECRET: test-refresh-secret
       TOSS_SECRET_KEY: test_sk_fixture_only
       SMS_ENV: dev
-    runs-on: ubuntu-latest
+    # Playwright 1.58.2 does not support the Ubuntu 26.04 image currently
+    # selected by ubuntu-latest. Keep browser installation on a supported LTS.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     needs: [backend-integration-tests, frontend-test]
     services:
