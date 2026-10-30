@@ -67,10 +67,10 @@ const summary = useMemo(() => data.summary || {
     const q = searchQuery.toLowerCase();
     return logs.filter(log => log.phone.includes(q) || log.templateId.toLowerCase().includes(q) || log.text.toLowerCase().includes(q));
   }, [logs, searchQuery]);
-  return <div className="space-y-8 text-slate-100 max-w-7xl mx-auto p-1 select-none font-sans">
+  return <div className="alimtalk-monitor space-y-8 text-slate-100 max-w-7xl mx-auto p-1 select-none font-sans">
       
       {/* 1. 최상단 통합 헤더바 */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-900">
+      <div className="alimtalk-monitor-header flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-900">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div className="p-2.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-xl">
@@ -78,7 +78,7 @@ const summary = useMemo(() => data.summary || {
             </div>
             <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
               알림톡 전송 콘솔
-              <span className="text-[10px] font-mono font-normal text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-850">
+              <span className="alimtalk-monitor-label text-[10px] font-mono font-normal text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-850">
                 Alimtalk & SMS Delivery Monitor
               </span>
             </h2>
@@ -91,10 +91,10 @@ const summary = useMemo(() => data.summary || {
         {/* 상단 컨트롤 패널 */}
         <div className="flex items-center gap-2.5">
           <div className="relative w-64">
-            <input type="text" placeholder="수신 번호, 템플릿, 문구 검색..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-slate-900 border border-slate-850 text-slate-200 rounded-xl px-10 py-2.5 text-xs focus:outline-none focus:border-orange-500 transition-all placeholder-slate-500" />
+            <input type="text" placeholder="수신 번호, 템플릿, 문구 검색..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="alimtalk-monitor-search w-full bg-slate-900 border border-slate-850 text-slate-200 rounded-xl px-10 py-2.5 text-xs focus:outline-none focus:border-orange-500 transition-all placeholder-slate-500" />
             <Icon icon="Search" size="md" className="size-4 text-slate-500 absolute left-3.5 top-3" />
           </div>
-          <button onClick={() => fetchAlimtalkHistory(true)} disabled={loading} className="w-10 h-10 rounded-xl border border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center bg-slate-950 active:scale-95">
+          <button onClick={() => fetchAlimtalkHistory(true)} disabled={loading} className="alimtalk-monitor-refresh w-10 h-10 rounded-xl border border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center bg-slate-950 active:scale-95">
             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -103,7 +103,7 @@ const summary = useMemo(() => data.summary || {
       {/* 2. 최상단 3-Column 알림 정산 KPI 카드 모듈 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* KPI 1: 총 발송 수량 */}
-        <div className="p-6 rounded-3xl bg-slate-900 border border-slate-850 shadow-2xl relative overflow-hidden flex flex-col justify-between h-36">
+        <div className="alimtalk-monitor-card p-6 rounded-3xl bg-slate-900 border border-slate-850 shadow-2xl relative overflow-hidden flex flex-col justify-between h-36">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[radial-gradient(circle_at_100%_0%,rgba(249,115,22,0.04),transparent_70%)] pointer-events-none" />
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">누적 알림 전송량</span>
@@ -121,7 +121,7 @@ const summary = useMemo(() => data.summary || {
         </div>
 
         {/* KPI 2: 전송 성공률 */}
-        <div className="p-6 rounded-3xl bg-slate-900 border border-slate-850 shadow-2xl relative overflow-hidden flex flex-col justify-between h-36">
+        <div className="alimtalk-monitor-card p-6 rounded-3xl bg-slate-900 border border-slate-850 shadow-2xl relative overflow-hidden flex flex-col justify-between h-36">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[radial-gradient(circle_at_100%_0%,rgba(59,130,246,0.04),transparent_70%)] pointer-events-none" />
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">알림 전송 도달 성공률</span>
@@ -138,7 +138,7 @@ const summary = useMemo(() => data.summary || {
         </div>
 
         {/* KPI 3: 누적 정산비용 */}
-        <div className="p-6 rounded-3xl bg-slate-900 border border-slate-850 shadow-2xl relative overflow-hidden flex flex-col justify-between h-36">
+        <div className="alimtalk-monitor-card p-6 rounded-3xl bg-slate-900 border border-slate-850 shadow-2xl relative overflow-hidden flex flex-col justify-between h-36">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[radial-gradient(circle_at_100%_0%,rgba(16,185,129,0.04),transparent_70%)] pointer-events-none" />
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">누적 소모 수수료 (정산대상)</span>
@@ -156,7 +156,7 @@ const summary = useMemo(() => data.summary || {
       </div>
 
       {/* 3. 실시간 전송 로그 테이블 */}
-      <div className="p-6 rounded-3xl bg-slate-900 border border-slate-850 space-y-4 shadow-2xl">
+      <div className="alimtalk-monitor-history p-6 rounded-3xl bg-slate-900 border border-slate-850 space-y-4 shadow-2xl">
         <div className="space-y-0.5">
           <h3 className="text-sm font-black text-white flex items-center gap-1.5">
             <Icon icon="BarChart3" />
@@ -165,10 +165,10 @@ const summary = useMemo(() => data.summary || {
           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Live Alimtalk Transmission History</p>
         </div>
 
-        <div className="overflow-x-auto border border-slate-850/60 rounded-2xl bg-slate-950/40">
+        <div className="alimtalk-monitor-table overflow-x-auto border border-slate-850/60 rounded-2xl bg-slate-950/40">
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
-              <tr className="border-b border-slate-850/60 text-[10px] font-black text-slate-500 uppercase tracking-wider bg-slate-900/30">
+              <tr className="alimtalk-monitor-table-head border-b border-slate-850/60 text-[10px] font-black text-slate-500 uppercase tracking-wider bg-slate-900/30">
                 <th className="p-4">수신 전화번호</th>
                 <th className="p-4">템플릿 식별자</th>
                 <th className="p-4">송신 메시지 본문</th>
@@ -185,7 +185,7 @@ const summary = useMemo(() => data.summary || {
                 </tr> : filteredLogs.map(log => {
               const isSms = log.fallback || log.simulated === false && log.sent === false;
               const formattedPhone = log.phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-****-$3');
-              return <tr key={log.id || log.timestamp} className="hover:bg-white/[0.01] transition-colors">
+              return <tr key={log.id || log.timestamp} className="alimtalk-monitor-row hover:bg-white/[0.01] transition-colors">
                       <td className="p-4 font-mono font-bold text-slate-200 tabular-nums">
                         {formattedPhone}
                       </td>
@@ -218,7 +218,7 @@ const summary = useMemo(() => data.summary || {
       </div>
 
       {/* 쇼케이스 및 타 대시보드로 돌아가기 링크바 */}
-      <footer className="mt-3 pt-3 border-t border-slate-900 flex items-center justify-between text-xs text-slate-500">
+      <footer className="alimtalk-monitor-footer mt-3 pt-3 border-t border-slate-900 flex items-center justify-between text-xs text-slate-500">
         <div className="flex items-center gap-2">
           <span>&copy; WeMarket Notification Display.</span>
           <span className="text-slate-700">|</span>
