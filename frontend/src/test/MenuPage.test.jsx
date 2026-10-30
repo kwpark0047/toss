@@ -330,6 +330,7 @@ describe('MenuPage', () => {
       expect(screen.getByText(/LanguageSelector/)).toBeInTheDocument();
       expect(screen.getByText(/TinkerBell/)).toBeInTheDocument();
       expect(screen.getByText(/StoreReviews/)).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: /말로 메뉴 주문하기/ })).toHaveLength(1);
     });
   });
 
