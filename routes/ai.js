@@ -411,7 +411,7 @@ router.post(
  *   post:
  *     tags: [AI]
  *     summary: AI 팅keeper 동적 메뉴 추천
- *     description: 매장 컨텍스트(날씨, 시간, 고객 선호도)를 기반으로 OmniRoute AI가 메뉴를 추천합니다.
+ *     description: 매장 컨텍스트(날씨, 시간, 고객 선호도)를 기반으로 AI가 메뉴를 추천합니다.
  *     requestBody:
  *       required: true
  *       content:
