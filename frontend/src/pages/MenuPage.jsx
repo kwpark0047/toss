@@ -246,15 +246,16 @@ const {
     i18n.changeLanguage(lang);
   }, [i18n, lang]);
   // 매장 사장님이 관리자 화면에서 저장한 팅커벨 설정 (실패 시 기본값: 표시 ON, AI 추천 OFF)
-  const { data: tinkerSettings } = useQuery({
+  const { data: tinkerSettings, isFetched: tinkerSettingsFetched } = useQuery({
     queryKey: ["tinkerbellSettings", storeId],
     queryFn: async () => {
       const raw = await storesAPI.getTinkerbellSettings(storeId);
       return fromServerTinkerBellSettings(raw?.data || raw);
     },
     enabled: isNumericStoreId,
-    staleTime: 300000,
-    retry: 1
+    staleTime: 30000,
+    retry: 1,
+    refetchOnWindowFocus: true
   });
   const [lastAddedItem, _setLastAddedItem] = useState(null);
 
@@ -799,7 +800,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 
       <LanguageSelector currentLang={lang} onSelectLang={handleLangChange} />
 
-      {tinkerSettings?.enabled !== false && <TinkerBell lang={lang} menuItems={menuItems} weatherData={weatherData} voiceEnabled={tinkerSettings?.voiceEnabled ?? true} largeFont={tinkerSettings?.largeFont ?? false} lastAddedItem={lastAddedItem} voiceOrderMessage={voiceOrderMessage} storeId={tinkerSettings?.aiRecommendation ? Number(storeId) : null} />}
+      {tinkerSettingsFetched && tinkerSettings?.enabled !== false && <TinkerBell lang={lang} menuItems={menuItems} weatherData={weatherData} voiceEnabled={tinkerSettings?.voiceEnabled ?? true} largeFont={tinkerSettings?.largeFont ?? false} lastAddedItem={lastAddedItem} voiceOrderMessage={voiceOrderMessage} storeId={tinkerSettings?.aiRecommendation ? Number(storeId) : null} customGreeting={tinkerSettings?.customMsg ?? ''} customGreetingLanguage={tinkerSettings?.lang ?? 'ko'} />}
     </div>
     </div>
   );

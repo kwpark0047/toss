@@ -66,7 +66,7 @@ const isValidStoreId = (v) => /^[1-9]\d*$/.test(String(v).trim());
 // ── 폰 프레임 미리보기 ────────────────────────────────────────────────────────
 // 고객 화면을 흉내 내므로 항상 밝은 화면이다. admin-dark-scope로 라이트 테마 오버라이드를 막아
 // 말풍선(bg-slate-900 + text-white)이 라이트 테마에서도 읽히게 한다.
-function PhonePreview({ lang, weather, voiceEnabled, largeFont, triggerKey, lastAddedItem, aiStoreId }) {
+function PhonePreview({ lang, weather, voiceEnabled, largeFont, triggerKey, lastAddedItem, aiStoreId, customMsg }) {
   return (
     <div className="admin-dark-scope relative mx-auto" style={{ width: 280, height: 560 }}>
       {/* 폰 외곽선 */}
@@ -112,6 +112,8 @@ function PhonePreview({ lang, weather, voiceEnabled, largeFont, triggerKey, last
             previewTrigger={triggerKey}
             lastAddedItem={lastAddedItem}
             storeId={aiStoreId}
+            customGreeting={customMsg}
+            customGreetingLanguage={lang}
           />
         </div>
       </div>
@@ -415,7 +417,7 @@ export default function TinkerBellManagerPage() {
                     on={aiRecEnabled}
                     onChange={setAiRecEnabled}
                     label="AI 기반 동적 추천 활성화"
-                    desc="OmniRoute AI가 날씨, 시간, 고객 이력을 기반으로 메뉴를 추천합니다"
+                    desc="AI가 날씨, 시간, 고객 이력을 기반으로 메뉴를 추천합니다"
                   />
                   <p className="text-xs text-slate-500">
                     {!aiRecEnabled
@@ -446,8 +448,8 @@ export default function TinkerBellManagerPage() {
 
                 {/* 커스텀 인삿말 */}
                 <div className={CARD}>
-                  <h3 className="text-sm font-black text-slate-900 mb-1">커스텀 인삿말 <span className="text-xs font-normal text-slate-500 ml-1">미출시 기능</span></h3>
-                  <p className="text-xs text-slate-500 mb-3">매장만의 특별한 인삿말을 설정할 수 있습니다</p>
+                  <h3 className="text-sm font-black text-slate-900 mb-1">커스텀 인삿말</h3>
+                  <p className="text-xs text-slate-500 mb-3">선택한 언어의 고객 메뉴판에서 팅커벨이 처음 인사할 문구입니다. 음성 안내가 켜져 있으면 함께 읽어줍니다.</p>
                   <textarea
                     rows={3}
                     maxLength={CUSTOM_MSG_MAX}
@@ -458,7 +460,10 @@ export default function TinkerBellManagerPage() {
                   />
                   <div className="flex justify-between items-center mt-2">
                     <span className="text-xs text-slate-500">{customMsg.length}/{CUSTOM_MSG_MAX}자</span>
-                    <span className="text-xs text-slate-500">준비 중 — 추후 업데이트 예정</span>
+                    <span className="text-xs text-slate-500">미리보기에서 ‘재시작’을 눌러 확인하세요</span>
+                  </div>
+                  <div className="mt-3 rounded-xl border border-orange-100 bg-orange-50 px-3 py-2.5 text-sm text-slate-700" aria-live="polite">
+                    {customMsg.trim() || '안녕하세요! 메뉴 안내 도와드릴게요 ✨'}
                   </div>
                 </div>
 
@@ -495,7 +500,7 @@ export default function TinkerBellManagerPage() {
                   </div>
 
                   {enabled
-                    ? <PhonePreview lang={lang} weather={weather} voiceEnabled={voiceEnabled} largeFont={largeFont} triggerKey={triggerKey} lastAddedItem={lastAdded} aiStoreId={aiStoreId} />
+                    ? <PhonePreview lang={lang} weather={weather} voiceEnabled={voiceEnabled} largeFont={largeFont} triggerKey={triggerKey} lastAddedItem={lastAdded} aiStoreId={aiStoreId} customMsg={customMsg} />
                     : (
                       <div className="mx-auto" style={{ width: 280, height: 420 }}>
                         <div className="w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 text-slate-500">

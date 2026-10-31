@@ -98,7 +98,7 @@ vi.mock('@/components/customer/StoreReviews', () => ({ default: () => 'StoreRevi
 vi.mock('@/components/customer/LegalFooter', () => ({ default: () => 'LegalFooter' }));
 vi.mock('@/components/common/EmptyState', () => ({ default: () => 'EmptyState' }));
 vi.mock('@/components/menu/LanguageSelector', () => ({ default: () => 'LanguageSelector' }));
-vi.mock('@/components/ai/TinkerBell', () => ({ default: ({ storeId }) => `TinkerBell ai:${storeId ?? 'off'}` }));
+vi.mock('@/components/ai/TinkerBell', () => ({ default: ({ storeId, customGreeting = '', customGreetingLanguage = 'ko' }) => `TinkerBell ai:${storeId ?? 'off'} greeting:${customGreeting} language:${customGreetingLanguage}` }));
 
 // Import after all mocks
 import MenuPage from '@/pages/MenuPage';
@@ -351,6 +351,19 @@ describe('MenuPage', () => {
     productsAPI.getByStore.mockResolvedValue({ data: [{ id: 1, name: '아메리카노', price: 3000 }] });
     render(h(MenuPage), { wrapper: createWrapper() });
     expect(await screen.findByText(/TinkerBell ai:1/)).toBeInTheDocument();
+  });
+
+  it('팅커벨: 저장된 매장 인삿말과 설정 언어를 고객 메뉴판에 전달한다', async () => {
+    storesAPI.getById.mockResolvedValue({ data: { id: 1, name: '테스트', theme: null } });
+    storesAPI.getTinkerbellSettings.mockResolvedValue({
+      data: { enabled: true, custom_msg: '어서 오세요. 오늘의 메뉴를 안내해 드릴게요.', lang: 'ko' },
+    });
+    categoriesAPI.getByStore.mockResolvedValue({ data: [] });
+    productsAPI.getByStore.mockResolvedValue({ data: [{ id: 1, name: '아메리카노', price: 3000 }] });
+
+    render(h(MenuPage), { wrapper: createWrapper() });
+
+    expect(await screen.findByText(/greeting:어서 오세요\. 오늘의 메뉴를 안내해 드릴게요\. language:ko/)).toBeInTheDocument();
   });
 
   it('팅커벨: 매장이 끄면 고객 화면에 표시하지 않는다', async () => {

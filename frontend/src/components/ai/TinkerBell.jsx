@@ -265,6 +265,8 @@ export default function TinkerBell({
    previewTrigger = 0,
    adminMode = false,
    storeId = null,
+   customGreeting = '',
+   customGreetingLanguage = 'ko',
  }) {
   // weather('sun'|'rain'|'cold'|'hot')를 직접 넘기면 미리보기 값이 우선합니다.
   const weather = weatherOverride || getLiveWeatherKind(weatherData);
@@ -282,6 +284,17 @@ const [isHappy,  setIsHappy]  = useState(false);
 const typingRef  = useRef(null);
    const sparkId    = useRef(0);
    const prevAdded  = useRef(null);
+   const customGreetingRef = useRef(customGreeting);
+   customGreetingRef.current = customGreeting;
+
+   const getGreeting = useCallback(() => {
+     const L = I18N[lang] || I18N.ko;
+     const custom = !adminMode && lang === customGreetingLanguage && customGreetingRef.current?.trim();
+     return {
+       text: adminMode ? pick(L.admin) : custom || pick(L.greet),
+       voiceKey: adminMode ? 'biz_greeting' : custom ? null : 'cust_welcome',
+     };
+   }, [lang, adminMode, customGreetingLanguage]);
 
    // ── AI 추천 가져오기 (OmniRoute 기반) ──────────────────────────
    const fetchAIRec = useCallback(async () => {
@@ -374,18 +387,20 @@ const typingRef  = useRef(null);
   }, []);
 
   // ── 입장 ──────────────────────────────────────────────────────────────────
-  const entrance = useCallback(() => {
+  const entrance = useCallback((replayGreeting = false) => {
     setIsBusy(true); setBubble({ show: false, ctx: '', typed: '', full: '' });
     setTimeout(() => {
       setVisible(true);
       setTimeout(() => {
         spawnSparks(10);
-        const L = I18N[lang] || I18N.ko;
-        say('', adminMode ? pick(L.admin) : pick(L.greet), false, adminMode ? 'biz_greeting' : 'cust_welcome');
+        if (replayGreeting) {
+          const greeting = getGreeting();
+          say('', greeting.text, false, greeting.voiceKey);
+        }
         setIsBusy(false);
       }, 900);
     }, 120);
-  }, [lang, adminMode, say, spawnSparks]);
+  }, [getGreeting, say, spawnSparks]);
 
   // ── 마운트 입장 ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -396,15 +411,15 @@ const typingRef  = useRef(null);
   // ── previewTrigger 변경 시 재등장 (관리자 미리보기) ───────────────────────
   useEffect(() => {
     if (previewTrigger === 0) return;
-    entrance();
+    entrance(true);
   }, [previewTrigger, entrance]);
 
   // ── 언어 변경 시 인사 ────────────────────────────────────────────────────
   useEffect(() => {
     if (!visible) return;
-    const L = I18N[lang] || I18N.ko;
-    say('', adminMode ? pick(L.admin) : pick(L.greet), false, adminMode ? 'biz_greeting' : 'cust_welcome');
-  }, [lang, visible, adminMode, say]);
+    const greeting = getGreeting();
+    say('', greeting.text, false, greeting.voiceKey);
+  }, [lang, visible, adminMode, getGreeting, say]);
 
   // ── 유동 부유 ────────────────────────────────────────────────────────────
   useEffect(() => {
