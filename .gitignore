@@ -58,3 +58,9 @@ coverage/
 
 # Agent 작업 디렉토리
 .omo/
+
+# 에이전트/로컬 임시 작업 디렉토리 (DB 백업·비밀번호 파일이 생성될 수 있음 — 절대 커밋 금지)
+.codex-tmp/
+.tmp/
+frontend/.codex-tmp/
+frontend/.tmp/
