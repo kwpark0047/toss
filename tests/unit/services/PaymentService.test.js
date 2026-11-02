@@ -893,6 +893,55 @@ describe('PaymentService', () => {
       expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
     });
 
+    test('취소된 주문은 PG 승인을 호출하지 않는다', async () => {
+      prisma.orders.findUnique.mockResolvedValue({
+        id: 1,
+        store_id: 1,
+        order_number: 'ORD-001',
+        total_amount: 50000,
+        status: 'cancelled',
+      });
+      prisma.payments.findFirst.mockResolvedValue({ id: 10, order_id: 1, status: 'READY', amount: 50000 });
+
+      await expect(service.processApproval('pk_regular', 'ORD-001', 50000)).rejects.toThrow(/취소된 주문/);
+      expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
+    });
+
+    test('PG 승인 직후 주문이 취소돼 있으면 DONE 처리하지 않고 승인분을 자동 취소한다', async () => {
+      prisma.orders.findUnique.mockResolvedValue({
+        id: 1,
+        store_id: 1,
+        order_number: 'ORD-001',
+        total_amount: 50000,
+        status: 'pending',
+      });
+      prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+      prisma.payments.findFirst
+        .mockResolvedValueOnce({ id: 10, order_id: 1, status: 'READY', amount: 50000 })
+        .mockResolvedValueOnce(null);
+      TossAPI.confirmPayment.mockResolvedValue({
+        paymentKey: 'pk_regular',
+        method: 'CARD',
+        totalAmount: 50000,
+        card: {},
+        receipt: {},
+      });
+      mockTx.orders.findUnique.mockResolvedValue({
+        id: 1,
+        store_id: 1,
+        order_number: 'ORD-001',
+        total_amount: 50000,
+        status: 'cancelled',
+      });
+
+      await expect(service.processApproval('pk_regular', 'ORD-001', 50000)).rejects.toThrow(/취소된 주문/);
+      expect(mockTx.payments.updateMany).not.toHaveBeenCalled();
+      expect(ledgerService.recordIncome).not.toHaveBeenCalled();
+      expect(
+        require('../../../services/PaymentCompensationService').autoCancel
+      ).toHaveBeenCalledWith('pk_regular', expect.stringContaining('취소된 주문'));
+    });
+
     test('[2차 방어] PG 승인 금액이 READY 금액과 다르면 DONE 처리하지 않고 자동 취소한다', async () => {
       // 요청 금액은 정상 통과시키되, PG가 다른 금액을 승인한 상황을 재현
       prisma.orders.findUnique.mockResolvedValue({

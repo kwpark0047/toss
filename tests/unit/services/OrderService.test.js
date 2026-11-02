@@ -243,6 +243,17 @@ describe('OrderService', () => {
   describe('customerCancelOrder — 손님 셀프 취소', () => {
     const pendingOrder = { id: 5, store_id: 1, status: 'pending', payment_status: 'pending', is_split_payment: false };
 
+    beforeEach(() => {
+      prisma.$queryRaw = jest.fn().mockResolvedValue([{ id: 5 }]);
+      prisma.$transaction.mockImplementationOnce((cb) => cb(prisma));
+    });
+
+    afterEach(() => {
+      delete prisma.$queryRaw;
+      // 트랜잭션을 타지 않고 끝난 테스트의 1회용 구현이 다음 테스트로 새지 않게 한다.
+      prisma.$transaction.mockReset();
+    });
+
     test('주방 접수 전·결제 전 주문은 조건부 갱신으로 취소하고 매장·주방·주문 룸에 알린다', async () => {
       Order.findById.mockResolvedValue(pendingOrder);
       prisma.payments.count.mockResolvedValue(0);
@@ -259,6 +270,10 @@ describe('OrderService', () => {
       expect(mockIo.to).toHaveBeenCalledWith('store - 1');
       expect(mockIo.to).toHaveBeenCalledWith('kitchen - 1');
       expect(mockIo.to).toHaveBeenCalledWith('order - 5');
+      expect(prisma.$queryRaw).toHaveBeenCalled();
+      expect(prisma.payments.count).toHaveBeenCalledWith({
+        where: { order_id: 5, status: { in: ['READY', 'DONE', 'PARTIAL_CANCELED'] } },
+      });
     });
 
     test('주방이 이미 확인한 주문은 거절한다', async () => {
@@ -273,7 +288,7 @@ describe('OrderService', () => {
 
       Order.findById.mockResolvedValue(pendingOrder);
       prisma.payments.count.mockResolvedValueOnce(1);
-      await expect(svc.customerCancelOrder(5)).rejects.toThrow('결제가 완료된');
+      await expect(svc.customerCancelOrder(5)).rejects.toThrow('결제가 진행 중이거나 완료된');
       expect(prisma.orders.updateMany).not.toHaveBeenCalled();
     });
 

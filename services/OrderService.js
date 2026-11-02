@@ -19,6 +19,8 @@ const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
 
 // 손님 셀프 취소를 허용하는 결제 상태 (결제 전이거나 결제 실패)
 const SELF_CANCELLABLE_PAYMENT_STATUSES = ['pending', 'failed'];
+// 결제 대기(READY)·완료·부분취소 결제가 있으면 셀프 취소하지 않는다
+const PAYMENT_IN_PROGRESS_STATUSES = ['READY', 'DONE', 'PARTIAL_CANCELED'];
 
 // Haversine formula for distance in km
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -397,19 +399,29 @@ class OrderService {
     if (order.is_split_payment) {
       throw new AppError('분할 결제 주문은 직원에게 취소를 요청해 주세요.', 409);
     }
-    const paidPayments = await prisma.payments.count({ where: { order_id: orderId, status: 'DONE' } });
-    if (!SELF_CANCELLABLE_PAYMENT_STATUSES.includes(order.payment_status ?? 'pending') || paidPayments > 0) {
+    if (!SELF_CANCELLABLE_PAYMENT_STATUSES.includes(order.payment_status ?? 'pending')) {
       throw new AppError('결제가 완료된 주문은 환불이 필요해 직원에게 취소를 요청해 주세요.', 409);
     }
 
-    // 주방 접수와 동시에 눌린 경우를 막기 위해 상태 조건부로 갱신한다.
-    const { count } = await prisma.orders.updateMany({
-      where: { id: orderId, status: 'pending', payment_status: { in: SELF_CANCELLABLE_PAYMENT_STATUSES } },
-      data: { status: 'cancelled', updated_at: new Date() },
+    // 주문 행을 잠근 채로 결제 진행 여부를 확인하고 취소한다.
+    // 결제가 진행 중(READY)이거나 끝난(DONE 등) 주문은 PG 승인·이체 확인과 엇갈릴 수 있어 직원 취소로 넘긴다.
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM orders WHERE id = ${orderId} FOR UPDATE`;
+      const activePayments = await tx.payments.count({
+        where: { order_id: orderId, status: { in: PAYMENT_IN_PROGRESS_STATUSES } },
+      });
+      if (activePayments > 0) {
+        throw new AppError('결제가 진행 중이거나 완료된 주문은 직원에게 취소를 요청해 주세요.', 409);
+      }
+      // 주방 접수와 동시에 눌린 경우를 막기 위해 상태 조건부로 갱신한다.
+      const { count } = await tx.orders.updateMany({
+        where: { id: orderId, status: 'pending', payment_status: { in: SELF_CANCELLABLE_PAYMENT_STATUSES } },
+        data: { status: 'cancelled', updated_at: new Date() },
+      });
+      if (count !== 1) {
+        throw new AppError('주방에서 이미 주문을 확인했어요. 취소는 직원에게 요청해 주세요.', 409);
+      }
     });
-    if (count !== 1) {
-      throw new AppError('주방에서 이미 주문을 확인했어요. 취소는 직원에게 요청해 주세요.', 409);
-    }
 
     // pending 단계는 재고를 차감하지 않으므로 재고 복구는 하지 않는다.
     await this._revertPointsOnCancel(orderId).catch((e) =>
