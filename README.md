@@ -7,9 +7,13 @@
 - **버전**: `1.3.0` (`package.json`)
 - **Node 요구사항**: `>=22.22.0`
 - **백엔드 진입점**: `index.mts` (ESM)
-- **배포 토폴로지**: 백엔드 API는 Render(`https://wemarket.onrender.com`), 프론트엔드는
-  Cloudflare Workers Static Assets(`https://toss.wemarket.workers.dev`)에서 제공한다.
-  Cloudflare Worker가 `/api/*`를 백엔드로 프록시한다.
+- **배포 토폴로지**: 프론트엔드는 Vercel 프로젝트 `wemarket-saas`(`https://wemarket-saas.vercel.app`),
+  백엔드 API는 Render 서비스 `wemarket`(`https://wemarket-eiw4.onrender.com`)에서 운영한다.
+  `vercel.json`이 `/api/*`를 Render로 프록시하므로 브라우저는 같은 오리진으로 API를 호출한다.
+  - `https://wemarket.onrender.com`은 별도(구) Render 서비스로 운영 DB에 연결되지 않는다(2026-11-02 health `db=unreachable`).
+  - Cloudflare Workers(`toss.wemarket.workers.dev`, `wrangler.jsonc`) 배포는 레거시다.
+  - Render는 `autoDeploy: false`(`render.yaml`)라 main 머지 후 수동 배포가 필요하다.
+    배포된 커밋은 `/api/health`의 `revision`으로 확인한다.
 
 ---
 
@@ -27,7 +31,7 @@
 | 외부 연동 | Toss Payments, Google Gemini(AI), Firebase(메시징), Naver/Kakao 등 |
 | 모니터링 | Prometheus + Grafana + Loki + Promtail + Alertmanager (`monitoring/`) |
 
-스키마에는 **86개의 Prisma 모델**, 백엔드에는 **60+개의 Express 라우터**가 등록되어 있다.
+스키마에는 **120개의 Prisma 모델**, 백엔드에는 **74개의 Express 라우터 파일(약 540개 엔드포인트)**이 있다.
 
 ---
 
@@ -35,7 +39,8 @@
 
 ### 1. 환경 변수
 
-백엔드 실행 전에 `.env` 파일을 구성한다. 필수 변수:
+백엔드 실행 전에 `cp .env.example .env`로 `.env` 파일을 구성한다. 전체 목록과 설명은
+`.env.example`, 운영 Render 설정은 `render.yaml`의 `envVars`가 기준이다. 주요 변수:
 
 ```bash
 # DB
@@ -47,7 +52,9 @@ REPLICA_URL=postgresql://...  # (선택) 읽기 복제본
 JWT_SECRET=...                # access token (16자 이상)
 JWT_REFRESH_SECRET=...
 PHONE_ENC_KEY=...             # 휴대폰 번호 AES-256-CBC 암호화 키 (>=16자)
-TOKEN_ENC_KEY=...
+TOKEN_ENC_KEY=...             # (선택) OAuth 토큰 암호화 키
+TURNSTILE_SITE_KEY=...        # 간편가입 봇 방지 (FREE_AUTH_* 와 함께)
+TURNSTILE_SECRET_KEY=...
 
 # 결제 (Toss)
 TOSS_SECRET_KEY=...
@@ -61,7 +68,7 @@ FIREBASE_SERVICE_ACCOUNT_JSON=
 FIREBASE_SERVICE_ACCOUNT_PATH=
 
 # CORS
-CORS_ORIGIN=https://toss.wemarket.workers.dev
+CORS_ORIGIN=https://wemarket-saas.vercel.app
 FRONTEND_URL=
 BACKEND_URL=
 
@@ -75,6 +82,7 @@ SMS_API_SECRET=...
 SUPABASE_URL=...
 SUPABASE_SERVICE_ROLE_KEY=...
 SUPABASE_STORAGE_BUCKET=...
+SUPABASE_PRIVATE_BUCKET=...
 ```
 
 ### 2. 의존성 및 DB 준비
@@ -89,9 +97,7 @@ npm run seed             # 시드 데이터 투입
 ### 3. 백엔드 실행
 
 ```bash
-node index.mts           # 서버 실행
-# 또는
-npm start
+npm start                # = node --import tsx index.mts
 ```
 
 기본 API 베이스: `http://localhost:3000/api`, 헬스체크: `http://localhost:3000/api/health`
@@ -144,7 +150,8 @@ npm run security:scan:frontend
 
 ```bash
 npm run build             # Prisma 클라이언트 생성 + 프론트엔드 빌드
-npm run cloudflare-build  # 프론트엔드만 (Cloudflare Workers Static Assets)
+npm run vercel-build      # 프론트엔드만 (Vercel)
+npm run cloudflare-build  # 프론트엔드만 (레거시 Cloudflare Workers)
 ```
 
 ---
@@ -153,10 +160,10 @@ npm run cloudflare-build  # 프론트엔드만 (Cloudflare Workers Static Assets
 
 ### 백엔드 (`/`)
 
-- **진입점**: `index.mts` → `app.js`
+- **진입점**: `index.mts` → `app.mts` (`tsx`로 실행)
 - **프레임워크**: Express 5 + Socket.io
 - **DB**: Prisma ORM + PostgreSQL (Supabase). `config/prisma.js`에서 싱글턴 생성
-- **라우팅**: `app.js`에서 `/api/<리소스>` 형태로 라우터 일괄 등록. 라우터 파일은 `routes/`에 위치
+- **라우팅**: `app.mts`에서 `/api/<리소스>` 형태로 라우터 일괄 등록. 라우터 파일은 `routes/`에 위치
 - **계층 구조**: `routes/`(HTTP 바운더리) → `controllers/`(진입 로직) → `services/`(비즈니스 로직) → `repositories/`(데이터 접근), `app/`에 clean-arch(domain/application/infrastructure/interfaces) 레이어도 존재
 - **SPA 폴백**: `/api/*`가 아닌 모든 GET은 `frontend/dist/index.html`로 폴백
 
@@ -175,7 +182,7 @@ repositories/  데이터 접근 계층
 middleware/    auth.js, storeAuth.js, validate.js, responseFormatter.js, performanceMonitor.js
 utils/         errorHandler.js, i18n.js, logger.js(Winston), phoneEncryption.js(AES-256-CBC)
 config/        설정 (prisma.js 등)
-prisma/        schema.prisma — 단일 진실 원천 (86 모델)
+prisma/        schema.prisma — 단일 진실 원천 (120 모델)
 app/           clean-arch 레이어 (domain/application/infrastructure/interfaces)
 scripts/       유틸리티/백필 (mask_card_numbers.js, validate-*.js, seed_*.js 등)
 monitoring/    Prometheus/Grafana/Loki/Promtail/Alertmanager 설정
@@ -251,8 +258,9 @@ customer - waiting - {phone}  대기 상태 추적 (고객)
 
 | 플랫폼 | 대상 | 방식 |
 |--------|------|------|
-| Render | 백엔드 API 서버 | GitHub Actions `deploy` 잡이 `RENDER_DEPLOY_HOOK_URL`로 트리거 |
-| Cloudflare Workers Static Assets | 프론트엔드 정적 파일 | `wrangler-action` (wrangler v4) |
+| Render (`wemarket`, `render.yaml`) | 백엔드 API 서버 | `autoDeploy: false` — 대시보드 수동 배포 또는 `RENDER_DEPLOY_HOOK_URL` 훅. 빌드 시 `scripts/deploy-migrations.cjs --apply`로 마이그레이션 적용 |
+| Vercel (`wemarket-saas`, `vercel.json`) | 프론트엔드 정적 파일 + `/api/*` 프록시 | GitHub 연동 자동 배포 |
+| Cloudflare Workers | (레거시) 프론트엔드 | 사용하지 않음 |
 | GitHub Actions | CI/CD | `.github/workflows/ci.yml` 등 (아래 참조) |
 
 GitHub Actions 워크플로우 (`.github/workflows/`):
