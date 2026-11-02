@@ -20,7 +20,6 @@ module.exports = [
       // TypeScript 컴파일 출력물 — 소스는 .ts 파일에서 관리
       'services/KdsService.js',
       'utils/kstTime.js',
-      'test_prisma.js',
       'playwright.config.js',
     ],
   },
@@ -90,7 +89,7 @@ module.exports = [
   {
     // e2e 테스트 (Playwright). test/expect는 @playwright/test에서 import하며,
     // page.evaluate 콜백은 브라우저 컨텍스트라 브라우저 전역이 필요하다.
-    files: ['**/*.spec.js', 'tests/e2e/**/*.js', 'kitchen_test_runner.js'],
+    files: ['**/*.spec.js', 'tests/e2e/**/*.js', 'scripts/legacy/kitchen_test_runner.js'],
     languageOptions: {
       globals: {
         ...globals.browser,

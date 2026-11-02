@@ -64,3 +64,6 @@ coverage/
 .tmp/
 frontend/.codex-tmp/
 frontend/.tmp/
+
+# 코드 그래프 분석 캐시 (로컬 도구 산출물)
+graphify-out/
