@@ -18,3 +18,17 @@ it('refreshes an owned order when the live event was missed',async()=>{
  expect(api.getById).toHaveBeenCalledTimes(2);
  expect(screen.getByText('order_status.messages.confirmed')).toBeInTheDocument();
 });
+it('shows the ETA as soon as the order loads and keeps the 30s refresh despite 5s order polling',async()=>{
+ vi.useFakeTimers();
+ api.getEta.mockReset();
+ api.getEta.mockResolvedValue({data:{etaMinutes:12,activeOrdersAhead:2}});
+ const order={id:1,store_id:1,status:'pending',total_amount:5000,items:[{product_id:3,quantity:1}]};
+ api.getById.mockReset();
+ api.getById.mockImplementation(async()=>({data:{...order}}));
+ await act(async()=>{render(<OrderStatusModal isOpen orderId={1} storeId={1} capability="fixture-owned-order"/>);});
+ expect(api.getEta).toHaveBeenCalledTimes(1);
+ expect(api.getEta).toHaveBeenCalledWith(1,[{product_id:3,quantity:1}]);
+ expect(screen.getByText('order_status.eta_minutes')).toBeInTheDocument();
+ await act(async()=>{await vi.advanceTimersByTimeAsync(30000);});
+ expect(api.getEta).toHaveBeenCalledTimes(2);
+});

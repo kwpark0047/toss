@@ -248,8 +248,8 @@ const orderControllerDataLoader = {
       parsedItems = [];
     }
 
-    const etaService = new EtaPredictionService();
-    const eta = await etaService.calculateEta(storeId, parsedItems);
+    // EtaPredictionService 는 싱글턴 인스턴스로 export 된다.
+    const eta = await EtaPredictionService.calculateEta(storeId, parsedItems);
     res.success(eta);
   }),
 

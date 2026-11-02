@@ -1,5 +1,5 @@
 import { formatWon } from '../../utils/format';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, CheckCircle2, ChefHat, BellRing, Package, Loader2, Timer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -87,14 +87,23 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
     }
   }, [isOpen, fetchOrder]);
 
+  // 주문은 5초마다 다시 불러와 fetchEta 참조가 계속 바뀌므로, 최신 함수를 ref 로 들고 있는다.
+  // (의존성에 fetchEta 를 두면 30초 타이머가 5초마다 초기화되어 ETA 가 한 번도 표시되지 않는다)
+  const fetchEtaRef = useRef(fetchEta);
+  useEffect(() => { fetchEtaRef.current = fetchEta; }, [fetchEta]);
+
+  // 주문을 처음 불러왔을 때와 상태가 바뀔 때 즉시 ETA 조회
+  const orderEtaKey = order ? `${order.id}:${order.status}` : null;
+  useEffect(() => {
+    if (isOpen && orderEtaKey) fetchEtaRef.current();
+  }, [isOpen, orderEtaKey]);
+
   // ETA 주기적 갱신 (30초마다)
   useEffect(() => {
     if (!isOpen || !storeId) return;
-    const t = setInterval(() => {
-      fetchEta();
-    }, 30000);
+    const t = setInterval(() => fetchEtaRef.current(), 30000);
     return () => clearInterval(t);
-  }, [isOpen, storeId, fetchEta]);
+  }, [isOpen, storeId]);
 
   // 소켓: orderId 룸 구독 + 실시간 상태 수신
   useEffect(() => {
@@ -225,7 +234,7 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
                   </div>
 
                   {/* ── 예상 소요 시간(ETA) ── */}
-                  {eta && !isCancelled && status !== 'completed' && (
+                  {eta && !isCancelled && status !== 'completed' && status !== 'ready' && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -235,13 +244,13 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
                         <Timer className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">예상 소요 시간</p>
+                        <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{t('order_status.eta_label')}</p>
                         <p className="text-lg font-black text-blue-700 dark:text-blue-300 mt-0.5">
-                          {eta.etaMinutes}분
+                          {t('order_status.eta_minutes', { minutes: eta.etaMinutes })}
                         </p>
                       </div>
                       <p className="text-xs text-blue-500 dark:text-blue-500">
-                        대기 주문 {eta.activeOrdersAhead}건
+                        {t('order_status.eta_orders_ahead', { count: eta.activeOrdersAhead })}
                       </p>
                     </motion.div>
                   )}
