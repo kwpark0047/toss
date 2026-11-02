@@ -237,6 +237,26 @@ describe('OrderService', () => {
     });
   });
 
+  describe('createOrder — 바쁨 모드', () => {
+    test('사장님이 주문을 일시정지하면 새 주문을 거절한다', async () => {
+      Store.findById.mockResolvedValue({ id: 1, name: '바쁜매장' });
+      prisma.store_order_pace = {
+        findUnique: jest.fn().mockResolvedValue({
+          extra_wait_minutes: 0,
+          orders_paused_until: new Date(Date.now() + 10 * 60 * 1000),
+        }),
+      };
+      try {
+        await expect(
+          svc.createOrder({ store_id: 1, items: [{ product_id: 100, quantity: 1 }], total_amount: 3000 })
+        ).rejects.toThrow('잠시 주문을 받지 않고');
+        expect(Order.create).not.toHaveBeenCalled();
+      } finally {
+        delete prisma.store_order_pace;
+      }
+    });
+  });
+
   describe('createOrder — 쿠폰 검증', () => {
     beforeEach(() => {
       Store.findById.mockResolvedValue({ id: 1, name: '테스트매장' });

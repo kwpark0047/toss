@@ -2,13 +2,17 @@ jest.mock('../../../utils/logger', () => ({ debug: jest.fn(), info: jest.fn(), w
 jest.mock('../../../config/prisma', () => ({
   orders: { count: jest.fn() },
   products: { findMany: jest.fn() },
+  store_order_pace: { findUnique: jest.fn() },
 }));
 
 const prisma = require('../../../config/prisma');
 const EtaPredictionService = require('../../../services/EtaPredictionService');
 
 describe('EtaPredictionService', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.store_order_pace.findUnique.mockResolvedValue(null);
+  });
 
   test('싱글턴 인스턴스로 export 되어 바로 호출할 수 있다', () => {
     expect(typeof EtaPredictionService.calculateEta).toBe('function');
@@ -42,5 +46,17 @@ describe('EtaPredictionService', () => {
   test('DB 오류 시 15분 기본값을 돌려준다', async () => {
     prisma.orders.count.mockRejectedValue(new Error('db down'));
     expect((await EtaPredictionService.calculateEta(7, [])).etaMinutes).toBe(15);
+  });
+
+  test('바쁨 모드 추가 대기 시간을 더한다', async () => {
+    prisma.orders.count.mockResolvedValue(0);
+    prisma.store_order_pace.findUnique.mockResolvedValue({ extra_wait_minutes: 20, orders_paused_until: null });
+    expect((await EtaPredictionService.calculateEta(7, [])).etaMinutes).toBe(30);
+  });
+
+  test('바쁨 모드 테이블이 아직 없어도(마이그레이션 전) 기본 계산을 한다', async () => {
+    prisma.orders.count.mockResolvedValue(0);
+    prisma.store_order_pace.findUnique.mockRejectedValue(new Error('relation does not exist'));
+    expect((await EtaPredictionService.calculateEta(7, [])).etaMinutes).toBe(10);
   });
 });

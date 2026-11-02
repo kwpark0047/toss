@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
+const OrderPaceSettings = require('../repositories/OrderPaceSettings');
 
 const DEFAULT_COOKING_MINUTES = 10;
 const MINUTES_PER_ORDER_AHEAD = 2;
@@ -17,7 +18,7 @@ class EtaPredictionService {
    * 매장의 현재 조리 중인 주문 건수와 메뉴별 조리 시간(products.cooking_time)을 기반으로
    * 예상 소요 시간(분)을 계산한다.
    * - 주문 메뉴 중 가장 오래 걸리는 메뉴의 조리 시간을 기준으로 삼는다(동시 조리 가정)
-   * - 앞선 주문 1건당 2분, 같은 주문의 추가 수량 1개당 1분을 더한다
+   * - 앞선 주문 1건당 2분, 같은 주문의 추가 수량 1개당 1분, 바쁨 모드 추가 시간을 더한다
    */
   async calculateEta(storeId, items = []) {
     const numericStoreId = Number(storeId);
@@ -46,11 +47,16 @@ class EtaPredictionService {
         if (cookingTimes.length > 0) baseMinutes = Math.max(...cookingTimes);
       }
 
+      // 사장님 바쁨 모드의 추가 대기 시간
+      const { extra_wait_minutes: extraWaitMinutes } =
+        await OrderPaceSettings.findByStoreIdSafe(numericStoreId);
+
       const totalUnits = lines.reduce((sum, line) => sum + line.quantity, 0);
       const estimatedMinutes =
         baseMinutes +
         activeOrdersCount * MINUTES_PER_ORDER_AHEAD +
-        Math.max(totalUnits - 1, 0) * MINUTES_PER_EXTRA_UNIT;
+        Math.max(totalUnits - 1, 0) * MINUTES_PER_EXTRA_UNIT +
+        extraWaitMinutes;
 
       const finalEta = Math.min(Math.max(Math.round(estimatedMinutes), MIN_ETA), MAX_ETA);
       logger.debug(

@@ -3,6 +3,7 @@ const Order = require('../repositories/Order');
 const Coupon = require('../repositories/Coupon');
 const Table = require('../repositories/Table');
 const Product = require('../repositories/Product');
+const OrderPaceSettings = require('../repositories/OrderPaceSettings');
 const notificationService = require('./notificationService');
 const dashboardBroadcastService = require('./DashboardBroadcastService');
 const webhookDispatcher = require('./webhookDispatcher');
@@ -81,6 +82,11 @@ class OrderService {
       })
     ) {
       throw new AppError('지금은 영업시간이 아니라 주문할 수 없습니다.', 409);
+    }
+    // 사장님이 바쁨 모드로 주문을 잠시 멈춘 경우 (조회 실패 시에는 막지 않는다)
+    const orderPace = await OrderPaceSettings.findByStoreIdSafe(store_id);
+    if (orderPace.orders_paused) {
+      throw new AppError('주문이 몰려 잠시 주문을 받지 않고 있어요. 잠시 후 다시 시도해 주세요.', 409);
     }
     const rawPhone = phone || customer_phone;
     if (user_coupon_id) {

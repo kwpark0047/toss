@@ -10,6 +10,7 @@ import { handleApiError } from '../../utils/apiError';
 import { ACTIONABLE_ORDER_STATUSES } from '../../utils/orderStatus';
 import OrderCard from './OrderCard';
 import OrderDetailModal from './OrderDetailModal';
+import OrderPaceControl from './OrderPaceControl';
 import EmptyState from '../common/EmptyState';
 import Icon from '../../components/ui/Icon';
 import { Calendar, CheckCircle, ChefHat, Clock, Filter, Package, RefreshCw, Search, XCircle } from 'lucide-react';
@@ -287,6 +288,9 @@ const OrderManager = () => {
           </button>
         </div>
       </div>
+
+      {/* ── 바쁨 모드 (손님 예상 시간 추가, QR 주문 일시정지) ──────────── */}
+      <OrderPaceControl storeId={storeId} />
 
       {/* ── 검색 + 날짜 필터 ───────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row gap-2.5 mb-4">

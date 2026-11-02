@@ -17,6 +17,9 @@ export const adminAPI = {
   getTinkerbellSettings: (storeId) => api.get(`/admin/stores/${storeId}/tinkerbell-settings`),
   updateTinkerbellSettings: (storeId, data) =>
     api.put(`/admin/stores/${storeId}/tinkerbell-settings`, data),
+  // 바쁨 모드: { extra_wait_minutes: 0|10|20|30 } 또는 { pause_minutes: 0|15|30|60 }
+  getOrderPace: (storeId) => api.get(`/admin/stores/${storeId}/order-pace`),
+  updateOrderPace: (storeId, data) => api.put(`/admin/stores/${storeId}/order-pace`, data),
   // 매장 정보 보강 (네이버 지역검색 API) — super_admin 전용, 커서 기반 배치
   enrichStores: ({ limit = 10, afterId = 0 } = {}) =>
     api.post('/admin/enrich-stores', { limit, afterId }),

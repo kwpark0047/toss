@@ -261,6 +261,20 @@ const {
     retry: 1,
     refetchOnWindowFocus: true
   });
+  // 사장님 바쁨 모드: 주문 일시정지 중이면 메뉴는 보여 주고 주문만 막는다 (조회 실패 시 평소대로)
+  const { data: orderPace } = useQuery({
+    queryKey: ["orderPace", storeId],
+    queryFn: async () => {
+      const raw = await storesAPI.getOrderPace(storeId);
+      return raw?.data || raw;
+    },
+    enabled: isNumericStoreId,
+    staleTime: 30000,
+    refetchInterval: 60000,
+    retry: 1
+  });
+  const ordersPausedUntil = orderPace?.orders_paused && orderPace?.orders_paused_until ? new Date(orderPace.orders_paused_until) : null;
+  const ordersPaused = Boolean(ordersPausedUntil && ordersPausedUntil > new Date());
   const [lastAddedItem, _setLastAddedItem] = useState(null);
 
   /* 콜드스타트 재시도 설정: 최대 10회, 5초 간격 (최대 30초 간격) */
@@ -480,6 +494,10 @@ const handleOrder = useCallback(async () => {
       toast.error(t('order.cannot_order'));
       return;
     }
+    if (ordersPaused) {
+      toast.error(t('menu.orders_paused_toast'));
+      return;
+    }
     setIsOrdering(true);
     const fingerprint = JSON.stringify({ storeId, tableNumber, cart, totalPrice, paymentMethod, notifyPhone });
     if (checkoutAttempt.current?.fingerprint !== fingerprint) {
@@ -598,10 +616,14 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsOrdering(false);
     }
-  }, [storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t]);
+  }, [storeId, cart, storeOpen, ordersPaused, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t]);
 
   const handleStartSplitPayment = useCallback(async (peopleCount) => {
     if (!storeId || !cart.length || !menuOrderable || isSplitStarting) return;
+    if (ordersPaused) {
+      toast.error(t('menu.orders_paused_toast'));
+      return;
+    }
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       toast.error('인터넷 연결 후 분할 주문을 시작해 주세요. 오프라인 주문은 자동 접수되지 않습니다.');
       return;
@@ -665,7 +687,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsSplitStarting(false);
     }
-  }, [storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
+  }, [storeId, cart, storeOpen, ordersPaused, menuOrderable, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
 
   // Stable callbacks for JSX props (prevents child re-renders from inline closures)
   const handleOpenOrderHistory = useCallback(() => navigate('/order-history'), [navigate]);
@@ -729,6 +751,11 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 
       {/* Store Info */}
       <StoreInfoBanner storeName={profile?.store_name} description={profile?.description} phone={profile?.phone} address={profile?.address} isOpen={storeOpen} todayHours={todayHours} businessHours={profile?.business_hours} openTime={profile?.open_time} closeTime={profile?.close_time} />
+
+      {ordersPaused && <div role="status" className="mx-4 mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+          <p className="font-bold">{t('menu.orders_paused_title', { time: ordersPausedUntil.toLocaleTimeString(lang === 'ko' ? 'ko-KR' : lang, { hour: '2-digit', minute: '2-digit' }) })}</p>
+          <p className="mt-0.5 text-xs">{t('menu.orders_paused_desc')}</p>
+        </div>}
 
       {/* AI 개인화 추천 (F9) */}
       <PersonalizedRecommendations storeId={storeId} storeOpen={menuOrderable} onAddToCart={handleAddToCartClick} menuItems={menuItems} />
