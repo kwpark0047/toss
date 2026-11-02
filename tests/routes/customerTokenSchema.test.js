@@ -13,6 +13,7 @@ const mockOrdersController = {
   getOrderDetails: jest.fn(),
   updateStatus: jest.fn(),
   cancelOrder: jest.fn(),
+  customerCancelOrder: jest.fn(),
   deleteOrder: jest.fn(),
   getEta: jest.fn(),
   returnExchange: jest.fn(),
