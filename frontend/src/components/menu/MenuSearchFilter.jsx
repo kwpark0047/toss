@@ -19,7 +19,7 @@ const MenuSearchFilter = ({ query, onQueryChange, allergens = [], excludedAllerg
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder={t('menu.search_placeholder')}
           aria-label={t('menu.search_placeholder')}
-          className="min-h-11 w-full rounded-xl border cust-border cust-bg-card pl-9 pr-10 text-sm cust-text-main placeholder:text-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="min-h-11 w-full rounded-xl border cust-border cust-bg-card pl-9 pr-10 text-sm cust-text-main placeholder:text-slate-400 focus:outline-none [&::-webkit-search-cancel-button]:appearance-none focus-visible:ring-2 focus-visible:ring-primary"
         />
         {query && (
           <button
@@ -50,7 +50,7 @@ const MenuSearchFilter = ({ query, onQueryChange, allergens = [], excludedAllerg
                   className={`min-h-9 rounded-full border px-3 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                     active
                       ? 'border-amber-500 bg-amber-50 text-amber-800 line-through dark:bg-amber-500/15 dark:text-amber-200'
-                      : 'cust-border text-slate-600 dark:text-slate-300'
+                      : 'cust-border cust-bg-card text-slate-600 dark:text-slate-300'
                   }`}
                 >
                   {label}
