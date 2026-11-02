@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { httpServer, io } from './app.mts';
-import logger from './utils/logger.ts';
+import logger from './utils/logger.js';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const prismaModule = require('./config/prisma.js');
