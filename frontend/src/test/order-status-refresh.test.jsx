@@ -32,3 +32,22 @@ it('shows the ETA as soon as the order loads and keeps the 30s refresh despite 5
  await act(async()=>{await vi.advanceTimersByTimeAsync(30000);});
  expect(api.getEta).toHaveBeenCalledTimes(2);
 });
+it('lets the customer cancel a pending unpaid order after confirming',async()=>{
+ api.getEta.mockReset();api.getEta.mockResolvedValue({data:null});
+ api.getById.mockReset();
+ api.getById.mockResolvedValue({data:{id:7,store_id:1,status:'pending',payment_status:'pending',total_amount:5000,items:[]}});
+ api.customerCancel=vi.fn(async()=>({success:true}));
+ await act(async()=>{render(<OrderStatusModal isOpen orderId={7} storeId={1} capability="cap-7"/>);});
+ await act(async()=>{screen.getByRole('button',{name:'order_status.cancel_cta'}).click();});
+ await act(async()=>{screen.getByRole('button',{name:'order_status.cancel_submit'}).click();});
+ expect(api.customerCancel).toHaveBeenCalledWith(7,'cap-7');
+ expect(screen.getByText('order_status.cancel_done')).toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:'order_status.cancel_cta'})).toBeNull();
+});
+it('hides self-cancel once the kitchen confirmed or the order was paid',async()=>{
+ api.getEta.mockReset();api.getEta.mockResolvedValue({data:null});
+ api.getById.mockReset();
+ api.getById.mockResolvedValue({data:{id:8,store_id:1,status:'paid',payment_status:'paid',total_amount:5000,items:[]}});
+ await act(async()=>{render(<OrderStatusModal isOpen orderId={8} storeId={1} capability="cap-8"/>);});
+ expect(screen.queryByRole('button',{name:'order_status.cancel_cta'})).toBeNull();
+});

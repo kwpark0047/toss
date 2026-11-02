@@ -17,6 +17,9 @@ const auditLogService = require('./AuditLogService');
 const orderEventService = require('./OrderEventService');
 const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
 
+// 손님 셀프 취소를 허용하는 결제 상태 (결제 전이거나 결제 실패)
+const SELF_CANCELLABLE_PAYMENT_STATUSES = ['pending', 'failed'];
+
 // Haversine formula for distance in km
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
   const R = 6371; // Radius of the earth in km
@@ -374,6 +377,51 @@ class OrderService {
         status: 'cancelled',
         store_id: order.store_id,
       });
+    }
+    return { success: true, message: '주문이 취소되었습니다' };
+  }
+
+  /**
+   * 손님 셀프 취소 (QR 주문 capability 보유자)
+   * 주방이 접수하기 전(pending)이고 결제가 끝나지 않은 일반 주문만 취소한다.
+   * 결제된 주문은 환불이 필요하므로 직원 취소 경로로 안내한다.
+   */
+  async customerCancelOrder(id) {
+    const orderId = parseInt(id);
+    const order = await Order.findById(orderId);
+    if (!order) throw new AppError('주문을 찾을 수 없습니다', 404);
+    if (order.status === 'cancelled') return { success: true, message: '이미 취소된 주문입니다.' };
+    if (order.status !== 'pending') {
+      throw new AppError('주방에서 이미 주문을 확인했어요. 취소는 직원에게 요청해 주세요.', 409);
+    }
+    if (order.is_split_payment) {
+      throw new AppError('분할 결제 주문은 직원에게 취소를 요청해 주세요.', 409);
+    }
+    const paidPayments = await prisma.payments.count({ where: { order_id: orderId, status: 'DONE' } });
+    if (!SELF_CANCELLABLE_PAYMENT_STATUSES.includes(order.payment_status ?? 'pending') || paidPayments > 0) {
+      throw new AppError('결제가 완료된 주문은 환불이 필요해 직원에게 취소를 요청해 주세요.', 409);
+    }
+
+    // 주방 접수와 동시에 눌린 경우를 막기 위해 상태 조건부로 갱신한다.
+    const { count } = await prisma.orders.updateMany({
+      where: { id: orderId, status: 'pending', payment_status: { in: SELF_CANCELLABLE_PAYMENT_STATUSES } },
+      data: { status: 'cancelled', updated_at: new Date() },
+    });
+    if (count !== 1) {
+      throw new AppError('주방에서 이미 주문을 확인했어요. 취소는 직원에게 요청해 주세요.', 409);
+    }
+
+    // pending 단계는 재고를 차감하지 않으므로 재고 복구는 하지 않는다.
+    await this._revertPointsOnCancel(orderId).catch((e) =>
+      logger.error('[Point Revert Error] ' + e.message)
+    );
+    logger.info({ orderId, storeId: order.store_id }, 'order cancelled by customer before kitchen accept');
+
+    if (this.io) {
+      const payload = { order_id: orderId, status: 'cancelled', store_id: order.store_id, cancelled_by: 'customer' };
+      this.io.to(`store - ${order.store_id}`).emit('order-updated', payload);
+      this.io.to(`kitchen - ${order.store_id}`).emit('order-updated', payload);
+      this.io.to(`order - ${orderId}`).emit('order-updated', payload);
     }
     return { success: true, message: '주문이 취소되었습니다' };
   }

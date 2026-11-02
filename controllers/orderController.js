@@ -105,6 +105,13 @@ const orderController = {
     res.json(result);
   }),
 
+  // 손님 셀프 취소 (주방 접수 전, 결제 전 주문만)
+  customerCancelOrder: catchAsync(async (req, res) => {
+    const orderService = new OrderService(req.app.get('io'));
+    const result = await orderService.customerCancelOrder(req.params.id);
+    res.json(result);
+  }),
+
   // 주문 반품/교환
   returnExchange: catchAsync(async (req, res) => {
     const orderService = new OrderService(req.app.get('io'));

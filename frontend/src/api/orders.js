@@ -40,6 +40,9 @@ export const ordersAPI = {
   updateStatus: (id, status, staffId = null) =>
     api.put('/orders/' + id + '/status', { status, staff_id: staffId }),
   cancel: (id) => api.post('/orders/' + id + '/cancel'),
+  // 손님 셀프 취소: 주방 접수 전·결제 전 주문만 (주문 capability 필수)
+  customerCancel: (id, capability) =>
+    api.post('/orders/' + id + '/customer-cancel', null, { headers: { 'x-order-capability': capability } }),
   delete: (id) => api.delete('/orders/' + id),
   getById: (id, capability) =>
     api.get(

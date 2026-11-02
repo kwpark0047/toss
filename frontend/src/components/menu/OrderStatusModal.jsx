@@ -33,6 +33,9 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [eta, setEta] = useState(null);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelMessage, setCancelMessage] = useState('');
   const { t } = useTranslation();
 
   const STEPS = STEPS_CONFIG.map(s => ({ ...s, label: t(`order_status.steps.${s.key}`) }));
@@ -84,6 +87,8 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
       setOrder(null);
       fetchOrder();
       setEta(null);
+      setConfirmingCancel(false);
+      setCancelMessage('');
     }
   }, [isOpen, fetchOrder]);
 
@@ -131,6 +136,26 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
   const visibleSteps = isCancelled ? STEPS.slice(0, 2) : STEPS;
   const curIdx = visibleSteps.findIndex(s => s.key === status);
   const curStep = isCancelled ? CANCELLED : (visibleSteps[curIdx] || visibleSteps[0]);
+  const canSelfCancel = Boolean(
+    capability && orderId && order &&
+    rawStatus === 'pending' &&
+    !['paid', 'partial', 'refunded'].includes(order.payment_status) &&
+    !order.is_split_payment
+  );
+
+  const handleSelfCancel = async () => {
+    setCancelling(true);
+    try {
+      await ordersAPI.customerCancel(orderId, capability);
+      setOrder(prev => prev ? { ...prev, status: 'cancelled' } : prev);
+      setCancelMessage(t('order_status.cancel_done'));
+    } catch (err) {
+      setCancelMessage(err?.response?.data?.error || err?.response?.data?.message || t('order_status.cancel_failed'));
+    } finally {
+      setCancelling(false);
+      setConfirmingCancel(false);
+    }
+  };
   const CurIcon = curStep.icon;
 
   return (
@@ -281,6 +306,43 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
             </div>
 
             <div className="p-6 cust-bg-card border-t cust-border space-y-3">
+              {cancelMessage && (
+                <p role="status" className="text-xs font-bold text-center cust-text-sub">{cancelMessage}</p>
+              )}
+              {/* 주방 접수 전·결제 전 주문은 손님이 직접 취소 (서버가 최종 판단) */}
+              {canSelfCancel && (
+                confirmingCancel ? (
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-center cust-text-main">{t('order_status.cancel_confirm')}</p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingCancel(false)}
+                        disabled={cancelling}
+                        className="flex-1 h-12 rounded-2xl border cust-border font-black cust-text-main disabled:opacity-50"
+                      >
+                        {t('order_status.cancel_keep')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSelfCancel}
+                        disabled={cancelling}
+                        className="flex-1 h-12 rounded-2xl bg-rose-500 text-white font-black disabled:opacity-50"
+                      >
+                        {cancelling ? <Loader2 className="w-5 h-5 animate-spin mx-auto" aria-hidden="true" /> : t('order_status.cancel_submit')}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { vibrateClick(); setCancelMessage(''); setConfirmingCancel(true); }}
+                    className="w-full h-12 rounded-2xl border border-rose-200 text-rose-600 dark:border-rose-500/30 dark:text-rose-300 font-black"
+                  >
+                    {t('order_status.cancel_cta')}
+                  </button>
+                )
+              )}
               {/* 준비완료/수령완료 주문은 리뷰 작성 유도 */}
               {onWriteReview && (status === 'ready' || status === 'completed') && (
                 <button
