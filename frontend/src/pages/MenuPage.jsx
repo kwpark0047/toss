@@ -26,6 +26,8 @@ import ManagerFeaturedMenus from '@/components/menu/ManagerFeaturedMenus';
 import MenuHeader from "@/components/menu/MenuHeader";
 import StoreInfoBanner from "@/components/menu/StoreInfoBanner";
 import CategoryTabs from "@/components/menu/CategoryTabs";
+import MenuSearchFilter from "@/components/menu/MenuSearchFilter";
+import { collectMenuAllergens, filterMenuItems } from "@/utils/menuMetadata";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import CartButton from "@/components/menu/CartButton";
 import CartModal from "@/components/menu/CartModal";
@@ -167,6 +169,8 @@ const MenuPage = () => {
 
   // State
   const [selectedCategory, setSelectedCategory] = useState("전체");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [excludedAllergens, setExcludedAllergens] = useState([]);
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [splitSession, setSplitSession] = useState(null);
@@ -378,13 +382,26 @@ const hoursInput = useMemo(() => ({
   const storeOpen = isStoreOpen();
   const menuOrderable = canOrderFromMenuSnapshot(storeOpen, cachedSections);
   const categoryNames = useMemo(() => [t('menu.all_category'), ...categories.map(c => c.name)], [categories, t]);
-const filteredItems = useMemo(() => {
-    if (selectedCategory === t('menu.all_category')) return menuItems;
-    return menuItems.filter(item => {
-      const category = categories.find(c => c.id === item.category_id);
-      return category?.name === selectedCategory;
-    });
-  }, [selectedCategory, menuItems, categories, t]);
+  const menuAllergens = useMemo(() => collectMenuAllergens(menuItems), [menuItems]);
+  const isSearching = searchQuery.trim().length > 0;
+  const hasMenuFilter = isSearching || excludedAllergens.length > 0;
+  const filteredItems = useMemo(() => {
+    // 검색 중에는 카테고리와 무관하게 전체 메뉴에서 찾는다.
+    const inCategory = isSearching || selectedCategory === t('menu.all_category')
+      ? menuItems
+      : menuItems.filter(item => {
+        const category = categories.find(c => c.id === item.category_id);
+        return category?.name === selectedCategory;
+      });
+    return filterMenuItems(inCategory, { query: searchQuery, excludedAllergens });
+  }, [selectedCategory, menuItems, categories, t, isSearching, searchQuery, excludedAllergens]);
+  const toggleExcludedAllergen = useCallback(label => {
+    setExcludedAllergens(prev => prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label]);
+  }, []);
+  const resetMenuFilters = useCallback(() => {
+    setSearchQuery("");
+    setExcludedAllergens([]);
+  }, []);
   // 같은 테이블 손님끼리 장바구니 공유 (TC-22)
   useSharedTableCart({ storeId, tableNumber, cart, setCart, menuItems });
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -730,9 +747,11 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       {/* Category Tabs */}
       <CategoryTabs categories={categoryNames} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
 
+      {menuItems.length > 0 && <MenuSearchFilter query={searchQuery} onQueryChange={setSearchQuery} allergens={menuAllergens} excludedAllergens={excludedAllergens} onToggleAllergen={toggleExcludedAllergen} />}
+
       {/* Menu List */}
       <div className="container mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
-        {filteredItems.length === 0 ? <EmptyState icon="🍽️" title={t('menu.empty')} description={selectedCategory === t('menu.all_category') ? t('menu.empty_desc') : t('menu.category_empty')} /> :
+        {filteredItems.length === 0 && hasMenuFilter ? <EmptyState icon="🔍" title={t('menu.no_result')} description={t('menu.no_result_desc')} action={<button type="button" onClick={resetMenuFilters} className="min-h-11 rounded-xl border cust-border px-4 text-sm font-bold cust-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{t('menu.reset_filters')}</button>} /> : filteredItems.length === 0 ? <EmptyState icon="🍽️" title={t('menu.empty')} description={selectedCategory === t('menu.all_category') ? t('menu.empty_desc') : t('menu.category_empty')} /> :
           // Keep the store's selected layout while increasing card density only as viewport space allows.
           <div className={isGridLayout ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4' : 'mx-auto w-full max-w-4xl cust-bg-card rounded-2xl border cust-border shadow-sm overflow-hidden cust-divide'}>
             {filteredItems.map(item => {
