@@ -2,40 +2,15 @@ import{ useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '@/api/client';
 import Icon from '../../components/ui/Icon';
+import EmptyState from '../common/EmptyState';
 import { ArrowLeft, Calendar, ChevronRight, Clock, DollarSign, Map, RefreshCw, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react';
-
-// 가상 데이터 세팅 (서버 통신 실패 또는 데모 환경용 완벽 세팅)
-const fallbackData = {
-    totalSales: 4580000,
-    totalOrderCount: 382,
-    averageOrderValue: 11989,
-    hourlyOrders: [
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 20, 45, 12, 10, 8, 15, 30, 80, 95, 40, 15, 5, 0
-    ],
-    hourlySales: [
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 60000, 240000, 540000, 144000, 120000, 96000, 180000, 360000, 960000, 1140000, 480000, 180000, 60000, 0
-    ],
-    dailyOrders: [45, 30, 25, 40, 50, 92, 100], // 일요일 ~ 토요일
-    dailySales: [540000, 360000, 300000, 480000, 600000, 1100000, 1200000],
-    locationSales: [
-        { name: '홍대입구역 9번 출구', count: 152, sales: 1824000 },
-        { name: '강남대로 푸드트럭 존', count: 120, sales: 1440000 },
-        { name: '대학로 예술의 거리', count: 68, sales: 816000 },
-        { name: '부산 서면 야시장', count: 42, sales: 500000 }
-    ],
-    aiInsights: {
-        summary: "이번 주 누적 매출 458만 원을 기록하며 전주 대비 14.2%의 강력한 우상향 성장을 이루어냈습니다! 특히 야간 유동인구가 집중되는 '부산 서면 야시장'과 '홍대 스트리트'에서의 저녁 매출 집중도가 대단히 뛰어납니다.",
-        peakAdvice: "가장 주문이 급증하는 골든 피크타임은 저녁 18시부터 20시 사이(총 175건 발생)입니다. 피크타임 시작 30분 전 원재료 사전 프레임 준비(조리 세팅) 및 대기 진열 용기 정비를 선제 완료하여 고객당 평균 대기 시간을 3분 미만으로 단축하면 매출을 최대 22% 추가 확장할 수 있습니다.",
-        inventoryStrategy: "평일 대비 금요일과 토요일의 주문 비중이 전체의 50%를 초과하는 주말 편중형 소비 패턴을 보입니다. 일요일 밤 등 영업 종료 마감 직전 남은 신선 재료 소진을 극대화하기 위해, 반경 500m 내 대기중인 기가입 단골 고객을 향해 '마감 30% 플래시 세일' 실시간 지오펜싱 쿠폰을 전송해 폐기율 0% 도전에 성공하세요!"
-    }
-};
 
 export default function FoodTruckAnalyticsDashboard() {
     const { storeId } = useParams();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [analyticsData, setAnalyticsData] = useState(null);
-    const [_error, setError] = useState(null);
+    const [error, setError] = useState(null);
 
     const fetchAnalytics = useCallback(async () => {
         try {
@@ -44,11 +19,14 @@ export default function FoodTruckAnalyticsDashboard() {
             if (json.success && json.data) {
                 setAnalyticsData(json.data);
             } else {
-                setAnalyticsData(fallbackData);
+                setAnalyticsData(null);
+                setError('분석 데이터를 불러오지 못했습니다.');
             }
         } catch (err) {
             console.error('Failed to fetch real-time analytics:', err);
-            setAnalyticsData(fallbackData); // API가 준비 중이거나 데모 시엔 완벽한 가상 통계 폴백 보장
+            // 실패 시 가상 통계를 보여주지 않는다 — 실제 매출로 오인될 수 있음
+            setAnalyticsData(null);
+            setError('분석 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -73,10 +51,41 @@ export default function FoodTruckAnalyticsDashboard() {
         );
     }
 
-    const data = analyticsData || fallbackData;
+    if (error || !analyticsData || !analyticsData.totalOrderCount) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4">
+                <EmptyState
+                    tone="dark"
+                    icon={error ? '⚠️' : '📊'}
+                    title={error ? '분석을 불러올 수 없어요' : '아직 분석할 주문이 없어요'}
+                    description={error || '주문이 쌓이면 시간대·요일별 매출 분석이 여기에 표시됩니다.'}
+                    action={
+                        <div className="flex items-center gap-2">
+                            <Link
+                                to={`/admin/stores/${storeId}/foodtruck`}
+                                className="px-3 py-1.5 border border-slate-800 rounded text-xs text-slate-300 hover:text-white"
+                            >
+                                돌아가기
+                            </Link>
+                            <button
+                                onClick={handleRefresh}
+                                disabled={refreshing}
+                                className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 rounded text-xs font-medium text-white disabled:opacity-50"
+                            >
+                                {refreshing ? '불러오는 중...' : '다시 시도'}
+                            </button>
+                        </div>
+                    }
+                />
+            </div>
+        );
+    }
+
+    const data = analyticsData;
     const maxHourOrders = Math.max(...data.hourlyOrders);
     const maxDaySales = Math.max(...data.dailySales);
-    const totalLocationSales = data.locationSales.reduce((sum, l) => sum + l.sales, 0);
+    const locationSales = data.locationSales || [];
+    const totalLocationSales = locationSales.reduce((sum, l) => sum + l.sales, 0);
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 lg:p-6 pb-24">
@@ -273,7 +282,7 @@ export default function FoodTruckAnalyticsDashboard() {
                         </h2>
 
                         <div className="flex flex-col gap-3">
-                            {data.locationSales.map((loc, idx) => {
+                            {locationSales.map((loc, idx) => {
                                 const ratio = totalLocationSales > 0 ? (loc.sales / totalLocationSales) * 100 : 0;
                                 return (
                                     <div key={idx} className="bg-slate-900/60 border border-slate-800/50 p-2.5 rounded hover:border-slate-700 transition-colors">
