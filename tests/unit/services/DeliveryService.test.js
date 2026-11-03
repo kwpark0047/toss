@@ -90,6 +90,28 @@ describe('DeliveryService.quote', () => {
     expect(no.deliverable).toBe(false);
   });
 
+  test('주소를 숨긴 매장은 실제 좌표가 아닌 흐린 권역 중심으로 판정한다 (위치 역추적 방지)', async () => {
+    geocodeService.geocode.mockResolvedValue(null);
+    const channels = delivery({ hide_exact_address: true, delivery_radius_km: 0.1 });
+    const blurred = DeliveryService._blurredCenter(store.id, store.latitude, store.longitude);
+    const atBlurred = await DeliveryService.quote({
+      store,
+      channels,
+      address: '어딘가',
+      subtotal: 20000,
+      clientCoords: { latitude: blurred.lat, longitude: blurred.lng },
+    });
+    expect(atBlurred.deliverable).toBe(true);
+    const atReal = await DeliveryService.quote({
+      store,
+      channels,
+      address: '어딘가',
+      subtotal: 20000,
+      clientCoords: { latitude: store.latitude, longitude: store.longitude },
+    });
+    expect(atReal.deliverable).toBe(false);
+  });
+
   test('동네 권역은 주소에 동네 이름이 있어야 한다 (공백 무시)', async () => {
     const channels = delivery({
       delivery_area_mode: 'areas',

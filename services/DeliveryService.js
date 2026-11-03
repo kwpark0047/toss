@@ -69,7 +69,12 @@ async function quote({ store, channels, address, subtotal, clientCoords }) {
         deliverable: false,
         reason: '주소 위치를 확인할 수 없습니다. 도로명 주소로 입력해 주세요.',
       };
-    const distance = haversineKm(coords.lat, coords.lng, store.latitude, store.longitude);
+    // 주소를 숨긴 매장은 공개된 흐린 권역 중심으로 판정한다. 실제 좌표로 판정하면 좌표를 바꿔 가며
+    // 견적을 물어 권역 경계를 되짚어 정확한 매장 위치를 알아낼 수 있다.
+    const center = OrderChannels.hidesAddress(channels)
+      ? blurredCenter(store.id, store.latitude, store.longitude)
+      : { lat: store.latitude, lng: store.longitude };
+    const distance = haversineKm(coords.lat, coords.lng, center.lat, center.lng);
     base.distance_km = Math.round(distance * 10) / 10;
     if (distance > channels.delivery_radius_km)
       return {
