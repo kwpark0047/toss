@@ -327,7 +327,7 @@
     "no_recent_desc": "주문하시면 여기에서 진행 상태를 확인할 수 있어요.",
     "eta_label": "예상 소요 시간",
     "eta_minutes": "약 {{minutes}}분",
-    "eta_orders_ahead": "앞선 주문 {{count}}건",
+    "eta_orders_ahead": "주방 대기 주문 {{count}}건",
     "cancel_cta": "주문 취소하기",
     "cancel_confirm": "주방에서 확인하기 전이라 바로 취소할 수 있어요. 취소할까요?",
     "cancel_keep": "아니요",

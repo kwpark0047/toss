@@ -140,7 +140,9 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
     capability && orderId && order &&
     rawStatus === 'pending' &&
     !['paid', 'partial', 'refunded'].includes(order.payment_status) &&
-    !order.is_split_payment
+    !order.is_split_payment &&
+    // 카드·간편결제·계좌이체는 결제가 바로 진행되므로 매장 카운터 결제 주문에만 노출한다 (서버가 최종 판단)
+    ['cash', 'store_card'].includes(String(order.method || order.payment_method || '').toLowerCase())
   );
 
   const handleSelfCancel = async () => {

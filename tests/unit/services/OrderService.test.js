@@ -28,6 +28,8 @@ jest.mock('../../../config/prisma', () => ({
   },
   payments: {
     count: jest.fn().mockResolvedValue(0),
+    findMany: jest.fn().mockResolvedValue([]),
+    updateMany: jest.fn().mockResolvedValue({ count: 0 }),
   },
   orders: {
     updateMany: jest.fn().mockResolvedValue({ count: 1 }),
@@ -256,7 +258,7 @@ describe('OrderService', () => {
 
     test('주방 접수 전·결제 전 주문은 조건부 갱신으로 취소하고 매장·주방·주문 룸에 알린다', async () => {
       Order.findById.mockResolvedValue(pendingOrder);
-      prisma.payments.count.mockResolvedValue(0);
+      prisma.payments.findMany.mockResolvedValueOnce([]);
       prisma.orders.updateMany.mockResolvedValue({ count: 1 });
       const emit = jest.fn();
       mockIo.to.mockReturnValue({ emit });
@@ -271,9 +273,20 @@ describe('OrderService', () => {
       expect(mockIo.to).toHaveBeenCalledWith('kitchen - 1');
       expect(mockIo.to).toHaveBeenCalledWith('order - 5');
       expect(prisma.$queryRaw).toHaveBeenCalled();
-      expect(prisma.payments.count).toHaveBeenCalledWith({
-        where: { order_id: 5, status: { in: ['READY', 'DONE', 'PARTIAL_CANCELED'] } },
-      });
+      expect(prisma.payments.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { order_id: 5, status: { in: ['READY', 'DONE', 'PARTIAL_CANCELED'] } } })
+      );
+      expect(prisma.payments.updateMany).not.toHaveBeenCalled();
+    });
+
+    test('매장에서 낼 현금 결제 대기(READY)는 함께 취소하고 주문을 취소한다', async () => {
+      Order.findById.mockResolvedValue(pendingOrder);
+      prisma.payments.findMany.mockResolvedValueOnce([{ id: 9, status: 'READY', method: 'CASH', payment_key: null }]);
+      prisma.orders.updateMany.mockResolvedValue({ count: 1 });
+      await expect(svc.customerCancelOrder(5)).resolves.toMatchObject({ success: true });
+      expect(prisma.payments.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: { in: [9] }, status: 'READY' }, data: expect.objectContaining({ status: 'CANCELED' }) })
+      );
     });
 
     test('주방이 이미 확인한 주문은 거절한다', async () => {
@@ -287,7 +300,7 @@ describe('OrderService', () => {
       await expect(svc.customerCancelOrder(5)).rejects.toThrow('결제가 완료된');
 
       Order.findById.mockResolvedValue(pendingOrder);
-      prisma.payments.count.mockResolvedValueOnce(1);
+      prisma.payments.findMany.mockResolvedValueOnce([{ id: 9, status: 'READY', method: 'CARD', payment_key: null }]);
       await expect(svc.customerCancelOrder(5)).rejects.toThrow('결제가 진행 중이거나 완료된');
       expect(prisma.orders.updateMany).not.toHaveBeenCalled();
     });
@@ -299,7 +312,6 @@ describe('OrderService', () => {
 
     test('확인 직전에 주방이 접수해 갱신되지 않으면 거절한다', async () => {
       Order.findById.mockResolvedValue(pendingOrder);
-      prisma.payments.count.mockResolvedValue(0);
       prisma.orders.updateMany.mockResolvedValueOnce({ count: 0 });
       await expect(svc.customerCancelOrder(5)).rejects.toThrow('직원에게');
     });

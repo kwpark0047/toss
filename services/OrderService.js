@@ -21,6 +21,8 @@ const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
 const SELF_CANCELLABLE_PAYMENT_STATUSES = ['pending', 'failed'];
 // 결제 대기(READY)·완료·부분취소 결제가 있으면 셀프 취소하지 않는다
 const PAYMENT_IN_PROGRESS_STATUSES = ['READY', 'DONE', 'PARTIAL_CANCELED'];
+// 매장 카운터에서 결제하는 수단 (결제 대기 상태에서는 아직 돈이 오가지 않음)
+const COUNTER_PAYMENT_METHODS = ['CASH', 'STORE_CARD'];
 
 // Haversine formula for distance in km
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -403,15 +405,27 @@ class OrderService {
       throw new AppError('결제가 완료된 주문은 환불이 필요해 직원에게 취소를 요청해 주세요.', 409);
     }
 
-    // 주문 행을 잠근 채로 결제 진행 여부를 확인하고 취소한다.
-    // 결제가 진행 중(READY)이거나 끝난(DONE 등) 주문은 PG 승인·이체 확인과 엇갈릴 수 있어 직원 취소로 넘긴다.
+    // 주문 행을 잠근 채로 결제 진행 여부를 확인하고 취소한다 (현금 수납 확인도 같은 행을 잠근다).
+    // 카드·간편결제(PG)·계좌이체가 진행 중이거나 끝난 주문은 승인·입금과 엇갈릴 수 있어 직원 취소로 넘긴다.
+    // 매장에서 낼 현금·매장 카드 결제 대기(READY)는 돈이 오가기 전이므로 함께 취소한다.
     await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM orders WHERE id = ${orderId} FOR UPDATE`;
-      const activePayments = await tx.payments.count({
+      const activePayments = await tx.payments.findMany({
         where: { order_id: orderId, status: { in: PAYMENT_IN_PROGRESS_STATUSES } },
+        select: { id: true, status: true, method: true, payment_key: true },
       });
-      if (activePayments > 0) {
+      const isCounterPaymentPending = (p) =>
+        p.status === 'READY' &&
+        !p.payment_key &&
+        COUNTER_PAYMENT_METHODS.includes(String(p.method || '').toUpperCase());
+      if (activePayments.some((p) => !isCounterPaymentPending(p))) {
         throw new AppError('결제가 진행 중이거나 완료된 주문은 직원에게 취소를 요청해 주세요.', 409);
+      }
+      if (activePayments.length > 0) {
+        await tx.payments.updateMany({
+          where: { id: { in: activePayments.map((p) => p.id) }, status: 'READY' },
+          data: { status: 'CANCELED', updated_at: new Date() },
+        });
       }
       // 주방 접수와 동시에 눌린 경우를 막기 위해 상태 조건부로 갱신한다.
       const { count } = await tx.orders.updateMany({

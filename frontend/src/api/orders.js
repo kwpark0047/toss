@@ -42,7 +42,8 @@ export const ordersAPI = {
   cancel: (id) => api.post('/orders/' + id + '/cancel'),
   // 손님 셀프 취소: 주방 접수 전·결제 전 주문만 (주문 capability 필수)
   customerCancel: (id, capability) =>
-    api.post('/orders/' + id + '/customer-cancel', null, { headers: { 'x-order-capability': capability } }),
+    // 본문이 null 이면 JSON "null" 로 전송돼 서버 json 파서(strict)가 400을 낸다 → 빈 객체를 보낸다.
+    api.post('/orders/' + id + '/customer-cancel', {}, { headers: { 'x-order-capability': capability } }),
   delete: (id) => api.delete('/orders/' + id),
   getById: (id, capability) =>
     api.get(

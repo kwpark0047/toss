@@ -326,7 +326,7 @@
     "no_recent_desc": "ご注文いただくと、ここで進行状況を確認できます。",
     "eta_label": "予想待ち時間",
     "eta_minutes": "約{{minutes}}分",
-    "eta_orders_ahead": "先の注文 {{count}}件",
+    "eta_orders_ahead": "厨房の注文 {{count}}件",
     "cancel_cta": "注文をキャンセル",
     "cancel_confirm": "まだ厨房が確認していないため、今ならキャンセルできます。キャンセルしますか？",
     "cancel_keep": "いいえ",
