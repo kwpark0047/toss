@@ -1,5 +1,7 @@
 const Receipt = require('../repositories/Receipt');
 const TinkerbellSettings = require('../repositories/TinkerbellSettings');
+const OrderChannels = require('../repositories/OrderChannels');
+const DeliveryService = require('../services/DeliveryService');
 const StoreTier = require('../repositories/StoreTier');
 const prisma = require('../config/prisma');
 const catchAsync = require('../utils/catchAsync');
@@ -73,6 +75,99 @@ const storeSettingsController = {
     if (error) return res.status(400).json({ success: false, error });
     const saved = await TinkerbellSettings.upsert(req.params.storeId, data);
     res.success(saved, '팅커벨 설정이 저장되었습니다.');
+  }),
+
+  // 주문 유형 스위치·직접 배달 설정 조회 (관리자) + 부가기능 상태
+  getOrderChannels: catchAsync(async (req, res) => {
+    const storeId = req.params.storeId;
+    const [channels, addonActive] = await Promise.all([
+      OrderChannels.findByStoreId(storeId),
+      OrderChannels.isAddonActive(storeId),
+    ]);
+    res.success({ ...channels, online_addon_active: addonActive });
+  }),
+
+  // 주문 유형 스위치·직접 배달 설정 저장
+  updateOrderChannels: catchAsync(async (req, res) => {
+    const { data, error } = OrderChannels.sanitize(req.body);
+    if (error) return res.status(400).json({ success: false, error });
+    const storeId = req.params.storeId;
+    const [current, addonActive] = await Promise.all([
+      OrderChannels.findByStoreId(storeId),
+      OrderChannels.isAddonActive(storeId),
+    ]);
+    const next = { ...current, ...data };
+    const invalid = OrderChannels.validateMerged(next, { addonActive });
+    if (invalid) return res.status(400).json({ success: false, error: invalid });
+    const saved = await OrderChannels.upsert(storeId, data);
+    res.success({ ...saved, online_addon_active: addonActive }, '주문 받는 방식이 저장되었습니다.');
+  }),
+
+  // 고객 화면용 주문 유형·배달 조건 (정확한 매장 좌표는 내보내지 않는다)
+  getPublicOrderChannels: catchAsync(async (req, res) => {
+    const storeId = req.params.id;
+    const store = await prisma.stores.findUnique({
+      where: { id: parseInt(storeId) },
+      select: { id: true, address: true, latitude: true, longitude: true },
+    });
+    if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다.' });
+    const channels = await OrderChannels.findByStoreId(storeId);
+    const info = DeliveryService.publicServiceInfo(store, channels);
+    res.success({
+      ...info,
+      pickup_guide: channels.takeout_enabled ? channels.pickup_guide : '',
+      delivery: channels.delivery_enabled
+        ? {
+            fee: channels.delivery_fee,
+            min_order_amount: channels.min_order_amount,
+            est_minutes: channels.delivery_est_minutes,
+          }
+        : null,
+    });
+  }),
+
+  // 배달 가능 여부·배달비 견적 (고객 화면)
+  getDeliveryQuote: catchAsync(async (req, res) => {
+    const storeId = parseInt(req.params.id);
+    const store = await prisma.stores.findUnique({
+      where: { id: storeId },
+      select: { id: true, latitude: true, longitude: true },
+    });
+    if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다.' });
+    const channels = await OrderChannels.findByStoreId(storeId);
+    const subtotal = Number(req.body?.subtotal);
+    const result = await DeliveryService.quote({
+      store,
+      channels,
+      address: req.body?.address,
+      subtotal: Number.isFinite(subtotal) ? subtotal : undefined,
+      clientCoords: req.body,
+    });
+    // 거리는 매장 위치를 되짚는 데 쓰일 수 있어 응답에서 뺀다.
+    delete result.distance_km;
+    res.success(result);
+  }),
+
+  // 매장 부가기능 목록
+  getAddons: catchAsync(async (req, res) => {
+    res.success(await OrderChannels.listAddons(req.params.storeId));
+  }),
+
+  // 온라인 주문 부가기능 켜기/끄기 (현재 무료)
+  setOnlineAddon: catchAsync(async (req, res) => {
+    if (typeof req.body?.active !== 'boolean')
+      return res
+        .status(400)
+        .json({ success: false, error: 'active는 true/false 값이어야 합니다.' });
+    await OrderChannels.setOnlineAddon(req.params.storeId, req.body.active);
+    const [addons, channels] = await Promise.all([
+      OrderChannels.listAddons(req.params.storeId),
+      OrderChannels.findByStoreId(req.params.storeId),
+    ]);
+    res.success(
+      { addons, channels: { ...channels, online_addon_active: req.body.active } },
+      req.body.active ? '온라인 주문 부가기능을 켰습니다.' : '온라인 주문 부가기능을 껐습니다.'
+    );
   }),
 
   // 매장 등급 설정 조회

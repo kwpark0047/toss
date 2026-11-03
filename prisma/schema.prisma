@@ -143,6 +143,11 @@ model orders {
   is_takeout         Int?                 @default(0)
   order_type         String?              @default("dine_in")  // dine_in | takeout | delivery
   delivery_address   String?
+  delivery_fee       Int?
+  delivery_memo      String?              @db.VarChar(500)
+  delivery_status    String?              @db.VarChar(16)  // null | delivering | delivered (배달 주문만)
+  delivery_started_at DateTime?
+  delivered_at       DateTime?
   preparing_at       DateTime?
   ready_at           DateTime?
   split_type         String?              @default("NONE")     // [추가] 분할 방식 (NONE, EQUAL: N분의 1, ITEM: 품목별)
@@ -666,6 +671,43 @@ model store_tinkerbell_settings {
   @@schema("public")
 }
 
+model store_order_channels {
+  id                   Int      @id @default(autoincrement())
+  store_id             Int      @unique(map: "uq_store_order_channels_store")
+  dine_in_enabled      Boolean  @default(true)
+  takeout_enabled      Boolean  @default(true)
+  delivery_enabled     Boolean  @default(false)
+  pickup_guide         String?  @db.VarChar(200)
+  hide_exact_address   Boolean  @default(false)
+  delivery_fulfillment String   @default("self") @db.VarChar(16) // self | agency
+  delivery_area_mode   String   @default("radius") @db.VarChar(16) // radius | areas
+  delivery_radius_km   Float    @default(3)
+  delivery_areas       Json     @default("[]")
+  min_order_amount     Int      @default(0)
+  delivery_fee         Int      @default(0)
+  delivery_est_minutes Int      @default(40)
+  updated_at           DateTime @default(now())
+  stores               stores   @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@schema("public")
+}
+
+model store_addons {
+  id            Int       @id @default(autoincrement())
+  store_id      Int
+  addon_key     String    @db.VarChar(40)
+  status        String    @default("active") @db.VarChar(16) // active | trialing | canceled | expired
+  price         Int       @default(0)
+  billing_cycle String?   @db.VarChar(16)
+  started_at    DateTime  @default(now())
+  canceled_at   DateTime?
+  expires_at    DateTime?
+  updated_at    DateTime  @default(now())
+  stores        stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([store_id, addon_key], map: "uq_store_addons_store_key")
+  @@schema("public")
+}
+
 model stores {
   business_support_enrollment business_support_enrollments?
   business_support_cases business_support_cases[]
@@ -722,6 +764,8 @@ model stores {
   store_point_settings          store_point_settings?
   store_receipt_settings        store_receipt_settings?
   store_tinkerbell_settings     store_tinkerbell_settings?
+  store_order_channels          store_order_channels?
+  store_addons                  store_addons[]
   store_tier_settings           store_tier_settings[]
   store_subscriptions           store_subscriptions?
   store_business_info           store_business_info?

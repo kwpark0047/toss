@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { useSEO } from '../../lib/useSEO';
 import Icon from '../../components/ui/Icon';
 import ProviderCredentialPanel from './ProviderCredentialPanel';
+import OrderChannelsSettings from './OrderChannelsSettings';
 import { Award, Brush, CheckCircle2, ChevronDown, ChevronUp, CopyCheck, Crown, Edit3, Info, Layout, Moon, Palette, Plus, Save, Store, Sun, ToggleLeft, ToggleRight, Trash2, Type, Clock } from 'lucide-react';
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
@@ -380,6 +381,9 @@ export default function StoreSettings() {
           </div>
         )}
       </Section>
+
+      {/* ── 주문 받는 방식 (매장 식사/포장/배달) ─────────────────────────── */}
+      <OrderChannelsSettings storeId={storeId} />
 
       {/* ── QR 고객 시작 화면 ───────────────────────────────────────────── */}
       <Section title="QR 고객 시작 화면" icon={Store} color="text-orange-500">

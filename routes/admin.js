@@ -350,6 +350,101 @@ router.put(
 
 /**
  * @swagger
+ * /api/admin/stores/{storeId}/order-channels:
+ *   get:
+ *     tags: [Admin]
+ *     summary: 주문 받는 방식(매장 식사/포장/배달)과 직접 배달 설정 조회
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: 주문 유형 스위치·배달 설정과 온라인 주문 부가기능 상태
+ *   put:
+ *     tags: [Admin]
+ *     summary: 주문 받는 방식 저장 (매장 식사 끄기·배달 켜기는 온라인 주문 부가기능 필요)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: 저장된 설정
+ */
+router.get(
+  '/stores/:storeId/order-channels',
+  authMiddleware,
+  checkStorePermission('settings:read'),
+  storeSettingsController.getOrderChannels
+);
+router.put(
+  '/stores/:storeId/order-channels',
+  authMiddleware,
+  checkStorePermission('settings:write'),
+  storeSettingsController.updateOrderChannels
+);
+
+/**
+ * @swagger
+ * /api/admin/stores/{storeId}/addons:
+ *   get:
+ *     tags: [Admin]
+ *     summary: 매장 부가기능 목록
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: 부가기능과 켜짐 여부
+ * /api/admin/stores/{storeId}/addons/online_ordering:
+ *   put:
+ *     tags: [Admin]
+ *     summary: 온라인 주문 부가기능 켜기/끄기 (무료)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               active: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: 바뀐 부가기능 목록과 주문 유형 설정
+ */
+router.get(
+  '/stores/:storeId/addons',
+  authMiddleware,
+  checkStorePermission('settings:read'),
+  storeSettingsController.getAddons
+);
+router.put(
+  '/stores/:storeId/addons/online_ordering',
+  authMiddleware,
+  checkStorePermission('store:update'),
+  storeSettingsController.setOnlineAddon
+);
+
+/**
+ * @swagger
  * /api/admin/stores/{storeId}/tier-settings:
  *   get:
  *     tags: [Admin]

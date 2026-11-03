@@ -39,6 +39,8 @@ export const ordersAPI = {
   },
   updateStatus: (id, status, staffId = null) =>
     api.put('/orders/' + id + '/status', { status, staff_id: staffId }),
+  // 직접 배달 출발(start)/완료(complete)
+  updateDelivery: (id, action) => api.put('/orders/' + id + '/delivery', { action }),
   cancel: (id) => api.post('/orders/' + id + '/cancel'),
   delete: (id) => api.delete('/orders/' + id),
   getById: (id, capability) =>
@@ -131,4 +133,3 @@ export const paymentsAPI = {
       headers: { 'x-order-capability': capability },
     }),
 };
-

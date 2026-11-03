@@ -97,6 +97,13 @@ const canonicalOrderSchema = z.object({
   longitude: z.number().min(-180).max(180).optional(),
   // 위치 정확도(미터). 실내 GPS 오차로 매장 안 손님이 막히지 않도록 반경 판정에 반영한다.
   location_accuracy: z.number().min(0).max(100000).optional(),
+  // 주문 유형. 보내지 않으면 서버가 테이블 유무와 매장 설정으로 정한다(기존 클라이언트 호환).
+  order_type: z.enum(['dine_in', 'takeout', 'delivery']).optional(),
+  delivery_address: z.string().trim().min(1).max(300).optional(),
+  delivery_memo: z.string().trim().max(500).optional(),
+  // 고객 기기가 고른 배달 주소 좌표. 서버 지오코딩이 실패할 때만 반경 판정에 쓴다.
+  delivery_latitude: z.number().min(-90).max(90).optional(),
+  delivery_longitude: z.number().min(-180).max(180).optional(),
   total_amount: priceSchema,
   payment_method: z
     .enum([
@@ -145,35 +152,40 @@ const createOrderSchema = z.preprocess(
     if (input && Object.hasOwn(input, 'store_id') && Object.hasOwn(input, 'storeId')) return null;
     return input;
   },
-  z.union([
-    canonicalOrderSchema,
-    camelCaseOrderSchema.transform((data) => ({
-      ...data,
-      store_id: data.storeId,
-      table_id: data.tableId,
-      customer_phone: data.customerPhone,
-      payment_method:
-        { toss_pay: 'toss', kakao_pay: 'kakao', naver_pay: 'naver' }[data.paymentMethod] ||
-        data.paymentMethod,
-      total_amount: data.items.reduce((sum, item) => sum + item.totalPrice, 0),
-      items: data.items.map((item) => ({
-        product_id: item.productId,
-        product_name: item.productName,
-        quantity: item.quantity,
-        price: item.unitPrice,
-        subtotal: item.totalPrice,
-        options: item.options.map((option) => ({
-          groupName: option.optionName,
-          choiceName: option.optionItemName,
-          priceAdjustment: option.price,
+  z
+    .union([
+      canonicalOrderSchema,
+      camelCaseOrderSchema.transform((data) => ({
+        ...data,
+        store_id: data.storeId,
+        table_id: data.tableId,
+        customer_phone: data.customerPhone,
+        payment_method:
+          { toss_pay: 'toss', kakao_pay: 'kakao', naver_pay: 'naver' }[data.paymentMethod] ||
+          data.paymentMethod,
+        total_amount: data.items.reduce((sum, item) => sum + item.totalPrice, 0),
+        items: data.items.map((item) => ({
+          product_id: item.productId,
+          product_name: item.productName,
+          quantity: item.quantity,
+          price: item.unitPrice,
+          subtotal: item.totalPrice,
+          options: item.options.map((option) => ({
+            groupName: option.optionName,
+            choiceName: option.optionItemName,
+            priceAdjustment: option.price,
+          })),
         })),
       })),
-    })),
-  ]).superRefine((order, context) => {
-    if (order.is_split_payment && (order.split_type !== 'EQUAL' || !order.split_people_count)) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: '분할 결제 설정이 올바르지 않습니다.' });
-    }
-  })
+    ])
+    .superRefine((order, context) => {
+      if (order.is_split_payment && (order.split_type !== 'EQUAL' || !order.split_people_count)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: '분할 결제 설정이 올바르지 않습니다.',
+        });
+      }
+    })
 );
 
 // 주문 상태 변경
@@ -336,6 +348,12 @@ const orderIdParamSchema = z.object({
   id: z.string().regex(/^\d+$/).transform(Number),
 });
 
+// 직접 배달 출발/완료
+const updateOrderDeliverySchema = z.object({
+  action: z.enum(['start', 'complete']),
+  staff_id: z.number().int().positive().optional(),
+});
+
 // 주문 번호 파라미터
 const orderNumberParamSchema = z.object({
   orderNumber: z.string().min(1).max(50),
@@ -349,6 +367,7 @@ const customerTokenParamSchema = z.object({
 module.exports = {
   createOrderSchema,
   updateOrderStatusSchema,
+  updateOrderDeliverySchema,
   cancelOrderSchema,
   returnExchangeSchema,
   createPaymentSchema,
@@ -361,4 +380,3 @@ module.exports = {
   priceSchema,
   phoneSchema,
 };
-

@@ -3,6 +3,8 @@ const Store = require('../repositories/Store');
 const cache = require('../utils/cache');
 const { AppError } = require('../utils/errorHandler');
 const publicBusiness = { store_business_info: { select: { business_type: true } } };
+const DeliveryService = require('./DeliveryService');
+
 const flattenPublic = ({ store_business_info, store_operating_hours, ...store }) => ({
   ...store,
   business_type: store_business_info?.business_type ?? null,
@@ -92,19 +94,27 @@ class StoreService {
     });
 
     stores = stores.map(flattenPublic);
-    // 거리 계산
+    // 주소를 숨긴 온라인 전용 매장은 좌표를 지우고 흐린 배달 권역만 남긴다.
+    stores = await DeliveryService.applyPublicPrivacyToList(stores);
+    // 거리 계산 — 주소를 숨긴 매장은 흐린 권역 중심 기준(정확한 위치를 되짚지 못하게)
     const { haversineKm } = require('../utils/geo');
     const la = parseFloat(lat),
       lo = parseFloat(lng);
     if (!isNaN(la) && !isNaN(lo)) {
       stores = stores
-        .map((s) => ({
-          ...s,
-          distance_km:
+        .map((s) => {
+          const point =
             s.latitude != null && s.longitude != null
-              ? Math.round(haversineKm(la, lo, s.latitude, s.longitude) * 10) / 10
-              : null,
-        }))
+              ? { lat: s.latitude, lng: s.longitude }
+              : s.delivery_area?.center || null;
+          const km = point ? haversineKm(la, lo, point.lat, point.lng) : null;
+          const out = { ...s, distance_km: km == null ? null : Math.round(km * 10) / 10 };
+          // 반경 권역 매장은 내 위치가 권역 안인지 알려 준다 (동네 권역은 주소로만 판정 가능)
+          if (s.delivery_area?.mode === 'radius' && km != null) {
+            out.delivers_here = km <= s.delivery_area.radius_km;
+          }
+          return out;
+        })
         .sort((a, b) => (a.distance_km ?? 1e9) - (b.distance_km ?? 1e9));
     }
 
@@ -221,7 +231,8 @@ class StoreService {
     });
 
     if (ids.length) stores.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
-    return stores.map((s, i) => ({
+    const visible = await DeliveryService.applyPublicPrivacyToList(stores);
+    return visible.map((s, i) => ({
       rank: i + 1,
       id: s.id,
       name: s.name,
@@ -229,6 +240,8 @@ class StoreService {
       business_type: s.store_business_info?.business_type ?? null,
       latitude: s.latitude,
       longitude: s.longitude,
+      online_only: s.online_only,
+      order_types: s.order_types,
       order_count: ranked.find((row) => row.store_id === s.id)?._count._all || 0,
     }));
   }
@@ -478,7 +491,10 @@ class StoreService {
       },
       orderBy: { created_at: 'desc' },
     });
-    return list.map((f) => ({ ...flattenPublic(f.stores), favorited_at: f.created_at }));
+    const visible = await DeliveryService.applyPublicPrivacyToList(
+      list.map((f) => flattenPublic(f.stores))
+    );
+    return visible.map((store, i) => ({ ...store, favorited_at: list[i].created_at }));
   }
 
   // 사업자 정보 검증
