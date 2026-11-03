@@ -31,7 +31,9 @@ describe('OrderChannels.sanitize', () => {
     [{ min_order_amount: 1.5 }],
     [{ delivery_est_minutes: 1 }],
     [{ delivery_area_mode: 'polygon' }],
-    [{ delivery_fulfillment: 'agency' }],
+    [{ delivery_fulfillment: 'drone' }],
+    [{ agency_provider: 'Bad Provider!' }],
+    [{ agency_auto_dispatch: 'yes' }],
     [{ pickup_guide: 'x'.repeat(201) }],
   ])('잘못된 값은 거절한다 %j', (body) => {
     expect(OrderChannels.sanitize(body).error).toBeTruthy();
@@ -60,6 +62,19 @@ describe('OrderChannels.validateMerged', () => {
     ).toMatch('부가기능');
     expect(
       OrderChannels.validateMerged({ ...base, takeout_enabled: false }, { addonActive: false })
+    ).toBeNull();
+  });
+
+  test('배달대행을 고르면 대행사가 있어야 한다', () => {
+    const next = {
+      ...base,
+      delivery_enabled: true,
+      delivery_fulfillment: 'agency',
+      agency_provider: null,
+    };
+    expect(OrderChannels.validateMerged(next, { addonActive: true })).toMatch('배달대행사');
+    expect(
+      OrderChannels.validateMerged({ ...next, agency_provider: 'barogo' }, { addonActive: true })
     ).toBeNull();
   });
 

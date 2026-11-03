@@ -5,10 +5,12 @@ const authMiddleware = require('../middleware/auth');
 const { checkStorePermission, checkStorePermissionForObject } = require('../middleware/storeAuth');
 const { validateBody, validateQuery, validateParams } = require('../middleware/validate');
 const idempotency = require('../middleware/idempotency');
+const rateLimit = require('express-rate-limit').rateLimit;
 const {
   createOrderSchema,
   updateOrderStatusSchema,
   updateOrderDeliverySchema,
+  deliveryWebhookParamSchema,
   cancelOrderSchema,
   returnExchangeSchema,
   createPaymentSchema,
@@ -331,6 +333,66 @@ router.put(
  *       200:
  *         description: 배달 상태 변경 완료
  */
+/**
+ * @swagger
+ * /api/orders/{id}/dispatch:
+ *   get:
+ *     tags: [Orders]
+ *     summary: 배달대행 배차 현황
+ *     security:
+ *       - bearerAuth: []
+ *   post:
+ *     tags: [Orders]
+ *     summary: 배달대행 배차 요청 (매장이 고른 대행사로)
+ *     security:
+ *       - bearerAuth: []
+ *   delete:
+ *     tags: [Orders]
+ *     summary: 배달대행 배차 취소 (기사 픽업 전까지)
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get(
+  '/:id/dispatch',
+  authMiddleware,
+  validateParams(orderIdParamSchema),
+  checkOrderReadPermission,
+  orderController.getDispatch
+);
+router.post(
+  '/:id/dispatch',
+  authMiddleware,
+  validateParams(orderIdParamSchema),
+  checkOrderPermission,
+  orderController.requestDispatch
+);
+router.delete(
+  '/:id/dispatch',
+  authMiddleware,
+  validateParams(orderIdParamSchema),
+  checkOrderPermission,
+  orderController.cancelDispatch
+);
+
+/**
+ * @swagger
+ * /api/orders/delivery-webhooks/{provider}/{storeId}:
+ *   post:
+ *     tags: [Orders]
+ *     summary: 배달대행사 배차 상태 웹훅 (매장 계정 비밀값 HMAC 서명 필요)
+ *     responses:
+ *       200:
+ *         description: 처리 완료 또는 중복 이벤트
+ *       401:
+ *         description: 서명 검증 실패
+ */
+router.post(
+  '/delivery-webhooks/:provider/:storeId',
+  rateLimit({ windowMs: 60000, limit: 300 }),
+  validateParams(deliveryWebhookParamSchema),
+  orderController.deliveryWebhook
+);
+
 router.put(
   '/:id/delivery',
   authMiddleware,

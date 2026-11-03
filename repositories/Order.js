@@ -215,6 +215,21 @@ const Order = {
             tables: {
               select: { table_number: true },
             },
+            // 배달대행 주문의 최근 배차 (주문 관리 카드 표시용)
+            delivery_dispatches: {
+              orderBy: { id: 'desc' },
+              take: 1,
+              select: {
+                id: true,
+                provider: true,
+                status: true,
+                rider_name: true,
+                rider_phone: true,
+                tracking_url: true,
+                failure_reason: true,
+                fee: true,
+              },
+            },
           },
           orderBy: { created_at: 'desc' },
         });
@@ -251,6 +266,8 @@ const Order = {
         items: order.order_items || [],
         table_name: order.tables?.table_number || null,
         latest_payment: order.payments && order.payments.length > 0 ? order.payments[0] : null,
+        latest_dispatch: order.delivery_dispatches?.[0] || null,
+        delivery_dispatches: undefined,
       }));
       return pagination ? { items, total, page, limit } : items;
     } catch (error) {

@@ -10,7 +10,7 @@ import { adminAPI } from '../../api';
 const CHANNELS = [
   { key: 'dine_in_enabled', title: '매장 식사', description: '테이블 QR로 매장 안에서 주문합니다.', icon: Utensils, needsAddon: 'off' },
   { key: 'takeout_enabled', title: '포장 픽업', description: '주문 링크로 주문하고 매장에서 받아 갑니다.', icon: ShoppingBag },
-  { key: 'delivery_enabled', title: '배달', description: '사장님이 직접 배달합니다. 배달대행은 준비 중입니다.', icon: Bike, needsAddon: 'on' },
+  { key: 'delivery_enabled', title: '배달', description: '직접 배달하거나 계약한 배달대행사로 보냅니다.', icon: Bike, needsAddon: 'on' },
 ];
 
 const won = (n) => `${Number(n || 0).toLocaleString()}원`;
@@ -23,7 +23,8 @@ export default function OrderChannelsSettings({ storeId }) {
   const [toggling, setToggling] = useState(false);
 
   const load = (data) => {
-    setForm(data);
+    // 부가기능 켜기/끄기 응답에는 대행사 목록이 없으므로 이전 목록을 유지한다.
+    setForm((prev) => ({ ...data, agency_providers: data.agency_providers || prev?.agency_providers || [] }));
     setAddonActive(!!data.online_addon_active);
     setAreasText((data.delivery_areas || []).join(', '));
   };
@@ -78,6 +79,9 @@ export default function OrderChannelsSettings({ storeId }) {
         min_order_amount: Number(form.min_order_amount) || 0,
         delivery_fee: Number(form.delivery_fee) || 0,
         delivery_est_minutes: Number(form.delivery_est_minutes) || 40,
+        delivery_fulfillment: form.delivery_fulfillment || 'self',
+        agency_provider: form.agency_provider || null,
+        agency_auto_dispatch: !!form.agency_auto_dispatch,
       });
       load(res.data || res);
       toast.success('주문 받는 방식이 저장되었습니다.');
@@ -213,7 +217,60 @@ export default function OrderChannelsSettings({ storeId }) {
 
         {form.delivery_enabled && (
           <div className="space-y-4 rounded-2xl border border-gray-200 p-4">
-            <p className="text-sm font-extrabold text-gray-900">직접 배달 설정</p>
+            <p className="text-sm font-extrabold text-gray-900">배달 설정</p>
+            <div className="flex gap-2" role="radiogroup" aria-label="배달 방식">
+              {[
+                { value: 'self', label: '직접 배달' },
+                { value: 'agency', label: '배달대행' },
+              ].map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={(form.delivery_fulfillment || 'self') === value}
+                  onClick={() => set('delivery_fulfillment', value)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-bold ${(form.delivery_fulfillment || 'self') === value ? 'border-orange-500 bg-orange-500 text-white' : 'border-gray-200 text-gray-600'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {form.delivery_fulfillment === 'agency' && (
+              <div className="space-y-3 rounded-xl bg-gray-50 p-3" data-testid="agency-settings">
+                <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="배달대행사">
+                  {(form.agency_providers || []).map((provider) => {
+                    const selected = form.agency_provider === provider.key;
+                    return (
+                      <button
+                        key={provider.key}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => set('agency_provider', provider.key)}
+                        className={`rounded-xl border-2 px-3 py-2 text-left ${selected ? 'border-orange-500 bg-white' : 'border-gray-200 bg-white'}`}
+                      >
+                        <span className="block text-sm font-extrabold text-gray-900">{provider.label}</span>
+                        <span className={`mt-0.5 block text-[11px] font-bold ${!provider.ready ? 'text-gray-400' : provider.connected ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          {!provider.ready ? '연동 준비 중' : provider.connected ? '계정 연결됨' : '계정 연결 필요'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-orange-500"
+                    checked={!!form.agency_auto_dispatch}
+                    onChange={(e) => set('agency_auto_dispatch', e.target.checked)}
+                  />
+                  주문을 확인하면 자동으로 배차 요청
+                </label>
+                <p className="text-xs leading-5 text-gray-500">
+                  대행사 계정(API 키·비밀값)은 아래 '외부 연동 인증정보'에서 매장 계약 정보로 연결해 주세요. 대행 수수료는 대행사와 매장이 직접 정산합니다. 바로고·부릉·생각대로는 제휴 API 연동이 끝나면 선택할 수 있어요.
+                </p>
+              </div>
+            )}
             <div className="flex gap-2" role="radiogroup" aria-label="배달 권역 방식">
               {[
                 { value: 'radius', label: '매장에서 반경' },
