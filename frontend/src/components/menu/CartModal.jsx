@@ -91,7 +91,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
 
           <motion.div
             initial={{ y: '100%' }}
-            animate={{ y: 0, height: isCollapsed ? 'auto' : undefined }}
+            animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className={`fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] z-50 cust-bg-card overflow-hidden tds-stack flex-col shadow-2xl bottom-sheet ${isCollapsed ? 'rounded-t-2xl border border-b-0 cust-border' : 'rounded-t-[32px] max-h-[90vh]'}`}
