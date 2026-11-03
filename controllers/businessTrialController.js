@@ -8,14 +8,9 @@ exports.list = catchAsync(async (req, res) => {
   res.success({ accounts, count: accounts.length });
 });
 
-exports.approve = catchAsync(async (req, res) => {
-  const account = await service.approve(req.params.id, req.user.id);
-  res.success({ account }, '정식 이용을 승인했습니다.');
-});
-
-exports.revokeApproval = catchAsync(async (req, res) => {
-  const account = await service.revokeApproval(req.params.id, req.user.id);
-  res.success({ account }, '정식 이용 승인을 취소했습니다.');
+exports.extend = catchAsync(async (req, res) => {
+  const account = await service.extendTrial(req.params.id, req.user.id, req.body?.days ?? 30);
+  res.success({ account }, '체험 기간을 연장했습니다.');
 });
 
 exports.deleteAccount = catchAsync(async (req, res) => {

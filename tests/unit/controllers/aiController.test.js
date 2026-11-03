@@ -9,6 +9,7 @@ jest.mock('../../../services/aiService');
 jest.mock('../../../repositories/Product');
 jest.mock('../../../repositories/Order');
 jest.mock('../../../repositories/Store');
+jest.mock('../../../config/prisma', () => ({ $queryRaw: jest.fn().mockResolvedValue([]) }));
 
 describe('aiController', () => {
     let req, res;
@@ -51,6 +52,19 @@ describe('aiController', () => {
                 success: true,
                 data: { imageUrl: 'http://image.url', keyword: 'kimchi' }
             });
+        });
+
+        test('무료 요금제라도 가입 후 프로 체험 기간이면 이미지를 생성한다', async () => {
+            const prisma = require('../../../config/prisma');
+            prisma.$queryRaw.mockResolvedValueOnce([{ trial_ends_at: new Date(Date.now() + 86400000) }]);
+            req.body = { store_id: '1', name: '김치찌개' };
+            Store.findById.mockResolvedValue({ id: 1, plan: 'free' });
+            aiService.generateMenuImage.mockResolvedValue({ imageUrl: 'http://image.url', keyword: 'kimchi' });
+
+            await aiController.generateMenuImage(req, res);
+
+            expect(res.status).not.toHaveBeenCalledWith(403);
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
         });
 
         test('매장이 무료 요금제(free)인 경우 403 에러를 반환한다', async () => {

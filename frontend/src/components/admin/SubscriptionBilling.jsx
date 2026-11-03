@@ -132,7 +132,9 @@ export default function SubscriptionBilling({ storeId, plans = [] }) {
     }
   };
   const sub = summary?.subscription;
-  const paid = summary?.effective_plan && summary.effective_plan !== 'free';
+  // 결제 여부는 실제 구독 기준이다. 가입 체험 중에도 유료 구독은 새로 시작할 수 있어야 한다.
+  const paid = Boolean(sub?.effective_plan && sub.effective_plan !== 'free');
+  const trialActive = Boolean(summary?.trial?.active && !paid);
   const button = 'min-h-11 rounded-lg border border-white/30 px-4 text-white disabled:opacity-50';
   return (
     <section
@@ -177,8 +179,8 @@ export default function SubscriptionBilling({ storeId, plans = [] }) {
           <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
             {[
               ['현재 플랜', summary.effective_plan.toUpperCase()],
-              ['상태', statuses[sub?.status] || '무료 이용'],
-              ['이용 종료', date(sub?.current_period_end)],
+              ['상태', trialActive ? '프로 무료 체험 중' : statuses[sub?.status] || '무료 이용'],
+              ['이용 종료', trialActive ? date(summary.trial.ends_at) : date(sub?.current_period_end)],
               ['다음 결제', sub?.auto_renew ? date(sub.next_payment_at) : '자동 갱신 꺼짐'],
             ].map(([label, value]) => (
               <div key={label}>
@@ -187,6 +189,12 @@ export default function SubscriptionBilling({ storeId, plans = [] }) {
               </div>
             ))}
           </dl>
+          {trialActive && (
+            <p role="status" className="rounded-lg bg-amber-950/60 p-3 text-sm text-amber-100">
+              {date(summary.trial.ends_at)}까지 프로 요금제 기능을 무료로 쓸 수 있습니다. 체험이
+              끝나면 무료 요금제로 자동 전환되며, 계속 쓰려면 그 전에 구독을 시작하세요.
+            </p>
+          )}
           <div className="flex flex-wrap gap-4 text-sm text-slate-200">
             <span>메뉴 {summary.usage.maxMenus}개</span>
             <span>직원 {summary.usage.maxStaff}명</span>

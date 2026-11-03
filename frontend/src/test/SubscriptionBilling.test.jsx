@@ -72,6 +72,7 @@ test('canceling renewal requires the confirmation action', async () => {
       effective_plan: 'pro',
       subscription: {
         status: 'active',
+        effective_plan: 'pro',
         auto_renew: true,
         current_period_end: '2026-11-06',
         plan: plans[0],
@@ -85,4 +86,19 @@ test('canceling renewal requires the confirmation action', async () => {
   expect(subscriptionsAPI.cancel).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: '해지 확정' }));
   await waitFor(() => expect(subscriptionsAPI.cancel).toHaveBeenCalledWith('1'));
+});
+test('a signup trial shows pro access but still lets the owner start a paid subscription', async () => {
+  subscriptionsAPI.get.mockResolvedValue({
+    data: {
+      effective_plan: 'pro',
+      subscription: null,
+      trial: { plan: 'pro', active: true, ends_at: '2026-12-03T00:00:00.000Z' },
+      usage: { maxMenus: 3, maxStaff: 1, ordersPerMonth: 2 },
+    },
+  });
+  render(<SubscriptionBilling storeId="1" plans={plans} />);
+  expect(await screen.findByText('프로 무료 체험 중')).toBeInTheDocument();
+  expect(screen.getByText(/무료 요금제로 자동 전환/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '구독 시작' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: '자동 갱신 해지' })).not.toBeInTheDocument();
 });

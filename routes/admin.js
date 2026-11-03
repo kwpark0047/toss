@@ -611,19 +611,13 @@ router.post(
   storeLinkController.rejectRequest
 );
 
-// ── 신규 사업자 1개월 체험 및 정식 이용 승인 (super_admin) ────────────────
+// ── 신규 사업자 1개월 프로 체험 및 체험 연장 (super_admin) ────────────────
 router.get('/business-trials', authMiddleware, adminOnly, businessTrialController.list);
 router.post(
-  '/business-trials/:id/approve',
+  '/business-trials/:id/extend',
   authMiddleware,
   adminOnly,
-  businessTrialController.approve
-);
-router.post(
-  '/business-trials/:id/revoke-approval',
-  authMiddleware,
-  adminOnly,
-  businessTrialController.revokeApproval
+  businessTrialController.extend
 );
 router.delete(
   '/business-trials/:id',

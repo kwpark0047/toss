@@ -4,7 +4,14 @@ const prisma = require('../config/prisma');
 const TossAPI = require('../utils/toss');
 const { AppError } = require('../utils/errorHandler');
 const { encryptToken, decryptToken } = require('../utils/tokenEncryption');
-const { nextBillingPeriod, effectivePlan } = require('../utils/subscriptionPolicy');
+const {
+  nextBillingPeriod,
+  effectivePlan,
+  resolvePlan,
+  isTrialActive,
+  ownerTrialEndsAt,
+  TRIAL_PLAN,
+} = require('../utils/subscriptionPolicy');
 const logger = require('../utils/logger');
 
 const customerKey = (storeId) =>
@@ -345,18 +352,27 @@ class SaaSBillingService {
     const start = new Date();
     start.setUTCDate(1);
     start.setUTCHours(0, 0, 0, 0);
-    const [menus, staff, orders] = await Promise.all([
+    const [menus, staff, orders, trialEndsAt] = await Promise.all([
       prisma.products.count({ where: { store_id: storeId } }),
       prisma.staff.count({ where: { store_id: storeId, is_active: 1 } }),
       prisma.orders.count({ where: { store_id: storeId, created_at: { gte: start } } }),
+      ownerTrialEndsAt(prisma, storeId),
     ]);
     const { planLimit } = require('../utils/planQuota');
     return {
       subscription: publicSubscription(sub),
-      effective_plan: effectivePlan(sub),
+      effective_plan: resolvePlan(sub, trialEndsAt),
+      trial: {
+        plan: TRIAL_PLAN,
+        ends_at: trialEndsAt,
+        active: isTrialActive(trialEndsAt),
+      },
       usage: { maxMenus: menus, maxStaff: staff, ordersPerMonth: orders },
       limits: Object.fromEntries(
-        ['maxMenus', 'maxStaff', 'ordersPerMonth'].map((key) => [key, planLimit(sub, key)])
+        ['maxMenus', 'maxStaff', 'ordersPerMonth'].map((key) => [
+          key,
+          planLimit(sub, key, trialEndsAt),
+        ])
       ),
       usage_period_start: start,
     };
