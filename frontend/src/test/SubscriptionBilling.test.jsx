@@ -102,3 +102,8 @@ test('a signup trial shows pro access but still lets the owner start a paid subs
   expect(screen.getByRole('button', { name: '구독 시작' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: '자동 갱신 해지' })).not.toBeInTheDocument();
 });
+test('plan prices and the automatic payment consent state that VAT is included', async () => {
+  render(<SubscriptionBilling storeId="1" plans={plans} />);
+  expect(await screen.findByText(/30,000원 \/ 월 \(VAT 포함\)/)).toBeInTheDocument();
+  expect(screen.getByText(/선택한 요금\(VAT 포함\)이 매 결제 주기마다 자동 청구/)).toBeInTheDocument();
+});

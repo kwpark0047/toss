@@ -189,7 +189,7 @@ export default function FoodTruckPricing({ embedded = false } = {}) {
                   <span className="text-4xl font-black font-mono text-slate-900">
                     {plan.price === 0 ? '₩0' : `₩${getPrice(plan.price).toLocaleString('ko-KR')}`}
                   </span>
-                  <span className="text-xs text-slate-400 font-bold">/월</span>
+                  <span className="text-xs text-slate-400 font-bold">/월 · VAT 포함</span>
                 </div>
 
                 <ul className="space-y-3.5 mb-8">
