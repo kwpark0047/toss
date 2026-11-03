@@ -290,7 +290,7 @@ const LandingPage = () => {
                             initial={{ opacity: 0, y: 10, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ duration: 0.5, delay: 0.1 }}
                             className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-6">
-                            <Icon icon="Sparkles" size="md" className="animate-pulse" /> 모두의 메뉴판 플랫폼
+                            <Icon icon="Sparkles" size="md" className="animate-pulse" /> 1인 사장님을 위한 QR 주문·단골 관리
                         </motion.div>
                         <motion.h1
                             className="text-4xl md:text-6xl font-black leading-[1.15] mb-6 text-gray-900 text-balance [word-break:keep-all]"
@@ -298,9 +298,8 @@ const LandingPage = () => {
                             variants={{ show: { transition: { staggerChildren: 0.14, delayChildren: 0.15 } } }}
                         >
                             {[
-                                <><span className="text-gray-900">1인 자영업자</span>에게</>,
-                                <><span className="ai-gradient-text">AI 지원 단골리스트</span>를</>,
-                                <>만들어 드립니다.</>,
+                                <>QR로 주문받으면</>,
+                                <><span className="ai-gradient-text">단골 명단</span>이 저절로 쌓입니다</>,
                             ].map((line, i) => (
                                 <motion.span
                                     key={i}
@@ -315,19 +314,19 @@ const LandingPage = () => {
                             ))}
                         </motion.h1>
                         <p className="text-lg text-gray-500 mb-8 leading-relaxed max-w-lg">
-                            위마켓은 종이 메뉴판과 복잡한 POS를 대체하는 올인원 QR 메뉴판 플랫폼입니다.
-                            테이블마다 QR 코드 하나로 주문, 결제, 대기까지 한번에.
+                            손님이 테이블 QR로 주문하고 결제하면 방문 횟수, 포인트, 좋아하는 메뉴가
+                            자동으로 기록됩니다. 1개월 무료로 써보세요. 카드 등록은 필요 없습니다.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                 onClick={() => navigate('/register')}
                                 className="flex items-center justify-center gap-2 px-8 py-4 bg-orange-500 text-white rounded-full font-bold text-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200">
-                                무료로 시작하기 <Icon icon="ChevronRight" size="md" />
+                                1개월 무료로 써보기 <Icon icon="ChevronRight" size="md" />
                             </motion.button>
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                 onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
                                 className="flex items-center justify-center gap-2 px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full font-bold text-lg hover:border-orange-300 hover:text-orange-500 transition-colors">
-                                <Icon icon="Play" size="md" className="fill-current" /> 데모 체험하기
+                                <Icon icon="Play" size="md" className="fill-current" /> 손님 주문 화면 보기
                             </motion.button>
                         </div>
 
