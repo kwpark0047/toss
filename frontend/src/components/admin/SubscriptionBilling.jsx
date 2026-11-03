@@ -221,7 +221,7 @@ export default function SubscriptionBilling({ storeId, plans = [] }) {
               className="mt-1 h-5 w-5"
             />
             <span>
-              선택한 요금이 매 결제 주기마다 자동 청구되는 데 동의합니다. 변경 요금은 다음
+              선택한 요금(VAT 포함)이 매 결제 주기마다 자동 청구되는 데 동의합니다. 변경 요금은 다음
               결제일부터 적용되며, 해지하면 이후 자동 청구가 중단됩니다.
             </span>
           </label>
@@ -233,7 +233,7 @@ export default function SubscriptionBilling({ storeId, plans = [] }) {
                   <h3 className="font-bold text-white">{plan.display_name}</h3>
                   <p className="my-2 text-slate-200">
                     {money(cycle === 'YEARLY' ? plan.price_yearly : plan.price_monthly)}원 /{' '}
-                    {cycle === 'YEARLY' ? '년' : '월'}
+                    {cycle === 'YEARLY' ? '년' : '월'} (VAT 포함)
                   </p>
                   <button
                     type="button"

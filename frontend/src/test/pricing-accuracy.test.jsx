@@ -17,6 +17,8 @@ test.each(pages)('%s는 실제 결제 가격과 한도를 표시한다', (_name,
   expect(screen.getByText(/직원·매니저 계정 최대 10명/)).toBeInTheDocument();
   expect(screen.queryByText(/무제한 계정/)).not.toBeInTheDocument();
   expect(screen.queryByText(/SLA|엔지니어 배정/)).not.toBeInTheDocument();
+  // 결제 금액은 표시 가격 그대로 청구되므로(부가세 별도 가산 없음) VAT 포함으로 안내한다
+  expect(screen.getAllByText('/월 · VAT 포함').length).toBe(3);
 });
 
 test.each(pages)('%s의 연 결제는 2개월 무료(월 요금 × 10) 기준으로 월 환산한다', (_name, Page) => {
