@@ -164,6 +164,7 @@ model orders {
   point_transactions point_transactions[]
   reviews            reviews?
   print_jobs         print_jobs[]
+  delivery_dispatches delivery_dispatches[]
 
   @@index([created_at], map: "idx_orders_created_at")
   @@index([store_id], map: "idx_orders_store_id")
@@ -686,8 +687,48 @@ model store_order_channels {
   min_order_amount     Int      @default(0)
   delivery_fee         Int      @default(0)
   delivery_est_minutes Int      @default(40)
+  agency_provider      String?  @db.VarChar(20) // barogo | vroong | saenggakdaero (배달대행)
+  agency_auto_dispatch Boolean  @default(false)
   updated_at           DateTime @default(now())
   stores               stores   @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@schema("public")
+}
+
+model delivery_dispatches {
+  id             Int       @id @default(autoincrement())
+  order_id       Int
+  store_id       Int
+  provider       String    @db.VarChar(20)
+  external_id    String?   @db.VarChar(100)
+  status         String    @default("requested") @db.VarChar(20) // requested | assigned | picked_up | delivered | canceled | failed
+  fee            Int?
+  rider_name     String?   @db.VarChar(50)
+  rider_phone    String?   @db.VarChar(30)
+  tracking_url   String?   @db.VarChar(500)
+  failure_reason String?   @db.VarChar(300)
+  requested_at   DateTime  @default(now())
+  assigned_at    DateTime?
+  picked_up_at   DateTime?
+  delivered_at   DateTime?
+  canceled_at    DateTime?
+  updated_at     DateTime  @default(now())
+  orders         orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  stores         stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([provider, external_id], map: "uq_delivery_dispatches_provider_external")
+  @@index([order_id], map: "idx_delivery_dispatches_order")
+  @@index([store_id, status], map: "idx_delivery_dispatches_store_status")
+  @@schema("public")
+}
+
+model delivery_webhook_events {
+  id          Int      @id @default(autoincrement())
+  provider    String   @db.VarChar(20)
+  event_id    String   @db.VarChar(150)
+  store_id    Int?
+  received_at DateTime @default(now())
+
+  @@unique([provider, event_id], map: "uq_delivery_webhook_events")
   @@schema("public")
 }
 
@@ -766,6 +807,7 @@ model stores {
   store_tinkerbell_settings     store_tinkerbell_settings?
   store_order_channels          store_order_channels?
   store_addons                  store_addons[]
+  delivery_dispatches           delivery_dispatches[]
   store_tier_settings           store_tier_settings[]
   store_subscriptions           store_subscriptions?
   store_business_info           store_business_info?

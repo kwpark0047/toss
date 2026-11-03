@@ -317,6 +317,27 @@ class OrderService {
     return updated;
   }
 
+  async _autoDispatch(order) {
+    const channels = await OrderChannels.findByStoreId(order.store_id);
+    if (channels.delivery_fulfillment !== 'agency' || !channels.agency_auto_dispatch) return;
+    const DeliveryDispatchService = require('./delivery/DeliveryDispatchService');
+    try {
+      await new DeliveryDispatchService(this.io).request(order.id);
+    } catch (error) {
+      notificationService
+        .createNotification({
+          store_id: order.store_id,
+          type: 'SYSTEM',
+          title: '배달대행 자동 배차에 실패했어요',
+          message: `주문 #${order.order_number}: ${error.message} 주문 관리에서 다시 요청하거나 직접 배달해 주세요.`,
+          priority: 'high',
+          link: `/admin/stores/${order.store_id}/orders`,
+        })
+        .catch(() => {});
+      throw error;
+    }
+  }
+
   async updateStatus(id, status, staff_id, actor = null) {
     const orderId = parseInt(id);
     const oldOrder = await Order.findById(orderId);
@@ -423,6 +444,14 @@ class OrderService {
     }
 
     this._emitOrderUpdate(updatedOrder, status);
+    // 배달대행 자동 배차: 매장이 켜 둔 경우 주문을 확인하면 바로 배차를 요청한다(실패해도 주문 흐름은 그대로).
+    if (
+      status === 'confirmed' &&
+      updatedOrder.order_type === 'delivery' &&
+      oldOrder.status !== 'confirmed'
+    ) {
+      this._autoDispatch(updatedOrder).catch((e) => logger.warn(`[AutoDispatch] ${e.message}`));
+    }
     void auditLogService.record({
       actorUserId: actor?.userId || null,
       actorRole: actor?.role || null,

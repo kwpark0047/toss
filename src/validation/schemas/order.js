@@ -354,6 +354,15 @@ const updateOrderDeliverySchema = z.object({
   staff_id: z.number().int().positive().optional(),
 });
 
+// 배달대행 웹훅 경로 (:provider/:storeId)
+const deliveryWebhookParamSchema = z.object({
+  provider: z.string().regex(/^[a-z]{2,20}$/),
+  storeId: z
+    .string()
+    .regex(/^[1-9]\d*$/)
+    .transform(Number),
+});
+
 // 주문 번호 파라미터
 const orderNumberParamSchema = z.object({
   orderNumber: z.string().min(1).max(50),
@@ -368,6 +377,7 @@ module.exports = {
   createOrderSchema,
   updateOrderStatusSchema,
   updateOrderDeliverySchema,
+  deliveryWebhookParamSchema,
   cancelOrderSchema,
   returnExchangeSchema,
   createPaymentSchema,

@@ -28,7 +28,11 @@ const DEFAULTS = Object.freeze({
   min_order_amount: 0,
   delivery_fee: 0,
   delivery_est_minutes: 40,
+  agency_provider: null,
+  agency_auto_dispatch: false,
 });
+const FULFILLMENTS = ['self', 'agency'];
+const AGENCY_PROVIDER_PATTERN = /^[a-z]{2,20}$/;
 
 const toPublic = (row) => {
   const out = {};
@@ -75,10 +79,23 @@ function sanitize(body = {}) {
     data.pickup_guide = guide || null;
   }
   if (body.delivery_fulfillment !== undefined) {
-    // 배달대행 연동은 다음 단계 — 지금은 직접 배달만 저장할 수 있다.
-    if (body.delivery_fulfillment !== 'self')
-      return { error: '배달대행 연동은 준비 중입니다. 지금은 직접 배달만 선택할 수 있습니다.' };
-    data.delivery_fulfillment = 'self';
+    if (!FULFILLMENTS.includes(body.delivery_fulfillment))
+      return { error: '배달 방식은 직접 배달 또는 배달대행이어야 합니다.' };
+    data.delivery_fulfillment = body.delivery_fulfillment;
+  }
+  if (body.agency_provider !== undefined) {
+    // 지원 대행사 목록 대조는 컨트롤러가 어댑터 목록으로 한다.
+    if (
+      body.agency_provider !== null &&
+      !AGENCY_PROVIDER_PATTERN.test(String(body.agency_provider))
+    )
+      return { error: '배달대행사가 올바르지 않습니다.' };
+    data.agency_provider = body.agency_provider;
+  }
+  if (body.agency_auto_dispatch !== undefined) {
+    if (!isBool(body.agency_auto_dispatch))
+      return { error: 'agency_auto_dispatch는 true/false 값이어야 합니다.' };
+    data.agency_auto_dispatch = body.agency_auto_dispatch;
   }
   if (body.delivery_area_mode !== undefined) {
     if (!AREA_MODES.includes(body.delivery_area_mode))
@@ -134,6 +151,8 @@ function validateMerged(next, { addonActive }) {
     next.delivery_areas.length === 0
   )
     return '배달 동네를 하나 이상 입력해 주세요.';
+  if (next.delivery_enabled && next.delivery_fulfillment === 'agency' && !next.agency_provider)
+    return '배달대행사를 선택해 주세요.';
   return null;
 }
 

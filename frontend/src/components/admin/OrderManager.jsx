@@ -190,6 +190,18 @@ const OrderManager = () => {
     }
   };
 
+  // 배달대행 배차 요청/취소
+  const handleDispatchAction = async (orderId, action) => {
+    if (action === 'cancel' && !window.confirm('배차를 취소할까요? 기사가 배정됐다면 대행사 정책에 따라 취소 수수료가 생길 수 있어요.')) return;
+    try {
+      if (action === 'request') await ordersAPI.requestDispatch(orderId);
+      else await ordersAPI.cancelDispatch(orderId, '매장 요청');
+      fetchOrders();
+    } catch (e) {
+      handleApiError(e, action === 'request' ? '배차 요청에 실패했습니다' : '배차 취소에 실패했습니다');
+    }
+  };
+
   const handlePaymentCancel = async (orderId) => {
     const reason = prompt('취소 사유를 입력하세요.', '관리자 취소');
     if (!reason) return;
@@ -387,6 +399,7 @@ const OrderManager = () => {
                 onShowDetail={ord => { setSelectedOrder(ord); setShowDetail(true); }}
                 onStatusChange={handleStatusChange}
                 onDeliveryAction={handleDeliveryAction}
+                onDispatchAction={handleDispatchAction}
                 onCollection={handleCollection}
                 collecting={collectingOrder === order.id}
                 formatTime={formatTime}
