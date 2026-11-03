@@ -340,7 +340,7 @@ const LandingPage = () => {
                             ].map(stat => (
                                 <div key={stat.label} className="flex items-center gap-2.5">
                                     <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
-                                        <stat.icon size={16} className="text-orange-500" />
+                                        <Icon icon={stat.icon} size="sm" className="text-orange-500" />
                                     </div>
                                     <div>
                                         <p className="text-xl font-black text-gray-900 leading-none">{stat.value}</p>
@@ -506,7 +506,7 @@ const LandingPage = () => {
                     style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
                 <div className="max-w-7xl mx-auto relative z-10">
                         <div className="text-center mb-16">
-                            <span classcn="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">{t('features.title', '기능 소개')}</span>
+                            <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">{t('features.title', '기능 소개')}</span>
                             <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">{t('features.title', '매장 운영에 필요한 모든 것')}</h2>
                             <p className="text-gray-500 text-lg">{t('features.subtitle', '종이 메뉴판, 복잡한 POS, 예약 수첩… 이제 위마켓 하나로 통합하세요.')}</p>
                         </div>
@@ -517,7 +517,7 @@ const LandingPage = () => {
                                 transition={{ delay: i * 0.07 }} viewport={{ once: true }}
                                 className="p-6 bg-white border border-gray-100 rounded-2xl hover:shadow-lg hover:-translate-y-1.5 hover:border-orange-100 transition-all duration-300 cursor-default group">
                                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${iconColorMap[feature.color]} group-hover:scale-110 transition-transform duration-300`}>
-                                    <feature.icon size={24} />
+                                    <Icon icon={feature.icon} size="lg" />
                                 </div>
                                 <h3 className="font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">{feature.title}</h3>
                                 <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
@@ -696,7 +696,7 @@ const LandingPage = () => {
                                         transition={{ delay: i * 0.08 }} viewport={{ once:true }}
                                         className="flex items-start gap-4 p-4 bg-white rounded-2xl border border-gray-100 hover:border-sky-200 hover:shadow-md transition-all">
                                         <div className={`w-10 h-10 ${f.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                                            <f.icon size={18} className={f.color} />
+                                            <Icon icon={f.icon} size="md" className={f.color} />
                                         </div>
                                         <div>
                                             <p className="font-bold text-gray-900 text-sm mb-0.5">{f.title}</p>
@@ -1293,7 +1293,7 @@ const LandingPage = () => {
                 <div className="max-w-4xl mx-auto text-center relative z-10">
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
                         <div className="flex justify-center gap-1 mb-6">
-                            {[...Array(5)].map((_, i) => <Icon icon="Star" />)}
+                            {[...Array(5)].map((_, i) => <Icon key={i} icon="Star" className="text-amber-400 fill-amber-400" />)}
                         </div>
                         <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4 leading-tight text-balance">
                             지금 바로 매장을{' '}
@@ -1347,8 +1347,8 @@ const LandingPage = () => {
                         <h4 className="font-bold text-gray-900 mb-4 text-sm">고객 지원</h4>
                         <ul className="space-y-3 text-sm text-gray-500">
                             <li><Link to="/board" className="hover:text-orange-500 transition-colors">공지사항</Link></li>
-                            <li><a href="#" className="hover:text-orange-500 transition-colors">FAQ</a></li>
-                            <li><a href="#" className="hover:text-orange-500 transition-colors">문의하기</a></li>
+                            <li><Link to="/guides" className="hover:text-orange-500 transition-colors">FAQ</Link></li>
+                            <li><Link to="/contact" className="hover:text-orange-500 transition-colors">문의하기</Link></li>
                         </ul>
                     </div>
                 </div>
