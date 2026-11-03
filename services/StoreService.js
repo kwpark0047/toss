@@ -63,12 +63,12 @@ class StoreService {
   async searchStores({ district, business_type, q, lat, lng, limit = 30, page = 1 }) {
     const where = { is_active: true, ...EXCLUDE_CORRUPT_NAME };
     const and = [];
-    // 주소를 숨긴 매장은 주소 키워드로는 구·시 단위까지만 걸리게 한다. 건수(total)도 같은 조건으로
-    // 세므로, 세부 주소 검색 결과나 건수로 숨긴 주소를 확인할 수 없다.
-    const addressMatch = (kw) =>
-      /^[가-힣]+(시|도|구|군)$/.test(kw)
-        ? { address: { contains: kw } }
-        : { address: { contains: kw }, NOT: { store_order_channels: { is: HIDDEN_ADDRESS } } };
+    // 주소를 숨긴 매장은 주소 키워드·지역 필터에 아예 걸리지 않게 한다(매장 이름으로만 검색).
+    // 어떤 주소 조각이든 일치 여부나 건수(total, 같은 조건으로 셈)로 숨긴 주소를 확인할 수 있기 때문이다.
+    const addressMatch = (kw) => ({
+      address: { contains: kw },
+      NOT: { store_order_channels: { is: HIDDEN_ADDRESS } },
+    });
     if (district) and.push(addressMatch(String(district).trim()));
     if (business_type && business_type !== 'all')
       where.store_business_info = { is: { business_type: String(business_type) } };
