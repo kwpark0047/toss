@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const prisma = require('../config/prisma');
 const OrderChannels = require('../repositories/OrderChannels');
 const geocodeService = require('./geocodeService');
@@ -95,14 +96,19 @@ async function quote({ store, channels, address, subtotal, clientCoords }) {
 }
 
 // 매장마다 고정된 방향·거리(300~700m)로 중심을 흐려, 권역 원으로 정확한 위치를 되짚지 못하게 한다.
+// 방향·거리는 서버 비밀값으로 만든 HMAC에서 뽑는다 — 매장 ID와 코드만으로 오프셋을 되돌리지 못하게.
+// 결과는 약 1km 격자에 맞춰, 오프셋이 알려져도 격자 칸 이상은 드러나지 않게 한다.
+const BLUR_GRID_DEG = 0.01;
 function blurredCenter(storeId, lat, lng) {
-  const seed = (Number(storeId) * 2654435761) >>> 0;
-  const angle = ((seed % 360) * Math.PI) / 180;
-  const meters = 300 + ((seed >>> 9) % 400);
+  const secret =
+    process.env.LOCATION_BLUR_SECRET || process.env.JWT_SECRET || 'wemarket-location-blur';
+  const digest = crypto.createHmac('sha256', secret).update(`store-blur:${storeId}`).digest();
+  const angle = ((digest.readUInt16BE(0) % 360) * Math.PI) / 180;
+  const meters = 300 + (digest.readUInt16BE(2) % 400);
   const dLat = (meters * Math.cos(angle)) / 111320;
   const dLng = (meters * Math.sin(angle)) / (111320 * Math.cos((lat * Math.PI) / 180));
-  const round4 = (n) => Math.round(n * 1e4) / 1e4;
-  return { lat: round4(lat + dLat), lng: round4(lng + dLng) };
+  const snap = (n) => Math.round(Math.round(n / BLUR_GRID_DEG) * BLUR_GRID_DEG * 1e4) / 1e4;
+  return { lat: snap(lat + dLat), lng: snap(lng + dLng) };
 }
 
 // "서울 강남구 역삼동 123" → "서울 강남구" (주소를 숨긴 매장의 지역 표시)

@@ -96,6 +96,15 @@ class StoreService {
     stores = stores.map(flattenPublic);
     // 주소를 숨긴 온라인 전용 매장은 좌표를 지우고 흐린 배달 권역만 남긴다.
     stores = await DeliveryService.applyPublicPrivacyToList(stores);
+    // 주소를 숨긴 매장은 공개된 이름·지역(구 단위)으로만 검색되게 한다.
+    // 주소 키워드로 걸리게 두면 "역삼동 123" 같은 검색으로 숨긴 주소를 확인할 수 있다.
+    const publicMatch = (s, kw) =>
+      String(s.name || '').includes(kw) || String(s.area_label || '').includes(kw);
+    stores = stores.filter(
+      (s) =>
+        !s.address_hidden ||
+        ((!q || publicMatch(s, String(q))) && (!district || publicMatch(s, String(district))))
+    );
     // 거리 계산 — 주소를 숨긴 매장은 흐린 권역 중심 기준(정확한 위치를 되짚지 못하게)
     const { haversineKm } = require('../utils/geo');
     const la = parseFloat(lat),

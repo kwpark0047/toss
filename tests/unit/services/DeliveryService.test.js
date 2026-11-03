@@ -21,8 +21,9 @@ const store = {
   id: 7,
   name: '집밥',
   address: '서울 강남구 역삼동 123-4',
-  latitude: 37.5,
-  longitude: 127.03,
+  // 격자 위가 아닌 좌표 (흐린 중심이 실제 위치와 겹치지 않게)
+  latitude: 37.5032,
+  longitude: 127.0347,
   user_id: 1,
 };
 const delivery = (over = {}) => ({
@@ -150,10 +151,12 @@ describe('DeliveryService 공개 응답', () => {
     expect(out.delivery_area.radius_km).toBe(2);
     const { lat, lng } = out.delivery_area.center;
     expect(lat === store.latitude && lng === store.longitude).toBe(false);
-    // 흐린 중심은 300~700m 안에서만 움직인다
+    // 흐린 중심은 300~700m 오프셋 후 약 1km 격자에 맞춘다 (실제 위치와 1.5km 이내)
     const km = require('../../../utils/geo').haversineKm(lat, lng, store.latitude, store.longitude);
-    expect(km).toBeGreaterThan(0.25);
-    expect(km).toBeLessThan(0.75);
+    expect(km).toBeGreaterThan(0);
+    expect(km).toBeLessThan(1.5);
+    expect(Math.round(lat * 100) / 100).toBe(lat);
+    expect(Math.round(lng * 100) / 100).toBe(lng);
   });
 
   test('주소를 숨기지 않은 온라인 매장은 실제 좌표를 권역 중심으로 쓴다', () => {
