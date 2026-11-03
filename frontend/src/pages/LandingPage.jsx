@@ -15,10 +15,10 @@ const LandingPage = () => {
     const { t } = useTranslation('landing', { keyPrefix: 'landing' });
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [demoStep, setDemoStep] = useState(0); // 0=entry, 1=uuid, 2=menu, 3=shared
+    const [demoStep, setDemoStep] = useState(0); // 0=entry, 1=scan, 2=menu, 3=shared
     const [uuidStr, setUuidStr] = useState('');
     const [cycleKey, setCycleKey] = useState(0); // 사이클 재시작 트리거
-    const DEMO_UUID = 'a3f9-bc2e-7d81-4f0a';
+    const DEMO_TYPING = '테이블 A-07 주문서 열림';
     const [popularStores, setPopularStores] = useState([]);
     const [popularLoading, setPopularLoading] = useState(true);
     const [recentStores] = useState(() => getRecentStores());
@@ -39,8 +39,8 @@ const LandingPage = () => {
             let i = 0;
             ivRef = setInterval(() => {
                 i++;
-                setUuidStr(DEMO_UUID.slice(0, i));
-                if (i >= DEMO_UUID.length) clearInterval(ivRef);
+                setUuidStr(DEMO_TYPING.slice(0, i));
+                if (i >= DEMO_TYPING.length) clearInterval(ivRef);
             }, 60);
         }, 2200);
         const t3 = setTimeout(() => setDemoStep(2), 3800);
@@ -99,7 +99,7 @@ const LandingPage = () => {
                 t('pricingPlan.free.features.orderNotification', '주문 알림 (웹)'),
                 t('pricingPlan.free.features.basicStats', '기본 매출 통계')
             ],
-            cta: t('pricingPlan.free.cta', '무료로 시작'), popular: false,
+            cta: t('pricingPlan.free.cta', '무료로 시작'), to: '/register', popular: false,
         },
         {
             name: t('pricingPlan.pro.name', '프로'), price: t('pricingPlan.pro.price', '₩20,000'), period: t('pricingPlan.pro.period', '/월'),
@@ -110,7 +110,7 @@ const LandingPage = () => {
                 t('pricingPlan.pro.features.waitingReservation', '대기/예약 관리'),
                 t('pricingPlan.pro.features.prioritySupport', '우선 고객 지원')
             ],
-            cta: t('pricingPlan.pro.cta', '프로 시작하기'), popular: true,
+            cta: t('pricingPlan.pro.cta', '프로 시작하기'), to: '/register', popular: true,
         },
         {
             name: t('pricingPlan.enterprise.name', '엔터프라이즈'), price: t('pricingPlan.enterprise.price', '₩79,000'), period: t('pricingPlan.enterprise.period', '/월'),
@@ -121,7 +121,7 @@ const LandingPage = () => {
                 t('pricingPlan.enterprise.features.dedicatedManager', '전담 매니저 배정'),
                 t('pricingPlan.enterprise.features.advertisingPriority', '광고 노출 우선권')
             ],
-            cta: t('pricingPlan.enterprise.cta', '문의하기'), popular: false,
+            cta: t('pricingPlan.enterprise.cta', '문의하기'), to: '/contact', popular: false,
         },
     ];
 
@@ -166,14 +166,14 @@ const LandingPage = () => {
         },
     ];
 
-    // 데모 UX 혁신 3가지
+    // 손님 주문 경험 3가지
     const demoFeatures = [
         {
             icon: <Icon icon="Zap" size="lg" className="text-amber-400" />,
-            badge: 'Zero Friction',
+            badge: '가입 없이 주문',
             title: '스캔 하나로 바로 주문',
-            desc: '회원가입·로그인 없이 QR 스캔만으로 즉시 장바구니 세션 생성. 랜덤 UUID가 실시간으로 할당됩니다.',
-            stat: '진입 마찰 0%',
+            desc: '손님은 앱 설치나 회원가입 없이 QR만 찍으면 바로 메뉴를 보고 주문합니다.',
+            stat: '앱 설치 0번',
             color: 'amber',
         },
         {
@@ -186,9 +186,9 @@ const LandingPage = () => {
         },
         {
             icon: <Icon icon="Gift" size="lg" className="text-purple-400" />,
-            badge: '손실 회피',
+            badge: '단골 전환',
             title: '60초 타이머로 회원가입 유도',
-            desc: '결제 후 포인트가 소멸되기 시작하는 타이머와 사전 입력된 전화번호로 원버튼 가입 완료.',
+            desc: '결제 직후 "60초 안에 가입하면 포인트 적립" 안내가 뜨고, 전화번호가 미리 채워져 있어 버튼 한 번으로 단골 등록이 끝납니다.',
             stat: '전환율 +62%',
             color: 'purple',
         },
@@ -368,23 +368,23 @@ const LandingPage = () => {
                                 <AnimatePresence mode="wait">
                                     {demoStep === 0 && (
                                         <motion.div key="s0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-1">
-                                            <p className="text-slate-600">&gt; POS v3.2.1</p>
-                                            <p className="text-slate-600 animate-pulse">&gt; QR 대기 중...</p>
+                                            <p className="text-slate-600">&gt; 위마켓 주문 모니터</p>
+                                            <p className="text-slate-600 animate-pulse">&gt; 손님 기다리는 중...</p>
                                         </motion.div>
                                     )}
                                     {demoStep >= 1 && (
                                         <motion.div key="s1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1">
                                             <p className="text-emerald-400">&gt; QR 스캔 ✓</p>
-                                            <p className="text-slate-400">&gt; UUID 생성 중...</p>
-                                            {uuidStr && <p className="text-purple-400 break-all">&gt; {uuidStr}{uuidStr.length < DEMO_UUID.length ? <span className="animate-pulse">█</span> : null}</p>}
+                                            <p className="text-slate-400">&gt; 가입 없이 입장</p>
+                                            {uuidStr && <p className="text-purple-400 break-all">&gt; {uuidStr}{uuidStr.length < DEMO_TYPING.length ? <span className="animate-pulse">█</span> : null}</p>}
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
                                 {demoStep >= 2 && (
-                                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-emerald-400">&gt; CART_ALLOCATED ✓</motion.p>
+                                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-emerald-400">&gt; 장바구니 준비 완료 ✓</motion.p>
                                 )}
                                 {demoStep >= 3 && (
-                                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-amber-300 font-bold">&gt; ZERO_FRICTION ✓</motion.p>
+                                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-amber-300 font-bold">&gt; 앱 설치 없이 주문 ✓</motion.p>
                                 )}
                             </div>
                         </div>
@@ -1016,7 +1016,7 @@ const LandingPage = () => {
                         {[
                             { value: '4.9', suffix: '/ 5.0', label: '평균 사용자 평점', note: '1,200+ 리뷰 기준' },
                             { value: '97', suffix: '%', label: '재계약률', note: '최근 12개월 기준' },
-                            { value: '14', suffix: '일', label: '무료 체험 기간', note: '카드 등록 불필요' },
+                            { value: '1', suffix: '개월', label: '무료 체험 기간', note: '카드 등록 불필요' },
                         ].map((s, i) => (
                             <div key={i} className="text-center py-8 px-6 bg-gray-50 rounded-2xl border border-gray-100">
                                 <p className="text-4xl font-black text-gray-900 mb-1">
@@ -1043,11 +1043,11 @@ const LandingPage = () => {
                     <div className="text-center mb-16">
                         <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
                             <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-500/20 text-orange-400 rounded-full text-sm font-bold mb-6 border border-orange-500/20">
-                                <Sparkles size={14} /> 고객 UX 혁신 데모
+                                <Sparkles size={14} /> 손님 주문 화면 데모
                             </span>
                             <h2 className="text-4xl md:text-5xl font-black text-white mb-4 text-balance">
-                                고객 전환율을 바꾸는<br />
-                                <span className="text-orange-400">3가지 UX 혁신</span>
+                                손님이 단골이 되는<br />
+                                <span className="text-orange-400">3가지 주문 경험</span>
                             </h2>
                             <p className="text-slate-400 text-lg max-w-2xl mx-auto">
                                 QR 스캔부터 포인트 가입까지, 고객이 자연스럽게 충성 고객으로 전환되는 완전한 여정을 직접 체험해보세요.
@@ -1055,7 +1055,7 @@ const LandingPage = () => {
                         </motion.div>
                     </div>
 
-                    {/* 3가지 UX 혁신 카드 */}
+                    {/* 3가지 주문 경험 카드 */}
                     <div className="grid md:grid-cols-3 gap-6 mb-16">
                         {demoFeatures.map((f, i) => (
                             <motion.div key={i}
@@ -1271,7 +1271,7 @@ const LandingPage = () => {
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={() => navigate('/register')}
+                                <button onClick={() => navigate(plan.to)}
                                     className={`w-full py-3.5 rounded-full font-bold transition-all text-sm ${plan.popular
                                         ? 'bg-orange-500 text-white hover:bg-orange-400 shadow-lg shadow-orange-500/30'
                                         : 'border-2 border-gray-200 text-gray-700 hover:border-orange-300 hover:text-orange-500'
@@ -1300,7 +1300,7 @@ const LandingPage = () => {
                             <span className="text-orange-500">스마트하게</span>{' '}
                             운영하세요
                         </h2>
-                        <p className="text-gray-500 text-lg mb-3">14일 무료 체험 · 신용카드 불필요</p>
+                        <p className="text-gray-500 text-lg mb-3">1개월 무료 체험 · 신용카드 불필요</p>
                         <div className="flex items-center justify-center gap-4 mb-10 text-sm text-gray-400">
                             <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-500" /> 설치 불필요</span>
                             <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-500" /> 계약 없음</span>
