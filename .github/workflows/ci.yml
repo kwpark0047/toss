@@ -119,6 +119,9 @@ jobs:
 
       - name: Run backend unit tests
         run: node scripts/run-jest.cjs --config jest.config.js tests/unit/ --no-cache
+      # 권한·CSRF·웹훅 raw body 등 보안 경로 회귀를 게이트에 포함한다.
+      - name: Run backend route tests
+        run: node scripts/run-jest.cjs --config jest.config.js tests/routes/ --no-cache --coverage=false
       - name: Store integration PostgreSQL regression
         run: |
           node scripts/test-store-integrations-postgres.cjs
