@@ -8,7 +8,7 @@ import StoreLocator from '../components/StoreLocator';
 import { storesAPI } from '../api/stores';
 import { getRecentStores } from '../utils/recentStores';
 import LanguageSwitcher from '../components/common/LanguageSwitcher';
-import { Award, BadgeCheck, CalendarDays, Check, ChevronRight, Clock, Crown, Gift, Heart, Quote, ShieldCheck, Sparkles, Store, TrendingUp, UserPlus } from 'lucide-react';
+import { Award, BadgeCheck, CalendarDays, Check, ChevronRight, Clock, Crown, Gift, Heart, ShieldCheck, Sparkles, Store, TrendingUp, UserPlus } from 'lucide-react';
 
 const LandingPage = () => {
     const { user } = useAuth();
@@ -133,38 +133,6 @@ const LandingPage = () => {
         rose: 'bg-rose-100 text-rose-500', sky: 'bg-sky-100 text-sky-500',
     };
 
-    const testimonials = [
-        {
-            name: t('testimonials.jungHo.name', '김정호'),
-            role: t('testimonials.jungHo.role', '한식당 사장'),
-            location: t('testimonials.jungHo.location', '서울 마포구'),
-            avatar: '👨‍🍳',
-            rating: 5,
-            text: t('testimonials.jungHo.text', '종이 메뉴판을 없애고 위마켓으로 전환했더니 주문 실수가 확 줄었어요. 특히 주방 알림 기능이 정말 편리하고, 매출 통계도 한눈에 볼 수 있어서 운영이 훨씬 수월해졌습니다.'),
-            stat: t('testimonials.jungHo.stat', '주문 오류 80% 감소'),
-            color: 'orange',
-        },
-        {
-            name: t('testimonials.suJin.name', '박수진'),
-            role: t('testimonials.suJin.role', '카페 운영자'),
-            location: t('testimonials.suJin.location', '부산 해운대구'),
-            avatar: '☕',
-            rating: 5,
-            text: t('testimonials.suJin.text', 'QR 하나로 테이블 관리부터 결제까지 해결돼요. 아르바이트생도 하루 만에 익혔고, 고객들이 앱 없이 바로 주문할 수 있어서 거부감이 전혀 없습니다.'),
-            stat: t('testimonials.suJin.stat', '운영 시간 30% 단축'),
-            color: 'blue',
-        },
-        {
-            name: t('testimonials.dongHyun.name', '이동현'),
-            role: t('testimonials.dongHyun.role', '분식집·포장 전문'),
-            location: t('testimonials.dongHyun.location', '대구 수성구'),
-            avatar: '🍱',
-            rating: 5,
-            text: t('testimonials.dongHyun.text', '포인트 적립 기능으로 단골 고객이 눈에 띄게 늘었어요. 결제 후 60초 타이머로 자연스럽게 회원가입을 유도하는 방식이 정말 영리합니다. 재방문율이 크게 올랐어요.'),
-            stat: t('testimonials.dongHyun.stat', '재방문율 62% 상승'),
-            color: 'green',
-        },
-    ];
 
     // 손님 주문 경험 3가지
     const demoFeatures = [
@@ -181,7 +149,7 @@ const LandingPage = () => {
             badge: '공유 오더',
             title: '동석자와 함께 담는 장바구니',
             desc: '테이블 공유 세션이 자동 활성화. 다른 사람이 담은 메뉴가 내 화면에 실시간으로 반영됩니다.',
-            stat: '그룹 주문 전환율 +38%',
+            stat: '동석자 주문 실시간 반영',
             color: 'emerald',
         },
         {
@@ -189,7 +157,7 @@ const LandingPage = () => {
             badge: '단골 전환',
             title: '60초 타이머로 회원가입 유도',
             desc: '결제 직후 "60초 안에 가입하면 포인트 적립" 안내가 뜨고, 전화번호가 미리 채워져 있어 버튼 한 번으로 단골 등록이 끝납니다.',
-            stat: '전환율 +62%',
+            stat: '버튼 한 번으로 가입',
             color: 'purple',
         },
     ];
@@ -333,9 +301,9 @@ const LandingPage = () => {
                         {/* 통계 */}
                         <div className="flex gap-8 mt-12 pt-8 border-t border-gray-100">
                             {[
-                                { value: '1,000+', label: '등록 매장', icon: "Store" },
-                                { value: '500만+', label: '누적 주문', icon: "ShoppingCart" },
-                                { value: '4.9★',   label: '평균 평점',  icon: "Star" },
+                                { value: '1개월', label: '프로 기능 무료 체험', icon: "Gift" },
+                                { value: '₩0',    label: '기본 무료 요금제',   icon: "Store" },
+                                { value: 'QR 1장', label: '테이블 주문·결제',  icon: "QrCode" },
                             ].map(stat => (
                                 <div key={stat.label} className="flex items-center gap-2.5">
                                     <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
@@ -589,9 +557,9 @@ const LandingPage = () => {
                             {/* 상단 통계 */}
                             <div className="grid grid-cols-3 gap-3">
                                 {[
-                                    { value:'+62%', label:'재방문율', color:'text-rose-600', bg:'bg-rose-50', border:'border-rose-100' },
-                                    { value:'+28%', label:'평균 객단가', color:'text-amber-600', bg:'bg-amber-50', border:'border-amber-100' },
-                                    { value:'41%',  label:'VIP 전환율', color:'text-violet-600', bg:'bg-violet-50', border:'border-violet-100' },
+                                    { value:'자동', label:'방문 기록', color:'text-rose-600', bg:'bg-rose-50', border:'border-rose-100' },
+                                    { value:'4단계', label:'등급 자동 분류', color:'text-amber-600', bg:'bg-amber-50', border:'border-amber-100' },
+                                    { value:'생일', label:'쿠폰 자동 발송', color:'text-violet-600', bg:'bg-violet-50', border:'border-violet-100' },
                                 ].map(s => (
                                     <div key={s.label} className={`text-center py-4 ${s.bg} border ${s.border} rounded-2xl`}>
                                         <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
@@ -604,7 +572,7 @@ const LandingPage = () => {
                             <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
                                 <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
                                     <p className="font-black text-gray-900 text-sm flex items-center gap-2"><Heart size={14} className="text-rose-500 fill-rose-500" /> 단골고객 리스트</p>
-                                    <span className="text-xs text-gray-400">총 284명</span>
+                                    <span className="text-xs text-gray-400">예시 화면</span>
                                 </div>
                                 <div className="divide-y divide-gray-50">
                                     {[
@@ -719,9 +687,9 @@ const LandingPage = () => {
                             {/* 상단 통계 */}
                             <div className="grid grid-cols-3 gap-3">
                                 {[
-                                    { value:'+43%', label:'신규 고객 유입', color:'text-sky-600',    bg:'bg-sky-50',    border:'border-sky-100' },
-                                    { value:'+85%', label:'지역 충성도',    color:'text-blue-600',   bg:'bg-blue-50',   border:'border-blue-100' },
-                                    { value:'+31%', label:'제휴 매출 증가', color:'text-indigo-600', bg:'bg-indigo-50', border:'border-indigo-100' },
+                                    { value:'제휴', label:'이웃 매장 연결', color:'text-sky-600',    bg:'bg-sky-50',    border:'border-sky-100' },
+                                    { value:'공동', label:'지역 이벤트',    color:'text-blue-600',   bg:'bg-blue-50',   border:'border-blue-100' },
+                                    { value:'통합', label:'포인트 공유',    color:'text-indigo-600', bg:'bg-indigo-50', border:'border-indigo-100' },
                                 ].map(s => (
                                     <div key={s.label} className={`text-center py-4 ${s.bg} border ${s.border} rounded-2xl`}>
                                         <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
@@ -778,7 +746,7 @@ const LandingPage = () => {
                             <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
                                 <div className="px-5 py-3 border-b border-gray-50 flex items-center gap-2">
                                     <Icon icon="Megaphone" />
-                                    <p className="font-black text-gray-900 text-sm">지역 실시간 피드</p>
+                                    <p className="font-black text-gray-900 text-sm">지역 실시간 피드 <span className="text-xs font-normal text-gray-400">· 예시 화면</span></p>
                                 </div>
                                 <div className="divide-y divide-gray-50">
                                     {[
@@ -952,70 +920,22 @@ const LandingPage = () => {
             </section>
 
             {/* ══════════════════════════════════════════════
-                고객 후기
+                시작 조건 (확인 가능한 사실만 표시)
             ══════════════════════════════════════════════ */}
             <section className="py-24 px-6 bg-white">
                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16">
-                        <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">고객 후기</span>
-                        <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">실제 사장님들의 이야기</h2>
-                        <p className="text-gray-500 text-lg">전국 소상공인들이 위마켓으로 매장을 바꿨습니다.</p>
+                    <div className="text-center mb-4">
+                        <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">시작 조건</span>
+                        <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">부담 없이 시작하세요</h2>
+                        <p className="text-gray-500 text-lg">카드 등록 없이 가입하고, 1개월 동안 프로 기능을 무료로 써 보세요.</p>
                     </div>
-                    <div className="grid md:grid-cols-3 gap-6">
-                        {testimonials.map((t, i) => (
-                            <motion.div key={t.name}
-                                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.1 }} viewport={{ once: true }}
-                                className="bg-white border border-gray-100 rounded-3xl p-8 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col relative overflow-hidden group">
-                                {/* 배경 장식 */}
-                                <div className={`absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-[0.06] blur-xl ${
-                                    t.color === 'orange' ? 'bg-orange-500' : t.color === 'blue' ? 'bg-blue-500' : 'bg-green-500'
-                                }`} />
-                                {/* 따옴표 */}
-                                <Quote size={24} className={`mb-4 opacity-20 ${
-                                    t.color === 'orange' ? 'text-orange-500' : t.color === 'blue' ? 'text-blue-500' : 'text-green-500'
-                                }`} />
-                                {/* 별점 */}
-                                <div className="flex gap-1 mb-4">
-                                    {[...Array(t.rating)].map((_, j) => (
-                                        <Icon icon="Star" />
-                                    ))}
-                                </div>
-                                {/* 본문 */}
-                                <p className="text-gray-600 text-sm leading-relaxed mb-6 flex-1">{t.text}</p>
-                                {/* 지표 뱃지 */}
-                                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black mb-5 w-fit ${
-                                    t.color === 'orange' ? 'bg-orange-50 text-orange-600' :
-                                    t.color === 'blue'   ? 'bg-blue-50 text-blue-600' :
-                                                           'bg-green-50 text-green-600'
-                                }`}>
-                                    <TrendingUp size={14} />
-                                    {t.stat}
-                                </div>
-                                {/* 프로필 */}
-                                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl border ${
-                                        t.color === 'orange' ? 'bg-orange-50 border-orange-100' :
-                                        t.color === 'blue'   ? 'bg-blue-50 border-blue-100' :
-                                                               'bg-green-50 border-green-100'
-                                    }`}>
-                                        {t.avatar}
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-gray-900 text-sm">{t.name}</p>
-                                        <p className="text-xs text-gray-400">{t.role} · {t.location}</p>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                    {/* 사회적 증거 수치 */}
+                    {/* 시작 조건 */}
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                         className="mt-16 grid sm:grid-cols-3 gap-6">
                         {[
-                            { value: '4.9', suffix: '/ 5.0', label: '평균 사용자 평점', note: '1,200+ 리뷰 기준' },
-                            { value: '97', suffix: '%', label: '재계약률', note: '최근 12개월 기준' },
-                            { value: '1', suffix: '개월', label: '무료 체험 기간', note: '카드 등록 불필요' },
+                            { value: '1', suffix: '개월', label: '프로 기능 무료 체험', note: '카드 등록 불필요' },
+                            { value: '₩0', suffix: '', label: '기본 무료 요금제', note: '체험이 끝나면 자동으로 전환' },
+                            { value: '0', suffix: '번', label: '손님 앱 설치', note: 'QR을 찍고 브라우저에서 바로 주문' },
                         ].map((s, i) => (
                             <div key={i} className="text-center py-8 px-6 bg-gray-50 rounded-2xl border border-gray-100">
                                 <p className="text-4xl font-black text-gray-900 mb-1">
@@ -1105,9 +1025,9 @@ const LandingPage = () => {
                             <div className="grid grid-cols-2 gap-3 mb-5">
                                 {[
                                     { stat:'4개 국어', label:'자동 전환' },
-                                    { stat:'+1.8개', label:'추천 후 추가 주문' },
-                                    { stat:'64%', label:'추천 전환율' },
-                                    { stat:'24%', label:'큰 글씨 활용 (고령층)' },
+                                    { stat:'날씨·시간대', label:'메뉴 자동 추천' },
+                                    { stat:'실시간', label:'장바구니 반응 안내' },
+                                    { stat:'큰 글씨', label:'어르신도 편하게' },
                                 ].map(s => (
                                     <div key={s.label} className="bg-slate-900 rounded-xl px-4 py-3 border border-slate-800">
                                         <p className="text-amber-400 font-black text-lg">{s.stat}</p>
