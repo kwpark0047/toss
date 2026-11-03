@@ -4,7 +4,8 @@ const { AppError } = require('../utils/errorHandler');
 const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 
-const STATUSES = new Set(['trialing', 'expired', 'approved', 'all']);
+const STATUSES = new Set(['trialing', 'expired', 'all']);
+const MAX_EXTEND_DAYS = 90;
 
 class BusinessTrialService {
   constructor(db = prisma) {
@@ -15,18 +16,16 @@ class BusinessTrialService {
     if (!STATUSES.has(status)) throw new AppError('유효하지 않은 이용 상태입니다.', 400);
     const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 50, 1), 100);
     const predicate = status === 'all'
-      ? "business_access_status IN ('trialing','approved') AND auth_status='active'"
+      ? "trial_started_at IS NOT NULL AND business_access_status IN ('trialing','approved') AND auth_status='active'"
       : status === 'expired'
         ? "business_access_status='trialing' AND trial_ends_at <= now() AND auth_status='active'"
-        : status === 'trialing'
-          ? "business_access_status='trialing' AND trial_ends_at > now() AND auth_status='active'"
-          : "business_access_status='approved' AND auth_status='active'";
+        : "business_access_status='trialing' AND trial_ends_at > now() AND auth_status='active'";
     const rows = await this.db.$queryRawUnsafe(
       `SELECT id, name, email, phone, business_access_status,
               trial_started_at, trial_ends_at, business_approved_at,
               created_at,
-              CASE WHEN business_access_status='trialing' AND trial_ends_at <= now()
-                   THEN 'expired' ELSE business_access_status END AS effective_status
+              CASE WHEN business_access_status='trialing' AND trial_ends_at > now()
+                   THEN 'trialing' ELSE 'expired' END AS effective_status
        FROM public.users WHERE ${predicate}
        ORDER BY CASE WHEN business_access_status='trialing' THEN 0 ELSE 1 END,
                 created_at DESC, id DESC LIMIT $1`,
@@ -35,59 +34,35 @@ class BusinessTrialService {
     return rows.map((row) => ({ ...row, phone: decryptPhone(row.phone) }));
   }
 
-  async approve(userId, adminId) {
+  // 체험 기간 연장. 남은 기간이 있으면 그 끝에서, 이미 끝났으면 지금부터 days일을 더한다.
+  // 연장 중에는 프로 플랜 기능을 계속 쓰고, 끝나면 무료 플랜으로 돌아간다.
+  async extendTrial(userId, adminId, days = 30) {
     const id = Number(userId);
     if (!Number.isSafeInteger(id) || id < 1) throw new AppError('유효하지 않은 계정입니다.', 400);
-    return this.db.$transaction(async (tx) => {
-      const rows = await tx.$queryRawUnsafe(
-        `UPDATE public.users SET business_access_status='approved',
-              business_approved_at=now(), business_approved_by=$2
-         WHERE id=$1 AND business_access_status='trialing'
-         RETURNING id, name, email, phone, business_access_status,
-                   trial_started_at, trial_ends_at, business_approved_at, created_at`,
-        id,
-        adminId
-      );
-      if (!rows.length) {
-        const current = await tx.$queryRawUnsafe(
-          'SELECT id, business_access_status FROM public.users WHERE id=$1 LIMIT 1',
-          id
-        );
-        if (!current.length) throw new AppError('가입 계정을 찾을 수 없습니다.', 404);
-        if (current[0].business_access_status === 'approved')
-          throw new AppError('이미 정식 이용 승인된 계정입니다.', 409);
-        throw new AppError('승인할 수 없는 가입 상태입니다.', 409);
-      }
-      const user = rows[0];
-      await tx.$executeRawUnsafe(
-        `INSERT INTO public.auth_account_events(id,user_id,event,operation_id)
-         VALUES($1::uuid,$2,'business-trial:approved',$3::uuid)`,
-        require('node:crypto').randomUUID(),
-        id,
-        require('node:crypto').randomUUID()
-      );
-      return { ...user, phone: decryptPhone(user.phone) };
-    });
-
-  }
-
-  async revokeApproval(userId, adminId) {
-    const id = Number(userId);
-    if (!Number.isSafeInteger(id) || id < 1) throw new AppError('유효하지 않은 계정입니다.', 400);
+    const extendDays = Number(days);
+    if (!Number.isSafeInteger(extendDays) || extendDays < 1 || extendDays > MAX_EXTEND_DAYS)
+      throw new AppError(`연장 기간은 1~${MAX_EXTEND_DAYS}일이어야 합니다.`, 400);
     return this.db.$transaction(async (tx) => {
       const rows = await tx.$queryRawUnsafe(
         `UPDATE public.users SET business_access_status='trialing',
-              business_approved_at=NULL, business_approved_by=NULL
-         WHERE id=$1 AND business_access_status='approved' AND auth_status='active'
-         RETURNING id, business_access_status, trial_started_at, trial_ends_at`, id
+              trial_ends_at = GREATEST(COALESCE(trial_ends_at, now()), now()) + ($2::int * interval '1 day')
+         WHERE id=$1 AND trial_started_at IS NOT NULL AND auth_status='active'
+           AND business_access_status IN ('trialing','approved')
+         RETURNING id, name, email, phone, business_access_status,
+                   trial_started_at, trial_ends_at, created_at`,
+        id,
+        extendDays
       );
-      if (!rows.length) throw new AppError('승인 취소 대상 계정을 찾을 수 없거나 승인 상태가 아닙니다.', 409);
+      if (!rows.length) throw new AppError('체험을 연장할 수 있는 계정을 찾을 수 없습니다.', 404);
       await tx.$executeRawUnsafe(
         `INSERT INTO public.auth_account_events(id,user_id,event,operation_id)
          VALUES($1::uuid,$2,$3,$4::uuid)`,
-        crypto.randomUUID(), id, `business-trial:approval-revoked:admin:${adminId}`, crypto.randomUUID()
+        crypto.randomUUID(),
+        id,
+        `business-trial:extended:${extendDays}d:admin:${adminId}`,
+        crypto.randomUUID()
       );
-      return rows[0];
+      return { ...rows[0], phone: decryptPhone(rows[0].phone) };
     });
   }
 

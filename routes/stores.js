@@ -14,7 +14,6 @@ const requireCustomerCapability = (req, res, next) => {
 };
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission } = require('../middleware/storeAuth');
-const { requireUnexpiredTrial } = require('../middleware/businessTrialAccess');
 const catchAsync = require('../utils/catchAsync');
 const storeController = require('../controllers/storeController');
 const storeSettingsController = require('../controllers/storeSettingsController');
@@ -209,7 +208,6 @@ router.get('/my', authMiddleware, catchAsync(storeController.getMyStores));
 router.post(
   '/',
   authMiddleware,
-  requireUnexpiredTrial,
   validateBody(createStoreSchema),
   catchAsync(async (req, res) => {
     const io = req.app.get('io');

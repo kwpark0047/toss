@@ -52,8 +52,7 @@ export const adminAPI = {
   rejectLinkRequest: (id) => api.post(`/admin/store-link-requests/${id}/reject`),
   businessTrials: (status = 'trialing') =>
     api.get('/admin/business-trials', { params: { status } }),
-  approveBusinessTrial: (id) => api.post(`/admin/business-trials/${id}/approve`),
-  revokeBusinessTrialApproval: (id) => api.post(`/admin/business-trials/${id}/revoke-approval`),
+  extendBusinessTrial: (id, days = 30) => api.post(`/admin/business-trials/${id}/extend`, { days }),
   deleteBusinessTrialAccount: (id) =>
     api.delete(`/admin/business-trials/${id}`, { data: { confirm: '삭제' } }),
 };

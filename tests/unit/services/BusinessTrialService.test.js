@@ -35,26 +35,33 @@ describe('BusinessTrialService', () => {
     expect(db.$queryRawUnsafe).toHaveBeenCalledWith(expect.stringContaining("trial_ends_at <= now()"), 100);
   });
 
-  test('approves an eligible account and writes the audit event in the same transaction', async () => {
-    const db = makeDb({ updated: [{ id: 7, phone: null, business_access_status: 'approved' }] });
-    const result = await new BusinessTrialService(db).approve('7', 99);
-    expect(result.business_access_status).toBe('approved');
-    expect(db.$transaction).toHaveBeenCalledTimes(1);
-    expect(db.calls[0].args).toEqual([7, 99]);
-    expect(db.calls.some(({ sql }) => sql.includes("'business-trial:approved'"))).toBe(true);
-  });
-
-  test('returns conflict when an account is already approved', async () => {
-    const db = makeDb({ current: [{ id: 7, business_access_status: 'approved' }] });
-    await expect(new BusinessTrialService(db).approve(7, 99)).rejects.toMatchObject({ statusCode: 409 });
-  });
-
-  test('revokes formal approval transactionally and audits it', async () => {
-    const db = makeDb({ updated: [{ id: 7, business_access_status: 'trialing' }] });
-    const result = await new BusinessTrialService(db).revokeApproval(7, 99);
+  test('extends a trial from its current end and audits it in the same transaction', async () => {
+    const db = makeDb({ updated: [{ id: 7, phone: null, business_access_status: 'trialing' }] });
+    const result = await new BusinessTrialService(db).extendTrial('7', 99, 14);
     expect(result.business_access_status).toBe('trialing');
-    expect(db.calls[0].sql).toContain("business_access_status='trialing'");
-    expect(db.calls.some(({ args }) => args.includes('business-trial:approval-revoked:admin:99'))).toBe(true);
+    expect(db.$transaction).toHaveBeenCalledTimes(1);
+    expect(db.calls[0].args).toEqual([7, 14]);
+    expect(db.calls[0].sql).toContain('GREATEST(COALESCE(trial_ends_at, now()), now())');
+    expect(db.calls[0].sql).toContain('trial_started_at IS NOT NULL');
+    expect(db.calls.some(({ args }) => args.includes('business-trial:extended:14d:admin:99'))).toBe(true);
+  });
+
+  test('defaults to a 30-day extension', async () => {
+    const db = makeDb({ updated: [{ id: 7, phone: null }] });
+    await new BusinessTrialService(db).extendTrial(7, 99);
+    expect(db.calls[0].args).toEqual([7, 30]);
+  });
+
+  test.each([0, -1, 91, 1.5, 'abc'])('rejects invalid extension length %p before querying', async (days) => {
+    const db = makeDb();
+    await expect(new BusinessTrialService(db).extendTrial(7, 99, days)).rejects.toMatchObject({ statusCode: 400 });
+    expect(db.calls).toHaveLength(0);
+  });
+
+  test('returns not found when no trial account matches', async () => {
+    const db = makeDb({ updated: [] });
+    await expect(new BusinessTrialService(db).extendTrial(7, 99, 30)).rejects.toMatchObject({ statusCode: 404 });
+    expect(db.calls.some(({ sql }) => sql.includes('INSERT INTO public.auth_account_events'))).toBe(false);
   });
 
   test('anonymizes trial identity, revokes sessions and preserves finance references', async () => {

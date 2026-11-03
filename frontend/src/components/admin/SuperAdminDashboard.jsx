@@ -8,7 +8,7 @@ import MiniBarChart from './MiniBarChart';
 import StoreDetailModal from './StoreDetailModal';
 import StoreEnrichmentModal from './StoreEnrichmentModal';
 import Icon from '../../components/ui/Icon';
-import { Check, ChevronLeft, ChevronRight, Clock, Gift, Link2, Loader2, RotateCcw, Search, Settings, Sparkles, Store, Trash2, Users, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Clock, Gift, Link2, Loader2, Search, Settings, Sparkles, Store, Trash2, Users, X } from 'lucide-react';
 
 const INFO_BADGE = {
   good: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
@@ -91,13 +91,13 @@ export default function SuperAdminDashboard() {
     finally { setLinkBusy(null); }
   };
 
-  const approveTrial = async (id) => {
+  const extendTrial = async (id) => {
     setTrialBusy(id);
     try {
-      await adminAPI.approveBusinessTrial(id);
+      await adminAPI.extendBusinessTrial(id, 30);
       await loadBusinessTrials();
     } catch {
-      fail('businessTrials', '정식 이용 승인에 실패했습니다. 목록을 새로고침해 상태를 확인해 주세요.');
+      fail('businessTrials', '체험 연장에 실패했습니다. 목록을 새로고침해 상태를 확인해 주세요.');
     } finally {
       setTrialBusy(null);
     }
@@ -105,17 +105,14 @@ export default function SuperAdminDashboard() {
 
   const runTrialAction = async () => {
     if (!trialAction) return;
-    const { id, kind } = trialAction;
+    const { id } = trialAction;
     setTrialBusy(id);
     try {
-      if (kind === 'revoke') await adminAPI.revokeBusinessTrialApproval(id);
-      else await adminAPI.deleteBusinessTrialAccount(id);
+      await adminAPI.deleteBusinessTrialAccount(id);
       setTrialAction(null);
       await loadBusinessTrials();
     } catch {
-      fail('businessTrials', kind === 'revoke'
-        ? '승인 취소에 실패했습니다. 상태를 새로고침해 확인해 주세요.'
-        : '계정 정리에 실패했습니다. 소유 매장이나 보존 대상 기록을 확인해 주세요.');
+      fail('businessTrials', '계정 정리에 실패했습니다. 소유 매장이나 보존 대상 기록을 확인해 주세요.');
     } finally { setTrialBusy(null); }
   };
 
@@ -265,19 +262,18 @@ export default function SuperAdminDashboard() {
         )}
       </div>
 
-      {/* 1개월 사업자 체험 및 정식 이용 승인 */}
+      {/* 신규 사업자 1개월 프로 체험 및 체험 연장 */}
       <section aria-labelledby="business-trials-heading" className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div>
-            <h2 id="business-trials-heading" className="text-sm font-black flex items-center gap-2"><Clock size={15} className="text-orange-300" aria-hidden="true" /> 사업자 체험 · 정식 이용 승인</h2>
-            <p className="mt-1 text-[11px] text-slate-400">신규 가입 계정의 1개월 체험 기간과 승인 상태를 확인합니다.</p>
+            <h2 id="business-trials-heading" className="text-sm font-black flex items-center gap-2"><Clock size={15} className="text-orange-300" aria-hidden="true" /> 사업자 프로 체험 · 체험 연장</h2>
+            <p className="mt-1 text-[11px] text-slate-400">신규 가입 계정은 1개월간 프로 기능을 무료로 쓰고, 체험이 끝나면 무료 플랜으로 돌아갑니다. 필요한 계정만 체험을 연장하세요.</p>
           </div>
           <div className="flex items-center gap-2">
             <label className="sr-only" htmlFor="business-trial-filter">체험 계정 상태</label>
             <select id="business-trial-filter" value={trialFilter} onChange={(event) => setTrialFilter(event.target.value)} className="h-9 rounded-lg bg-slate-900 border border-white/10 px-2 text-xs text-white">
               <option value="trialing">체험 중</option>
               <option value="expired">체험 만료</option>
-              <option value="approved">정식 승인</option>
               <option value="all">전체 체험 계정</option>
             </select>
             <button type="button" onClick={() => void loadBusinessTrials()} className="h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:text-white">새로고침</button>
@@ -289,7 +285,6 @@ export default function SuperAdminDashboard() {
           <div className="space-y-2">
             {businessTrials.map((account) => {
               const expired = account.effective_status === 'expired';
-              const approved = account.effective_status === 'approved';
               const endAt = account.trial_ends_at ? new Date(account.trial_ends_at) : null;
               const daysRemaining = endAt ? Math.max(0, Math.ceil((endAt.getTime() - Date.now()) / 86400000)) : null;
               return (
@@ -297,29 +292,27 @@ export default function SuperAdminDashboard() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-black truncate">{account.name || '이름 미등록'}</p>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${approved ? 'bg-emerald-500/15 text-emerald-300' : expired ? 'bg-rose-500/15 text-rose-300' : 'bg-amber-500/15 text-amber-300'}`}>
-                        {approved ? '정식 승인' : expired ? '체험 만료' : '체험 중'}
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${expired ? 'bg-slate-500/20 text-slate-300' : 'bg-amber-500/15 text-amber-300'}`}>
+                        {expired ? '체험 종료 · 무료 플랜' : '프로 체험 중'}
                       </span>
                     </div>
                     <p className="mt-1 text-[11px] text-slate-400 break-all">{account.phone || '휴대전화 미등록'} · {account.email || '이메일 미등록'}</p>
                     <p className="mt-1 text-[11px] text-slate-500">
                       체험 {account.trial_started_at ? new Date(account.trial_started_at).toLocaleDateString('ko-KR') : '-'} ~ {endAt ? endAt.toLocaleDateString('ko-KR') : '-'}
-                      {!approved && !expired && daysRemaining !== null ? ` · ${daysRemaining}일 남음` : ''}
-                      {account.business_approved_at ? ` · 승인 ${new Date(account.business_approved_at).toLocaleDateString('ko-KR')}` : ''}
+                      {!expired && daysRemaining !== null ? ` · ${daysRemaining}일 남음` : ''}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 shrink-0">
-                    {!approved && <button type="button" disabled={trialBusy === account.id} onClick={() => void approveTrial(account.id)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-3 text-xs font-black text-emerald-300 hover:bg-emerald-500/25 disabled:opacity-50">
-                      {trialBusy === account.id ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />} 정식 이용 승인
-                    </button>}
-                    {approved && <button type="button" disabled={trialBusy === account.id} onClick={() => setTrialAction({ id: account.id, kind: 'revoke' })} className="inline-flex h-9 items-center gap-1 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 text-xs font-bold text-amber-200 disabled:opacity-50"><RotateCcw size={13} aria-hidden="true" /> 승인 취소</button>}
+                    <button type="button" disabled={trialBusy === account.id} onClick={() => void extendTrial(account.id)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-3 text-xs font-black text-emerald-300 hover:bg-emerald-500/25 disabled:opacity-50">
+                      {trialBusy === account.id ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />} 체험 30일 연장
+                    </button>
                     <button type="button" disabled={trialBusy === account.id} onClick={() => setTrialAction({ id: account.id, kind: 'delete', confirmation: '' })} className="inline-flex h-9 items-center gap-1 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 text-xs font-bold text-rose-200 disabled:opacity-50"><Trash2 size={13} aria-hidden="true" /> 계정 삭제</button>
                   </div>
                   {trialAction?.id === account.id && (
-                    <div role="alertdialog" aria-label={trialAction.kind === 'revoke' ? '승인 취소 확인' : '계정 삭제 확인'} className="w-full rounded-lg border border-white/15 bg-slate-950 p-3 text-xs">
-                      <p className="font-bold text-white">{trialAction.kind === 'revoke' ? '정식 이용 승인을 취소할까요?' : '로그인과 개인정보를 정리합니다. 매장·재무·감사 기록은 보존됩니다.'}</p>
-                      {trialAction.kind === 'revoke' ? <p className="mt-1 text-slate-400">체험 종료일이 지났다면 계정의 이용이 제한됩니다.</p> : <label className="mt-2 block text-slate-300">계속하려면 ‘삭제’를 입력하세요.<input aria-label="삭제 확인 문구" value={trialAction.confirmation} onChange={(event) => setTrialAction(current => ({ ...current, confirmation: event.target.value }))} className="mt-1 block h-9 w-full rounded-md border border-white/15 bg-slate-900 px-2 text-white" /></label>}
-                      <div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => setTrialAction(null)} className="rounded-md px-3 py-2 text-slate-300">취소</button><button type="button" disabled={trialBusy === account.id || (trialAction.kind === 'delete' && trialAction.confirmation !== '삭제')} onClick={() => void runTrialAction()} className="rounded-md bg-rose-600 px-3 py-2 font-bold text-white disabled:opacity-40">{trialAction.kind === 'revoke' ? '승인 취소 확인' : '계정 정리 확인'}</button></div>
+                    <div role="alertdialog" aria-label="계정 삭제 확인" className="w-full rounded-lg border border-white/15 bg-slate-950 p-3 text-xs">
+                      <p className="font-bold text-white">로그인과 개인정보를 정리합니다. 매장·재무·감사 기록은 보존됩니다.</p>
+                      <label className="mt-2 block text-slate-300">계속하려면 ‘삭제’를 입력하세요.<input aria-label="삭제 확인 문구" value={trialAction.confirmation} onChange={(event) => setTrialAction(current => ({ ...current, confirmation: event.target.value }))} className="mt-1 block h-9 w-full rounded-md border border-white/15 bg-slate-900 px-2 text-white" /></label>
+                      <div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => setTrialAction(null)} className="rounded-md px-3 py-2 text-slate-300">취소</button><button type="button" disabled={trialBusy === account.id || trialAction.confirmation !== '삭제'} onClick={() => void runTrialAction()} className="rounded-md bg-rose-600 px-3 py-2 font-bold text-white disabled:opacity-40">계정 정리 확인</button></div>
                     </div>
                   )}
                 </div>

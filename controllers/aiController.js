@@ -287,7 +287,12 @@ const aiController = {
       return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다.' });
     }
 
-    if (store.plan === 'free') {
+    // 유료 구독(stores.plan) 또는 가입 후 프로 체험 기간이면 사용할 수 있다.
+    const { isTrialActive, ownerTrialEndsAt } = require('../utils/subscriptionPolicy');
+    const onTrial =
+      store.plan === 'free' &&
+      isTrialActive(await ownerTrialEndsAt(require('../config/prisma'), storeId));
+    if (store.plan === 'free' && !onTrial) {
       return res.status(403).json({
         success: false,
         error:
