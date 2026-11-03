@@ -107,3 +107,14 @@ test('plan prices and the automatic payment consent state that VAT is included',
   expect(await screen.findByText(/30,000원 \/ 월 \(VAT 포함\)/)).toBeInTheDocument();
   expect(screen.getByText(/선택한 요금\(VAT 포함\)이 매 결제 주기마다 자동 청구/)).toBeInTheDocument();
 });
+test('paid invoices show the supply amount and VAT breakdown', async () => {
+  subscriptionsAPI.invoices.mockResolvedValue({
+    data: [
+      { id: 'b1', amount: 20000, supply_amount: 18182, vat_amount: 1818, tax_free_amount: 0, status: 'paid', period_start: '2026-11-01', attempts: 1 },
+      { id: 'b2', amount: 20000, supply_amount: null, vat_amount: null, status: 'failed', period_start: '2026-10-01', attempts: 1 },
+    ],
+  });
+  render(<SubscriptionBilling storeId="1" plans={plans} />);
+  expect(await screen.findByText('공급가 18,182원 · 부가세 1,818원')).toBeInTheDocument();
+  expect(screen.getAllByText(/공급가/)).toHaveLength(1);
+});

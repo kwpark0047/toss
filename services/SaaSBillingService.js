@@ -11,6 +11,7 @@ const {
   isTrialActive,
   ownerTrialEndsAt,
   TRIAL_PLAN,
+  vatBreakdown,
 } = require('../utils/subscriptionPolicy');
 const logger = require('../utils/logger');
 
@@ -263,6 +264,8 @@ class SaaSBillingService {
             payment_key: encryptToken(result.paymentKey),
             paid_at: paidAt,
             receipt_url: result.receipt?.url || null,
+            // 회계·증빙용 공급가/부가세 구분 (토스 응답 기준, 없으면 VAT 포함 가격으로 계산)
+            ...vatBreakdown(invoice.amount, result),
             failure_code: null,
             next_retry_at: null,
           },
@@ -386,6 +389,9 @@ class SaaSBillingService {
       select: {
         id: true,
         amount: true,
+        supply_amount: true,
+        vat_amount: true,
+        tax_free_amount: true,
         currency: true,
         status: true,
         billing_cycle: true,
