@@ -1280,6 +1280,9 @@ const LandingPage = () => {
                             </motion.div>
                         ))}
                     </div>
+                    <p className="mt-10 text-center text-sm text-gray-500 [word-break:keep-all]">
+                        새로 가입하면 1개월 무료 체험으로 시작합니다. 체험이 끝나면 위마켓 운영팀의 승인을 받은 뒤 계속 이용할 수 있습니다. 승인 전까지는 매장 데이터 조회만 가능합니다.
+                    </p>
                 </div>
             </section>
 
@@ -1318,6 +1321,9 @@ const LandingPage = () => {
                                 </motion.div>
                             </Link>
                         </div>
+                        <p className="mt-6 text-xs text-gray-400 [word-break:keep-all]">
+                            체험이 끝나면 위마켓 운영팀의 승인을 받은 뒤 계속 이용할 수 있습니다. 승인 전까지는 매장 데이터 조회만 가능합니다.
+                        </p>
                     </motion.div>
                 </div>
             </section>
