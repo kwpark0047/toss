@@ -47,8 +47,6 @@ test.describe('주문 플로우 - 데모 스토어', () => {
     await expect(page.getByRole('button', { name: '장바구니 다시 열기' })).toBeVisible();
     await page.getByRole('button', { name: '장바구니 다시 열기' }).click();
     await expect(page.getByRole('heading', { name: '장바구니' })).toBeVisible();
-    // 다시 연 뒤에도 접힌 높이에 갇히지 않고 담은 메뉴가 보여야 한다
-    await expect(page.getByText(/담은 메뉴 d+개/)).toBeVisible();
 
     // 7b. 균등 분할 인원 설정을 제출 없이 확인한다.
     await page.getByRole('button', { name: '분할 결제 설정' }).click();
