@@ -299,7 +299,7 @@ const LandingPage = () => {
                         >
                             {[
                                 <>QR로 주문받으면</>,
-                                <><span className="ai-gradient-text">단골 명단</span>이 저절로 쌓입니다</>,
+                                <><span className="ai-gradient-text">단골 혜택</span>을 드립니다</>,
                             ].map((line, i) => (
                                 <motion.span
                                     key={i}
