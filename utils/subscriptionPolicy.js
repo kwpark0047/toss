@@ -45,7 +45,8 @@ async function ownerTrialEndsAt(db, storeId) {
   const rows = await db.$queryRaw`
     SELECT u.trial_ends_at FROM public.stores s
     JOIN public.users u ON u.id = s.user_id
-    WHERE s.id = ${id} AND u.business_access_status <> 'rejected'
+    WHERE s.id = ${id} AND u.auth_status = 'active'
+      AND u.business_access_status IN ('trialing', 'approved')
     LIMIT 1`;
   return Array.isArray(rows) && rows[0] ? rows[0].trial_ends_at : null;
 }

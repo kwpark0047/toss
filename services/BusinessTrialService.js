@@ -15,19 +15,21 @@ class BusinessTrialService {
   async list(status = 'trialing', limit = 50) {
     if (!STATUSES.has(status)) throw new AppError('유효하지 않은 이용 상태입니다.', 400);
     const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 50, 1), 100);
+    // 플랜 판정(ownerTrialEndsAt)과 같은 기준: 상태가 trialing이든 approved든 trial_ends_at으로 판단
+    const base =
+      "trial_started_at IS NOT NULL AND business_access_status IN ('trialing','approved') AND auth_status='active'";
     const predicate = status === 'all'
-      ? "trial_started_at IS NOT NULL AND business_access_status IN ('trialing','approved') AND auth_status='active'"
+      ? base
       : status === 'expired'
-        ? "business_access_status='trialing' AND trial_ends_at <= now() AND auth_status='active'"
-        : "business_access_status='trialing' AND trial_ends_at > now() AND auth_status='active'";
+        ? `${base} AND (trial_ends_at IS NULL OR trial_ends_at <= now())`
+        : `${base} AND trial_ends_at > now()`;
     const rows = await this.db.$queryRawUnsafe(
       `SELECT id, name, email, phone, business_access_status,
               trial_started_at, trial_ends_at, business_approved_at,
               created_at,
-              CASE WHEN business_access_status='trialing' AND trial_ends_at > now()
-                   THEN 'trialing' ELSE 'expired' END AS effective_status
+              CASE WHEN trial_ends_at > now() THEN 'trialing' ELSE 'expired' END AS effective_status
        FROM public.users WHERE ${predicate}
-       ORDER BY CASE WHEN business_access_status='trialing' THEN 0 ELSE 1 END,
+       ORDER BY CASE WHEN trial_ends_at > now() THEN 0 ELSE 1 END,
                 created_at DESC, id DESC LIMIT $1`,
       safeLimit
     );
@@ -39,7 +41,10 @@ class BusinessTrialService {
   async extendTrial(userId, adminId, days = 30) {
     const id = Number(userId);
     if (!Number.isSafeInteger(id) || id < 1) throw new AppError('유효하지 않은 계정입니다.', 400);
-    const extendDays = Number(days);
+    const extendDays =
+      typeof days === 'number' || (typeof days === 'string' && /^\d+$/.test(days))
+        ? Number(days)
+        : NaN;
     if (!Number.isSafeInteger(extendDays) || extendDays < 1 || extendDays > MAX_EXTEND_DAYS)
       throw new AppError(`연장 기간은 1~${MAX_EXTEND_DAYS}일이어야 합니다.`, 400);
     return this.db.$transaction(async (tx) => {

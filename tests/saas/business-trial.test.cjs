@@ -25,9 +25,9 @@ test('lists trial accounts with expiry-aware status and a bounded limit', async 
   const service = new BusinessTrialService(db);
   await service.list('trialing', 1000);
   const [{ sql, args }] = db.calls;
-  assert.match(sql, /business_access_status='trialing' AND trial_ends_at > now\(\)/);
+  assert.match(sql, /business_access_status IN \('trialing','approved'\) AND auth_status='active' AND trial_ends_at > now\(\)/);
   assert.deepEqual(args, [100]);
-  assert.match(sql, /CASE WHEN business_access_status='trialing' AND trial_ends_at > now\(\)\s+THEN 'trialing' ELSE 'expired'/);
+  assert.match(sql, /CASE WHEN trial_ends_at > now\(\) THEN 'trialing' ELSE 'expired'/);
 });
 
 test('rejects unsupported list filters', async () => {

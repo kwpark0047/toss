@@ -46,13 +46,26 @@ describe('BusinessTrialService', () => {
     expect(db.calls.some(({ args }) => args.includes('business-trial:extended:14d:admin:99'))).toBe(true);
   });
 
+  test('accepts a numeric string from the request body', async () => {
+    const db = makeDb({ updated: [{ id: 7, phone: null }] });
+    await new BusinessTrialService(db).extendTrial(7, 99, '45');
+    expect(db.calls[0].args).toEqual([7, 45]);
+  });
+
+  test('lists approved-but-still-in-trial accounts as trialing, same as plan resolution', async () => {
+    const db = makeDb();
+    await new BusinessTrialService(db).list('trialing');
+    expect(db.calls[0].sql).toContain("business_access_status IN ('trialing','approved')");
+    expect(db.calls[0].sql).toContain("CASE WHEN trial_ends_at > now() THEN 'trialing' ELSE 'expired' END");
+  });
+
   test('defaults to a 30-day extension', async () => {
     const db = makeDb({ updated: [{ id: 7, phone: null }] });
     await new BusinessTrialService(db).extendTrial(7, 99);
     expect(db.calls[0].args).toEqual([7, 30]);
   });
 
-  test.each([0, -1, 91, 1.5, 'abc'])('rejects invalid extension length %p before querying', async (days) => {
+  test.each([0, -1, 91, 1.5, 'abc', true, '1e1', null])('rejects invalid extension length %p before querying', async (days) => {
     const db = makeDb();
     await expect(new BusinessTrialService(db).extendTrial(7, 99, days)).rejects.toMatchObject({ statusCode: 400 });
     expect(db.calls).toHaveLength(0);

@@ -39,11 +39,12 @@ test('isTrialActive treats invalid input as inactive', () => {
   assert.equal(isTrialActive(later, now), true);
 });
 
-test('ownerTrialEndsAt ignores deleted owners and tolerates missing rows', async () => {
+test('ownerTrialEndsAt only grants trials to active trialing or approved owners and tolerates missing rows', async () => {
   let sqlText = '';
   const db = { $queryRaw: async (sql, ...args) => { sqlText = sql.join('?'); assert.deepEqual(args, [5]); return [{ trial_ends_at: later }]; } };
   assert.equal(await ownerTrialEndsAt(db, '5'), later);
-  assert.match(sqlText, /business_access_status <> 'rejected'/);
+  assert.match(sqlText, /u.auth_status = 'active'/);
+  assert.match(sqlText, /business_access_status IN \('trialing', 'approved'\)/);
   assert.equal(await ownerTrialEndsAt({ $queryRaw: async () => [] }, 5), null);
   assert.equal(await ownerTrialEndsAt({ $queryRaw: async () => { throw new Error('must not query'); } }, 'x'), null);
 });

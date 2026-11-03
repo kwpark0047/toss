@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { productsAPI, storesAPI, aiAPI, uploadsAPI, optionTemplatesAPI } from '../../api';
+import { subscriptionsAPI } from '../../api/subscriptions';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { handleApiError } from '../../utils/apiError';
@@ -61,11 +62,19 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
     loadTemplates();
 
     (async () => {
-      try {
-        const res = await storesAPI.getById(storeId);
-        const storeData = res?.data || res;
-        if (storeData?.plan) setStorePlan(storeData.plan);
-      } catch { /* 무시 */ }
+      // 구독 요약의 effective_plan은 가입 후 프로 체험까지 반영한다(소유자만 조회 가능).
+      // 조회할 수 없으면 매장의 결제 플랜(stores.plan)으로 판단한다.
+      const [summaryResult, storeResult] = await Promise.allSettled([
+        subscriptionsAPI.get(storeId),
+        storesAPI.getById(storeId),
+      ]);
+      const summary = summaryResult.status === 'fulfilled' ? summaryResult.value?.data || summaryResult.value : null;
+      if (summary?.effective_plan) {
+        setStorePlan(summary.effective_plan);
+        return;
+      }
+      const storeData = storeResult.status === 'fulfilled' ? storeResult.value?.data || storeResult.value : null;
+      if (storeData?.plan) setStorePlan(storeData.plan);
     })();
   }, [storeId]);
 
