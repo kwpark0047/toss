@@ -94,7 +94,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
 
           <motion.div
             initial={{ y: '100%' }}
-            animate={{ y: 0, height: isCollapsed ? 'auto' : undefined }}
+            animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className={`fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] z-50 cust-bg-card overflow-hidden tds-stack flex-col shadow-2xl bottom-sheet ${isCollapsed ? 'rounded-t-2xl border border-b-0 cust-border' : 'rounded-t-[32px] max-h-[90vh]'}`}
@@ -120,7 +120,12 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
               </div>
             </div>
 
-            <div className="tds-stack tds-gap-4 tds-p-4 tds-p-3 flex-1 overflow-y-auto">
+            {/* 담은 메뉴와 결제 설정을 한 스크롤로 묶고, 합계·주문 버튼만 아래에 고정한다 */}
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+            <div className="tds-stack tds-gap-4 tds-p-4 tds-p-3">
+              {cart.length > 0 && (
+                <p className="tds-small font-bold cust-text-sub">담은 메뉴 {cart.reduce((sum, item) => sum + item.quantity, 0)}개</p>
+              )}
               {cart.length === 0 ? (
                 <EmptyState icon="🛒" title={t('cart_modal.empty_title')} description={t('cart_modal.empty_desc')} />
               ) : (
@@ -141,7 +146,9 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                         <div className="tds-stack tds-gap-1 flex-1 tds-stack-h flex-col justify-center min-w-0 tds-gap-1">
                           <div className="tds-stack-h tds-gap-2 items-start justify-between">
                             <h3 className="tds-text-bold cust-text-main text-sm leading-tight truncate">{item.menuItem.name}</h3>
-                            <button 
+                            <button
+                              type="button"
+                              aria-label={`${item.menuItem.name} 빼기`}
                               onClick={() => {
                                 vibrateClick();
                                 onUpdateQuantity(item.cartItemId, -item.quantity);
@@ -158,7 +165,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                           )}
                           
                           <div className="tds-stack-h tds-gap-2 items-center justify-between">
-                            <span className="tds-text-bold text-sm cust-text-main">{formatWon(item.unitPrice * item.quantity)}</span>
+                            <span className="tds-text-bold text-sm cust-text-main whitespace-nowrap">{formatWon(item.unitPrice * item.quantity)}</span>
                             
                             <div className="tds-stack-h tds-gap-2 items-center bg-grey-100 dark:bg-white/5 rounded-full tds-p-1 tds-p-0.5">
                               <button 
@@ -231,8 +238,8 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
               )}
             </div>
 
-            {/* === 하단: 결제 영역 === */}
-            <div className="tds-p-4 tds-p-3 tds-stack tds-gap-3 bg-grey-50 dark:bg-black/20">
+            {/* === 결제 설정 (목록과 함께 스크롤) === */}
+            <div className="tds-p-4 tds-p-3 tds-stack tds-gap-3 bg-grey-50 dark:bg-black/20 border-t cust-border">
               {orderTypePanel}
 
               {/* 분할 결제 안내 팁 */}
@@ -370,7 +377,11 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                   ))}
                 </div>
               </LayoutGroup>
+            </div>
+            </div>
 
+            {/* === 하단 고정: 결제 요약 + 주문 버튼 === */}
+            <div className="shrink-0 tds-p-4 tds-p-3 tds-stack tds-gap-3 border-t cust-border cust-bg-card pb-[calc(env(safe-area-inset-bottom)+12px)]">
               {/* 결제 요약 */}
               <div className="tds-stack-h tds-gap-4 items-center justify-between tds-p-3 cust-bg-card rounded-xl border cust-border">
                 {selectedMethodData && selectedGroup ? (
