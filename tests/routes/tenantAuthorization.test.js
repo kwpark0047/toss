@@ -64,6 +64,7 @@ jest.mock('../../controllers/orderController', () => ({
   getStoreOrders: mockOk,
   getOrderDetails: mockOk,
   updateStatus: mockOk,
+  updateDelivery: mockOk,
   cancelOrder: mockOk,
   deleteOrder: mockOk,
   getEta: mockOk,

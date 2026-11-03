@@ -8,6 +8,7 @@ const idempotency = require('../middleware/idempotency');
 const {
   createOrderSchema,
   updateOrderStatusSchema,
+  updateOrderDeliverySchema,
   cancelOrderSchema,
   returnExchangeSchema,
   createPaymentSchema,
@@ -303,6 +304,40 @@ router.put(
   checkOrderPermission,
   validateBody(updateOrderStatusSchema),
   orderController.updateStatus
+);
+
+/**
+ * @swagger
+ * /api/orders/{id}/delivery:
+ *   put:
+ *     tags: [Orders]
+ *     summary: 직접 배달 출발/완료 기록
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               action: { type: string, enum: [start, complete] }
+ *     responses:
+ *       200:
+ *         description: 배달 상태 변경 완료
+ */
+router.put(
+  '/:id/delivery',
+  authMiddleware,
+  validateParams(orderIdParamSchema),
+  checkOrderPermission,
+  validateBody(updateOrderDeliverySchema),
+  orderController.updateDelivery
 );
 
 /**

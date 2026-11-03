@@ -40,7 +40,10 @@ const formatPhoneInput = (value) => {
   return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
 };
 
-const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice, notifyPhone = '', onNotifyPhoneChange, paymentMethod = 'card', onPaymentMethodChange, menuItems = [], _storeId, onAddToCartClick, onStartSplitPayment, isSplitStarting = false }) => {
+const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice, notifyPhone = '', onNotifyPhoneChange, paymentMethod = 'card', onPaymentMethodChange, menuItems = [], _storeId, onAddToCartClick, onStartSplitPayment, isSplitStarting = false, orderTypePanel = null, hideSplitPayment = false, onlinePaymentOnly = false, extraFee = 0 }) => {
+  // 포장·배달 주문은 매장에서 결제할 자리가 없어 온라인 결제만 고를 수 있다.
+  const OFFLINE_METHODS = ['cash', 'transfer', 'store_card'];
+  const payableTotal = totalPrice + (Number(extraFee) || 0);
   const { t } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showSplitSettings, setShowSplitSettings] = useState(false);
@@ -237,8 +240,10 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
 
             {/* === 결제 설정 (목록과 함께 스크롤) === */}
             <div className="tds-p-4 tds-p-3 tds-stack tds-gap-3 bg-grey-50 dark:bg-black/20 border-t cust-border">
+              {orderTypePanel}
+
               {/* 분할 결제 안내 팁 */}
-              <div className="tds-stack tds-gap-2 tds-p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl border border-blue-100 dark:border-blue-500/20">
+              {!hideSplitPayment && <div className="tds-stack tds-gap-2 tds-p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl border border-blue-100 dark:border-blue-500/20">
                 <div className="tds-stack-h tds-gap-2 items-center">
                   <div className="w-7 h-7 bg-blue-500 rounded-full tds-stack items-center justify-center text-white">
                     <span className="tds-small font-bold">1/N</span>
@@ -255,7 +260,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                   <p className="tds-caption text-blue-900 dark:text-blue-200">각자 이 링크에서 현금 또는 계좌이체 몫을 등록합니다. 매장에서 입금을 확인하면 반영되고, 전액 확인 후 주문이 접수됩니다.</p>
                   <button type="button" disabled={isSplitStarting || isOrdering || !cart.length} onClick={() => onStartSplitPayment?.(splitPeopleCount)} className="w-full rounded-lg bg-blue-700 px-3 py-2.5 text-sm font-black text-white disabled:opacity-50"><Users size={16} className="mr-2 inline" />{isSplitStarting ? '분할 주문 준비 중…' : `${splitPeopleCount}명 분할 주문 만들기`}</button>
                 </div>}
-              </div>
+              </div>}
 
               {/* 알림 받을 번호 */}
               <div className="tds-p-3 cust-bg-card rounded-xl border cust-border">
@@ -294,7 +299,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                       <div className="tds-stack-h tds-gap-1.5 grid grid-cols-3">
                         {group.methods.map((method) => {
                           const isSelected = paymentMethod === method.id;
-                          const isUnavailable = method.available === false;
+                          const isUnavailable = method.available === false || (onlinePaymentOnly && OFFLINE_METHODS.includes(method.id));
                           const accessibleLabel = isUnavailable
                             ? `${method.label} (현재 이용 불가)`
                             : method.label;
@@ -397,7 +402,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                 ) : (
                   <span className="tds-small font-bold text-grey-400">{t('cart_modal.select_payment_guide')}</span>
                 )}
-                <span className="tds-text-bold text-base text-primary flex-shrink-0 ml-2">{formatWon(totalPrice)}</span>
+                <span className="tds-text-bold text-base text-primary flex-shrink-0 ml-2">{formatWon(payableTotal)}</span>
               </div>
 
               <Button

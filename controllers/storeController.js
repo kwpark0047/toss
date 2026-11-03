@@ -2,6 +2,8 @@ const StoreService = require('../services/StoreService');
 const Store = require('../repositories/Store');
 const prisma = require('../config/prisma');
 const geocodeService = require('../services/geocodeService');
+const OrderChannels = require('../repositories/OrderChannels');
+const DeliveryService = require('../services/DeliveryService');
 const logger = require('../utils/logger');
 
 const storeService = new StoreService();
@@ -50,14 +52,16 @@ const storeController = {
         orderBy: { id: 'desc' },
       });
       return res.success(
-        stores.map(({ store_business_info, ...store }) => ({
-          ...store,
-          business_type: store_business_info?.business_type ?? null,
-        }))
+        await DeliveryService.applyPublicPrivacyToList(
+          stores.map(({ store_business_info, ...store }) => ({
+            ...store,
+            business_type: store_business_info?.business_type ?? null,
+          }))
+        )
       );
     }
     const stores = await Store.findAll();
-    res.success(stores);
+    res.success(await DeliveryService.applyPublicPrivacyToList(stores));
   },
 
   // GET /my — 내 매장 목록 조회
@@ -186,7 +190,8 @@ const storeController = {
     const cache = require('../utils/cache');
     const cacheKey = `store:${req.params.id}:profile`;
     cache.set(cacheKey, store, 60);
-    res.success(store);
+    // 주소를 숨긴 온라인 전용 매장은 매장 사람 외에는 정확한 주소·좌표를 받지 않는다.
+    res.success(await DeliveryService.storeViewFor(req.user, store));
   },
 
   // GET /public-intro/:id — QR 진입 소개 화면에 필요한 공개 정보만 반환
@@ -219,7 +224,11 @@ const storeController = {
 
     if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다.' });
     const { store_operating_hours: operatingHours, ...publicStore } = store;
-    res.success({ ...publicStore, operating_hours: operatingHours || null });
+    const channels = await OrderChannels.findByStoreId(store.id);
+    res.success({
+      ...DeliveryService.applyPublicPrivacy(publicStore, channels),
+      operating_hours: operatingHours || null,
+    });
   },
 
   // PUT /:id — 매장 수정

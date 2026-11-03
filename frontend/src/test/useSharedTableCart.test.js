@@ -12,11 +12,21 @@ const makeSocket = (name) => {
     connected: true,
     online: true,
     connect: vi.fn(),
-    on: (event, fn) => { (handlers[event] ||= []).push(fn); },
-    off: (event, fn) => { handlers[event] = (handlers[event] || []).filter((h) => h !== fn); },
+    on: (event, fn) => {
+      (handlers[event] ||= []).push(fn);
+    },
+    off: (event, fn) => {
+      handlers[event] = (handlers[event] || []).filter((h) => h !== fn);
+    },
     emit: (event, payload) => {
-      if (event === 'shared-cart:join') { room.add(socket); return; }
-      if (event === 'shared-cart:leave') { room.delete(socket); return; }
+      if (event === 'shared-cart:join') {
+        room.add(socket);
+        return;
+      }
+      if (event === 'shared-cart:leave') {
+        room.delete(socket);
+        return;
+      }
       if (!socket.online) return;
       room.forEach((peer) => {
         if (peer !== socket && peer.online) peer.receive(event, payload);
@@ -38,8 +48,14 @@ const makeSocket = (name) => {
 let currentSocket = null;
 vi.mock('@/utils/socket', () => ({ getSocket: () => currentSocket }));
 
-const { default: useSharedTableCart, toWire, fromWire, mergeEntries, diffLocal, pruneEntries } =
-  await import('@/hooks/useSharedTableCart');
+const {
+  default: useSharedTableCart,
+  toWire,
+  fromWire,
+  mergeEntries,
+  diffLocal,
+  pruneEntries,
+} = await import('@/hooks/useSharedTableCart');
 
 const menuItems = [
   { id: 1, name: '짜장면', price: 8000, category_id: 1 },
@@ -63,11 +79,25 @@ const openDevice = (name) => {
   });
   return {
     socket,
-    get cart() { return view.result.current.cart; },
-    add: (item) => act(() => (currentSocket = socket) && view.result.current.setCart((prev) => [...prev, item])),
-    setQty: (id, quantity) => act(() => (currentSocket = socket) && view.result.current.setCart((prev) =>
-      prev.map((it) => (it.cartItemId === id ? { ...it, quantity } : it)))),
-    remove: (id) => act(() => (currentSocket = socket) && view.result.current.setCart((prev) => prev.filter((it) => it.cartItemId !== id))),
+    get cart() {
+      return view.result.current.cart;
+    },
+    add: (item) =>
+      act(() => (currentSocket = socket) && view.result.current.setCart((prev) => [...prev, item])),
+    setQty: (id, quantity) =>
+      act(
+        () =>
+          (currentSocket = socket) &&
+          view.result.current.setCart((prev) =>
+            prev.map((it) => (it.cartItemId === id ? { ...it, quantity } : it))
+          )
+      ),
+    remove: (id) =>
+      act(
+        () =>
+          (currentSocket = socket) &&
+          view.result.current.setCart((prev) => prev.filter((it) => it.cartItemId !== id))
+      ),
     clear: () => act(() => (currentSocket = socket) && view.result.current.setCart([])),
     close: () => view.unmount(),
   };

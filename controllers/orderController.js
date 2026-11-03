@@ -97,6 +97,21 @@ const orderController = {
     res.json({ success: true, order: updated, message: '주문 상태가 변경되었습니다' });
   }),
 
+  // 직접 배달 출발/완료
+  updateDelivery: catchAsync(async (req, res) => {
+    const orderService = new OrderService(req.app.get('io'));
+    const updated = await orderService.updateDelivery(
+      req.params.id,
+      req.body?.action,
+      req.body?.staff_id,
+      {
+        userId: req.user?.id,
+        role: req.user?.role,
+      }
+    );
+    res.json({ success: true, order: updated, message: '배달 상태가 변경되었습니다' });
+  }),
+
   // 주문 취소
   cancelOrder: catchAsync(async (req, res) => {
     const orderService = new OrderService(req.app.get('io'));

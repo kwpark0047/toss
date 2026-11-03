@@ -17,6 +17,13 @@ export const adminAPI = {
   getTinkerbellSettings: (storeId) => api.get(`/admin/stores/${storeId}/tinkerbell-settings`),
   updateTinkerbellSettings: (storeId, data) =>
     api.put(`/admin/stores/${storeId}/tinkerbell-settings`, data),
+  // 주문 받는 방식(매장 식사/포장/배달)·직접 배달 설정
+  getOrderChannels: (storeId) => api.get(`/admin/stores/${storeId}/order-channels`),
+  updateOrderChannels: (storeId, data) => api.put(`/admin/stores/${storeId}/order-channels`, data),
+  // 매장 부가기능 (온라인 주문: 무료)
+  getAddons: (storeId) => api.get(`/admin/stores/${storeId}/addons`),
+  setOnlineOrderingAddon: (storeId, active) =>
+    api.put(`/admin/stores/${storeId}/addons/online_ordering`, { active }),
   // 매장 정보 보강 (네이버 지역검색 API) — super_admin 전용, 커서 기반 배치
   enrichStores: ({ limit = 10, afterId = 0 } = {}) =>
     api.post('/admin/enrich-stores', { limit, afterId }),
