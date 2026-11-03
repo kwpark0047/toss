@@ -342,6 +342,9 @@ model BillingInvoice {
   billing_cycle   String
   order_id        String   @unique
   amount          Int
+  supply_amount   Int?     // 공급가액 (결제 확정 시 기록)
+  vat_amount      Int?     // 부가세 (VAT 포함 가격 기준)
+  tax_free_amount Int?     // 면세 금액 (구독료는 0)
   currency        String   @default("KRW")
   status          String   @default("pending")
   period_start    DateTime

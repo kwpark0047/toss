@@ -122,6 +122,10 @@ test('subscription is activated only after a verified invoice with server amount
   await billing.chargeInvoice('i1');
   assert.equal(active, true);
   assert.equal(invoice.status, 'paid');
+  // 결제 응답에 부가세 정보가 없으면 VAT 포함 가격 기준으로 공급가·부가세를 기록한다
+  assert.equal(invoice.supply_amount, 27273);
+  assert.equal(invoice.vat_amount, 2727);
+  assert.equal(invoice.tax_free_amount, 0);
   await billing.chargeInvoice('i1');
   assert.equal(charges, 1);
 });

@@ -327,6 +327,11 @@ export default function SubscriptionBilling({ storeId, plans = [] }) {
                     <span>
                       {date(bill.period_start)} · {money(bill.amount)}원 ·{' '}
                       {statuses[bill.status] || bill.status}
+                      {bill.status === 'paid' && Number.isInteger(bill.vat_amount) && (
+                        <span className="block text-xs text-slate-400">
+                          공급가 {money(bill.supply_amount)}원 · 부가세 {money(bill.vat_amount)}원
+                        </span>
+                      )}
                     </span>
                     {bill.status === 'failed' && bill.attempts < 3 && (
                       <button

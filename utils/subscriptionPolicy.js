@@ -51,7 +51,26 @@ async function ownerTrialEndsAt(db, storeId) {
   return Array.isArray(rows) && rows[0] ? rows[0].trial_ends_at : null;
 }
 
+// 구독료 공급가·부가세 구분. 구독 요금은 VAT 포함 가격으로 청구한다(면세 금액 0).
+// 토스페이먼츠 결제 응답의 suppliedAmount·vat·taxFreeAmount가 합계와 맞으면 그대로 쓰고,
+// 없거나 맞지 않으면 토스와 같은 방식(부가세 = (금액 - 면세) / 11, 반올림)으로 계산한다.
+function vatBreakdown(amount, provider = {}) {
+  if (!Number.isSafeInteger(amount) || amount < 0) throw new Error('Invalid invoice amount');
+  const supplied = Number(provider?.suppliedAmount);
+  const vat = Number(provider?.vat);
+  const taxFree = Number(provider?.taxFreeAmount ?? 0);
+  if (
+    [supplied, vat, taxFree].every((v) => Number.isSafeInteger(v) && v >= 0) &&
+    supplied + vat + taxFree === amount
+  ) {
+    return { supply_amount: supplied, vat_amount: vat, tax_free_amount: taxFree };
+  }
+  const computedVat = Math.round(amount / 11);
+  return { supply_amount: amount - computedVat, vat_amount: computedVat, tax_free_amount: 0 };
+}
+
 module.exports = {
+  vatBreakdown,
   nextBillingPeriod,
   effectivePlan,
   TRIAL_PLAN,
