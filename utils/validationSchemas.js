@@ -92,7 +92,6 @@ const schemas = {
           z.literal(null),
         ])
         .optional(),
-      plan: z.enum(['free', 'pro', 'enterprise']).default('free'),
       latitude: z.number().nullable().optional(),
       longitude: z.number().nullable().optional(),
     }),
