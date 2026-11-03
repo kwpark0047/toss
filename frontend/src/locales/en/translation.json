@@ -551,14 +551,12 @@
       },
       "enterprise": {
         "name": "Enterprise",
-        "price": "₩79,000",
+        "price": "₩50,000",
         "period": "/month",
         "features": [
-          "Dedicated Server Infrastructure",
+          "Unlimited Menus, Staff & Monthly Orders",
           "API Integration Support",
-          "Custom Reports",
-          "Dedicated Account Manager",
-          "Priority Ad Placement"
+          "Custom Reports"
         ],
         "cta": "Contact Us"
       }

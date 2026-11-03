@@ -113,13 +113,11 @@ const LandingPage = () => {
             cta: t('pricingPlan.pro.cta', '프로 시작하기'), to: '/register', popular: true,
         },
         {
-            name: t('pricingPlan.enterprise.name', '엔터프라이즈'), price: t('pricingPlan.enterprise.price', '₩79,000'), period: t('pricingPlan.enterprise.period', '/월'),
+            name: t('pricingPlan.enterprise.name', '엔터프라이즈'), price: t('pricingPlan.enterprise.price', '₩50,000'), period: t('pricingPlan.enterprise.period', '/월'),
             features: [
-                t('pricingPlan.enterprise.features.dedicatedInfrastructure', '전용 서버 인프라'),
+                t('pricingPlan.enterprise.features.unlimitedUsage', '메뉴·직원·월 주문 수 무제한'),
                 t('pricingPlan.enterprise.features.apiIntegration', 'API 연동 지원'),
-                t('pricingPlan.enterprise.features.customReports', '맞춤형 리포트'),
-                t('pricingPlan.enterprise.features.dedicatedManager', '전담 매니저 배정'),
-                t('pricingPlan.enterprise.features.advertisingPriority', '광고 노출 우선권')
+                t('pricingPlan.enterprise.features.customReports', '맞춤형 리포트')
             ],
             cta: t('pricingPlan.enterprise.cta', '문의하기'), to: '/contact', popular: false,
         },

@@ -42,7 +42,7 @@ export default function FoodTruckPricing({ embedded = false } = {}) {
         '하트비트 연동 알림톡 예비 수단 자동 발송',
         '긴급 재료소진 일괄 품절 제어 (킬스위치)',
         '단골 고객 찜 목록 및 타임세일 푸시 마케팅',
-        '직원/매니저 무제한 계정 생성 및 권한 격리',
+        '직원·매니저 계정 최대 10명 및 권한 격리',
       ],
       cta: '프로 시작하기',
       color: 'border-orange-500 bg-orange-500/[0.02]',
@@ -50,15 +50,15 @@ export default function FoodTruckPricing({ embedded = false } = {}) {
     },
     {
       name: '엔터프라이즈 (Enterprise)',
-      price: 79000,
+      price: 50000,
+      contact: true,
       desc: '다대 대형 푸드트럭 fleet 운영 및 AI 기반 거점 최적화 패키지',
       features: [
         '모든 Pro 요금제 기능 전사 보장',
         'AI 기반 요일/시간별 피크타임 매출 동향 예측',
         '주간/월간 Gemini 인공지능 매장 경영 분석 리포트',
         'ESC/POS 주방 무선 프린터 연동 및 인쇄 대기열',
-        '전용 1:1 슬랙/전화 고객 지원 엔지니어 배정',
-        '99.9% 가동률 보증 보장 협약서(SLA) 체결',
+        '메뉴·직원·월 주문 수 무제한',
       ],
       cta: '영업문의 및 컨설팅',
       color: 'border-slate-200 bg-slate-50',
@@ -68,7 +68,8 @@ export default function FoodTruckPricing({ embedded = false } = {}) {
 
   const getPrice = (basePrice) => {
     if (annualBilling) {
-      return Math.round((basePrice * 12 * 0.8) / 12);
+      // 연간 요금 = 월 요금 × 10 (2개월 무료). 월 환산 금액을 표시한다.
+      return Math.round((basePrice * 10) / 12);
     }
     return basePrice;
   };
@@ -159,7 +160,7 @@ export default function FoodTruckPricing({ embedded = false } = {}) {
             </button>
             <span className={`text-xs font-bold flex items-center gap-1.5 transition-all ${annualBilling ? 'text-orange-600' : 'text-slate-400'}`}>
               연 결제
-              <span className="text-[10px] bg-orange-50 text-orange-600 border border-orange-200 px-2 py-0.5 rounded-full font-mono font-bold">20% SAVE</span>
+              <span className="text-[10px] bg-orange-50 text-orange-600 border border-orange-200 px-2 py-0.5 rounded-full font-mono font-bold">2개월 무료</span>
             </span>
           </div>
         </div>
@@ -202,7 +203,7 @@ export default function FoodTruckPricing({ embedded = false } = {}) {
               </div>
 
               <Link
-                to={plan.price === 79000 ? '/contact' : '/register'}
+                to={plan.contact ? '/contact' : '/register'}
                 className={`w-full py-3.5 rounded-2xl text-center text-xs font-black transition-all ${
                   plan.popular
                     ? 'bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 active:scale-95'
