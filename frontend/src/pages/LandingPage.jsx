@@ -1280,6 +1280,9 @@ const LandingPage = () => {
                             </motion.div>
                         ))}
                     </div>
+                    <p className="mt-10 text-center text-sm text-gray-500 [word-break:keep-all]">
+                        새로 가입하면 1개월 무료 체험으로 시작합니다.
+                    </p>
                 </div>
             </section>
 
