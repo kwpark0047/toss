@@ -26,6 +26,11 @@ jest.mock('../../../config/prisma', () => ({
     findUnique: jest.fn(),
     findMany: jest.fn(),
   },
+  payments: {
+    count: jest.fn().mockResolvedValue(0),
+    findMany: jest.fn().mockResolvedValue([]),
+    updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+  },
   orders: {
     updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     update: jest.fn(),
@@ -234,6 +239,101 @@ describe('OrderService', () => {
         svc.createOrder({ store_id: 1, items: [{ product_id: 100, quantity: 1 }], total_amount: 1 })
       ).rejects.toThrow('영업시간');
       expect(Order.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('customerCancelOrder — 손님 셀프 취소', () => {
+    const pendingOrder = { id: 5, store_id: 1, status: 'pending', payment_status: 'pending', is_split_payment: false };
+
+    beforeEach(() => {
+      prisma.$queryRaw = jest.fn().mockResolvedValue([{ id: 5 }]);
+      prisma.$transaction.mockImplementationOnce((cb) => cb(prisma));
+    });
+
+    afterEach(() => {
+      delete prisma.$queryRaw;
+      // 트랜잭션을 타지 않고 끝난 테스트의 1회용 구현이 다음 테스트로 새지 않게 한다.
+      prisma.$transaction.mockReset();
+    });
+
+    test('주방 접수 전·결제 전 주문은 조건부 갱신으로 취소하고 매장·주방·주문 룸에 알린다', async () => {
+      Order.findById.mockResolvedValue(pendingOrder);
+      prisma.payments.findMany.mockResolvedValueOnce([]);
+      prisma.orders.updateMany.mockResolvedValue({ count: 1 });
+      const emit = jest.fn();
+      mockIo.to.mockReturnValue({ emit });
+
+      const result = await svc.customerCancelOrder('5');
+
+      expect(result.success).toBe(true);
+      expect(prisma.orders.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 5, status: 'pending', payment_status: { in: ['pending', 'failed'] } } })
+      );
+      expect(mockIo.to).toHaveBeenCalledWith('store - 1');
+      expect(mockIo.to).toHaveBeenCalledWith('kitchen - 1');
+      expect(mockIo.to).toHaveBeenCalledWith('order - 5');
+      expect(prisma.$queryRaw).toHaveBeenCalled();
+      expect(prisma.payments.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { order_id: 5, status: { in: ['READY', 'DONE', 'PARTIAL_CANCELED'] } } })
+      );
+      expect(prisma.payments.updateMany).not.toHaveBeenCalled();
+    });
+
+    test('매장에서 낼 현금 결제 대기(READY)는 함께 취소하고 주문을 취소한다', async () => {
+      Order.findById.mockResolvedValue(pendingOrder);
+      prisma.payments.findMany.mockResolvedValueOnce([{ id: 9, status: 'READY', method: 'CASH', payment_key: null }]);
+      prisma.orders.updateMany.mockResolvedValue({ count: 1 });
+      await expect(svc.customerCancelOrder(5)).resolves.toMatchObject({ success: true });
+      expect(prisma.payments.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: { in: [9] }, status: 'READY' }, data: expect.objectContaining({ status: 'CANCELED' }) })
+      );
+    });
+
+    test('주방이 이미 확인한 주문은 거절한다', async () => {
+      Order.findById.mockResolvedValue({ ...pendingOrder, status: 'confirmed' });
+      await expect(svc.customerCancelOrder(5)).rejects.toThrow('직원에게');
+      expect(prisma.orders.updateMany).not.toHaveBeenCalled();
+    });
+
+    test('결제가 끝난 주문은 환불이 필요하므로 거절한다', async () => {
+      Order.findById.mockResolvedValue({ ...pendingOrder, payment_status: 'paid' });
+      await expect(svc.customerCancelOrder(5)).rejects.toThrow('결제가 완료된');
+
+      Order.findById.mockResolvedValue(pendingOrder);
+      prisma.payments.findMany.mockResolvedValueOnce([{ id: 9, status: 'READY', method: 'CARD', payment_key: null }]);
+      await expect(svc.customerCancelOrder(5)).rejects.toThrow('결제가 진행 중이거나 완료된');
+      expect(prisma.orders.updateMany).not.toHaveBeenCalled();
+    });
+
+    test('분할 결제 주문은 거절한다', async () => {
+      Order.findById.mockResolvedValue({ ...pendingOrder, is_split_payment: true });
+      await expect(svc.customerCancelOrder(5)).rejects.toThrow('분할 결제');
+    });
+
+    test('확인 직전에 주방이 접수해 갱신되지 않으면 거절한다', async () => {
+      Order.findById.mockResolvedValue(pendingOrder);
+      prisma.orders.updateMany.mockResolvedValueOnce({ count: 0 });
+      await expect(svc.customerCancelOrder(5)).rejects.toThrow('직원에게');
+    });
+  });
+
+  describe('createOrder — 바쁨 모드', () => {
+    test('사장님이 주문을 일시정지하면 새 주문을 거절한다', async () => {
+      Store.findById.mockResolvedValue({ id: 1, name: '바쁜매장' });
+      prisma.store_order_pace = {
+        findUnique: jest.fn().mockResolvedValue({
+          extra_wait_minutes: 0,
+          orders_paused_until: new Date(Date.now() + 10 * 60 * 1000),
+        }),
+      };
+      try {
+        await expect(
+          svc.createOrder({ store_id: 1, items: [{ product_id: 100, quantity: 1 }], total_amount: 3000 })
+        ).rejects.toThrow('잠시 주문을 받지 않고');
+        expect(Order.create).not.toHaveBeenCalled();
+      } finally {
+        delete prisma.store_order_pace;
+      }
     });
   });
 

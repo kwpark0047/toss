@@ -1,5 +1,5 @@
 import { formatWon } from '../../utils/format';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, CheckCircle2, ChefHat, BellRing, Package, Loader2, Timer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +33,9 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [eta, setEta] = useState(null);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelMessage, setCancelMessage] = useState('');
   const { t } = useTranslation();
 
   const STEPS = STEPS_CONFIG.map(s => ({ ...s, label: t(`order_status.steps.${s.key}`) }));
@@ -84,17 +87,28 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
       setOrder(null);
       fetchOrder();
       setEta(null);
+      setConfirmingCancel(false);
+      setCancelMessage('');
     }
   }, [isOpen, fetchOrder]);
+
+  // 주문은 5초마다 다시 불러와 fetchEta 참조가 계속 바뀌므로, 최신 함수를 ref 로 들고 있는다.
+  // (의존성에 fetchEta 를 두면 30초 타이머가 5초마다 초기화되어 ETA 가 한 번도 표시되지 않는다)
+  const fetchEtaRef = useRef(fetchEta);
+  useEffect(() => { fetchEtaRef.current = fetchEta; }, [fetchEta]);
+
+  // 주문을 처음 불러왔을 때와 상태가 바뀔 때 즉시 ETA 조회
+  const orderEtaKey = order ? `${order.id}:${order.status}` : null;
+  useEffect(() => {
+    if (isOpen && orderEtaKey) fetchEtaRef.current();
+  }, [isOpen, orderEtaKey]);
 
   // ETA 주기적 갱신 (30초마다)
   useEffect(() => {
     if (!isOpen || !storeId) return;
-    const t = setInterval(() => {
-      fetchEta();
-    }, 30000);
+    const t = setInterval(() => fetchEtaRef.current(), 30000);
     return () => clearInterval(t);
-  }, [isOpen, storeId, fetchEta]);
+  }, [isOpen, storeId]);
 
   // 소켓: orderId 룸 구독 + 실시간 상태 수신
   useEffect(() => {
@@ -122,6 +136,28 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
   const visibleSteps = isCancelled ? STEPS.slice(0, 2) : STEPS;
   const curIdx = visibleSteps.findIndex(s => s.key === status);
   const curStep = isCancelled ? CANCELLED : (visibleSteps[curIdx] || visibleSteps[0]);
+  const canSelfCancel = Boolean(
+    capability && orderId && order &&
+    rawStatus === 'pending' &&
+    !['paid', 'partial', 'refunded'].includes(order.payment_status) &&
+    !order.is_split_payment &&
+    // 카드·간편결제·계좌이체는 결제가 바로 진행되므로 매장 카운터 결제 주문에만 노출한다 (서버가 최종 판단)
+    ['cash', 'store_card'].includes(String(order.method || order.payment_method || '').toLowerCase())
+  );
+
+  const handleSelfCancel = async () => {
+    setCancelling(true);
+    try {
+      await ordersAPI.customerCancel(orderId, capability);
+      setOrder(prev => prev ? { ...prev, status: 'cancelled' } : prev);
+      setCancelMessage(t('order_status.cancel_done'));
+    } catch (err) {
+      setCancelMessage(err?.response?.data?.error || err?.response?.data?.message || t('order_status.cancel_failed'));
+    } finally {
+      setCancelling(false);
+      setConfirmingCancel(false);
+    }
+  };
   const CurIcon = curStep.icon;
 
   return (
@@ -225,7 +261,7 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
                   </div>
 
                   {/* ── 예상 소요 시간(ETA) ── */}
-                  {eta && !isCancelled && status !== 'completed' && (
+                  {eta && !isCancelled && status !== 'completed' && status !== 'ready' && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -235,13 +271,13 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
                         <Timer className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">예상 소요 시간</p>
+                        <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{t('order_status.eta_label')}</p>
                         <p className="text-lg font-black text-blue-700 dark:text-blue-300 mt-0.5">
-                          {eta.etaMinutes}분
+                          {t('order_status.eta_minutes', { minutes: eta.etaMinutes })}
                         </p>
                       </div>
                       <p className="text-xs text-blue-500 dark:text-blue-500">
-                        대기 주문 {eta.activeOrdersAhead}건
+                        {t('order_status.eta_orders_ahead', { count: eta.activeOrdersAhead })}
                       </p>
                     </motion.div>
                   )}
@@ -272,6 +308,43 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
             </div>
 
             <div className="p-6 cust-bg-card border-t cust-border space-y-3">
+              {cancelMessage && (
+                <p role="status" className="text-xs font-bold text-center cust-text-sub">{cancelMessage}</p>
+              )}
+              {/* 주방 접수 전·결제 전 주문은 손님이 직접 취소 (서버가 최종 판단) */}
+              {canSelfCancel && (
+                confirmingCancel ? (
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-center cust-text-main">{t('order_status.cancel_confirm')}</p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingCancel(false)}
+                        disabled={cancelling}
+                        className="flex-1 h-12 rounded-2xl border cust-border font-black cust-text-main disabled:opacity-50"
+                      >
+                        {t('order_status.cancel_keep')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSelfCancel}
+                        disabled={cancelling}
+                        className="flex-1 h-12 rounded-2xl bg-rose-500 text-white font-black disabled:opacity-50"
+                      >
+                        {cancelling ? <Loader2 className="w-5 h-5 animate-spin mx-auto" aria-hidden="true" /> : t('order_status.cancel_submit')}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { vibrateClick(); setCancelMessage(''); setConfirmingCancel(true); }}
+                    className="w-full h-12 rounded-2xl border border-rose-200 text-rose-600 dark:border-rose-500/30 dark:text-rose-300 font-black"
+                  >
+                    {t('order_status.cancel_cta')}
+                  </button>
+                )
+              )}
               {/* 준비완료/수령완료 주문은 리뷰 작성 유도 */}
               {onWriteReview && (status === 'ready' || status === 'completed') && (
                 <button

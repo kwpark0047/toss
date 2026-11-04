@@ -1,5 +1,6 @@
 const Receipt = require('../repositories/Receipt');
 const TinkerbellSettings = require('../repositories/TinkerbellSettings');
+const OrderPaceSettings = require('../repositories/OrderPaceSettings');
 const OrderChannels = require('../repositories/OrderChannels');
 const DeliveryService = require('../services/DeliveryService');
 const { listProviders } = require('../services/delivery/adapters');
@@ -92,6 +93,20 @@ const storeSettingsController = {
     if (error) return res.status(400).json({ success: false, error });
     const saved = await TinkerbellSettings.upsert(req.params.storeId, data);
     res.success(saved, '팅커벨 설정이 저장되었습니다.');
+  }),
+
+  // 바쁨 모드(주문 페이스) 조회 — 고객 메뉴 화면과 관리자 화면 공용
+  getOrderPaceSettings: catchAsync(async (req, res) => {
+    const storeId = req.params.storeId ?? req.params.id;
+    res.success(await OrderPaceSettings.findByStoreIdSafe(storeId));
+  }),
+
+  // 바쁨 모드 저장 (추가 대기 시간, 주문 일시정지)
+  updateOrderPaceSettings: catchAsync(async (req, res) => {
+    const { data, error } = OrderPaceSettings.sanitize(req.body);
+    if (error) return res.status(400).json({ success: false, error });
+    const saved = await OrderPaceSettings.upsert(req.params.storeId, data);
+    res.success(saved, '바쁨 모드 설정이 저장되었습니다.');
   }),
 
   // 주문 유형 스위치·직접 배달 설정 조회 (관리자) + 부가기능 상태

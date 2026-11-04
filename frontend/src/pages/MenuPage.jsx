@@ -26,6 +26,8 @@ import ManagerFeaturedMenus from '@/components/menu/ManagerFeaturedMenus';
 import MenuHeader from "@/components/menu/MenuHeader";
 import StoreInfoBanner from "@/components/menu/StoreInfoBanner";
 import CategoryTabs from "@/components/menu/CategoryTabs";
+import MenuSearchFilter from "@/components/menu/MenuSearchFilter";
+import { collectMenuAllergens, filterMenuItems } from "@/utils/menuMetadata";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import CartButton from "@/components/menu/CartButton";
 import CartModal from "@/components/menu/CartModal";
@@ -181,6 +183,8 @@ const MenuPage = () => {
 
   // State
   const [selectedCategory, setSelectedCategory] = useState("전체");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [excludedAllergens, setExcludedAllergens] = useState([]);
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [splitSession, setSplitSession] = useState(null);
@@ -287,6 +291,20 @@ const {
     retry: 1,
     refetchOnWindowFocus: true
   });
+  // 사장님 바쁨 모드: 주문 일시정지 중이면 메뉴는 보여 주고 주문만 막는다 (조회 실패 시 평소대로)
+  const { data: orderPace } = useQuery({
+    queryKey: ["orderPace", storeId],
+    queryFn: async () => {
+      const raw = await storesAPI.getOrderPace(storeId);
+      return raw?.data || raw;
+    },
+    enabled: isNumericStoreId,
+    staleTime: 30000,
+    refetchInterval: 60000,
+    retry: 1
+  });
+  const ordersPausedUntil = orderPace?.orders_paused && orderPace?.orders_paused_until ? new Date(orderPace.orders_paused_until) : null;
+  const ordersPaused = Boolean(ordersPausedUntil && ordersPausedUntil > new Date());
   const [lastAddedItem, _setLastAddedItem] = useState(null);
 
   /* 콜드스타트 재시도 설정: 최대 10회, 5초 간격 (최대 30초 간격) */
@@ -408,13 +426,26 @@ const hoursInput = useMemo(() => ({
   const storeOpen = isStoreOpen();
   const menuOrderable = canOrderFromMenuSnapshot(storeOpen, cachedSections);
   const categoryNames = useMemo(() => [t('menu.all_category'), ...categories.map(c => c.name)], [categories, t]);
-const filteredItems = useMemo(() => {
-    if (selectedCategory === t('menu.all_category')) return menuItems;
-    return menuItems.filter(item => {
-      const category = categories.find(c => c.id === item.category_id);
-      return category?.name === selectedCategory;
-    });
-  }, [selectedCategory, menuItems, categories, t]);
+  const menuAllergens = useMemo(() => collectMenuAllergens(menuItems), [menuItems]);
+  const isSearching = searchQuery.trim().length > 0;
+  const hasMenuFilter = isSearching || excludedAllergens.length > 0;
+  const filteredItems = useMemo(() => {
+    // 검색 중에는 카테고리와 무관하게 전체 메뉴에서 찾는다.
+    const inCategory = isSearching || selectedCategory === t('menu.all_category')
+      ? menuItems
+      : menuItems.filter(item => {
+        const category = categories.find(c => c.id === item.category_id);
+        return category?.name === selectedCategory;
+      });
+    return filterMenuItems(inCategory, { query: searchQuery, excludedAllergens });
+  }, [selectedCategory, menuItems, categories, t, isSearching, searchQuery, excludedAllergens]);
+  const toggleExcludedAllergen = useCallback(label => {
+    setExcludedAllergens(prev => prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label]);
+  }, []);
+  const resetMenuFilters = useCallback(() => {
+    setSearchQuery("");
+    setExcludedAllergens([]);
+  }, []);
   // 같은 테이블 손님끼리 장바구니 공유 (TC-22)
   useSharedTableCart({ storeId, tableNumber, cart, setCart, menuItems });
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -491,6 +522,10 @@ const handleOrder = useCallback(async () => {
     }
     if (!storeOpen) {
       toast.error(t('order.cannot_order'));
+      return;
+    }
+    if (ordersPaused) {
+      toast.error(t('menu.orders_paused_toast'));
       return;
     }
     if (orderType === 'delivery') {
@@ -633,7 +668,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsOrdering(false);
     }
-  }, [storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t, orderType, deliveryAddress, deliveryMemo, deliveryQuote, onlinePaymentOnly]);
+  }, [storeId, cart, storeOpen, ordersPaused, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t, orderType, deliveryAddress, deliveryMemo, deliveryQuote, onlinePaymentOnly]);
 
   // 배달 주소·장바구니 금액이 바뀌면 서버에 배달 가능 여부와 배달비를 다시 묻는다.
   useEffect(() => {
@@ -653,6 +688,10 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 
   const handleStartSplitPayment = useCallback(async (peopleCount) => {
     if (!storeId || !cart.length || !menuOrderable || isSplitStarting) return;
+    if (ordersPaused) {
+      toast.error(t('menu.orders_paused_toast'));
+      return;
+    }
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       toast.error('인터넷 연결 후 분할 주문을 시작해 주세요. 오프라인 주문은 자동 접수되지 않습니다.');
       return;
@@ -716,7 +755,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsSplitStarting(false);
     }
-  }, [storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
+  }, [storeId, cart, storeOpen, ordersPaused, menuOrderable, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
 
   // Stable callbacks for JSX props (prevents child re-renders from inline closures)
   const handleOpenOrderHistory = useCallback(() => navigate('/order-history'), [navigate]);
@@ -781,6 +820,11 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       {/* Store Info */}
       <StoreInfoBanner storeName={profile?.store_name} description={profile?.description} phone={profile?.phone} address={profile?.address} isOpen={storeOpen} todayHours={todayHours} businessHours={profile?.business_hours} openTime={profile?.open_time} closeTime={profile?.close_time} />
 
+      {ordersPaused && <div role="status" className="mx-4 mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+          <p className="font-bold">{t('menu.orders_paused_title', { time: ordersPausedUntil.toLocaleTimeString(lang === 'ko' ? 'ko-KR' : lang, { hour: '2-digit', minute: '2-digit' }) })}</p>
+          <p className="mt-0.5 text-xs">{t('menu.orders_paused_desc')}</p>
+        </div>}
+
       {/* AI 개인화 추천 (F9) */}
       <PersonalizedRecommendations storeId={storeId} storeOpen={menuOrderable} onAddToCart={handleAddToCartClick} menuItems={menuItems} />
 
@@ -798,9 +842,11 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       {/* Category Tabs */}
       <CategoryTabs categories={categoryNames} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
 
+      {menuItems.length > 0 && <MenuSearchFilter query={searchQuery} onQueryChange={setSearchQuery} allergens={menuAllergens} excludedAllergens={excludedAllergens} onToggleAllergen={toggleExcludedAllergen} />}
+
       {/* Menu List */}
       <div className="container mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
-        {filteredItems.length === 0 ? <EmptyState icon="🍽️" title={t('menu.empty')} description={selectedCategory === t('menu.all_category') ? t('menu.empty_desc') : t('menu.category_empty')} /> :
+        {filteredItems.length === 0 && hasMenuFilter ? <EmptyState icon="🔍" title={t('menu.no_result')} description={t('menu.no_result_desc')} action={<button type="button" onClick={resetMenuFilters} className="min-h-11 rounded-xl border cust-border px-4 text-sm font-bold cust-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{t('menu.reset_filters')}</button>} /> : filteredItems.length === 0 ? <EmptyState icon="🍽️" title={t('menu.empty')} description={selectedCategory === t('menu.all_category') ? t('menu.empty_desc') : t('menu.category_empty')} /> :
           // Keep the store's selected layout while increasing card density only as viewport space allows.
           <div className={isGridLayout ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4' : 'mx-auto w-full max-w-4xl cust-bg-card rounded-2xl border cust-border shadow-sm overflow-hidden cust-divide'}>
             {filteredItems.map(item => {

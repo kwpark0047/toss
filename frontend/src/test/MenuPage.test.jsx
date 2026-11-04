@@ -45,7 +45,7 @@ vi.mock('framer-motion', () => {
 
 // API modules
 vi.mock('@/api/stores', () => ({
-  storesAPI: { getById: vi.fn(), getTinkerbellSettings: vi.fn(() => Promise.resolve({ data: {} })) },
+  storesAPI: { getById: vi.fn(), getTinkerbellSettings: vi.fn(() => Promise.resolve({ data: {} })), getOrderPace: vi.fn(() => Promise.resolve({ data: { extra_wait_minutes: 0, orders_paused: false, orders_paused_until: null } })) },
 }));
 vi.mock('@/api/products', () => ({
   categoriesAPI: { getByStore: vi.fn() },
@@ -332,6 +332,18 @@ describe('MenuPage', () => {
       expect(screen.getByText(/StoreReviews/)).toBeInTheDocument();
       expect(screen.getAllByRole('button', { name: /말로 메뉴 주문하기/ })).toHaveLength(1);
     });
+  });
+
+  it('바쁨 모드: 주문 일시정지 중이면 안내를 보여 준다', async () => {
+    storesAPI.getById.mockResolvedValue({ data: { id: 1, name: '테스트', theme: null } });
+    storesAPI.getOrderPace.mockResolvedValueOnce({
+      data: { extra_wait_minutes: 0, orders_paused: true, orders_paused_until: new Date(Date.now() + 15 * 60 * 1000).toISOString() },
+    });
+    categoriesAPI.getByStore.mockResolvedValue({ data: [] });
+    productsAPI.getByStore.mockResolvedValue({ data: [{ id: 1, name: '아메리카노', price: 3000 }] });
+    render(h(MenuPage), { wrapper: createWrapper() });
+    expect(await screen.findByText(/orders_paused_title|잠시 멈췄어요/)).toBeInTheDocument();
+    expect(storesAPI.getOrderPace).toHaveBeenCalledWith('1');
   });
 
   it('팅커벨: 매장 설정 기본값은 AI 추천 OFF', async () => {

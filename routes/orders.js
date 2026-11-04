@@ -65,6 +65,17 @@ const requireOrderCapability = (req, res, next) => {
   return res.status(403).json({ error: '주문 결제 권한이 없거나 만료되었습니다.' });
 };
 
+// 손님 셀프 취소 전용: 로그인 사용자 우회 없이 해당 주문의 capability 만 인정한다.
+const requireOwnedOrderCapability = (req, res, next) => {
+  const orderId = parseInt(req.params.id);
+  const capability = verifyOrderCapability(req.get('x-order-capability'));
+  if (!capability || capability.orderId !== orderId) {
+    return res.status(403).json({ error: '주문 취소 권한이 없거나 만료되었습니다.' });
+  }
+  req.orderCapability = capability;
+  next();
+};
+
 const requireCustomerHistoryCapability = (req, res, next) => {
   const capability = verifyCustomerHistoryCapability(req.get('x-customer-history-capability'));
   if (!capability) {
@@ -400,6 +411,34 @@ router.put(
   checkOrderPermission,
   validateBody(updateOrderDeliverySchema),
   orderController.updateDelivery
+);
+
+/**
+ * @swagger
+ * /api/orders/{id}/customer-cancel:
+ *   post:
+ *     tags: [Orders]
+ *     summary: 손님 셀프 취소 (주방 접수 전·결제 전 주문만)
+ *     security:
+ *       - orderCapability: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: 주문 취소 완료
+ *       403:
+ *         description: 주문 capability 없음 또는 만료
+ *       409:
+ *         description: 이미 주방이 접수했거나 결제가 완료된 주문 (직원 취소 필요)
+ */
+router.post(
+  '/:id/customer-cancel',
+  validateParams(orderIdParamSchema),
+  requireOwnedOrderCapability,
+  orderController.customerCancelOrder
 );
 
 /**
