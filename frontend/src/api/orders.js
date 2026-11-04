@@ -39,6 +39,11 @@ export const ordersAPI = {
   },
   updateStatus: (id, status, staffId = null) =>
     api.put('/orders/' + id + '/status', { status, staff_id: staffId }),
+  // 직접 배달 출발(start)/완료(complete)
+  updateDelivery: (id, action) => api.put('/orders/' + id + '/delivery', { action }),
+  // 배달대행 배차 요청·취소
+  requestDispatch: (id) => api.post('/orders/' + id + '/dispatch'),
+  cancelDispatch: (id, reason) => api.delete('/orders/' + id + '/dispatch', { data: { reason } }),
   cancel: (id) => api.post('/orders/' + id + '/cancel'),
   // 손님 셀프 취소: 주방 접수 전·결제 전 주문만 (주문 capability 필수)
   customerCancel: (id, capability) =>
@@ -135,4 +140,3 @@ export const paymentsAPI = {
       headers: { 'x-order-capability': capability },
     }),
 };
-

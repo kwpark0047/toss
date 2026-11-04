@@ -72,6 +72,7 @@ test('canceling renewal requires the confirmation action', async () => {
       effective_plan: 'pro',
       subscription: {
         status: 'active',
+        effective_plan: 'pro',
         auto_renew: true,
         current_period_end: '2026-11-06',
         plan: plans[0],
@@ -85,4 +86,35 @@ test('canceling renewal requires the confirmation action', async () => {
   expect(subscriptionsAPI.cancel).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: '해지 확정' }));
   await waitFor(() => expect(subscriptionsAPI.cancel).toHaveBeenCalledWith('1'));
+});
+test('a signup trial shows pro access but still lets the owner start a paid subscription', async () => {
+  subscriptionsAPI.get.mockResolvedValue({
+    data: {
+      effective_plan: 'pro',
+      subscription: null,
+      trial: { plan: 'pro', active: true, ends_at: '2026-12-03T00:00:00.000Z' },
+      usage: { maxMenus: 3, maxStaff: 1, ordersPerMonth: 2 },
+    },
+  });
+  render(<SubscriptionBilling storeId="1" plans={plans} />);
+  expect(await screen.findByText('프로 무료 체험 중')).toBeInTheDocument();
+  expect(screen.getByText(/무료 요금제로 자동 전환/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '구독 시작' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: '자동 갱신 해지' })).not.toBeInTheDocument();
+});
+test('plan prices and the automatic payment consent state that VAT is included', async () => {
+  render(<SubscriptionBilling storeId="1" plans={plans} />);
+  expect(await screen.findByText(/30,000원 \/ 월 \(VAT 포함\)/)).toBeInTheDocument();
+  expect(screen.getByText(/선택한 요금\(VAT 포함\)이 매 결제 주기마다 자동 청구/)).toBeInTheDocument();
+});
+test('paid invoices show the supply amount and VAT breakdown', async () => {
+  subscriptionsAPI.invoices.mockResolvedValue({
+    data: [
+      { id: 'b1', amount: 20000, supply_amount: 18182, vat_amount: 1818, tax_free_amount: 0, status: 'paid', period_start: '2026-11-01', attempts: 1 },
+      { id: 'b2', amount: 20000, supply_amount: null, vat_amount: null, status: 'failed', period_start: '2026-10-01', attempts: 1 },
+    ],
+  });
+  render(<SubscriptionBilling storeId="1" plans={plans} />);
+  expect(await screen.findByText('공급가 18,182원 · 부가세 1,818원')).toBeInTheDocument();
+  expect(screen.getAllByText(/공급가/)).toHaveLength(1);
 });

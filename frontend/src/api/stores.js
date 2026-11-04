@@ -44,6 +44,10 @@ export const storesAPI = {
   getTinkerbellSettings: (id) => api.get('/stores/' + id + '/tinkerbell-settings'),
   // 고객 메뉴 화면용 바쁨 모드(주문 일시정지) 상태 (공개)
   getOrderPace: (id) => api.get('/stores/' + id + '/order-pace'),
+  // 고객 메뉴 화면용 주문 유형·배달 조건 (공개)
+  getOrderChannels: (id) => api.get('/stores/' + id + '/order-channels'),
+  // 배달 가능 여부·배달비 견적 (공개)
+  deliveryQuote: (id, data) => api.post('/stores/' + id + '/delivery-quote', data),
 };
 
 export const storeAccountAPI = {

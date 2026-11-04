@@ -143,6 +143,11 @@ model orders {
   is_takeout         Int?                 @default(0)
   order_type         String?              @default("dine_in")  // dine_in | takeout | delivery
   delivery_address   String?
+  delivery_fee       Int?
+  delivery_memo      String?              @db.VarChar(500)
+  delivery_status    String?              @db.VarChar(16)  // null | delivering | delivered (배달 주문만)
+  delivery_started_at DateTime?
+  delivered_at       DateTime?
   preparing_at       DateTime?
   ready_at           DateTime?
   split_type         String?              @default("NONE")     // [추가] 분할 방식 (NONE, EQUAL: N분의 1, ITEM: 품목별)
@@ -159,6 +164,7 @@ model orders {
   point_transactions point_transactions[]
   reviews            reviews?
   print_jobs         print_jobs[]
+  delivery_dispatches delivery_dispatches[]
 
   @@index([created_at], map: "idx_orders_created_at")
   @@index([store_id], map: "idx_orders_store_id")
@@ -342,6 +348,9 @@ model BillingInvoice {
   billing_cycle   String
   order_id        String   @unique
   amount          Int
+  supply_amount   Int?     // 공급가액 (결제 확정 시 기록)
+  vat_amount      Int?     // 부가세 (VAT 포함 가격 기준)
+  tax_free_amount Int?     // 면세 금액 (구독료는 0)
   currency        String   @default("KRW")
   status          String   @default("pending")
   period_start    DateTime
@@ -674,6 +683,83 @@ model store_order_pace {
   @@schema("public")
 }
 
+model store_order_channels {
+  id                   Int      @id @default(autoincrement())
+  store_id             Int      @unique(map: "uq_store_order_channels_store")
+  dine_in_enabled      Boolean  @default(true)
+  takeout_enabled      Boolean  @default(true)
+  delivery_enabled     Boolean  @default(false)
+  pickup_guide         String?  @db.VarChar(200)
+  hide_exact_address   Boolean  @default(false)
+  delivery_fulfillment String   @default("self") @db.VarChar(16) // self | agency
+  delivery_area_mode   String   @default("radius") @db.VarChar(16) // radius | areas
+  delivery_radius_km   Float    @default(3)
+  delivery_areas       Json     @default("[]")
+  min_order_amount     Int      @default(0)
+  delivery_fee         Int      @default(0)
+  delivery_est_minutes Int      @default(40)
+  agency_provider      String?  @db.VarChar(20) // barogo | vroong | saenggakdaero (배달대행)
+  agency_auto_dispatch Boolean  @default(false)
+  updated_at           DateTime @default(now())
+  stores               stores   @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@schema("public")
+}
+
+model delivery_dispatches {
+  id             Int       @id @default(autoincrement())
+  order_id       Int
+  store_id       Int
+  provider       String    @db.VarChar(20)
+  external_id    String?   @db.VarChar(100)
+  status         String    @default("requested") @db.VarChar(20) // requested | assigned | picked_up | delivered | canceled | failed
+  fee            Int?
+  rider_name     String?   @db.VarChar(50)
+  rider_phone    String?   @db.VarChar(30)
+  tracking_url   String?   @db.VarChar(500)
+  failure_reason String?   @db.VarChar(300)
+  requested_at   DateTime  @default(now())
+  assigned_at    DateTime?
+  picked_up_at   DateTime?
+  delivered_at   DateTime?
+  canceled_at    DateTime?
+  updated_at     DateTime  @default(now())
+  orders         orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  stores         stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([provider, external_id], map: "uq_delivery_dispatches_provider_external")
+  @@index([order_id], map: "idx_delivery_dispatches_order")
+  @@index([store_id, status], map: "idx_delivery_dispatches_store_status")
+  @@schema("public")
+}
+
+model delivery_webhook_events {
+  id          Int      @id @default(autoincrement())
+  provider    String   @db.VarChar(20)
+  event_id    String   @db.VarChar(150)
+  store_id    Int?
+  received_at DateTime @default(now())
+
+  @@unique([provider, event_id], map: "uq_delivery_webhook_events")
+  @@schema("public")
+}
+
+model store_addons {
+  id            Int       @id @default(autoincrement())
+  store_id      Int
+  addon_key     String    @db.VarChar(40)
+  status        String    @default("active") @db.VarChar(16) // active | trialing | canceled | expired
+  price         Int       @default(0)
+  billing_cycle String?   @db.VarChar(16)
+  started_at    DateTime  @default(now())
+  canceled_at   DateTime?
+  expires_at    DateTime?
+  updated_at    DateTime  @default(now())
+  stores        stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([store_id, addon_key], map: "uq_store_addons_store_key")
+  @@schema("public")
+}
+
 model stores {
   business_support_enrollment business_support_enrollments?
   business_support_cases business_support_cases[]
@@ -731,6 +817,9 @@ model stores {
   store_receipt_settings        store_receipt_settings?
   store_tinkerbell_settings     store_tinkerbell_settings?
   store_order_pace              store_order_pace?
+  store_order_channels          store_order_channels?
+  store_addons                  store_addons[]
+  delivery_dispatches           delivery_dispatches[]
   store_tier_settings           store_tier_settings[]
   store_subscriptions           store_subscriptions?
   store_business_info           store_business_info?

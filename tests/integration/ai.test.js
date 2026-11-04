@@ -22,7 +22,18 @@ jest.mock('../../config/prisma', () => ({
   },
   stores: {
     findById: jest.fn(),
+    // 매장 권한 확인(checkStorePermission): 매장 1의 소유자는 사용자 1
+    findUnique: jest.fn().mockResolvedValue({ user_id: 1 }),
   },
+  staff: { findFirst: jest.fn().mockResolvedValue(null) },
+  $queryRawUnsafe: jest.fn().mockResolvedValue([]),
+  // 소유자 프로 체험 조회(ownerTrialEndsAt): 기본은 체험 없음
+  $queryRaw: jest.fn().mockResolvedValue([]),
+}));
+// 세션 저장소와 분리해 액세스 토큰만으로 인증한다.
+jest.mock('../../services/AuthSessionService', () => ({
+  ...jest.requireActual('../../services/AuthSessionService'),
+  verifyAccess: jest.fn(async (decoded) => decoded),
 }));
 jest.mock('../../services/aiService');
 jest.mock('../../repositories/Product');
@@ -231,6 +242,19 @@ describe('AI Integration Tests', () => {
   });
 
   describe('POST /generate-menu-image', () => {
+    const jwt = require('jsonwebtoken');
+    const ownerToken = () =>
+      jwt.sign({ id: 1, role: 'owner', type: 'access' }, process.env.JWT_SECRET);
+
+    it('should reject unauthenticated requests', async () => {
+      const response = await request(app)
+        .post(`${baseUrl}/generate-menu-image`)
+        .send({ store_id: 1, name: '바닐라 라떼' });
+
+      expect(response.status).toBe(401);
+      expect(aiService.generateMenuImage).not.toHaveBeenCalled();
+    });
+
     it('should generate image when plan is premium', async () => {
       Store.findById.mockResolvedValue({ id: 1, plan: 'pro' });
       aiService.generateMenuImage.mockResolvedValue({
@@ -240,6 +264,7 @@ describe('AI Integration Tests', () => {
 
       const response = await request(app)
         .post(`${baseUrl}/generate-menu-image`)
+        .set('Authorization', `Bearer ${ownerToken()}`)
         .send({ store_id: 1, name: '바닐라 라떼' });
 
       expect(response.status).toBe(200);
@@ -247,11 +272,27 @@ describe('AI Integration Tests', () => {
       expect(response.body.data.imageUrl).toBe('http://image.url/1.png');
     });
 
+    it('should allow a free store whose owner is on the signup pro trial', async () => {
+      const prisma = require('../../config/prisma');
+      prisma.$queryRaw.mockResolvedValueOnce([{ trial_ends_at: new Date(Date.now() + 86400000) }]);
+      Store.findById.mockResolvedValue({ id: 1, plan: 'free' });
+      aiService.generateMenuImage.mockResolvedValue({ imageUrl: 'http://image.url/2.png', keyword: 'tea' });
+
+      const response = await request(app)
+        .post(`${baseUrl}/generate-menu-image`)
+        .set('Authorization', `Bearer ${ownerToken()}`)
+        .send({ store_id: 1, name: '녹차 라떼' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.imageUrl).toBe('http://image.url/2.png');
+    });
+
     it('should return 403 when plan is free', async () => {
       Store.findById.mockResolvedValue({ id: 1, plan: 'free' });
 
       const response = await request(app)
         .post(`${baseUrl}/generate-menu-image`)
+        .set('Authorization', `Bearer ${ownerToken()}`)
         .send({ store_id: 1, name: '바닐라 라떼' });
 
       expect(response.status).toBe(403);

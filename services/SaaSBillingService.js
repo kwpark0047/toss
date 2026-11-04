@@ -4,7 +4,15 @@ const prisma = require('../config/prisma');
 const TossAPI = require('../utils/toss');
 const { AppError } = require('../utils/errorHandler');
 const { encryptToken, decryptToken } = require('../utils/tokenEncryption');
-const { nextBillingPeriod, effectivePlan } = require('../utils/subscriptionPolicy');
+const {
+  nextBillingPeriod,
+  effectivePlan,
+  resolvePlan,
+  isTrialActive,
+  ownerTrialEndsAt,
+  TRIAL_PLAN,
+  vatBreakdown,
+} = require('../utils/subscriptionPolicy');
 const logger = require('../utils/logger');
 
 const customerKey = (storeId) =>
@@ -256,6 +264,8 @@ class SaaSBillingService {
             payment_key: encryptToken(result.paymentKey),
             paid_at: paidAt,
             receipt_url: result.receipt?.url || null,
+            // 회계·증빙용 공급가/부가세 구분 (토스 응답 기준, 없으면 VAT 포함 가격으로 계산)
+            ...vatBreakdown(invoice.amount, result),
             failure_code: null,
             next_retry_at: null,
           },
@@ -345,18 +355,27 @@ class SaaSBillingService {
     const start = new Date();
     start.setUTCDate(1);
     start.setUTCHours(0, 0, 0, 0);
-    const [menus, staff, orders] = await Promise.all([
+    const [menus, staff, orders, trialEndsAt] = await Promise.all([
       prisma.products.count({ where: { store_id: storeId } }),
       prisma.staff.count({ where: { store_id: storeId, is_active: 1 } }),
       prisma.orders.count({ where: { store_id: storeId, created_at: { gte: start } } }),
+      ownerTrialEndsAt(prisma, storeId),
     ]);
     const { planLimit } = require('../utils/planQuota');
     return {
       subscription: publicSubscription(sub),
-      effective_plan: effectivePlan(sub),
+      effective_plan: resolvePlan(sub, trialEndsAt),
+      trial: {
+        plan: TRIAL_PLAN,
+        ends_at: trialEndsAt,
+        active: isTrialActive(trialEndsAt),
+      },
       usage: { maxMenus: menus, maxStaff: staff, ordersPerMonth: orders },
       limits: Object.fromEntries(
-        ['maxMenus', 'maxStaff', 'ordersPerMonth'].map((key) => [key, planLimit(sub, key)])
+        ['maxMenus', 'maxStaff', 'ordersPerMonth'].map((key) => [
+          key,
+          planLimit(sub, key, trialEndsAt),
+        ])
       ),
       usage_period_start: start,
     };
@@ -370,6 +389,9 @@ class SaaSBillingService {
       select: {
         id: true,
         amount: true,
+        supply_amount: true,
+        vat_amount: true,
+        tax_free_amount: true,
         currency: true,
         status: true,
         billing_cycle: true,

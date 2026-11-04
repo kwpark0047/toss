@@ -32,7 +32,11 @@ const { assertPlanQuota, planLimit } = moduleStub.exports;
 test('tenant row is locked before counting and free menu limit rejects the boundary', async () => {
   const calls = [];
   const tx = {
-    $queryRaw: async () => calls.push('lock'),
+    $queryRaw: async (sql) => {
+      if (sql.join('').includes('FOR UPDATE')) return calls.push('lock');
+      calls.push('trial');
+      return [];
+    },
     subscription: { findUnique: async () => null },
     products: {
       count: async () => {
@@ -42,7 +46,7 @@ test('tenant row is locked before counting and free menu limit rejects the bound
     },
   };
   await assert.rejects(assertPlanQuota(tx, 7, 'maxMenus'), (e) => e.statusCode === 403);
-  assert.deepEqual(calls, ['lock', 'count']);
+  assert.deepEqual(calls, ['lock', 'trial', 'count']);
 });
 test('expired custom limits cannot retain paid access', () => {
   assert.equal(
@@ -74,4 +78,37 @@ test('active enterprise unlimited avoids resource counting', async () => {
     },
   };
   await assertPlanQuota(tx, 1, 'maxMenus');
+});
+
+// 신규 가입 1개월 프로 체험: 결제 구독이 없어도 체험 중에는 프로 한도, 끝나면 무료 한도
+const future = () => new Date(Date.now() + 86400000);
+const past = () => new Date(Date.now() - 86400000);
+test('active owner trial grants pro limits without a paid subscription', () => {
+  assert.equal(planLimit(null, 'maxMenus', future()), 200);
+  assert.equal(planLimit(null, 'maxStaff', future()), 10);
+});
+test('expired owner trial falls back to free limits', () => {
+  assert.equal(planLimit(null, 'maxMenus', past()), 50);
+  assert.equal(planLimit(null, 'maxStaff', past()), 1);
+});
+test('a paid enterprise subscription wins over an active trial', () => {
+  const sub = { status: 'active', current_period_end: future(), plan: { name: 'enterprise' } };
+  assert.equal(planLimit(sub, 'maxMenus', future()), -1);
+});
+test('an expired paid pro plan does not leak its custom limits into the trial', () => {
+  const sub = {
+    status: 'active',
+    current_period_end: past(),
+    plan: { name: 'pro', limits: { maxMenus: 9999 } },
+  };
+  assert.equal(planLimit(sub, 'maxMenus', future()), 200);
+});
+test('quota check uses the owner trial looked up inside the same transaction', async () => {
+  const tx = {
+    $queryRaw: async (sql) =>
+      sql.join('').includes('FOR UPDATE') ? undefined : [{ trial_ends_at: future() }],
+    subscription: { findUnique: async () => null },
+    products: { count: async () => 50 },
+  };
+  await assertPlanQuota(tx, 7, 'maxMenus'); // free 한도(50)라면 거부되지만 체험 중 프로 한도(200)라 통과
 });

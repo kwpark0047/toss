@@ -570,45 +570,14 @@
       },
       "enterprise": {
         "name": "Enterprise",
-        "price": "₩79,000",
+        "price": "₩50,000",
         "period": "/month",
         "features": [
-          "Dedicated Server Infrastructure",
+          "Unlimited Menus, Staff & Monthly Orders",
           "API Integration Support",
-          "Custom Reports",
-          "Dedicated Account Manager",
-          "Priority Ad Placement"
+          "Custom Reports"
         ],
         "cta": "Contact Us"
-      }
-    },
-    "testimonials": {
-      "jungHo": {
-        "name": "Kim Jung-ho",
-        "role": "Korean Restaurant Owner",
-        "location": "Seoul, Mapo-gu",
-        "avatar": "👨‍🍳",
-        "rating": 5,
-        "text": "Switching to WeMarket from paper menus drastically reduced order errors. The kitchen notification feature is incredibly useful, and the sales stats at a glance make operations so much easier.",
-        "stat": "80% Fewer Order Errors"
-      },
-      "suJin": {
-        "name": "Park Su-jin",
-        "role": "Cafe Owner",
-        "location": "Busan, Haeundae",
-        "avatar": "☕",
-        "rating": 5,
-        "text": "One QR solves everything from table management to payment. Part-timers learned it in a day, and customers order without any app download — zero resistance.",
-        "stat": "30% Reduced Ops Time"
-      },
-      "dongHyun": {
-        "name": "Lee Dong-hyun",
-        "role": "Bistro & Takeout Owner",
-        "location": "Daegu, Suseong-gu",
-        "avatar": "🍱",
-        "rating": 5,
-        "text": "The points accumulation feature noticeably increased repeat customers. The 60-second post-payment timer and pre-filled phone number make membership registration natural.",
-        "stat": "62% Higher Return Rate"
       }
     },
     "demoFeatures": {
@@ -664,12 +633,7 @@
     },
     "hero": {
       "title": "AI-Powered Loyalty for",
-      "subtitle": "Independent Business Owners",
-      "stats": {
-        "stores": "1,000+ Stores",
-        "orders": "5M+ Orders",
-        "rating": "4.9★ Rating"
-      }
+      "subtitle": "Independent Business Owners"
     },
     "footer": {
       "about": "About",

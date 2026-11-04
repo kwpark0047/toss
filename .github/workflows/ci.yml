@@ -502,7 +502,8 @@ jobs:
         e2e-tests,
       ]
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    # Vercel 배포(약 1~2분) + Render 새 리비전 대기(최대 10분)를 감안한다.
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@v4
 
@@ -555,6 +556,8 @@ jobs:
         if: steps.vercel-deploy.outputs.deployed == 'true'
         env:
           EXPECTED_COMMIT_SHA: ${{ github.sha }}
+          SMOKE_BACKEND_WAIT_MS: '600000'
+          SMOKE_POLL_INTERVAL_MS: '10000'
         run: node scripts/smoke-deploy.js
 
   # Docker build and security scan (스케줄/수동만)

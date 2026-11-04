@@ -3,6 +3,10 @@ const Store = require('../repositories/Store');
 const cache = require('../utils/cache');
 const { AppError } = require('../utils/errorHandler');
 const publicBusiness = { store_business_info: { select: { business_type: true } } };
+const DeliveryService = require('./DeliveryService');
+// 공개 응답에서 정확한 주소를 숨기는 매장 (온라인 전용 + 주소 숨김)
+const HIDDEN_ADDRESS = { dine_in_enabled: false, hide_exact_address: true };
+
 const flattenPublic = ({ store_business_info, store_operating_hours, ...store }) => ({
   ...store,
   business_type: store_business_info?.business_type ?? null,
@@ -58,13 +62,21 @@ class StoreService {
   // 매장 검색 (지역·업종·키워드·고객위치 거리순) + 페이지네이션
   async searchStores({ district, business_type, q, lat, lng, limit = 30, page = 1 }) {
     const where = { is_active: true, ...EXCLUDE_CORRUPT_NAME };
-    if (district) where.address = { contains: String(district) };
+    const and = [];
+    // 주소를 숨긴 매장은 주소 키워드·지역 필터에 아예 걸리지 않게 한다(매장 이름으로만 검색).
+    // 어떤 주소 조각이든 일치 여부나 건수(total, 같은 조건으로 셈)로 숨긴 주소를 확인할 수 있기 때문이다.
+    const addressMatch = (kw) => ({
+      address: { contains: kw },
+      NOT: { store_order_channels: { is: HIDDEN_ADDRESS } },
+    });
+    if (district) and.push(addressMatch(String(district).trim()));
     if (business_type && business_type !== 'all')
       where.store_business_info = { is: { business_type: String(business_type) } };
     if (q) {
-      const kw = String(q);
-      where.OR = [{ name: { contains: kw } }, { address: { contains: kw } }];
+      const kw = String(q).trim();
+      and.push({ OR: [{ name: { contains: kw } }, addressMatch(kw)] });
     }
+    if (and.length) where.AND = and;
 
     const perPage = Math.min(parseInt(limit) || 30, 100);
     const pageNum = Math.max(parseInt(page) || 1, 1);
@@ -92,19 +104,27 @@ class StoreService {
     });
 
     stores = stores.map(flattenPublic);
-    // 거리 계산
+    // 주소를 숨긴 온라인 전용 매장은 좌표를 지우고 흐린 배달 권역만 남긴다.
+    stores = await DeliveryService.applyPublicPrivacyToList(stores);
+    // 거리 계산 — 주소를 숨긴 매장은 흐린 권역 중심 기준(정확한 위치를 되짚지 못하게)
     const { haversineKm } = require('../utils/geo');
     const la = parseFloat(lat),
       lo = parseFloat(lng);
     if (!isNaN(la) && !isNaN(lo)) {
       stores = stores
-        .map((s) => ({
-          ...s,
-          distance_km:
+        .map((s) => {
+          const point =
             s.latitude != null && s.longitude != null
-              ? Math.round(haversineKm(la, lo, s.latitude, s.longitude) * 10) / 10
-              : null,
-        }))
+              ? { lat: s.latitude, lng: s.longitude }
+              : s.delivery_area?.center || null;
+          const km = point ? haversineKm(la, lo, point.lat, point.lng) : null;
+          const out = { ...s, distance_km: km == null ? null : Math.round(km * 10) / 10 };
+          // 반경 권역 매장은 내 위치가 권역 안인지 알려 준다 (동네 권역은 주소로만 판정 가능)
+          if (s.delivery_area?.mode === 'radius' && km != null) {
+            out.delivers_here = km <= s.delivery_area.radius_km;
+          }
+          return out;
+        })
         .sort((a, b) => (a.distance_km ?? 1e9) - (b.distance_km ?? 1e9));
     }
 
@@ -221,7 +241,8 @@ class StoreService {
     });
 
     if (ids.length) stores.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
-    return stores.map((s, i) => ({
+    const visible = await DeliveryService.applyPublicPrivacyToList(stores);
+    return visible.map((s, i) => ({
       rank: i + 1,
       id: s.id,
       name: s.name,
@@ -229,6 +250,8 @@ class StoreService {
       business_type: s.store_business_info?.business_type ?? null,
       latitude: s.latitude,
       longitude: s.longitude,
+      online_only: s.online_only,
+      order_types: s.order_types,
       order_count: ranked.find((row) => row.store_id === s.id)?._count._all || 0,
     }));
   }
@@ -478,7 +501,10 @@ class StoreService {
       },
       orderBy: { created_at: 'desc' },
     });
-    return list.map((f) => ({ ...flattenPublic(f.stores), favorited_at: f.created_at }));
+    const visible = await DeliveryService.applyPublicPrivacyToList(
+      list.map((f) => flattenPublic(f.stores))
+    );
+    return visible.map((store, i) => ({ ...store, favorited_at: list[i].created_at }));
   }
 
   // 사업자 정보 검증

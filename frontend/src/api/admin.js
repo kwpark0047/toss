@@ -20,6 +20,13 @@ export const adminAPI = {
   // 바쁨 모드: { extra_wait_minutes: 0|10|20|30 } 또는 { pause_minutes: 0|15|30|60 }
   getOrderPace: (storeId) => api.get(`/admin/stores/${storeId}/order-pace`),
   updateOrderPace: (storeId, data) => api.put(`/admin/stores/${storeId}/order-pace`, data),
+  // 주문 받는 방식(매장 식사/포장/배달)·직접 배달 설정
+  getOrderChannels: (storeId) => api.get(`/admin/stores/${storeId}/order-channels`),
+  updateOrderChannels: (storeId, data) => api.put(`/admin/stores/${storeId}/order-channels`, data),
+  // 매장 부가기능 (온라인 주문: 무료)
+  getAddons: (storeId) => api.get(`/admin/stores/${storeId}/addons`),
+  setOnlineOrderingAddon: (storeId, active) =>
+    api.put(`/admin/stores/${storeId}/addons/online_ordering`, { active }),
   // 매장 정보 보강 (네이버 지역검색 API) — super_admin 전용, 커서 기반 배치
   enrichStores: ({ limit = 10, afterId = 0 } = {}) =>
     api.post('/admin/enrich-stores', { limit, afterId }),
@@ -55,8 +62,7 @@ export const adminAPI = {
   rejectLinkRequest: (id) => api.post(`/admin/store-link-requests/${id}/reject`),
   businessTrials: (status = 'trialing') =>
     api.get('/admin/business-trials', { params: { status } }),
-  approveBusinessTrial: (id) => api.post(`/admin/business-trials/${id}/approve`),
-  revokeBusinessTrialApproval: (id) => api.post(`/admin/business-trials/${id}/revoke-approval`),
+  extendBusinessTrial: (id, days = 30) => api.post(`/admin/business-trials/${id}/extend`, { days }),
   deleteBusinessTrialAccount: (id) =>
     api.delete(`/admin/business-trials/${id}`, { data: { confirm: '삭제' } }),
 };

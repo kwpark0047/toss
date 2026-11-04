@@ -33,23 +33,24 @@ export default function PricingPage() {
     name: '프로 (Pro)',
     price: 20000,
     desc: '실시간 결제 대행 및 다채로운 부가 편의 장비 연동 요금제',
-    features: ['Toss Payments 실제 라이브 결제창 연동', '실시간 매장 위치 공유 서비스', '고객 알림톡 발송 연동', '긴급 품절 처리 기능', '단골 고객 찜 목록 및 타임세일 푸시 마케팅', '직원/매니저 무제한 계정 생성 및 권한 격리'],
+    features: ['Toss Payments 실제 라이브 결제창 연동', '실시간 매장 위치 공유 서비스', '고객 알림톡 발송 연동', '긴급 품절 처리 기능', '단골 고객 찜 목록 및 타임세일 푸시 마케팅', '직원·매니저 계정 최대 10명 및 권한 격리'],
     cta: '프로 시작하기',
     color: 'border-orange-500 bg-orange-500/[0.02]',
     popular: true
   }, {
     name: '엔터프라이즈 (Enterprise)',
-    price: 79000,
-    desc: '지능형 AI 매출 동향 예측과 전용 독립 서버 호스팅 패키지',
-    features: ['모든 Pro 요금제 기능 전사 보장', 'AI 기반 요일/시간별 피크타임 매출 동향 예측', '주간/월간 Gemini 인공지능 매장 경영 분석 리포트', 'ESC/POS 주방 무선 프린터 연동 및 인쇄 잡 대기열', '전용 1:1 슬랙/전화 고객 지원 엔지니어 배정', '99.9% 가동률 보증 보장 협약서(SLA) 체결'],
+    price: 50000,
+    contact: true,
+    desc: '지능형 AI 매출 동향 예측과 사용량 제한 없는 운영 패키지',
+    features: ['모든 Pro 요금제 기능 전사 보장', 'AI 기반 요일/시간별 피크타임 매출 동향 예측', '주간/월간 Gemini 인공지능 매장 경영 분석 리포트', 'ESC/POS 주방 무선 프린터 연동 및 인쇄 잡 대기열', '메뉴·직원·월 주문 수 무제한'],
     cta: '영업문의 및 컨설팅',
     color: 'border-slate-900 bg-slate-950/40',
     popular: false
   }];
   const getPrice = basePrice => {
     if (annualBilling) {
-      // 20% 연간 결제 할인 적용
-      return Math.round(basePrice * 12 * 0.8 / 12);
+      // 연간 요금 = 월 요금 × 10 (2개월 무료). 월 환산 금액을 표시한다.
+      return Math.round(basePrice * 10 / 12);
     }
     return basePrice;
   };
@@ -128,7 +129,7 @@ export default function PricingPage() {
             </button>
             <span className={`text-xs font-bold flex items-center gap-1.5 transition-all ${annualBilling ? 'text-orange-600' : 'text-slate-400'}`}>
               연 결제
-              <span className="text-[10px] bg-orange-50 text-orange-600 border border-orange-200 px-2 py-0.5 rounded-full font-mono font-bold">20% SAVE</span>
+              <span className="text-[10px] bg-orange-50 text-orange-600 border border-orange-200 px-2 py-0.5 rounded-full font-mono font-bold">2개월 무료</span>
             </span>
           </div>
         </div>
@@ -149,7 +150,7 @@ export default function PricingPage() {
                   <span className="text-4xl font-black font-mono text-slate-900">
                     {plan.price === 0 ? '₩0' : `₩${getPrice(plan.price).toLocaleString('ko-KR')}`}
                   </span>
-                  <span className="text-xs text-slate-400 font-bold">/월</span>
+                  <span className="text-xs text-slate-400 font-bold">/월 · VAT 포함</span>
                 </div>
 
                 <ul className="space-y-3.5 mb-8">
@@ -160,7 +161,7 @@ export default function PricingPage() {
                 </ul>
               </div>
 
-              <Link to={plan.price === 79000 ? '/contact' : '/register'} className={`w-full py-3.5 rounded-2xl text-center text-xs font-black transition-all ${plan.popular ? 'bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 active:scale-95' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'}`}>
+              <Link to={plan.contact ? '/contact' : '/register'} className={`w-full py-3.5 rounded-2xl text-center text-xs font-black transition-all ${plan.popular ? 'bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 active:scale-95' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'}`}>
                 {plan.cta}
               </Link>
             </div>)}

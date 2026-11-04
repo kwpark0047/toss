@@ -13,8 +13,9 @@ const requireCustomerCapability = (req, res, next) => {
   next();
 };
 const authMiddleware = require('../middleware/auth');
+const { optionalAuth } = require('../middleware/auth');
+const DeliveryService = require('../services/DeliveryService');
 const { checkStorePermission } = require('../middleware/storeAuth');
-const { requireUnexpiredTrial } = require('../middleware/businessTrialAccess');
 const catchAsync = require('../utils/catchAsync');
 const storeController = require('../controllers/storeController');
 const storeSettingsController = require('../controllers/storeSettingsController');
@@ -209,7 +210,6 @@ router.get('/my', authMiddleware, catchAsync(storeController.getMyStores));
 router.post(
   '/',
   authMiddleware,
-  requireUnexpiredTrial,
   validateBody(createStoreSchema),
   catchAsync(async (req, res) => {
     const io = req.app.get('io');
@@ -235,11 +235,13 @@ router.post(
 router.get(
   '/:id',
   validateParams(storeIdParamSchema),
+  optionalAuth,
   catchAsync(async (req, res) => {
     const cache = require('../utils/cache');
     const cacheKey = `store:${req.params.id}:profile`;
     const cached = await cache.get(cacheKey);
-    if (cached) return res.success(cached);
+    // 주소를 숨긴 온라인 전용 매장은 매장 사람(사장님·직원) 외에는 정확한 주소·좌표를 받지 않는다.
+    if (cached) return res.success(await DeliveryService.storeViewFor(req.user, cached));
     await storeController.getStore(req, res);
   })
 );
@@ -516,6 +518,60 @@ router.get(
   '/:id/order-pace',
   validateParams(storeIdParamSchema),
   storeSettingsController.getOrderPaceSettings
+);
+
+/**
+ * @swagger
+ * /api/stores/{id}/order-channels:
+ *   get:
+ *     tags: [Stores]
+ *     summary: 매장이 받는 주문 유형과 배달 조건 (고객 메뉴 화면용)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: 주문 유형, 픽업 안내, 배달비·최소 주문 금액, 배달 권역
+ */
+router.get(
+  '/:id/order-channels',
+  validateParams(storeIdParamSchema),
+  storeSettingsController.getPublicOrderChannels
+);
+
+/**
+ * @swagger
+ * /api/stores/{id}/delivery-quote:
+ *   post:
+ *     tags: [Stores]
+ *     summary: 배달 가능 여부와 배달비 견적
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               address: { type: string, maxLength: 300 }
+ *               subtotal: { type: integer }
+ *               latitude: { type: number }
+ *               longitude: { type: number }
+ *     responses:
+ *       200:
+ *         description: deliverable, reason, fee, min_order_amount, est_minutes
+ */
+router.post(
+  '/:id/delivery-quote',
+  rateLimit({ windowMs: 60000, limit: 30 }),
+  validateParams(storeIdParamSchema),
+  storeSettingsController.getDeliveryQuote
 );
 
 /**

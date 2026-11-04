@@ -147,7 +147,8 @@ const OrderManager = () => {
     return orders.filter(o =>
       o.order_number?.toLowerCase().includes(term) ||
       o.customer_name?.toLowerCase().includes(term) ||
-      o.table_name?.toLowerCase().includes(term)
+      o.table_name?.toLowerCase().includes(term) ||
+      o.delivery_address?.toLowerCase().includes(term)
     );
   }, [orders, searchTerm]);
 
@@ -176,6 +177,29 @@ const OrderManager = () => {
       if (selectedOrder?.id === orderId) setSelectedOrder(prev => ({ ...prev, status: newStatus }));
     } catch (e) {
       handleApiError(e, '주문 상태 변경에 실패했습니다');
+    }
+  };
+
+  // 직접 배달 출발/완료
+  const handleDeliveryAction = async (orderId, action) => {
+    try {
+      await ordersAPI.updateDelivery(orderId, action);
+      if (soundEnabled) notificationSound.playSuccess();
+      fetchOrders();
+    } catch (e) {
+      handleApiError(e, action === 'start' ? '배달 출발 처리에 실패했습니다' : '배달 완료 처리에 실패했습니다');
+    }
+  };
+
+  // 배달대행 배차 요청/취소
+  const handleDispatchAction = async (orderId, action) => {
+    if (action === 'cancel' && !window.confirm('배차를 취소할까요? 기사가 배정됐다면 대행사 정책에 따라 취소 수수료가 생길 수 있어요.')) return;
+    try {
+      if (action === 'request') await ordersAPI.requestDispatch(orderId);
+      else await ordersAPI.cancelDispatch(orderId, '매장 요청');
+      fetchOrders();
+    } catch (e) {
+      handleApiError(e, action === 'request' ? '배차 요청에 실패했습니다' : '배차 취소에 실패했습니다');
     }
   };
 
@@ -299,7 +323,7 @@ const OrderManager = () => {
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
-              placeholder="주문번호 · 고객 · 테이블"
+              placeholder="주문번호 · 고객 · 테이블 · 배달 주소"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-3 h-12 bg-white/8 border border-white/10 rounded-xl text-white text-sm font-medium placeholder:text-slate-600 outline-none focus:border-orange-500/50 transition-colors"
@@ -378,6 +402,8 @@ const OrderManager = () => {
                 statusConfig={statusConfig}
                 onShowDetail={ord => { setSelectedOrder(ord); setShowDetail(true); }}
                 onStatusChange={handleStatusChange}
+                onDeliveryAction={handleDeliveryAction}
+                onDispatchAction={handleDispatchAction}
                 onCollection={handleCollection}
                 collecting={collectingOrder === order.id}
                 formatTime={formatTime}

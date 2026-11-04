@@ -19,6 +19,27 @@ import {
  *   onLocate({lat,lng}) — '내 위치' 버튼 결과 전달 (미지정 시 지도 이동만)
  */
 
+/** 주소를 숨긴 온라인 전용 매장의 배달 권역 팝업 (정확한 위치·길찾기 없음) */
+function buildAreaPopup(s) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'font-family:Pretendard,sans-serif;min-width:170px';
+  const name = document.createElement('div');
+  name.style.cssText = 'font-weight:900;font-size:14px;color:#0f172a';
+  name.textContent = s.name || '';
+  wrap.appendChild(name);
+  const info = document.createElement('div');
+  info.style.cssText = 'font-size:11px;color:#0284c7;font-weight:700;margin-top:3px';
+  info.textContent = `온라인 전용 · ${s.area_label || '배달'} 배달 권역`;
+  wrap.appendChild(info);
+  const link = document.createElement('a');
+  const safeId = /^\d+$/.test(String(s.id)) ? s.id : '';
+  link.href = safeId ? `/menu/${safeId}` : '#';
+  link.style.cssText = 'display:inline-block;margin-top:8px;background:#f97316;color:#fff;font-weight:800;font-size:12px;padding:6px 12px;border-radius:8px;text-decoration:none';
+  link.textContent = '주문하기 →';
+  wrap.appendChild(link);
+  return wrap;
+}
+
 /** 매장 팝업을 DOM API로 구성 — textContent로 매장 데이터를 자동 이스케이프(XSS 방지) */
 function buildPopup(s) {
   const wrap = document.createElement('div');
@@ -99,6 +120,7 @@ export default function StoreMapLeaflet({ stores = [], coords = null, onSelect, 
   const mapRef = useRef(null);
   const layerRef = useRef(null);
   const userLayerRef = useRef(null);
+  const areaLayerRef = useRef(null);
   const markersByIdRef = useRef(new Map());
   const boundsRef = useRef([]);
   // 콜백은 ref로 보관 — 부모가 인라인 함수를 넘겨도 마커를 다시 만들지 않는다
@@ -118,6 +140,12 @@ export default function StoreMapLeaflet({ stores = [], coords = null, onSelect, 
     });
     return { mappable: ok, missingCount: stores.length - ok.length };
   }, [stores]);
+
+  // 주소를 숨긴 온라인 전용 매장 — 핀 대신 흐린 중심의 배달 권역 원으로 표시한다.
+  const serviceAreas = useMemo(() => stores.filter((s) => (
+    s.address_hidden && s.delivery_area?.mode === 'radius' &&
+    isValidKoreaCoord(s.delivery_area.center?.lat, s.delivery_area.center?.lng)
+  )), [stores]);
 
   // 지도 초기화
   useEffect(() => {
@@ -146,6 +174,7 @@ export default function StoreMapLeaflet({ stores = [], coords = null, onSelect, 
         });
         map.addLayer(layerRef.current);
         userLayerRef.current = L.layerGroup().addTo(map);
+        areaLayerRef.current = L.layerGroup().addTo(map);
         // 클릭/터치로 지도에 포커스가 들어오면 휠 줌 허용, 벗어나면 해제 (페이지 스크롤 방해 방지)
         map.on('focus', () => map.scrollWheelZoom.enable());
         map.on('blur', () => map.scrollWheelZoom.disable());
@@ -157,6 +186,7 @@ export default function StoreMapLeaflet({ stores = [], coords = null, onSelect, 
       if (mapRef.current) { mapRef.current.off(); mapRef.current.remove(); mapRef.current = null; }
       layerRef.current = null;
       userLayerRef.current = null;
+      areaLayerRef.current = null;
       markersByIdRef.current = new Map();
       // 재초기화(Fast Refresh·재마운트) 시 마커 effect가 다시 돌도록 상태를 되돌린다
       setStatus('loading');
@@ -195,6 +225,19 @@ export default function StoreMapLeaflet({ stores = [], coords = null, onSelect, 
     });
     layer.addLayers(markers);
 
+    areaLayerRef.current?.clearLayers();
+    serviceAreas.forEach((s) => {
+      const { center, radius_km: radiusKm } = s.delivery_area;
+      const circle = L.circle([center.lat, center.lng], {
+        radius: Number(radiusKm) * 1000,
+        color: '#0284c7', weight: 1.5, fillColor: '#38bdf8', fillOpacity: 0.12,
+      });
+      circle.bindPopup(buildAreaPopup(s));
+      circle.on('click', () => onSelectRef.current?.(s));
+      areaLayerRef.current?.addLayer(circle);
+      pts.push([center.lat, center.lng]);
+    });
+
     if (coords && isValidKoreaCoord(coords.lat, coords.lng)) {
       const blueDot = L.divIcon({
         className: '',
@@ -207,7 +250,7 @@ export default function StoreMapLeaflet({ stores = [], coords = null, onSelect, 
 
     boundsRef.current = pts;
     fitPoints(map, pts);
-  }, [mappable, coords, status]);
+  }, [mappable, serviceAreas, coords, status]);
 
   // 선택 매장 강조 + 이동 (리스트 → 지도 동기화)
   useEffect(() => {

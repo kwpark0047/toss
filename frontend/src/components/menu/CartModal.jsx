@@ -40,7 +40,10 @@ const formatPhoneInput = (value) => {
   return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
 };
 
-const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice, notifyPhone = '', onNotifyPhoneChange, paymentMethod = 'card', onPaymentMethodChange, menuItems = [], _storeId, onAddToCartClick, onStartSplitPayment, isSplitStarting = false }) => {
+const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrdering, totalPrice, notifyPhone = '', onNotifyPhoneChange, paymentMethod = 'card', onPaymentMethodChange, menuItems = [], _storeId, onAddToCartClick, onStartSplitPayment, isSplitStarting = false, orderTypePanel = null, hideSplitPayment = false, onlinePaymentOnly = false, extraFee = 0 }) => {
+  // 포장·배달 주문은 매장에서 결제할 자리가 없어 온라인 결제만 고를 수 있다.
+  const OFFLINE_METHODS = ['cash', 'transfer', 'store_card'];
+  const payableTotal = totalPrice + (Number(extraFee) || 0);
   const { t } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showSplitSettings, setShowSplitSettings] = useState(false);
@@ -91,7 +94,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
 
           <motion.div
             initial={{ y: '100%' }}
-            animate={{ y: 0, height: isCollapsed ? 'auto' : undefined }}
+            animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className={`fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] z-50 cust-bg-card overflow-hidden tds-stack flex-col shadow-2xl bottom-sheet ${isCollapsed ? 'rounded-t-2xl border border-b-0 cust-border' : 'rounded-t-[32px] max-h-[90vh]'}`}
@@ -117,7 +120,12 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
               </div>
             </div>
 
-            <div className="tds-stack tds-gap-4 tds-p-4 tds-p-3 flex-1 overflow-y-auto">
+            {/* 담은 메뉴와 결제 설정을 한 스크롤로 묶고, 합계·주문 버튼만 아래에 고정한다 */}
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+            <div className="tds-stack tds-gap-4 tds-p-4 tds-p-3">
+              {cart.length > 0 && (
+                <p className="tds-small font-bold cust-text-sub">담은 메뉴 {cart.reduce((sum, item) => sum + item.quantity, 0)}개</p>
+              )}
               {cart.length === 0 ? (
                 <EmptyState icon="🛒" title={t('cart_modal.empty_title')} description={t('cart_modal.empty_desc')} />
               ) : (
@@ -138,7 +146,9 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                         <div className="tds-stack tds-gap-1 flex-1 tds-stack-h flex-col justify-center min-w-0 tds-gap-1">
                           <div className="tds-stack-h tds-gap-2 items-start justify-between">
                             <h3 className="tds-text-bold cust-text-main text-sm leading-tight truncate">{item.menuItem.name}</h3>
-                            <button 
+                            <button
+                              type="button"
+                              aria-label={`${item.menuItem.name} 빼기`}
                               onClick={() => {
                                 vibrateClick();
                                 onUpdateQuantity(item.cartItemId, -item.quantity);
@@ -155,7 +165,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                           )}
                           
                           <div className="tds-stack-h tds-gap-2 items-center justify-between">
-                            <span className="tds-text-bold text-sm cust-text-main">{formatWon(item.unitPrice * item.quantity)}</span>
+                            <span className="tds-text-bold text-sm cust-text-main whitespace-nowrap">{formatWon(item.unitPrice * item.quantity)}</span>
                             
                             <div className="tds-stack-h tds-gap-2 items-center bg-grey-100 dark:bg-white/5 rounded-full tds-p-1 tds-p-0.5">
                               <button 
@@ -228,10 +238,12 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
               )}
             </div>
 
-            {/* === 하단: 결제 영역 === */}
-            <div className="tds-p-4 tds-p-3 tds-stack tds-gap-3 bg-grey-50 dark:bg-black/20">
+            {/* === 결제 설정 (목록과 함께 스크롤) === */}
+            <div className="tds-p-4 tds-p-3 tds-stack tds-gap-3 bg-grey-50 dark:bg-black/20 border-t cust-border">
+              {orderTypePanel}
+
               {/* 분할 결제 안내 팁 */}
-              <div className="tds-stack tds-gap-2 tds-p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl border border-blue-100 dark:border-blue-500/20">
+              {!hideSplitPayment && <div className="tds-stack tds-gap-2 tds-p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl border border-blue-100 dark:border-blue-500/20">
                 <div className="tds-stack-h tds-gap-2 items-center">
                   <div className="w-7 h-7 bg-blue-500 rounded-full tds-stack items-center justify-center text-white">
                     <span className="tds-small font-bold">1/N</span>
@@ -248,7 +260,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                   <p className="tds-caption text-blue-900 dark:text-blue-200">각자 이 링크에서 현금 또는 계좌이체 몫을 등록합니다. 매장에서 입금을 확인하면 반영되고, 전액 확인 후 주문이 접수됩니다.</p>
                   <button type="button" disabled={isSplitStarting || isOrdering || !cart.length} onClick={() => onStartSplitPayment?.(splitPeopleCount)} className="w-full rounded-lg bg-blue-700 px-3 py-2.5 text-sm font-black text-white disabled:opacity-50"><Users size={16} className="mr-2 inline" />{isSplitStarting ? '분할 주문 준비 중…' : `${splitPeopleCount}명 분할 주문 만들기`}</button>
                 </div>}
-              </div>
+              </div>}
 
               {/* 알림 받을 번호 */}
               <div className="tds-p-3 cust-bg-card rounded-xl border cust-border">
@@ -287,7 +299,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                       <div className="tds-stack-h tds-gap-1.5 grid grid-cols-3">
                         {group.methods.map((method) => {
                           const isSelected = paymentMethod === method.id;
-                          const isUnavailable = method.available === false;
+                          const isUnavailable = method.available === false || (onlinePaymentOnly && OFFLINE_METHODS.includes(method.id));
                           const accessibleLabel = isUnavailable
                             ? `${method.label} (현재 이용 불가)`
                             : method.label;
@@ -365,7 +377,11 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                   ))}
                 </div>
               </LayoutGroup>
+            </div>
+            </div>
 
+            {/* === 하단 고정: 결제 요약 + 주문 버튼 === */}
+            <div className="shrink-0 tds-p-4 tds-p-3 tds-stack tds-gap-3 border-t cust-border cust-bg-card pb-[calc(env(safe-area-inset-bottom)+12px)]">
               {/* 결제 요약 */}
               <div className="tds-stack-h tds-gap-4 items-center justify-between tds-p-3 cust-bg-card rounded-xl border cust-border">
                 {selectedMethodData && selectedGroup ? (
@@ -386,7 +402,7 @@ const CartModal = ({ isOpen, onClose, cart, onUpdateQuantity, onOrder, isOrderin
                 ) : (
                   <span className="tds-small font-bold text-grey-400">{t('cart_modal.select_payment_guide')}</span>
                 )}
-                <span className="tds-text-bold text-base text-primary flex-shrink-0 ml-2">{formatWon(totalPrice)}</span>
+                <span className="tds-text-bold text-base text-primary flex-shrink-0 ml-2">{formatWon(payableTotal)}</span>
               </div>
 
               <Button

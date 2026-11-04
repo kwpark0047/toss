@@ -32,15 +32,6 @@ class StaffService {
     return currentRole;
   }
 
-  async assertStoreWriteAllowed(storeId) {
-    const store = await prisma.stores.findUnique({
-      where: { id: parsePositiveInt(storeId, '매장 ID') },
-      select: { user_id: true },
-    });
-    if (!store) throw new AppError('매장을 찾을 수 없습니다.', 404);
-    await require('../middleware/businessTrialAccess').assertUserCanWrite(store.user_id);
-  }
-
   async getMyRole(userId, storeId) {
     const store = await prisma.stores.findUnique({ where: { id: storeId } });
     if (store && store.user_id === userId) {
@@ -78,7 +69,6 @@ class StaffService {
 
     const store = await prisma.stores.findFirst({ where: { id: sid, user_id: userId } });
     if (!store) throw new AppError('매장 소유자만 사용 가능합니다.', 403);
-    await require('../middleware/businessTrialAccess').assertUserCanWrite(store.user_id);
 
     const existing = await prisma.staff.findFirst({ where: { store_id: sid, user_id: userId } });
     if (existing) throw new AppError('이미 근태 추적이 활성화되어 있습니다.', 409);
@@ -177,7 +167,6 @@ class StaffService {
       }
     }
 
-    if (userRole !== 'super_admin') await this.assertStoreWriteAllowed(staff.store_id);
 
     const active = await prisma.staff_attendance.findFirst({
       where: { staff_id: staffId, clock_out: null },
@@ -208,7 +197,6 @@ class StaffService {
       }
     }
 
-    if (userRole !== 'super_admin') await this.assertStoreWriteAllowed(staff.store_id);
 
     const active = await prisma.staff_attendance.findFirst({
       where: { staff_id: staffId, clock_out: null },

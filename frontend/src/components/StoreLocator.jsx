@@ -328,6 +328,8 @@ export default function StoreLocator() {
                       <h3 className="font-black text-gray-900 truncate">{s.name}</h3>
                       {s.business_type && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{bizLabel(s.business_type)}</span>}
                       {s.distance_km != null && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 flex items-center gap-0.5"><Icon icon="Navigation" size="sm" aria-hidden="true" /><span className="tabular-nums">{s.distance_km}</span>km</span>}
+                      {s.online_only && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-600">온라인 전용</span>}
+                      {s.delivers_here && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">배달 가능</span>}
                     </div>
                     {s.address && <p className="text-sm text-gray-500 mt-0.5 truncate flex items-center gap-1"><Icon icon="MapPin" />{s.address}</p>}
                   </div>
