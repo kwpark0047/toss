@@ -488,7 +488,7 @@ jobs:
         run: npm --prefix frontend audit --audit-level=high
 
   deploy:
-    if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push')
     needs:
       [
         lint-and-test,
@@ -638,12 +638,14 @@ jobs:
           scanners: 'vuln,secret'
 
       - name: Upload Trivy SARIF (backend) to GitHub Security tab
+        if: ${{ !cancelled() }}
         uses: github/codeql-action/upload-sarif@v3
         continue-on-error: true
         with:
           sarif_file: 'trivy-backend.sarif'
 
       - name: Run Trivy vulnerability scanner (frontend)
+        if: ${{ !cancelled() }}
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'wemarket-frontend:latest'
@@ -655,6 +657,7 @@ jobs:
           scanners: 'vuln,secret'
 
       - name: Upload Trivy SARIF (frontend) to GitHub Security tab
+        if: ${{ !cancelled() }}
         uses: github/codeql-action/upload-sarif@v3
         continue-on-error: true
         with:
@@ -679,6 +682,7 @@ jobs:
           exit-code: '0'
 
       - name: Upload Trivy reports
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: trivy-reports
