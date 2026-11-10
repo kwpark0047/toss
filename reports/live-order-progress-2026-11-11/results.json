@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-11-10T16:46:42.166Z",
+  "syntheticAccount": true,
+  "orderId": 5,
+  "orderNumber": "20261111-6259",
+  "storeId": 1,
+  "paymentStatus": "pending",
+  "realPaymentRequests": 0,
+  "apiMocking": false,
+  "websocketSignals": 4,
+  "timing": [
+    {
+      "status": "confirmed",
+      "milliseconds": 184
+    },
+    {
+      "status": "preparing",
+      "milliseconds": 141
+    },
+    {
+      "status": "ready",
+      "milliseconds": 170
+    }
+  ],
+  "widths": [320, 390, 430],
+  "offlineRecovery": true,
+  "missedCompletedRecovery": true,
+  "systemNotification": {
+    "permission": "granted",
+    "workerActive": true,
+    "count": 1,
+    "deliveredAt": "1794329198611",
+    "backgroundState": "visible"
+  },
+  "duplicateNotificationSuppressed": true,
+  "acknowledgementPersists": true,
+  "errors": []
+}

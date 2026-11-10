@@ -175,3 +175,22 @@ async function syncOfflineOrdersWithBackoff() {
     );
   }
 }
+
+// Order-ready messages are only produced while the customer page is open.
+self.addEventListener('notificationclick', (event) => {
+  if (event.notification.data?.type !== 'ORDER_READY') return;
+  const id = Number(event.notification.data.orderId);
+  if (!Number.isSafeInteger(id) || id <= 0) return;
+  event.notification.close();
+  const url = new URL(`/search?orderId=${id}`, self.location.origin).href;
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const target = windows.find((client) => new URL(client.url).origin === self.location.origin);
+      if (target) {
+        await target.navigate(url);
+        await target.focus();
+      } else await self.clients.openWindow(url);
+    })()
+  );
+});
