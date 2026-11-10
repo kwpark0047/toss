@@ -754,7 +754,7 @@ describe('PaymentService', () => {
       prisma.stores.findUnique.mockResolvedValue({
         id: 1,
         name: 'T',
-        users: [],
+        users: { id: 7, fcm_token: 'fixture-owner-token' },
         owner_phone: null,
       });
 
@@ -762,6 +762,11 @@ describe('PaymentService', () => {
 
       expect(TossAPI.confirmPayment).toHaveBeenCalledWith('pk_regular', 'ORD-001', 50000);
       expect(result.success).toBe(true);
+      expect(require('../../../utils/notifications').sendNewOrderNotification).toHaveBeenCalledWith(
+        mockIo,
+        expect.objectContaining({ id: 1 }),
+        ['fixture-owner-token']
+      );
       // PG 승인 금액으로 payments.amount 를 동기화해야 한다
       expect(mockTx.payments.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
