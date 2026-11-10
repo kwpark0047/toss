@@ -15,4 +15,17 @@ export function rememberCompletedOrder(order, capability) {
   } catch {
     /* 저장 공간이 없어도 주문 확인은 계속 제공한다. */
   }
+  try {
+    localStorage.setItem(
+      'wm_recent_order_ref',
+      JSON.stringify({
+        id: order.id,
+        store_id: order.store_id,
+        store_name: order.store_name,
+        savedAt: Date.now(),
+      })
+    );
+  } catch {
+    /* optional cross-window reference; no order capability is persisted here */
+  }
 }

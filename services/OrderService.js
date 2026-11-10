@@ -773,6 +773,9 @@ class OrderService {
     this.io.to(`store - ${order.store_id}`).emit('order-updated', payload);
     this.io.to(`kitchen - ${order.store_id}`).emit('order-updated', payload);
     this.io.to(`order - ${order.id}`).emit('order-updated', payload);
+    this.io
+      .to(`customer-order - ${order.id}`)
+      .emit('customer-order-changed', { order_id: order.id });
 
     // 실시간 대시보드 (store_${storeId}_dashboard 룸) 알림 — DashboardBroadcastService 전담 채널
     dashboardBroadcastService.notifyOrderChange(order.store_id, payload);
