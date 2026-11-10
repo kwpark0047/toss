@@ -235,6 +235,7 @@ const routes = {
     storeInfoEnhancement: lazyRouter(() => import('./routes/storeInfoEnhancement.js')),
     products: lazyRouter(() => import('./routes/products.js')),
     orders: lazyRouter(() => import('./routes/orders.js')),
+    orderPush: lazyRouter(() => import('./routes/orderPush.js')),
     tables: lazyRouter(() => import('./routes/tables.js')),
     payments: lazyRouter(() => import('./routes/payments.js')),
     notifications: lazyRouter(() => import('./routes/notifications.js')),
@@ -319,6 +320,7 @@ app.use(`${API_PREFIX}/auth/social`, authLimiter, routes.socialAuth);
 app.use(`${API_PREFIX}/stores`, publicLimiter, routes.stores);
 app.use(`${API_PREFIX}/stores`, publicLimiter, routes.storeInfoEnhancement);
 app.use(`${API_PREFIX}/products`, publicLimiter, routes.products);
+app.use(`${API_PREFIX}/orders`, routes.orderPush);
 app.use(`${API_PREFIX}/orders`, orderLimiter, routes.orders);
 app.use(`${API_PREFIX}/inventory`, publicLimiter, routes.inventory);
 app.use(`${API_PREFIX}/tables`, publicLimiter, routes.tables);

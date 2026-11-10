@@ -151,3 +151,21 @@ it('ignores an older HTTP response that arrives after a ready update', async () 
   });
   expect(screen.getByRole('alert')).toBeInTheDocument();
 });
+
+it('expired recent reference in a notification link recovers through owned history', async () => {
+  window.history.replaceState({}, '', '/search?orderId=2');
+  sessionStorage.setItem(
+    'wm_recent_order',
+    JSON.stringify({ id: 2, store_id: 1, savedAt: Date.now() - 86400001 })
+  );
+  localStorage.setItem('wm_customer_history_capability', 'owned-history');
+  api.getCustomerHistory.mockResolvedValue({ data: [order] });
+  try {
+    mount();
+    await screen.findByText('QA 매장');
+    expect(api.getCustomerHistory).toHaveBeenCalledWith('owned-history');
+    expect(api.getById).not.toHaveBeenCalled();
+  } finally {
+    window.history.replaceState({}, '', '/');
+  }
+});

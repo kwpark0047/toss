@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-11-10T17:42:27.236Z",
+  "orderId": 9,
+  "syntheticAccount": true,
+  "customerInformation": false,
+  "cardRequests": 0,
+  "apiMocking": false,
+  "pushProvider": "WNS / standard Web Push",
+  "customerPagesClosedBeforeReady": true,
+  "receivedAfterMs": 3236,
+  "notificationTitle": "주문이 준비됐어요",
+  "nativeNotificationClicked": false,
+  "notificationClickEventReplayed": true,
+  "clickUrl": "http://127.0.0.1:5174/search?orderId=9",
+  "readyOrderVerified": true,
+  "widths": [320, 390, 430],
+  "pageErrors": []
+}

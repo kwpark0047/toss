@@ -9,6 +9,11 @@ import {
   showOrderReadyNotification,
 } from '../../utils/orderReadyNotification';
 import './recentOrder.css';
+import {
+  enableServerPush,
+  disableServerPush,
+  serverPushEnabled,
+} from '../../utils/orderServerPush';
 
 const steps = ['접수 대기', '주문 확인', '조리 중', '준비 완료', '수령 완료'];
 const statusIndex = { pending: 0, paid: 0, confirmed: 1, preparing: 2, ready: 3, completed: 4 };
@@ -29,6 +34,7 @@ export default function RecentOrderBanner() {
   const [enabled, setEnabled] = useState(readyNotificationEnabled);
   const [permissionMessage, setPermissionMessage] = useState('');
   const [requesting, setRequesting] = useState(false);
+  const [serverEnabled, setServerEnabled] = useState(() => serverPushEnabled(recent?.id));
   const [acknowledged, setAcknowledged] = useState(() => {
     try {
       return !!sessionStorage.getItem(`wm_order_ready_ack:${recent?.id}`);
@@ -40,8 +46,15 @@ export default function RecentOrderBanner() {
   const index = statusIndex[order?.status];
   const ready = order?.status === 'ready';
   const terminal = ['completed', 'cancelled'].includes(order?.status);
-  const toggleNotifications = async () => {
-    if (enabled) {
+  const toggleNotifications = async (upgrade = false) => {
+    if (enabled && !upgrade) {
+      try {
+        if (serverEnabled) await disableServerPush(recent);
+      } catch {
+        setPermissionMessage('서버 알림을 끄지 못했어요. 연결을 확인하고 다시 시도해 주세요.');
+        return;
+      }
+      setServerEnabled(false);
       setEnabled(false);
       setReadyNotificationEnabled(false);
       return;
@@ -59,6 +72,8 @@ export default function RecentOrderBanner() {
           ? await Notification.requestPermission()
           : Notification.permission;
       if (permission === 'granted') {
+        const subscribed = await enableServerPush(recent);
+        setServerEnabled(subscribed);
         setReadyNotificationEnabled(true);
         setEnabled(true);
         setPermissionMessage('');
@@ -164,7 +179,7 @@ export default function RecentOrderBanner() {
             <button
               className="ro-notifications"
               disabled={requesting}
-              onClick={toggleNotifications}
+              onClick={() => toggleNotifications()}
             >
               <Bell size={15} aria-hidden="true" />
               {requesting
@@ -173,9 +188,19 @@ export default function RecentOrderBanner() {
                   ? '브라우저 알림 끄기'
                   : '준비 완료 알림 켜기'}
             </button>
+            {enabled && !serverEnabled && (
+              <button
+                className="ro-notifications"
+                disabled={requesting}
+                onClick={() => toggleNotifications(true)}
+              >
+                페이지 닫아도 알림 받기
+              </button>
+            )}
             <p className="ro-hint">
-              이 페이지를 열어 둔 동안 준비 완료를 알려드려요. 알림을 켜면 다른 탭에서도 확인할 수
-              있어요.
+              {serverEnabled
+                ? '이 페이지를 닫아도 준비 완료 알림을 받아요. 알림을 누르면 주문 진행을 확인할 수 있어요.'
+                : '이 페이지를 열어 둔 동안 준비 완료를 알려드려요. iPhone·iPad는 홈 화면에 추가한 앱에서 알림을 허용해 주세요.'}
             </p>
             {permissionMessage && (
               <p className="ro-error" role="status">

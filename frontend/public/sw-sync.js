@@ -176,7 +176,41 @@ async function syncOfflineOrdersWithBackoff() {
   }
 }
 
-// Order-ready messages are only produced while the customer page is open.
+// Web Push wakes this worker even when the customer page has been closed.
+self.addEventListener('push', (event) => {
+  let payload;
+  try {
+    payload = event.data?.json();
+  } catch {
+    return;
+  }
+  const id = Number(payload?.orderId);
+  if (payload?.type !== 'ORDER_READY' || !Number.isSafeInteger(id) || id <= 0) return;
+  event.waitUntil(
+    (async () => {
+      const tag = `wemarket-order-ready-${id}`;
+      let cache;
+      const marker = new URL(`/__ready-notification/${id}`, self.location.origin).href;
+      try {
+        cache = await caches.open('wemarket-order-ready-v1');
+        if (await cache.match(marker)) return;
+      } catch {
+        /* Storage failure must not prevent an alert. */
+      }
+      await self.registration.showNotification('주문이 준비됐어요', {
+        body: '눌러서 주문 진행과 수령 안내를 확인해 주세요.',
+        tag,
+        icon: '/icons/icon.svg',
+        data: { type: 'ORDER_READY', orderId: id },
+      });
+      try {
+        await cache?.put(marker, new Response(String(Date.now())));
+      } catch {
+        /* tag still collapses duplicates */
+      }
+    })()
+  );
+});
 self.addEventListener('notificationclick', (event) => {
   if (event.notification.data?.type !== 'ORDER_READY') return;
   const id = Number(event.notification.data.orderId);
