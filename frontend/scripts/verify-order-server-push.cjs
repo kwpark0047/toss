@@ -23,8 +23,10 @@ const fs = require('node:fs'),
   assert.equal(login.status(), 200);
   const auth = await login.json(),
     token = (auth.data || auth).token;
+  const profile = process.env.QA_PUSH_PROFILE || 'order-push-browser';
+  assert.match(profile, /^[a-z0-9_-]+$/);
   const context = await chromium.launchPersistentContext(
-    path.join(root, '.tmp/order-completion-sandbox/order-push-browser'),
+    path.join(root, '.tmp/order-completion-sandbox', profile),
     {
       channel: 'msedge',
       headless: false,

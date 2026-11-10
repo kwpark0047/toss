@@ -11,14 +11,30 @@ const subscription = {
   toJSON: () => ({ endpoint: 'https://fcm.googleapis.com/fcm/send/test', keys: {} }),
 };
 const manager = { getSubscription: vi.fn(), subscribe: vi.fn() };
+const worker = { postMessage: vi.fn() };
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
   Object.defineProperty(window, 'PushManager', { configurable: true, value: class {} });
   Object.defineProperty(navigator, 'serviceWorker', {
     configurable: true,
-    value: { ready: Promise.resolve({ pushManager: manager }) },
+    value: { ready: Promise.resolve({ pushManager: manager, active: worker }) },
   });
+  vi.stubGlobal(
+    'MessageChannel',
+    class {
+      constructor() {
+        this.port1 = { onmessage: null, close() {} };
+        this.port2 = {
+          close() {},
+          postMessage: (data) => queueMicrotask(() => this.port1.onmessage?.({ data })),
+        };
+      }
+    }
+  );
+  worker.postMessage.mockImplementation((_message, ports) =>
+    ports[0].postMessage({ orderPushReady: true })
+  );
   manager.getSubscription.mockResolvedValue(null);
   manager.subscribe.mockResolvedValue(subscription);
   api.get.mockResolvedValue({ data: { enabled: true, publicKey: 'public-key' } });
@@ -63,4 +79,20 @@ it('server push subscription suppresses a second foreground native notification'
   localStorage.setItem('wm_order_server_push:4', 'true');
   setReadyNotificationEnabled(true);
   expect(await showOrderReadyNotification({ id: 4 })).toBe(false);
+});
+it('old worker without push support cannot register a server subscription', async () => {
+  vi.useFakeTimers();
+  worker.postMessage.mockImplementation(() => {});
+  try {
+    const assertion = expect(enableServerPush({ id: 4 })).rejects.toMatchObject({
+      code: 'WORKER_UPDATE_REQUIRED',
+    });
+    await vi.advanceTimersByTimeAsync(3000);
+    await assertion;
+    expect(manager.subscribe).not.toHaveBeenCalled();
+    expect(api.post).not.toHaveBeenCalled();
+    expect(serverPushEnabled(4)).toBe(false);
+  } finally {
+    vi.useRealTimers();
+  }
 });

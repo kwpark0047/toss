@@ -82,8 +82,16 @@ export default function RecentOrderBanner() {
         setPermissionMessage(
           '브라우저 알림이 차단돼 있어요. 화면 알림은 계속 제공됩니다. 브라우저 설정에서 알림을 허용해 주세요.'
         );
-    } catch {
-      setPermissionMessage('알림을 켜지 못했어요. 화면에서 준비 완료를 안내해 드릴게요.');
+    } catch (error) {
+      if (Notification.permission === 'granted') {
+        setReadyNotificationEnabled(true);
+        setEnabled(true);
+      }
+      setPermissionMessage(
+        error.code === 'WORKER_UPDATE_REQUIRED'
+          ? '새 버전을 적용하거나 페이지를 새로고침한 뒤 다시 켜 주세요. 화면 알림은 계속 제공됩니다.'
+          : '알림을 켜지 못했어요. 화면에서 준비 완료를 안내해 드릴게요.'
+      );
     } finally {
       setRequesting(false);
     }

@@ -177,6 +177,10 @@ async function syncOfflineOrdersWithBackoff() {
 }
 
 // Web Push wakes this worker even when the customer page has been closed.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'ORDER_PUSH_READY')
+    event.ports?.[0]?.postMessage({ orderPushReady: true });
+});
 self.addEventListener('push', (event) => {
   let payload;
   try {
