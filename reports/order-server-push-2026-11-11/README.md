@@ -20,3 +20,5 @@
 재실행: 테스트 fixture와 전용 VAPID 키를 준비한 뒤 `node frontend/scripts/verify-order-server-push.cjs`. fixture·키·브라우저 프로필은 git 제외 경로에 보관한다.
 
 PWA 호환성 보완: 구독 전에 활성 서비스워커가 ORDER_PUSH_READY 프로토콜에 응답하는지 확인한다. 이전 워커면 서버 구독을 등록하지 않고 업데이트를 안내하며 페이지 알림을 유지한다. 새 워커를 사용한 실제 외부 푸시 재검증은 results.json에 기록했다.
+
+운영 복구 보완: 실제 Render 빌드 명령에서 마이그레이션 누락을 확인해, 이번 추가 테이블 SQL과 Prisma 적용 이력을 별도 검증 후 반영한다. 새 테이블에는 RLS를 켜고 anon/authenticated 권한을 회수해 백엔드만 접근하게 한다. 기존 테이블·고객 데이터는 수정하지 않는다.
