@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import RecentOrderBanner from './customer/RecentOrderBanner';
 import WaitingSection from './customer/WaitingSection';
 import ChatDrawer from './customer/ChatDrawer';
 import { storesAPI, waitingAPI, reviewsAPI } from '../api';
@@ -287,6 +288,7 @@ const StoreSearch = () => {
 
       {/* 메인 콘텐츠 */}
       <main className={`relative overflow-x-hidden ${viewMode === 'map' ? 'h-[calc(100vh-190px)]' : 'max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-8 sm:py-12 min-h-screen pb-28 sm:pb-16'}`}>
+        <RecentOrderBanner />
         <AnimatePresence mode="wait">
           {loading ? (
             <motion.div
