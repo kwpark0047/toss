@@ -10,7 +10,7 @@
 - 고객 페이지를 전부 닫은 후 준비 완료로 변경, 실제 외부 푸시 수신 확인.
 - 수신된 Notification의 notificationclick 이벤트를 재현한 뒤 실제 clients.navigate로 주문 화면 이동.
 - 새 페이지가 저장된 고객 이력 capability로 해당 주문의 준비 완료를 확인.
-- 서버 단위 테스트 15건, 프론트 주문/푸시 테스트 19건, 타입 검사·lint·빌드·Prisma 검증 통과.
+- 서버 단위 테스트 15건, 프론트 주문/푸시 테스트 20건, 타입 검사·lint·빌드·Prisma 검증 통과.
 - 상세 수치와 증거: results.json, subscription-mobile-390.png, notification-click-mobile-390.png.
 
 검증 경계: Windows Edge의 모바일 뷰포트 검증이며 물리 Android/iPhone 기기 시험은 아니다. OS 알림 센터가 자동화 도구에 노출되지 않아 OS 알림의 실제 클릭은 확인하지 못했다. 결과의 nativeNotificationClicked=false와 notificationClickEventReplayed=true를 그대로 유지한다. 실제 외부 서버 푸시 수신과 클릭 처리기 재현을 구분한다.
@@ -18,3 +18,7 @@
 운영: WEB_PUSH_PUBLIC_KEY / WEB_PUSH_PRIVATE_KEY / WEB_PUSH_SUBJECT를 Render 서비스 환경에 병합 설정한다. 키와 구독 원문을 커밋·로그에 남기지 않는다. 개인키는 구독 암호화에도 사용하므로 임의로 교체하지 않는다. 교체 시 기존 구독을 해제하고 다시 동의받아야 한다. iPhone/iPad는 홈 화면에 추가한 웹 앱에서 알림을 허용해야 하며, OS의 알림 허용 및 브라우저 백그라운드 동작 설정에 따라 수신이 달라질 수 있다.
 
 재실행: 테스트 fixture와 전용 VAPID 키를 준비한 뒤 `node frontend/scripts/verify-order-server-push.cjs`. fixture·키·브라우저 프로필은 git 제외 경로에 보관한다.
+
+PWA 호환성 보완: 구독 전에 활성 서비스워커가 ORDER_PUSH_READY 프로토콜에 응답하는지 확인한다. 이전 워커면 서버 구독을 등록하지 않고 업데이트를 안내하며 페이지 알림을 유지한다. 새 워커를 사용한 실제 외부 푸시 재검증은 results.json에 기록했다.
+
+운영 복구 보완: 실제 Render 빌드 명령에서 마이그레이션 누락을 확인해, 이번 추가 테이블 SQL과 Prisma 적용 이력을 별도 검증 후 반영한다. 새 테이블에는 RLS를 켜고 anon/authenticated 권한을 회수해 백엔드만 접근하게 한다. 기존 테이블·고객 데이터는 수정하지 않는다.
