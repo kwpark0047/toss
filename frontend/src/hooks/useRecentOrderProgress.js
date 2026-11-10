@@ -10,7 +10,11 @@ export default function useRecentOrderProgress() {
         sessionStorage.getItem('wm_recent_order') || localStorage.getItem('wm_recent_order_ref')
       );
       const requestedId = Number(new URLSearchParams(window.location.search).get('orderId'));
-      if (Number.isSafeInteger(requestedId) && requestedId > 0 && requestedId !== Number(value?.id))
+      if (
+        Number.isSafeInteger(requestedId) &&
+        requestedId > 0 &&
+        (requestedId !== Number(value?.id) || Date.now() - value?.savedAt >= 86400000)
+      )
         return { id: requestedId };
       return value?.id && value?.store_id && Date.now() - value.savedAt < 86400000 ? value : null;
     } catch {

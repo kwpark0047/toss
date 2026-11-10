@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+router.use(require('./orderPush'));
 const orderController = require('../controllers/orderController');
 const authMiddleware = require('../middleware/auth');
 const { checkStorePermission, checkStorePermissionForObject } = require('../middleware/storeAuth');

@@ -1,3 +1,4 @@
+import { serverPushEnabled } from './orderServerPush';
 const preferenceKey = 'wm_order_ready_notifications';
 const delivering = new Set();
 export const readyNotificationEnabled = () => {
@@ -15,6 +16,7 @@ export function setReadyNotificationEnabled(value) {
   }
 }
 export async function showOrderReadyNotification(order) {
+  if (serverPushEnabled(order.id)) return false;
   if (
     !readyNotificationEnabled() ||
     typeof Notification === 'undefined' ||

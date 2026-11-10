@@ -114,6 +114,7 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "tsx": "^4.23.13",
+    "web-push": "^3.6.7",
     "winston": "^3.19.0",
     "zod": "^4.5.4"
   },

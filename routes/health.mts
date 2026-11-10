@@ -189,6 +189,19 @@ router.get('/deep', async (req, res) => {
   // 4. 운영 필수 설정 — 비밀값은 노출하지 않고 설정 여부만 점검한다.
   const operationalConfig = buildOperationalConfigCheck();
   checks.operationalConfig = operationalConfig;
+  if (process.env.WEB_PUSH_PUBLIC_KEY && process.env.WEB_PUSH_PRIVATE_KEY) {
+    try {
+      const rows = await prismaClient.$queryRaw`SELECT count(*)::int AS n FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'order_push_subscriptions'
+        AND column_name IN ('order_id','encrypted_payload','sent_at','attempts','locked_until','expires_at')`;
+      const schemaReady = rows[0]?.n === 6;
+      checks.orderWebPush = { status: schemaReady ? 'ok' : 'error', configured: true, schemaReady };
+      if (!schemaReady) overallOk = false;
+    } catch {
+      checks.orderWebPush = { status: 'error', configured: true, schemaReady: false };
+      overallOk = false;
+    }
+  }
   if (process.env.NODE_ENV === 'production' && operationalConfig.status !== 'ok') {
     overallOk = false;
   }

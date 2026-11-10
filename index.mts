@@ -13,6 +13,7 @@ if (!Number.isInteger(PORT) || PORT < 0 || PORT > 65535) {
     throw new Error('PORT must be an integer between 0 and 65535');
 }
 const stopBilling = startBillingScheduler();
+const stopOrderPush = require('./services/OrderWebPushService.js').start();
 const stopWebhook = process.env.WEBHOOK_RETRY_ENABLED === 'true' && process.env.NODE_ENV !== 'test'
     ? require('./services/webhookDispatcher.js').startRetryScheduler()
     : () => {};
@@ -31,7 +32,7 @@ let stopping = false;
 function shutdown() {
     if (stopping) return;
     stopping = true;
-    const drains = Promise.all([stopBilling(), stopWebhook()]);
+    const drains = Promise.all([stopBilling(), stopWebhook(), stopOrderPush()]);
     const timeout = setTimeout(() => process.exit(1), 30_000);
     timeout.unref();
     httpServer.closeIdleConnections();
