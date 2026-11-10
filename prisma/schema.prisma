@@ -188,7 +188,7 @@ model order_push_subscriptions {
   enabled           Boolean  @default(true)
   last_error        String?   @db.VarChar(32)
   created_at        DateTime  @default(now())
-  orders            orders    @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  orders            orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([order_id, endpoint_hash])
   @@index([enabled, next_attempt_at])
