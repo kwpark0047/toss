@@ -1,0 +1,12 @@
+{
+  "orderId": 9,
+  "scope": "Isolated QA snapshot before worker-readiness follow-up; no production customer data",
+  "checks": [
+    {
+      "status": "ready",
+      "payment_status": "pending",
+      "no_name": true,
+      "no_phone": true
+    }
+  ]
+}

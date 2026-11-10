@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-11-10T18:14:43.780Z",
+  "projectId": "kdisbvhofkyoijnawszp",
+  "scope": "Only order_push_subscriptions schema; no customer rows read or modified",
+  "migrations": [
+    {
+      "name": "20261111030000_order_web_push",
+      "applied": true,
+      "checksumMatches": true
+    },
+    {
+      "name": "20261111040000_order_web_push_rls",
+      "applied": true,
+      "checksumMatches": true
+    }
+  ],
+  "rlsEnabled": true,
+  "anonAccess": false,
+  "authenticatedAccess": false,
+  "columns": 12,
+  "deepHealthStatus": 200,
+  "renderBuildMigrationDrift": "Actual service build omits migrate deploy; these two migrations were applied explicitly and resolved only after SQL verification."
+}
