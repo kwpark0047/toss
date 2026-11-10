@@ -1,3 +1,4 @@
+import { rememberCompletedOrder } from '@/utils/completedOrder';
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -20,6 +21,8 @@ import { requestNotificationPermission } from "@/firebase";
 import { addRecentStore } from "@/utils/recentStores";
 import EmptyState from "@/components/common/EmptyState";
 import { Maximize2 } from "lucide-react";
+
+import OrderCompletion from '@/components/customer/OrderCompletion';
 
 // Components
 import ManagerFeaturedMenus from '@/components/menu/ManagerFeaturedMenus';
@@ -221,6 +224,7 @@ const MenuPage = () => {
   const [isPhoneSheetOpen, setIsPhoneSheetOpen] = useState(false);
   const [showCallSheet, setShowCallSheet] = useState(false);
   const [showChatDrawer, setShowChatDrawer] = useState(false);
+  const [completionOrder, setCompletionOrder] = useState(null);
   const [currentOrderId, setCurrentOrderId] = useState(null);
   const [currentOrderCapability, setCurrentOrderCapability] = useState(null);
   const [currentOrderAmount, setCurrentOrderAmount] = useState(0);
@@ -624,7 +628,14 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       setCurrentOrderId(createdOrderId);
       setCurrentOrderCapability(orderData_.order_capability);
       setCurrentOrderAmount(Number(orderData_.total_amount ?? totalPrice));
-      setIsOrderStatusOpen(true);
+      const receipt = { ...orderData_, store_id: storeId, store_name: profile?.store_name, payment_method: paymentMethod };
+      // 승인 후 서버의 최종 주문 상태·가격을 다시 읽는다. 조회 실패 시 생성 응답을 유지한다.
+      try {
+        const refreshed = await ordersAPI.getById(createdOrderId, orderData_.order_capability);
+        Object.assign(receipt, refreshed?.data || refreshed);
+      } catch { /* 생성 응답으로 확인 화면을 제공한다. */ }
+      rememberCompletedOrder(receipt, orderData_.order_capability);
+      setCompletionOrder(receipt);
     } catch (err) {
       // 영업시간·매장 반경·품절 등 서버가 알려준 이유를 그대로 보여준다
       const reason = err?.response?.data?.message || err?.response?.data?.error;
@@ -823,6 +834,14 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 
       {splitSession && !isSplitSheetOpen && <button type="button" onClick={() => setIsSplitSheetOpen(true)} className="fixed bottom-24 left-1/2 z-40 -translate-x-1/2 rounded-full bg-blue-700 px-5 py-3 text-sm font-black text-white shadow-xl">분할 결제 상태 보기</button>}
       <SplitPaymentSheet isOpen={isSplitSheetOpen} onClose={() => setIsSplitSheetOpen(false)} session={splitSession} />
+
+      {completionOrder && <div className="oc-overlay"><div>
+        <OrderCompletion order={completionOrder} storeName={profile?.store_name}
+          paid={completionOrder.payment_status === 'paid'}>
+          <button className="oc-secondary" onClick={() => { setCompletionOrder(null); setIsOrderStatusOpen(true); }}>현재 주문 진행 자세히 보기</button>
+          <button className="oc-secondary" onClick={() => setCompletionOrder(null)}>메뉴로 돌아가기</button>
+        </OrderCompletion>
+      </div></div>}
 
       {/* Order Status Modal */}
       {storeId && <OrderStatusModal isOpen={isOrderStatusOpen} onClose={handleCloseOrderStatus} orderId={currentOrderId} capability={currentOrderCapability} storeId={storeId} tableNumber={tableNumber} onWriteReview={handleWriteReview} />}

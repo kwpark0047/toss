@@ -1,7 +1,9 @@
+import { rememberCompletedOrder } from '../utils/completedOrder';
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { CheckCircle2, Loader2, Sparkles, ShoppingBag, ArrowRight, Bell, Smartphone, Share, Info } from 'lucide-react';
-import { paymentsAPI } from '../api';
+import { Loader2, ShoppingBag, ArrowRight, Bell, Smartphone, Share, Info } from 'lucide-react';
+import { paymentsAPI, ordersAPI } from '../api';
+import OrderCompletion from '../components/customer/OrderCompletion';
 import { requestNotificationPermission } from '../firebase';
 import { toast } from 'react-toastify';
 import { useSystemDark } from '@/hooks/useSystemDark';
@@ -70,6 +72,16 @@ export default function PaymentSuccess() {
       return;
     }
 
+    // 완료 화면 재방문은 승인 API를 다시 호출하지 않는다. 이 캐시는 표시 용도로만 사용한다.
+    try {
+      const cached = JSON.parse(sessionStorage.getItem('wm_completed_payment:' + paymentId));
+      if (cached?.providerOrderId === orderId && Date.now() - cached.savedAt < 86400000) {
+        setPaymentResult(cached.receipt);
+        setStatus('success');
+        return;
+      }
+    } catch { /* 정상 결제 세션 확인으로 진행 */ }
+
     // 위조 콜백 차단: 결제 시작 시 저장한 pending 세션이 일치해야만 승인을 진행한다.
     const pendingRaw = sessionStorage.getItem(`wm_pending_payment:${paymentId}`);
     if (!pendingRaw) {
@@ -87,6 +99,12 @@ export default function PaymentSuccess() {
       return;
     }
 
+    if (String(pending.paymentId) !== String(paymentId) || pending.providerOrderId !== orderId || Number(pending.amount) !== Number(amount)) {
+      setStatus('error');
+      setErrorMsg('결제 요청 정보가 일치하지 않습니다. 주문 내역을 확인해 주세요.');
+      return;
+    }
+
     const capturePayment = async () => {
       try {
         const data = await paymentsAPI.confirm(
@@ -100,11 +118,21 @@ export default function PaymentSuccess() {
           pending.capability || undefined
         );
 
-        // 승인 후 pending 세션 정리 (재사용/위조 방지)
-        sessionStorage.removeItem(`wm_pending_payment:${paymentId}`);
 
         if (data && data.success) {
-          setPaymentResult(data);
+          let order = data.order || {};
+          try {
+            if (!pending.orderId || !pending.capability) throw new Error('주문 조회 정보 없음');
+            const response = await ordersAPI.getById(pending.orderId, pending.capability);
+            order = response?.data || response;
+          } catch { /* 승인 성공과 주문 상세 조회 실패를 구분한다. */ }
+          const receipt = { ...data, order };
+          rememberCompletedOrder(order, pending.capability);
+          try {
+            sessionStorage.setItem('wm_completed_payment:' + paymentId, JSON.stringify({ receipt, providerOrderId: orderId, savedAt: Date.now() }));
+            sessionStorage.removeItem('wm_pending_payment:' + paymentId);
+          } catch { /* 저장 실패는 승인 결과를 변경하지 않는다. */ }
+          setPaymentResult(receipt);
           setStatus('success');
         } else {
           throw new Error(data?.message || '결제 최종 승인에 실패했습니다.');
@@ -164,7 +192,7 @@ export default function PaymentSuccess() {
 
   return (
     <div className={`min-h-screen cust-bg-base text-slate-100 flex flex-col items-center justify-center p-4 ${isDark ? 'dark' : ''}`}>
-      <div className="w-full max-w-md cust-bg-card cust-border rounded-[32px] p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+      <div className={`w-full max-w-md cust-bg-card cust-border rounded-[32px] ${status === 'success' ? '' : 'p-6 sm:p-8'} shadow-2xl relative overflow-hidden`}>
         {/* 장식용 글로우 배경 */}
         <div className="absolute -top-12 -left-12 w-24 h-24 bg-orange-500/10 rounded-full blur-xl pointer-events-none" />
         <div className="absolute -bottom-12 -right-12 w-24 h-24 bg-orange-500/10 rounded-full blur-xl pointer-events-none" />
@@ -186,40 +214,9 @@ export default function PaymentSuccess() {
 
         {status === 'success' && (
           <div className="space-y-6">
-            <div className="flex flex-col items-center justify-center text-center space-y-3">
-              <div className="relative">
-                <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center animate-bounce">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-                </div>
-                <div className="absolute -top-1 -right-1">
-                  <Sparkles className="w-4 h-4 text-emerald-300 animate-pulse" />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <h1 className="text-xl font-bold cust-text-main">결제가 완료되었습니다!</h1>
-                <p className="text-xs cust-text-sub">주문이 성공적으로 접수되어 주방으로 전송되었습니다.</p>
-              </div>
-            </div>
+            <OrderCompletion order={paymentData?.order || {}} payment={paymentData?.payment || {}} pointsEarned={paymentData?.pointsEarned} paid />
 
-            <div className="cust-border-y py-4 space-y-3">
-              <div className="flex justify-between text-xs">
-                <span className="cust-text-sub">주문 번호</span>
-                <span className="font-mono cust-text-main font-semibold">{orderId}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="cust-text-sub">결제 금액</span>
-                <span className="text-orange-400 font-bold font-mono">
-                  {Number(amount).toLocaleString()}원
-                </span>
-              </div>
-              {paymentData?.pointsEarned > 0 && (
-                <div className="flex justify-between text-xs bg-orange-500/5 cust-border p-2.5 rounded-xl">
-                  <span className="text-orange-300 font-medium">적립된 포인트</span>
-                  <span className="text-orange-400 font-bold font-mono">+{paymentData.pointsEarned.toLocaleString()} P</span>
-                </div>
-              )}
-            </div>
-
+            <div className="px-6 pb-6 space-y-6">
             {/* 실시간 픽업/취소 알림 웹 푸시 온보딩 프로모션 카드 */}
             {showPushPrompt && !pushOnboarded && (
               <div className="p-5 rounded-2xl bg-indigo-500/5 cust-border space-y-3">
@@ -315,6 +312,7 @@ export default function PaymentSuccess() {
                 메인 화면으로
                 <ArrowRight className="w-4 h-4" />
               </button>
+            </div>
             </div>
           </div>
         )}
