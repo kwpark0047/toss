@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-11-12T02:22:22.791Z",
+  "productionLabInfoHttpStatus": 404,
+  "productionHomepageContainsLabNotice": false,
+  "productionEntryPointsUnchanged": true,
+  "comparedWithMain": "90cad2fe46088bba47ca42b642817fedbd882534",
+  "productionOrderWrites": 0,
+  "guardsVerified": [
+    "explicit isolated-test flag",
+    "production and hosted environments refused",
+    "non-lab DB environment refused",
+    "Docker excludes lab/private files"
+  ]
+}

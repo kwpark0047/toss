@@ -1,0 +1,47 @@
+{
+  "checkedAt": "2026-11-11T16:28:58.584Z",
+  "scope": "Windows Edge environment preflight; NOT Android/iPhone evidence",
+  "httpsOrigin": "https://councils-butterfly-fuel-scroll.trycloudflare.com",
+  "nativeProviderHost": "wns2-pn1p.notify.windows.com",
+  "allCustomerPagesClosedBeforeReady": true,
+  "realPushReceived": true,
+  "receivedAfterMs": 15471,
+  "orderId": 13,
+  "orderNumber": "20261112-8555",
+  "paymentStatus": "pending",
+  "customerName": null,
+  "customerPhone": null,
+  "cardProviderRequests": 0,
+  "readyChange": {
+    "orderId": 13,
+    "number": "20261112-8555",
+    "amount": 10000,
+    "status": "ready",
+    "paymentStatus": "pending",
+    "readyAt": "2026-11-11T16:28:45.064Z"
+  },
+  "actualNotificationClicked": false,
+  "orderPageNavigation": "Direct test URL preflight, not notification activation",
+  "sameOrderReadyVerified": true,
+  "liveSocketBridgeVerified": true,
+  "blockedPublicEndpoints": [
+    {
+      "path": "/api/auth/login",
+      "status": 403
+    },
+    {
+      "path": "/api/_devops",
+      "status": 403
+    },
+    {
+      "path": "/api/orders/store/1",
+      "status": 403
+    },
+    {
+      "path": "/api/payments/confirm",
+      "status": 403
+    }
+  ],
+  "personalDataProbeRejected": true,
+  "pageErrors": []
+}

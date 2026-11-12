@@ -68,6 +68,11 @@ jobs:
       - name: SaaS Financial Regression Tests
         run: npm run test:saas
 
+      - name: Isolated mobile push lab policy and production boundary
+        run: |
+          node scripts/test-mobile-push-lab-policy.cjs
+          node scripts/test-mobile-push-lab-isolation.cjs
+
       - name: Backend Type Check
         run: npm run typecheck:backend
 

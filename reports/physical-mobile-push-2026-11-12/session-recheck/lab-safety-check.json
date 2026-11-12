@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-11-11T16:57:04.097Z",
+  "labInfo": {
+    "testOnly": true,
+    "ready": true,
+    "storeId": 1,
+    "amount": 10000,
+    "expiresAt": "2026-11-11T20:50:32.576Z",
+    "cardsBlocked": true,
+    "personalDataBlocked": true,
+    "sourceCommit": "8eff7c18318676048736ad914aa3fad91470536e"
+  },
+  "syntheticOrderCheck": [
+    {
+      "id": 14,
+      "order_number": "20261112-3968",
+      "status": "ready",
+      "total_amount": 10000,
+      "payment_status": "pending",
+      "no_customer_name": true,
+      "no_customer_phone": true,
+      "payments": [
+        {
+          "method": "CASH",
+          "status": "READY",
+          "amount": 10000
+        }
+      ]
+    }
+  ]
+}

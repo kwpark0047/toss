@@ -1,0 +1,53 @@
+{
+  "checkedAt": "2026-11-11T17:13:34.167Z",
+  "scope": "Windows Edge environment preflight; NOT Android/iPhone evidence",
+  "httpsOrigin": "https://parade-cotton-starsmerchant-cost.trycloudflare.com",
+  "nativeProviderHost": "wns2-pn1p.notify.windows.com",
+  "allCustomerPagesClosedBeforeReady": true,
+  "realPushReceived": true,
+  "receivedAfterMs": 11249,
+  "orderId": 17,
+  "orderNumber": "20261112-4515",
+  "paymentStatus": "pending",
+  "customerName": null,
+  "customerPhone": null,
+  "cardProviderRequests": 0,
+  "autoReadyAfterMs": 30000,
+  "pagesClosedAt": "2026-11-11T17:12:56.118Z",
+  "readyChange": {
+    "id": 17,
+    "number": "20261112-4515",
+    "amount": 10000,
+    "paymentStatus": "pending",
+    "createdAt": "2026-11-11T17:12:51.327Z",
+    "autoReadyAt": "2026-11-11T17:13:21.327Z",
+    "autoReadyStatus": "ready",
+    "autoReadyTriggeredAt": "2026-11-11T17:13:21.336Z",
+    "autoReadyFinishedAt": "2026-11-11T17:13:22.148Z"
+  },
+  "manualReadyCommandUsed": false,
+  "actualNotificationClicked": false,
+  "orderPageNavigation": "Direct test URL preflight, not notification activation",
+  "sameOrderReadyVerified": true,
+  "liveSocketBridgeVerified": true,
+  "blockedPublicEndpoints": [
+    {
+      "path": "/api/auth/login",
+      "status": 403
+    },
+    {
+      "path": "/api/_devops",
+      "status": 403
+    },
+    {
+      "path": "/api/orders/store/1",
+      "status": 403
+    },
+    {
+      "path": "/api/payments/confirm",
+      "status": 403
+    }
+  ],
+  "personalDataProbeRejected": true,
+  "pageErrors": []
+}
