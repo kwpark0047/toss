@@ -1,4 +1,11 @@
 {
+  "chat": {
+    "manager_title": "매장 문의",
+    "live_support": "실시간 상담",
+    "ask_manager": "매장에 궁금한 점을 물어보세요",
+    "chat_examples": "메뉴, 주문, 이용 방법을 문의해 주세요.",
+    "input_placeholder": "메시지를 입력해 주세요"
+  },
   "common": {
     "loading": "로딩 중...",
     "error": "오류가 발생했습니다",
@@ -555,11 +562,7 @@
         "name": "Enterprise",
         "price": "₩50,000",
         "period": "/월",
-        "features": [
-          "메뉴·직원·월 주문 수 무제한",
-          "API 연동 지원",
-          "맞춤형 리포트"
-        ],
+        "features": ["메뉴·직원·월 주문 수 무제한", "API 연동 지원", "맞춤형 리포트"],
         "cta": "문의하기"
       }
     },
