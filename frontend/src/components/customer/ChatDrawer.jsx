@@ -127,10 +127,10 @@ const ChatDrawer = ({ isOpen, onClose, store, _table, customerInfo }) => {
                                 <ShieldCheck size={20} />
                             </div>
                             <div>
-                                <h3 className="font-black text-slate-900 tracking-tight">{t('chat.manager_title', { name: store?.name })}</h3>
+                                <h3 className="font-black text-slate-900 tracking-tight">{t('chat.manager_title', { name: store?.name, defaultValue: '매장 문의' })}</h3>
                                 <div className="flex items-center gap-1.5">
                                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('chat.live_support')}</span>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('chat.live_support', { defaultValue: '실시간 상담' })}</span>
                                 </div>
                             </div>
                         </div>
@@ -157,8 +157,8 @@ const ChatDrawer = ({ isOpen, onClose, store, _table, customerInfo }) => {
                                 <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm">
                                     <Sparkles className="text-blue-500" size={24} />
                                 </div>
-                                <p className="text-slate-500 font-medium text-sm">{t('chat.ask_manager')}</p>
-                                <p className="text-slate-400 text-[11px] mt-1 font-bold italic">{t('chat.chat_examples')}</p>
+                                <p className="text-slate-500 font-medium text-sm">{t('chat.ask_manager', { defaultValue: '매장에 궁금한 점을 물어보세요' })}</p>
+                                <p className="text-slate-400 text-[11px] mt-1 font-bold italic">{t('chat.chat_examples', { defaultValue: '메뉴, 주문, 이용 방법을 문의해 주세요.' })}</p>
                             </div>
                         ) : (
                             messages.map((msg, idx) => {
@@ -204,7 +204,7 @@ const ChatDrawer = ({ isOpen, onClose, store, _table, customerInfo }) => {
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
-                                    placeholder={t('chat.input_placeholder')}
+                                    placeholder={t('chat.input_placeholder', { defaultValue: '메시지를 입력해 주세요' })}
                                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 text-sm outline-none focus:bg-white focus:border-blue-600/30 focus:ring-4 focus:ring-blue-600/5 transition-all"
                                 />
                                 <motion.button
