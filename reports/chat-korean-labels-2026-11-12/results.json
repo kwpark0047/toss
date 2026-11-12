@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-11-12T09:29:54.301Z",
+  "scope": "Rendered built customer chat; isolated test API; no messages sent; external Google Fonts disabled for deterministic rendering",
+  "results": [
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "koreanTitle": "매장 문의",
+      "allFiveLabelsResolved": true,
+      "rawChatKeysVisible": false,
+      "actualMessagesSent": 0
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "koreanTitle": "매장 문의",
+      "allFiveLabelsResolved": true,
+      "rawChatKeysVisible": false,
+      "actualMessagesSent": 0
+    }
+  ]
+}
