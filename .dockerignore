@@ -64,3 +64,12 @@ prisma/*.db-journal
 # Misc
 .agents/
 .omo/
+
+# Disposable mobile push lab: never package private fixtures or lab launchers.
+.tmp/
+.codex-tmp/
+scripts/mobile-push-lab*.cjs
+scripts/prepare-mobile-push-lab.cjs
+scripts/test-mobile-push-lab*.cjs
+scripts/verify-mobile-push-lab.cjs
+reports/physical-mobile-push-*/

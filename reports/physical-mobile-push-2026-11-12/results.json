@@ -1,0 +1,74 @@
+{
+  "status": "AUTO_READY_LAB_VERIFIED_PHYSICAL_DEVICE_TEST_PENDING",
+  "verificationDateAsiaSeoul": "2026-11-12",
+  "scope": "Isolated test store and synthetic account only",
+  "productionCustomerOrdersAccessed": false,
+  "testOrdersCreatedThisRun": true,
+  "cardChargesInitiatedThisRun": false,
+  "lab": {
+    "url": "https://parade-cotton-starsmerchant-cost.trycloudflare.com/lab",
+    "expiresAt": "2026-11-11T21:08:54.104Z",
+    "expiresAtAsiaSeoul": "2026-11-12T06:08:54+09:00",
+    "environmentPreflight": "auto-ready-preflight/results.json",
+    "environmentPreflightStatus": "PASS_WINDOWS_EDGE_ONLY",
+    "paymentMode": "cash request READY; order pending; no PSP charge",
+    "safetyCheck": "auto-ready-preflight/lab-safety-check.json",
+    "syntheticOrderId": 17,
+    "syntheticOrderNumber": "20261112-4515",
+    "autoReadyAfterMs": 30000,
+    "manualReadyCommandRequired": false,
+    "verifiedAt": "2026-11-11T17:13:34.167Z"
+  },
+  "devices": [
+    {
+      "platform": "Android",
+      "status": "BLOCKED_ONE_MINUTE_SESSION_ENDED",
+      "model": "Samsung Galaxy S24",
+      "osVersion": "14.0 as displayed",
+      "browser": "Chrome; exact version not collected",
+      "realDeviceConnected": true,
+      "testPageLoaded": false,
+      "testOrderCreatedOnDevice": false,
+      "nativePushReceived": null,
+      "actualNotificationClicked": null,
+      "sameOrderReadyVerified": null,
+      "evidence": [
+        "session-recheck/android-device-list.png",
+        "session-recheck/android-session-ended.png"
+      ]
+    },
+    {
+      "platform": "iPhone",
+      "status": "BLOCKED_ONE_MINUTE_SESSION_ENDED",
+      "model": "iPhone 15",
+      "osVersion": "17.5 as displayed in session title",
+      "browser": "Safari; exact version not collected",
+      "realDeviceConnected": true,
+      "testPageLoaded": false,
+      "testOrderCreatedOnDevice": false,
+      "nativePushReceived": null,
+      "actualNotificationClicked": null,
+      "sameOrderReadyVerified": null,
+      "evidence": [
+        "session-recheck/iphone-session-1minute.png",
+        "session-recheck/iphone-session-ended.png"
+      ]
+    }
+  ],
+  "existingDesktopEmulationEvidenceUsedAsPhysicalDeviceProof": false,
+  "paidUpgradePurchased": false,
+  "checkedAt": "2026-11-11T16:57:59.814Z",
+  "userConfirmedOnlyOneMinuteTrial": true,
+  "report": "session-recheck/REPORT.md",
+  "realDeviceE2EPassed": false,
+  "ownDeviceAlternative": {
+    "guide": "OWN_DEVICE_GUIDE.md",
+    "qr": "own-device-test-qr.png",
+    "url": "https://parade-cotton-starsmerchant-cost.trycloudflare.com/lab",
+    "verifiedHttpsAt": "2026-11-11T17:12:03.652Z",
+    "expiresAt": "2026-11-11T21:08:54.104Z",
+    "status": "READY_PHONE_ONLY_30_SECOND_AUTO_READY",
+    "physicalDevicePushPassed": false,
+    "manualReadyCommandRequired": false
+  }
+}
