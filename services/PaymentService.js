@@ -35,6 +35,15 @@ class PaymentTransitionConflictError extends AppError {
   }
 }
 
+// PG 승인 직후 장부 반영 시점에 주문이 이미 취소된 경우 — 승인분을 자동 취소한다.
+class OrderCancelledDuringPaymentError extends PaymentTransitionConflictError {
+  constructor(orderNumber, paymentId) {
+    super(orderNumber, paymentId);
+    this.message = '취소된 주문이라 결제를 자동으로 취소했습니다.';
+    this.name = 'OrderCancelledDuringPaymentError';
+  }
+}
+
 /**
  * [PaymentService]
  * 결제 승인/취소 오케스트레이션을 담당합니다.
@@ -295,6 +304,8 @@ class PaymentService {
     }
     if (!orderData) throw new AppError('주문 정보를 찾을 수 없습니다.', 404);
     if (donePayment) return { requested, order: orderData, donePayment, alreadyDone: true };
+    // PG 승인 전에 취소된 주문을 막아 고객 카드가 청구되지 않게 한다.
+    if (orderData.status === 'cancelled') throw new AppError('취소된 주문은 결제할 수 없습니다.', 409);
 
     const paid = await prisma.payments.aggregate({
       where: { order_id: orderData.id, status: 'DONE' },
@@ -368,6 +379,9 @@ class PaymentService {
           where: { id: amountGuard.order.id },
         });
         if (!orderData) throw new Error(`주문번호(${orderIdString})를 찾을 수 없습니다.`);
+        if (orderData.status === 'cancelled') {
+          throw new OrderCancelledDuringPaymentError(orderIdString, amountGuard.pendingPayment.id);
+        }
 
         const pendingPayment = await tx.payments.findFirst({
           where: { id: amountGuard.pendingPayment.id, order_id: orderData.id, status: 'READY' },
@@ -583,7 +597,9 @@ class PaymentService {
         try {
           const cancelReason = isAmountMismatch
             ? '승인 금액 불일치 자동 취소'
-            : '중복 결제 승인 자동 취소';
+            : e instanceof OrderCancelledDuringPaymentError
+              ? '취소된 주문 결제 자동 취소'
+              : '중복 결제 승인 자동 취소';
           await require('./PaymentCompensationService').autoCancel(paymentKey, cancelReason);
           autoCanceled = true;
           logger.warn('[PaymentService] 금액 불일치 결제 자동 취소 완료', {
@@ -658,6 +674,7 @@ class PaymentService {
       const order = await prisma.orders.findUnique({ where: { id: parseInt(order_id) } });
       if (!order) throw new AppError('주문 정보를 찾을 수 없습니다.', 404);
       if (order.is_split_payment) throw new AppError('분할 주문은 분할 결제 링크에서 결제해 주세요.', 409);
+      if (order.status === 'cancelled') throw new AppError('취소된 주문은 결제할 수 없습니다.', 409);
       orderNumber = order.order_number;
       const paid = await prisma.payments.aggregate({
         where: { order_id: order.id, status: 'DONE' },

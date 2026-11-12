@@ -3,6 +3,7 @@ const Order = require('../repositories/Order');
 const Coupon = require('../repositories/Coupon');
 const Table = require('../repositories/Table');
 const Product = require('../repositories/Product');
+const OrderPaceSettings = require('../repositories/OrderPaceSettings');
 const notificationService = require('./notificationService');
 const dashboardBroadcastService = require('./DashboardBroadcastService');
 const webhookDispatcher = require('./webhookDispatcher');
@@ -18,6 +19,13 @@ const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
 const OrderChannels = require('../repositories/OrderChannels');
 const DeliveryService = require('./DeliveryService');
 const { orderPlaceLabel } = require('../utils/orderLabel');
+
+// 손님 셀프 취소를 허용하는 결제 상태 (결제 전이거나 결제 실패)
+const SELF_CANCELLABLE_PAYMENT_STATUSES = ['pending', 'failed'];
+// 결제 대기(READY)·완료·부분취소 결제가 있으면 셀프 취소하지 않는다
+const PAYMENT_IN_PROGRESS_STATUSES = ['READY', 'DONE', 'PARTIAL_CANCELED'];
+// 매장 카운터에서 결제하는 수단 (결제 대기 상태에서는 아직 돈이 오가지 않음)
+const COUNTER_PAYMENT_METHODS = ['CASH', 'STORE_CARD'];
 
 // Haversine formula for distance in km
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -86,6 +94,11 @@ class OrderService {
       })
     ) {
       throw new AppError('지금은 영업시간이 아니라 주문할 수 없습니다.', 409);
+    }
+    // 사장님이 바쁨 모드로 주문을 잠시 멈춘 경우 (조회 실패 시에는 막지 않는다)
+    const orderPace = await OrderPaceSettings.findByStoreIdSafe(store_id);
+    if (orderPace.orders_paused) {
+      throw new AppError('주문이 몰려 잠시 주문을 받지 않고 있어요. 잠시 후 다시 시도해 주세요.', 409);
     }
     const rawPhone = phone || customer_phone;
     if (user_coupon_id) {
@@ -510,6 +523,73 @@ class OrderService {
         status: 'cancelled',
         store_id: order.store_id,
       });
+    }
+    return { success: true, message: '주문이 취소되었습니다' };
+  }
+
+  /**
+   * 손님 셀프 취소 (QR 주문 capability 보유자)
+   * 주방이 접수하기 전(pending)이고 결제가 끝나지 않은 일반 주문만 취소한다.
+   * 결제된 주문은 환불이 필요하므로 직원 취소 경로로 안내한다.
+   */
+  async customerCancelOrder(id) {
+    const orderId = parseInt(id);
+    const order = await Order.findById(orderId);
+    if (!order) throw new AppError('주문을 찾을 수 없습니다', 404);
+    if (order.status === 'cancelled') return { success: true, message: '이미 취소된 주문입니다.' };
+    if (order.status !== 'pending') {
+      throw new AppError('주방에서 이미 주문을 확인했어요. 취소는 직원에게 요청해 주세요.', 409);
+    }
+    if (order.is_split_payment) {
+      throw new AppError('분할 결제 주문은 직원에게 취소를 요청해 주세요.', 409);
+    }
+    if (!SELF_CANCELLABLE_PAYMENT_STATUSES.includes(order.payment_status ?? 'pending')) {
+      throw new AppError('결제가 완료된 주문은 환불이 필요해 직원에게 취소를 요청해 주세요.', 409);
+    }
+
+    // 주문 행을 잠근 채로 결제 진행 여부를 확인하고 취소한다 (현금 수납 확인도 같은 행을 잠근다).
+    // 카드·간편결제(PG)·계좌이체가 진행 중이거나 끝난 주문은 승인·입금과 엇갈릴 수 있어 직원 취소로 넘긴다.
+    // 매장에서 낼 현금·매장 카드 결제 대기(READY)는 돈이 오가기 전이므로 함께 취소한다.
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM orders WHERE id = ${orderId} FOR UPDATE`;
+      const activePayments = await tx.payments.findMany({
+        where: { order_id: orderId, status: { in: PAYMENT_IN_PROGRESS_STATUSES } },
+        select: { id: true, status: true, method: true, payment_key: true },
+      });
+      const isCounterPaymentPending = (p) =>
+        p.status === 'READY' &&
+        !p.payment_key &&
+        COUNTER_PAYMENT_METHODS.includes(String(p.method || '').toUpperCase());
+      if (activePayments.some((p) => !isCounterPaymentPending(p))) {
+        throw new AppError('결제가 진행 중이거나 완료된 주문은 직원에게 취소를 요청해 주세요.', 409);
+      }
+      if (activePayments.length > 0) {
+        await tx.payments.updateMany({
+          where: { id: { in: activePayments.map((p) => p.id) }, status: 'READY' },
+          data: { status: 'CANCELED', updated_at: new Date() },
+        });
+      }
+      // 주방 접수와 동시에 눌린 경우를 막기 위해 상태 조건부로 갱신한다.
+      const { count } = await tx.orders.updateMany({
+        where: { id: orderId, status: 'pending', payment_status: { in: SELF_CANCELLABLE_PAYMENT_STATUSES } },
+        data: { status: 'cancelled', updated_at: new Date() },
+      });
+      if (count !== 1) {
+        throw new AppError('주방에서 이미 주문을 확인했어요. 취소는 직원에게 요청해 주세요.', 409);
+      }
+    });
+
+    // pending 단계는 재고를 차감하지 않으므로 재고 복구는 하지 않는다.
+    await this._revertPointsOnCancel(orderId).catch((e) =>
+      logger.error('[Point Revert Error] ' + e.message)
+    );
+    logger.info({ orderId, storeId: order.store_id }, 'order cancelled by customer before kitchen accept');
+
+    if (this.io) {
+      const payload = { order_id: orderId, status: 'cancelled', store_id: order.store_id, cancelled_by: 'customer' };
+      this.io.to(`store - ${order.store_id}`).emit('order-updated', payload);
+      this.io.to(`kitchen - ${order.store_id}`).emit('order-updated', payload);
+      this.io.to(`order - ${orderId}`).emit('order-updated', payload);
     }
     return { success: true, message: '주문이 취소되었습니다' };
   }

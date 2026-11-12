@@ -18,6 +18,7 @@ const mockOrdersController = {
   cancelDispatch: jest.fn(),
   deliveryWebhook: jest.fn(),
   cancelOrder: jest.fn(),
+  customerCancelOrder: jest.fn((req, res) => res.json({ success: true })),
   deleteOrder: jest.fn(),
   getEta: jest.fn((req, res) => res.json({ success: true })),
   returnExchange: jest.fn((req, res) => res.json({ success: true })),
@@ -121,6 +122,28 @@ describe('customer capability route boundaries', () => {
 
     expect(response.status).toBe(200);
     expect(mockOrdersController.getCustomerHistory).toHaveBeenCalled();
+  });
+
+  test('customer self-cancel requires the matching order capability', async () => {
+    const missing = await request(app()).post('/api/orders/10/customer-cancel');
+    expect(missing.status).toBe(403);
+
+    const otherOrder = await request(app())
+      .post('/api/orders/10/customer-cancel')
+      .set('x-order-capability', createOrderCapability({ id: 11, store_id: 3 }));
+    expect(otherOrder.status).toBe(403);
+
+    const loggedInWithoutCapability = await request(app())
+      .post('/api/orders/10/customer-cancel')
+      .set('x-test-role', 'customer');
+    expect(loggedInWithoutCapability.status).toBe(403);
+    expect(mockOrdersController.customerCancelOrder).not.toHaveBeenCalled();
+
+    const owned = await request(app())
+      .post('/api/orders/10/customer-cancel')
+      .set('x-order-capability', createOrderCapability({ id: 10, store_id: 3 }));
+    expect(owned.status).toBe(200);
+    expect(mockOrdersController.customerCancelOrder).toHaveBeenCalledTimes(1);
   });
 
   test('order details accept the matching order capability', async () => {

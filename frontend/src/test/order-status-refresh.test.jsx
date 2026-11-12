@@ -18,3 +18,43 @@ it('refreshes an owned order when the live event was missed',async()=>{
  expect(api.getById).toHaveBeenCalledTimes(2);
  expect(screen.getByText('order_status.messages.confirmed')).toBeInTheDocument();
 });
+it('shows the ETA as soon as the order loads and keeps the 30s refresh despite 5s order polling',async()=>{
+ vi.useFakeTimers();
+ api.getEta.mockReset();
+ api.getEta.mockResolvedValue({data:{etaMinutes:12,activeOrdersAhead:2}});
+ const order={id:1,store_id:1,status:'pending',total_amount:5000,items:[{product_id:3,quantity:1}]};
+ api.getById.mockReset();
+ api.getById.mockImplementation(async()=>({data:{...order}}));
+ await act(async()=>{render(<OrderStatusModal isOpen orderId={1} storeId={1} capability="fixture-owned-order"/>);});
+ expect(api.getEta).toHaveBeenCalledTimes(1);
+ expect(api.getEta).toHaveBeenCalledWith(1,[{product_id:3,quantity:1}]);
+ expect(screen.getByText('order_status.eta_minutes')).toBeInTheDocument();
+ await act(async()=>{await vi.advanceTimersByTimeAsync(30000);});
+ expect(api.getEta).toHaveBeenCalledTimes(2);
+});
+it('lets the customer cancel a pending unpaid order after confirming',async()=>{
+ api.getEta.mockReset();api.getEta.mockResolvedValue({data:null});
+ api.getById.mockReset();
+ api.getById.mockResolvedValue({data:{id:7,store_id:1,status:'pending',payment_status:'pending',method:'cash',total_amount:5000,items:[]}});
+ api.customerCancel=vi.fn(async()=>({success:true}));
+ await act(async()=>{render(<OrderStatusModal isOpen orderId={7} storeId={1} capability="cap-7"/>);});
+ await act(async()=>{screen.getByRole('button',{name:'order_status.cancel_cta'}).click();});
+ await act(async()=>{screen.getByRole('button',{name:'order_status.cancel_submit'}).click();});
+ expect(api.customerCancel).toHaveBeenCalledWith(7,'cap-7');
+ expect(screen.getByText('order_status.cancel_done')).toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:'order_status.cancel_cta'})).toBeNull();
+});
+it('hides self-cancel once the kitchen confirmed or the order was paid',async()=>{
+ api.getEta.mockReset();api.getEta.mockResolvedValue({data:null});
+ api.getById.mockReset();
+ api.getById.mockResolvedValue({data:{id:8,store_id:1,status:'paid',payment_status:'paid',total_amount:5000,items:[]}});
+ await act(async()=>{render(<OrderStatusModal isOpen orderId={8} storeId={1} capability="cap-8"/>);});
+ expect(screen.queryByRole('button',{name:'order_status.cancel_cta'})).toBeNull();
+});
+it('does not offer self-cancel for card or transfer orders',async()=>{
+ api.getEta.mockReset();api.getEta.mockResolvedValue({data:null});
+ api.getById.mockReset();
+ api.getById.mockResolvedValue({data:{id:9,store_id:1,status:'pending',payment_status:'pending',method:'transfer',total_amount:5000,items:[]}});
+ await act(async()=>{render(<OrderStatusModal isOpen orderId={9} storeId={1} capability="cap-9"/>);});
+ expect(screen.queryByRole('button',{name:'order_status.cancel_cta'})).toBeNull();
+});
