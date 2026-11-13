@@ -1,0 +1,39 @@
+name: Keep Render API warm
+
+# Render 무료 플랜은 15분간 요청이 없으면 인스턴스를 내리고, 다음 첫 요청이 콜드 스타트를 떠안는다.
+# 영업 시간대(KST 07:00~23:59)에만 10분마다 /api/health 를 호출해 깨어 있게 한다.
+# - /api/health 는 DB SELECT 1 까지 거치므로 Prisma 커넥션 풀도 함께 데운다.
+# - 무료 플랜 인스턴스 시간(월 750h) 안에 들어오도록 새벽 시간대는 비운다 (약 17h × 31일 ≈ 530h).
+# - GitHub 스케줄은 수 분씩 밀리거나 건너뛸 수 있어 정각을 피한 분(3,13,…)에 돌린다.
+#   한 번 건너뛰어도 프론트의 사전 웨이크업·재시도가 남은 콜드 스타트를 받아낸다.
+on:
+  schedule:
+    # UTC 22:00~14:59 = KST 07:00~23:59
+    - cron: '3,13,23,33,43,53 22,23,0-14 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: keep-warm
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      API_HEALTH_URL: https://wemarket-eiw4.onrender.com/api/health
+    steps:
+      - name: Ping health endpoint
+        run: |
+          # 콜드 상태였다면 기동까지 수십 초가 걸리므로 넉넉히 기다리고 재시도한다.
+          for attempt in 1 2 3; do
+            if curl -fsS --max-time 120 -o /dev/null \
+              -w "attempt ${attempt}: %{http_code} in %{time_total}s\n" \
+              -H 'User-Agent: wemarket-keep-warm' "$API_HEALTH_URL"; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::warning::Render API health check failed after 3 attempts"
