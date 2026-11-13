@@ -1,6 +1,10 @@
 const express = require('express');
 const multer = require('multer');
 const router = express.Router();
+router.get('/test-config', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ success: true, data: require('../utils/testCheckoutConfig').testCheckoutConfig() });
+});
 const authMiddleware = require('../middleware/auth');
 const { optionalAuth } = require('../middleware/auth');
 const paymentController = require('../controllers/paymentController');

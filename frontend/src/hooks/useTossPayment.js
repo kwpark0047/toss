@@ -36,12 +36,32 @@ export function useTossPayment() {
 
   // 토스페이 결제 실행
   const initiateTossPayment = useCallback(
-    async ({ orderId, storeId, totalAmount, pointAmount = 0, tossUserKey, phone, capability }) => {
+    async ({
+      orderId,
+      storeId,
+      totalAmount,
+      pointAmount = 0,
+      tossUserKey,
+      phone,
+      capability,
+      testOnly = false,
+    }) => {
       setLoading(true);
       setError(null);
       setPaymentResult(null);
 
       try {
+        let testClientKey;
+        if (testOnly) {
+          const response = await paymentsAPI.getTestConfig();
+          const config = response?.data || response;
+          if (!config?.enabled || !/^test_ck_.+/.test(config.clientKey || '')) {
+            throw new Error(
+              'Toss 테스트 결제 설정이 없어 카드 테스트를 차단했습니다. 현금 주문을 이용해 주세요.'
+            );
+          }
+          testClientKey = config.clientKey;
+        }
         // 0. 포인트 전액 결제 체크
         if (totalAmount <= 0 && pointAmount > 0) {
           // 토스페이를 거치지 않고 서버에서 포인트 결제로 즉시 처리
@@ -75,7 +95,12 @@ export function useTossPayment() {
         // 2. 토스 앱 SDK 호출 (Web Bridge)
         const appCheckoutPayment =
           typeof window !== 'undefined' ? window.TossApp?.checkoutPayment : undefined;
-        if (isTossApp() && payment.pay_token && typeof appCheckoutPayment === 'function') {
+        if (
+          !testOnly &&
+          isTossApp() &&
+          payment.pay_token &&
+          typeof appCheckoutPayment === 'function'
+        ) {
           try {
             // 사용자가 결제창을 닫거나 취소하는 경우 대비
             const result = await appCheckoutPayment({
@@ -123,7 +148,7 @@ export function useTossPayment() {
           }
 
           // env 미설정 시 서버 결제 설정에서 클라이언트 키를 획득 (테스트 키 fallback 없음)
-          let clientKey = TOSS_CLIENT_KEY;
+          let clientKey = testClientKey || TOSS_CLIENT_KEY;
           if (!clientKey) {
             const { data: config } = await paymentsAPI.getBrandPayConfig();
             clientKey = config?.clientKey;

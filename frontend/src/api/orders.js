@@ -120,6 +120,7 @@ export const paymentsAPI = {
       },
     }),
   getBrandPayConfig: () => api.get('/payments/brandpay/config'),
+  getTestConfig: () => api.get('/payments/test-config'),
   splitRequest: (data, capability) =>
     api.post('/payments/split/request', data, {
       headers: { 'x-order-capability': capability },

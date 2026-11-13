@@ -1,9 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-const api = vi.hoisted(() => ({ prepare: vi.fn(), getBrandPayConfig: vi.fn() }));
+const api = vi.hoisted(() => ({ prepare: vi.fn(), getBrandPayConfig: vi.fn(), getTestConfig: vi.fn() }));
 vi.mock('../api', () => ({ paymentsAPI: api }));
 import { useTossPayment } from '../hooks/useTossPayment';
 describe('Toss ready response contract', () => {
+  it('blocks test checkout before payment preparation when test keys are unavailable', async () => {
+    api.prepare.mockClear();
+    api.getTestConfig.mockResolvedValue({ data: { enabled: false } });
+    const { result } = renderHook(() => useTossPayment());
+    let response;
+    await act(async () => { response = await result.current.initiateTossPayment({ orderId: 4, storeId: 1, totalAmount: 1000, testOnly: true }); });
+    expect(response.success).toBe(false);
+    expect(api.prepare).not.toHaveBeenCalled();
+  });
+  it('uses only the server-confirmed test key for test checkout', async () => {
+    api.getTestConfig.mockResolvedValue({ data: { enabled: true, clientKey: 'test_ck_server_only' } });
+    api.prepare.mockResolvedValue({ payment_id: 9, order_number: 'fixture-test-order' });
+    const { result } = renderHook(() => useTossPayment());
+    await act(async () => { await result.current.initiateTossPayment({ orderId: 4, storeId: 1, totalAmount: 1000, testOnly: true }); });
+    expect(window.TossPayments).toHaveBeenCalledWith('test_ck_server_only');
+  });
   beforeEach(() => { sessionStorage.clear(); api.getBrandPayConfig.mockResolvedValue({data:{clientKey:'test_ck_fixture'}}); window.TossPayments = vi.fn(() => ({requestPayment:vi.fn(async()=>{})})); });
   for (const wrapped of [false,true]) it(`accepts ${wrapped?'wrapped':'actual flat'} ready response`, async()=>{
     const ready={success:true,payment_id:9,order_number:'fixture-order-123'};

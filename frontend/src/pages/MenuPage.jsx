@@ -125,6 +125,7 @@ const MenuPage = () => {
     storeId
   } = useParams();
   const [searchParams] = useSearchParams();
+  const testMenuMode = searchParams.get('testMenus') === '1';
   const navigate = useNavigate();
   // 매장이 받는 주문 유형(매장 식사/포장/배달)과 배달 조건. 실패하면 기존처럼 매장 식사로 주문한다.
   const { data: orderChannels } = useQuery({
@@ -191,6 +192,7 @@ const MenuPage = () => {
   const [isSplitStarting, setIsSplitStarting] = useState(false);
   // 주문 알림 받을 번호 — 저장된 번호로 자동 초기화 (재방문 고객)
   const [notifyPhone, setNotifyPhone] = useState(() => {
+    if (testMenuMode) return '';
     try {
       const d = (localStorage.getItem('wm_customer_phone') || '').replace(/\D/g, '');
       if (d.length === 11) return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
@@ -201,7 +203,7 @@ const MenuPage = () => {
   const [isOrderStatusOpen, setIsOrderStatusOpen] = useState(false);
   const [reviewOrder, setReviewOrder] = useState(null); // 리뷰 작성 대상 주문
   const [isOrdering, setIsOrdering] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState(testMenuMode ? 'cash' : 'card');
   // 테이블 없이 들어온 주문의 주문 방식과 배달 정보
   const orderTypeOptions = useMemo(() => {
     if (tableNumber || !orderChannels?.order_types) return [];
@@ -379,7 +381,7 @@ const {
 
   // Fetch menu items
   const {
-    data: menuItems = [],
+    data: allMenuItems = [],
     isLoading: menuLoading
   } = useQuery({
     queryKey: ["publicMenuItems", storeId],
@@ -395,6 +397,9 @@ const {
     ...coldStartRetry
   });
   const isLoading = profileLoading || menuLoading;
+  const menuItems = useMemo(() => testMenuMode
+    ? allMenuItems.filter(item => item.tags === 'wm-numbered-test-menu-v1').sort((a, b) => a.price - b.price)
+    : allMenuItems, [allMenuItems, testMenuMode]);
   // analytics 호출 제거: authMiddleware 필수 엔드포인트 → 401 → 토큰 갱신 실패 → 로그아웃 유발
   const orderStats = [];
 
@@ -484,6 +489,25 @@ const handleOptionConfirm = useCallback((quantity, selectedOptions, totalPrice) 
   const checkoutAttempt = useRef(null);
 const handleOrder = useCallback(async () => {
     if (!storeId || cart.length === 0) return;
+    if (testMenuMode) {
+      if (notifyPhone || orderType !== 'dine_in' || cart.some(item => item.menuItem.tags !== 'wm-numbered-test-menu-v1')) {
+        toast.error('테스트는 전화번호 없이 테스트 메뉴의 매장 이용 주문으로 진행해 주세요.');
+        return;
+      }
+      if (!['cash', 'card'].includes(paymentMethod)) {
+        toast.error('테스트는 현금 또는 Toss 테스트 카드만 선택해 주세요.');
+        return;
+      }
+      if (paymentMethod === 'card') {
+        try {
+          const response = await paymentsAPI.getTestConfig();
+          if (!(response?.data || response)?.enabled) throw new Error();
+        } catch {
+          toast.error('Toss 테스트 결제 설정을 확인할 수 없어 카드 주문을 차단했습니다.');
+          return;
+        }
+      }
+    }
     if (checkoutAttempt.current?.busy) return;
     if (!menuOrderable) {
       toast.error('최신 메뉴와 재고를 확인할 수 있을 때 주문할 수 있습니다. 장바구니는 유지됩니다.');
@@ -587,6 +611,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 // 토스페이/카드/카카오페이/네이버페이 → 토스 결제 플로우 (리다이렉트)
       if (['card', 'toss', 'kakao', 'naver'].includes(paymentMethod)) {
         const paymentResult = await initiateTossPayment({
+          testOnly: testMenuMode,
           orderId: createdOrderId,
           storeId,
           totalAmount: Number(orderData_.total_amount ?? totalPrice),
@@ -644,7 +669,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsOrdering(false);
     }
-  }, [storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t, orderType, deliveryAddress, deliveryMemo, deliveryQuote, onlinePaymentOnly]);
+  }, [testMenuMode, storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t, orderType, deliveryAddress, deliveryMemo, deliveryQuote, onlinePaymentOnly]);
 
   // 배달 주소·장바구니 금액이 바뀌면 서버에 배달 가능 여부와 배달비를 다시 묻는다.
   useEffect(() => {
@@ -663,6 +688,10 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
   }, [orderType, deliveryAddress, totalPrice, storeId]);
 
   const handleStartSplitPayment = useCallback(async (peopleCount) => {
+    if (testMenuMode) {
+      toast.error('테스트 메뉴는 현금 또는 Toss 테스트 카드의 단일 결제로 확인해 주세요.');
+      return;
+    }
     if (!storeId || !cart.length || !menuOrderable || isSplitStarting) return;
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       toast.error('인터넷 연결 후 분할 주문을 시작해 주세요. 오프라인 주문은 자동 접수되지 않습니다.');
@@ -727,7 +756,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsSplitStarting(false);
     }
-  }, [storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
+  }, [testMenuMode, storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
 
   // Stable callbacks for JSX props (prevents child re-renders from inline closures)
   const handleOpenOrderHistory = useCallback(() => navigate('/order-history'), [navigate]);
@@ -786,6 +815,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
         </div>}
 
       {/* Header */}
+      {testMenuMode && <div role="status" className="border-b border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">테스트 메뉴 · 전화번호 없이 매장 이용으로 주문하세요. 현금은 결제 대기로 접수되며, 카드는 Toss 테스트 설정이 확인된 경우에만 진행합니다.</div>}
       {Object.values(cachedSections).some(Boolean) && <div role="status" className="px-4 py-2 bg-orange-50 text-orange-800 text-xs">저장된 메뉴를 먼저 표시하고 있습니다. 최신 가격과 품절 정보를 확인 중입니다.</div>}
       <MenuHeader storeName={profile?.store_name || t('menu.store_name_default')} tableNumber={tableNumber?.replace(/번$/, '')} onOrderHistoryClick={handleOpenOrderHistory} onCallStaffClick={() => setShowCallSheet(true)} />
 
