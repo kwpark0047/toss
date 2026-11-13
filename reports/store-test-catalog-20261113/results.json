@@ -1,0 +1,75 @@
+{
+  "checkedAt": "2026-11-13T05:35:23.440Z",
+  "stores": [
+    {
+      "storeId": 1,
+      "testMenus": 10,
+      "total": 55000
+    },
+    {
+      "storeId": 2,
+      "testMenus": 10,
+      "total": 55000
+    },
+    {
+      "storeId": 3,
+      "testMenus": 10,
+      "total": 55000
+    },
+    {
+      "storeId": 4,
+      "testMenus": 10,
+      "total": 55000
+    },
+    {
+      "storeId": 5,
+      "testMenus": 10,
+      "total": 55000
+    },
+    {
+      "storeId": 6,
+      "testMenus": 10,
+      "total": 55000
+    },
+    {
+      "storeId": 7,
+      "testMenus": 10,
+      "total": 55000
+    },
+    {
+      "storeId": 8,
+      "testMenus": 10,
+      "total": 55000
+    },
+    {
+      "storeId": 9,
+      "testMenus": 10,
+      "total": 55000
+    },
+    {
+      "storeId": 10,
+      "testMenus": 10,
+      "total": 55000
+    },
+    {
+      "storeId": 11,
+      "testMenus": 10,
+      "total": 55000
+    },
+    {
+      "storeId": 12,
+      "testMenus": 10,
+      "total": 55000
+    },
+    {
+      "storeId": 13,
+      "testMenus": 10,
+      "total": 55000
+    }
+  ],
+  "manifestStartUrl": "/?_wm_cache_bust=1794413847150#locations",
+  "manifestId": "/",
+  "locationsTop": -47.46875,
+  "scope": "Desktop Edge mobile viewport; public menu GET only; no orders or payments created",
+  "pageErrors": []
+}
