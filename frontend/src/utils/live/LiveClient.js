@@ -3,11 +3,12 @@ export class LiveClient {
   constructor({
     issue,
     url,
+    beforeConnect,
     WebSocketClass = WebSocket,
     onEvent = () => {},
     onFallback = () => {},
   }) {
-    Object.assign(this, { issue, url, WebSocketClass, onEvent, onFallback });
+    Object.assign(this, { issue, url, beforeConnect, WebSocketClass, onEvent, onFallback });
     this.generation = 0;
     this.confirmed = new Set();
   }
@@ -23,6 +24,8 @@ export class LiveClient {
     this.starting = (async () => {
       try {
         const session = await this.issue(options, crypto.randomUUID());
+        if (generation !== this.generation) return;
+        if (this.beforeConnect) await this.beforeConnect();
         if (generation !== this.generation) return;
         const socket = new this.WebSocketClass(this.url);
         this.socket = socket;

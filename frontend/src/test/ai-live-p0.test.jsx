@@ -16,6 +16,11 @@ class Socket {
   }
 }
 describe('P0 live client preserves legacy fallback', () => {
+  it('denied microphone preparation never opens a provider websocket', async () => {
+    const ws = vi.fn(function () { throw Error('must not open'); }), fallback = vi.fn();
+    const client = new LiveClient({ issue: async () => ({ sessionId: 's', ticket: 't' }), beforeConnect: async () => { throw Error('NotAllowedError'); }, WebSocketClass: ws, onFallback: fallback });
+    await client.start({}); expect(ws).not.toHaveBeenCalled(); expect(fallback).toHaveBeenCalledTimes(1);
+  });
   it('falls back when issuance is disabled without creating a websocket', async () => {
     const fallback = vi.fn();
     const ws = vi.fn();

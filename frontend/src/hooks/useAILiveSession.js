@@ -40,6 +40,7 @@ export function useAILiveSession({ onFallback, onDraft } = {}) {
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
     const client = new LiveClient({
       url: url.href,
+      beforeConnect: () => audio.start((data) => client.send('audio', { data })),
       issue: async (body, key) => {
         const response = await api.post('/ai/live/session', body, {
           headers: { 'Idempotency-Key': key },
@@ -77,12 +78,6 @@ export function useAILiveSession({ onFallback, onDraft } = {}) {
     });
     engine.current = { client, audio };
     await client.start(options);
-    if (engine.current?.client !== client || client.currentState !== 'LISTENING') return;
-    try {
-      await audio.start((data) => client.send('audio', { data }));
-    } catch {
-      if (engine.current?.client === client) client.fallback();
-    }
   };
   return {
     state,

@@ -52,7 +52,7 @@ npx vitest run src/test/ai-live-p0.test.jsx src/test/VoiceOrderAssistant.test.js
 npm run build
 ```
 
-최종 로컬 결과: P0 정책/PCM/실제 격리 Redis 통합 10개 PASS, 브라우저 공통 엔진/기존 음성 주문/결제 계약 13개 PASS, 기존 VoiceOrderService/AI 컨트롤러/팅커벨 설정/Toss 단위 24개 PASS(총 47개). 백엔드 타입 검사·변경 파일 린트·프런트 빌드도 PASS. 원격 CI 상태는 PR에서 별도 확인한다. 최초 테스트는 모듈 부재로 실패를 확인했고, 이후 Redis fixture의 연결 준비 누락·브라우저 lint 오류를 수정했다. 실제 외부 서비스로 우회해 테스트를 통과시키지 않았다.
+최종 로컬 결과: P0 정책/PCM/실제 격리 Redis 통합 10개 PASS, 브라우저 공통 엔진/기존 음성 주문/결제 계약 14개 PASS, 기존 VoiceOrderService/AI 컨트롤러/팅커벨 설정/Toss 단위 24개 PASS(총 48개). 백엔드 타입 검사·변경 파일 린트·프런트 빌드도 PASS. 원격 CI 상태는 PR에서 별도 확인한다. 최초 테스트는 모듈 부재로 실패를 확인했고, 이후 Redis fixture의 연결 준비 누락·브라우저 lint 오류를 수정했다. 마이크 권한 거부 시 WebSocket을 먼저 열던 순서도 실패 테스트를 확인한 뒤 오디오 준비 후 연결하도록 보강했다. 실제 외부 서비스로 우회해 테스트를 통과시키지 않았다.
 
 ## 남은 범위와 한계
 
