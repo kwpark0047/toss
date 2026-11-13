@@ -4,6 +4,21 @@ const api = vi.hoisted(() => ({ prepare: vi.fn(), getBrandPayConfig: vi.fn(), ge
 vi.mock('../api', () => ({ paymentsAPI: api }));
 import { useTossPayment } from '../hooks/useTossPayment';
 describe('Toss ready response contract', () => {
+  it('uses a full-page checkout on narrow screens and preserves the return session', async () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    const requestPayment = vi.fn(async () => {});
+    window.TossPayments = vi.fn(() => ({ requestPayment }));
+    api.prepare.mockResolvedValue({ payment_id: 9, order_number: 'mobile-order' });
+    try {
+      const { result } = renderHook(() => useTossPayment());
+      await act(async () => { await result.current.initiateTossPayment({ orderId: 4, storeId: 1, totalAmount: 1000, capability: 'fixture-capability' }); });
+      expect(requestPayment).toHaveBeenCalledWith('카드', expect.objectContaining({ windowTarget: 'self', amount: 1000, orderId: 'mobile-order' }));
+      expect(JSON.parse(sessionStorage.getItem('wm_pending_payment:9')).capability).toBe('fixture-capability');
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+    }
+  });
   it('blocks test checkout before payment preparation when test keys are unavailable', async () => {
     api.prepare.mockClear();
     api.getTestConfig.mockResolvedValue({ data: { enabled: false } });
