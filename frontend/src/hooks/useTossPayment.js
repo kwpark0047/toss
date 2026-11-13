@@ -179,6 +179,8 @@ export function useTossPayment() {
           const redirectMetadata = `?payment_id=${payment.payment_id}&phone=${encodeURIComponent(phone || '')}&tossUserKey=${tossUserKey || ''}`;
 
           await tossPayments.requestPayment('카드', {
+            // A desktop user agent in a narrow browser must not open the fixed-width PC iframe.
+            ...(window.innerWidth <= 767 ? { windowTarget: 'self' } : {}),
             amount: totalAmount,
             orderId: payment.order_number,
             orderName: `WeMarket 주문 - ${payment.order_number}`,

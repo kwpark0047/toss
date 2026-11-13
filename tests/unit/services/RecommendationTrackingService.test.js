@@ -16,12 +16,12 @@ jest.mock('../../../config/prisma', () => ({
 }));
 
 jest.mock('../../../repositories/Order', () => ({
-  Order: { findById: jest.fn() },
+  findById: jest.fn(),
 }));
 
 const Repository = require('../../../repositories/RecommendationTracking');
 const prisma = require('../../../config/prisma');
-const { Order } = require('../../../repositories/Order');
+const Order = require('../../../repositories/Order');
 const service = require('../../../services/RecommendationTrackingService');
 
 describe('RecommendationTrackingService', () => {
