@@ -50,6 +50,29 @@ describe('TossAPI mock payment guard', () => {
     expect(result).toEqual(expect.objectContaining({ status: 'DONE', amount: 2000 }));
   });
 
+  test('reports provider API access denial as an operational configuration error without provider IP', async () => {
+    const axios = require('axios');
+    axios.post.mockRejectedValue({
+      response: {
+        status: 403,
+        data: {
+          code: 'API_KEY_ACCESS_DENIED',
+          message: 'API access denied for request IP: 192.0.2.12',
+        },
+      },
+    });
+    const TossAPI = require('../../../utils/toss').default;
+    await expect(
+      TossAPI.confirmPayment('test-payment-key', 'TEST-ORDER', 1000)
+    ).rejects.toMatchObject({
+      statusCode: 503,
+      isOperational: true,
+      code: 'PAYMENT_PROVIDER_ACCESS_DENIED',
+      message:
+        '결제 서버의 접근 설정을 확인해야 합니다. 매장에 문의해 주세요. 중복 결제하지 마세요.',
+    });
+  });
+
   test('sends the provider idempotency key for cancellation', async () => {
     process.env.NODE_ENV = 'production';
 

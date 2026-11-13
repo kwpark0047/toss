@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { get } from './circuitBreaker.js';
 import logger from '../utils/logger.js';
+import { AppError } from './errorHandler.js';
 
 const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY;
 
@@ -118,6 +119,13 @@ const TossAPI = {
         return response.data;
       } catch (error: any) {
         logger.error(sanitizeError(error));
+        if (error.response?.data?.code === 'API_KEY_ACCESS_DENIED') {
+          throw new AppError(
+            '결제 서버의 접근 설정을 확인해야 합니다. 매장에 문의해 주세요. 중복 결제하지 마세요.',
+            503,
+            'PAYMENT_PROVIDER_ACCESS_DENIED'
+          );
+        }
         throw Object.assign(
           new Error(error.response?.data?.message || '결제 승인 중 오류가 발생했습니다.'),
           {
