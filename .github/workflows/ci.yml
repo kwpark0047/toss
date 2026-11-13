@@ -88,6 +88,30 @@ jobs:
       - name: JSX Reference Validation
         run: node scripts/validate-jsx-references.js
 
+  ai-live-p0-tests:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: [6379:6379]
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+      AI_LIVE_TEST_REDIS_URL: redis://127.0.0.1:6379
+      AI_LIVE_ENABLED: 'false'
+      AI_LIVE_ALLOW_PAID: 'false'
+      GEMINI_API_KEY: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Live policy, PCM, Redis concurrency and HTTP/WSS fake-provider integration
+        run: node --test tests/saas/gemini-live-p0.test.cjs tests/saas/gemini-live-audio.test.cjs tests/saas/gemini-live-redis.test.cjs
+
   backend-unit-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 12
