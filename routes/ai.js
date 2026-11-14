@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+router.use('/marketing-drafts', require('./marketingDrafts').createMarketingDraftRouter());
 const aiController = require('../controllers/aiController');
 const { validateBody, validateId } = require('../middleware/validator');
 const { createAIRateLimiter } = require('../utils/aiRateLimiter');
