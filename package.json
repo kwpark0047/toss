@@ -75,6 +75,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/genai": "3.3.0",
     "@google/generative-ai": "^0.24.1",
     "@sentry/node": "^10.67.0",
     "@socket.io/redis-adapter": "^8.3.0",

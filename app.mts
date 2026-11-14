@@ -295,6 +295,7 @@ const routes = {
     providerCredentials: lazyRouter(() => import('./routes/providerCredentials.js')),
     ecoBadge: lazyRouter(() => import('./routes/ecoBadge.js')),
     aiOrder: lazyRouter(() => import('./routes/aiOrder.js')),
+    aiLive: lazyRouter(() => import('./routes/aiLive.js')),
     aiAutoOrder: lazyRouter(() => import('./routes/aiAutoOrder.js')),
     recommendationTracking: lazyRouter(() => import('./routes/recommendationTracking.js')),
     reportPdf: lazyRouter(() => import('./routes/reportPdf.js')),
@@ -369,6 +370,7 @@ app.use(`${API_PREFIX}/business-support`, routes.businessSupport);
 app.use(`${API_PREFIX}/provider-credentials`, routes.providerCredentials);
 app.use(`${API_PREFIX}/eco-badge`, routes.ecoBadge);
 app.use(`${API_PREFIX}/ai-order`, routes.aiOrder);
+app.use(`${API_PREFIX}/ai/live`, routes.aiLive);
 app.use(`${API_PREFIX}/ai-auto-order`, routes.aiAutoOrder);
 app.use(`${API_PREFIX}/community`, routes.community);
 app.use(`${API_PREFIX}/legal`, routes.legal);
