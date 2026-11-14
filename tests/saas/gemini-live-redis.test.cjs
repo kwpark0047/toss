@@ -66,6 +66,7 @@ test(
     const store = new RedisLiveStore(redis, prefix);
     let connectCount = 0,
       provider;
+    let catalogPause;
     const gateway = new LiveGateway({
       policy: policy(),
       store,
@@ -75,6 +76,7 @@ test(
       },
       catalog: async (id) => {
         assert.equal(id, 3);
+        if (catalogPause) await catalogPause;
         return [{ id: 1, name: 'QA', price: 1000, options: [] }];
       },
       summary: async () => ({ total_sales: 0 }),
@@ -188,6 +190,65 @@ test(
     assert.equal(audit.status, 'completed');
     assert.equal(audit.name, 'get_menu');
     assert.ok(!JSON.stringify(audit).includes('QA'));
+    provider.emit({
+      type: 'toolCall',
+      calls: [
+        {
+          id: 'review',
+          name: 'validate_order_draft',
+          args: { items: [{ product_id: 1, quantity: 2 }] },
+        },
+      ],
+    });
+    for (let i = 0; i < 50 && !events.some((e) => e.draftId?.endsWith(':review')); i++)
+      await wait(10);
+    assert.equal(events.find((e) => e.draftId?.endsWith(':review'))?.draft.total, 2000);
+    provider.emit({
+      type: 'toolCall',
+      calls: [
+        {
+          id: 'clarify',
+          name: 'validate_order_draft',
+          args: {
+            items: [
+              { product_id: 1, quantity: 1 },
+              { product_id: 999, quantity: 1 },
+            ],
+          },
+        },
+      ],
+    });
+    for (let i = 0; i < 50 && !events.some((e) => e.draftId?.endsWith(':clarify')); i++)
+      await wait(10);
+    assert.equal(
+      events.find((e) => e.draftId?.endsWith(':clarify'))?.draft.needs_clarification,
+      true,
+      'clarification visible but never confirmable'
+    );
+    let release;
+    catalogPause = new Promise((r) => {
+      release = r;
+    });
+    provider.emit({
+      type: 'toolCall',
+      calls: [
+        {
+          id: 'stale',
+          name: 'validate_order_draft',
+          args: { items: [{ product_id: 1, quantity: 3 }] },
+        },
+      ],
+    });
+    await wait(20);
+    provider.emit({ type: 'transcript', direction: 'inputTranscription', text: '수정할게요' });
+    release();
+    catalogPause = null;
+    await wait(60);
+    assert.equal(
+      events.some((e) => e.draftId?.endsWith(':stale')),
+      false,
+      'late validation from before a correction is discarded'
+    );
     provider.emit({
       type: 'usage',
       usage: { promptTokensDetails: [{ modality: 'TEXT', tokenCount: 12 }] },

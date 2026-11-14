@@ -127,6 +127,7 @@ class LiveGateway {
       pendingEvents = 0,
       usageSequence = 0;
     const publishedDrafts = new Set();
+    let draftRevision = 0;
     const send = (value) => {
       if (ws.readyState === 1) {
         if (ws.bufferedAmount > 192000) throw Error('Live backpressure');
@@ -169,6 +170,19 @@ class LiveGateway {
     authTimer.unref?.();
     const emit = (event) => {
       if (stopped) return;
+      if (
+        event.type === 'interrupted' ||
+        (event.type === 'transcript' && event.direction === 'inputTranscription')
+      ) {
+        draftRevision++;
+        try {
+          send({ type: 'draftInvalidated' });
+        } catch {
+          fail();
+          return;
+        }
+      }
+      const eventRevision = draftRevision;
       // Cancellation must be observed even while a read-only tool is awaiting its result.
       if (event.type === 'toolCancel') {
         registry.cancel(event.ids);
@@ -236,9 +250,9 @@ class LiveGateway {
               if (!stopped) provider.sendToolResult(call, { result });
               if (
                 !stopped &&
+                eventRevision === draftRevision &&
                 call.name === 'validate_order_draft' &&
                 result.success &&
-                !result.needs_clarification &&
                 !publishedDrafts.has(call.id)
               ) {
                 publishedDrafts.add(call.id);
@@ -326,6 +340,8 @@ class LiveGateway {
             (textChars += message.text.length) > 4000
           )
             throw Error('Live text limit');
+          draftRevision++;
+          send({ type: 'draftInvalidated' });
           provider.sendText(message.text);
         } else if (message.type === 'close') await close('user');
         else throw Error('Unsupported Live message');
