@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Menu photo draft fixture</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import React from 'react';
+      import { createRoot } from 'react-dom/client';
+      import MenuScanModal from '/src/components/admin/MenuScanModal.jsx';
+      import { ProductModal } from '/src/components/admin/ProductModal.jsx';
+      import '/src/index.css';
+      function App() {
+        const [draft, setDraft] = React.useState(null),
+          [manual, setManual] = React.useState(false),
+          [saved, setSaved] = React.useState(false);
+        if (saved) return React.createElement('h1', null, '가짜 메뉴 등록 완료');
+        if (draft || manual)
+          return React.createElement(ProductModal, {
+            storeId: 3,
+            categories: [{ id: 1, name: '음료' }],
+            initialDraft: draft,
+            onClose: () => {
+              setDraft(null);
+              setManual(false);
+            },
+            onSave: () => setSaved(true),
+          });
+        return React.createElement(MenuScanModal, {
+          storeId: 3,
+          onClose: () => {},
+          onDraft: setDraft,
+          onManual: () => setManual(true),
+        });
+      }
+      createRoot(document.getElementById('root')).render(React.createElement(App));
+    </script>
+  </body>
+</html>

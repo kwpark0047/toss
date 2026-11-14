@@ -55,7 +55,20 @@ describe('app.mts 라우트 마운트 정합성', () => {
       .filter((f) => f.endsWith('.js'))
       .map((f) => f.replace(/\.js$/, ''));
 
-    const orphanFiles = routeFiles.filter((name) => !APP_SOURCE.includes(`./routes/${name}.js'`));
+    // Follow mounted route dependencies: nested routers need not be mounted twice in app.mts.
+    const reachable = new Set();
+    const visit = (name) => {
+      if (reachable.has(name)) return;
+      reachable.add(name);
+      const source = fs.readFileSync(path.join(ROOT, 'routes', `${name}.js`), 'utf8');
+      for (const match of source.matchAll(/require\(['"]\.\/(\w+)(?:\.js)?['"]\)/g)) {
+        if (routeFiles.includes(match[1])) visit(match[1]);
+      }
+    };
+    for (const name of routeFiles) {
+      if (APP_SOURCE.includes(`./routes/${name}.js'`)) visit(name);
+    }
+    const orphanFiles = routeFiles.filter((name) => !reachable.has(name));
 
     expect(orphanFiles).toEqual([]);
   });
