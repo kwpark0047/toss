@@ -11,8 +11,10 @@ export class LiveClient {
     Object.assign(this, { issue, url, beforeConnect, WebSocketClass, onEvent, onFallback });
     this.generation = 0;
     this.confirmed = new Set();
+    this.seenDrafts = new Set();
   }
   state(state) {
+    if (['CONNECTING', 'TOOL_CALLING', 'IDLE', 'FALLBACK'].includes(state)) this.invalidateDraft();
     this.currentState = state;
     this.onEvent({ type: 'state', state });
   }
@@ -48,6 +50,10 @@ export class LiveClient {
             if (generation !== this.generation) return;
             try {
               const message = JSON.parse(event.data);
+              if (message.type === 'transcript' && message.direction === 'inputTranscription')
+                this.invalidateDraft();
+              if (message.type === 'draftInvalidated') this.invalidateDraft();
+              if (message.type === 'interrupted') this.invalidateDraft();
               if (message.type === 'fallback') throw Error('Live unavailable');
               if (message.type === 'state') {
                 this.state(message.state);
@@ -60,7 +66,8 @@ export class LiveClient {
                 const id =
                   message.draftId ||
                   `${this.sessionId}:${(this.revision = (this.revision || 0) + 1)}`;
-                if (this.confirmed.has(id) || this.draftId === id) return;
+                if (this.confirmed.has(id) || this.seenDrafts.has(id)) return;
+                this.seenDrafts.add(id);
                 this.draftId = id;
                 this.draft = { ...message.draft, draftId: id };
                 this.onEvent({ type: 'draft', draft: this.draft });
@@ -88,6 +95,7 @@ export class LiveClient {
     return this.starting;
   }
   send(type, value) {
+    if (type === 'text') this.invalidateDraft();
     if (this.socket?.readyState !== 1 || this.currentState === 'CONNECTING') return;
     if (this.socket.bufferedAmount > 64000) {
       this.fallback();
@@ -110,6 +118,11 @@ export class LiveClient {
     apply(draft);
     return true;
   }
+  invalidateDraft() {
+    this.draft = null;
+    this.draftId = null;
+    this.onEvent({ type: 'draftInvalidated' });
+  }
   fallback() {
     if (this.currentState === 'FALLBACK') return;
     this.stop();
@@ -127,6 +140,7 @@ export class LiveClient {
     this.draft = null;
     this.draftId = null;
     this.confirmed.clear();
+    this.seenDrafts.clear();
     if (socket) {
       socket.onclose = null;
       socket.onerror = null;

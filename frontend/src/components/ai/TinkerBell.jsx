@@ -332,6 +332,14 @@ const typingRef  = useRef(null);
 
   // ── 음성: 녹음 파일(mp3) 우선, 없으면 브라우저 TTS ─────────────────────────
   const audioRef = useRef(null);
+  useEffect(() => {
+    const update = (event) => {
+      legacyPaused.current = !['IDLE','FALLBACK','ERROR'].includes(event.detail.state);
+      if(legacyPaused.current){audioRef.current?.pause();window.speechSynthesis?.cancel();}
+    };
+    window.addEventListener('wm:ai-live-state',update);
+    return () => window.removeEventListener('wm:ai-live-state',update);
+  }, []);
   const speak = useCallback((text, voiceKey) => {
     if (!voiceEnabled || legacyPaused.current) return;
     // 이전 재생 정리

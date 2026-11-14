@@ -3,6 +3,7 @@ import { AlertCircle, Check, Loader2, Mic, MicOff, RotateCcw, ShoppingBag, Squar
 import { formatWon } from '../../utils/format';
 import { aiOrderAPI } from '../../api/aiOrder';
 import { normalizeMenuOptionGroups } from '../../utils/menuOptionGroups';
+import LiveVoiceOrderAssistant from './LiveVoiceOrderAssistant';
 
 const SPEECH_LOCALES = {
   ko: 'ko-KR',
@@ -23,6 +24,7 @@ export default function VoiceOrderAssistant({
   canOrder = true,
   onAddDraft,
   onAssistantSpeak,
+  liveEnabled = false,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -190,6 +192,10 @@ export default function VoiceOrderAssistant({
           {canOrder ? '한 번 눌러 주문' : '영업시간 확인'}
         </span>
       </button>
+
+      {liveEnabled && <LiveVoiceOrderAssistant key={`${storeId}:${lang}`} storeId={storeId} menuItems={menuItems} lang={lang} canOrder={canOrder} onAddDraft={onAddDraft}
+        onActivate={()=>{try{recognitionRef.current?.abort();}catch{/* already stopped */}setIsOpen(false);}}
+        onFallback={()=>{setDraft(null);setIsListening(false);setIsOpen(true);setError('실시간 주문을 종료했습니다. 기존 음성 인식이나 직접 입력으로 이어가세요.');}} />}
 
       {isOpen && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/55 p-0 sm:items-center sm:p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !isListening) setIsOpen(false); }}>

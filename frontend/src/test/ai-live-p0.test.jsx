@@ -16,6 +16,18 @@ class Socket {
   }
 }
 describe('P0 live client preserves legacy fallback', () => {
+  it('invalidates old drafts on customer corrections and ignores replayed revisions',async()=>{
+    const client=new LiveClient({issue:async()=>({sessionId:'s',ticket:'t'}),url:'wss://fixture.invalid',WebSocketClass:Socket});
+    const starting=client.start({});await Promise.resolve();await Promise.resolve();
+    Socket.latest.onopen();const receive=m=>Socket.latest.onmessage({data:JSON.stringify(m)});
+    receive({type:'state',state:'LISTENING'});await starting;
+    const draft={success:true,items:[{product_id:1}],total:1000};
+    receive({type:'draft',draftId:'s:1',draft});client.send('text',{text:'하나 빼 주세요'});
+    expect(client.confirmDraft('s:1',vi.fn())).toBe(false);
+    receive({type:'draft',draftId:'s:1',draft});expect(client.draft).toBeNull();
+    receive({type:'draft',draftId:'s:2',draft});receive({type:'transcript',direction:'inputTranscription',text:'옵션 수정'});
+    expect(client.confirmDraft('s:2',vi.fn())).toBe(false);client.stop();
+  });
   it('mute disables microphone tracks and discards playback until unmuted', () => {
     const audio = new LiveAudio(), track = { enabled: true };
     audio.stream = { getAudioTracks: () => [track] };

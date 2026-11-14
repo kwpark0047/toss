@@ -24,13 +24,16 @@ export function useAILiveSession({ onFallback, onDraft } = {}) {
       engine.current = null;
     };
     window.addEventListener('pagehide', hide);
+    window.addEventListener('wm:ai-live-stop', hide);
     return () => {
       window.removeEventListener('pagehide', hide);
+      window.removeEventListener('wm:ai-live-stop', hide);
       hide();
     };
   }, []);
   const start = async (options) => {
     if (engine.current) return;
+    window.dispatchEvent(new Event('wm:ai-live-stop'));
     setTranscript({ input: '', output: '' });
     const audio = new LiveAudio();
     const url = new URL(
@@ -58,8 +61,14 @@ export function useAILiveSession({ onFallback, onDraft } = {}) {
       },
       onEvent: (event) => {
         if (engine.current?.client !== client) return;
-        if (event.type === 'state') setState(event.state);
+        if (event.type === 'state') {
+          setState(event.state);
+          window.dispatchEvent(
+            new CustomEvent('wm:ai-live-state', { detail: { state: event.state } })
+          );
+        }
         if (event.type === 'draft') callbacks.current.onDraft?.(event.draft);
+        if (event.type === 'draftInvalidated') callbacks.current.onDraft?.(null);
         if (event.type === 'transcript')
           setTranscript((previous) => ({
             ...previous,
@@ -92,6 +101,7 @@ export function useAILiveSession({ onFallback, onDraft } = {}) {
     stop,
     sendText: (text) => engine.current?.client.send('text', { text }),
     setMuted: (muted) => engine.current?.audio.setMuted(muted),
+    invalidateDraft: () => engine.current?.client.invalidateDraft(),
     confirmDraft: (id, apply) => engine.current?.client.confirmDraft(id, apply) || false,
   };
 }
