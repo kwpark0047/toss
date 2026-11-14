@@ -5,8 +5,27 @@ const { GeminiLiveProvider } = require('./GeminiLiveProvider');
 const { usageCost } = require('./LivePolicy');
 const hash = (value) => crypto.createHash('sha256').update(value).digest('hex');
 class LiveGateway {
-  constructor({ policy, store, catalog, summary, authorize, providerFactory, clock = Date.now }) {
-    Object.assign(this, { policy, store, catalog, summary, authorize, clock });
+  constructor({
+    policy,
+    store,
+    catalog,
+    summary,
+    managerBriefing,
+    managerActions,
+    authorize,
+    providerFactory,
+    clock = Date.now,
+  }) {
+    Object.assign(this, {
+      policy,
+      store,
+      catalog,
+      summary,
+      managerBriefing,
+      managerActions,
+      authorize,
+      clock,
+    });
     this.providerFactory =
       providerFactory ||
       (() => new GeminiLiveProvider({ apiKey: policy.apiKey, allowPaid: policy.allowPaid }));
@@ -246,8 +265,26 @@ class LiveGateway {
                 result = { error: 'Tool rejected or cancelled' };
                 status = 'rejected';
               }
+              if (session.purpose === 'manager') {
+                try {
+                  await this.authorize(session.storeId, session.purpose, {
+                    id: session.actorId,
+                    sid: session.actorSid,
+                  });
+                } catch (error) {
+                  await this.store.auditTool(session, call, 'denied');
+                  throw error;
+                }
+              }
               await this.store.auditTool(session, call, status);
               if (!stopped) provider.sendToolResult(call, { result });
+              if (
+                !stopped &&
+                session.purpose === 'manager' &&
+                status === 'completed' &&
+                ['get_manager_briefing', 'get_manager_actions'].includes(call.name)
+              )
+                send({ type: 'managerFacts', kind: call.name, data: result });
               if (
                 !stopped &&
                 eventRevision === draftRevision &&
@@ -299,6 +336,8 @@ class LiveGateway {
             purpose: session.purpose,
             catalog: this.catalog,
             summary: this.summary,
+            managerBriefing: this.managerBriefing,
+            managerActions: this.managerActions,
           });
           provider = this.providerFactory();
           await provider.connect({ model: session.model, tools: registry.declarations }, emit);

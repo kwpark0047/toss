@@ -298,5 +298,75 @@ test(
       .send({ storeId: 3, purpose: 'customer', consent: true })
       .expect(503);
     assert.equal(disabled.body.fallback, 'legacy_voice');
+    let revoked = false,
+      managerEmit,
+      managerReads = 0,
+      releaseRead;
+    const readPending = new Promise((resolve) => {
+      releaseRead = resolve;
+    });
+    const managers = new LiveGateway({
+      policy: policy(),
+      store: new RedisLiveStore(redis, prefix + 'managers:'),
+      authorize: async (id, purpose, user) => {
+        assert.equal(id, 3);
+        if (purpose !== 'manager' || user?.id !== 1 || revoked) throw Error('forbidden');
+      },
+      managerBriefing: async (id) => {
+        managerReads++;
+        assert.equal(id, 3);
+        await readPending;
+        return { current: { revenue: 1000 } };
+      },
+      managerActions: async () => [],
+      providerFactory: () => ({
+        connect: async (_opts, emit) => {
+          managerEmit = emit;
+        },
+        sendToolResult() {},
+        close() {},
+      }),
+    });
+    const managerApp = express(),
+      managerServer = createServer(managerApp),
+      stopManager = managers.attach(managerServer);
+    await new Promise((resolve) => managerServer.listen(0, '127.0.0.1', resolve));
+    t.after(async () => {
+      await stopManager();
+      await new Promise((resolve) => managerServer.close(resolve));
+    });
+    const ticket = await managers.issue({
+      ...issue(),
+      purpose: 'manager',
+      user: { id: 1, sid: 'fixture' },
+    });
+    const managerWs = new WebSocket(
+      `ws://127.0.0.1:${managerServer.address().port}/api/ai/live/connect`,
+      { origin }
+    );
+    const managerEvents = [];
+    managerWs.on('message', (b) => managerEvents.push(JSON.parse(b.toString())));
+    await once(managerWs, 'open');
+    managerWs.send(
+      JSON.stringify({ type: 'auth', sessionId: ticket.sessionId, ticket: ticket.ticket })
+    );
+    for (let i = 0; i < 50 && !managerEvents.some((e) => e.state === 'LISTENING'); i++)
+      await wait(10);
+    assert.ok(managerEvents.some((e) => e.state === 'LISTENING'));
+    managerEmit({
+      type: 'toolCall',
+      calls: [{ id: 'read', name: 'get_manager_briefing', args: {} }],
+    });
+    for (let i = 0; i < 50 && !managerReads; i++) await wait(10);
+    assert.equal(managerReads, 1);
+    const closed = once(managerWs, 'close');
+    revoked = true;
+    releaseRead();
+    await closed;
+    assert.equal(
+      managerEvents.some((e) => e.type === 'managerFacts'),
+      false,
+      'revoked permission blocks facts that finish after revocation'
+    );
   }
 );
