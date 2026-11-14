@@ -316,7 +316,12 @@ const aiController = {
     if (!image) {
       return res.status(400).json({ success: false, error: 'image 필드가 필요합니다. (base64)' });
     }
-    const suggestions = await aiService.scanMenuImage(image, mimeType);
+    const suggestions =
+      await new (require('../services/MenuPhotoDraftService').MenuPhotoDraftService)().analyze({
+        image,
+        mimeType,
+        consent: req.body.consent,
+      });
     res.json({ success: true, suggestions });
   }),
 

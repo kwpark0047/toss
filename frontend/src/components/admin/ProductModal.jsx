@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { productsAPI, storesAPI, aiAPI, uploadsAPI, optionTemplatesAPI } from '../../api';
 import { subscriptionsAPI } from '../../api/subscriptions';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,15 +10,19 @@ import { formatFileSize } from '../../utils/fileUtils';
 import { SampleImagePicker } from './SampleImagePicker';
 import { VisualOptionEditor } from './VisualOptionEditor';
 import { normalizeMenuOptionGroups } from '../../utils/menuOptionGroups';
+import { initialMenuDraft,menuDraftApproved } from '../../utils/menuPhotoDraft';
 import Icon from '../../components/ui/Icon';
 import { Check, Image, Info, Leaf, Package, RefreshCw, Settings, Sparkles, Upload, X, FileText, Tag, Star, Flame, AlertTriangle } from 'lucide-react';
 
-export function ProductModal({ storeId, categories, product, onClose, onSave }) {
+export function ProductModal({ storeId, categories, product, initialDraft, onClose, onSave }) {
+  const photoDraft=initialDraft&&!product?initialMenuDraft(initialDraft):null;
+  const [draftReview,setDraftReview]=useState({price:false,allergens:false,approve:false,none:false});
+  const submitPending=useRef(false);
   const [form, setForm] = useState({
-    name: product?.name || '',
-    category_id: product?.category_id || '',
+    name: product?.name || photoDraft?.name || '',
+    category_id: product?.category_id || categories.find(c=>c.name===photoDraft?.category_name)?.id || '',
     price: product?.price || '',
-    description: product?.description || '',
+    description: product?.description || photoDraft?.description || '',
     image_url: product?.image_url || '',
     is_sold_out: product?.is_sold_out || 0,
     cooking_time: product?.cooking_time || 5,
@@ -36,6 +40,10 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
     low_stock_threshold: product?.low_stock_threshold ?? 5,
   });
   const [loading, setLoading] = useState(false);
+  const hasPhotoDraft=!!photoDraft;
+  useEffect(()=>{if(hasPhotoDraft)setDraftReview(v=>v.approve?{...v,approve:false}:v);},[form,hasPhotoDraft]);
+  useEffect(()=>{if(hasPhotoDraft)setDraftReview(v=>({...v,price:false,approve:false}));},[form.price,hasPhotoDraft]);
+  useEffect(()=>{if(hasPhotoDraft)setDraftReview(v=>({...v,allergens:false,approve:false,none:form.allergens.trim()?false:v.none}));},[form.allergens,hasPhotoDraft]);
   const [activeTab, setActiveTab] = useState('basic');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiImageLoading, setAiImageLoading] = useState(false);
@@ -210,6 +218,9 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
+    if(photoDraft&&!menuDraftApproved(form,draftReview)){toast.warn('가격·알레르기를 직접 확인하고 초안 등록을 승인해 주세요.');return;}
+    if(submitPending.current)return;
+    submitPending.current=true;
     setLoading(true);
     try {
       let parsedOptions = [];
@@ -263,6 +274,7 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
     } catch (e) {
       handleApiError(e, '메뉴 저장 실패');
     } finally {
+      submitPending.current=false;
       setLoading(false);
     }
   };
@@ -628,14 +640,21 @@ export function ProductModal({ storeId, categories, product, onClose, onSave }) 
               </div>
             </div>
           )}
+        {photoDraft&&<section aria-label="AI 초안 사업자 확인" className="mt-4 space-y-2 rounded-xl border border-orange-200 bg-white p-4 text-sm text-slate-900">
+          <p className="font-bold">AI 초안 · 등록 전 사업자 확인</p><p>원재료 확인 항목: {photoDraft.ingredient_review||'직접 확인 필요'}</p>
+          <label className="flex gap-2"><input type="checkbox" checked={draftReview.price} onChange={e=>setDraftReview(v=>({...v,price:e.target.checked,approve:false}))}/>가격을 직접 입력하고 확인했습니다.</label>
+          <label className="block">알레르기 정보 (직접 확인)<input aria-label="사업자 확인 알레르기" value={form.allergens} onChange={e=>{setForm(v=>({...v,allergens:e.target.value}));setDraftReview(v=>({...v,allergens:false,approve:false,none:false}));}} className="min-h-11 w-full rounded-xl border border-slate-300 p-2"/></label>
+          <label className="flex gap-2"><input type="checkbox" checked={draftReview.none} onChange={e=>{setForm(v=>({...v,allergens:''}));setDraftReview(v=>({...v,none:e.target.checked,allergens:false,approve:false}));}}/>원재료를 확인했고 표시할 알레르기 정보가 없습니다.</label>
+          <label className="flex gap-2"><input type="checkbox" checked={draftReview.allergens} onChange={e=>setDraftReview(v=>({...v,allergens:e.target.checked,approve:false}))}/>알레르기 정보를 원재료와 대조했습니다.</label>
+          <label className="flex gap-2"><input type="checkbox" checked={draftReview.approve} onChange={e=>setDraftReview(v=>({...v,approve:e.target.checked}))}/>초안 전체를 검토했으며 메뉴 등록을 승인합니다.</label>
+        </section>}
         </div>
-
         <div className="px-5 py-4 sm:p-10 border-t border-white/5 bg-white/[0.01] flex gap-3 flex-shrink-0" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)' }}>
           <button type="button" onClick={onClose} className="flex-1 h-12 sm:h-16 bg-white/5 text-slate-400 rounded-2xl font-black text-sm hover:bg-white/10 transition-all">
             취소
           </button>
           <button
-            onClick={handleSubmit} disabled={loading}
+            onClick={handleSubmit} disabled={loading || (!!photoDraft&&!menuDraftApproved(form,draftReview))}
             className="flex-[3] h-12 sm:h-16 bg-gradient-to-r from-orange-500 to-rose-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-orange-500/20 active:scale-95 transition-all disabled:opacity-50"
           >
             {loading ? '저장 중...' : product ? '메뉴 수정' : '메뉴 등록'}

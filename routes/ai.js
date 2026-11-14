@@ -354,7 +354,7 @@ router.post(
  *       200:
  *         description: 스캔된 메뉴 데이터
  */
-router.post('/scan-menu-image', createAIRateLimiter('scanMenuImage'), aiController.scanMenuImage);
+router.use('/scan-menu-image', require('./menuPhotoDrafts').createMenuPhotoDraftRouter());
 
 /**
  * @swagger

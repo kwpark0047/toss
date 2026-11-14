@@ -2,7 +2,7 @@ import './menu/menuWorkspace.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMenuManager } from '../../hooks/useMenuManager';
 
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { useSEO } from '../../lib/useSEO';
 import Skeleton from '../common/Skeleton';
 import { CategoryModal } from './CategoryModal';
@@ -20,6 +20,8 @@ const MenuManager = () => {
     useSEO({ title: '메뉴 관리 | 위마켓', description: '매장 메뉴를 관리합니다.' });
     const { storeId } = useParams();
   const navigate = useNavigate();
+  const [aiDraft,setAiDraft]=useState(null);
+  useEffect(()=>setAiDraft(null),[storeId]);
 
   const {
     store,
@@ -145,11 +147,13 @@ const MenuManager = () => {
       {showProductModal && (
         <Suspense fallback={null}>
           <ProductModal
+            key={`${storeId}:${editingProduct?.id||'new'}`}
             storeId={storeId}
             categories={categories}
             product={editingProduct}
-            onClose={() => setShowProductModal(false)}
-            onSave={() => { setShowProductModal(false); fetchData(); }}
+            initialDraft={Number(aiDraft?.store_id)===Number(storeId)?aiDraft:null}
+            onClose={() => {setAiDraft(null);setShowProductModal(false);}}
+            onSave={() => { setAiDraft(null);setShowProductModal(false); fetchData(); }}
           />
         </Suspense>
       )}
@@ -168,8 +172,11 @@ const MenuManager = () => {
       {showScanModal && (
         <Suspense fallback={null}>
           <MenuScanModal
+            key={storeId}
             storeId={storeId}
             existingCategories={categories}
+            onDraft={draft=>{setAiDraft({...draft,store_id:Number(storeId)});setEditingProduct(null);setShowScanModal(false);setShowProductModal(true);}}
+            onManual={()=>{setAiDraft(null);setEditingProduct(null);setShowScanModal(false);setShowProductModal(true);}}
             onClose={() => setShowScanModal(false)}
             onSave={() => { setShowScanModal(false); fetchData(); }}
           />

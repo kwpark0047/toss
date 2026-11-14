@@ -1,14 +1,14 @@
-function jpegSize(data) {
+function jpegSize(data, { maxBytes = 16384, maxWidth = 320, maxHeight = 240 } = {}) {
   if (
     typeof data !== 'string' ||
-    data.length > 21848 ||
+    data.length > Math.ceil(maxBytes / 3) * 4 ||
     data.length % 4 ||
     !/^[A-Za-z0-9+/]+={0,2}$/.test(data)
   )
     throw Error('Invalid camera frame');
   const bytes = Buffer.from(data, 'base64');
   if (
-    bytes.length > 16384 ||
+    bytes.length > maxBytes ||
     bytes.length < 20 ||
     bytes.readUInt16BE(0) !== 0xffd8 ||
     bytes.readUInt16BE(bytes.length - 2) !== 0xffd9
@@ -33,7 +33,7 @@ function jpegSize(data) {
     if (marker === 0xc0) {
       if (length < 11 || bytes[offset + 4] !== 8) throw Error('Invalid JPEG dimensions');
       size = { height: bytes.readUInt16BE(offset + 5), width: bytes.readUInt16BE(offset + 7) };
-      if (size.width < 1 || size.height < 1 || size.width > 320 || size.height > 240)
+      if (size.width < 1 || size.height < 1 || size.width > maxWidth || size.height > maxHeight)
         throw Error('JPEG dimensions limit');
     }
     if (marker === 0xda) {
