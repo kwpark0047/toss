@@ -1,7 +1,7 @@
 const MODELS = Object.freeze({
-  'gemini-3.1-flash-live-preview': { synchronous: true },
+  'gemini-3.1-flash-live-preview': { synchronous: true, vision: true },
   'gemini-3.8-live': { synchronous: true },
-  'gemini-2.5-flash-native-audio-preview-12-2025': { synchronous: true },
+  'gemini-2.5-flash-native-audio-preview-12-2025': { synchronous: true, vision: true },
 });
 function integer(value, min, max) {
   if (!Number.isSafeInteger(value) || value < min || value > max)
@@ -62,6 +62,13 @@ function loadPolicy(env = process.env) {
       origins,
       secret: env.AI_LIVE_TICKET_SECRET,
       allowPaid: env.AI_LIVE_ALLOW_PAID === 'true',
+      cameraEnabled:
+        env.AI_LIVE_CAMERA_ENABLED === 'true' &&
+        MODELS[model].vision === true &&
+        Number.isSafeInteger(pricing.input.VIDEO) &&
+        pricing.input.VIDEO > 0 &&
+        Number.isSafeInteger(pricing.input.IMAGE) &&
+        pricing.input.IMAGE > 0,
       apiKey: env.GEMINI_API_KEY,
     };
   } catch {

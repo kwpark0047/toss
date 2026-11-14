@@ -368,5 +368,75 @@ test(
       false,
       'revoked permission blocks facts that finish after revocation'
     );
+    const cameraPolicy = policy();
+    cameraPolicy.cameraEnabled = true;
+    cameraPolicy.stores[3].cameraEnabled = true;
+    let now = Date.now(),
+      images = 0,
+      texts = 0;
+    const cameras = new LiveGateway({
+      policy: cameraPolicy,
+      clock: () => now,
+      store: new RedisLiveStore(redis, prefix + 'cameras:'),
+      authorize: async (id) => assert.equal(id, 3),
+      providerFactory: () => ({
+        connect: async () => {},
+        sendImage: () => images++,
+        sendText: () => texts++,
+        close() {},
+      }),
+    });
+    const cameraServer = createServer(express()),
+      stopCameras = cameras.attach(cameraServer);
+    await new Promise((r) => cameraServer.listen(0, '127.0.0.1', r));
+    t.after(async () => {
+      await stopCameras();
+      await new Promise((r) => cameraServer.close(r));
+    });
+    const cameraTicket = await cameras.issue(issue());
+    assert.equal(cameraTicket.cameraAllowed, true);
+    const cameraWs = new WebSocket(
+        `ws://127.0.0.1:${cameraServer.address().port}/api/ai/live/connect`,
+        { origin }
+      ),
+      cameraEvents = [];
+    cameraWs.on('message', (b) => cameraEvents.push(JSON.parse(b.toString())));
+    await once(cameraWs, 'open');
+    cameraWs.send(
+      JSON.stringify({
+        type: 'auth',
+        sessionId: cameraTicket.sessionId,
+        ticket: cameraTicket.ticket,
+      })
+    );
+    for (let i = 0; i < 50 && !cameraEvents.some((e) => e.state === 'LISTENING'); i++)
+      await wait(10);
+    const frame = require('../fixtures/live-camera-frame.json').data;
+    const sendCamera = (value) => cameraWs.send(JSON.stringify(value));
+    sendCamera({ type: 'image', data: frame });
+    await wait(20);
+    assert.equal(images, 0);
+    sendCamera({ type: 'cameraConsent', enabled: true });
+    sendCamera({ type: 'image', data: frame });
+    await wait(20);
+    assert.equal(images, 1);
+    sendCamera({ type: 'image', data: frame });
+    await wait(20);
+    assert.equal(images, 1, 'server rate limit blocks duplicate frames');
+    now += 1000;
+    sendCamera({ type: 'cameraConsent', enabled: true });
+    sendCamera({ type: 'image', data: frame });
+    await wait(20);
+    assert.equal(images, 2);
+    cameraPolicy.cameraEnabled = false;
+    now += 1000;
+    sendCamera({ type: 'image', data: frame });
+    sendCamera({ type: 'text', text: '음성 안내로 이어갈게요' });
+    await wait(20);
+    assert.equal(images, 2);
+    assert.equal(texts, 1, 'camera rejection preserves text/voice session');
+    const cameraClosed = once(cameraWs, 'close');
+    cameraWs.close();
+    await cameraClosed;
   }
 );
