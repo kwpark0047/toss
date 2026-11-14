@@ -61,3 +61,9 @@ coverage/
 
 # Synthetic credentials, VAPID keys, profiles and runtime tokens are local only.
 /.tmp/order-completion-sandbox/
+
+# Local agent artifacts can contain credentials or DB backups; never track them.
+.codex-tmp/
+.tmp/
+frontend/.codex-tmp/
+frontend/.tmp/
