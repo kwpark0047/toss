@@ -78,7 +78,11 @@ describe('MarketingDraftService draft safety', () => {
         },
       },
     };
-    const result = await new MarketingDraftService({ env: enabled, client }).generate(facts, {
+    const result = await new MarketingDraftService({
+      env: enabled,
+      client,
+      budget: { run: async (_scope, call) => call() },
+    }).generate(facts, {
       ...input,
       use_ai: true,
       consent: true,
@@ -99,6 +103,7 @@ describe('MarketingDraftService draft safety', () => {
     JSON.stringify({ content: 'x'.repeat(1501), hashtags: [] }),
   ])('rejects invalid provider output without producing a usable draft: %s', async (text) => {
     const service = new MarketingDraftService({
+      budget: { run: async (_scope, call) => call() },
       env: enabled,
       client: { models: { generateContent: async () => ({ text }) } },
     });

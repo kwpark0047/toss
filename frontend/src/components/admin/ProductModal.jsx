@@ -675,7 +675,7 @@ export function ProductModal({ storeId, categories, product, initialDraft, onClo
               <div className="flex items-center justify-between border-b border-white/5 pb-4">
                 <div className="flex items-center gap-2">
                   <Sparkles className="text-rose-400 animate-pulse" size={20} />
-                  <h4 className="text-white font-black text-lg">AI 인스타그램 카피라이터</h4>
+                  <h4 className="text-white font-black text-lg">인스타그램 홍보 초안</h4>
                 </div>
                 <button 
                   onClick={() => setShowInstaModal(false)}
@@ -685,13 +685,13 @@ export function ProductModal({ storeId, categories, product, initialDraft, onClo
                 </button>
               </div>
 
+              <p className="text-xs text-slate-300">외부 AI 호출 없는 기본 초안입니다. 게시 전 사업자가 검토해 주세요. AI 생성은 스마트 마케팅의 ‘AI 마케팅 초안’에서 이용하세요.</p>
               <div className="flex-1 overflow-y-auto max-h-[50vh] p-4 bg-slate-950 border border-white/5 rounded-2xl">
                 {instaLoading ? (
                   <div className="flex flex-col items-center justify-center py-10 gap-3 text-rose-400">
                     <RefreshCw className="animate-spin" size={24} />
                     <p className="text-xs font-bold animate-pulse text-center leading-relaxed">
-                      20대 여성의 취향을 저격할<br />
-                      사랑스러운 홍보 피드를 카피라이팅하는 중... ✨
+                      검토용 기본 홍보 초안을 준비하고 있어요.
                     </p>
                   </div>
                 ) : (

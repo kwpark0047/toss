@@ -55,8 +55,16 @@ test('AI needs two gates and consent, receives only server-selected public facts
   const service = new MarketingDraftService({
     env: {
       AI_MARKETING_ENABLED: 'true',
+      // Provider parsing fixture; the Redis budget contract is tested separately.
       AI_MARKETING_ALLOW_PAID: 'true',
       AI_MARKETING_MODEL: 'fixture',
+    },
+    budget: {
+      run: async (scope, call) => {
+        assert.equal(scope.storeId, 3);
+        assert.equal(scope.feature, 'marketing');
+        return call();
+      },
     },
     client: {
       models: {

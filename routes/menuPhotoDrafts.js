@@ -34,7 +34,7 @@ function createMenuPhotoDraftRouter({ service, identity, authorize } = {}) {
       try {
         const draftService =
           service || new (require('../services/MenuPhotoDraftService').MenuPhotoDraftService)();
-        const suggestions = await draftService.analyze(req.body);
+        const suggestions = await draftService.analyze({ ...req.body, store_id: storeId });
         return res.json({ success: true, draft_only: true, suggestions });
       } catch (error) {
         const status = [400, 502, 503].includes(error.statusCode) ? error.statusCode : 502;
