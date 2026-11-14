@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   Sparkles,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { storeManagerAPI } from '../../api/storeManager';
+import AIManagerLive from './AIManagerLive';
 import './menu/menuWorkspace.css';
 
 const unwrap = (response) => response?.data || response;
@@ -41,6 +42,7 @@ const verdictLabels = {
 
 export default function AIStoreManager() {
   const { storeId } = useParams();
+  const actionsRef=useRef(null);
   const [data, setData] = useState(null),
     [loading, setLoading] = useState(false),
     [error, setError] = useState(''),
@@ -156,6 +158,7 @@ export default function AIStoreManager() {
       )}
       {data && (
         <>
+          {import.meta.env.VITE_AI_LIVE_UI_ENABLED === 'true' && Number(data.store?.id)===Number(storeId) && <AIManagerLive key={storeId} storeId={Number(storeId)} canExecute={data.can_execute===true} onReviewActions={()=>actionsRef.current?.scrollIntoView?.({behavior:'smooth',block:'start'})}/>}
           <section className="menu-panel rounded-2xl p-5 sm:p-6 space-y-4">
             <div className="flex flex-wrap justify-between gap-2">
               <h2 className="text-lg font-bold">
@@ -195,7 +198,7 @@ export default function AIStoreManager() {
               ))}
             </div>
           </section>
-          <section aria-label="실행 제안" className="space-y-3">
+          <section ref={actionsRef} aria-label="실행 제안" className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <ClipboardCheck size={20} />

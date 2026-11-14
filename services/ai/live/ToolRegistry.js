@@ -30,8 +30,8 @@ const declarations = [
   },
 ];
 class ToolRegistry {
-  constructor({ storeId, purpose, catalog, summary }) {
-    Object.assign(this, { storeId, purpose, catalog, summary });
+  constructor({ storeId, purpose, catalog, summary, managerBriefing, managerActions }) {
+    Object.assign(this, { storeId, purpose, catalog, summary, managerBriefing, managerActions });
     this.calls = new Map();
     this.cancelled = new Set();
     this.tail = Promise.resolve();
@@ -39,6 +39,18 @@ class ToolRegistry {
   get declarations() {
     return this.purpose === 'manager'
       ? [
+          {
+            name: 'get_manager_briefing',
+            description:
+              'Read current store aggregate facts and comparison limits. No changes, no causal claims.',
+            parameters: { type: 'OBJECT', properties: {} },
+          },
+          {
+            name: 'get_manager_actions',
+            description:
+              'Read existing store proposals and their statuses. Approval and execution are only available through the owner UI; never claim execution.',
+            parameters: { type: 'OBJECT', properties: {} },
+          },
           {
             name: 'get_store_summary',
             description: 'Read aggregate store sales only.',
@@ -78,6 +90,10 @@ class ToolRegistry {
         if (this.cancelled.has(call.id)) throw Error('Live tool cancelled');
         let result;
         if (call.name === 'get_store_summary') result = await this.summary(this.storeId);
+        else if (call.name === 'get_manager_briefing')
+          result = await this.managerBriefing(this.storeId);
+        else if (call.name === 'get_manager_actions')
+          result = await this.managerActions(this.storeId);
         else {
           const catalog = await this.catalog(this.storeId);
           if (call.name === 'get_menu') result = catalog;

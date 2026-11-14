@@ -4,13 +4,13 @@ import { LiveClient } from '../utils/live/LiveClient';
 import { LiveAudio } from '../utils/live/LiveAudio';
 
 // P0 opt-in engine: existing VoiceOrderAssistant/MP3/TTS remain untouched.
-export function useAILiveSession({ onFallback, onDraft } = {}) {
+export function useAILiveSession({ onFallback, onDraft, onManagerFacts } = {}) {
   const [state, setState] = useState('IDLE');
   const [transcript, setTranscript] = useState({ input: '', output: '' });
-  const callbacks = useRef({ onFallback, onDraft });
+  const callbacks = useRef({ onFallback, onDraft, onManagerFacts });
   useEffect(() => {
-    callbacks.current = { onFallback, onDraft };
-  }, [onFallback, onDraft]);
+    callbacks.current = { onFallback, onDraft, onManagerFacts };
+  }, [onFallback, onDraft, onManagerFacts]);
   const engine = useRef(null);
   const stop = () => {
     engine.current?.client.stop();
@@ -69,6 +69,7 @@ export function useAILiveSession({ onFallback, onDraft } = {}) {
         }
         if (event.type === 'draft') callbacks.current.onDraft?.(event.draft);
         if (event.type === 'draftInvalidated') callbacks.current.onDraft?.(null);
+        if (event.type === 'managerFacts') callbacks.current.onManagerFacts?.(event);
         if (event.type === 'transcript')
           setTranscript((previous) => ({
             ...previous,

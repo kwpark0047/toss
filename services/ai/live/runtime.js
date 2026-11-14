@@ -47,6 +47,7 @@ function getGateway() {
     },
   };
   const prisma = require('../../../config/prisma');
+  const managerReads = new (require('./ManagerLiveReadService').ManagerLiveReadService)();
   const gateway = new LiveGateway({
     policy,
     store: storage,
@@ -95,6 +96,8 @@ function getGateway() {
         sales_basis: stats.sales_basis,
       };
     },
+    managerBriefing: (storeId) => managerReads.briefing(storeId),
+    managerActions: (storeId) => managerReads.actions(storeId),
   });
   runtime = { gateway, close: () => redis?.disconnect() };
   require('../../../utils/runtimeResources').registerResource(() => runtime.close());

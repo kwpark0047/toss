@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Manager Live fixture</title>
+  </head>
+  <body style="margin:0;background:#0b1020;color:#e2e8f0">
+    <div id="root"></div>
+    <script type="module">
+      import React from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { MemoryRouter, Routes, Route } from 'react-router-dom';
+      import AIStoreManager from '/src/components/admin/AIStoreManager.jsx';
+      import '/src/index.css';
+      createRoot(document.getElementById('root')).render(
+        React.createElement(
+          MemoryRouter,
+          { initialEntries: ['/stores/3/manager'] },
+          React.createElement(
+            Routes,
+            null,
+            React.createElement(Route, {
+              path: '/stores/:storeId/manager',
+              element: React.createElement(AIStoreManager),
+            })
+          )
+        )
+      );
+    </script>
+  </body>
+</html>
