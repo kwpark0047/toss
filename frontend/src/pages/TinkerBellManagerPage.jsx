@@ -6,7 +6,7 @@ import { adminAPI } from '../api/admin';
 import { DEFAULT_TINKERBELL_SETTINGS, fromServerTinkerBellSettings, toServerTinkerBellSettings } from '../utils/tinkerbell';
 import TinkerBell from '../components/ai/TinkerBell';
 import Icon from '../components/ui/Icon';
-import { BarChart3, ChevronRight, Globe, Info, RefreshCw, Sparkles, Sun, TrendingUp, ShoppingCart, Type, CloudRain, Snowflake, Flame } from 'lucide-react';
+import { BarChart3, ChevronRight, Globe, Info, Mic, RefreshCw, Sparkles, Sun, TrendingUp, ShoppingCart, Type, CloudRain, Snowflake, Flame } from 'lucide-react';
 
 // ── 데모용 메뉴 데이터 (미리보기용) ─────────────────────────────────────────
 // TinkerBell의 날씨별 추천 필터가 category_id / isHot / isCold 를 본다
@@ -66,7 +66,7 @@ const isValidStoreId = (v) => /^[1-9]\d*$/.test(String(v).trim());
 // ── 폰 프레임 미리보기 ────────────────────────────────────────────────────────
 // 고객 화면을 흉내 내므로 항상 밝은 화면이다. admin-dark-scope로 라이트 테마 오버라이드를 막아
 // 말풍선(bg-slate-900 + text-white)이 라이트 테마에서도 읽히게 한다.
-function PhonePreview({ lang, weather, voiceEnabled, largeFont, triggerKey, lastAddedItem, aiStoreId }) {
+function PhonePreview({ lang, weather, voiceEnabled, largeFont, triggerKey, lastAddedItem, aiStoreId, customMsg }) {
   return (
     <div className="admin-dark-scope relative mx-auto" style={{ width: 280, height: 560 }}>
       {/* 폰 외곽선 */}
@@ -112,6 +112,8 @@ function PhonePreview({ lang, weather, voiceEnabled, largeFont, triggerKey, last
             previewTrigger={triggerKey}
             lastAddedItem={lastAddedItem}
             storeId={aiStoreId}
+            customGreeting={customMsg}
+            customGreetingLanguage={lang}
           />
         </div>
       </div>
@@ -153,6 +155,7 @@ export default function TinkerBellManagerPage() {
   const [lang,         setLang]         = useState(saved.lang);
   const [weather,      setWeather]      = useState('sun');
   const [voiceEnabled, setVoiceEnabled] = useState(saved.voiceEnabled);
+  const [voiceOrderEnabled, setVoiceOrderEnabled] = useState(saved.voiceOrderEnabled);
   const [largeFont,    setLargeFont]    = useState(saved.largeFont);
   const [triggerKey,   setTriggerKey]   = useState(0);
   const [lastAdded,    setLastAdded]    = useState(null);
@@ -167,6 +170,7 @@ export default function TinkerBellManagerPage() {
     setEnabled(s.enabled);
     setLang(s.lang);
     setVoiceEnabled(s.voiceEnabled);
+    setVoiceOrderEnabled(s.voiceOrderEnabled);
     setLargeFont(s.largeFont);
     setCustomMsg(s.customMsg || '');
     setAiRecEnabled(s.aiRecommendation);
@@ -187,8 +191,8 @@ export default function TinkerBellManagerPage() {
     return () => { cancelled = true; };
   }, [storeId, reloadKey]);
 
-  const current = { ...saved, enabled, lang, voiceEnabled, largeFont, customMsg, aiRecommendation: aiRecEnabled };
-  const dirty = ['enabled', 'lang', 'voiceEnabled', 'largeFont', 'customMsg', 'aiRecommendation']
+  const current = { ...saved, enabled, lang, voiceEnabled, voiceOrderEnabled, largeFont, customMsg, aiRecommendation: aiRecEnabled };
+  const dirty = ['enabled', 'lang', 'voiceEnabled', 'voiceOrderEnabled', 'largeFont', 'customMsg', 'aiRecommendation']
     .some(k => (current[k] ?? '') !== (saved[k] ?? ''));
   const canSave = loadState === 'ready' && dirty && !saving;
 
@@ -388,6 +392,21 @@ export default function TinkerBellManagerPage() {
                   </p>
                 </div>
 
+                {/* 고객 메뉴 주문 설정 */}
+                <div className={`${CARD} space-y-5`}>
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <Mic size={14} className="text-orange-600" />
+                    고객 메뉴 주문
+                  </h3>
+                  <Toggle
+                    on={voiceOrderEnabled}
+                    onChange={setVoiceOrderEnabled}
+                    label="말로 메뉴 주문하기 버튼 표시"
+                    desc="켜면 이 매장의 QR 메뉴판에 음성 주문 버튼을 표시합니다"
+                  />
+                  <p className="text-xs text-slate-500">설정을 저장하면 해당 매장 고객 메뉴판에 적용됩니다. (기존 매장 기본값: 사용)</p>
+                </div>
+
                 {/* AI 추천 설정 */}
                 <div className={`${CARD} space-y-5`}>
                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
@@ -398,7 +417,7 @@ export default function TinkerBellManagerPage() {
                     on={aiRecEnabled}
                     onChange={setAiRecEnabled}
                     label="AI 기반 동적 추천 활성화"
-                    desc="OmniRoute AI가 날씨, 시간, 고객 이력을 기반으로 메뉴를 추천합니다"
+                    desc="AI가 날씨, 시간, 고객 이력을 기반으로 메뉴를 추천합니다"
                   />
                   <p className="text-xs text-slate-500">
                     {!aiRecEnabled
@@ -429,8 +448,8 @@ export default function TinkerBellManagerPage() {
 
                 {/* 커스텀 인삿말 */}
                 <div className={CARD}>
-                  <h3 className="text-sm font-black text-slate-900 mb-1">커스텀 인삿말 <span className="text-xs font-normal text-slate-500 ml-1">미출시 기능</span></h3>
-                  <p className="text-xs text-slate-500 mb-3">매장만의 특별한 인삿말을 설정할 수 있습니다</p>
+                  <h3 className="text-sm font-black text-slate-900 mb-1">커스텀 인삿말</h3>
+                  <p className="text-xs text-slate-500 mb-3">선택한 언어의 고객 메뉴판에서 팅커벨이 처음 인사할 문구입니다. 음성 안내가 켜져 있으면 함께 읽어줍니다.</p>
                   <textarea
                     rows={3}
                     maxLength={CUSTOM_MSG_MAX}
@@ -441,7 +460,10 @@ export default function TinkerBellManagerPage() {
                   />
                   <div className="flex justify-between items-center mt-2">
                     <span className="text-xs text-slate-500">{customMsg.length}/{CUSTOM_MSG_MAX}자</span>
-                    <span className="text-xs text-slate-500">준비 중 — 추후 업데이트 예정</span>
+                    <span className="text-xs text-slate-500">미리보기에서 ‘재시작’을 눌러 확인하세요</span>
+                  </div>
+                  <div className="mt-3 rounded-xl border border-orange-100 bg-orange-50 px-3 py-2.5 text-sm text-slate-700" aria-live="polite">
+                    {customMsg.trim() || '안녕하세요! 메뉴 안내 도와드릴게요 ✨'}
                   </div>
                 </div>
 
@@ -478,7 +500,7 @@ export default function TinkerBellManagerPage() {
                   </div>
 
                   {enabled
-                    ? <PhonePreview lang={lang} weather={weather} voiceEnabled={voiceEnabled} largeFont={largeFont} triggerKey={triggerKey} lastAddedItem={lastAdded} aiStoreId={aiStoreId} />
+                    ? <PhonePreview lang={lang} weather={weather} voiceEnabled={voiceEnabled} largeFont={largeFont} triggerKey={triggerKey} lastAddedItem={lastAdded} aiStoreId={aiStoreId} customMsg={customMsg} />
                     : (
                       <div className="mx-auto" style={{ width: 280, height: 420 }}>
                         <div className="w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 text-slate-500">

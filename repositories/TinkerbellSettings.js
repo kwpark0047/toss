@@ -11,6 +11,7 @@ const DEFAULTS = Object.freeze({
   enabled: true,
   lang: 'ko',
   voice_enabled: true,
+  voice_order_enabled: true,
   large_font: false,
   custom_msg: '',
   ai_recommendation: false,
@@ -20,6 +21,7 @@ const toPublic = (row) => ({
   enabled: row?.enabled ?? DEFAULTS.enabled,
   lang: row?.lang ?? DEFAULTS.lang,
   voice_enabled: row?.voice_enabled ?? DEFAULTS.voice_enabled,
+  voice_order_enabled: row?.voice_order_enabled ?? DEFAULTS.voice_order_enabled,
   large_font: row?.large_font ?? DEFAULTS.large_font,
   custom_msg: row?.custom_msg ?? DEFAULTS.custom_msg,
   ai_recommendation: row?.ai_recommendation ?? DEFAULTS.ai_recommendation,
@@ -30,7 +32,7 @@ const toPublic = (row) => ({
  */
 function sanitize(body = {}) {
   const data = {};
-  for (const key of ['enabled', 'voice_enabled', 'large_font', 'ai_recommendation']) {
+  for (const key of ['enabled', 'voice_enabled', 'voice_order_enabled', 'large_font', 'ai_recommendation']) {
     if (body[key] === undefined) continue;
     if (typeof body[key] !== 'boolean') return { error: `${key}는 true/false 값이어야 합니다.` };
     data[key] = body[key];

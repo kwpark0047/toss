@@ -24,15 +24,13 @@ const aiController = {
 
   // [인스타그램 홍보글 카피라이팅 생성]
   generateInstagramCopy: catchAsync(async (req, res) => {
-    const { name, category, price, image_url, description } = req.body;
-    const copy = await aiService.generateInstagramCopy({
-      name,
-      category,
-      price,
-      image_url,
-      description,
-    });
-    res.json({ success: true, copy });
+    // Legacy callers have no store scope/consent. Keep a free local fallback;
+    // paid generation goes exclusively through the authorized marketing drafts route.
+    const name = String(req.body.name || '')
+      .trim()
+      .slice(0, 80);
+    const copy = `${name}\n오늘은 이 메뉴 어떠세요?\n판매 여부와 안내 내용을 확인한 후 게시해 주세요.\n\n#메뉴소개 #매장소식`;
+    res.json({ success: true, copy, instagramCopy: copy, source: 'template', draft_only: true });
   }),
 
   // [메뉴 추천]
@@ -287,7 +285,12 @@ const aiController = {
       return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다.' });
     }
 
-    if (store.plan === 'free') {
+    // 유료 구독(stores.plan) 또는 가입 후 프로 체험 기간이면 사용할 수 있다.
+    const { isTrialActive, ownerTrialEndsAt } = require('../utils/subscriptionPolicy');
+    const onTrial =
+      store.plan === 'free' &&
+      isTrialActive(await ownerTrialEndsAt(require('../config/prisma'), storeId));
+    if (store.plan === 'free' && !onTrial) {
       return res.status(403).json({
         success: false,
         error:
@@ -311,7 +314,12 @@ const aiController = {
     if (!image) {
       return res.status(400).json({ success: false, error: 'image 필드가 필요합니다. (base64)' });
     }
-    const suggestions = await aiService.scanMenuImage(image, mimeType);
+    const suggestions =
+      await new (require('../services/MenuPhotoDraftService').MenuPhotoDraftService)().analyze({
+        image,
+        mimeType,
+        consent: req.body.consent,
+      });
     res.json({ success: true, suggestions });
   }),
 

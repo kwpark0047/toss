@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { inventoryAPI, aiAutoOrderAPI } from '../../api';
+import PurchasePanel from './PurchasePanel';
 import EmptyState from '../common/EmptyState';
 import Button from '../common/Button';
 import { toast } from 'react-toastify';
 import Icon from '../../components/ui/Icon';
-import { AlertCircle, CheckCircle, Download, Edit3, History, Minus, Package, Plus, RefreshCw, Search, Sparkles, TrendingDown, TrendingUp, X, XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Download, Edit3, History, Minus, Package, PackageCheck, Plus, RefreshCw, Search, Sparkles, TrendingDown, TrendingUp, X, XCircle } from 'lucide-react';
 
 // 페이지네이션 컴포넌트
 function Pagination({ current, total, onChange }) {
@@ -83,6 +84,7 @@ const REASON_LABELS = {
   MANUAL_OUT: '수동 출고',
   CORRECTION: '재고 조정',
   RETURN: '반품 입고',
+  PURCHASE_RECEIPT: '매입 입고',
 };
 
 function SummaryCard({ icon: Icon, label, value, color, bg }) {
@@ -412,6 +414,7 @@ function HistoryModal({ product, onClose }) {
 
 export default function InventoryManager() {
   const { storeId } = useParams();
+  const [activeView, setActiveView] = useState('stock');
   const [products, setProducts] = useState([]);
   const [summary, setSummary] = useState({
     total_managed: 0,
@@ -648,6 +651,10 @@ export default function InventoryManager() {
     }
   }, [storeId, statusFilter, debouncedSearch]);
 
+  if (activeView === 'purchases') {
+    return <PurchasePanel storeId={storeId} onBack={() => setActiveView('stock')} />;
+  }
+
   return (
     <div className="space-y-8">
       {/* 페이지 헤더 */}
@@ -656,6 +663,12 @@ export default function InventoryManager() {
           <h1 className="text-3xl font-black text-white tracking-tighter">재고 관리</h1>
           <p className="text-slate-500 text-sm font-bold mt-1">실시간 재고 현황 및 입출고 관리</p>
         </div>
+        <button
+          onClick={() => setActiveView('purchases')}
+          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-300 text-xs font-black hover:bg-emerald-500/20 transition-all"
+        >
+          <PackageCheck size={14} /> 매입·입고
+        </button>
         <button
           onClick={generateReorderCandidates}
           disabled={reorderLoading}

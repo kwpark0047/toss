@@ -1,0 +1,227 @@
+.recent-order {
+  color-scheme: light;
+  background: #fff;
+  color: #172331;
+  border: 1px solid #dce3eb;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px #0f172a0a;
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 560px;
+  overflow-wrap: anywhere;
+}
+.recent-order-ready {
+  border-color: #86b99c;
+}
+.ro-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ro-eyebrow {
+  font-size: 12px;
+  font-weight: 750;
+  color: #526174;
+}
+.ro-connection {
+  font-size: 11px;
+  color: #526174;
+}
+.recent-order h2 {
+  font-size: 18px;
+  line-height: 1.5;
+  letter-spacing: -0.3px;
+  font-weight: 800;
+  margin: 8px 0 4px;
+}
+.ro-number {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  color: #526174;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.ro-number span {
+  font-weight: 750;
+  color: #172331;
+}
+.ro-status {
+  margin: 18px 0 14px;
+}
+.ro-status-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.ro-status p {
+  margin: 2px 0 0;
+  color: #526174;
+  font-size: 13px;
+}
+.ro-steps {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
+  gap: 4px;
+}
+.ro-steps li {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 10px;
+  color: #64748b;
+  white-space: nowrap;
+}
+.ro-steps li > span {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #eef2f6;
+  font-size: 11px;
+}
+.ro-steps li.ro-step-active {
+  color: #9a3412;
+  font-weight: 700;
+}
+.ro-steps .ro-step-active > span {
+  background: #ffedd5;
+  color: #9a3412;
+}
+.ro-steps li[aria-current='step'] > span {
+  background: #c2410c;
+  color: #fff;
+}
+.ro-ready-alert {
+  display: flex;
+  gap: 10px;
+  background: #ecfdf3;
+  border: 1px solid #bbdfca;
+  border-radius: 12px;
+  padding: 14px;
+  color: #166534;
+  margin-bottom: 14px;
+}
+.ro-ready-alert svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.ro-ready-alert strong {
+  font-size: 16px;
+}
+.ro-ready-alert p {
+  font-size: 12px;
+  margin: 4px 0;
+}
+.ro-ready-alert button {
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  min-height: 44px;
+}
+.ro-updated {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #526174;
+  margin-top: 10px;
+}
+.ro-updated button {
+  margin-left: auto;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8px;
+}
+.ro-detail,
+.ro-notifications {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+.ro-detail {
+  background: #c2410c;
+  color: #fff;
+  margin-top: 6px;
+}
+.ro-detail span {
+  margin-left: auto;
+}
+.ro-detail:hover {
+  background: #9a3412;
+}
+.ro-notifications {
+  margin-top: 10px;
+  border: 1px solid #dce3eb;
+  color: #344256;
+  background: #fff;
+}
+.ro-notifications:hover,
+.ro-updated button:hover {
+  background: #f1f5f9;
+}
+.ro-notifications:disabled {
+  opacity: 0.6;
+}
+.ro-hint {
+  font-size: 11px;
+  color: #526174;
+  margin: 10px 0 0;
+}
+.ro-error {
+  font-size: 12px;
+  color: #92400e;
+  background: #fffbeb;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 10px 0;
+}
+.ro-history {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 12px;
+  color: #9a3412;
+  text-decoration: underline;
+}
+.recent-order button:focus-visible,
+.ro-history:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+@media (max-width: 360px) {
+  .recent-order {
+    padding: 16px;
+  }
+  .recent-order h2 {
+    font-size: 16px;
+  }
+  .ro-steps {
+    gap: 2px;
+  }
+  .ro-steps li {
+    font-size: 9px;
+  }
+}

@@ -1,10 +1,14 @@
 const { AppError } = require('./errorHandler');
-const { effectivePlan } = require('./subscriptionPolicy');
+const { effectivePlan, resolvePlan, ownerTrialEndsAt } = require('./subscriptionPolicy');
 const { PLAN_FEATURES } = require('../middleware/planFeatures');
 const aliases = { maxMenus: 'menuItems', maxStaff: 'staff', ordersPerMonth: 'ordersPerMonth' };
-function planLimit(subscription, key) {
-  const name = effectivePlan(subscription);
-  const config = name === subscription?.plan?.name ? subscription.plan.limits : null;
+function planLimit(subscription, key, trialEndsAt = null) {
+  const name = resolvePlan(subscription, trialEndsAt);
+  // 구독 플랜의 맞춤 한도는 그 구독이 실제로 유효할 때만 적용한다.
+  const config =
+    name === subscription?.plan?.name && effectivePlan(subscription) === name
+      ? subscription.plan.limits
+      : null;
   const override = config?.[key] ?? config?.[aliases[key]];
   if (Number.isSafeInteger(override) && (override === -1 || override >= 0)) return override;
   return PLAN_FEATURES[key]?.[name] ?? 0;
@@ -18,7 +22,8 @@ async function assertPlanQuota(tx, storeId, key) {
     where: { store_id: id },
     include: { plan: true },
   });
-  const limit = planLimit(sub, key);
+  const trialEndsAt = await ownerTrialEndsAt(tx, id);
+  const limit = planLimit(sub, key, trialEndsAt);
   if (limit === -1) return;
   let usage;
   if (key === 'maxMenus') usage = await tx.products.count({ where: { store_id: id } });

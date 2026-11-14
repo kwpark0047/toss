@@ -8,17 +8,17 @@ import StoreLocator from '../components/StoreLocator';
 import { storesAPI } from '../api/stores';
 import { getRecentStores } from '../utils/recentStores';
 import LanguageSwitcher from '../components/common/LanguageSwitcher';
-import { Award, BadgeCheck, CalendarDays, Check, ChevronRight, Clock, Crown, Gift, Heart, Quote, ShieldCheck, Sparkles, Store, TrendingUp, UserPlus } from 'lucide-react';
+import { Award, BadgeCheck, CalendarDays, Check, ChevronRight, Clock, Crown, Gift, Heart, ShieldCheck, Sparkles, Store, TrendingUp, UserPlus } from 'lucide-react';
 
 const LandingPage = () => {
     const { user } = useAuth();
     const { t } = useTranslation('landing', { keyPrefix: 'landing' });
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [demoStep, setDemoStep] = useState(0); // 0=entry, 1=uuid, 2=menu, 3=shared
+    const [demoStep, setDemoStep] = useState(0); // 0=entry, 1=scan, 2=menu, 3=shared
     const [uuidStr, setUuidStr] = useState('');
     const [cycleKey, setCycleKey] = useState(0); // 사이클 재시작 트리거
-    const DEMO_UUID = 'a3f9-bc2e-7d81-4f0a';
+    const DEMO_TYPING = '테이블 A-07 주문서 열림';
     const [popularStores, setPopularStores] = useState([]);
     const [popularLoading, setPopularLoading] = useState(true);
     const [recentStores] = useState(() => getRecentStores());
@@ -39,8 +39,8 @@ const LandingPage = () => {
             let i = 0;
             ivRef = setInterval(() => {
                 i++;
-                setUuidStr(DEMO_UUID.slice(0, i));
-                if (i >= DEMO_UUID.length) clearInterval(ivRef);
+                setUuidStr(DEMO_TYPING.slice(0, i));
+                if (i >= DEMO_TYPING.length) clearInterval(ivRef);
             }, 60);
         }, 2200);
         const t3 = setTimeout(() => setDemoStep(2), 3800);
@@ -99,7 +99,7 @@ const LandingPage = () => {
                 t('pricingPlan.free.features.orderNotification', '주문 알림 (웹)'),
                 t('pricingPlan.free.features.basicStats', '기본 매출 통계')
             ],
-            cta: t('pricingPlan.free.cta', '무료로 시작'), popular: false,
+            cta: t('pricingPlan.free.cta', '무료로 시작'), to: '/register', popular: false,
         },
         {
             name: t('pricingPlan.pro.name', '프로'), price: t('pricingPlan.pro.price', '₩20,000'), period: t('pricingPlan.pro.period', '/월'),
@@ -110,18 +110,16 @@ const LandingPage = () => {
                 t('pricingPlan.pro.features.waitingReservation', '대기/예약 관리'),
                 t('pricingPlan.pro.features.prioritySupport', '우선 고객 지원')
             ],
-            cta: t('pricingPlan.pro.cta', '프로 시작하기'), popular: true,
+            cta: t('pricingPlan.pro.cta', '프로 시작하기'), to: '/register', popular: true,
         },
         {
-            name: t('pricingPlan.enterprise.name', '엔터프라이즈'), price: t('pricingPlan.enterprise.price', '₩79,000'), period: t('pricingPlan.enterprise.period', '/월'),
+            name: t('pricingPlan.enterprise.name', '엔터프라이즈'), price: t('pricingPlan.enterprise.price', '₩50,000'), period: t('pricingPlan.enterprise.period', '/월'),
             features: [
-                t('pricingPlan.enterprise.features.dedicatedInfrastructure', '전용 서버 인프라'),
+                t('pricingPlan.enterprise.features.unlimitedUsage', '메뉴·직원·월 주문 수 무제한'),
                 t('pricingPlan.enterprise.features.apiIntegration', 'API 연동 지원'),
-                t('pricingPlan.enterprise.features.customReports', '맞춤형 리포트'),
-                t('pricingPlan.enterprise.features.dedicatedManager', '전담 매니저 배정'),
-                t('pricingPlan.enterprise.features.advertisingPriority', '광고 노출 우선권')
+                t('pricingPlan.enterprise.features.customReports', '맞춤형 리포트')
             ],
-            cta: t('pricingPlan.enterprise.cta', '문의하기'), popular: false,
+            cta: t('pricingPlan.enterprise.cta', '문의하기'), to: '/contact', popular: false,
         },
     ];
 
@@ -133,47 +131,15 @@ const LandingPage = () => {
         rose: 'bg-rose-100 text-rose-500', sky: 'bg-sky-100 text-sky-500',
     };
 
-    const testimonials = [
-        {
-            name: t('testimonials.jungHo.name', '김정호'),
-            role: t('testimonials.jungHo.role', '한식당 사장'),
-            location: t('testimonials.jungHo.location', '서울 마포구'),
-            avatar: '👨‍🍳',
-            rating: 5,
-            text: t('testimonials.jungHo.text', '종이 메뉴판을 없애고 위마켓으로 전환했더니 주문 실수가 확 줄었어요. 특히 주방 알림 기능이 정말 편리하고, 매출 통계도 한눈에 볼 수 있어서 운영이 훨씬 수월해졌습니다.'),
-            stat: t('testimonials.jungHo.stat', '주문 오류 80% 감소'),
-            color: 'orange',
-        },
-        {
-            name: t('testimonials.suJin.name', '박수진'),
-            role: t('testimonials.suJin.role', '카페 운영자'),
-            location: t('testimonials.suJin.location', '부산 해운대구'),
-            avatar: '☕',
-            rating: 5,
-            text: t('testimonials.suJin.text', 'QR 하나로 테이블 관리부터 결제까지 해결돼요. 아르바이트생도 하루 만에 익혔고, 고객들이 앱 없이 바로 주문할 수 있어서 거부감이 전혀 없습니다.'),
-            stat: t('testimonials.suJin.stat', '운영 시간 30% 단축'),
-            color: 'blue',
-        },
-        {
-            name: t('testimonials.dongHyun.name', '이동현'),
-            role: t('testimonials.dongHyun.role', '분식집·포장 전문'),
-            location: t('testimonials.dongHyun.location', '대구 수성구'),
-            avatar: '🍱',
-            rating: 5,
-            text: t('testimonials.dongHyun.text', '포인트 적립 기능으로 단골 고객이 눈에 띄게 늘었어요. 결제 후 60초 타이머로 자연스럽게 회원가입을 유도하는 방식이 정말 영리합니다. 재방문율이 크게 올랐어요.'),
-            stat: t('testimonials.dongHyun.stat', '재방문율 62% 상승'),
-            color: 'green',
-        },
-    ];
 
-    // 데모 UX 혁신 3가지
+    // 손님 주문 경험 3가지
     const demoFeatures = [
         {
             icon: <Icon icon="Zap" size="lg" className="text-amber-400" />,
-            badge: 'Zero Friction',
+            badge: '가입 없이 주문',
             title: '스캔 하나로 바로 주문',
-            desc: '회원가입·로그인 없이 QR 스캔만으로 즉시 장바구니 세션 생성. 랜덤 UUID가 실시간으로 할당됩니다.',
-            stat: '진입 마찰 0%',
+            desc: '손님은 앱 설치나 회원가입 없이 QR만 찍으면 바로 메뉴를 보고 주문합니다.',
+            stat: '앱 설치 0번',
             color: 'amber',
         },
         {
@@ -181,15 +147,15 @@ const LandingPage = () => {
             badge: '공유 오더',
             title: '동석자와 함께 담는 장바구니',
             desc: '테이블 공유 세션이 자동 활성화. 다른 사람이 담은 메뉴가 내 화면에 실시간으로 반영됩니다.',
-            stat: '그룹 주문 전환율 +38%',
+            stat: '동석자 주문 실시간 반영',
             color: 'emerald',
         },
         {
             icon: <Icon icon="Gift" size="lg" className="text-purple-400" />,
-            badge: '손실 회피',
+            badge: '단골 전환',
             title: '60초 타이머로 회원가입 유도',
-            desc: '결제 후 포인트가 소멸되기 시작하는 타이머와 사전 입력된 전화번호로 원버튼 가입 완료.',
-            stat: '전환율 +62%',
+            desc: '결제 직후 "60초 안에 가입하면 포인트 적립" 안내가 뜨고, 전화번호가 미리 채워져 있어 버튼 한 번으로 단골 등록이 끝납니다.',
+            stat: '버튼 한 번으로 가입',
             color: 'purple',
         },
     ];
@@ -290,7 +256,7 @@ const LandingPage = () => {
                             initial={{ opacity: 0, y: 10, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ duration: 0.5, delay: 0.1 }}
                             className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-6">
-                            <Icon icon="Sparkles" size="md" className="animate-pulse" /> 모두의 메뉴판 플랫폼
+                            <Icon icon="Sparkles" size="md" className="animate-pulse" /> 1인 사장님을 위한 QR 주문·단골 관리
                         </motion.div>
                         <motion.h1
                             className="text-4xl md:text-6xl font-black leading-[1.15] mb-6 text-gray-900 text-balance [word-break:keep-all]"
@@ -298,9 +264,8 @@ const LandingPage = () => {
                             variants={{ show: { transition: { staggerChildren: 0.14, delayChildren: 0.15 } } }}
                         >
                             {[
-                                <><span className="text-gray-900">1인 자영업자</span>에게</>,
-                                <><span className="ai-gradient-text">AI 지원 단골리스트</span>를</>,
-                                <>만들어 드립니다.</>,
+                                <>QR로 주문받으면</>,
+                                <><span className="ai-gradient-text">단골 혜택</span>을 드립니다</>,
                             ].map((line, i) => (
                                 <motion.span
                                     key={i}
@@ -315,32 +280,32 @@ const LandingPage = () => {
                             ))}
                         </motion.h1>
                         <p className="text-lg text-gray-500 mb-8 leading-relaxed max-w-lg">
-                            위마켓은 종이 메뉴판과 복잡한 POS를 대체하는 올인원 QR 메뉴판 플랫폼입니다.
-                            테이블마다 QR 코드 하나로 주문, 결제, 대기까지 한번에.
+                            손님이 테이블 QR로 주문하고 결제하면 방문 횟수, 포인트, 좋아하는 메뉴가
+                            자동으로 기록됩니다. 1개월 무료로 써보세요. 카드 등록은 필요 없습니다.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                 onClick={() => navigate('/register')}
                                 className="flex items-center justify-center gap-2 px-8 py-4 bg-orange-500 text-white rounded-full font-bold text-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200">
-                                무료로 시작하기 <Icon icon="ChevronRight" size="md" />
+                                1개월 무료로 써보기 <Icon icon="ChevronRight" size="md" />
                             </motion.button>
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                 onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
                                 className="flex items-center justify-center gap-2 px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full font-bold text-lg hover:border-orange-300 hover:text-orange-500 transition-colors">
-                                <Icon icon="Play" size="md" className="fill-current" /> 데모 체험하기
+                                <Icon icon="Play" size="md" className="fill-current" /> 손님 주문 화면 보기
                             </motion.button>
                         </div>
 
                         {/* 통계 */}
                         <div className="flex gap-8 mt-12 pt-8 border-t border-gray-100">
                             {[
-                                { value: '1,000+', label: '등록 매장', icon: "Store" },
-                                { value: '500만+', label: '누적 주문', icon: "ShoppingCart" },
-                                { value: '4.9★',   label: '평균 평점',  icon: "Star" },
+                                { value: '1개월', label: '프로 기능 무료 체험', icon: "Gift" },
+                                { value: '₩0',    label: '기본 무료 요금제',   icon: "Store" },
+                                { value: 'QR 1장', label: '테이블 주문·결제',  icon: "QrCode" },
                             ].map(stat => (
                                 <div key={stat.label} className="flex items-center gap-2.5">
                                     <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
-                                        <stat.icon size={16} className="text-orange-500" />
+                                        <Icon icon={stat.icon} size="sm" className="text-orange-500" />
                                     </div>
                                     <div>
                                         <p className="text-xl font-black text-gray-900 leading-none">{stat.value}</p>
@@ -368,23 +333,23 @@ const LandingPage = () => {
                                 <AnimatePresence mode="wait">
                                     {demoStep === 0 && (
                                         <motion.div key="s0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-1">
-                                            <p className="text-slate-600">&gt; POS v3.2.1</p>
-                                            <p className="text-slate-600 animate-pulse">&gt; QR 대기 중...</p>
+                                            <p className="text-slate-600">&gt; 위마켓 주문 모니터</p>
+                                            <p className="text-slate-600 animate-pulse">&gt; 손님 기다리는 중...</p>
                                         </motion.div>
                                     )}
                                     {demoStep >= 1 && (
                                         <motion.div key="s1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1">
                                             <p className="text-emerald-400">&gt; QR 스캔 ✓</p>
-                                            <p className="text-slate-400">&gt; UUID 생성 중...</p>
-                                            {uuidStr && <p className="text-purple-400 break-all">&gt; {uuidStr}{uuidStr.length < DEMO_UUID.length ? <span className="animate-pulse">█</span> : null}</p>}
+                                            <p className="text-slate-400">&gt; 가입 없이 입장</p>
+                                            {uuidStr && <p className="text-purple-400 break-all">&gt; {uuidStr}{uuidStr.length < DEMO_TYPING.length ? <span className="animate-pulse">█</span> : null}</p>}
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
                                 {demoStep >= 2 && (
-                                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-emerald-400">&gt; CART_ALLOCATED ✓</motion.p>
+                                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-emerald-400">&gt; 장바구니 준비 완료 ✓</motion.p>
                                 )}
                                 {demoStep >= 3 && (
-                                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-amber-300 font-bold">&gt; ZERO_FRICTION ✓</motion.p>
+                                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-amber-300 font-bold">&gt; 앱 설치 없이 주문 ✓</motion.p>
                                 )}
                             </div>
                         </div>
@@ -506,7 +471,7 @@ const LandingPage = () => {
                     style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
                 <div className="max-w-7xl mx-auto relative z-10">
                         <div className="text-center mb-16">
-                            <span classcn="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">{t('features.title', '기능 소개')}</span>
+                            <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">{t('features.title', '기능 소개')}</span>
                             <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">{t('features.title', '매장 운영에 필요한 모든 것')}</h2>
                             <p className="text-gray-500 text-lg">{t('features.subtitle', '종이 메뉴판, 복잡한 POS, 예약 수첩… 이제 위마켓 하나로 통합하세요.')}</p>
                         </div>
@@ -517,7 +482,7 @@ const LandingPage = () => {
                                 transition={{ delay: i * 0.07 }} viewport={{ once: true }}
                                 className="p-6 bg-white border border-gray-100 rounded-2xl hover:shadow-lg hover:-translate-y-1.5 hover:border-orange-100 transition-all duration-300 cursor-default group">
                                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${iconColorMap[feature.color]} group-hover:scale-110 transition-transform duration-300`}>
-                                    <feature.icon size={24} />
+                                    <Icon icon={feature.icon} size="lg" />
                                 </div>
                                 <h3 className="font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">{feature.title}</h3>
                                 <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
@@ -590,9 +555,9 @@ const LandingPage = () => {
                             {/* 상단 통계 */}
                             <div className="grid grid-cols-3 gap-3">
                                 {[
-                                    { value:'+62%', label:'재방문율', color:'text-rose-600', bg:'bg-rose-50', border:'border-rose-100' },
-                                    { value:'+28%', label:'평균 객단가', color:'text-amber-600', bg:'bg-amber-50', border:'border-amber-100' },
-                                    { value:'41%',  label:'VIP 전환율', color:'text-violet-600', bg:'bg-violet-50', border:'border-violet-100' },
+                                    { value:'자동', label:'방문 기록', color:'text-rose-600', bg:'bg-rose-50', border:'border-rose-100' },
+                                    { value:'4단계', label:'등급 자동 분류', color:'text-amber-600', bg:'bg-amber-50', border:'border-amber-100' },
+                                    { value:'생일', label:'쿠폰 자동 발송', color:'text-violet-600', bg:'bg-violet-50', border:'border-violet-100' },
                                 ].map(s => (
                                     <div key={s.label} className={`text-center py-4 ${s.bg} border ${s.border} rounded-2xl`}>
                                         <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
@@ -605,7 +570,7 @@ const LandingPage = () => {
                             <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
                                 <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
                                     <p className="font-black text-gray-900 text-sm flex items-center gap-2"><Heart size={14} className="text-rose-500 fill-rose-500" /> 단골고객 리스트</p>
-                                    <span className="text-xs text-gray-400">총 284명</span>
+                                    <span className="text-xs text-gray-400">예시 화면</span>
                                 </div>
                                 <div className="divide-y divide-gray-50">
                                     {[
@@ -696,7 +661,7 @@ const LandingPage = () => {
                                         transition={{ delay: i * 0.08 }} viewport={{ once:true }}
                                         className="flex items-start gap-4 p-4 bg-white rounded-2xl border border-gray-100 hover:border-sky-200 hover:shadow-md transition-all">
                                         <div className={`w-10 h-10 ${f.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                                            <f.icon size={18} className={f.color} />
+                                            <Icon icon={f.icon} size="md" className={f.color} />
                                         </div>
                                         <div>
                                             <p className="font-bold text-gray-900 text-sm mb-0.5">{f.title}</p>
@@ -720,9 +685,9 @@ const LandingPage = () => {
                             {/* 상단 통계 */}
                             <div className="grid grid-cols-3 gap-3">
                                 {[
-                                    { value:'+43%', label:'신규 고객 유입', color:'text-sky-600',    bg:'bg-sky-50',    border:'border-sky-100' },
-                                    { value:'+85%', label:'지역 충성도',    color:'text-blue-600',   bg:'bg-blue-50',   border:'border-blue-100' },
-                                    { value:'+31%', label:'제휴 매출 증가', color:'text-indigo-600', bg:'bg-indigo-50', border:'border-indigo-100' },
+                                    { value:'제휴', label:'이웃 매장 연결', color:'text-sky-600',    bg:'bg-sky-50',    border:'border-sky-100' },
+                                    { value:'공동', label:'지역 이벤트',    color:'text-blue-600',   bg:'bg-blue-50',   border:'border-blue-100' },
+                                    { value:'통합', label:'포인트 공유',    color:'text-indigo-600', bg:'bg-indigo-50', border:'border-indigo-100' },
                                 ].map(s => (
                                     <div key={s.label} className={`text-center py-4 ${s.bg} border ${s.border} rounded-2xl`}>
                                         <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
@@ -779,7 +744,7 @@ const LandingPage = () => {
                             <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
                                 <div className="px-5 py-3 border-b border-gray-50 flex items-center gap-2">
                                     <Icon icon="Megaphone" />
-                                    <p className="font-black text-gray-900 text-sm">지역 실시간 피드</p>
+                                    <p className="font-black text-gray-900 text-sm">지역 실시간 피드 <span className="text-xs font-normal text-gray-400">· 예시 화면</span></p>
                                 </div>
                                 <div className="divide-y divide-gray-50">
                                     {[
@@ -953,70 +918,22 @@ const LandingPage = () => {
             </section>
 
             {/* ══════════════════════════════════════════════
-                고객 후기
+                시작 조건 (확인 가능한 사실만 표시)
             ══════════════════════════════════════════════ */}
             <section className="py-24 px-6 bg-white">
                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16">
-                        <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">고객 후기</span>
-                        <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">실제 사장님들의 이야기</h2>
-                        <p className="text-gray-500 text-lg">전국 소상공인들이 위마켓으로 매장을 바꿨습니다.</p>
+                    <div className="text-center mb-4">
+                        <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-bold mb-4">시작 조건</span>
+                        <h2 className="text-4xl font-black text-gray-900 mb-4 text-balance">부담 없이 시작하세요</h2>
+                        <p className="text-gray-500 text-lg">카드 등록 없이 가입하고, 1개월 동안 프로 기능을 무료로 써 보세요.</p>
                     </div>
-                    <div className="grid md:grid-cols-3 gap-6">
-                        {testimonials.map((t, i) => (
-                            <motion.div key={t.name}
-                                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.1 }} viewport={{ once: true }}
-                                className="bg-white border border-gray-100 rounded-3xl p-8 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col relative overflow-hidden group">
-                                {/* 배경 장식 */}
-                                <div className={`absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-[0.06] blur-xl ${
-                                    t.color === 'orange' ? 'bg-orange-500' : t.color === 'blue' ? 'bg-blue-500' : 'bg-green-500'
-                                }`} />
-                                {/* 따옴표 */}
-                                <Quote size={24} className={`mb-4 opacity-20 ${
-                                    t.color === 'orange' ? 'text-orange-500' : t.color === 'blue' ? 'text-blue-500' : 'text-green-500'
-                                }`} />
-                                {/* 별점 */}
-                                <div className="flex gap-1 mb-4">
-                                    {[...Array(t.rating)].map((_, j) => (
-                                        <Icon icon="Star" />
-                                    ))}
-                                </div>
-                                {/* 본문 */}
-                                <p className="text-gray-600 text-sm leading-relaxed mb-6 flex-1">{t.text}</p>
-                                {/* 지표 뱃지 */}
-                                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black mb-5 w-fit ${
-                                    t.color === 'orange' ? 'bg-orange-50 text-orange-600' :
-                                    t.color === 'blue'   ? 'bg-blue-50 text-blue-600' :
-                                                           'bg-green-50 text-green-600'
-                                }`}>
-                                    <TrendingUp size={14} />
-                                    {t.stat}
-                                </div>
-                                {/* 프로필 */}
-                                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl border ${
-                                        t.color === 'orange' ? 'bg-orange-50 border-orange-100' :
-                                        t.color === 'blue'   ? 'bg-blue-50 border-blue-100' :
-                                                               'bg-green-50 border-green-100'
-                                    }`}>
-                                        {t.avatar}
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-gray-900 text-sm">{t.name}</p>
-                                        <p className="text-xs text-gray-400">{t.role} · {t.location}</p>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                    {/* 사회적 증거 수치 */}
+                    {/* 시작 조건 */}
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                         className="mt-16 grid sm:grid-cols-3 gap-6">
                         {[
-                            { value: '4.9', suffix: '/ 5.0', label: '평균 사용자 평점', note: '1,200+ 리뷰 기준' },
-                            { value: '97', suffix: '%', label: '재계약률', note: '최근 12개월 기준' },
-                            { value: '14', suffix: '일', label: '무료 체험 기간', note: '카드 등록 불필요' },
+                            { value: '1', suffix: '개월', label: '프로 기능 무료 체험', note: '카드 등록 불필요' },
+                            { value: '₩0', suffix: '', label: '기본 무료 요금제', note: '체험이 끝나면 자동으로 전환' },
+                            { value: '0', suffix: '번', label: '손님 앱 설치', note: 'QR을 찍고 브라우저에서 바로 주문' },
                         ].map((s, i) => (
                             <div key={i} className="text-center py-8 px-6 bg-gray-50 rounded-2xl border border-gray-100">
                                 <p className="text-4xl font-black text-gray-900 mb-1">
@@ -1043,11 +960,11 @@ const LandingPage = () => {
                     <div className="text-center mb-16">
                         <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
                             <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-500/20 text-orange-400 rounded-full text-sm font-bold mb-6 border border-orange-500/20">
-                                <Sparkles size={14} /> 고객 UX 혁신 데모
+                                <Sparkles size={14} /> 손님 주문 화면 데모
                             </span>
                             <h2 className="text-4xl md:text-5xl font-black text-white mb-4 text-balance">
-                                고객 전환율을 바꾸는<br />
-                                <span className="text-orange-400">3가지 UX 혁신</span>
+                                손님이 단골이 되는<br />
+                                <span className="text-orange-400">3가지 주문 경험</span>
                             </h2>
                             <p className="text-slate-400 text-lg max-w-2xl mx-auto">
                                 QR 스캔부터 포인트 가입까지, 고객이 자연스럽게 충성 고객으로 전환되는 완전한 여정을 직접 체험해보세요.
@@ -1055,7 +972,7 @@ const LandingPage = () => {
                         </motion.div>
                     </div>
 
-                    {/* 3가지 UX 혁신 카드 */}
+                    {/* 3가지 주문 경험 카드 */}
                     <div className="grid md:grid-cols-3 gap-6 mb-16">
                         {demoFeatures.map((f, i) => (
                             <motion.div key={i}
@@ -1106,9 +1023,9 @@ const LandingPage = () => {
                             <div className="grid grid-cols-2 gap-3 mb-5">
                                 {[
                                     { stat:'4개 국어', label:'자동 전환' },
-                                    { stat:'+1.8개', label:'추천 후 추가 주문' },
-                                    { stat:'64%', label:'추천 전환율' },
-                                    { stat:'24%', label:'큰 글씨 활용 (고령층)' },
+                                    { stat:'날씨·시간대', label:'메뉴 자동 추천' },
+                                    { stat:'실시간', label:'장바구니 반응 안내' },
+                                    { stat:'큰 글씨', label:'어르신도 편하게' },
                                 ].map(s => (
                                     <div key={s.label} className="bg-slate-900 rounded-xl px-4 py-3 border border-slate-800">
                                         <p className="text-amber-400 font-black text-lg">{s.stat}</p>
@@ -1271,7 +1188,7 @@ const LandingPage = () => {
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={() => navigate('/register')}
+                                <button onClick={() => navigate(plan.to)}
                                     className={`w-full py-3.5 rounded-full font-bold transition-all text-sm ${plan.popular
                                         ? 'bg-orange-500 text-white hover:bg-orange-400 shadow-lg shadow-orange-500/30'
                                         : 'border-2 border-gray-200 text-gray-700 hover:border-orange-300 hover:text-orange-500'
@@ -1281,6 +1198,9 @@ const LandingPage = () => {
                             </motion.div>
                         ))}
                     </div>
+                    <p className="mt-10 text-center text-sm text-gray-500 [word-break:keep-all]">
+                        새로 가입하면 1개월 무료 체험으로 시작합니다.
+                    </p>
                 </div>
             </section>
 
@@ -1293,14 +1213,14 @@ const LandingPage = () => {
                 <div className="max-w-4xl mx-auto text-center relative z-10">
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
                         <div className="flex justify-center gap-1 mb-6">
-                            {[...Array(5)].map((_, i) => <Icon icon="Star" />)}
+                            {[...Array(5)].map((_, i) => <Icon key={i} icon="Star" className="text-amber-400 fill-amber-400" />)}
                         </div>
                         <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4 leading-tight text-balance">
                             지금 바로 매장을{' '}
                             <span className="text-orange-500">스마트하게</span>{' '}
                             운영하세요
                         </h2>
-                        <p className="text-gray-500 text-lg mb-3">14일 무료 체험 · 신용카드 불필요</p>
+                        <p className="text-gray-500 text-lg mb-3">1개월 무료 체험 · 신용카드 불필요</p>
                         <div className="flex items-center justify-center gap-4 mb-10 text-sm text-gray-400">
                             <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-500" /> 설치 불필요</span>
                             <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-500" /> 계약 없음</span>
@@ -1347,8 +1267,8 @@ const LandingPage = () => {
                         <h4 className="font-bold text-gray-900 mb-4 text-sm">고객 지원</h4>
                         <ul className="space-y-3 text-sm text-gray-500">
                             <li><Link to="/board" className="hover:text-orange-500 transition-colors">공지사항</Link></li>
-                            <li><a href="#" className="hover:text-orange-500 transition-colors">FAQ</a></li>
-                            <li><a href="#" className="hover:text-orange-500 transition-colors">문의하기</a></li>
+                            <li><Link to="/guides" className="hover:text-orange-500 transition-colors">FAQ</Link></li>
+                            <li><Link to="/contact" className="hover:text-orange-500 transition-colors">문의하기</Link></li>
                         </ul>
                     </div>
                 </div>

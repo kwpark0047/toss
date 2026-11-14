@@ -98,7 +98,7 @@ const Table = {
       },
       include: {
         stores: {
-          select: { name: true },
+          select: { name: true, customer_entry_mode: true },
         },
       },
     });

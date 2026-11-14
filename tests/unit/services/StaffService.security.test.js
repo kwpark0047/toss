@@ -134,6 +134,43 @@ describe('StaffService account security', () => {
     expect(prisma.staff_attendance.create).not.toHaveBeenCalled();
   });
 
+  it('다른 매장 매니저는 직원 출퇴근을 변경할 수 없다', async () => {
+    prisma.staff.findUnique.mockResolvedValue({ id: 2, user_id: 8, store_id: 3, is_active: 1 });
+    prisma.stores.findUnique.mockResolvedValue({ user_id: 1 });
+    prisma.staff.findFirst.mockResolvedValue(null);
+
+    await expect(staffService.clockIn(2, 7, 'manager')).rejects.toMatchObject({ statusCode: 403 });
+    await expect(staffService.clockOut(2, 7, 'manager')).rejects.toMatchObject({ statusCode: 403 });
+    expect(prisma.staff_attendance.findFirst).not.toHaveBeenCalled();
+    expect(prisma.staff_attendance.create).not.toHaveBeenCalled();
+    expect(prisma.staff_attendance.update).not.toHaveBeenCalled();
+  });
+
+  it('이미 출근 중인 직원의 중복 출근 요청은 새 근태 기록을 만들지 않는다', async () => {
+    prisma.staff.findUnique.mockResolvedValue({ id: 2, user_id: 7, store_id: 3, is_active: 1 });
+    prisma.staff_attendance.findFirst.mockResolvedValue({ id: 12, clock_out: null });
+
+    await expect(staffService.clockIn(2, 7, 'staff')).rejects.toMatchObject({ statusCode: 400 });
+    expect(prisma.staff_attendance.create).not.toHaveBeenCalled();
+  });
+
+  it('동시 출근 요청이 DB 고유 제약에 걸리면 중복 기록으로 확산시키지 않는다', async () => {
+    prisma.staff.findUnique.mockResolvedValue({ id: 2, user_id: 7, store_id: 3, is_active: 1 });
+    prisma.staff_attendance.findFirst.mockResolvedValue(null);
+    prisma.staff_attendance.create.mockRejectedValue(Object.assign(new Error('duplicate'), { code: 'P2002' }));
+
+    await expect(staffService.clockIn(2, 7, 'staff')).rejects.toMatchObject({ code: 'P2002' });
+    expect(prisma.staff_attendance.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('활성 출근 기록이 없으면 퇴근 요청을 거부하고 기록을 변경하지 않는다', async () => {
+    prisma.staff.findUnique.mockResolvedValue({ id: 2, user_id: 7, store_id: 3, is_active: 1 });
+    prisma.staff_attendance.findFirst.mockResolvedValue(null);
+
+    await expect(staffService.clockOut(2, 7, 'staff')).rejects.toMatchObject({ statusCode: 400 });
+    expect(prisma.staff_attendance.update).not.toHaveBeenCalled();
+  });
+
   it('다른 매장의 직원을 스케줄에 배정할 수 없다', async () => {
     prisma.staff.findUnique.mockResolvedValue({ store_id: 99, is_active: 1 });
 

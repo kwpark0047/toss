@@ -68,7 +68,7 @@ describe('StoreService', () => {
     it('손상된 enabled_payment_methods는 기본값 사용', async () => {
       Store.findBusinessInfo.mockResolvedValue({ id: 1, enabled_payment_methods: '[[[' });
       const result = await svc.getBusinessInfo('1');
-      expect(result.enabled_payment_methods).toEqual(['cash', 'store_card', 'transfer']);
+      expect(result.enabled_payment_methods).toEqual(['cash', 'transfer']);
     });
   });
 

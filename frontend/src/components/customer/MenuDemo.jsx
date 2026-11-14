@@ -89,32 +89,32 @@ const MonitorPanel = ({ logs, uuidTyped, sessionId, screen, sharedItems, orderDa
           <div className="w-3 h-3 rounded-full bg-yellow-500" />
           <div className="w-3 h-3 rounded-full bg-green-500" />
         </div>
-        <span className="text-slate-400 text-xs font-mono ml-2">wemarket — system monitor</span>
+        <span className="text-slate-400 text-xs font-mono ml-2">wemarket — 사장님 주문 모니터</span>
         <div className="ml-auto flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-emerald-400 text-[10px] font-mono">LIVE</span>
+          <span className="text-emerald-400 text-[10px] font-mono">실시간</span>
         </div>
       </div>
 
-      {/* 세션 정보 */}
+      {/* 테이블·주문서 정보 */}
       <div className="px-5 py-4 border-b border-slate-800 space-y-2">
         <div className="flex justify-between text-[11px] font-mono">
-          <span className="text-slate-500">TABLE</span>
+          <span className="text-slate-500">테이블</span>
           <span className="text-amber-400">{STORE.table}</span>
         </div>
         <div className="flex justify-between text-[11px] font-mono">
-          <span className="text-slate-500">STATUS</span>
+          <span className="text-slate-500">상태</span>
           <span className={
             screen === 'entry'   ? 'text-yellow-400' :
             screen === 'menu'    ? 'text-emerald-400' :
             screen === 'success' ? 'text-sky-400' : 'text-purple-400'
           }>
-            {screen === 'entry' ? 'WAITING' : screen === 'menu' ? 'ACTIVE' : screen === 'success' ? 'ORDERED' : 'REGISTERED'}
+            {screen === 'entry' ? '손님 대기' : screen === 'menu' ? '주문 중' : screen === 'success' ? '주문 완료' : '단골 등록'}
           </span>
         </div>
         {uuidTyped && (
           <div className="flex flex-col gap-0.5 text-[10px] font-mono">
-            <span className="text-slate-500">SESSION_ID</span>
+            <span className="text-slate-500">주문서 번호</span>
             <span className="text-purple-400 break-all leading-relaxed">
               {uuidTyped}
               {uuidTyped.length < sessionId.length && <span className="animate-pulse text-purple-300">█</span>}
@@ -145,7 +145,7 @@ const MonitorPanel = ({ logs, uuidTyped, sessionId, screen, sharedItems, orderDa
       {/* 공유 장바구니 현황 */}
       {screen === 'menu' && sharedItems.length > 0 && (
         <div className="px-5 py-4 border-t border-slate-800">
-          <p className="text-slate-500 text-[10px] font-mono mb-2">SHARED_CART</p>
+          <p className="text-slate-500 text-[10px] font-mono mb-2">함께 담은 메뉴</p>
           {sharedItems.map(item => (
             <div key={item.cartItemId} className="flex justify-between text-[11px] font-mono text-sky-400">
               <span>{item.fromTablemate}: {item.menuItem.name}</span>
@@ -158,18 +158,18 @@ const MonitorPanel = ({ logs, uuidTyped, sessionId, screen, sharedItems, orderDa
       {/* 포인트 상태 */}
       {screen === 'success' && orderData && (
         <div className="px-5 py-4 border-t border-slate-800">
-          <p className="text-slate-500 text-[10px] font-mono mb-2">POINTS_STATUS</p>
+          <p className="text-slate-500 text-[10px] font-mono mb-2">포인트</p>
           <div className="flex justify-between text-[11px] font-mono">
-            <span className="text-slate-400">EARNED</span>
+            <span className="text-slate-400">적립 예정</span>
             <span className="text-amber-400">{orderData.points}P</span>
           </div>
           <div className="flex justify-between text-[11px] font-mono mt-1">
-            <span className="text-slate-400">EXPIRY_IN</span>
-            <span className={countdown < 15 ? 'text-red-400 animate-pulse' : 'text-yellow-400'}>{countdown}s</span>
+            <span className="text-slate-400">소멸까지</span>
+            <span className={countdown < 15 ? 'text-red-400 animate-pulse' : 'text-yellow-400'}>{countdown}초</span>
           </div>
           <div className="flex justify-between text-[11px] font-mono mt-1">
-            <span className="text-slate-400">CONVERTED</span>
-            <span className={signupDone ? 'text-emerald-400' : 'text-red-400'}>{signupDone ? 'YES' : 'NO'}</span>
+            <span className="text-slate-400">단골 등록</span>
+            <span className={signupDone ? 'text-emerald-400' : 'text-red-400'}>{signupDone ? '완료' : '대기'}</span>
           </div>
         </div>
       )}
@@ -181,16 +181,16 @@ const MonitorPanel = ({ logs, uuidTyped, sessionId, screen, sharedItems, orderDa
 const MenuDemo = () => {
   const [screen, setScreen] = useState('entry');
 
-  // 세션 UUID
+  // 데모 주문서 번호 (예: A-07-3F9C)
   const [sessionId] = useState(() => {
-    const h = () => Math.floor(Math.random() * 0x10000).toString(16).padStart(4, '0');
-    return `${h()}${h()}-${h()}-${h()}-${h()}-${h()}${h()}${h()}`;
+    const code = Math.floor(Math.random() * 0x10000).toString(16).padStart(4, '0').toUpperCase();
+    return `${STORE.table}-${code}`;
   });
 
   // 시스템 모니터
   const [logs, setLogs] = useState([
-    { id: 0, text: '> WeMarket POS v3.2.1', type: 'system' },
-    { id: 1, text: '> 대기 중 — QR 스캔을 기다리는 중...', type: 'idle' },
+    { id: 0, text: '> 위마켓 주문 모니터', type: 'system' },
+    { id: 1, text: '> 손님 기다리는 중...', type: 'idle' },
   ]);
   const [uuidTyped, setUuidTyped] = useState('');
   const [scanClicked, setScanClicked] = useState(false);
@@ -258,14 +258,14 @@ const MenuDemo = () => {
     let i = 0;
     const iv = setInterval(() => { i++; setUuidTyped(sessionId.slice(0, i)); if (i >= sessionId.length) clearInterval(iv); }, 35);
     const seq = [
-      [100,  '> QR 스캔 감지됨 ✓', 'success'],
-      [400,  '> 세션 초기화 중...', 'system'],
-      [900,  `> UUID 생성: ${sessionId}`, 'uuid'],
-      [1400, '> 임시 장바구니 할당 중...', 'system'],
-      [1800, '> CART_ALLOCATED ✓', 'success'],
-      [2100, '> 공유 오더 세션 활성화...', 'system'],
-      [2500, '> SHARED_ORDER_ACTIVE ✓', 'success'],
-      [2900, '> ZERO_FRICTION_COMPLETE ✓', 'highlight'],
+      [100,  '> 손님이 테이블 QR을 찍었어요 ✓', 'success'],
+      [400,  '> 주문서 여는 중...', 'system'],
+      [900,  `> 주문서 번호: ${sessionId}`, 'uuid'],
+      [1400, '> 장바구니 준비 중...', 'system'],
+      [1800, '> 장바구니 준비 완료 ✓', 'success'],
+      [2100, '> 같은 테이블 함께 주문 켜는 중...', 'system'],
+      [2500, '> 함께 주문 켜짐 ✓', 'success'],
+      [2900, '> 앱 설치·회원가입 없이 주문 시작 ✓', 'highlight'],
     ];
     seq.forEach(([delay, text, type]) => setTimeout(() => addLog(text, type), delay));
     setTimeout(() => setScanComplete(true), 3000);
@@ -296,7 +296,7 @@ const MenuDemo = () => {
     const all = [...cart, ...sharedItems];
     if (all.length === 0) return;
     setIsOrdering(true);
-    addLog('> 주문 데이터 전송 중...', 'system');
+    addLog('> 주문 보내는 중...', 'system');
     setTimeout(() => {
       const total = all.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
       const points = Math.floor(total * 0.02);
@@ -305,7 +305,7 @@ const MenuDemo = () => {
       setCart([]); setSharedItems([]); setIsCartOpen(false); setIsOrdering(false);
       setCountdown(60); setSignupDone(false);
       addLog(`> 주문 ${num} 접수 완료 ✓`, 'success');
-      addLog(`> 포인트 ${points}P 소멸 타이머 시작...`, 'event');
+      addLog(`> 포인트 ${points}P 적립 대기: 60초 안에 가입하면 적립`, 'event');
       setScreen('success');
     }, 1400);
   };
@@ -317,9 +317,9 @@ const MenuDemo = () => {
     setConfetti(Array.from({ length: 22 }, (_, i) => ({
       id: i, x: Math.random() * 100, color: ['#f97316','#8b5cf6','#10b981','#3b82f6','#f59e0b'][i % 5],
     })));
-    addLog(`> 회원가입: ${phone}`, 'system');
-    addLog(`> 포인트 ${orderData.points}P 계정 귀속 ✓`, 'success');
-    addLog('> RETENTION_CONVERSION: SUCCESS ✓', 'highlight');
+    addLog(`> 단골 가입: ${phone}`, 'system');
+    addLog(`> 포인트 ${orderData.points}P 적립 완료 ✓`, 'success');
+    addLog('> 단골 손님 1명 추가 ✓', 'highlight');
   };
 
   // ── 파생 값 ─────────────────────────────────────────────────────────────
@@ -447,7 +447,7 @@ const MenuDemo = () => {
                   <div className="space-y-3">
                     {[
                       { icon: <Zap size={14} className="text-amber-500" />, text: '회원가입 없이 바로 주문 가능' },
-                      { icon: <ShieldCheck size={14} className="text-emerald-500" />, text: '개인정보 입력 불필요 — 임시 세션 자동 생성' },
+                      { icon: <ShieldCheck size={14} className="text-emerald-500" />, text: '개인정보 입력 없이 바로 주문' },
                       { icon: <Gift size={14} className="text-purple-500" />, text: '주문 후 포인트 적립 & 손쉬운 가입 연동' },
                     ].map((item, i) => (
                       <motion.div key={i} className="flex items-center gap-3 text-sm text-slate-600 font-medium"
@@ -483,7 +483,7 @@ const MenuDemo = () => {
                             />
                           ))}
                         </div>
-                        <span className="text-[11px] text-slate-400">세션 초기화 중...</span>
+                        <span className="text-[11px] text-slate-400">주문서 여는 중...</span>
                       </div>
                     ) : (
                       <><Scan size={20} />스캔 완료 — 주문 시작하기</>

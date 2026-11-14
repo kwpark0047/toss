@@ -1,8 +1,13 @@
 {
+  "git": { "deploymentEnabled": { "main": false, "master": false } },
   "installCommand": "npm --prefix frontend ci",
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "frontend/dist",
   "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://wemarket-eiw4.onrender.com/api/$1"
+    },
     {
       "handle": "filesystem"
     },

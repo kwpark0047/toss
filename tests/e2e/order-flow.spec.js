@@ -42,9 +42,19 @@ test.describe('주문 플로우 - 데모 스토어', () => {
     // 7. 장바구니 모달에 담긴 아이템 확인 (모달 제목 <h2> "장바구니" 기준)
     await expect(page.getByRole('heading', { name: '장바구니' })).toBeVisible();
 
-    // 8. 결제수단 선택 (신용카드)
-    //    (결제수단 버튼 aria-label 은 정확히 "신용카드". 기본 결제수단이 card 라
-    //    주문 버튼 라벨에도 "신용카드으로 주문하기" 가 포함되므로 exact 매칭 사용)
+    // 7a. 장바구니를 접어 메뉴를 더 살펴본 뒤 복원할 수 있다.
+    await page.getByRole('button', { name: '장바구니 접기' }).first().click();
+    await expect(page.getByRole('button', { name: '장바구니 다시 열기' })).toBeVisible();
+    await page.getByRole('button', { name: '장바구니 다시 열기' }).click();
+    await expect(page.getByRole('heading', { name: '장바구니' })).toBeVisible();
+
+    // 7b. 균등 분할 인원 설정을 제출 없이 확인한다.
+    await page.getByRole('button', { name: '분할 결제 설정' }).click();
+    await page.getByLabel('몇 명이 나누어 결제하나요?').selectOption('3');
+    await expect(page.getByRole('button', { name: '3명 분할 주문 만들기' })).toBeVisible();
+    await page.getByRole('button', { name: '분할 결제 설정' }).click();
+
+    // 8. 기존 카드 결제 선택과 주문 흐름은 유지한다.
     const cardMethod = page.getByRole('button', { name: '신용카드', exact: true });
     await expect(cardMethod).toBeVisible();
     await cardMethod.click();

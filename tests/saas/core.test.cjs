@@ -152,6 +152,46 @@ test('expired subscriptions fall back to free even if their stored plan is pro',
         plan: { name: 'pro' },
       }),
     },
+    '../config/prisma': { $queryRaw: async () => [] },
+  });
+  let outcome;
+  await plans.requirePlanFeature('aiRecommendations')(
+    { params: { storeId: '1' }, query: {} },
+    {},
+    (e) => {
+      outcome = e || 'allowed';
+    }
+  );
+  assert.equal(outcome.statusCode, 403);
+});
+
+test('an active signup trial unlocks pro features without a paid subscription', async () => {
+  const trialQueries = [];
+  const plans = load('middleware/planFeatures.js', {
+    '../services/SubscriptionService': { getSubscription: async () => null },
+    '../config/prisma': {
+      $queryRaw: async (sql, storeId) => {
+        trialQueries.push(storeId);
+        return [{ trial_ends_at: new Date(Date.now() + 86400000) }];
+      },
+    },
+  });
+  const req = { params: { storeId: '1' }, query: {} };
+  let outcome;
+  await plans.requirePlanFeature('aiRecommendations')(req, {}, (e) => {
+    outcome = e || 'allowed';
+  });
+  assert.equal(outcome, 'allowed');
+  assert.equal(req.plan.name, 'pro');
+  assert.deepEqual(trialQueries, [1]);
+});
+
+test('an expired signup trial falls back to free and denies pro features', async () => {
+  const plans = load('middleware/planFeatures.js', {
+    '../services/SubscriptionService': { getSubscription: async () => null },
+    '../config/prisma': {
+      $queryRaw: async () => [{ trial_ends_at: new Date(Date.now() - 86400000) }],
+    },
   });
   let outcome;
   await plans.requirePlanFeature('aiRecommendations')(

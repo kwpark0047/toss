@@ -77,7 +77,7 @@ export default function Register() {
             <Store aria-hidden="true" className="h-8 w-8 text-white" />
           </div>
           <h1 id="signup-title" className="text-2xl font-extrabold tracking-tight text-slate-900">위마켓 회원가입</h1>
-          <p className="mt-2 text-sm text-slate-600">휴대전화번호와 이메일, 비밀번호로 가입하고 1개월 체험을 시작해요. 번호·이메일 소유 인증은 하지 않아요.</p>
+          <p className="mt-2 text-sm text-slate-600">휴대전화번호와 이메일, 비밀번호로 가입하고 1개월 프로 무료 체험을 시작해요. 번호·이메일 소유 인증은 하지 않아요.</p>
         </div>
 
         {config === null ? (
@@ -110,7 +110,7 @@ export default function Register() {
               <label className="flex items-start gap-2"><input type="checkbox" checked={confirmAge14} onChange={(event) => setConfirmAge14(event.target.checked)} aria-label="만 14세 이상입니다" /><span>만 14세 이상입니다</span></label>
             </fieldset>
             {config?.turnstileSiteKey && <TurnstileChallenge siteKey={config.turnstileSiteKey} action="signup" onToken={setTurnstileToken} generation={challengeGeneration} />}
-            <p className="text-xs leading-relaxed text-slate-500">휴대전화번호와 이메일 소유 인증은 하지 않습니다. 가입하면 1개월 체험이 시작되며 최고관리자에게 정식 이용 승인을 신청할 수 있습니다. 자동 가입 방지를 위한 보안 확인은 필요합니다.</p>
+            <p className="text-xs leading-relaxed text-slate-500">휴대전화번호와 이메일 소유 인증은 하지 않습니다. 가입하면 1개월 동안 프로 요금제 기능을 무료로 쓸 수 있고, 체험이 끝나면 무료 요금제로 자동 전환됩니다. 자동 가입 방지를 위한 보안 확인은 필요합니다.</p>
             <button type="submit" disabled={!canSubmit} className="w-full rounded-xl bg-orange-600 p-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
               {busy ? '가입 처리 중…' : !enabled ? '가입 설정 준비 중' : '가입하고 시작하기'}
             </button>

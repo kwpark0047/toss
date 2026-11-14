@@ -11,6 +11,7 @@ const {
   getLowStockAlerts,
 } = require('../controllers/inventoryController');
 const inventoryReorderController = require('../controllers/inventoryReorderController');
+const purchaseController = require('../controllers/purchaseController');
 
 /**
  * @swagger
@@ -94,6 +95,31 @@ router.post(
   authMiddleware,
   checkPermission('items:manage'),
   inventoryReorderController.generate
+);
+
+router.get(
+  '/store/:storeId/purchases',
+  authMiddleware,
+  checkPermission('menu:read'),
+  purchaseController.list
+);
+router.post(
+  '/store/:storeId/purchases',
+  authMiddleware,
+  checkPermission('items:manage'),
+  purchaseController.createDraft
+);
+router.post(
+  '/store/:storeId/purchases/:purchaseId/order',
+  authMiddleware,
+  checkPermission('items:manage'),
+  purchaseController.markOrdered
+);
+router.post(
+  '/store/:storeId/purchases/:purchaseId/receive',
+  authMiddleware,
+  checkPermission('items:manage'),
+  purchaseController.receive
 );
 router.get(
   '/store/:storeId/reorder-candidates',

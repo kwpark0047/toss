@@ -14,6 +14,8 @@ export const storesAPI = {
   getAll: (params = {}) => api.get('/stores', { params }),
   getMy: () => api.get('/stores/my'),
   getById: (id) => api.get('/stores/' + id),
+  // QR 앞 매장 소개 전용 공개 응답 (필요한 소개 정보·추천 메뉴만 반환)
+  getPublicIntro: (id) => api.get('/stores/public-intro/' + id),
   // 공개 매장 검색 (지역·업종·키워드·고객위치 거리순)
   searchPublic: (params = {}) => api.get('/stores/search', { params }),
   // 지역 하이라이트 배너 (추천메뉴 + 이벤트/프로모션)
@@ -40,6 +42,10 @@ export const storesAPI = {
     api.get('/stores/favorites/' + customerPhone, { headers: customerTokenHeader() }),
   // 고객 메뉴 화면용 매장 팅커벨 설정 (공개)
   getTinkerbellSettings: (id) => api.get('/stores/' + id + '/tinkerbell-settings'),
+  // 고객 메뉴 화면용 주문 유형·배달 조건 (공개)
+  getOrderChannels: (id) => api.get('/stores/' + id + '/order-channels'),
+  // 배달 가능 여부·배달비 견적 (공개)
+  deliveryQuote: (id, data) => api.post('/stores/' + id + '/delivery-quote', data),
 };
 
 export const storeAccountAPI = {

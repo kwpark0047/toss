@@ -29,6 +29,35 @@ const CATALOG = {
     adapter: false,
   },
   baemin: { label: '배달의민족', fields: ['api_key'], store: true, adapter: false },
+  // 배달대행 — 매장이 직접 계약한 계정. api_secret은 대행사 상태 웹훅 서명 검증에도 쓴다.
+  barogo: {
+    label: '배달대행 · 바로고',
+    fields: ['api_key', 'api_secret'],
+    store: true,
+    adapter: false,
+  },
+  vroong: {
+    label: '배달대행 · 부릉',
+    fields: ['api_key', 'api_secret'],
+    store: true,
+    adapter: false,
+  },
+  saenggakdaero: {
+    label: '배달대행 · 생각대로',
+    fields: ['api_key', 'api_secret'],
+    store: true,
+    adapter: false,
+  },
+  ...(process.env.NODE_ENV === 'test' || process.env.DELIVERY_MOCK_AGENCY === '1'
+    ? {
+        mock: {
+          label: '배달대행 · 테스트 대행사',
+          fields: ['api_key', 'api_secret'],
+          store: true,
+          adapter: false,
+        },
+      }
+    : {}),
   online_order: {
     label: '온라인·모바일 주문 업체',
     fields: ['api_key'],

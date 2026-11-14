@@ -139,7 +139,8 @@ class WeatherService {
     if (!Number.isFinite(rain) || rain < 0) return null;
     const pty = Number(values.PTY || 0);
     const isRaining = pty > 0 || rain > 0;
-    const condition = pty === 3 || pty === 7 ? '눈' : isRaining ? '비' : '강수 없음';
+    const condition =
+      pty === 3 || pty === 7 ? '눈' : pty === 2 ? '진눈깨비' : isRaining ? '비' : '강수 없음';
     return { temp, humidity, rain, isRaining, condition };
   }
 

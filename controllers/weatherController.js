@@ -47,14 +47,27 @@ const getEnhancedWeatherContext = async (req, res) => {
 const getWeatherByCoords = async (req, res) => {
   try {
     const { lat, lng } = req.query;
-    if (!lat || !lng) {
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    // KMA 격자 관측 범위는 대한민국 매장만 지원합니다. 범위 밖 좌표를
+    // 서울 관측으로 조용히 대체하면 고객에게 다른 지역 날씨를 안내합니다.
+    if (
+      lat === undefined ||
+      lng === undefined ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < 32.5 ||
+      latitude > 39.8 ||
+      longitude < 124 ||
+      longitude > 132
+    ) {
       return res.status(400).json({
         success: false,
-        error: '위도(lat)와 경도(lng)가 필요합니다.',
+        error: '대한민국 내의 올바른 위도(lat)와 경도(lng)가 필요합니다.',
       });
     }
 
-    const stn = WeatherService.getStationByCoords(parseFloat(lat), parseFloat(lng));
+    const stn = WeatherService.getStationByCoords(latitude, longitude);
     const weather = await weatherService.getEnhancedWeatherContext(stn);
 
     return res.status(200).json({

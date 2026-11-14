@@ -6,6 +6,7 @@ export const MenuPage = lazy(() => import('../pages/MenuPage'));
 export const PaymentSuccess = lazy(() => import('../pages/PaymentSuccess'));
 export const PaymentFail = lazy(() => import('../pages/PaymentFail'));
 export const QrResolvePage = lazy(() => import('../pages/QrResolvePage'));
+export const StoreIntroPage = lazy(() => import('../pages/StoreIntroPage'));
 export const MenuDemo = lazy(() => import('../components/customer/MenuDemo'));
 export const BusinessDemo = lazy(() => import('../components/admin/BusinessDemo'));
 export const AuthPage = lazy(() => import('../pages/AuthPage'));

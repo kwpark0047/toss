@@ -46,7 +46,10 @@ export default function QrResolvePage() {
           if (table?.store_id) {
             if (!cancelled) {
               const tableParam = encodeURIComponent(table.table_number || table.name || '');
-              navigate(`/menu/${table.store_id}?table=${tableParam}`, { replace: true });
+              const destination = table?.stores?.customer_entry_mode === 'intro'
+                ? `/store-intro/${table.store_id}`
+                : `/menu/${table.store_id}`;
+              navigate(`${destination}?table=${tableParam}`, { replace: true });
             }
             return;
           }

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act, cleanup, fireEvent } from '@testing-library/react';
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 
 const h = React.createElement;
 
@@ -29,6 +30,7 @@ import i18n from './i18n';
 
 
 // framer-motion
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('framer-motion', () => {
   const motionProxy = new Proxy({}, {
     get: (_, key) => (props) => {
@@ -51,11 +53,11 @@ vi.mock('@/api/products', () => ({
   productsAPI: { getByStore: vi.fn() },
 }));
 vi.mock('@/api/orders', () => ({
-  ordersAPI: { create: vi.fn(), getSocket: vi.fn() },
+  ordersAPI: { create: vi.fn(), getById: vi.fn(), getSocket: vi.fn() },
   paymentsAPI: { create: vi.fn() },
 }));
 vi.mock('@/api/misc', () => ({
-  weatherAPI: { getCurrent: vi.fn() },
+  weatherAPI: { getCurrent: vi.fn(), getByCoords: vi.fn() },
 }));
 vi.mock('@/api/wakeup', () => ({
   wakeupServer: vi.fn(() => Promise.resolve()),
@@ -97,7 +99,7 @@ vi.mock('@/components/customer/StoreReviews', () => ({ default: () => 'StoreRevi
 vi.mock('@/components/customer/LegalFooter', () => ({ default: () => 'LegalFooter' }));
 vi.mock('@/components/common/EmptyState', () => ({ default: () => 'EmptyState' }));
 vi.mock('@/components/menu/LanguageSelector', () => ({ default: () => 'LanguageSelector' }));
-vi.mock('@/components/ai/TinkerBell', () => ({ default: ({ storeId }) => `TinkerBell ai:${storeId ?? 'off'}` }));
+vi.mock('@/components/ai/TinkerBell', () => ({ default: ({ storeId, customGreeting = '', customGreetingLanguage = 'ko' }) => `TinkerBell ai:${storeId ?? 'off'} greeting:${customGreeting} language:${customGreetingLanguage}` }));
 
 // Import after all mocks
 import MenuPage from '@/pages/MenuPage';
@@ -109,6 +111,7 @@ import { categoriesAPI, productsAPI } from '@/api/products';
 import { weatherAPI } from '@/api/misc';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import { ordersAPI, paymentsAPI } from '@/api/orders';
+import { toast } from 'sonner';
 
 // =====================
 // Helpers
@@ -121,7 +124,7 @@ const createWrapper = () => {
   return ({ children }) =>
     h(I18nextProvider, { i18n },
       h(QueryClientProvider, { client: qc },
-        children
+        h(MemoryRouter, null, children)
       )
     );
 };
@@ -209,16 +212,44 @@ describe('buildThemeStyle', () => {
 // =====================
 
 describe('MenuPage', () => {
+  it('매장 좌표가 있으면 해당 위치 기준 기상청 날씨를 조회한다', async () => {
+    storesAPI.getById.mockResolvedValue({ data: { id: 1, name: '좌표매장', latitude: 37.52, longitude: 126.78, theme: null } });
+    categoriesAPI.getByStore.mockResolvedValue({ data: [] });
+    productsAPI.getByStore.mockResolvedValue({ data: [] });
+    weatherAPI.getByCoords.mockResolvedValue({ data: { data: { temp: 18, source: 'kma' } } });
+
+    render(h(MenuPage), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(weatherAPI.getByCoords).toHaveBeenCalledWith(37.52, 126.78));
+  });
+
+  it('매장 좌표가 없으면 다른 지역 날씨를 대신 조회하지 않는다', async () => {
+    storesAPI.getById.mockResolvedValue({ data: { id: 1, name: '좌표없음', theme: null } });
+    categoriesAPI.getByStore.mockResolvedValue({ data: [] });
+    productsAPI.getByStore.mockResolvedValue({ data: [] });
+
+    render(h(MenuPage), { wrapper: createWrapper() });
+    await screen.findByText(/MenuHeader/);
+
+    expect(weatherAPI.getByCoords).not.toHaveBeenCalled();
+  });
+
   for (const method of ['cash', 'transfer']) it(`accepts ${method} receipt without claiming payment completion`, async () => {
     storesAPI.getById.mockResolvedValue({ data: { id: 1, name: 'fixture', theme: null } });
     categoriesAPI.getByStore.mockResolvedValue({ data: [] });
     productsAPI.getByStore.mockResolvedValue({ data: [{ id: 1, name: 'fixture', price: 7500 }] });
     ordersAPI.create.mockResolvedValue({ success: true, data: { id: 1, order_number: 'fixture-order', total_amount: 7500, order_capability: 'fixture-capability' } });
     paymentsAPI.create.mockResolvedValue({ success: true, data: { id: 2, status: 'READY', method: method.toUpperCase() } });
+    ordersAPI.getById.mockResolvedValue({ data: { id: 1, store_id: 1, order_number: 'fixture-order', total_amount: 7500, payment_status: 'pending', items: [{ product_name: 'fixture menu', quantity: 1, price: 7500 }] } });
     render(h(MenuPage), { wrapper: createWrapper() });
     fireEvent.click(await screen.findByText('fixture add'));
     fireEvent.click(screen.getByText(`fixture ${method}`));
     fireEvent.click(screen.getByText('fixture order'));
+    expect(await screen.findByText('결제 예정금액')).toBeInTheDocument();
+    expect(screen.getByText('fixture menu × 1')).toBeInTheDocument();
+    expect(screen.queryByText('결제가 완료되었습니다!')).not.toBeInTheDocument();
+    expect(ordersAPI.getById).toHaveBeenCalledWith(1, 'fixture-capability');
+    fireEvent.click(screen.getByRole('button', { name: '현재 주문 진행 자세히 보기' }));
     await waitFor(() => expect(screen.getByText('OrderStatusModal receipt 1 fixture-capability')).toBeInTheDocument());
     expect(mockNavigate).not.toHaveBeenCalled();
     expect(paymentsAPI.create).toHaveBeenCalledWith(expect.objectContaining({ order_id: 1, payment_method: method }), 'fixture-capability');
@@ -240,6 +271,25 @@ describe('MenuPage', () => {
       console.error = origError;
     }
     if (errors.length) console.log('CONSOLE ERRORS:', errors.join('\n'));
+  });
+  it('오프라인에서는 주문을 접수한 것처럼 처리하지 않고 서버 요청을 보내지 않는다', async () => {
+    const originalOnLine = Object.getOwnPropertyDescriptor(Navigator.prototype, 'onLine');
+    Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
+    storesAPI.getById.mockResolvedValue({ data: { id: 1, name: 'fixture', theme: null } });
+    categoriesAPI.getByStore.mockResolvedValue({ data: [] });
+    productsAPI.getByStore.mockResolvedValue({ data: [{ id: 1, name: 'fixture', price: 7500 }] });
+    try {
+      render(h(MenuPage), { wrapper: createWrapper() });
+      fireEvent.click(await screen.findByText('fixture add'));
+      fireEvent.click(screen.getByText('fixture cash'));
+      fireEvent.click(screen.getByText('fixture order'));
+      await waitFor(() => expect(ordersAPI.create).not.toHaveBeenCalled());
+      expect(paymentsAPI.create).not.toHaveBeenCalled();
+      expect(toast.error).toHaveBeenCalledWith('인터넷 연결 후 다시 주문해 주세요. 오프라인 주문은 자동 접수되지 않습니다.');
+    } finally {
+      if (originalOnLine) Object.defineProperty(navigator, 'onLine', originalOnLine);
+      else delete navigator.onLine;
+    }
   });
   beforeEach(() => {
     vi.clearAllMocks();
@@ -287,6 +337,7 @@ describe('MenuPage', () => {
       expect(screen.getByText(/LanguageSelector/)).toBeInTheDocument();
       expect(screen.getByText(/TinkerBell/)).toBeInTheDocument();
       expect(screen.getByText(/StoreReviews/)).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: /말로 메뉴 주문하기/ })).toHaveLength(1);
     });
   });
 
@@ -307,6 +358,19 @@ describe('MenuPage', () => {
     productsAPI.getByStore.mockResolvedValue({ data: [{ id: 1, name: '아메리카노', price: 3000 }] });
     render(h(MenuPage), { wrapper: createWrapper() });
     expect(await screen.findByText(/TinkerBell ai:1/)).toBeInTheDocument();
+  });
+
+  it('팅커벨: 저장된 매장 인삿말과 설정 언어를 고객 메뉴판에 전달한다', async () => {
+    storesAPI.getById.mockResolvedValue({ data: { id: 1, name: '테스트', theme: null } });
+    storesAPI.getTinkerbellSettings.mockResolvedValue({
+      data: { enabled: true, custom_msg: '어서 오세요. 오늘의 메뉴를 안내해 드릴게요.', lang: 'ko' },
+    });
+    categoriesAPI.getByStore.mockResolvedValue({ data: [] });
+    productsAPI.getByStore.mockResolvedValue({ data: [{ id: 1, name: '아메리카노', price: 3000 }] });
+
+    render(h(MenuPage), { wrapper: createWrapper() });
+
+    expect(await screen.findByText(/greeting:어서 오세요\. 오늘의 메뉴를 안내해 드릴게요\. language:ko/)).toBeInTheDocument();
   });
 
   it('팅커벨: 매장이 끄면 고객 화면에 표시하지 않는다', async () => {

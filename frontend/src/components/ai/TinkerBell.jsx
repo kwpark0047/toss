@@ -2,7 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMotionSafe } from '../../hooks/useMotionSafe';
 import { trackImpressions, trackRecommendationClick } from '../../utils/recommendationTracking';
+import { buildWeatherAnnouncement, getLiveWeatherKind } from '../../utils/tinkerbellWeather';
 import { aiAPI } from '../../api';
+import TinkerBellLivePanel from './TinkerBellLivePanel';
+import { liveText } from './tinkerbellLiveText';
 
 // ── 팅커벨 녹음 음성 파일 매핑 (한국어) ──────────────────────────────────────
 // 해당 상황에 녹음 mp3가 있으면 재생, 없으면 브라우저 TTS로 폴백.
@@ -256,6 +259,7 @@ export default function TinkerBell({
    weatherData = null,
    menuItems = [],
    lastAddedItem = null,
+   voiceOrderMessage = null,
    onRecommend,
    voiceEnabled = false,
    largeFont = false,
@@ -263,11 +267,13 @@ export default function TinkerBell({
    previewTrigger = 0,
    adminMode = false,
    storeId = null,
+   liveStoreId = null,
+   liveEnabled = false,
+   customGreeting = '',
+   customGreetingLanguage = 'ko',
  }) {
-  // weather('sun'|'rain'|'cold'|'hot')를 직접 넘기면 weatherData보다 우선한다 (관리자 미리보기용)
-  const weather = weatherOverride || (weatherData?.isRaining ? 'rain' :
-                  (weatherData?.temp < 10 ? 'cold' :
-                  (weatherData?.temp > 28 ? 'hot' : 'sun')));
+  // weather('sun'|'rain'|'cold'|'hot')를 직접 넘기면 미리보기 값이 우선합니다.
+  const weather = weatherOverride || getLiveWeatherKind(weatherData);
 
   const { _isAnimationSafe, motionIntensity } = useMotionSafe();
 const [isHappy,  setIsHappy]  = useState(false);
@@ -278,10 +284,24 @@ const [isHappy,  setIsHappy]  = useState(false);
    const [sparks,   setSparks]   = useState([]);
    const [aiRecs,    setAiRecs]   = useState([]);
    const [aiLoading, setAiLoading] = useState(false);
+   const [liveOpen, setLiveOpen] = useState(false);
+   const [liveState, setLiveState] = useState('IDLE');
+   const legacyPaused = useRef(false);
 
 const typingRef  = useRef(null);
    const sparkId    = useRef(0);
    const prevAdded  = useRef(null);
+   const customGreetingRef = useRef(customGreeting);
+   useEffect(() => { customGreetingRef.current = customGreeting; }, [customGreeting]);
+
+   const getGreeting = useCallback(() => {
+     const L = I18N[lang] || I18N.ko;
+     const custom = !adminMode && lang === customGreetingLanguage && customGreetingRef.current?.trim();
+     return {
+       text: adminMode ? pick(L.admin) : custom || pick(L.greet),
+       voiceKey: adminMode ? 'biz_greeting' : custom ? null : 'cust_welcome',
+     };
+   }, [lang, adminMode, customGreetingLanguage]);
 
    // ── AI 추천 가져오기 (OmniRoute 기반) ──────────────────────────
    const fetchAIRec = useCallback(async () => {
@@ -312,8 +332,16 @@ const typingRef  = useRef(null);
 
   // ── 음성: 녹음 파일(mp3) 우선, 없으면 브라우저 TTS ─────────────────────────
   const audioRef = useRef(null);
+  useEffect(() => {
+    const update = (event) => {
+      legacyPaused.current = !['IDLE','FALLBACK','ERROR'].includes(event.detail.state);
+      if(legacyPaused.current){audioRef.current?.pause();window.speechSynthesis?.cancel();}
+    };
+    window.addEventListener('wm:ai-live-state',update);
+    return () => window.removeEventListener('wm:ai-live-state',update);
+  }, []);
   const speak = useCallback((text, voiceKey) => {
-    if (!voiceEnabled) return;
+    if (!voiceEnabled || legacyPaused.current) return;
     // 이전 재생 정리
     try { window.speechSynthesis?.cancel(); } catch { /* noop */ }
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
@@ -337,14 +365,14 @@ const typingRef  = useRef(null);
   }, [lang, voiceEnabled]);
 
   // ── 말풍선 타이핑 ────────────────────────────────────────────────────────
-  const say = useCallback((ctx, text, keepOpen = false, voiceKey = null) => {
+  const say = useCallback((ctx, text, keepOpen = false, voiceKey = null, typingDelay = 34) => {
     clearTimeout(typingRef.current);
     setBubble({ show: true, ctx: ctx || '', typed: '', full: text });
     let i = 0;
     const type = () => {
       if (i <= text.length) {
         setBubble(prev => ({ ...prev, typed: text.slice(0, i++) }));
-        typingRef.current = setTimeout(type, 34);
+        typingRef.current = setTimeout(type, typingDelay);
       } else {
         speak((ctx ? ctx + '. ' : '') + text, voiceKey);
         if (!keepOpen)
@@ -353,6 +381,12 @@ const typingRef  = useRef(null);
     };
     type();
   }, [speak]);
+
+  // 음성 주문 결과를 팅커벨이 고객에게 직접 읽어 준다.
+  useEffect(() => {
+    if (!voiceOrderMessage?.text) return;
+    say('주문 확인', voiceOrderMessage.text, false, null, 12);
+  }, [voiceOrderMessage?.id, say]);
 
   // ── 반짝이 소환 ──────────────────────────────────────────────────────────
   const spawnSparks = useCallback((count = 7) => {
@@ -368,18 +402,20 @@ const typingRef  = useRef(null);
   }, []);
 
   // ── 입장 ──────────────────────────────────────────────────────────────────
-  const entrance = useCallback(() => {
+  const entrance = useCallback((replayGreeting = false) => {
     setIsBusy(true); setBubble({ show: false, ctx: '', typed: '', full: '' });
     setTimeout(() => {
       setVisible(true);
       setTimeout(() => {
         spawnSparks(10);
-        const L = I18N[lang] || I18N.ko;
-        say('', adminMode ? pick(L.admin) : pick(L.greet), false, adminMode ? 'biz_greeting' : 'cust_welcome');
+        if (replayGreeting) {
+          const greeting = getGreeting();
+          say('', greeting.text, false, greeting.voiceKey);
+        }
         setIsBusy(false);
       }, 900);
     }, 120);
-  }, [lang, adminMode, say, spawnSparks]);
+  }, [getGreeting, say, spawnSparks]);
 
   // ── 마운트 입장 ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -390,15 +426,15 @@ const typingRef  = useRef(null);
   // ── previewTrigger 변경 시 재등장 (관리자 미리보기) ───────────────────────
   useEffect(() => {
     if (previewTrigger === 0) return;
-    entrance();
+    entrance(true);
   }, [previewTrigger, entrance]);
 
   // ── 언어 변경 시 인사 ────────────────────────────────────────────────────
   useEffect(() => {
     if (!visible) return;
-    const L = I18N[lang] || I18N.ko;
-    say('', adminMode ? pick(L.admin) : pick(L.greet), false, adminMode ? 'biz_greeting' : 'cust_welcome');
-  }, [lang, visible, adminMode, say]);
+    const greeting = getGreeting();
+    say('', greeting.text, false, greeting.voiceKey);
+  }, [lang, visible, adminMode, getGreeting, say]);
 
   // ── 유동 부유 ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -432,8 +468,15 @@ const typingRef  = useRef(null);
        const t = setTimeout(() => {
            fetchAIRec();
            const L = I18N[lang] || I18N.ko;
-           const isWarm = weather === 'rain' || weather === 'cold';
-           const isCool = weather === 'hot';
+           const announcement = weatherOverride
+             ? null
+             : buildWeatherAnnouncement(weatherData, menuItems, lang);
+           // 관리자가 고른 미리보기는 기존 대사를 유지하고, 고객에게는
+           // 최신 매장 관측과 연결된 문장이 있을 때만 날씨를 말합니다.
+           if (!weatherOverride && !announcement) return;
+           const announcedWeather = weatherOverride || announcement.kind;
+           const isWarm = announcedWeather === 'rain' || announcedWeather === 'snow' || announcedWeather === 'cold';
+           const isCool = announcedWeather === 'hot';
            let pool = isWarm
                ? menuItems.filter(m => !m.isSoldOut && (m.isHot || m.category_id?.includes('coffee') || m.category_id?.includes('non-coffee')))
                : isCool
@@ -441,17 +484,21 @@ const typingRef  = useRef(null);
                : menuItems.filter(m => !m.isSoldOut && m.isPopular);
            if (!pool.length) pool = menuItems.filter(m => !m.isSoldOut);
            if (!pool.length) return;
-           const chosen = pick(pool);
+           const chosen = announcement?.recommendation || pick(pool);
 
-           let ctx  = L.weatherCtx[weather] || '';
-           if (weatherData && weatherData.temp !== null) {
-               ctx += ` (${weatherData.temp}°C)`;
+           let ctx = '';
+           let text;
+           if (weatherOverride) {
+               ctx = L.weatherCtx[weatherOverride] || '';
+               const recipeWeather = weatherOverride === 'snow' ? 'cold' : weatherOverride;
+               text = (L.rec[recipeWeather] || L.rec.sun).replace('{n}', chosen.name || '');
+           } else {
+               text = announcement.text;
            }
-
-const text = (L.rec[weather] || L.rec.sun).replace('{n}', chosen.name || '');
             setIsBusy(true);
             spawnSparks(8);
-            say(ctx, text, false, 'cust_weather');
+            // 날씨 문장은 관측 기온·상태를 포함하므로 고정 MP3 대신 선택 언어의 TTS로 읽습니다.
+            say(ctx, text, false, weatherOverride ? 'cust_weather' : null);
 if (onRecommend) {
                 trackRecommendationClick(Number(storeId), chosen.id || chosen, 'tinkerbell').catch(() => { /* 추적 실패는 무시 */ });
                 onRecommend(chosen);
@@ -459,7 +506,7 @@ if (onRecommend) {
             setIsBusy(false);
         }, 11000);
         return () => clearTimeout(t);
-    }, [visible, weather, weatherData, menuItems, lang, adminMode, onRecommend, say, spawnSparks, fetchAIRec, storeId]);
+    }, [visible, weather, weatherOverride, weatherData, menuItems, lang, adminMode, onRecommend, say, spawnSparks, fetchAIRec, storeId]);
 
 // ── 호기심 메시지 (AI 추천 우선) ──────────────────────────────────
    useEffect(() => {
@@ -492,13 +539,32 @@ if (aiRecs.length > 0 && !aiLoading) {
     ? { position: 'absolute', right: 12, top: 80, zIndex: 20, pointerEvents: 'none' }
     : { position: 'fixed',    right: 16, top: 102, zIndex: 45, pointerEvents: 'none' };
 
+  const closeLive = () => { legacyPaused.current = false; setLiveOpen(false); setLiveState('IDLE'); };
+  const liveControls = liveEnabled && Number.isSafeInteger(liveStoreId) && liveStoreId > 0 && !adminMode && mode === 'float' && <>
+    <button type="button" aria-label={liveText(lang).open} aria-expanded={liveOpen}
+      onClick={() => {
+        if(liveOpen){closeLive();return;}
+        legacyPaused.current = true;
+        clearTimeout(typingRef.current);
+        audioRef.current?.pause();
+        window.speechSynthesis?.cancel();
+        setBubble(prev=>({...prev,show:false}));
+        setLiveOpen(true);
+      }} className="pointer-events-auto mt-1 min-h-11 rounded-xl border border-amber-300 bg-white px-3 text-sm font-bold text-amber-900 shadow-md">{liveText(lang).open}</button>
+    {liveOpen && <TinkerBellLivePanel key={`${liveStoreId}:${lang}`} storeId={liveStoreId} lang={lang} largeFont={largeFont} onClose={closeLive} onState={setLiveState} onStart={()=>{legacyPaused.current=true;audioRef.current?.pause();window.speechSynthesis?.cancel();}} onFallback={()=>{
+      legacyPaused.current = false;
+      const greeting = getGreeting();
+      speak(greeting.text, greeting.voiceKey);
+    }} />}
+  </>;
+
   if (!visible) return null;
 
   // 저사양·모션 감소 모드: 정적 폴백
   if (motionIntensity === 'none') {
     return (
-      <div style={wrapperStyle} data-testid="tinkerbell-static">
-        {bubble.show && (
+      <div style={wrapperStyle} data-testid="tinkerbell-static" data-live-state={liveState}>
+        {bubble.show && !liveOpen && (
           <div
             style={{ position: 'absolute', ...bubbleStyle, zIndex: 10 }}
             className={`bg-slate-900 text-white rounded-2xl shadow-xl px-3 py-2.5 leading-relaxed ${largeFont ? 'text-sm' : 'text-xs'} font-semibold`}>
@@ -508,6 +574,7 @@ if (aiRecs.length > 0 && !aiLoading) {
           </div>
         )}
         <StaticFairyIcon />
+        {liveControls}
       </div>
     );
   }
@@ -516,7 +583,7 @@ if (aiRecs.length > 0 && !aiLoading) {
   const useSimpleMotion = motionIntensity === 'reduced';
 
   return (
-    <div style={wrapperStyle} data-testid="tinkerbell-animated">
+    <div style={wrapperStyle} data-testid="tinkerbell-animated" data-live-state={liveState}>
       {/* 반짝이 (저사양 기기에서 생략) */}
       {!useSimpleMotion && (
         <div className="absolute inset-0">
@@ -526,7 +593,7 @@ if (aiRecs.length > 0 && !aiLoading) {
 
       {/* 말풍선 */}
       <AnimatePresence>
-        {bubble.show && (
+        {bubble.show && !liveOpen && (
           <motion.div
             key="bubble"
             style={{ position: 'absolute', ...bubbleStyle, zIndex: 10 }}
@@ -546,14 +613,15 @@ if (aiRecs.length > 0 && !aiLoading) {
 
       {/* 요정 본체 (저사양: float 없음) */}
       {useSimpleMotion ? (
-        <FairyBody isHappy={isHappy} />
+        <FairyBody isHappy={isHappy || liveState === 'SPEAKING'} />
       ) : (
         <motion.div
           animate={{ y: floatY }}
           transition={{ type: 'spring', stiffness: 55, damping: 18 }}>
-          <FairyBody isHappy={isHappy} />
+          <FairyBody isHappy={isHappy || liveState === 'SPEAKING'} />
         </motion.div>
       )}
+      {liveControls}
     </div>
   );
 }

@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
           const res = await api.get('/auth/me');
           const data = res?.data || res;
           if (data?.id) {
-            setUser({ id: data.id, name: data.name, role: data.role });
+            setUser(data);
           }
         } catch {
           setUser(null);
@@ -76,6 +76,12 @@ export const AuthProvider = ({ children }) => {
 
       if (payload && validFor > 0) {
         setUser({ id: payload.id, name: payload.name, role: payload.role });
+        api.get('/auth/me').then((res) => {
+          const profile = res?.data || res;
+          if (profile?.id === payload.id) {
+            setUser((previous) => previous?.id === payload.id ? { ...previous, ...profile } : previous);
+          }
+        }).catch(() => {});
         setLoading(false);
         if (validFor <= 300_000) {
           refreshAccessToken()

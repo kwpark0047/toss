@@ -130,6 +130,40 @@ export const joinOrderRoom = (orderId) => {
   socket.emit('join-order', orderId);
 };
 
+export const subscribeCustomerOrder = (
+  orderId,
+  capability,
+  historyCapability,
+  onChange,
+  onConnection
+) => {
+  let active = true;
+  const join = () => {
+    if (!active) return;
+    socket.emit('watch-order-status', { orderId, capability, historyCapability }, (ack) => {
+      if (!active) return;
+      onConnection(ack?.ok ? 'live' : 'polling');
+      if (ack?.ok) onChange();
+    });
+  };
+  const changed = (event) => {
+    if (active && Number(event?.order_id) === Number(orderId)) onChange();
+  };
+  const disconnected = () => onConnection('polling');
+  socket.on('connect', join);
+  socket.on('disconnect', disconnected);
+  socket.on('customer-order-changed', changed);
+  if (socket.connected) join();
+  else socket.connect();
+  return () => {
+    active = false;
+    socket.off('connect', join);
+    socket.off('disconnect', disconnected);
+    socket.off('customer-order-changed', changed);
+    socket.emit('unwatch-order-status', { orderId });
+  };
+};
+
 // 연결 상태 이벤트
 export const onConnect = (callback) => {
   socket.on('connect', callback);

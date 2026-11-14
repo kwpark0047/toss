@@ -120,6 +120,7 @@ model order_items {
 }
 
 model orders {
+  push_subscriptions order_push_subscriptions[]
   inventory_compensation inventory_compensations?
   integration_events integration_events[]
   id                 Int                  @id @default(autoincrement())
@@ -143,11 +144,17 @@ model orders {
   is_takeout         Int?                 @default(0)
   order_type         String?              @default("dine_in")  // dine_in | takeout | delivery
   delivery_address   String?
+  delivery_fee       Int?
+  delivery_memo      String?              @db.VarChar(500)
+  delivery_status    String?              @db.VarChar(16)  // null | delivering | delivered (배달 주문만)
+  delivery_started_at DateTime?
+  delivered_at       DateTime?
   preparing_at       DateTime?
   ready_at           DateTime?
   split_type         String?              @default("NONE")     // [추가] 분할 방식 (NONE, EQUAL: N분의 1, ITEM: 품목별)
   is_split_payment   Boolean?             @default(false)    // [추가] 분할 결제 여부
   split_status       String?              @default("PENDING")
+  split_people_count Int?
   handled_by_staff_id Int?
   staff              staff?               @relation(fields: [handled_by_staff_id], references: [id], onUpdate: NoAction)
   ledger             ledger[]
@@ -158,12 +165,33 @@ model orders {
   point_transactions point_transactions[]
   reviews            reviews?
   print_jobs         print_jobs[]
+  delivery_dispatches delivery_dispatches[]
 
   @@index([created_at], map: "idx_orders_created_at")
   @@index([store_id], map: "idx_orders_store_id")
   @@index([store_id, status, created_at], map: "idx_orders_store_status_date")
   @@index([customer_phone], map: "idx_orders_customer_phone")
   @@index([table_id], map: "idx_orders_table_id")
+  @@schema("public")
+}
+
+model order_push_subscriptions {
+  id                Int       @id @default(autoincrement())
+  order_id          Int
+  endpoint_hash     String    @db.VarChar(64)
+  encrypted_payload String
+  expires_at        DateTime
+  sent_at           DateTime?
+  attempts          Int       @default(0)
+  next_attempt_at   DateTime  @default(now())
+  locked_until      DateTime?
+  enabled           Boolean  @default(true)
+  last_error        String?   @db.VarChar(32)
+  created_at        DateTime  @default(now())
+  orders            orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([order_id, endpoint_hash])
+  @@index([enabled, next_attempt_at])
   @@schema("public")
 }
 
@@ -201,6 +229,7 @@ model payments {
   raw_response          String?
   payer_phone           String?              // [추가] 실제 결제을 진행한 사람의 전화번호
   is_partial            Boolean?             @default(false) // [추가] 부분 결제 여부
+  split_participant_key String?
   approved_at           DateTime?
   cancel_reason         String?
   ledger                ledger[]
@@ -214,6 +243,7 @@ model payments {
   @@index([order_id], map: "idx_payments_order_id")
   @@index([status], map: "idx_payments_status")
   @@index([store_id, status, created_at], map: "idx_payments_store_status_date")
+  @@unique([order_id, split_participant_key], map: "payments_order_split_participant_key_key")
   @@schema("public")
 }
 
@@ -339,6 +369,9 @@ model BillingInvoice {
   billing_cycle   String
   order_id        String   @unique
   amount          Int
+  supply_amount   Int?     // 공급가액 (결제 확정 시 기록)
+  vat_amount      Int?     // 부가세 (VAT 포함 가격 기준)
+  tax_free_amount Int?     // 면세 금액 (구독료는 0)
   currency        String   @default("KRW")
   status          String   @default("pending")
   period_start    DateTime
@@ -489,6 +522,7 @@ model products {
   demand_forecasts       demand_forecasts[]
   dynamic_pricing_rules   dynamic_pricing_rules[]
   dynamic_price_logs      dynamic_price_logs[]
+  purchase_order_items    purchase_order_items[]
 
   @@index([store_id, category_id, is_active], map: "idx_products_store_category_active")
   @@schema("public")
@@ -650,11 +684,89 @@ model store_tinkerbell_settings {
   enabled           Boolean  @default(true)
   lang              String   @default("ko")
   voice_enabled     Boolean  @default(true)
+  voice_order_enabled Boolean @default(true)
   large_font        Boolean  @default(false)
   custom_msg        String?  @db.VarChar(80)
   ai_recommendation Boolean  @default(false)
   updated_at        DateTime @default(now())
   stores            stores   @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@schema("public")
+}
+
+model store_order_channels {
+  id                   Int      @id @default(autoincrement())
+  store_id             Int      @unique(map: "uq_store_order_channels_store")
+  dine_in_enabled      Boolean  @default(true)
+  takeout_enabled      Boolean  @default(true)
+  delivery_enabled     Boolean  @default(false)
+  pickup_guide         String?  @db.VarChar(200)
+  hide_exact_address   Boolean  @default(false)
+  delivery_fulfillment String   @default("self") @db.VarChar(16) // self | agency
+  delivery_area_mode   String   @default("radius") @db.VarChar(16) // radius | areas
+  delivery_radius_km   Float    @default(3)
+  delivery_areas       Json     @default("[]")
+  min_order_amount     Int      @default(0)
+  delivery_fee         Int      @default(0)
+  delivery_est_minutes Int      @default(40)
+  agency_provider      String?  @db.VarChar(20) // barogo | vroong | saenggakdaero (배달대행)
+  agency_auto_dispatch Boolean  @default(false)
+  updated_at           DateTime @default(now())
+  stores               stores   @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@schema("public")
+}
+
+model delivery_dispatches {
+  id             Int       @id @default(autoincrement())
+  order_id       Int
+  store_id       Int
+  provider       String    @db.VarChar(20)
+  external_id    String?   @db.VarChar(100)
+  status         String    @default("requested") @db.VarChar(20) // requested | assigned | picked_up | delivered | canceled | failed
+  fee            Int?
+  rider_name     String?   @db.VarChar(50)
+  rider_phone    String?   @db.VarChar(30)
+  tracking_url   String?   @db.VarChar(500)
+  failure_reason String?   @db.VarChar(300)
+  requested_at   DateTime  @default(now())
+  assigned_at    DateTime?
+  picked_up_at   DateTime?
+  delivered_at   DateTime?
+  canceled_at    DateTime?
+  updated_at     DateTime  @default(now())
+  orders         orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  stores         stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([provider, external_id], map: "uq_delivery_dispatches_provider_external")
+  @@index([order_id], map: "idx_delivery_dispatches_order")
+  @@index([store_id, status], map: "idx_delivery_dispatches_store_status")
+  @@schema("public")
+}
+
+model delivery_webhook_events {
+  id          Int      @id @default(autoincrement())
+  provider    String   @db.VarChar(20)
+  event_id    String   @db.VarChar(150)
+  store_id    Int?
+  received_at DateTime @default(now())
+
+  @@unique([provider, event_id], map: "uq_delivery_webhook_events")
+  @@schema("public")
+}
+
+model store_addons {
+  id            Int       @id @default(autoincrement())
+  store_id      Int
+  addon_key     String    @db.VarChar(40)
+  status        String    @default("active") @db.VarChar(16) // active | trialing | canceled | expired
+  price         Int       @default(0)
+  billing_cycle String?   @db.VarChar(16)
+  started_at    DateTime  @default(now())
+  canceled_at   DateTime?
+  expires_at    DateTime?
+  updated_at    DateTime  @default(now())
+  stores        stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([store_id, addon_key], map: "uq_store_addons_store_key")
   @@schema("public")
 }
 
@@ -673,6 +785,7 @@ model stores {
   user_id                  Int
   name                     String
   description              String?
+  customer_entry_mode      String                   @default("menu") @db.VarChar(16)
   address                  String?
   phone                    String?
   theme                    String?
@@ -713,6 +826,9 @@ model stores {
   store_point_settings          store_point_settings?
   store_receipt_settings        store_receipt_settings?
   store_tinkerbell_settings     store_tinkerbell_settings?
+  store_order_channels          store_order_channels?
+  store_addons                  store_addons[]
+  delivery_dispatches           delivery_dispatches[]
   store_tier_settings           store_tier_settings[]
   store_subscriptions           store_subscriptions?
   store_business_info           store_business_info?
@@ -738,6 +854,8 @@ model stores {
   demand_forecasts               demand_forecasts[]
   dynamic_pricing_rules          dynamic_pricing_rules[]
   dynamic_price_logs             dynamic_price_logs[]
+  suppliers                      suppliers[]
+  purchase_orders                purchase_orders[]
   customer_segments              customer_segments[]
   customer_personalizations      customer_personalizations[]
   ai_recommendations             ai_recommendations[]
@@ -818,7 +936,7 @@ model store_settlement_config {
   settlement_cycle          String?   @default("MONTHLY")
   commission_rate           Float?    @default(0.03)
   vat_rate                  Float?    @default(0.10)
-  enabled_payment_methods   String?   @default("[\"cash\",\"store_card\",\"transfer\"]")
+  enabled_payment_methods   Json?     @default("[\"cash\",\"transfer\"]")
   store_account_id          Int?
   created_at                DateTime? @default(now())
   updated_at                DateTime? @updatedAt
@@ -1003,6 +1121,10 @@ model users {
   auth_status String @default("active")
   // Existing accounts stay approved; new direct-signup accounts are assigned a one-month trial.
   business_access_status String @default("approved")
+  business_access_note String?
+  business_access_previous_status String?
+  business_access_updated_at DateTime @default(now()) @db.Timestamptz(6)
+  business_access_updated_by Int?
   trial_started_at DateTime? @db.Timestamptz(6)
   trial_ends_at DateTime? @db.Timestamptz(6)
   business_approved_at DateTime? @db.Timestamptz(6)
@@ -1018,6 +1140,7 @@ model users {
   name                                                             String?
   email                                                            String?                  @unique(map: "uq_users_email")
   phone                                                            String?                  @unique(map: "uq_users_phone")
+  profile_image                                                    String?
   address                                                          String?
   profile_step                                                     Int?                     @default(1)
   password                                                         String
@@ -2154,6 +2277,97 @@ model order_events {
   @@schema("public")
 }
 
+model suppliers {
+  id             Int              @id @default(autoincrement())
+  store_id       Int
+  name           String           @db.VarChar(120)
+  contact_name   String?          @db.VarChar(80)
+  phone          String?          @db.VarChar(40)
+  email          String?          @db.VarChar(254)
+  notes          String?          @db.Text
+  is_active      Boolean          @default(true)
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+  stores         stores           @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  purchase_orders purchase_orders[]
+
+  @@unique([store_id, name], map: "uq_suppliers_store_name")
+  @@index([store_id, is_active], map: "idx_suppliers_store_active")
+  @@schema("public")
+}
+
+model purchase_orders {
+  id           Int                    @id @default(autoincrement())
+  store_id     Int
+  supplier_id  Int?
+  order_number String                 @db.VarChar(40)
+  status       String                 @default("DRAFT") @db.VarChar(24)
+  total_amount Int                    @default(0)
+  ordered_at   DateTime?
+  expected_at  DateTime?
+  received_at  DateTime?
+  notes        String?                @db.Text
+  created_by   Int?
+  created_at   DateTime               @default(now())
+  updated_at   DateTime               @updatedAt
+  stores       stores                 @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  suppliers    suppliers?             @relation(fields: [supplier_id], references: [id], onDelete: SetNull)
+  items        purchase_order_items[]
+  receipts     purchase_receipts[]
+
+  @@unique([store_id, order_number], map: "uq_purchase_orders_store_number")
+  @@index([store_id, status, created_at(sort: Desc)], map: "idx_purchase_orders_store_status")
+  @@schema("public")
+}
+
+model purchase_order_items {
+  id                   Int                      @id @default(autoincrement())
+  purchase_order_id    Int
+  product_id           Int?
+  product_name         String                   @db.VarChar(160)
+  unit                 String                   @default("개") @db.VarChar(24)
+  ordered_quantity     Int
+  received_quantity    Int                      @default(0)
+  unit_cost            Int                      @default(0)
+  created_at           DateTime                 @default(now())
+  purchase_orders      purchase_orders          @relation(fields: [purchase_order_id], references: [id], onDelete: Cascade)
+  products             products?                @relation(fields: [product_id], references: [id], onDelete: SetNull)
+  receipt_items        purchase_receipt_items[]
+
+  @@index([purchase_order_id], map: "idx_purchase_order_items_order")
+  @@index([product_id], map: "idx_purchase_order_items_product")
+  @@schema("public")
+}
+
+model purchase_receipts {
+  id              Int                      @id @default(autoincrement())
+  purchase_order_id Int
+  idempotency_key String                   @unique(map: "uq_purchase_receipts_idempotency") @db.VarChar(200)
+  received_by     Int?
+  received_at     DateTime                 @default(now())
+  notes           String?                  @db.Text
+  purchase_orders purchase_orders          @relation(fields: [purchase_order_id], references: [id], onDelete: Cascade)
+  items           purchase_receipt_items[]
+
+  @@index([purchase_order_id, received_at(sort: Desc)], map: "idx_purchase_receipts_order_time")
+  @@schema("public")
+}
+
+model purchase_receipt_items {
+  id                      Int                 @id @default(autoincrement())
+  receipt_id              Int
+  purchase_order_item_id  Int
+  quantity_received       Int
+  unit_cost               Int                 @default(0)
+  created_at              DateTime            @default(now())
+  purchase_receipts       purchase_receipts   @relation(fields: [receipt_id], references: [id], onDelete: Cascade)
+  purchase_order_items    purchase_order_items @relation(fields: [purchase_order_item_id], references: [id], onDelete: Restrict)
+
+  @@unique([receipt_id, purchase_order_item_id], map: "uq_purchase_receipt_order_item")
+  @@index([purchase_order_item_id], map: "idx_purchase_receipt_items_order_item")
+  @@schema("public")
+}
+
 model inventory_reorder_candidates {
   id                Int      @id @default(autoincrement())
   store_id          Int
@@ -2358,4 +2572,5 @@ model business_support_jobs {
   @@index([status,available_at],map:"business_support_job_claim")
   @@schema("public")
 }
+
 

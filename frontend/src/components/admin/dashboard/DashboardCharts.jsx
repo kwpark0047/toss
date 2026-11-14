@@ -51,6 +51,7 @@ export const SalesTrendChart = ({ storeId }) => {
 
   if (loading) return <div className="h-[200px] bg-white/5 rounded-2xl animate-pulse" />;
   if (!data || data.length === 0) return <section className="rounded-xl border border-white/10 bg-white/5 p-4"><h3 className="text-sm font-semibold text-white">매출 추이</h3><p className="py-6 text-center text-sm text-slate-400">{error ? '매출 추이를 불러오지 못했습니다.' : `최근 ${days}일의 매출 데이터가 없습니다.`}</p>{error && <button onClick={() => setRetry(value => value + 1)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-orange-500">다시 시도</button>}</section>;
+  if (data.every(point => !Number.isFinite(Number(point.sales)) || Number(point.sales) <= 0)) return <section className="rounded-xl border border-white/10 bg-white/5 p-4"><h3 className="text-sm font-semibold text-white">매출 추이</h3><div className="py-7 text-center"><p className="text-sm font-semibold text-slate-300">최근 {days}일의 매출이 없습니다</p><p className="mt-1 text-xs text-slate-500">주문이 접수되면 날짜별 매출 추이를 보여드립니다.</p></div></section>;
 
   return (
     <div>
