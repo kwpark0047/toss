@@ -95,13 +95,14 @@ export class LiveClient {
     return this.starting;
   }
   send(type, value) {
-    if (type === 'text') this.invalidateDraft();
-    if (this.socket?.readyState !== 1 || this.currentState === 'CONNECTING') return;
+    if (type === 'text' || type === 'image') this.invalidateDraft();
+    if (this.socket?.readyState !== 1 || this.currentState === 'CONNECTING') return false;
     if (this.socket.bufferedAmount > 64000) {
       this.fallback();
-      return;
+      return false;
     }
     this.socket.send(JSON.stringify({ type, ...value }));
+    return true;
   }
   confirmDraft(id, apply) {
     if (

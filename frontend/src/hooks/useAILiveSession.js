@@ -7,12 +7,17 @@ import { LiveAudio } from '../utils/live/LiveAudio';
 export function useAILiveSession({ onFallback, onDraft, onManagerFacts } = {}) {
   const [state, setState] = useState('IDLE');
   const [transcript, setTranscript] = useState({ input: '', output: '' });
+  const [cameraAllowed, setCameraAllowed] = useState(false),
+    [cameraError, setCameraError] = useState('');
+  const [sessionId, setSessionId] = useState(null);
   const callbacks = useRef({ onFallback, onDraft, onManagerFacts });
   useEffect(() => {
     callbacks.current = { onFallback, onDraft, onManagerFacts };
   }, [onFallback, onDraft, onManagerFacts]);
   const engine = useRef(null);
   const stop = () => {
+    setCameraAllowed(false);
+    setSessionId(null);
     engine.current?.client.stop();
     engine.current?.audio.stop();
     engine.current = null;
@@ -35,6 +40,8 @@ export function useAILiveSession({ onFallback, onDraft, onManagerFacts } = {}) {
     if (engine.current) return;
     window.dispatchEvent(new Event('wm:ai-live-stop'));
     setTranscript({ input: '', output: '' });
+    setCameraAllowed(false);
+    setCameraError('');
     const audio = new LiveAudio();
     const url = new URL(
       '/api/ai/live/connect',
@@ -51,7 +58,12 @@ export function useAILiveSession({ onFallback, onDraft, onManagerFacts } = {}) {
         const response = await api.post('/ai/live/session', body, {
           headers: { 'Idempotency-Key': key },
         });
-        return response.data || response;
+        const session = response.data || response;
+        if (engine.current?.client === client) {
+          setCameraAllowed(session.cameraAllowed === true);
+          setSessionId(session.sessionId);
+        }
+        return session;
       },
       onFallback: () => {
         if (engine.current?.client !== client) return;
@@ -70,6 +82,7 @@ export function useAILiveSession({ onFallback, onDraft, onManagerFacts } = {}) {
         if (event.type === 'draft') callbacks.current.onDraft?.(event.draft);
         if (event.type === 'draftInvalidated') callbacks.current.onDraft?.(null);
         if (event.type === 'managerFacts') callbacks.current.onManagerFacts?.(event);
+        if (event.type === 'cameraState' && event.error) setCameraError(event.error);
         if (event.type === 'transcript')
           setTranscript((previous) => ({
             ...previous,
@@ -97,11 +110,19 @@ export function useAILiveSession({ onFallback, onDraft, onManagerFacts } = {}) {
   };
   return {
     state,
+    cameraAllowed,
+    cameraError,
+    sessionId,
     transcript,
     start,
     stop,
     sendText: (text) => engine.current?.client.send('text', { text }),
     setMuted: (muted) => engine.current?.audio.setMuted(muted),
+    cameraConsent: (enabled) => {
+      if (enabled) setCameraError('');
+      return engine.current?.client.send('cameraConsent', { enabled }) === true;
+    },
+    sendImage: (data) => engine.current?.client.send('image', { data }) === true,
     invalidateDraft: () => engine.current?.client.invalidateDraft(),
     confirmDraft: (id, apply) => engine.current?.client.confirmDraft(id, apply) || false,
   };

@@ -3,6 +3,7 @@ const { WebSocketServer } = require('ws');
 const { ToolRegistry } = require('./ToolRegistry');
 const { GeminiLiveProvider } = require('./GeminiLiveProvider');
 const { usageCost } = require('./LivePolicy');
+const { CameraFrames } = require('./CameraFrames');
 const hash = (value) => crypto.createHash('sha256').update(value).digest('hex');
 class LiveGateway {
   constructor({
@@ -72,6 +73,10 @@ class LiveGateway {
       month,
       day,
       model: this.policy.model,
+      cameraAllowed:
+        purpose === 'customer' &&
+        this.policy.cameraEnabled === true &&
+        limits.cameraEnabled === true,
       pricingVersion: this.policy.pricing.version,
       seconds,
       state: 'ready',
@@ -91,6 +96,10 @@ class LiveGateway {
       expiresAt: session.ticketExpires,
       seconds: session.seconds,
       connectPath: '/api/ai/live/connect',
+      cameraAllowed:
+        session.cameraAllowed === true &&
+        this.policy.cameraEnabled === true &&
+        limits.cameraEnabled === true,
     };
   }
   attach(server) {
@@ -129,6 +138,7 @@ class LiveGateway {
     let session,
       provider,
       registry,
+      camera,
       stopped = false,
       authenticated = false,
       authenticating = false,
@@ -371,6 +381,37 @@ class LiveGateway {
           )
             throw Error('Live audio limit');
           provider.sendAudio(message.data);
+        } else if (message.type === 'cameraConsent' || message.type === 'image') {
+          try {
+            if (message.type === 'cameraConsent' && message.enabled === false) {
+              if (camera) camera.enabled = false;
+              send({ type: 'cameraState', enabled: false });
+              return;
+            }
+            if (!camera) camera = new CameraFrames(session.cameraAllowed === true, this.clock);
+            if (
+              session.cameraAllowed !== true ||
+              session.purpose !== 'customer' ||
+              this.policy.cameraEnabled !== true ||
+              this.policy.stores[session.storeId]?.cameraEnabled !== true
+            )
+              throw Error('Camera disabled');
+            if (message.type === 'cameraConsent') camera.consent(message.enabled);
+            else {
+              camera.accept(message.data);
+              draftRevision++;
+              send({ type: 'draftInvalidated' });
+              provider.sendImage(message.data);
+            }
+            send({ type: 'cameraState', enabled: camera.enabled });
+          } catch {
+            if (camera) camera.enabled = false;
+            send({
+              type: 'cameraState',
+              enabled: false,
+              error: '카메라 전송을 중지했습니다. 음성·텍스트로 이어가세요.',
+            });
+          }
         } else if (message.type === 'text') {
           if (
             typeof message.text !== 'string' ||

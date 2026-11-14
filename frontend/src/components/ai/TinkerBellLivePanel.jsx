@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useAILiveSession } from '../../hooks/useAILiveSession';
 import { liveText } from './tinkerbellLiveText';
+import LiveCameraHelper from './LiveCameraHelper';
 
 export default function TinkerBellLivePanel({
   storeId,
@@ -150,6 +151,7 @@ export default function TinkerBellLivePanel({
         </>
       )}
       <p className="mt-3 text-sm break-words">{L.orderNotice}</p>
+      {import.meta.env.VITE_AI_LIVE_CAMERA_UI_ENABLED==='true' && <LiveCameraHelper key={live.sessionId || 'none'} live={live}/>}
     </section>
   );
 }
