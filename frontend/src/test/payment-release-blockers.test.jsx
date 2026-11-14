@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 
 const mockConfirm = vi.fn();
+const mockGetOrder = vi.fn();
 const mockNavigate = vi.fn();
 let callbackParams = new URLSearchParams();
 
@@ -18,6 +20,7 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../api', () => ({
   paymentsAPI: { confirm: (...args) => mockConfirm(...args) },
+  ordersAPI: { getById: (...args) => mockGetOrder(...args) },
 }));
 
 vi.mock('../firebase', () => ({ requestNotificationPermission: vi.fn() }));
@@ -38,12 +41,13 @@ describe('payment release blockers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    mockGetOrder.mockResolvedValue({ data: { id: 7, store_id: 1, order_number: 'ORDER-1', total_amount: 5000, items: [{ product_name: '검증 메뉴', quantity: 1, price: 5000 }] } });
     callbackParams = new URLSearchParams();
   });
 
   it('rejects a provider callback without matching session payment state', async () => {
     callbackParams = new URLSearchParams('payment_id=10&paymentKey=key&orderId=ORDER-1&amount=5000');
-    render(<PaymentSuccess />);
+    render(<MemoryRouter><PaymentSuccess /></MemoryRouter>);
 
     expect(await screen.findByText('결제 최종 승인 실패')).toBeInTheDocument();
     expect(mockConfirm).not.toHaveBeenCalled();
@@ -61,7 +65,7 @@ describe('payment release blockers', () => {
     }));
     mockConfirm.mockResolvedValue({ success: true, order: { id: 7, store_id: 1 } });
 
-    render(<PaymentSuccess />);
+    render(<MemoryRouter><PaymentSuccess /></MemoryRouter>);
 
     expect(await screen.findByText('결제가 완료되었습니다!')).toBeInTheDocument();
     expect(mockConfirm).toHaveBeenCalledWith('10', {
@@ -70,6 +74,32 @@ describe('payment release blockers', () => {
       amount: 5000,
     }, 'order-capability');
     expect(sessionStorage.getItem('wm_pending_payment:10')).toBeNull();
+  });
+
+  it('displays server approved amounts and owned order details rather than callback amounts', async () => {
+    callbackParams = new URLSearchParams('payment_id=10&paymentKey=key&orderId=ORDER-1&amount=5000');
+    sessionStorage.setItem('wm_pending_payment:10', JSON.stringify({ paymentId: '10', orderId: '7', providerOrderId: 'ORDER-1', amount: 5000, capability: 'order-capability' }));
+    mockConfirm.mockResolvedValue({ success: true, payment: { totalAmount: 4900 } });
+    render(<MemoryRouter><PaymentSuccess /></MemoryRouter>);
+    expect(await screen.findByText('4,900원')).toBeInTheDocument();
+    expect(screen.getByText('검증 메뉴 × 1')).toBeInTheDocument();
+    expect(mockGetOrder).toHaveBeenCalledWith('7', 'order-capability');
+  });
+
+  it('restores a completed receipt without calling the approval endpoint', async () => {
+    callbackParams = new URLSearchParams('payment_id=10&paymentKey=key&orderId=ORDER-1&amount=5000');
+    sessionStorage.setItem('wm_completed_payment:10', JSON.stringify({ providerOrderId: 'ORDER-1', savedAt: Date.now(), receipt: { success: true, payment: { totalAmount: 5000 }, order: { id: 7 } } }));
+    render(<MemoryRouter><PaymentSuccess /></MemoryRouter>);
+    expect(await screen.findByText('결제가 완료되었습니다!')).toBeInTheDocument();
+    expect(mockConfirm).not.toHaveBeenCalled();
+  });
+
+  it('rejects a callback that does not match the prepared payment', async () => {
+    callbackParams = new URLSearchParams('payment_id=10&paymentKey=key&orderId=ORDER-1&amount=1');
+    sessionStorage.setItem('wm_pending_payment:10', JSON.stringify({ paymentId: '10', orderId: '7', providerOrderId: 'ORDER-1', amount: 5000, capability: 'order-capability' }));
+    render(<MemoryRouter><PaymentSuccess /></MemoryRouter>);
+    expect(await screen.findByText('결제 최종 승인 실패')).toBeInTheDocument();
+    expect(mockConfirm).not.toHaveBeenCalled();
   });
 
   it('enables supported online methods so kakao pay can be selected', async () => {

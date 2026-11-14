@@ -528,7 +528,8 @@ class PaymentService {
           where: { id: order.store_id },
           include: { users: true },
         });
-        const managerTokens = store?.users?.map((u) => u.fcm_token).filter((t) => t) || [];
+        // stores.users is the single owner relation, not a staff collection.
+        const managerTokens = [store?.users?.fcm_token].filter(Boolean);
 
         notificationUtils.sendNewOrderNotification(
           this.io,
@@ -540,7 +541,7 @@ class PaymentService {
           managerTokens
         );
 
-        if (store.owner_phone) {
+        if (store?.owner_phone) {
           notificationUtils.sendAlimTalk(store.owner_phone, 'PAYMENT_COMPLETE', {
             storeName: store.name,
             amount: tossResponse.totalAmount,

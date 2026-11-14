@@ -13,7 +13,10 @@ const STATUS_STYLE = {
   cancelled: { bar: 'bg-rose-400',    badge: 'bg-rose-50 text-rose-600 border-rose-200',       btn: 'bg-rose-500 text-white' },
 };
 
-const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, onCollection, collecting, formatTime }) => {
+// 포장·배달 주문은 테이블 대신 주문 유형을 보여 준다.
+const PLACE_LABEL = { takeout: '포장', delivery: '배달' };
+
+const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, onCollection, collecting, formatTime, onDeliveryAction, onDispatchAction }) => {
   // 알 수 없는 상태(예: 신규 결제완료 'paid' 등)에도 크래시하지 않도록 방어
   const config = statusConfig[order.status] || statusConfig.pending || { label: order.status, icon: 'Clock', next: null };
   const style  = STATUS_STYLE[order.status] || STATUS_STYLE.pending;
@@ -21,6 +24,25 @@ const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, onCollec
   const method = String(order.latest_payment?.method || order.method || '').toUpperCase();
   const needsCollection = order.latest_payment?.status === 'READY' && ['CASH', 'TRANSFER', 'STORE_CARD'].includes(method);
   const isPending = order.status === 'pending' || order.status === 'paid';
+  const isDelivery = order.order_type === 'delivery';
+  const placeLabel = PLACE_LABEL[order.order_type] || order.table_name;
+  // 배달 주문은 '준비 완료' 다음 단계가 '배달 출발' → '배달 완료'다.
+  const canStartDelivery = isDelivery && !order.delivery_status && ['confirmed', 'preparing', 'ready'].includes(order.status);
+  const canCompleteDelivery = isDelivery && order.delivery_status === 'delivering';
+  const nextStatus = isDelivery && order.status === 'ready' ? null : config.next;
+  // 배달대행: 진행 중인 배차가 있으면 대행사가 배달을 맡는다.
+  const dispatch = order.latest_dispatch;
+  const dispatchActive = !!dispatch && ['requested', 'assigned', 'picked_up'].includes(dispatch.status);
+  const canRequestDispatch = canStartDelivery && !dispatchActive;
+  const canCancelDispatch = !!dispatch && ['requested', 'assigned'].includes(dispatch.status);
+  const dispatchLabel = dispatch && {
+    requested: '배차 요청됨',
+    assigned: `기사 배정${dispatch.rider_name ? ` · ${dispatch.rider_name}` : ''}`,
+    picked_up: '기사 픽업',
+    delivered: '대행 배달 완료',
+    canceled: '배차 취소됨',
+    failed: '배차 실패',
+  }[dispatch.status];
 
   return (
     <motion.div
@@ -60,10 +82,21 @@ const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, onCollec
           <Icon icon="Clock" size="md" className="text-gray-400" />
           {formatTime(order.created_at)}
         </span>
-        {order.table_name && (
+        {placeLabel && (
           <span className="flex items-center gap-1">
             <Icon icon="MapPin" size="md" />
-            {order.table_name}
+            {placeLabel}
+          </span>
+        )}
+        {order.delivery_status === 'delivering' && (
+          <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-bold text-sky-700">배달 중</span>
+        )}
+        {order.delivery_status === 'delivered' && (
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">배달 완료</span>
+        )}
+        {dispatchLabel && (
+          <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${['canceled', 'failed'].includes(dispatch.status) ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-700'}`} title={dispatch.failure_reason || undefined}>
+            {dispatchLabel}
           </span>
         )}
         {order.customer_name && (
@@ -93,6 +126,15 @@ const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, onCollec
           </p>
         )}
       </div>
+
+      {/* 배달 주소 */}
+      {isDelivery && order.delivery_address && (
+        <div className="mx-4 mb-2 px-3 py-2 bg-sky-50 border border-sky-100 rounded-xl">
+          <p className="text-sm font-semibold text-sky-900 leading-snug">🛵 {order.delivery_address}</p>
+          {order.delivery_memo && <p className="mt-0.5 text-xs text-sky-800">{order.delivery_memo}</p>}
+          {order.delivery_fee > 0 && <p className="mt-0.5 text-xs text-sky-700">배달비 {formatPrice(order.delivery_fee, true)} 포함</p>}
+        </div>
+      )}
 
       {/* 요청사항 */}
       {order.notes && (
@@ -125,13 +167,49 @@ const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, onCollec
             </button>
           )}
 
-          {config.next && (
+          {nextStatus && !canCompleteDelivery && (
             <button
-              onClick={() => onStatusChange(order.id, config.next)}
+              onClick={() => onStatusChange(order.id, nextStatus)}
               className={`h-11 px-5 rounded-xl text-sm font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-transform ${style.btn}`}
             >
-              {statusConfig[config.next].label}
+              {statusConfig[nextStatus].label}
               <Icon icon="ChevronRight" size="md" strokeWidth="md" />
+            </button>
+          )}
+
+          {onDispatchAction && canRequestDispatch && (
+            <button
+              onClick={() => onDispatchAction(order.id, 'request')}
+              className="h-11 px-4 rounded-xl text-sm font-black bg-indigo-500 text-white shadow-md active:scale-95 transition-transform"
+            >
+              배차 요청
+            </button>
+          )}
+
+          {onDispatchAction && canCancelDispatch && (
+            <button
+              onClick={() => onDispatchAction(order.id, 'cancel')}
+              className="h-11 px-4 rounded-xl text-sm font-bold bg-white text-indigo-600 border border-indigo-200 active:scale-95"
+            >
+              배차 취소
+            </button>
+          )}
+
+          {onDeliveryAction && order.status === 'ready' && canStartDelivery && !dispatchActive && (
+            <button
+              onClick={() => onDeliveryAction(order.id, 'start')}
+              className="h-11 px-5 rounded-xl text-sm font-black bg-sky-500 text-white shadow-md active:scale-95 transition-transform"
+            >
+              배달 출발
+            </button>
+          )}
+
+          {onDeliveryAction && canCompleteDelivery && (
+            <button
+              onClick={() => onDeliveryAction(order.id, 'complete')}
+              className="h-11 px-5 rounded-xl text-sm font-black bg-emerald-500 text-white shadow-md active:scale-95 transition-transform"
+            >
+              배달 완료
             </button>
           )}
         </div>

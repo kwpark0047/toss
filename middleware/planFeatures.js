@@ -1,5 +1,15 @@
 const { AppError } = require('../utils/errorHandler');
-const { effectivePlan } = require('../utils/subscriptionPolicy');
+const { effectivePlan, resolvePlan, ownerTrialEndsAt } = require('../utils/subscriptionPolicy');
+
+// 결제 구독과 소유자 체험 기간을 함께 반영한 매장의 현재 플랜
+async function resolveStorePlan(storeId) {
+  const subscription = await require('../services/SubscriptionService').getSubscription(storeId);
+  const trialEndsAt = await ownerTrialEndsAt(require('../config/prisma'), storeId);
+  const name = resolvePlan(subscription, trialEndsAt);
+  // 구독 플랜의 맞춤 기능 설정은 그 구독이 실제로 유효할 때만 쓴다.
+  const paidActive = name === subscription?.plan?.name && effectivePlan(subscription) === name;
+  return { name, subscription, trialEndsAt, paidActive };
+}
 
 /**
  * 플랜 기능 접근 제어 미들웨어
@@ -75,15 +85,15 @@ function requirePlanFeature(feature) {
         return next(new AppError('매장 ID가 필요합니다', 400));
       }
 
-      const subscription = await require('../services/SubscriptionService').getSubscription(
-        Number(storeId)
-      );
-
-      const planName = effectivePlan(subscription);
+      const {
+        name: planName,
+        subscription,
+        paidActive,
+      } = await resolveStorePlan(Number(storeId));
       const allowed = checkPlanFeature(
         planName,
         feature,
-        planName === subscription?.plan?.name ? subscription.plan.features || {} : {}
+        paidActive ? subscription.plan.features || {} : {}
       );
 
       if (!allowed) {
@@ -121,11 +131,7 @@ function requirePlanLimit(limitKey, getCurrentUsage) {
         return next(new AppError('매장 ID가 필요합니다', 400));
       }
 
-      const subscription = await require('../services/SubscriptionService').getSubscription(
-        Number(storeId)
-      );
-
-      const planName = effectivePlan(subscription);
+      const { name: planName } = await resolveStorePlan(Number(storeId));
       const currentUsage = getCurrentUsage ? await getCurrentUsage(Number(storeId)) : 0;
       const limitCheck = checkPlanLimit(planName, limitKey, currentUsage);
 
@@ -154,12 +160,11 @@ async function getCurrentPlan(req) {
     req.storeId || req.params.storeId || (req.body && req.body.store_id) || req.query.store_id;
   if (!storeId) return { name: 'free', subscription: null };
 
-  const subscription = await require('../services/SubscriptionService').getSubscription(
-    Number(storeId)
-  );
+  const { name, subscription, trialEndsAt } = await resolveStorePlan(Number(storeId));
   return {
-    name: effectivePlan(subscription),
+    name,
     subscription,
+    trialEndsAt,
     features: PLAN_FEATURES,
   };
 }
@@ -170,5 +175,6 @@ module.exports = {
   requirePlanFeature,
   requirePlanLimit,
   getCurrentPlan,
+  resolveStorePlan,
   PLAN_FEATURES,
 };

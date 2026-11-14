@@ -1,3 +1,4 @@
+import { rememberCompletedOrder } from '@/utils/completedOrder';
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -21,6 +22,8 @@ import { addRecentStore } from "@/utils/recentStores";
 import EmptyState from "@/components/common/EmptyState";
 import { Maximize2 } from "lucide-react";
 
+import OrderCompletion from '@/components/customer/OrderCompletion';
+
 // Components
 import ManagerFeaturedMenus from '@/components/menu/ManagerFeaturedMenus';
 import MenuHeader from "@/components/menu/MenuHeader";
@@ -29,6 +32,7 @@ import CategoryTabs from "@/components/menu/CategoryTabs";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import CartButton from "@/components/menu/CartButton";
 import CartModal from "@/components/menu/CartModal";
+import OrderTypePanel from "@/components/menu/OrderTypePanel";
 import SplitPaymentSheet from "@/components/menu/SplitPaymentSheet";
 import OptionSelectionModal from "@/components/menu/OptionSelectionModal";
 import OrderStatusModal from "@/components/menu/OrderStatusModal";
@@ -121,9 +125,23 @@ const MenuPage = () => {
     storeId
   } = useParams();
   const [searchParams] = useSearchParams();
+  const testMenuMode = searchParams.get('testMenus') === '1';
   const navigate = useNavigate();
+  // 매장이 받는 주문 유형(매장 식사/포장/배달)과 배달 조건. 실패하면 기존처럼 매장 식사로 주문한다.
+  const { data: orderChannels } = useQuery({
+    queryKey: ["orderChannels", storeId],
+    queryFn: async () => {
+      const raw = await storesAPI.getOrderChannels(storeId);
+      return raw?.data || raw;
+    },
+    enabled: !!storeId && /^\d+$/.test(storeId),
+    staleTime: 30000,
+    retry: 1
+  });
+  const dineInOff = !!orderChannels && !orderChannels.order_types?.includes('dine_in');
   // table 파라미터가 없으면 임의 테이블(1번)로 기록하지 않고 테이블 미지정으로 주문한다.
-  const tableNumber = searchParams.get("table") || null;
+  // 매장 식사를 끈 온라인 전용 매장은 예전 테이블 QR로 들어와도 테이블 없이 포장·배달로 주문한다.
+  const tableNumber = dineInOff ? null : searchParams.get("table") || null;
   const tableLabel = tableNumber
     ? t('menu.table', { number: tableNumber.replace(/번$/, '') })
     : t('menu.no_table', '테이블 미지정');
@@ -174,6 +192,7 @@ const MenuPage = () => {
   const [isSplitStarting, setIsSplitStarting] = useState(false);
   // 주문 알림 받을 번호 — 저장된 번호로 자동 초기화 (재방문 고객)
   const [notifyPhone, setNotifyPhone] = useState(() => {
+    if (testMenuMode) return '';
     try {
       const d = (localStorage.getItem('wm_customer_phone') || '').replace(/\D/g, '');
       if (d.length === 11) return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
@@ -184,13 +203,30 @@ const MenuPage = () => {
   const [isOrderStatusOpen, setIsOrderStatusOpen] = useState(false);
   const [reviewOrder, setReviewOrder] = useState(null); // 리뷰 작성 대상 주문
   const [isOrdering, setIsOrdering] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState(testMenuMode ? 'cash' : 'card');
+  // 테이블 없이 들어온 주문의 주문 방식과 배달 정보
+  const orderTypeOptions = useMemo(() => {
+    if (tableNumber || !orderChannels?.order_types) return [];
+    const types = orderChannels.order_types;
+    // 포장·배달을 안 받는 매장은 지금처럼 고르는 칸 없이 주문한다.
+    return types.some(type => type !== 'dine_in') ? types : [];
+  }, [tableNumber, orderChannels]);
+  const [chosenOrderType, setChosenOrderType] = useState(null);
+  const orderType = orderTypeOptions.includes(chosenOrderType) ? chosenOrderType : orderTypeOptions[0] || null;
+  const [deliveryAddress, setDeliveryAddress] = useState(() => {
+    try { return localStorage.getItem('wm_delivery_address') || ''; } catch { return ''; }
+  });
+  const [deliveryMemo, setDeliveryMemo] = useState('');
+  const [deliveryQuote, setDeliveryQuote] = useState(null);
+  const [isQuoting, setIsQuoting] = useState(false);
+  const onlinePaymentOnly = orderType === 'delivery' || (orderType === 'takeout' && !!orderChannels?.online_only);
   const [optionModalItem, setOptionModalItem] = useState(null);
   const [optionModalGroups, setOptionModalGroups] = useState([]);
   const [voiceOrderMessage, setVoiceOrderMessage] = useState(null);
   const [isPhoneSheetOpen, setIsPhoneSheetOpen] = useState(false);
   const [showCallSheet, setShowCallSheet] = useState(false);
   const [showChatDrawer, setShowChatDrawer] = useState(false);
+  const [completionOrder, setCompletionOrder] = useState(null);
   const [currentOrderId, setCurrentOrderId] = useState(null);
   const [currentOrderCapability, setCurrentOrderCapability] = useState(null);
   const [currentOrderAmount, setCurrentOrderAmount] = useState(0);
@@ -345,7 +381,7 @@ const {
 
   // Fetch menu items
   const {
-    data: menuItems = [],
+    data: allMenuItems = [],
     isLoading: menuLoading
   } = useQuery({
     queryKey: ["publicMenuItems", storeId],
@@ -361,6 +397,9 @@ const {
     ...coldStartRetry
   });
   const isLoading = profileLoading || menuLoading;
+  const menuItems = useMemo(() => testMenuMode
+    ? allMenuItems.filter(item => item.tags === 'wm-numbered-test-menu-v1').sort((a, b) => a.price - b.price)
+    : allMenuItems, [allMenuItems, testMenuMode]);
   // analytics 호출 제거: authMiddleware 필수 엔드포인트 → 401 → 토큰 갱신 실패 → 로그아웃 유발
   const orderStats = [];
 
@@ -450,6 +489,25 @@ const handleOptionConfirm = useCallback((quantity, selectedOptions, totalPrice) 
   const checkoutAttempt = useRef(null);
 const handleOrder = useCallback(async () => {
     if (!storeId || cart.length === 0) return;
+    if (testMenuMode) {
+      if (notifyPhone || orderType !== 'dine_in' || cart.some(item => item.menuItem.tags !== 'wm-numbered-test-menu-v1')) {
+        toast.error('테스트는 전화번호 없이 테스트 메뉴의 매장 이용 주문으로 진행해 주세요.');
+        return;
+      }
+      if (!['cash', 'card'].includes(paymentMethod)) {
+        toast.error('테스트는 현금 또는 Toss 테스트 카드만 선택해 주세요.');
+        return;
+      }
+      if (paymentMethod === 'card') {
+        try {
+          const response = await paymentsAPI.getTestConfig();
+          if (!(response?.data || response)?.enabled) throw new Error();
+        } catch {
+          toast.error('Toss 테스트 결제 설정을 확인할 수 없어 카드 주문을 차단했습니다.');
+          return;
+        }
+      }
+    }
     if (checkoutAttempt.current?.busy) return;
     if (!menuOrderable) {
       toast.error('최신 메뉴와 재고를 확인할 수 있을 때 주문할 수 있습니다. 장바구니는 유지됩니다.');
@@ -463,8 +521,22 @@ const handleOrder = useCallback(async () => {
       toast.error(t('order.cannot_order'));
       return;
     }
+    if (orderType === 'delivery') {
+      if (notifyPhone.replace(/\D/g, '').length < 10) {
+        toast.error('배달 주문은 연락받을 전화번호를 입력해 주세요.');
+        return;
+      }
+      if (!deliveryQuote?.deliverable) {
+        toast.error(deliveryQuote?.reason || '배달 주소를 입력하고 배달 가능 여부를 확인해 주세요.');
+        return;
+      }
+    }
+    if (onlinePaymentOnly && ['cash', 'transfer', 'store_card'].includes(paymentMethod)) {
+      toast.error('포장·배달 주문은 온라인 결제 수단을 선택해 주세요.');
+      return;
+    }
     setIsOrdering(true);
-    const fingerprint = JSON.stringify({ storeId, tableNumber, cart, totalPrice, paymentMethod, notifyPhone });
+    const fingerprint = JSON.stringify({ storeId, tableNumber, cart, totalPrice, paymentMethod, notifyPhone, orderType, deliveryAddress, deliveryMemo });
     if (checkoutAttempt.current?.fingerprint !== fingerprint) {
       checkoutAttempt.current = { fingerprint, key: crypto.randomUUID(), order: null, busy: false };
     }
@@ -489,6 +561,11 @@ const handleOrder = useCallback(async () => {
         // URL 파라미터(테이블 번호 문자열) → 백엔드에서 table_id(정수)로 변환
         ...(tableNumber ? { table_number: tableNumber } : {}),
         ...(position || {}),
+        ...(orderType ? { order_type: orderType } : {}),
+        ...(orderType === 'delivery' ? {
+          delivery_address: deliveryAddress.trim(),
+          ...(deliveryMemo.trim() ? { delivery_memo: deliveryMemo.trim() } : {})
+        } : {}),
         items: cart.map(item => ({
           product_id: item.menuItem.id,
           product_name: item.menuItem.name,
@@ -508,6 +585,9 @@ const handleOrder = useCallback(async () => {
           customer_fcm_token: fcmToken
         } : {})
       };
+      if (orderType === 'delivery') {
+        try { localStorage.setItem('wm_delivery_address', deliveryAddress.trim()); } catch {/* 무시 */}
+      }
       // 재방문 자동입력을 위해 유효 번호 저장
       if (hasPhone) {
         try {
@@ -531,6 +611,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 // 토스페이/카드/카카오페이/네이버페이 → 토스 결제 플로우 (리다이렉트)
       if (['card', 'toss', 'kakao', 'naver'].includes(paymentMethod)) {
         const paymentResult = await initiateTossPayment({
+          testOnly: testMenuMode,
           orderId: createdOrderId,
           storeId,
           totalAmount: Number(orderData_.total_amount ?? totalPrice),
@@ -572,7 +653,14 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       setCurrentOrderId(createdOrderId);
       setCurrentOrderCapability(orderData_.order_capability);
       setCurrentOrderAmount(Number(orderData_.total_amount ?? totalPrice));
-      setIsOrderStatusOpen(true);
+      const receipt = { ...orderData_, store_id: storeId, store_name: profile?.store_name, payment_method: paymentMethod };
+      // 승인 후 서버의 최종 주문 상태·가격을 다시 읽는다. 조회 실패 시 생성 응답을 유지한다.
+      try {
+        const refreshed = await ordersAPI.getById(createdOrderId, orderData_.order_capability);
+        Object.assign(receipt, refreshed?.data || refreshed);
+      } catch { /* 생성 응답으로 확인 화면을 제공한다. */ }
+      rememberCompletedOrder(receipt, orderData_.order_capability);
+      setCompletionOrder(receipt);
     } catch (err) {
       // 영업시간·매장 반경·품절 등 서버가 알려준 이유를 그대로 보여준다
       const reason = err?.response?.data?.message || err?.response?.data?.error;
@@ -581,9 +669,29 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsOrdering(false);
     }
-  }, [storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t]);
+  }, [testMenuMode, storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t, orderType, deliveryAddress, deliveryMemo, deliveryQuote, onlinePaymentOnly]);
+
+  // 배달 주소·장바구니 금액이 바뀌면 서버에 배달 가능 여부와 배달비를 다시 묻는다.
+  useEffect(() => {
+    if (orderType !== 'delivery' || !storeId) { setDeliveryQuote(null); return; }
+    const address = deliveryAddress.trim();
+    if (address.length < 4) { setDeliveryQuote(null); return; }
+    let cancelled = false;
+    setIsQuoting(true);
+    const timer = setTimeout(() => {
+      storesAPI.deliveryQuote(storeId, { address, subtotal: totalPrice })
+        .then(raw => { if (!cancelled) setDeliveryQuote(raw?.data || raw); })
+        .catch(() => { if (!cancelled) setDeliveryQuote({ deliverable: false, reason: '배달 가능 여부를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.' }); })
+        .finally(() => { if (!cancelled) setIsQuoting(false); });
+    }, 500);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [orderType, deliveryAddress, totalPrice, storeId]);
 
   const handleStartSplitPayment = useCallback(async (peopleCount) => {
+    if (testMenuMode) {
+      toast.error('테스트 메뉴는 현금 또는 Toss 테스트 카드의 단일 결제로 확인해 주세요.');
+      return;
+    }
     if (!storeId || !cart.length || !menuOrderable || isSplitStarting) return;
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       toast.error('인터넷 연결 후 분할 주문을 시작해 주세요. 오프라인 주문은 자동 접수되지 않습니다.');
@@ -648,7 +756,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsSplitStarting(false);
     }
-  }, [storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
+  }, [testMenuMode, storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
 
   // Stable callbacks for JSX props (prevents child re-renders from inline closures)
   const handleOpenOrderHistory = useCallback(() => navigate('/order-history'), [navigate]);
@@ -707,6 +815,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
         </div>}
 
       {/* Header */}
+      {testMenuMode && <div role="status" className="border-b border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">테스트 메뉴 · 전화번호 없이 매장 이용으로 주문하세요. 현금은 결제 대기로 접수되며, 카드는 Toss 테스트 설정이 확인된 경우에만 진행합니다.</div>}
       {Object.values(cachedSections).some(Boolean) && <div role="status" className="px-4 py-2 bg-orange-50 text-orange-800 text-xs">저장된 메뉴를 먼저 표시하고 있습니다. 최신 가격과 품절 정보를 확인 중입니다.</div>}
       <MenuHeader storeName={profile?.store_name || t('menu.store_name_default')} tableNumber={tableNumber?.replace(/번$/, '')} onOrderHistoryClick={handleOpenOrderHistory} onCallStaffClick={() => setShowCallSheet(true)} />
 
@@ -719,6 +828,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       <ManagerFeaturedMenus storeId={storeId} menuItems={menuItems} storeOpen={menuOrderable} onAddToCart={handleAddToCartClick} />
 
       {tinkerSettings?.enabled !== false && tinkerSettings?.voiceOrderEnabled !== false && <VoiceOrderAssistant
+        liveEnabled={import.meta.env.VITE_AI_LIVE_UI_ENABLED === "true"}
         storeId={storeId}
         menuItems={menuItems}
         lang={lang}
@@ -751,10 +861,18 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       {!isCartOpen && <CartButton totalItems={totalItems} totalPrice={totalPrice} onClick={handleOpenCart} />}
 
       {/* Cart Modal */}
-      <CartModal isOpen={isCartOpen} onClose={handleCloseCart} cart={cart} onUpdateQuantity={updateQuantity} onOrder={handleOrder} isOrdering={isOrdering} totalPrice={totalPrice} notifyPhone={notifyPhone} onNotifyPhoneChange={setNotifyPhone} paymentMethod={paymentMethod} onPaymentMethodChange={setPaymentMethod} menuItems={menuItems} storeId={storeId} onAddToCartClick={handleAddToCartClick} onStartSplitPayment={handleStartSplitPayment} isSplitStarting={isSplitStarting} />
+      <CartModal isOpen={isCartOpen} onClose={handleCloseCart} cart={cart} onUpdateQuantity={updateQuantity} onOrder={handleOrder} isOrdering={isOrdering} totalPrice={totalPrice} notifyPhone={notifyPhone} onNotifyPhoneChange={setNotifyPhone} paymentMethod={paymentMethod} onPaymentMethodChange={setPaymentMethod} menuItems={menuItems} storeId={storeId} onAddToCartClick={handleAddToCartClick} onStartSplitPayment={handleStartSplitPayment} isSplitStarting={isSplitStarting} hideSplitPayment={!!orderType && orderType !== 'dine_in'} onlinePaymentOnly={onlinePaymentOnly} extraFee={orderType === 'delivery' && deliveryQuote?.deliverable ? deliveryQuote.fee : 0} orderTypePanel={orderTypeOptions.length ? <OrderTypePanel types={orderTypeOptions} orderType={orderType} onOrderTypeChange={setChosenOrderType} pickupGuide={orderChannels?.pickup_guide} delivery={orderChannels?.delivery} deliveryAddress={deliveryAddress} onDeliveryAddressChange={setDeliveryAddress} deliveryMemo={deliveryMemo} onDeliveryMemoChange={setDeliveryMemo} quote={deliveryQuote} quoting={isQuoting} /> : null} />
 
       {splitSession && !isSplitSheetOpen && <button type="button" onClick={() => setIsSplitSheetOpen(true)} className="fixed bottom-24 left-1/2 z-40 -translate-x-1/2 rounded-full bg-blue-700 px-5 py-3 text-sm font-black text-white shadow-xl">분할 결제 상태 보기</button>}
       <SplitPaymentSheet isOpen={isSplitSheetOpen} onClose={() => setIsSplitSheetOpen(false)} session={splitSession} />
+
+      {completionOrder && <div className="oc-overlay"><div>
+        <OrderCompletion order={completionOrder} storeName={profile?.store_name}
+          paid={completionOrder.payment_status === 'paid'}>
+          <button className="oc-secondary" onClick={() => { setCompletionOrder(null); setIsOrderStatusOpen(true); }}>현재 주문 진행 자세히 보기</button>
+          <button className="oc-secondary" onClick={() => setCompletionOrder(null)}>메뉴로 돌아가기</button>
+        </OrderCompletion>
+      </div></div>}
 
       {/* Order Status Modal */}
       {storeId && <OrderStatusModal isOpen={isOrderStatusOpen} onClose={handleCloseOrderStatus} orderId={currentOrderId} capability={currentOrderCapability} storeId={storeId} tableNumber={tableNumber} onWriteReview={handleWriteReview} />}
@@ -800,7 +918,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 
       <LanguageSelector currentLang={lang} onSelectLang={handleLangChange} />
 
-      {tinkerSettingsFetched && tinkerSettings?.enabled !== false && <TinkerBell lang={lang} menuItems={menuItems} weatherData={weatherData} voiceEnabled={tinkerSettings?.voiceEnabled ?? true} largeFont={tinkerSettings?.largeFont ?? false} lastAddedItem={lastAddedItem} voiceOrderMessage={voiceOrderMessage} storeId={tinkerSettings?.aiRecommendation ? Number(storeId) : null} customGreeting={tinkerSettings?.customMsg ?? ''} customGreetingLanguage={tinkerSettings?.lang ?? 'ko'} />}
+      {tinkerSettingsFetched && tinkerSettings?.enabled !== false && <TinkerBell liveStoreId={Number(storeId)} liveEnabled={import.meta.env.VITE_AI_LIVE_UI_ENABLED === "true"} lang={lang} menuItems={menuItems} weatherData={weatherData} voiceEnabled={tinkerSettings?.voiceEnabled ?? true} largeFont={tinkerSettings?.largeFont ?? false} lastAddedItem={lastAddedItem} voiceOrderMessage={voiceOrderMessage} storeId={tinkerSettings?.aiRecommendation ? Number(storeId) : null} customGreeting={tinkerSettings?.customMsg ?? ''} customGreetingLanguage={tinkerSettings?.lang ?? 'ko'} />}
     </div>
     </div>
   );

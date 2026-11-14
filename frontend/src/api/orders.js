@@ -39,6 +39,11 @@ export const ordersAPI = {
   },
   updateStatus: (id, status, staffId = null) =>
     api.put('/orders/' + id + '/status', { status, staff_id: staffId }),
+  // 직접 배달 출발(start)/완료(complete)
+  updateDelivery: (id, action) => api.put('/orders/' + id + '/delivery', { action }),
+  // 배달대행 배차 요청·취소
+  requestDispatch: (id) => api.post('/orders/' + id + '/dispatch'),
+  cancelDispatch: (id, reason) => api.delete('/orders/' + id + '/dispatch', { data: { reason } }),
   cancel: (id) => api.post('/orders/' + id + '/cancel'),
   delete: (id) => api.delete('/orders/' + id),
   getById: (id, capability) =>
@@ -115,6 +120,7 @@ export const paymentsAPI = {
       },
     }),
   getBrandPayConfig: () => api.get('/payments/brandpay/config'),
+  getTestConfig: () => api.get('/payments/test-config'),
   splitRequest: (data, capability) =>
     api.post('/payments/split/request', data, {
       headers: { 'x-order-capability': capability },
@@ -131,4 +137,3 @@ export const paymentsAPI = {
       headers: { 'x-order-capability': capability },
     }),
 };
-

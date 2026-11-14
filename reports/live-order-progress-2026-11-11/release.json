@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-11-10T17:11:33.111Z",
+  "expectedCommit": "53186816f372d7d627d44264e6d4b20e77c75820",
+  "backendRevision": "53186816f372d7d627d44264e6d4b20e77c75820",
+  "backendDb": "connected",
+  "deepHealthStatus": 200,
+  "frontendCommit": "53186816f372d7d627d44264e6d4b20e77c75820",
+  "workerReadyNotificationHandler": true,
+  "mobileWidth": 390,
+  "mobileHttpStatus": 200,
+  "horizontalOverflow": false,
+  "customerOrderRequests": 0,
+  "pageErrors": [],
+  "scope": "Read-only production smoke; synthetic end-to-end flow was verified in isolated QA only."
+}

@@ -63,6 +63,15 @@ describe('rateLimiter middleware (Express 통합)', () => {
   });
 
   describe('orderLimiter', () => {
+    test('주문 상태 조회는 주문 쓰기 한도를 소모하지 않음', async () => {
+      const app = buildApp(orderLimiter);
+      for (let i = 0; i < 35; i += 1) {
+        expect((await request(app).get('/api/orders/123')).status).toBe(200);
+      }
+      expect(
+        (await request(app).put('/api/orders/123/status').send({ status: 'ready' })).status
+      ).toBe(200);
+    });
     test('동일 매장+IP 임계(30/1분) 초과 시 429', async () => {
       const app = buildApp(orderLimiter);
       let lastStatus = 200;

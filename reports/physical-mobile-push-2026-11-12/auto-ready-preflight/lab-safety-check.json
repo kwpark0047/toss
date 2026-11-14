@@ -1,0 +1,34 @@
+{
+  "checkedAt": "2026-11-11T17:14:05.356Z",
+  "orders": [
+    {
+      "id": 15,
+      "order_number": "20261112-0776",
+      "status": "ready",
+      "total_amount": 10000,
+      "payment_status": "pending",
+      "no_customer_name": true,
+      "no_customer_phone": true
+    },
+    {
+      "id": 16,
+      "order_number": "20261112-6837",
+      "status": "ready",
+      "total_amount": 10000,
+      "payment_status": "pending",
+      "no_customer_name": true,
+      "no_customer_phone": true
+    },
+    {
+      "id": 17,
+      "order_number": "20261112-4515",
+      "status": "ready",
+      "total_amount": 10000,
+      "payment_status": "pending",
+      "no_customer_name": true,
+      "no_customer_phone": true
+    }
+  ],
+  "publicOrigin": "https://parade-cotton-starsmerchant-cost.trycloudflare.com",
+  "autoReadyAfterMs": 30000
+}

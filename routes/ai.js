@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
+router.use('/marketing-drafts', require('./marketingDrafts').createMarketingDraftRouter());
 const aiController = require('../controllers/aiController');
 const { validateBody, validateId } = require('../middleware/validator');
 const { createAIRateLimiter } = require('../utils/aiRateLimiter');
 const customerIdentity = require('../middleware/customerIdentity');
 const auth = require('../middleware/auth');
+const { checkStorePermission } = require('../middleware/storeAuth');
 const publicRecommendation = (req, res, next) => {
   req.customerIdentity = null;
   next();
@@ -305,6 +307,9 @@ router.post(
  *   post:
  *     tags: [AI]
  *     summary: 메뉴 이미지 AI 생성
+ *     description: 로그인한 매장 소유자 또는 메뉴 편집 권한(products:write)이 있는 직원만 호출할 수 있습니다.
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -323,7 +328,11 @@ router.post(
  */
 router.post(
   '/generate-menu-image',
+  auth,
   validateBody(['store_id', 'name']),
+  validateId(['store_id']),
+  // 유료 AI 호출이므로 대상 매장의 메뉴 편집 권한이 있는 사용자만 허용한다.
+  checkStorePermission('products:write'),
   createAIRateLimiter('generateMenuImage'),
   aiController.generateMenuImage
 );
@@ -346,7 +355,7 @@ router.post(
  *       200:
  *         description: 스캔된 메뉴 데이터
  */
-router.post('/scan-menu-image', createAIRateLimiter('scanMenuImage'), aiController.scanMenuImage);
+router.use('/scan-menu-image', require('./menuPhotoDrafts').createMenuPhotoDraftRouter());
 
 /**
  * @swagger

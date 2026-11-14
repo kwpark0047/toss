@@ -21,4 +21,60 @@ function effectivePlan(subscription, now = new Date()) {
   if (subscription.cancel_at && new Date(subscription.cancel_at) <= now) return 'free';
   return subscription.plan?.name || 'free';
 }
-module.exports = { nextBillingPeriod, effectivePlan };
+// 신규 가입 계정은 trial_ends_at까지 이 유료 플랜의 기능을 무료로 쓴다.
+// 체험이 끝나면 별도 조치 없이 무료(free) 플랜으로 돌아간다.
+const TRIAL_PLAN = 'pro';
+
+function isTrialActive(trialEndsAt, now = new Date()) {
+  if (!trialEndsAt) return false;
+  const end = new Date(trialEndsAt);
+  return Number.isFinite(end.getTime()) && end > now;
+}
+
+// 결제된 구독이 우선이고, 결제 플랜이 없을 때만 체험 플랜을 적용한다.
+function resolvePlan(subscription, trialEndsAt, now = new Date()) {
+  const paid = effectivePlan(subscription, now);
+  if (paid !== 'free') return paid;
+  return isTrialActive(trialEndsAt, now) ? TRIAL_PLAN : 'free';
+}
+
+// 매장 소유자의 체험 종료 시각. prisma 클라이언트와 트랜잭션(tx) 모두에서 동작한다.
+async function ownerTrialEndsAt(db, storeId) {
+  const id = Number(storeId);
+  if (!Number.isSafeInteger(id) || id <= 0) return null;
+  const rows = await db.$queryRaw`
+    SELECT u.trial_ends_at FROM public.stores s
+    JOIN public.users u ON u.id = s.user_id
+    WHERE s.id = ${id} AND u.auth_status = 'active'
+      AND u.business_access_status IN ('trialing', 'approved')
+    LIMIT 1`;
+  return Array.isArray(rows) && rows[0] ? rows[0].trial_ends_at : null;
+}
+
+// 구독료 공급가·부가세 구분. 구독 요금은 VAT 포함 가격으로 청구한다(면세 금액 0).
+// 토스페이먼츠 결제 응답의 suppliedAmount·vat·taxFreeAmount가 합계와 맞으면 그대로 쓰고,
+// 없거나 맞지 않으면 토스와 같은 방식(부가세 = (금액 - 면세) / 11, 반올림)으로 계산한다.
+function vatBreakdown(amount, provider = {}) {
+  if (!Number.isSafeInteger(amount) || amount < 0) throw new Error('Invalid invoice amount');
+  const supplied = Number(provider?.suppliedAmount);
+  const vat = Number(provider?.vat);
+  const taxFree = Number(provider?.taxFreeAmount ?? 0);
+  if (
+    [supplied, vat, taxFree].every((v) => Number.isSafeInteger(v) && v >= 0) &&
+    supplied + vat + taxFree === amount
+  ) {
+    return { supply_amount: supplied, vat_amount: vat, tax_free_amount: taxFree };
+  }
+  const computedVat = Math.round(amount / 11);
+  return { supply_amount: amount - computedVat, vat_amount: computedVat, tax_free_amount: 0 };
+}
+
+module.exports = {
+  vatBreakdown,
+  nextBillingPeriod,
+  effectivePlan,
+  TRIAL_PLAN,
+  isTrialActive,
+  resolvePlan,
+  ownerTrialEndsAt,
+};

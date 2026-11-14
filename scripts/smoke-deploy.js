@@ -9,6 +9,18 @@ const frontendUrl =
   production.frontendUrl;
 const expectedRevision = process.env.EXPECTED_COMMIT_SHA;
 
+// Render 빌드(npm ci + 마이그레이션 + prisma generate)는 보통 2~3분, 길게는 7분 이상 걸린다.
+// 새 리비전이 올라올 때까지 기본 10분 기다린다. 환경변수로 조정할 수 있다.
+const DEFAULT_WAIT_MS = 10 * 60 * 1000;
+const DEFAULT_INTERVAL_MS = 10 * 1000;
+function durationFromEnv(name, fallback, min, max) {
+  const value = Number(process.env[name]);
+  if (!Number.isFinite(value) || value <= 0) return fallback;
+  return Math.min(Math.max(Math.round(value), min), max);
+}
+const shortRevision = (value) =>
+  typeof value === 'string' && /^[0-9a-f]{7,40}$/i.test(value) ? value.slice(0, 7) : 'unknown';
+
 if (!backendUrl) {
   console.error('BACKEND_URL 또는 --backend=<url>가 필요합니다.');
   process.exit(2);
@@ -22,15 +34,25 @@ async function check(url, expected) {
   return ok;
 }
 
-async function main() {
+async function main(options = {}) {
   const normalizedBackendUrl = backendUrl.replace(/\/$/, '');
-  const deadline = Date.now() + 120000;
+  const waitMs =
+    options.waitMs ??
+    durationFromEnv('SMOKE_BACKEND_WAIT_MS', DEFAULT_WAIT_MS, 10000, 30 * 60 * 1000);
+  const intervalMs =
+    options.intervalMs ??
+    durationFromEnv('SMOKE_POLL_INTERVAL_MS', DEFAULT_INTERVAL_MS, 1000, 60000);
+  const sleep = options.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const started = Date.now();
+  const deadline = started + waitMs;
   let backendOk = false;
+  let lastRevision;
   while (!backendOk && Date.now() < deadline) {
     try {
       backendOk = await check(`${normalizedBackendUrl}/api/health`, (body) => {
         try {
           const payload = JSON.parse(body);
+          lastRevision = payload.revision;
           return (
             payload.status === 'ok' &&
             payload.db === 'connected' &&
@@ -43,8 +65,20 @@ async function main() {
     } catch {
       /* deployment may still be starting */
     }
-    if (!backendOk) await new Promise((resolve) => setTimeout(resolve, 3000));
+    if (!backendOk) {
+      if (expectedRevision) {
+        const elapsed = Math.round((Date.now() - started) / 1000);
+        console.log(
+          `WAIT backend revision ${shortRevision(lastRevision)} → expected ${shortRevision(expectedRevision)} (${elapsed}s / ${Math.round(waitMs / 1000)}s)`
+        );
+      }
+      await sleep(intervalMs);
+    }
   }
+  if (!backendOk)
+    console.log(
+      `FAIL backend did not report the expected revision within ${Math.round(waitMs / 1000)}s`
+    );
 
   const deepHealthOk = await check(`${normalizedBackendUrl}/api/health/deep`, (body) => {
     try {

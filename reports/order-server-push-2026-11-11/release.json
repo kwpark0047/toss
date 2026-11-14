@@ -1,0 +1,21 @@
+{
+  "checkedAt": "2026-11-10T18:26:29.071Z",
+  "expectedCommit": "ed474254891d9281c36832f3fbbe345286eb2796",
+  "backendRevision": "ed474254891d9281c36832f3fbbe345286eb2796",
+  "frontendCommit": "ed474254891d9281c36832f3fbbe345286eb2796",
+  "database": "connected",
+  "orderWebPush": {
+    "status": "ok",
+    "configured": true,
+    "schemaReady": true
+  },
+  "publicPushConfigEnabled": true,
+  "productionPublicKeyMatched": true,
+  "workerPushAndClickHandlers": true,
+  "activeWorkerReadyProtocol": true,
+  "widths": [320, 390, 430],
+  "horizontalOverflow": false,
+  "pageErrors": [],
+  "customerOrderRequests": 0,
+  "readOnlyProduction": true
+}

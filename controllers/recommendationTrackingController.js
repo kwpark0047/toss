@@ -119,7 +119,14 @@ const recommendationTrackingController = {
       return res.status(404).json({ error: '주문 정보를 찾을 수 없습니다.' });
     }
 
-    res.created(conversion, '추천 전환이 기록되었습니다.');
+    // Prisma returns this duration as BigInt; JSON needs a lossless string value.
+    res.created(
+      {
+        ...conversion,
+        time_to_conversion_ms: conversion.time_to_conversion_ms?.toString() ?? null,
+      },
+      '추천 전환이 기록되었습니다.'
+    );
   }),
 
   /**

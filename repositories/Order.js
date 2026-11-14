@@ -70,7 +70,9 @@ const Order = {
 
           // 쿠폰 할인도 서버가 검증한 상품 합계에만 적용한다.
           const discountAmount = Math.max(0, Number(data.discount_amount) || 0);
-          const authoritativeTotal = Math.max(0, calculatedTotal - discountAmount);
+          // 배달비는 OrderService가 매장 설정으로 정한 값만 더한다.
+          const deliveryFee = Math.max(0, Number(data.delivery_fee) || 0);
+          const authoritativeTotal = Math.max(0, calculatedTotal - discountAmount) + deliveryFee;
 
           // 3. 주문 마스터 및 아이템 저장
           const order = await tx.orders.create({
@@ -86,6 +88,10 @@ const Order = {
               method: method || null,
               notes: notes || null,
               is_takeout: is_takeout ? 1 : 0,
+              order_type: data.order_type || (is_takeout ? 'takeout' : 'dine_in'),
+              delivery_address: data.delivery_address || null,
+              delivery_fee: data.order_type === 'delivery' ? deliveryFee : null,
+              delivery_memo: data.delivery_memo || null,
               split_type: data.split_type || 'NONE',
               is_split_payment: data.is_split_payment || false,
               split_people_count: data.split_people_count || null,
@@ -209,6 +215,21 @@ const Order = {
             tables: {
               select: { table_number: true },
             },
+            // 배달대행 주문의 최근 배차 (주문 관리 카드 표시용)
+            delivery_dispatches: {
+              orderBy: { id: 'desc' },
+              take: 1,
+              select: {
+                id: true,
+                provider: true,
+                status: true,
+                rider_name: true,
+                rider_phone: true,
+                tracking_url: true,
+                failure_reason: true,
+                fee: true,
+              },
+            },
           },
           orderBy: { created_at: 'desc' },
         });
@@ -245,6 +266,8 @@ const Order = {
         items: order.order_items || [],
         table_name: order.tables?.table_number || null,
         latest_payment: order.payments && order.payments.length > 0 ? order.payments[0] : null,
+        latest_dispatch: order.delivery_dispatches?.[0] || null,
+        delivery_dispatches: undefined,
       }));
       return pagination ? { items, total, page, limit } : items;
     } catch (error) {
@@ -918,4 +941,3 @@ const Order = {
 };
 
 module.exports = Order;
-
