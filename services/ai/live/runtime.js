@@ -23,6 +23,7 @@ function getGateway() {
           retryStrategy: null,
           maxRetriesPerRequest: 0,
           connectTimeout: 1500,
+          commandTimeout: 1500,
         });
         redis.on('error', () => {});
         await redis.connect();

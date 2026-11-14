@@ -24,15 +24,13 @@ const aiController = {
 
   // [인스타그램 홍보글 카피라이팅 생성]
   generateInstagramCopy: catchAsync(async (req, res) => {
-    const { name, category, price, image_url, description } = req.body;
-    const copy = await aiService.generateInstagramCopy({
-      name,
-      category,
-      price,
-      image_url,
-      description,
-    });
-    res.json({ success: true, copy });
+    // Legacy callers have no store scope/consent. Keep a free local fallback;
+    // paid generation goes exclusively through the authorized marketing drafts route.
+    const name = String(req.body.name || '')
+      .trim()
+      .slice(0, 80);
+    const copy = `${name}\n오늘은 이 메뉴 어떠세요?\n판매 여부와 안내 내용을 확인한 후 게시해 주세요.\n\n#메뉴소개 #매장소식`;
+    res.json({ success: true, copy, instagramCopy: copy, source: 'template', draft_only: true });
   }),
 
   // [메뉴 추천]

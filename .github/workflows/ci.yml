@@ -110,7 +110,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Live policy, PCM, Redis concurrency and HTTP/WSS fake-provider integration
-        run: node --test tests/saas/gemini-live-p0.test.cjs tests/saas/gemini-live-audio.test.cjs tests/saas/gemini-live-redis.test.cjs tests/saas/manager-live.test.cjs tests/saas/live-camera.test.cjs tests/saas/menu-photo-drafts.test.cjs
+        run: node --test tests/saas/gemini-live-p0.test.cjs tests/saas/gemini-live-audio.test.cjs tests/saas/gemini-live-redis.test.cjs tests/saas/manager-live.test.cjs tests/saas/live-camera.test.cjs tests/saas/menu-photo-drafts.test.cjs tests/saas/marketing-drafts.test.cjs tests/saas/shared-generation-budget.test.cjs tests/saas/shared-budget-boundaries.test.cjs
 
   backend-unit-tests:
     runs-on: ubuntu-latest

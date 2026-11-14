@@ -47,9 +47,9 @@ const { chromium } = require('playwright'),
           assert.equal(body.consent, true);
           return denied
             ? route.fulfill({
-                status: 403,
+                status: 503,
                 contentType: 'application/json',
-                body: '{"error":"forbidden"}',
+                body: '{"error":"매장 AI 공용 예산 또는 사용량을 확인할 수 없습니다."}',
               })
             : route.fulfill({
                 status: 200,
@@ -165,6 +165,7 @@ const { chromium } = require('playwright'),
           manualAllergens: '우유',
           fakeProductWrites: saves.length,
           deniedManualFallback: true,
+          budgetDeniedManualFallback: true,
         },
         null,
         2

@@ -134,7 +134,10 @@ const { chromium } = require('playwright'),
     const dimensions = [];
     for (const width of [390, 320]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 640 });
-      await page.goto('http://127.0.0.1:5182/src/test/fixtures/voice-order-live.html');
+      await page.goto('http://127.0.0.1:5182/src/test/fixtures/voice-order-live.html', {
+        waitUntil: 'domcontentloaded',
+        timeout: 60000,
+      });
       const before = calls;
       await page.getByRole('button', { name: 'Live로 주문하기', exact: true }).click();
       assert.equal(calls, before);

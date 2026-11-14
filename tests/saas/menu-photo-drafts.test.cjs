@@ -28,6 +28,12 @@ test('menu photo analysis is gated, consented and never trusts AI price/allergen
   await assert.rejects(off.analyze({ image: frame, mimeType: 'image/jpeg', consent: true }));
   assert.equal(calls.length, 0);
   const service = new MenuPhotoDraftService({
+    budget: {
+      run: async (scope, call) => {
+        assert.equal(scope.feature, 'photo');
+        return call();
+      },
+    },
     client,
     env: {
       AI_MENU_DRAFT_ENABLED: 'true',
