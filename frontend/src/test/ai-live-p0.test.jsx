@@ -16,6 +16,17 @@ class Socket {
   }
 }
 describe('P0 live client preserves legacy fallback', () => {
+  it('mute disables microphone tracks and discards playback until unmuted', () => {
+    const audio = new LiveAudio(), track = { enabled: true };
+    audio.stream = { getAudioTracks: () => [track] };
+    audio.interrupt = vi.fn();
+    audio.setMuted(true);
+    expect(track.enabled).toBe(false);
+    expect(audio.interrupt).toHaveBeenCalledOnce();
+    expect(() => audio.play('invalid base64%%')).not.toThrow();
+    audio.setMuted(false);
+    expect(track.enabled).toBe(true);
+  });
   it('denied microphone preparation never opens a provider websocket', async () => {
     const ws = vi.fn(function () { throw Error('must not open'); }), fallback = vi.fn();
     const client = new LiveClient({ issue: async () => ({ sessionId: 's', ticket: 't' }), beforeConnect: async () => { throw Error('NotAllowedError'); }, WebSocketClass: ws, onFallback: fallback });

@@ -34,6 +34,7 @@ export class LiveAudio {
     this.silent.connect(this.context.destination);
   }
   play(data) {
+    if (this.muted) return;
     if (!this.context || this.context.state === 'closed') return;
     const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
     if (bytes.length % 2 || this.sources.size > 64) throw Error('Live audio queue limit');
@@ -65,6 +66,13 @@ export class LiveAudio {
     }
     this.sources.clear();
     this.nextTime = 0;
+  }
+  setMuted(muted) {
+    this.muted = muted;
+    this.stream?.getAudioTracks().forEach((track) => {
+      track.enabled = !muted;
+    });
+    if (muted) this.interrupt();
   }
   stop() {
     this.generation++;
