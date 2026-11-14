@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+  <head><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Tinkerbell Live — local fixture</title></head>
+  <body style="margin: 0; background: #fff8ef">
+    <div id="root"></div>
+    <script type="module">
+      import React from 'react';
+      import { createRoot } from 'react-dom/client';
+      import TinkerBell from '/src/components/ai/TinkerBell.jsx';
+      import '/src/index.css';
+      const lang = new URLSearchParams(location.search).get('lang') || 'ko';
+      createRoot(document.getElementById('root')).render(
+        React.createElement(TinkerBell, {
+          liveEnabled: true,
+          liveStoreId: 3,
+          storeId: null,
+          lang,
+          largeFont: true,
+          voiceEnabled: false,
+        })
+      );
+    </script>
+  </body>
+</html>

@@ -4,6 +4,8 @@ import { useMotionSafe } from '../../hooks/useMotionSafe';
 import { trackImpressions, trackRecommendationClick } from '../../utils/recommendationTracking';
 import { buildWeatherAnnouncement, getLiveWeatherKind } from '../../utils/tinkerbellWeather';
 import { aiAPI } from '../../api';
+import TinkerBellLivePanel from './TinkerBellLivePanel';
+import { liveText } from './tinkerbellLiveText';
 
 // ── 팅커벨 녹음 음성 파일 매핑 (한국어) ──────────────────────────────────────
 // 해당 상황에 녹음 mp3가 있으면 재생, 없으면 브라우저 TTS로 폴백.
@@ -265,6 +267,8 @@ export default function TinkerBell({
    previewTrigger = 0,
    adminMode = false,
    storeId = null,
+   liveStoreId = null,
+   liveEnabled = false,
    customGreeting = '',
    customGreetingLanguage = 'ko',
  }) {
@@ -280,12 +284,15 @@ const [isHappy,  setIsHappy]  = useState(false);
    const [sparks,   setSparks]   = useState([]);
    const [aiRecs,    setAiRecs]   = useState([]);
    const [aiLoading, setAiLoading] = useState(false);
+   const [liveOpen, setLiveOpen] = useState(false);
+   const [liveState, setLiveState] = useState('IDLE');
+   const legacyPaused = useRef(false);
 
 const typingRef  = useRef(null);
    const sparkId    = useRef(0);
    const prevAdded  = useRef(null);
    const customGreetingRef = useRef(customGreeting);
-   customGreetingRef.current = customGreeting;
+   useEffect(() => { customGreetingRef.current = customGreeting; }, [customGreeting]);
 
    const getGreeting = useCallback(() => {
      const L = I18N[lang] || I18N.ko;
@@ -326,7 +333,7 @@ const typingRef  = useRef(null);
   // ── 음성: 녹음 파일(mp3) 우선, 없으면 브라우저 TTS ─────────────────────────
   const audioRef = useRef(null);
   const speak = useCallback((text, voiceKey) => {
-    if (!voiceEnabled) return;
+    if (!voiceEnabled || legacyPaused.current) return;
     // 이전 재생 정리
     try { window.speechSynthesis?.cancel(); } catch { /* noop */ }
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
@@ -524,13 +531,32 @@ if (aiRecs.length > 0 && !aiLoading) {
     ? { position: 'absolute', right: 12, top: 80, zIndex: 20, pointerEvents: 'none' }
     : { position: 'fixed',    right: 16, top: 102, zIndex: 45, pointerEvents: 'none' };
 
+  const closeLive = () => { legacyPaused.current = false; setLiveOpen(false); setLiveState('IDLE'); };
+  const liveControls = liveEnabled && Number.isSafeInteger(liveStoreId) && liveStoreId > 0 && !adminMode && mode === 'float' && <>
+    <button type="button" aria-label={liveText(lang).open} aria-expanded={liveOpen}
+      onClick={() => {
+        if(liveOpen){closeLive();return;}
+        legacyPaused.current = true;
+        clearTimeout(typingRef.current);
+        audioRef.current?.pause();
+        window.speechSynthesis?.cancel();
+        setBubble(prev=>({...prev,show:false}));
+        setLiveOpen(true);
+      }} className="pointer-events-auto mt-1 min-h-11 rounded-xl border border-amber-300 bg-white px-3 text-sm font-bold text-amber-900 shadow-md">{liveText(lang).open}</button>
+    {liveOpen && <TinkerBellLivePanel key={`${liveStoreId}:${lang}`} storeId={liveStoreId} lang={lang} largeFont={largeFont} onClose={closeLive} onState={setLiveState} onStart={()=>{legacyPaused.current=true;audioRef.current?.pause();window.speechSynthesis?.cancel();}} onFallback={()=>{
+      legacyPaused.current = false;
+      const greeting = getGreeting();
+      speak(greeting.text, greeting.voiceKey);
+    }} />}
+  </>;
+
   if (!visible) return null;
 
   // 저사양·모션 감소 모드: 정적 폴백
   if (motionIntensity === 'none') {
     return (
-      <div style={wrapperStyle} data-testid="tinkerbell-static">
-        {bubble.show && (
+      <div style={wrapperStyle} data-testid="tinkerbell-static" data-live-state={liveState}>
+        {bubble.show && !liveOpen && (
           <div
             style={{ position: 'absolute', ...bubbleStyle, zIndex: 10 }}
             className={`bg-slate-900 text-white rounded-2xl shadow-xl px-3 py-2.5 leading-relaxed ${largeFont ? 'text-sm' : 'text-xs'} font-semibold`}>
@@ -540,6 +566,7 @@ if (aiRecs.length > 0 && !aiLoading) {
           </div>
         )}
         <StaticFairyIcon />
+        {liveControls}
       </div>
     );
   }
@@ -548,7 +575,7 @@ if (aiRecs.length > 0 && !aiLoading) {
   const useSimpleMotion = motionIntensity === 'reduced';
 
   return (
-    <div style={wrapperStyle} data-testid="tinkerbell-animated">
+    <div style={wrapperStyle} data-testid="tinkerbell-animated" data-live-state={liveState}>
       {/* 반짝이 (저사양 기기에서 생략) */}
       {!useSimpleMotion && (
         <div className="absolute inset-0">
@@ -558,7 +585,7 @@ if (aiRecs.length > 0 && !aiLoading) {
 
       {/* 말풍선 */}
       <AnimatePresence>
-        {bubble.show && (
+        {bubble.show && !liveOpen && (
           <motion.div
             key="bubble"
             style={{ position: 'absolute', ...bubbleStyle, zIndex: 10 }}
@@ -578,14 +605,15 @@ if (aiRecs.length > 0 && !aiLoading) {
 
       {/* 요정 본체 (저사양: float 없음) */}
       {useSimpleMotion ? (
-        <FairyBody isHappy={isHappy} />
+        <FairyBody isHappy={isHappy || liveState === 'SPEAKING'} />
       ) : (
         <motion.div
           animate={{ y: floatY }}
           transition={{ type: 'spring', stiffness: 55, damping: 18 }}>
-          <FairyBody isHappy={isHappy} />
+          <FairyBody isHappy={isHappy || liveState === 'SPEAKING'} />
         </motion.div>
       )}
+      {liveControls}
     </div>
   );
 }

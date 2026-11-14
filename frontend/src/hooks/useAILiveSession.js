@@ -40,7 +40,10 @@ export function useAILiveSession({ onFallback, onDraft } = {}) {
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
     const client = new LiveClient({
       url: url.href,
-      beforeConnect: () => audio.start((data) => client.send('audio', { data })),
+      beforeConnect: () =>
+        audio.start((data) => {
+          if (!audio.muted) client.send('audio', { data });
+        }),
       issue: async (body, key) => {
         const response = await api.post('/ai/live/session', body, {
           headers: { 'Idempotency-Key': key },
@@ -48,18 +51,21 @@ export function useAILiveSession({ onFallback, onDraft } = {}) {
         return response.data || response;
       },
       onFallback: () => {
+        if (engine.current?.client !== client) return;
         audio.stop();
         engine.current = null;
         callbacks.current.onFallback?.();
       },
       onEvent: (event) => {
+        if (engine.current?.client !== client) return;
         if (event.type === 'state') setState(event.state);
         if (event.type === 'draft') callbacks.current.onDraft?.(event.draft);
         if (event.type === 'transcript')
           setTranscript((previous) => ({
             ...previous,
-            [event.direction === 'inputTranscription' ? 'input' : 'output']: String(
-              event.text || ''
+            [event.direction === 'inputTranscription' ? 'input' : 'output']: (
+              previous[event.direction === 'inputTranscription' ? 'input' : 'output'] +
+              String(event.text || '')
             ).slice(-2000),
           }));
         if (event.type === 'interrupted') {
@@ -85,6 +91,7 @@ export function useAILiveSession({ onFallback, onDraft } = {}) {
     start,
     stop,
     sendText: (text) => engine.current?.client.send('text', { text }),
+    setMuted: (muted) => engine.current?.audio.setMuted(muted),
     confirmDraft: (id, apply) => engine.current?.client.confirmDraft(id, apply) || false,
   };
 }

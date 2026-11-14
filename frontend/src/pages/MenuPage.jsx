@@ -917,7 +917,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 
       <LanguageSelector currentLang={lang} onSelectLang={handleLangChange} />
 
-      {tinkerSettingsFetched && tinkerSettings?.enabled !== false && <TinkerBell lang={lang} menuItems={menuItems} weatherData={weatherData} voiceEnabled={tinkerSettings?.voiceEnabled ?? true} largeFont={tinkerSettings?.largeFont ?? false} lastAddedItem={lastAddedItem} voiceOrderMessage={voiceOrderMessage} storeId={tinkerSettings?.aiRecommendation ? Number(storeId) : null} customGreeting={tinkerSettings?.customMsg ?? ''} customGreetingLanguage={tinkerSettings?.lang ?? 'ko'} />}
+      {tinkerSettingsFetched && tinkerSettings?.enabled !== false && <TinkerBell liveStoreId={Number(storeId)} liveEnabled={import.meta.env.VITE_AI_LIVE_UI_ENABLED === "true"} lang={lang} menuItems={menuItems} weatherData={weatherData} voiceEnabled={tinkerSettings?.voiceEnabled ?? true} largeFont={tinkerSettings?.largeFont ?? false} lastAddedItem={lastAddedItem} voiceOrderMessage={voiceOrderMessage} storeId={tinkerSettings?.aiRecommendation ? Number(storeId) : null} customGreeting={tinkerSettings?.customMsg ?? ''} customGreetingLanguage={tinkerSettings?.lang ?? 'ko'} />}
     </div>
     </div>
   );
