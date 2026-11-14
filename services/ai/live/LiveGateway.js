@@ -199,6 +199,22 @@ class LiveGateway {
     authTimer.unref?.();
     const emit = (event) => {
       if (stopped) return;
+      // Account on receipt, before a slow tool can block the event queue. Closing
+      // the socket must not drop already received provider usage from settlement.
+      if (event.type === 'usage') {
+        try {
+          const cost = usageCost(event.usage, this.policy.pricing);
+          estimate += cost;
+          if (!Number.isSafeInteger(estimate)) throw Error('Live usage overflow');
+          // Usage persistence and budget enforcement cannot wait behind tools.
+          void this.store.recordUsage(session, ++usageSequence, event.usage, cost).catch(fail);
+          if (estimate >= session.reservation) void close('budget').catch(fail);
+        } catch {
+          fail();
+          return;
+        }
+        return;
+      }
       if (
         event.type === 'interrupted' ||
         (event.type === 'transcript' && event.direction === 'inputTranscription')
@@ -224,17 +240,7 @@ class LiveGateway {
       usageQueue = usageQueue
         .then(async () => {
           if (stopped) return;
-          if (event.type === 'usage') {
-            // Charge each provider usage report, including repeated context. Conservative duplicates
-            // may close early; they can never create free credit. Client usage messages are forbidden.
-            const cost = usageCost(event.usage, this.policy.pricing);
-            estimate += cost;
-            await this.store.recordUsage(session, ++usageSequence, event.usage, cost);
-            if (!Number.isSafeInteger(estimate) || estimate >= session.reservation) {
-              await close('budget');
-              return;
-            }
-          } else if (event.type === 'audio') {
+          if (event.type === 'audio') {
             outgoingBytes += Buffer.from(event.data || '', 'base64').length;
             if (outgoingBytes > session.seconds * 48000) throw Error('Live output limit');
             send(event);
@@ -341,6 +347,7 @@ class LiveGateway {
             session.purpose,
             session.actorId ? { id: session.actorId, sid: session.actorSid } : null
           );
+          if (stopped) return;
           registry = new ToolRegistry({
             storeId: session.storeId,
             purpose: session.purpose,
