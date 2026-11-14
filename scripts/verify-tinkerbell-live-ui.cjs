@@ -120,7 +120,10 @@ const { chromium } = require('playwright'),
         }
       };
     });
-    await page.goto('http://127.0.0.1:5181/src/test/fixtures/tinkerbell-live.html');
+    await page.goto('http://127.0.0.1:5181/src/test/fixtures/tinkerbell-live.html', {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
     await page.getByRole('button', { name: '음성 대화', exact: true }).click();
     assert.equal(calls, 0);
     await page.screenshot({ path: out + '/consent-ko-390.png', fullPage: true });
@@ -144,7 +147,10 @@ const { chromium } = require('playwright'),
     await page.getByRole('button', { name: '닫기', exact: true }).click();
     assert.equal(await page.evaluate(() => window.__stops), 1);
     await page.setViewportSize({ width: 320, height: 640 });
-    await page.goto('http://127.0.0.1:5181/src/test/fixtures/tinkerbell-live.html?lang=en');
+    await page.goto('http://127.0.0.1:5181/src/test/fixtures/tinkerbell-live.html?lang=en', {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
     await page.getByRole('button', { name: 'Voice chat', exact: true }).click();
     await page.screenshot({ path: out + '/consent-en-320.png', fullPage: true });
     const small = await page.evaluate(() => ({

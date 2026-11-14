@@ -49,7 +49,7 @@ const fs = require('fs'),
           return route.fulfill({
             status: 503,
             contentType: 'application/json',
-            body: JSON.stringify({ error: 'AI 생성은 비활성화되어 있습니다.' }),
+            body: JSON.stringify({ error: '매장 AI 공용 예산 또는 사용량을 확인할 수 없습니다.' }),
           });
         return route.fulfill({
           contentType: 'application/json',
@@ -109,6 +109,18 @@ const fs = require('fs'),
     await page.getByRole('button', { name: '초안 만들기' }).click();
     await page.getByRole('status').filter({ hasText: '초안 생성이 불가능합니다.' }).waitFor();
     await page.screenshot({ path: path.join(out, 'disabled-ai-320.png'), fullPage: true });
+    await page.getByRole('checkbox', { name: 'AI 생성 사용 (관리자 활성화 시)' }).uncheck();
+    await page.getByRole('button', { name: '초안 만들기' }).click();
+    await page.getByRole('textbox', { name: '홍보 문구 초안' }).waitFor();
+    assert.match(
+      await page.getByRole('textbox', { name: '홍보 문구 초안' }).inputValue(),
+      /QA 테스트 메뉴/
+    );
+    assert.equal(await copy.isDisabled(), true);
+    await page.screenshot({
+      path: path.join(out, 'budget-fallback-template-320.png'),
+      fullPage: true,
+    });
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
       false
@@ -127,6 +139,7 @@ const fs = require('fs'),
           editRevokesApproval: true,
           consentRequired: true,
           disabledAiFallback: true,
+          basicFallbackAfterBudgetDenial: true,
           externalRequests: external,
           requests,
         },

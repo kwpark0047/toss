@@ -127,3 +127,18 @@ test('reported cost above the reservation is settled in full rather than truncat
   }));
   expect(store.finish).toHaveBeenCalledWith(expect.any(Object), 25, 'generation-completed');
 });
+
+test('rejects array-shaped policies just as Live does, without reserving or calling a provider', async () => {
+  const policies = [];
+  policies[3] = JSON.parse(env.AI_LIVE_STORE_POLICIES)['3'];
+  const store = storage(),
+    call = jest.fn(async () => ({ usageMetadata }));
+  await expect(
+    new SharedGenerationBudget({
+      env: { ...env, AI_LIVE_STORE_POLICIES: JSON.stringify(policies) },
+      store,
+    }).run(scope, call)
+  ).rejects.toMatchObject({ statusCode: 503 });
+  expect(store.reserve).not.toHaveBeenCalled();
+  expect(call).not.toHaveBeenCalled();
+});

@@ -23,8 +23,19 @@ class SharedGenerationBudget {
         !['photo', 'marketing'].includes(feature)
       )
         throw Error();
-      const policy = JSON.parse(this.env.AI_LIVE_STORE_POLICIES)[storeId];
-      const pricing = JSON.parse(this.env.AI_GENERATION_PRICING_JSON).models[model];
+      const policies = JSON.parse(this.env.AI_LIVE_STORE_POLICIES);
+      const models = JSON.parse(this.env.AI_GENERATION_PRICING_JSON).models;
+      if (
+        !policies ||
+        typeof policies !== 'object' ||
+        Array.isArray(policies) ||
+        !models ||
+        typeof models !== 'object' ||
+        Array.isArray(models)
+      )
+        throw Error();
+      const policy = policies[storeId];
+      const pricing = models[model];
       const reservation = policy?.[`${feature}ReservationMicros`];
       if (
         policy?.enabled !== true ||
