@@ -111,6 +111,8 @@ jobs:
       - run: npm ci
       - name: Verify OFF-only preproduction review settings
         run: npm run ai:review:check
+      - name: Rehearse pilot rollback with fake Provider and isolated Redis
+        run: node --test tests/saas/pilot-rollback.test.cjs
       - name: Live policy, PCM, Redis concurrency and HTTP/WSS fake-provider integration
         run: node --test tests/saas/gemini-live-p0.test.cjs tests/saas/gemini-live-audio.test.cjs tests/saas/gemini-live-redis.test.cjs tests/saas/manager-live.test.cjs tests/saas/live-camera.test.cjs tests/saas/menu-photo-drafts.test.cjs tests/saas/marketing-drafts.test.cjs tests/saas/shared-generation-budget.test.cjs tests/saas/shared-budget-boundaries.test.cjs
 
