@@ -1,12 +1,27 @@
 const express = require('express');
 const router = express.Router();
+const { verifyCustomerCapability } = require('../utils/orderCapability');
+
+// 즐겨찾기는 번호만으로 보거나 바꿀 수 없다. 번호 등록 때 받은 손님 토큰의 번호만 쓴다.
+const requireCustomerCapability = (req, res, next) => {
+  const capability = verifyCustomerCapability(req.get('x-customer-capability'));
+  if (!capability?.customer_phone) {
+    return res.status(401).json({ success: false, error: '본인 확인이 필요합니다.' });
+  }
+  if (req.params.phone !== undefined) req.params.phone = capability.customer_phone;
+  if (req.body && typeof req.body === 'object') req.body.customer_phone = capability.customer_phone;
+  next();
+};
 const authMiddleware = require('../middleware/auth');
+const { optionalAuth } = require('../middleware/auth');
+const DeliveryService = require('../services/DeliveryService');
 const { checkStorePermission } = require('../middleware/storeAuth');
-const { requireUnexpiredTrial } = require('../middleware/businessTrialAccess');
 const catchAsync = require('../utils/catchAsync');
 const storeController = require('../controllers/storeController');
+const storeSettingsController = require('../controllers/storeSettingsController');
 const subscriptionController = require('../controllers/subscriptionController');
 const idempotency = require('../middleware/idempotency');
+const rateLimit = require('express-rate-limit').rateLimit;
 const { validateBody, validateQuery, validateParams } = require('../middleware/validate');
 const {
   createStoreSchema,
@@ -16,6 +31,7 @@ const {
   storeSearchQuerySchema,
   subscriptionPaymentMethodSchema,
   storeIdParamSchema,
+  locationSearchQuerySchema,
 } = require('../src/validation/schemas');
 
 const bridgeStoreId = (req, _res, next) => {
@@ -87,6 +103,13 @@ router.get('/highlights', catchAsync(storeController.getHighlights));
  */
 router.get('/popular', catchAsync(storeController.getPopular));
 
+// QR 소개 페이지용 공개 정보. 정산·사업자 등록·비공개 설정은 반환하지 않는다.
+router.get(
+  '/public-intro/:id',
+  validateParams(storeIdParamSchema),
+  catchAsync(storeController.getPublicIntro)
+);
+
 /**
  * @swagger
  * /api/stores/favorites/{phone}:
@@ -102,7 +125,11 @@ router.get('/popular', catchAsync(storeController.getPopular));
  *       200:
  *         description: 관심 매장 목록
  */
-router.get('/favorites/:phone', catchAsync(storeController.getFavorites));
+router.get(
+  '/favorites/:phone',
+  requireCustomerCapability,
+  catchAsync(storeController.getFavorites)
+);
 
 /**
  * @swagger
@@ -124,7 +151,7 @@ router.get('/favorites/:phone', catchAsync(storeController.getFavorites));
  *       201:
  *         description: 추가 완료
  */
-router.post('/favorites', catchAsync(storeController.addFavorite));
+router.post('/favorites', requireCustomerCapability, catchAsync(storeController.addFavorite));
 
 /**
  * @swagger
@@ -146,7 +173,7 @@ router.post('/favorites', catchAsync(storeController.addFavorite));
  *       200:
  *         description: 삭제 완료
  */
-router.delete('/favorites', catchAsync(storeController.removeFavorite));
+router.delete('/favorites', requireCustomerCapability, catchAsync(storeController.removeFavorite));
 
 /**
  * @swagger
@@ -183,7 +210,6 @@ router.get('/my', authMiddleware, catchAsync(storeController.getMyStores));
 router.post(
   '/',
   authMiddleware,
-  requireUnexpiredTrial,
   validateBody(createStoreSchema),
   catchAsync(async (req, res) => {
     const io = req.app.get('io');
@@ -209,11 +235,13 @@ router.post(
 router.get(
   '/:id',
   validateParams(storeIdParamSchema),
+  optionalAuth,
   catchAsync(async (req, res) => {
     const cache = require('../utils/cache');
     const cacheKey = `store:${req.params.id}:profile`;
     const cached = await cache.get(cacheKey);
-    if (cached) return res.success(cached);
+    // 주소를 숨긴 온라인 전용 매장은 매장 사람(사장님·직원) 외에는 정확한 주소·좌표를 받지 않는다.
+    if (cached) return res.success(await DeliveryService.storeViewFor(req.user, cached));
     await storeController.getStore(req, res);
   })
 );
@@ -249,6 +277,40 @@ router.put(
   checkStorePermission('store:update'),
   validateBody(updateStoreSchema),
   catchAsync(storeController.updateStore)
+);
+
+/**
+ * @swagger
+ * /api/stores/{id}/location/search:
+ *   get:
+ *     tags: [Stores]
+ *     summary: 매장 위치 지정용 주소 검색 (도로명·지번·건물명 후보)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema: { type: string, minLength: 2, maxLength: 100 }
+ *     responses:
+ *       200:
+ *         description: 주소 후보 목록 (lat/lng 포함)
+ *       429:
+ *         description: 요청 과다
+ */
+router.get(
+  '/:id/location/search',
+  authMiddleware,
+  rateLimit({ windowMs: 60000, limit: 30 }),
+  validateParams(storeIdParamSchema),
+  bridgeStoreId,
+  checkStorePermission('store:update'),
+  validateQuery(locationSearchQuerySchema),
+  catchAsync(storeController.searchLocation)
 );
 
 /**
@@ -418,6 +480,81 @@ router.get(
 
 /**
  * @swagger
+ * /api/stores/{id}/tinkerbell-settings:
+ *   get:
+ *     tags: [Stores]
+ *     summary: 매장 AI 팅커벨 설정 조회 (고객 메뉴 화면용)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: 팅커벨 표시·음성·AI 추천 설정
+ */
+router.get(
+  '/:id/tinkerbell-settings',
+  validateParams(storeIdParamSchema),
+  storeSettingsController.getTinkerbellSettings
+);
+
+/**
+ * @swagger
+ * /api/stores/{id}/order-channels:
+ *   get:
+ *     tags: [Stores]
+ *     summary: 매장이 받는 주문 유형과 배달 조건 (고객 메뉴 화면용)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: 주문 유형, 픽업 안내, 배달비·최소 주문 금액, 배달 권역
+ */
+router.get(
+  '/:id/order-channels',
+  validateParams(storeIdParamSchema),
+  storeSettingsController.getPublicOrderChannels
+);
+
+/**
+ * @swagger
+ * /api/stores/{id}/delivery-quote:
+ *   post:
+ *     tags: [Stores]
+ *     summary: 배달 가능 여부와 배달비 견적
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               address: { type: string, maxLength: 300 }
+ *               subtotal: { type: integer }
+ *               latitude: { type: number }
+ *               longitude: { type: number }
+ *     responses:
+ *       200:
+ *         description: deliverable, reason, fee, min_order_amount, est_minutes
+ */
+router.post(
+  '/:id/delivery-quote',
+  rateLimit({ windowMs: 60000, limit: 30 }),
+  validateParams(storeIdParamSchema),
+  storeSettingsController.getDeliveryQuote
+);
+
+/**
+ * @swagger
  * /api/stores/{id}/subscription/payment-method:
  *   post:
  *     tags: [Stores]
@@ -455,4 +592,3 @@ router.post(
 );
 
 module.exports = router;
-

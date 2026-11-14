@@ -266,11 +266,12 @@ const errorHandler = (err, req, res, _next) => {
       status: 409,
       details: err.meta,
     };
-  } else {
-    // 일반 에러의 경우에도 메시지를 포함하여 'y' 같은 현상 방지
+  } else if (process.env.NODE_ENV !== 'production') {
+    // 개발·테스트에서는 원인 파악을 위해 원문 메시지를 보여준다
     error.message = err.message || error.message;
     error.details = { rawMessage: err.message };
   }
+  // 운영에서는 예상치 못한 오류의 원문(DB 쿼리, 암호화된 값 등)을 응답에 싣지 않는다 — 로그에만 남긴다.
 
   // 3. 보안을 위해 개발 환경에서만 스택 트레이스 포함
   if (process.env.NODE_ENV === 'development') {

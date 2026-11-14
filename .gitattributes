@@ -4,3 +4,7 @@
 # Windows 배치 스크립트만 CRLF 유지
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# 이미 운영 DB에 적용된 migration은 Prisma journal checksum 원본 바이트를 보존한다.
+prisma/migrations/20261012171456_add_global_sms_credentials/migration.sql -text
+prisma/migrations/20261026040000_split_payment_people_count/migration.sql -text

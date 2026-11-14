@@ -746,9 +746,17 @@ const TableManager = () => {
                   </span>
                 </div>
 
+                {/* 오늘 이 테이블의 미결제 주문 합계 (추가 주문 포함) */}
+                {table.open_order_count > 0 && (
+                  <div className="mb-3 lg:mb-4 flex items-center justify-between rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-[10px] lg:text-[11px] font-black text-rose-300">
+                    <span>미결제 {table.open_order_count}건</span>
+                    <span className="tabular-nums">₩{Number(table.open_amount || 0).toLocaleString()}</span>
+                  </div>
+                )}
+
                 {/* QR + 재생성 버튼 */}
                 <div className="flex gap-2 mb-3 lg:mb-5">
-                  <button onClick={() => setShowQrModal(table)}
+                  <button type="button" onClick={() => setShowQrModal(table)}
                     className="flex-1 h-9 lg:h-11 bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center justify-center gap-1.5 text-orange-400 font-black text-[9px] lg:text-[10px] hover:bg-orange-500 hover:text-white transition-all active:scale-95">
                     <Icon icon="QrCode" size="md" /> QR
                   </button>
@@ -1031,11 +1039,14 @@ const QrModal = ({ table, store, qrUrl, onClose }) => {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Icon icon="Palette" />
-                <p className="text-xs font-black text-slate-400 tracking-widest uppercase">카드 디자인</p>
+                <p className="text-xs font-black text-slate-400 tracking-widest uppercase">QR 카드 디자인</p>
               </div>
+              <p className="mb-3 text-xs leading-relaxed text-slate-400">
+                QR 카드 미리보기와 출력에만 적용됩니다. 매장 메뉴판 테마 설정은 변경되지 않습니다.
+              </p>
               <div className="grid grid-cols-3 gap-3">
                 {DESIGNS.map(dOpt => (
-                  <button key={dOpt.id} onClick={() => setDesign(dOpt.id)}
+                  <button key={dOpt.id} type="button" aria-pressed={design === dOpt.id} onClick={() => setDesign(dOpt.id)}
                     className={`relative h-20 rounded-2xl overflow-hidden border-2 transition-all ${
                       design === dOpt.id ? 'border-orange-500 scale-105 shadow-lg shadow-orange-500/20' : 'border-white/10 hover:border-white/25'
                     }`}>

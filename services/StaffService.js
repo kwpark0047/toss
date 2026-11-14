@@ -167,6 +167,7 @@ class StaffService {
       }
     }
 
+
     const active = await prisma.staff_attendance.findFirst({
       where: { staff_id: staffId, clock_out: null },
     });
@@ -196,6 +197,7 @@ class StaffService {
       }
     }
 
+
     const active = await prisma.staff_attendance.findFirst({
       where: { staff_id: staffId, clock_out: null },
       orderBy: { clock_in: 'desc' },
@@ -218,7 +220,7 @@ class StaffService {
     if (!ASSIGNABLE_ROLES.includes(role)) throw new AppError('유효하지 않은 역할입니다.', 400);
     if (target.role === 'owner') throw new AppError('오너 역할은 수정할 수 없습니다.', 403);
 
-    const currentRole = await this.assertAccountAdmin(target.store_id, callerUserId, callerRole);
+    await this.assertAccountAdmin(target.store_id, callerUserId, callerRole);
     const updated = await prisma.staff.update({ where: { id: target.id }, data: { role } });
     void auditLogService.record({
       actorUserId: callerUserId,

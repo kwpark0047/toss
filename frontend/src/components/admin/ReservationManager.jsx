@@ -117,7 +117,7 @@ const ReservationManager = () => {
                         >
                             {tab.label}
                             {tab.id !== 'ALL' && (
-                                <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+                                <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] ${activeTab === tab.id ? 'bg-white/20' : 'bg-gray-200 text-gray-600'
                                     }`}>
                                     {reservations.filter(r => r.status === tab.id).length}
                                 </span>

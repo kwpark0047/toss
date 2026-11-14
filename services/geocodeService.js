@@ -118,4 +118,178 @@ async function geocode(address) {
   return null;
 }
 
-module.exports = { isConfigured, configStatus, provider, geocode, cleanAddress };
+// ── 주소 검색(후보 목록) — 사장님이 직접 고르는 용도라 도로명·지번·건물명 모두 허용 ──
+const SEARCH_TTL_MS = 5 * 60 * 1000;
+const SEARCH_CACHE_MAX = 500;
+const searchCache = new Map(); // query → { at, results } (반복 지오코딩 요청 최소화)
+
+class GeocodeProviderError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = 'GeocodeProviderError';
+    this.status = status; // 429 = 프로바이더 쿼터/속도 제한
+  }
+}
+
+const round6 = (n) => Math.round(n * 1e6) / 1e6;
+
+function toCandidate({ roadAddress, jibunAddress, placeName, zipCode, lat, lng, source }) {
+  const la = parseFloat(lat);
+  const lo = parseFloat(lng);
+  if (!isFinite(la) || !isFinite(lo) || !inSeoulish(la, lo)) return null;
+  return {
+    roadAddress: roadAddress || null,
+    jibunAddress: jibunAddress || null,
+    placeName: placeName || null,
+    zipCode: zipCode || null,
+    lat: round6(la),
+    lng: round6(lo),
+    source,
+  };
+}
+
+function rethrowProviderError(err) {
+  const status = err?.response?.status;
+  if (status === 429)
+    throw new GeocodeProviderError('주소 검색 요청이 많아요. 잠시 후 다시 시도해 주세요.', 429);
+  if (status === 401 || status === 403)
+    throw new GeocodeProviderError('주소 검색 서비스 인증에 실패했어요.', 503);
+  throw new GeocodeProviderError('주소 검색 서비스에 연결하지 못했어요.', 502);
+}
+
+async function kakaoSearch(query, size) {
+  const headers = { Authorization: `KakaoAK ${KAKAO_KEY()}` };
+  const out = [];
+  try {
+    const r = await axios.get('https://dapi.kakao.com/v2/local/search/address.json', {
+      params: { query, size, analyze_type: 'similar' },
+      headers,
+      timeout: 8000,
+    });
+    for (const d of r.data?.documents || []) {
+      out.push(
+        toCandidate({
+          roadAddress: d.road_address?.address_name,
+          jibunAddress:
+            d.address?.address_name || (d.address_type !== 'ROAD' ? d.address_name : null),
+          placeName: d.road_address?.building_name,
+          zipCode: d.road_address?.zone_no,
+          lat: d.y,
+          lng: d.x,
+          source: 'kakao',
+        })
+      );
+    }
+  } catch (err) {
+    rethrowProviderError(err);
+  }
+  // 주소 결과가 없으면 키워드(건물명·상호) 검색으로 보완
+  if (out.filter(Boolean).length === 0) {
+    try {
+      const r2 = await axios.get('https://dapi.kakao.com/v2/local/search/keyword.json', {
+        params: { query, size },
+        headers,
+        timeout: 8000,
+      });
+      for (const d of r2.data?.documents || []) {
+        out.push(
+          toCandidate({
+            roadAddress: d.road_address_name,
+            jibunAddress: d.address_name,
+            placeName: d.place_name,
+            lat: d.y,
+            lng: d.x,
+            source: 'kakao',
+          })
+        );
+      }
+    } catch (err) {
+      rethrowProviderError(err);
+    }
+  }
+  return out.filter(Boolean);
+}
+
+async function ncpSearch(query, size) {
+  try {
+    const r = await axios.get('https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode', {
+      params: { query, count: size },
+      headers: { 'X-NCP-APIGW-API-KEY-ID': NCP_ID(), 'X-NCP-APIGW-API-KEY': NCP_KEY() },
+      timeout: 8000,
+    });
+    return (r.data?.addresses || [])
+      .map((a) =>
+        toCandidate({
+          roadAddress: a.roadAddress,
+          jibunAddress: a.jibunAddress,
+          zipCode: (a.addressElements || []).find((e) => e.types?.includes('POSTAL_CODE'))
+            ?.longName,
+          lat: a.y,
+          lng: a.x,
+          source: 'ncp',
+        })
+      )
+      .filter(Boolean);
+  } catch (err) {
+    rethrowProviderError(err);
+  }
+}
+
+/**
+ * 주소/건물명 → 후보 목록. 카카오 우선, 결과 없음·오류 시 NCP 폴백.
+ * @returns {Promise<Array<{roadAddress, jibunAddress, placeName, zipCode, lat, lng, source}>>}
+ * @throws GeocodeProviderError (status 429/502/503)
+ */
+async function searchAddresses(rawQuery, { size = 10 } = {}) {
+  const query = cleanAddress(rawQuery).slice(0, 100);
+  if (query.length < 2) return [];
+  const key = query.toLowerCase();
+  const hit = searchCache.get(key);
+  if (hit && Date.now() - hit.at < SEARCH_TTL_MS) return hit.results;
+
+  let results = [];
+  let lastError = null;
+  if (KAKAO_KEY()) {
+    try {
+      results = await kakaoSearch(query, Math.min(size, 15));
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  if (results.length === 0 && NCP_ID() && NCP_KEY()) {
+    try {
+      results = await ncpSearch(query, Math.min(size, 15));
+      lastError = null;
+    } catch (err) {
+      lastError = lastError || err;
+    }
+  }
+  if (results.length === 0 && lastError) throw lastError;
+
+  // 같은 좌표·주소 중복 제거
+  const seen = new Set();
+  results = results
+    .filter((c) => {
+      const k = `${c.roadAddress || c.jibunAddress}|${c.lat}|${c.lng}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    })
+    .slice(0, size);
+
+  if (searchCache.size >= SEARCH_CACHE_MAX) searchCache.delete(searchCache.keys().next().value);
+  searchCache.set(key, { at: Date.now(), results });
+  return results;
+}
+
+module.exports = {
+  isConfigured,
+  configStatus,
+  provider,
+  geocode,
+  cleanAddress,
+  searchAddresses,
+  isKoreaCoord: inSeoulish,
+  GeocodeProviderError,
+  _searchCache: searchCache,
+};

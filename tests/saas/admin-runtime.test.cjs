@@ -40,6 +40,6 @@ test('business and legal writes use nested domain upserts rather than removed st
   await store.updateLegalInfo(3, { business_name: 'Business', terms_of_service: 'Terms' });
   assert.equal(writes[0].data.business_name, undefined);
   assert.equal(writes[0].data.store_business_info.upsert.update.business_name, 'Business');
-  assert.equal(writes[0].data.store_settlement_config.upsert.update.enabled_payment_methods, '["cash"]');
+  assert.deepEqual(writes[0].data.store_settlement_config.upsert.update.enabled_payment_methods, ['cash']);
   assert.equal(writes[1].data.store_legal_documents.upsert.update.terms_of_service, 'Terms');
 });

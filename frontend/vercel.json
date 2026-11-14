@@ -1,11 +1,12 @@
 {
+  "git": { "deploymentEnabled": { "main": false, "master": false } },
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://wemarket.onrender.com/api/:path*"
+      "destination": "https://wemarket-eiw4.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",

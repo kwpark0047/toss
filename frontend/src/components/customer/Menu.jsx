@@ -1,3 +1,5 @@
+import { rememberCompletedOrder } from '../../utils/completedOrder';
+import OrderCompletion from './OrderCompletion';
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
@@ -18,7 +20,6 @@ import MenuStoryModal from "./MenuStoryModal";
 import FloatingCallButton from "./FloatingCallButton";
 import { formatPrice } from "../../utils/format";
 import { requestTossCheckout } from "../../utils/tossCheckout";
-import { useOfflineSync } from "../../hooks/useOfflineSync";
 // 모듈화된 하위 컴포넌트들 임포트
 import MenuSkeleton from "./MenuSkeleton";
 import MenuProductList from "./MenuProductList";
@@ -86,10 +87,7 @@ const Menu = ({
 
   // 온라인/오프라인 상태 감지
   useEffect(() => {
-    const goOnline = () => {
-      setIsOnline(true);
-      processQueue();
-    };
+    const goOnline = () => setIsOnline(true);
     const goOffline = () => setIsOnline(false);
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
@@ -97,7 +95,7 @@ const Menu = ({
       window.removeEventListener('online', goOnline);
       window.removeEventListener('offline', goOffline);
     };
-  }, [processQueue]);
+  }, []);
   const [orderSuccess, setOrderSuccess] = useState(null);
   const [orderStep, setOrderStep] = useState("cart");
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
@@ -216,20 +214,6 @@ const Menu = ({
       return defaultTheme;
     }
   }, [store?.theme]);
-  const effectiveStoreId = storeIdParam || (store?.id ? String(store.id) : null);
-  const {
-    queueOperation,
-    processQueue,
-    pendingCount
-  } = useOfflineSync(effectiveStoreId);
-
-  // 오프라인 주문 대기열 처리 (네트워크 복구 시 자동 동기화)
-  useEffect(() => {
-    if (isOnline && pendingCount > 0) {
-      processQueue();
-    }
-  }, [isOnline, pendingCount, processQueue]);
-
   // 페이지 배경 및 그라디언트 스타일 계산 메모이제이션
   const styles = useMemo(() => {
     const gradientBg = `linear-gradient(135deg, ${theme.primaryColor}, ${theme.secondaryColor})`;
@@ -432,35 +416,8 @@ const Menu = ({
   const handleOrder = async () => {
     if (cart.length === 0) return;
 
-    // 오프라인일 경우 IndexedDB에 주문을 버퍼링
     if (!isOnline) {
-      const orderData = {
-        store_id: store.id,
-        table_id: table?.id || null,
-        customer_name: orderForm.customer_name || null,
-        customer_phone: orderForm.customer_phone || null,
-        notes: orderForm.notes || null,
-        payment_method: orderForm.payment_method,
-        items: cart,
-        total_amount: getTotalAmount(),
-        timestamp: Date.now(),
-        offline: true
-      };
-      await queueOperation({
-        operation: 'CREATE_ORDER',
-        data: orderData
-      });
-      setCart([]);
-      if (table?.id) {
-        cartAPI.clearCart(table.id);
-        ordersAPI.getSocket().emit('update-shared-cart', {
-          tableId: table.id,
-          action: 'clear'
-        });
-      }
-      setShowCart(false);
-      setOrderStep("cart");
-      alert('오프라인模式下 주문이 접수되었습니다. 연결 복구 시 자동으로 전송됩니다.');
+      alert('인터넷 연결 후 다시 주문해 주세요. 오프라인 주문은 자동 접수되지 않습니다.');
       return;
     }
     setLoading(true);
@@ -494,35 +451,7 @@ const Menu = ({
         Notification.requestPermission();
       }
     } catch (err) {
-      // 서버 오류 시 오프라인 버퍼에 저장
-      const orderData = {
-        store_id: store.id,
-        table_id: table?.id || null,
-        customer_name: orderForm.customer_name || null,
-        customer_phone: orderForm.customer_phone || null,
-        notes: orderForm.notes || null,
-        payment_method: orderForm.payment_method,
-        items: cart,
-        total_amount: getTotalAmount(),
-        timestamp: Date.now(),
-        offline: true,
-        error: err.response?.data?.error || '네트워크 오류'
-      };
-      await queueOperation({
-        operation: 'CREATE_ORDER',
-        data: orderData
-      });
-      alert('네트워크 오류로 주문이 보관되었습니다. 연결 복구 시 자동으로 전송됩니다.');
-      setCart([]);
-      if (table?.id) {
-        cartAPI.clearCart(table.id);
-        ordersAPI.getSocket().emit('update-shared-cart', {
-          tableId: table.id,
-          action: 'clear'
-        });
-      }
-      setShowCart(false);
-      setOrderStep("cart");
+      alert(err?.response?.data?.message || err?.response?.data?.error || '주문을 확인하지 못했습니다. 장바구니를 유지했습니다. 온라인 상태를 확인한 뒤 주문 내역에서 접수 여부를 먼저 확인해 주세요.');
     } finally {
       setLoading(false);
     }
@@ -531,6 +460,9 @@ const Menu = ({
     if (result.success) {
       setOrderSuccess({
         ...result.payment,
+        id: result.payment?.order_id || result.payment?.id,
+        items: result.payment?.items || cart,
+        total_amount: result.payment?.total_amount ?? result.payment?.amount ?? getTotalAmount(),
         payment_method: result.method,
         points_earned: result.earnPoints || 0,
         points_used: result.pointsUsed || 0
@@ -697,7 +629,6 @@ const Menu = ({
       </button>
     </div>;
   if (orderSuccess) {
-    const pInfo = paymentMethods.find(p => p.id === orderSuccess.payment_method);
     return <motion.div initial={{
       opacity: 0,
       scale: 0.95
@@ -708,94 +639,13 @@ const Menu = ({
       background: theme.backgroundColor,
       ...themeStyles
     }}>
-        <div className="bg-white rounded-[3rem] shadow-2xl p-8 max-w-md w-full border border-white/20 overflow-hidden relative">
+        <div className="bg-white rounded-[3rem] shadow-2xl p-2 sm:p-4 max-w-md w-full border border-white/20 overflow-hidden relative">
           <div className="absolute top-0 left-0 right-0 h-32 opacity-10" style={{
           background: gradientBg
         }} />
 
-          <div className="relative z-10 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner" style={{
-          backgroundColor: theme.accentColor + "20"
-        }}>
-<motion.div initial={{
-            scale: 0
-          }} animate={{
-            scale: 1
-          }} transition={{
-            type: "spring",
-            damping: 12
-          }}>
-              <Icon icon="CheckCircle" size="lg" style={{
-              color: theme.accentColor
-            }} />
-          </motion.div>
-          </div>
-
-          <h2 className="text-3xl font-black text-center mb-2 tracking-tight" style={{
-          color: theme.textColor
-        }}>주문 완료!</h2>
-          <p className="text-center text-gray-500 mb-10 font-medium">소중한 주문이 성공적으로 접수되었습니다</p>
-
-          <div className="mb-8 p-6 rounded-[2rem] text-center shadow-inner" style={{
-          backgroundColor: theme.primaryColor + "08"
-        }}>
-            {orderSuccess.queue_number && <div className="mb-4">
-                <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Queue Number</p>
-                <motion.p initial={{
-              y: 10
-            }} animate={{
-              y: 0
-            }} className="text-6xl font-black" style={{
-              color: theme.primaryColor
-            }}>
-                  #{orderSuccess.queue_number}
-                </motion.p>
-              </div>}
-            {orderSuccess.estimated_minutes && <div className="flex items-center justify-center gap-2 py-2 px-4 bg-white/50 rounded-full w-fit mx-auto shadow-sm border border-white">
-<Icon icon="Timer" size="md" style={{
-            color: theme.secondaryColor
-          }} />
-                <span className="font-bold text-sm" style={{
-              color: theme.secondaryColor
-            }}>약 {orderSuccess.estimated_minutes}분 소요</span>
-              </div>}
-          </div>
-
-          <div className="rounded-2xl p-5 mb-6" style={{
-          backgroundColor: theme.backgroundColor
-        }}>
-            <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
-              <span className="text-gray-500">{t('order.number')}</span>
-              <span className="font-bold text-lg" style={{
-              color: theme.primaryColor
-            }}>#{orderSuccess.order_number}</span>
-            </div>
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-gray-500">{t('order.payment_method')}</span>
-              <span className="font-medium flex items-center gap-2">
-                {pInfo && <Icon icon="CreditCard" size="md" style={{ color: theme.secondaryColor }} />}
-                {t(`order.methods.${orderSuccess.payment_method}`)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-gray-500">{table ? t('order.table') : t('order.type')}</span>
-              <span className="font-medium">{table?.name || t('order.takeout')}</span>
-            </div>
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-gray-500">{t('order.status_title')}</span>
-              <span className="font-medium px-2 py-1 rounded-lg text-sm" style={{
-              backgroundColor: orderSuccess.status === 'completed' ? '#10b98120' : orderSuccess.status === 'preparing' ? '#8b5cf620' : theme.primaryColor + '20',
-              color: orderSuccess.status === 'completed' ? '#10b981' : orderSuccess.status === 'preparing' ? '#8b5cf6' : theme.primaryColor
-            }}>
-                {t(`status.${orderSuccess.status}`)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-              <span className="font-medium">{t('menu.total')}</span>
-              <span className="text-2xl font-bold" style={{
-              color: theme.primaryColor
-            }}>{formatPrice(orderSuccess.total_amount)}</span>
-            </div>
-          </div>
+          <OrderCompletion order={orderSuccess} storeName={store?.name} paid={orderSuccess.payment_status === 'paid'}
+            onBeforeLeave={() => rememberCompletedOrder({ ...orderSuccess, store_id: store?.id, store_name: store?.name }, orderSuccess.order_capability)} />
 
           <div className="flex items-center gap-3 p-4 rounded-xl mb-6" style={{
           backgroundColor: theme.primaryColor + "10"
@@ -827,7 +677,7 @@ const Menu = ({
             <button onClick={() => setOrderSuccess(null)} className="w-full py-4 text-white rounded-2xl font-medium shadow-lg" style={{
             backgroundColor: theme.primaryColor
           }}>{t('order.order_more')}</button>
-            <button onClick={() => navigate('/history')} className="w-full py-4 bg-slate-100 text-slate-700 rounded-2xl font-medium border border-slate-200">{t('common.history')}</button>
+            <button onClick={() => navigate('/order-history')} className="w-full py-4 bg-slate-100 text-slate-700 rounded-2xl font-medium border border-slate-200">{t('common.history')}</button>
           </div>
         </div>
       </motion.div>;

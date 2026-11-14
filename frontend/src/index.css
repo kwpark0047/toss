@@ -502,7 +502,8 @@ button, [role="button"], a, summary, label { touch-action: manipulation; }
 /* 컬러/그라디언트 버튼 위 흰 텍스트는 유지 */
 .admin-light .bg-gradient-to-r.text-white,
 .admin-light [class*="from-orange"].text-white,
-.admin-light .bg-orange-500.text-white { color: #fff !important; }
+.admin-light .bg-orange-500.text-white,
+.admin-light :is(.bg-orange-600, .bg-blue-500, .bg-blue-600, .bg-blue-700, .bg-red-500, .bg-red-600, .bg-green-500, .bg-green-600, .bg-emerald-500, .bg-emerald-600, .bg-purple-600, .bg-slate-800, .bg-slate-900, .bg-gray-800, .bg-gray-900, .bg-black).text-white { color: #fff !important; }
 /* 의도적 다크 영역(모달 등)은 다크 유지 (더 높은 특이도로 재지정) */
 .admin-light .admin-dark-scope .text-white { color: #fff !important; }
 .admin-light .admin-dark-scope .text-slate-200, .admin-light .admin-dark-scope .text-slate-300 { color: #cbd5e1 !important; }
@@ -607,4 +608,55 @@ button, [role="button"], a, summary, label { touch-action: manipulation; }
 .tds-badge-new     { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
 .tds-badge-popular { background-color: rgba(249, 115, 22, 0.1); color: #f97316; }
 .tds-badge-special { background-color: rgba(234, 88, 12, 0.1); color: #ea580c; }
+
+
+/* 메뉴판 미리보기는 고객 화면 그대로 보여야 하므로 아틱(라이트) 보정에서 제외 */
+.admin-light .menu-preview-scope .text-white { color: #fff !important; }
+/* Stack tablet editors so the fixed-width sidebar cannot squeeze menu prices. */
+@media (max-width: 1023px) {
+  .menu-builder {
+    height: auto;
+    min-width: 0;
+    padding-bottom: 80px;
+  }
+
+  .menu-builder .menu-builder-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .menu-builder .menu-builder-title {
+    min-width: 0;
+    gap: 12px;
+  }
+
+  .menu-builder-title > button {
+    flex-shrink: 0;
+  }
+
+  .menu-builder .menu-builder-actions {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .menu-builder .menu-builder-workspace {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .menu-builder-workspace > aside {
+    width: 100%;
+    height: 360px;
+    flex: none;
+  }
+
+  .menu-builder-workspace > main {
+    width: 100%;
+    height: 640px;
+    flex: none;
+    padding: 16px;
+  }
+}
 

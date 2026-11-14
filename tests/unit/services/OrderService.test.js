@@ -104,6 +104,7 @@ const Product = require('../../../repositories/Product');
 const Store = require('../../../repositories/Store');
 const prisma = require('../../../config/prisma');
 const PointsService = require('../../../services/PointsService');
+const notificationService = require('../../../services/notificationService');
 
 describe('OrderService', () => {
   let svc;
@@ -218,6 +219,21 @@ describe('OrderService', () => {
         total_amount: 3000,
       });
       expect(result.id).toBe(3);
+    });
+  });
+
+  describe('createOrder — 영업시간', () => {
+    test('휴무일·영업시간 외에는 서버에서 주문을 거절한다', async () => {
+      const closedAllWeek = JSON.stringify(
+        Object.fromEntries(
+          ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((d) => [d, { closed: true }])
+        )
+      );
+      Store.findById.mockResolvedValue({ id: 1, name: '휴무매장', business_hours: closedAllWeek });
+      await expect(
+        svc.createOrder({ store_id: 1, items: [{ product_id: 100, quantity: 1 }], total_amount: 1 })
+      ).rejects.toThrow('영업시간');
+      expect(Order.create).not.toHaveBeenCalled();
     });
   });
 
@@ -435,6 +451,32 @@ describe('OrderService', () => {
       expect(prisma.$transaction).toHaveBeenCalled();
     });
 
+    test('재고 부족 알림에 제품과 매장 식별 정보를 전달한다', async () => {
+      prisma.order_items.findMany.mockResolvedValue([{ product_id: 100, quantity: 1 }]);
+      prisma.$transaction.mockImplementation(async (fn) =>
+        fn({
+          $queryRaw: jest.fn().mockResolvedValue([
+            { id: 100, name: '아메리카노', store_id: 1, stock_quantity: 5, low_stock_threshold: 4 },
+          ]),
+          products: { update: jest.fn().mockResolvedValue({}) },
+          stock_history: {
+            findFirst: jest.fn().mockResolvedValue(null),
+            create: jest.fn().mockResolvedValue({}),
+          },
+        })
+      );
+
+      await svc._processInventory({ id: 101 });
+
+      expect(notificationService.notifyLowStockDB).toHaveBeenCalledWith({
+        id: 100,
+        name: '아메리카노',
+        store_id: 1,
+        stock_quantity: 4,
+        low_stock_threshold: 4,
+      });
+    });
+
     test('confirmed → completed 시 테이블 상태 변경', async () => {
       Order.findById.mockResolvedValue({
         id: 1,
@@ -458,6 +500,15 @@ describe('OrderService', () => {
   });
 
   describe('cancelOrder', () => {
+    test('주방 계정은 관리자 취소 경로를 쓸 수 없다 (주방 화면 취소로 환불 처리)', async () => {
+      Order.findById.mockResolvedValue({ id: 9, status: 'preparing', store_id: 1 });
+      const storeAuth = require('../../../middleware/storeAuth');
+      const spy = jest.spyOn(storeAuth, 'getStoreRole').mockResolvedValue('kitchen');
+      await expect(svc.cancelOrder(9, 5, 'user')).rejects.toThrow('권한이 없습니다');
+      expect(Order.updateStatus).not.toHaveBeenCalledWith(9, 'cancelled');
+      spy.mockRestore();
+    });
+
     test('이미 취소된 주문은 성공 반환', async () => {
       Order.findById.mockResolvedValue({ id: 1, status: 'cancelled', store_id: 1 });
       const result = await svc.cancelOrder(1, 'user1', 'super_admin');

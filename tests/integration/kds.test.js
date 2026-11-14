@@ -12,6 +12,7 @@ const mockProcessInventory = jest.fn().mockResolvedValue(undefined);
 jest.mock('../../services/OrderService', () =>
   jest.fn().mockImplementation(() => ({
     _processInventory: (...args) => mockProcessInventory(...args),
+    _emitOrderUpdate: jest.fn(),
   }))
 );
 

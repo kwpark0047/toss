@@ -4,6 +4,7 @@ import { MapPin, Search, Navigation, Truck, ArrowRight, Clock, Sparkles, AlertCi
 import api from '@/api/client';
 import Icon from '../components/ui/Icon';
 import { useSEO } from '../lib/useSEO';
+import { loadLeaflet, TILE_LAYER, DEFAULT_CENTER } from '../utils/leafletLoader';
 
 /* ─── Lazy-load foodtruck-specific marketing pages ─── */
 const FeaturesPage = lazy(() => import('./foodtruck/FoodTruckFeatures'));
@@ -11,51 +12,7 @@ const PricingPage = lazy(() => import('./foodtruck/FoodTruckPricing'));
 const GuidesPage = lazy(() => import('./foodtruck/FoodTruckGuides'));
 const ContactPage = lazy(() => import('./foodtruck/FoodTruckContact'));
 
-/* ─── Leaflet CDN helpers (copied from StoreMapLeaflet — no import dependency) ─── */
-const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-function injectCss(href) {
-  if (!document.querySelector(`link[href="${href}"]`)) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = href;
-    link.crossOrigin = 'anonymous';
-    document.head.appendChild(link);
-  }
-}
-function loadScript(src) {
-  return new Promise((resolve, reject) => {
-    let script = document.querySelector(`script[src="${src}"]`);
-    if (script) {
-      script.addEventListener('load', () => resolve(), {
-        once: true
-      });
-      script.addEventListener('error', () => reject(), {
-        once: true
-      });
-      return;
-    }
-    script = document.createElement('script');
-    script.src = src;
-    script.crossOrigin = 'anonymous';
-    script.async = true;
-    script.addEventListener('load', () => resolve(), {
-      once: true
-    });
-    script.addEventListener('error', () => reject(), {
-      once: true
-    });
-    document.head.appendChild(script);
-  });
-}
-function loadLeaflet() {
-  if (window.L) return Promise.resolve(window.L);
-  return new Promise((resolve, reject) => {
-    injectCss(LEAFLET_CSS);
-    loadScript(LEAFLET_JS).then(() => resolve(window.L)).catch(reject);
-  });
-}
-
+/* ─── Leaflet CDN 로더는 공용 유틸 사용 (SRI 적용) ─── */
 /* ─── Truck icon for Leaflet markers ─── */
 function buildTruckIcon(L) {
   return L.divIcon({
@@ -206,11 +163,8 @@ export default function FoodTruckLanding() {
       if (cancelled || !mapContainerRef.current || mapRef.current) return;
       const map = L.map(mapContainerRef.current, {
         scrollWheelZoom: false
-      }).setView([37.5665, 126.978], 12);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap',
-        maxZoom: 19
-      }).addTo(map);
+      }).setView(DEFAULT_CENTER, 12);
+      L.tileLayer(TILE_LAYER.url, TILE_LAYER.options).addTo(map);
       mapRef.current = map;
       markersLayerRef.current = L.layerGroup().addTo(map);
       if (!cancelled) setMapReady(true);

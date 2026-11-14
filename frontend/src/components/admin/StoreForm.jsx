@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useStoreOperatingHours } from '../../hooks/useStoreOperatingHours';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../components/ui/Icon';
+import StoreLocationEditor from './StoreLocationEditor';
 import { ArrowLeft, Award, CheckCircle, ChefHat, Clock, Crown, Info, Layout, Palette, Phone, Save, Smartphone, Type, XCircle } from 'lucide-react';
 
 const defaultTheme = {
@@ -55,6 +56,7 @@ const StoreForm = () => {
   const [activeTab, setActiveTab] = useState('info');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loadedStore, setLoadedStore] = useState(null); // 편집 모드에서 불러온 원본 (변경분만 전송)
 
   const [planRequests, setPlanRequests] = useState([]);
   const [requestPlan, setRequestPlan] = useState('pro');
@@ -86,11 +88,24 @@ const StoreForm = () => {
           return;
         }
         
-        // 기존 매장 편집 모드: basic 영업시간 기본값 유지, operatingHours 필드만 추가
+        // 기존 매장 편집 모드: 저장된 값을 폼에 채운다 (없으면 기본값 유지)
+        const loaded = {
+          name: s.name ?? '',
+          description: s.description ?? '',
+          address: s.address ?? '',
+          phone: s.phone ?? '',
+          ...(s.business_type ? { business_type: s.business_type } : {}),
+          ...(s.open_time ? { open_time: s.open_time } : {}),
+          ...(s.close_time ? { close_time: s.close_time } : {}),
+          ...(s.plan ? { plan: s.plan } : {}),
+          can_send_sms: Boolean(s.can_send_sms),
+        };
         setForm(prev => ({
           ...prev,
+          ...loaded,
           operatingHours: { usePerDay: false, hours: {} }
         }));
+        setLoadedStore(s);
         
         if (s.theme) {
           try {
@@ -136,7 +151,13 @@ const StoreForm = () => {
     setError('');
     try {
       const data = { ...form, theme: JSON.stringify(theme) };
-      if (isEdit) await storesAPI.update(id, data);
+      if (isEdit) {
+        // 바뀐 필드만 전송 — 수정하지 않은 기존 값(예: 형식이 다른 기존 연락처)이 재검증에 걸리지 않도록
+        const changed = loadedStore
+          ? Object.fromEntries(Object.entries(data).filter(([k, v]) => (loadedStore[k] ?? '') !== v))
+          : data;
+        await storesAPI.update(id, changed);
+      }
       else await storesAPI.create(data);
       navigate('/admin');
     } catch (err) {
@@ -259,6 +280,21 @@ const StoreForm = () => {
                         placeholder="전체 주소를 입력하세요"
                       />
                     </div>
+
+                    {isEdit && loadedStore ? (
+                      <StoreLocationEditor
+                        key={loadedStore.id}
+                        storeId={id}
+                        initial={{ address: loadedStore.address, latitude: loadedStore.latitude, longitude: loadedStore.longitude }}
+                        onSaved={(_updated, next) => {
+                          // 위치 저장 결과를 폼·원본에 반영해 이후 폼 저장이 주소를 되돌리지 않게 한다
+                          setForm((p) => ({ ...p, address: next.address }));
+                          setLoadedStore((p) => ({ ...p, address: next.address, latitude: next.lat, longitude: next.lng }));
+                        }}
+                      />
+                    ) : !isEdit ? (
+                      <p className="text-[11px] font-bold text-slate-500">매장을 만든 뒤 편집 화면에서 지도 위치를 지정할 수 있어요.</p>
+                    ) : null}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-4">

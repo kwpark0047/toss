@@ -1,4 +1,5 @@
 const express = require('express');
+const { loginAccountLimiter } = require('../middleware/rateLimiter');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { authMiddleware } = require('../middleware/auth');
@@ -90,7 +91,7 @@ router.post('/register', validateBody(registrationRequestSchema), authController
  *       200:
  *         description: 로그인 완료 (JWT 토큰 발급)
  */
-router.post('/login', validateBody(loginSchema), authController.login);
+router.post('/login', loginAccountLimiter, validateBody(loginSchema), authController.login);
 
 /**
  * @swagger

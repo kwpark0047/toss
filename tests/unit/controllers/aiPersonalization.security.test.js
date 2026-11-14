@@ -10,6 +10,7 @@ jest.mock('../../../repositories/Order', () => ({
   findTrendingProducts: jest.fn(),
 }));
 jest.mock('../../../repositories/Store', () => ({ findById: jest.fn() }));
+jest.mock('../../../repositories/TinkerbellSettings', () => ({ findByStoreId: jest.fn() }));
 jest.mock('../../../services/weatherService', () => ({ getEnhancedWeatherContext: jest.fn() }));
 jest.mock('../../../services/RecommendationContextService', () => ({
   buildContext: jest.fn(),
@@ -20,6 +21,7 @@ const Order = require('../../../repositories/Order');
 const Product = require('../../../repositories/Product');
 const AI = require('../../../services/aiService');
 const Context = require('../../../services/RecommendationContextService');
+const TinkerbellSettings = require('../../../repositories/TinkerbellSettings');
 const mockPrivateRecommendations = jest.fn();
 jest.mock('../../../services/CustomerPreferenceService', () => ({
   getPersonalizedRecommendations: (...args) => mockPrivateRecommendations(...args),
@@ -35,6 +37,7 @@ describe('P0 anonymous AI privacy boundary', () => {
     Context.buildContext.mockResolvedValue({ segment: { segment_label: 'VIP' } });
     Context.formatContext.mockReturnValue('private segment');
     AI.recommendMenus.mockResolvedValue([{ id: 7, reason: 'public facts' }]);
+    TinkerbellSettings.findByStoreId.mockResolvedValue({ enabled: true, ai_recommendation: true });
   });
   test.each(['recommendMenus', 'tinkerbellRecommend'])(
     '%s does not use a claimed phone or external ID as authentication',

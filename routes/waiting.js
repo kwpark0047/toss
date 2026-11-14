@@ -159,7 +159,11 @@ router.patch(
  *       200:
  *         description: 대기 상태 및 앞 대기 수
  */
-router.get('/my/:phone', waitingController.getMyWaiting);
+router.get(
+  '/my/:phone',
+  (req, res, next) => requireWaitingCapability(req, res, next),
+  waitingController.getMyWaiting
+);
 
 /**
  * @swagger

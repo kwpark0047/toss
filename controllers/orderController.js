@@ -1,5 +1,6 @@
 const Order = require('../repositories/Order');
 const OrderService = require('../services/OrderService');
+const DeliveryDispatchService = require('../services/delivery/DeliveryDispatchService');
 const catchAsync = require('../utils/catchAsync');
 const { AppError } = require('../utils/errorHandler');
 const logger = require('../utils/logger');
@@ -95,6 +96,53 @@ const orderController = {
     });
 
     res.json({ success: true, order: updated, message: '주문 상태가 변경되었습니다' });
+  }),
+
+  // 배달대행 배차 조회·요청·취소
+  getDispatch: catchAsync(async (req, res) => {
+    res.success(await new DeliveryDispatchService(req.app.get('io')).getForOrder(req.params.id));
+  }),
+  requestDispatch: catchAsync(async (req, res) => {
+    const dispatch = await new DeliveryDispatchService(req.app.get('io')).request(req.params.id);
+    res.success(dispatch, '배달대행 배차를 요청했습니다.');
+  }),
+  cancelDispatch: catchAsync(async (req, res) => {
+    const reason =
+      typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 300) : undefined;
+    const dispatch = await new DeliveryDispatchService(req.app.get('io')).cancel(
+      req.params.id,
+      reason || '매장 요청'
+    );
+    res.success(dispatch, '배차를 취소했습니다.');
+  }),
+
+  // 배달대행사 상태 웹훅 (서명 검증은 서비스가 매장 인증정보로 한다)
+  deliveryWebhook: catchAsync(async (req, res) => {
+    const io = req.app.get('io');
+    const result = await new DeliveryDispatchService(io).handleWebhook({
+      provider: req.params.provider,
+      storeId: Number(req.params.storeId),
+      rawBody: req.rawBody,
+      headers: req.headers,
+      body: req.body,
+      orderService: new OrderService(io),
+    });
+    res.json({ success: true, ...result });
+  }),
+
+  // 직접 배달 출발/완료
+  updateDelivery: catchAsync(async (req, res) => {
+    const orderService = new OrderService(req.app.get('io'));
+    const updated = await orderService.updateDelivery(
+      req.params.id,
+      req.body?.action,
+      req.body?.staff_id,
+      {
+        userId: req.user?.id,
+        role: req.user?.role,
+      }
+    );
+    res.json({ success: true, order: updated, message: '배달 상태가 변경되었습니다' });
   }),
 
   // 주문 취소

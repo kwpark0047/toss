@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, Star, Gift, X, ChevronRight, Check, Bell, Zap, Shield, Lock, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { customersAPI, pointsAPI } from '@/api';
-import { getSocket } from '@/api';
 import { requestNotificationPermission } from '@/firebase';
 import Icon from '../../components/ui/Icon';
 
@@ -238,6 +237,7 @@ export default function CustomerPhoneSheet({
   onClose,
   storeId,
   orderId,
+  orderCapability,
   totalAmount,
   storeName,
 }) {
@@ -292,7 +292,7 @@ export default function CustomerPhoneSheet({
         store_id: storeId,
         order_id: orderId,
         total_amount: totalAmount,
-      });
+      }, orderCapability);
       if (res.already_joined) {
         setError(t('points.error_already'));
         setStep('idle');
@@ -302,9 +302,9 @@ export default function CustomerPhoneSheet({
       setStep('done');
       // 개인화 추천(F9)·재방문 편의를 위해 고객 전화번호 저장
       try { localStorage.setItem('wm_customer_phone', digits); } catch { /* 저장 실패 무시 */ }
-      const socket = getSocket();
-      if (socket && res.socket_channel) {
-        socket.emit('join-customer-orders', { phone: digits });
+      // 즐겨찾기 등 번호 단위 기능용 본인 확인 토큰
+      if (res.customer_token) {
+        try { localStorage.setItem('wm_customer_token', res.customer_token); } catch { /* 저장 실패 무시 */ }
       }
       requestNotificationPermission().then(token => {
         if (token && storeId) {
@@ -315,7 +315,7 @@ export default function CustomerPhoneSheet({
       setError(err.response?.data?.message || t('points.error_generic'));
       setStep('idle');
     }
-  }, [phone, storeId, orderId, totalAmount, t]);
+  }, [phone, storeId, orderId, orderCapability, totalAmount, t]);
 
   const AnimatedPoints = useCountUp(step === 'done' ? result?.points_earned : 0);
   const AnimatedTotal  = useCountUp(step === 'done' ? result?.total_points : 0);

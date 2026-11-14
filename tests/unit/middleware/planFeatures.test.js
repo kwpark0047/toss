@@ -1,6 +1,8 @@
 jest.mock('../../../services/SubscriptionService', () => ({
   getSubscription: jest.fn(),
 }));
+// 소유자 체험 조회: 기본은 체험 없음
+jest.mock('../../../config/prisma', () => ({ $queryRaw: jest.fn().mockResolvedValue([]) }));
 
 const SubscriptionService = require('../../../services/SubscriptionService');
 const {
@@ -231,5 +233,38 @@ describe('middleware/planFeatures', () => {
       const plan = await getCurrentPlan({ params: { storeId: '1' } });
       expect(plan.name).toBe('free');
     });
+  });
+});
+
+describe('middleware/planFeatures 가입 프로 체험', () => {
+  const prisma = require('../../../config/prisma');
+  const run = async (mw, req) => {
+    const next = jest.fn();
+    await mw(req, {}, next);
+    return next;
+  };
+
+  test('결제 구독이 없어도 체험 중이면 프로 기능을 허용한다', async () => {
+    SubscriptionService.getSubscription.mockResolvedValueOnce(null);
+    prisma.$queryRaw.mockResolvedValueOnce([{ trial_ends_at: new Date(Date.now() + 86400000) }]);
+    const req = { params: { storeId: '3' }, query: {} };
+    const next = await run(requirePlanFeature('aiRecommendations'), req);
+    expect(next).toHaveBeenCalledWith();
+    expect(req.plan.name).toBe('pro');
+  });
+
+  test('체험이 끝나면 무료 플랜으로 돌아가 프로 기능을 막는다', async () => {
+    SubscriptionService.getSubscription.mockResolvedValueOnce(null);
+    prisma.$queryRaw.mockResolvedValueOnce([{ trial_ends_at: new Date(Date.now() - 86400000) }]);
+    const next = await run(requirePlanFeature('aiRecommendations'), { params: { storeId: '3' }, query: {} });
+    expect(next.mock.calls[0][0]).toMatchObject({ statusCode: 403 });
+  });
+
+  test('getCurrentPlan은 체험 종료 시각을 함께 돌려준다', async () => {
+    const endsAt = new Date(Date.now() + 86400000);
+    SubscriptionService.getSubscription.mockResolvedValueOnce(null);
+    prisma.$queryRaw.mockResolvedValueOnce([{ trial_ends_at: endsAt }]);
+    const plan = await getCurrentPlan({ params: { storeId: '3' }, query: {} });
+    expect(plan).toMatchObject({ name: 'pro', trialEndsAt: endsAt });
   });
 });

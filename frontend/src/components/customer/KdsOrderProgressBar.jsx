@@ -72,8 +72,8 @@ export default function KdsOrderProgressBar({ currentStatus, compact = false }) 
                   ringColor: isActive ? colors.bg : 'transparent',
                   backgroundColor: isCompleted ? colors.bg : isActive ? colors.bg : '#f1f5f9',
                 }}>
-                  <step.icon size={compact ? 14 : 16} className={`transition-colors ${isCompleted || isActive ? 'text-white' : 'text-slate-400'}`} />
-                  {isCompleted && <CheckCircle size={compact ? 14 : 16} className="text-white" />}
+                  <step.icon size={compact ? 14 : 16} className={`transition-colors ${isCompleted || isActive ? 'text-[#fff]' : 'text-slate-400'}`} />
+                  {isCompleted && <CheckCircle size={compact ? 14 : 16} className="text-[#fff]" />}
                 </div>
               </div>
               

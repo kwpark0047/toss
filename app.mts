@@ -235,6 +235,7 @@ const routes = {
     storeInfoEnhancement: lazyRouter(() => import('./routes/storeInfoEnhancement.js')),
     products: lazyRouter(() => import('./routes/products.js')),
     orders: lazyRouter(() => import('./routes/orders.js')),
+    orderPush: lazyRouter(() => import('./routes/orderPush.js')),
     tables: lazyRouter(() => import('./routes/tables.js')),
     payments: lazyRouter(() => import('./routes/payments.js')),
     notifications: lazyRouter(() => import('./routes/notifications.js')),
@@ -294,6 +295,7 @@ const routes = {
     providerCredentials: lazyRouter(() => import('./routes/providerCredentials.js')),
     ecoBadge: lazyRouter(() => import('./routes/ecoBadge.js')),
     aiOrder: lazyRouter(() => import('./routes/aiOrder.js')),
+    aiLive: lazyRouter(() => import('./routes/aiLive.js')),
     aiAutoOrder: lazyRouter(() => import('./routes/aiAutoOrder.js')),
     recommendationTracking: lazyRouter(() => import('./routes/recommendationTracking.js')),
     reportPdf: lazyRouter(() => import('./routes/reportPdf.js')),
@@ -319,6 +321,7 @@ app.use(`${API_PREFIX}/auth/social`, authLimiter, routes.socialAuth);
 app.use(`${API_PREFIX}/stores`, publicLimiter, routes.stores);
 app.use(`${API_PREFIX}/stores`, publicLimiter, routes.storeInfoEnhancement);
 app.use(`${API_PREFIX}/products`, publicLimiter, routes.products);
+app.use(`${API_PREFIX}/orders`, routes.orderPush);
 app.use(`${API_PREFIX}/orders`, orderLimiter, routes.orders);
 app.use(`${API_PREFIX}/inventory`, publicLimiter, routes.inventory);
 app.use(`${API_PREFIX}/tables`, publicLimiter, routes.tables);
@@ -367,6 +370,7 @@ app.use(`${API_PREFIX}/business-support`, routes.businessSupport);
 app.use(`${API_PREFIX}/provider-credentials`, routes.providerCredentials);
 app.use(`${API_PREFIX}/eco-badge`, routes.ecoBadge);
 app.use(`${API_PREFIX}/ai-order`, routes.aiOrder);
+app.use(`${API_PREFIX}/ai/live`, routes.aiLive);
 app.use(`${API_PREFIX}/ai-auto-order`, routes.aiAutoOrder);
 app.use(`${API_PREFIX}/community`, routes.community);
 app.use(`${API_PREFIX}/legal`, routes.legal);

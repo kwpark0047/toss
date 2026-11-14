@@ -10,10 +10,14 @@ const printService = require('./printService');
 const logger = require('../utils/logger');
 const { encryptPhone, decryptPhone, normalizePhone } = require('../utils/phoneEncryption');
 const { AppError } = require('../utils/errorHandler');
+const { isStoreOpenAt } = require('../utils/businessHours');
 const { assertOrderStatusTransition } = require('../utils/orderStatus');
 const auditLogService = require('./AuditLogService');
 const orderEventService = require('./OrderEventService');
 const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
+const OrderChannels = require('../repositories/OrderChannels');
+const DeliveryService = require('./DeliveryService');
+const { orderPlaceLabel } = require('../utils/orderLabel');
 
 // Haversine formula for distance in km
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -50,6 +54,15 @@ class OrderService {
       latitude,
       longitude,
     } = data;
+    if (
+      data.is_split_payment &&
+      (data.split_type !== 'EQUAL' ||
+        !Number.isInteger(Number(data.split_people_count)) ||
+        Number(data.split_people_count) < 2 ||
+        Number(data.split_people_count) > 10)
+    ) {
+      throw new AppError('분할 인원은 2명 이상 10명 이하로 설정해 주세요.', 400);
+    }
     let discount_amount = 0;
     let serverSubtotal = 0;
     const pricedItems = [];
@@ -60,9 +73,19 @@ class OrderService {
     if (!store) {
       throw new AppError('매장을 찾을 수 없습니다.', 404);
     }
-
     if (!items || items.length === 0) {
       throw new AppError('주문 상품이 없습니다.', 400);
+    }
+
+    // 화면에서만 막던 영업시간을 서버에서도 확인한다 (휴무일·영업시간 외 API 직접 주문 차단)
+    if (
+      !isStoreOpenAt({
+        businessHours: store.business_hours,
+        openTime: store.open_time,
+        closeTime: store.close_time,
+      })
+    ) {
+      throw new AppError('지금은 영업시간이 아니라 주문할 수 없습니다.', 409);
     }
     const rawPhone = phone || customer_phone;
     if (user_coupon_id) {
@@ -78,14 +101,50 @@ class OrderService {
       }
     }
 
-    if (table_id && latitude && longitude && store.latitude && store.longitude) {
+    // 주문 유형(매장 식사/포장/배달)을 매장 스위치와 대조한다.
+    const channels = await OrderChannels.findByStoreId(store_id);
+    const hasTable = Boolean(table_id || table_number);
+    let orderType = data.order_type;
+    if (!orderType) {
+      // 유형을 보내지 않는 기존 클라이언트: 테이블이 있거나 매장 식사를 받는 매장이면 매장 식사로 본다.
+      if (hasTable || channels.dine_in_enabled) orderType = 'dine_in';
+      else if (channels.takeout_enabled) orderType = 'takeout';
+      else throw new AppError('포장 또는 배달 중 주문 방식을 선택해 주세요.', 400);
+    }
+    if (!OrderChannels.enabledTypes(channels).includes(orderType)) {
+      const label =
+        { dine_in: '매장 식사', takeout: '포장', delivery: '배달' }[orderType] || orderType;
+      throw new AppError(`이 매장은 지금 ${label} 주문을 받지 않습니다.`, 409);
+    }
+    if (orderType !== 'dine_in' && hasTable) {
+      throw new AppError('포장·배달 주문에는 테이블을 지정할 수 없습니다.', 400);
+    }
+    if (orderType !== 'dine_in' && data.is_split_payment) {
+      throw new AppError('분할 결제는 매장 식사 주문에서만 사용할 수 있습니다.', 400);
+    }
+    const payMethod = method || payment_method;
+    // 매장에서 직접 결제할 자리가 없는 주문(배달, 온라인 전용 매장의 포장)은 온라인 선결제만 받는다.
+    const prepayOnly =
+      orderType === 'delivery' || (orderType === 'takeout' && OrderChannels.isOnlineOnly(channels));
+    if (prepayOnly && ['cash', 'transfer', 'store_card'].includes(payMethod)) {
+      throw new AppError('포장·배달 주문은 온라인 결제로만 주문할 수 있습니다.', 400);
+    }
+    const rawContactPhone = phone || customer_phone;
+    if (orderType === 'delivery' && !rawContactPhone) {
+      throw new AppError('배달 주문에는 연락받을 전화번호가 필요합니다.', 400);
+    }
+
+    // 테이블 주문(table_id 또는 QR의 table_number)은 위치가 오면 매장 반경을 확인한다.
+    // 위치 정확도만큼은 여유를 둬 실내 GPS 오차로 매장 안 손님이 막히지 않게 한다(최대 1km).
+    if ((table_id || table_number) && latitude && longitude && store.latitude && store.longitude) {
       const distanceKm = getDistanceFromLatLonInKm(
         latitude,
         longitude,
         store.latitude,
         store.longitude
       );
-      if (distanceKm > 0.5) {
+      const slackKm = Math.min(Number(data.location_accuracy) || 0, 1000) / 1000;
+      if (distanceKm - slackKm > 0.5) {
         throw new AppError('매장 반경 500m 밖에서는 주문할 수 없습니다.', 403);
       }
     }
@@ -94,11 +153,8 @@ class OrderService {
     const storeIdNum = parseInt(store_id);
     let resolvedTableId = null;
     let resolvedTableName = null;
-    let lookupStr =
+    const lookupStr =
       table_number || (table_id && isNaN(parseInt(table_id)) ? String(table_id) : null);
-    if (lookupStr && lookupStr.endsWith('번')) {
-      lookupStr = lookupStr.replace('번', '');
-    }
 
     if (lookupStr) {
       const table = await Table.findByStoreAndTable(storeIdNum, lookupStr);
@@ -157,9 +213,30 @@ class OrderService {
           : Math.floor(serverSubtotal * (coupon.amount / 100));
     }
 
+    // 배달 권역·최소 주문 금액은 서버 상품 합계로 판정하고, 배달비는 서버 설정값을 쓴다.
+    let deliveryFee = 0;
+    if (orderType === 'delivery') {
+      const quote = await DeliveryService.quote({
+        store,
+        channels,
+        address: data.delivery_address,
+        subtotal: serverSubtotal,
+        clientCoords: { latitude: data.delivery_latitude, longitude: data.delivery_longitude },
+      });
+      if (!quote.deliverable) throw new AppError(quote.reason, 400);
+      deliveryFee = quote.fee;
+    }
+
     // 3. 주문 생성 데이터 준비
-    const final_amount = Math.max(0, serverSubtotal - discount_amount);
+    const final_amount = Math.max(0, serverSubtotal - discount_amount) + deliveryFee;
     const orderData = { ...data };
+    orderData.order_type = orderType;
+    orderData.is_takeout = orderType !== 'dine_in';
+    orderData.delivery_fee = orderType === 'delivery' ? deliveryFee : null;
+    orderData.delivery_address =
+      orderType === 'delivery' ? String(data.delivery_address).trim() : null;
+    orderData.delivery_memo =
+      orderType === 'delivery' && data.delivery_memo ? String(data.delivery_memo).trim() : null;
     orderData.items = pricedItems;
     orderData.method = method || payment_method;
     if (rawPhone) {
@@ -184,6 +261,81 @@ class OrderService {
     this._notifyNewOrder(order, resolvedTableName);
 
     return order;
+  }
+
+  /**
+   * 직접 배달 진행 기록. start = 배달 출발(준비 완료로 맞춘 뒤 delivering), complete = 배달 완료(주문 완료).
+   * 배달 진행은 주문 상태와 별도로 delivery_status에 둔다.
+   */
+  async updateDelivery(id, action, staff_id, actor = null) {
+    const orderId = parseInt(id);
+    const order = await Order.findById(orderId);
+    if (!order) throw new AppError('주문을 찾을 수 없습니다.', 404);
+    if (order.order_type !== 'delivery') throw new AppError('배달 주문이 아닙니다.', 400);
+    if (order.status === 'cancelled') throw new AppError('취소된 주문입니다.', 409);
+
+    if (action === 'start') {
+      if (order.delivery_status) throw new AppError('이미 배달을 출발한 주문입니다.', 409);
+      if (order.status === 'completed') throw new AppError('이미 완료된 주문입니다.', 409);
+      if (order.status !== 'ready') await this.updateStatus(orderId, 'ready', staff_id, actor);
+      const claimed = await prisma.orders.updateMany({
+        where: { id: orderId, delivery_status: null, status: 'ready' },
+        data: {
+          delivery_status: 'delivering',
+          delivery_started_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+      if (claimed.count !== 1)
+        throw new AppError('배달 출발 처리 중 주문 상태가 바뀌었습니다.', 409);
+    } else if (action === 'complete') {
+      const claimed = await prisma.orders.updateMany({
+        where: { id: orderId, delivery_status: 'delivering' },
+        data: { delivery_status: 'delivered', delivered_at: new Date(), updated_at: new Date() },
+      });
+      if (claimed.count !== 1)
+        throw new AppError('배달 출발 전이거나 이미 완료된 주문입니다.', 409);
+      await this.updateStatus(orderId, 'completed', staff_id, actor);
+    } else {
+      throw new AppError('알 수 없는 배달 처리입니다.', 400);
+    }
+
+    const updated = await Order.findById(orderId);
+    if (this.io) {
+      const payload = {
+        order_id: updated.id,
+        order_number: updated.order_number,
+        store_id: updated.store_id,
+        status: updated.status,
+        delivery_status: updated.delivery_status,
+        status_label: updated.delivery_status === 'delivering' ? '배달 중' : '배달 완료',
+        updated_at: new Date().toISOString(),
+      };
+      this.io.to(`store - ${updated.store_id}`).emit('order-updated', payload);
+      this.io.to(`order - ${updated.id}`).emit('order-updated', payload);
+    }
+    return updated;
+  }
+
+  async _autoDispatch(order) {
+    const channels = await OrderChannels.findByStoreId(order.store_id);
+    if (channels.delivery_fulfillment !== 'agency' || !channels.agency_auto_dispatch) return;
+    const DeliveryDispatchService = require('./delivery/DeliveryDispatchService');
+    try {
+      await new DeliveryDispatchService(this.io).request(order.id);
+    } catch (error) {
+      notificationService
+        .createNotification({
+          store_id: order.store_id,
+          type: 'SYSTEM',
+          title: '배달대행 자동 배차에 실패했어요',
+          message: `주문 #${order.order_number}: ${error.message} 주문 관리에서 다시 요청하거나 직접 배달해 주세요.`,
+          priority: 'high',
+          link: `/admin/stores/${order.store_id}/orders`,
+        })
+        .catch(() => {});
+      throw error;
+    }
   }
 
   async updateStatus(id, status, staff_id, actor = null) {
@@ -258,7 +410,7 @@ class OrderService {
     notificationService.notifyOrderStatusDB(updatedOrder, status).catch(() => {});
 
     if (['confirmed', 'ready', 'cancelled'].includes(status)) {
-      let tName = '포장';
+      let tName = orderPlaceLabel(updatedOrder, null) || '포장';
       if (updatedOrder.table_id) {
         const table = await prisma.tables.findUnique({
           where: { id: updatedOrder.table_id },
@@ -292,6 +444,14 @@ class OrderService {
     }
 
     this._emitOrderUpdate(updatedOrder, status);
+    // 배달대행 자동 배차: 매장이 켜 둔 경우 주문을 확인하면 바로 배차를 요청한다(실패해도 주문 흐름은 그대로).
+    if (
+      status === 'confirmed' &&
+      updatedOrder.order_type === 'delivery' &&
+      oldOrder.status !== 'confirmed'
+    ) {
+      this._autoDispatch(updatedOrder).catch((e) => logger.warn(`[AutoDispatch] ${e.message}`));
+    }
     void auditLogService.record({
       actorUserId: actor?.userId || null,
       actorRole: actor?.role || null,
@@ -324,7 +484,8 @@ class OrderService {
     if (userRole !== 'super_admin') {
       const { getStoreRole } = require('../middleware/storeAuth');
       const role = await getStoreRole(userId, order.store_id);
-      const allowed = ['owner', 'manager', 'staff', 'kitchen'];
+      // 주방 계정은 주방 화면(KDS) 취소를 쓴다 — 그 경로가 환불·환불 필요 알림까지 처리한다.
+      const allowed = ['owner', 'manager', 'staff'];
       if (!role || !allowed.includes(role))
         throw new AppError('해당 매장에 대한 권한이 없습니다.', 403);
     }
@@ -421,7 +582,13 @@ class OrderService {
         if (result.alreadyProcessed) continue;
         if (result.newQty <= result.threshold) {
           notificationService
-            .notifyLowStockDB({ id: item.product_id, stock_quantity: result.newQty })
+            .notifyLowStockDB({
+              id: result.productId,
+              name: result.name,
+              store_id: result.store_id,
+              stock_quantity: result.newQty,
+              low_stock_threshold: result.threshold,
+            })
             .catch(() => {});
         }
         if (this.io && result.is_sold_out) {
@@ -533,13 +700,21 @@ class OrderService {
   }
 
   _notifyNewOrder(order, resolvedTableName) {
+    if (
+      order.is_split_payment &&
+      (order.payment_status !== 'paid' || order.split_status !== 'COMPLETED')
+    )
+      return;
     if (!this.io) return;
+    // 포장·배달 주문은 테이블 대신 '포장' / '배달 · 동네'로 표시한다.
+    resolvedTableName = orderPlaceLabel(order, resolvedTableName);
     const payload = {
       orderId: order.id,
       orderNumber: order.order_number,
       storeId: order.store_id,
       tableId: order.table_id,
       tableName: resolvedTableName,
+      orderType: order.order_type || 'dine_in',
       totalAmount: order.total_amount,
       status: order.status,
       itemCount: order.order_items?.length || 0,
@@ -559,6 +734,22 @@ class OrderService {
       source: 'qr',
     });
     printService.createKitchenJob(order, { tableName: resolvedTableName }).catch(() => {});
+  }
+
+  async publishPaidSplitOrder(orderId) {
+    const order = await prisma.orders.findUnique({
+      where: { id: Number(orderId) },
+      include: { order_items: true, tables: { select: { table_number: true } } },
+    });
+    if (
+      !order ||
+      !order.is_split_payment ||
+      order.payment_status !== 'paid' ||
+      order.split_status !== 'COMPLETED'
+    )
+      return false;
+    this._notifyNewOrder(order, order.tables?.table_number || null);
+    return true;
   }
 
   _emitOrderUpdate(order, status) {
@@ -582,14 +773,12 @@ class OrderService {
     this.io.to(`store - ${order.store_id}`).emit('order-updated', payload);
     this.io.to(`kitchen - ${order.store_id}`).emit('order-updated', payload);
     this.io.to(`order - ${order.id}`).emit('order-updated', payload);
+    this.io
+      .to(`customer-order - ${order.id}`)
+      .emit('customer-order-changed', { order_id: order.id });
 
     // 실시간 대시보드 (store_${storeId}_dashboard 룸) 알림 — DashboardBroadcastService 전담 채널
     dashboardBroadcastService.notifyOrderChange(order.store_id, payload);
-
-    if (order.customer_phone) {
-      const normalized = normalizePhone(decryptPhone(order.customer_phone));
-      this.io.to(`customer-orders-${normalized}`).emit('order-status-updated', payload);
-    }
   }
 
   async _sendOrderAlimtalk(order, status, extraData = {}) {

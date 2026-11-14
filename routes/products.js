@@ -6,8 +6,8 @@ const { checkStorePermissionForObject } = require('../middleware/storeAuth');
 const catchAsync = require('../utils/catchAsync');
 const productsController = require('../controllers/productsController');
 const {
-  createProductSchema,
-  updateProductSchema,
+  productWireCreateSchema,
+  productWireUpdateSchema,
   productSearchQuerySchema,
   productIdParamSchema,
   storeRouteParamSchema,
@@ -82,7 +82,7 @@ router.get(
 router.post(
   '/',
   authMiddleware,
-  validateBody(createProductSchema),
+  validateBody(productWireCreateSchema),
   catchAsync(productsController.createProduct)
 );
 
@@ -113,8 +113,8 @@ router.put(
   '/:id',
   authMiddleware,
   validateParams(productIdParamSchema),
-  checkStorePermissionForObject('products'),
-  validateBody(updateProductSchema),
+  checkStorePermissionForObject('products', 'items:manage'),
+  validateBody(productWireUpdateSchema),
   catchAsync(productsController.updateProduct)
 );
 
@@ -139,7 +139,7 @@ router.delete(
   '/:id',
   authMiddleware,
   validateParams(productIdParamSchema),
-  checkStorePermissionForObject('products'),
+  checkStorePermissionForObject('products', 'items:manage'),
   catchAsync(productsController.deleteProduct)
 );
 

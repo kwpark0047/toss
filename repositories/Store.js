@@ -38,7 +38,9 @@ function domainUpdates(data) {
       if (data[field] !== undefined)
         values[field] =
           field === 'enabled_payment_methods'
-            ? JSON.stringify(Array.isArray(data[field]) ? data[field] : [])
+            ? Array.isArray(data[field])
+              ? data[field]
+              : []
             : data[field];
     if (Object.keys(values).length)
       result[relation] = { upsert: { create: values, update: values } };
@@ -61,7 +63,8 @@ function flattenStore(store) {
  * 매장 정보 관리 및 조회 성능 최적화를 담당합니다.
  */
 const Store = {
-  // plan 옵션: 'free' (기본), 'pro', 'enterprise'
+  // plan은 입력으로 받지 않는다. 새 매장은 항상 'free'로 시작하고,
+  // 유료 플랜은 SubscriptionService가 결제 후 stores.plan에 반영한다.
   create: async (data) => {
     const {
       user_id,
@@ -73,7 +76,6 @@ const Store = {
       open_time,
       close_time,
       theme,
-      plan,
       latitude,
       longitude,
     } = data;
@@ -95,7 +97,7 @@ const Store = {
             )
           ),
           theme: themeString,
-          plan: plan || 'free',
+          plan: 'free',
           latitude,
           longitude,
           is_active: true,
@@ -195,8 +197,17 @@ const Store = {
   },
 
   update: async (id, data) => {
-    const { name, description, address, phone, theme, plan, latitude, longitude, can_send_sms } =
-      data;
+    const {
+      name,
+      description,
+      address,
+      phone,
+      theme,
+      latitude,
+      longitude,
+      can_send_sms,
+      customer_entry_mode,
+    } = data;
 
     // 테마 처리
     let themeValue = undefined;
@@ -209,9 +220,9 @@ const Store = {
     if (description !== undefined) updateData.description = description;
     if (address !== undefined) updateData.address = address;
     if (phone !== undefined) updateData.phone = phone;
+    if (customer_entry_mode !== undefined) updateData.customer_entry_mode = customer_entry_mode;
 
     if (themeValue !== undefined) updateData.theme = themeValue;
-    if (plan) updateData.plan = plan;
     if (latitude !== undefined) updateData.latitude = latitude;
     if (longitude !== undefined) updateData.longitude = longitude;
     if (can_send_sms !== undefined) updateData.can_send_sms = can_send_sms;
@@ -224,9 +235,13 @@ const Store = {
       })
       .then(flattenStore);
 
-    // 관련 캐시 무효화
-    cache.del(`store:${id}`);
-    cache.del('stores:all');
+    // Profile entries are stored without Redis tags, so tag invalidation alone
+    // can leave an old location in L2. Finish explicit deletion before replying.
+    await Promise.all([
+      cache.del(`store:${id}`),
+      cache.del(`store:${id}:profile`),
+      cache.del('stores:all'),
+    ]);
 
     return updatedStore;
   },

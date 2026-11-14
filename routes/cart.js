@@ -1,5 +1,11 @@
 const express = require('express');
 const router = express.Router();
+
+// 예전 서버 저장형 공유 장바구니. 인증 없이 테이블 ID만으로 읽기·삭제가 가능해 막는다.
+// 메뉴 화면은 테이블 방 소켓 동기화(useSharedTableCart)를 쓴다.
+router.use((req, res) =>
+  res.status(410).json({ success: false, error: '더 이상 지원하지 않는 API입니다.' })
+);
 const cartController = require('../controllers/cartController');
 const catchAsync = require('../utils/catchAsync');
 

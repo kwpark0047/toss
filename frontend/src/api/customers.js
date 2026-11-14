@@ -7,7 +7,10 @@ export const customersAPI = {
   create: (data) => api.post('/customers', data),
   update: (id, data) => api.put('/customers/' + id, data),
   delete: (id) => api.delete('/customers/' + id),
-  phoneJoin: (data) => api.post('/customers/phone-join', data),
+  phoneJoin: (data, capability) =>
+    api.post('/customers/phone-join', data, {
+      headers: capability ? { 'x-order-capability': capability } : undefined,
+    }),
   registerFcmToken: (phone, storeId, fcmToken) =>
     api.post('/customers/fcm-token', { phone, store_id: storeId, fcm_token: fcmToken }),
   list: (storeId, params = {}) => api.get('/customers/' + storeId, { params }),

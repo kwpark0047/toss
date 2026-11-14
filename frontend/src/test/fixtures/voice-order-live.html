@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Voice Order Live fixture</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import React from 'react';
+      import { createRoot } from 'react-dom/client';
+      import VoiceOrderAssistant from '/src/components/menu/VoiceOrderAssistant.jsx';
+      import '/src/index.css';
+      const menu = [{ id: 1, name: 'QA 커피', price: 1000, options: [] }];
+      function App() {
+        const [cart, setCart] = React.useState([]);
+        return React.createElement(
+          'main',
+          null,
+          React.createElement('h1', null, '가짜 Live 주문 검증'),
+          React.createElement(VoiceOrderAssistant, {
+            storeId: 3,
+            menuItems: menu,
+            canOrder: true,
+            liveEnabled: true,
+            onAddDraft: (lines) => setCart((previous) => [...previous, ...lines]),
+          }),
+          React.createElement(
+            'p',
+            { 'aria-label': '테스트 장바구니' },
+            `장바구니 ${cart.reduce((n, line) => n + line.quantity, 0)}개`
+          )
+        );
+      }
+      createRoot(document.getElementById('root')).render(React.createElement(App));
+    </script>
+  </body>
+</html>

@@ -165,6 +165,36 @@ describe('OrderService — 지오펜싱 통합 테스트', () => {
     ).rejects.toThrow('500m 밖');
   });
 
+  test('QR 테이블 이름(table_number)으로 온 주문도 반경 밖이면 거부', async () => {
+    Store.findById.mockResolvedValue({ id: 1, latitude: 37.5665, longitude: 126.978 });
+    await expect(
+      svc.createOrder({
+        store_id: '1',
+        table_number: '1번',
+        total_amount: 5000,
+        items: [{ product_id: 10, quantity: 1 }],
+        latitude: 37.498,
+        longitude: 127.0276,
+      })
+    ).rejects.toThrow('500m 밖');
+  });
+
+  test('위치 정확도가 낮으면 그만큼 여유를 둔다 (실내 GPS 오차)', async () => {
+    Store.findById.mockResolvedValue({ id: 1, latitude: 37.5665, longitude: 126.978 });
+    // 약 700m 떨어졌지만 정확도 300m → 허용
+    await expect(
+      svc.createOrder({
+        store_id: '1',
+        table_id: '1',
+        total_amount: 5000,
+        items: [{ product_id: 10, quantity: 1 }],
+        latitude: 37.5728,
+        longitude: 126.978,
+        location_accuracy: 300,
+      })
+    ).resolves.toBeDefined();
+  });
+
   test('정확히 500m 경계선', async () => {
     Store.findById.mockResolvedValue({ id: 1, latitude: 37.5665, longitude: 126.978 });
 

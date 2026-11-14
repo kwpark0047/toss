@@ -144,9 +144,11 @@ describe('waitingController', () => {
 
   describe('getMyWaiting', () => {
     test('내 대기 상태를 조회한다', async () => {
-      req.params.phone = '01012345678';
+      req.params.phone = '01099999999';
+      req.capability = { customer_phone: '01012345678' };
       mockWaitingService.getMyWaiting.mockResolvedValue({ position: 2, ahead_count: 1 });
       await waitingController.getMyWaiting(req, res);
+      expect(mockWaitingService.getMyWaiting).toHaveBeenCalledWith('01012345678');
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         success: true,

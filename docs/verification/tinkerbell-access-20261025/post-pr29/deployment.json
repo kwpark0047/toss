@@ -1,0 +1,11 @@
+{
+  "expected": "f6d3745926474914784041756c0f20cb508bf397",
+  "requestedMergeCommit": "f6d3745926474914784041756c0f20cb508bf397",
+  "includesRequestedMerge": true,
+  "backend": {
+    "revision": "f6d3745926474914784041756c0f20cb508bf397",
+    "status": "ok",
+    "db": "connected"
+  },
+  "frontendRevision": "f6d3745926474914784041756c0f20cb508bf397"
+}

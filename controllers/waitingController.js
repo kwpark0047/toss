@@ -61,7 +61,8 @@ const waitingController = {
 
   // [GET] 내 대기 상태 조회 (휴대폰 번호 기준)
   getMyWaiting: catchAsync(async (req, res) => {
-    const data = await waitingService.getMyWaiting(req.params.phone);
+    // 경로의 번호가 아니라 대기 등록 때 발급한 capability의 번호로만 조회한다.
+    const data = await waitingService.getMyWaiting(req.capability.customer_phone);
     return success(res, data, '내 대기 상태 조회 성공');
   }),
 

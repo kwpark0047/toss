@@ -1,9 +1,21 @@
 import api from './client';
 
+// 번호 등록 때 받은 손님 토큰 (즐겨찾기 등 번호 단위 기능의 본인 확인)
+const customerTokenHeader = () => {
+  try {
+    const token = localStorage.getItem('wm_customer_token');
+    return token ? { 'x-customer-capability': token } : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 export const storesAPI = {
   getAll: (params = {}) => api.get('/stores', { params }),
   getMy: () => api.get('/stores/my'),
   getById: (id) => api.get('/stores/' + id),
+  // QR 앞 매장 소개 전용 공개 응답 (필요한 소개 정보·추천 메뉴만 반환)
+  getPublicIntro: (id) => api.get('/stores/public-intro/' + id),
   // 공개 매장 검색 (지역·업종·키워드·고객위치 거리순)
   searchPublic: (params = {}) => api.get('/stores/search', { params }),
   // 지역 하이라이트 배너 (추천메뉴 + 이벤트/프로모션)
@@ -11,12 +23,29 @@ export const storesAPI = {
   getPopular: () => api.get('/stores/popular'),
   create: (data) => api.post('/stores', data),
   update: (id, data) => api.put('/stores/' + id, data),
+  // 위치 지정용 주소 후보 검색 (store:update 권한 필요)
+  searchLocation: (id, q, config = {}) =>
+    api.get('/stores/' + id + '/location/search', { params: { q }, ...config }),
   delete: (id) => api.delete('/stores/' + id),
   addFavorite: (customerPhone, storeId) =>
-    api.post('/stores/favorites', { customer_phone: customerPhone, store_id: storeId }),
+    api.post(
+      '/stores/favorites',
+      { customer_phone: customerPhone, store_id: storeId },
+      { headers: customerTokenHeader() }
+    ),
   removeFavorite: (customerPhone, storeId) =>
-    api.delete('/stores/favorites', { data: { customer_phone: customerPhone, store_id: storeId } }),
-  getFavorites: (customerPhone) => api.get('/stores/favorites/' + customerPhone),
+    api.delete('/stores/favorites', {
+      data: { customer_phone: customerPhone, store_id: storeId },
+      headers: customerTokenHeader(),
+    }),
+  getFavorites: (customerPhone) =>
+    api.get('/stores/favorites/' + customerPhone, { headers: customerTokenHeader() }),
+  // 고객 메뉴 화면용 매장 팅커벨 설정 (공개)
+  getTinkerbellSettings: (id) => api.get('/stores/' + id + '/tinkerbell-settings'),
+  // 고객 메뉴 화면용 주문 유형·배달 조건 (공개)
+  getOrderChannels: (id) => api.get('/stores/' + id + '/order-channels'),
+  // 배달 가능 여부·배달비 견적 (공개)
+  deliveryQuote: (id, data) => api.post('/stores/' + id + '/delivery-quote', data),
 };
 
 export const storeAccountAPI = {

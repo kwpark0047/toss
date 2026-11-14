@@ -1,8 +1,34 @@
 const StoreService = require('../services/StoreService');
 const Store = require('../repositories/Store');
 const prisma = require('../config/prisma');
+const geocodeService = require('../services/geocodeService');
+const OrderChannels = require('../repositories/OrderChannels');
+const DeliveryService = require('../services/DeliveryService');
+const logger = require('../utils/logger');
 
 const storeService = new StoreService();
+
+/**
+ * 새 매장의 도로명 주소를 응답 후 백그라운드로 지오코딩한다 (실패해도 매장 생성에는 영향 없음).
+ * 그 사이 사장님이 직접 위치를 지정했다면 덮어쓰지 않도록 좌표가 비어 있을 때만 갱신한다.
+ */
+function geocodeNewStoreInBackground(store) {
+  if (!store?.id || !store.address || store.latitude != null || !geocodeService.isConfigured())
+    return;
+  geocodeService
+    .geocode(store.address)
+    .then(async (coord) => {
+      if (!coord) return;
+      const { count } = await prisma.stores.updateMany({
+        where: { id: store.id, latitude: null, longitude: null },
+        data: { latitude: coord.lat, longitude: coord.lng },
+      });
+      if (count) storeService.flushStoreCache(store.id);
+    })
+    .catch((err) =>
+      logger.warn({ storeId: store.id, error: err.message }, '신규 매장 지오코딩 실패')
+    );
+}
 
 const storeController = {
   // GET / — 전체 매장 목록 조회
@@ -26,14 +52,16 @@ const storeController = {
         orderBy: { id: 'desc' },
       });
       return res.success(
-        stores.map(({ store_business_info, ...store }) => ({
-          ...store,
-          business_type: store_business_info?.business_type ?? null,
-        }))
+        await DeliveryService.applyPublicPrivacyToList(
+          stores.map(({ store_business_info, ...store }) => ({
+            ...store,
+            business_type: store_business_info?.business_type ?? null,
+          }))
+        )
       );
     }
     const stores = await Store.findAll();
-    res.success(stores);
+    res.success(await DeliveryService.applyPublicPrivacyToList(stores));
   },
 
   // GET /my — 내 매장 목록 조회
@@ -151,6 +179,7 @@ const storeController = {
     }
 
     res.created(result.store, '매장이 생성되었습니다.');
+    geocodeNewStoreInBackground(result.store);
   },
 
   // GET /:id — 매장 상세 조회
@@ -161,7 +190,45 @@ const storeController = {
     const cache = require('../utils/cache');
     const cacheKey = `store:${req.params.id}:profile`;
     cache.set(cacheKey, store, 60);
-    res.success(store);
+    // 주소를 숨긴 온라인 전용 매장은 매장 사람 외에는 정확한 주소·좌표를 받지 않는다.
+    res.success(await DeliveryService.storeViewFor(req.user, store));
+  },
+
+  // GET /public-intro/:id — QR 진입 소개 화면에 필요한 공개 정보만 반환
+  async getPublicIntro(req, res) {
+    const storeId = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(storeId) || storeId < 1) {
+      return res.status(400).json({ success: false, error: '매장 번호가 올바르지 않습니다.' });
+    }
+
+    const store = await prisma.stores.findFirst({
+      where: { id: storeId, is_active: { not: false } },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        address: true,
+        phone: true,
+        customer_entry_mode: true,
+        store_operating_hours: {
+          select: { open_time: true, close_time: true, business_hours: true },
+        },
+        products: {
+          where: { is_active: true, is_sold_out: false },
+          orderBy: [{ is_popular: 'desc' }, { sort_order: 'asc' }],
+          take: 3,
+          select: { id: true, name: true, description: true, price: true, image_url: true },
+        },
+      },
+    });
+
+    if (!store) return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다.' });
+    const { store_operating_hours: operatingHours, ...publicStore } = store;
+    const channels = await OrderChannels.findByStoreId(store.id);
+    res.success({
+      ...DeliveryService.applyPublicPrivacy(publicStore, channels),
+      operating_hours: operatingHours || null,
+    });
   },
 
   // PUT /:id — 매장 수정
@@ -172,6 +239,29 @@ const storeController = {
     const updated = await Store.update(req.params.id, req.body);
     storeService.flushStoreCache(req.params.id);
     res.success(updated, '매장 정보가 수정되었습니다.');
+  },
+
+  // GET /:id/location/search?q= — 위치 지정용 주소 후보 검색 (권한은 라우터에서 확인)
+  async searchLocation(req, res) {
+    if (!geocodeService.isConfigured()) {
+      // 502/503은 프론트의 콜드스타트 재시도를 유발하므로 424(외부 의존성 실패)로 응답
+      return res
+        .status(424)
+        .json({ success: false, error: '주소 검색 서비스가 설정되지 않았습니다.' });
+    }
+    try {
+      // Express 5에서는 req.query 재할당이 무시될 수 있어 검증된 값을 우선 사용
+      const q = req.validated?.query?.q ?? String(req.query.q || '').trim();
+      const results = await geocodeService.searchAddresses(q);
+      res.success({ query: q, results });
+    } catch (err) {
+      if (err instanceof geocodeService.GeocodeProviderError) {
+        return res
+          .status(err.status === 429 ? 429 : 424)
+          .json({ success: false, error: err.message });
+      }
+      throw err;
+    }
   },
 
   // DELETE /:id — 매장 삭제

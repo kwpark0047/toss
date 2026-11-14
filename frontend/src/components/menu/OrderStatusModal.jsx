@@ -43,9 +43,13 @@ const OrderStatusModal = ({ isOpen, onClose, orderId, capability, storeId, table
     setLoading(true);
     try {
       if (orderId && capability) {
-        const res = await ordersAPI.getById(orderId, capability);
-        setOrder(res?.data || res);
-      } else {
+        try {
+          const res = await ordersAPI.getById(orderId, capability);
+          setOrder(res?.data || res);
+          return;
+        } catch (error) { if (error.response?.status !== 403) throw error; }
+      }
+      {
         const historyCapability = localStorage.getItem('wm_customer_history_capability');
         if (!historyCapability) { setOrder(null); return; }
         const res = await ordersAPI.getCustomerHistory(historyCapability);

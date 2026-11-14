@@ -56,7 +56,9 @@
     "prepare": "husky",
     "test:saas": "node --test tests/saas/*.test.cjs",
     "typecheck:backend": "tsc --noEmit",
-    "smoke:startup": "node --import tsx scripts/smoke-startup.mjs"
+    "smoke:startup": "node --import tsx scripts/smoke-startup.mjs",
+    "ai:review:generate": "node scripts/generate-ai-preproduction-review.cjs",
+    "ai:review:check": "node scripts/generate-ai-preproduction-review.cjs --check && node --test tests/saas/preproduction-review.test.cjs"
   },
   "lint-staged": {
     "*.js": [
@@ -76,11 +78,12 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/genai": "3.3.0",
     "@google/generative-ai": "^0.24.1",
     "@sentry/node": "^10.67.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@supabase/supabase-js": "^2.90.1",
-    "awilix": "6.0.0",
+    "awilix": "6.1.0",
     "axios": "^1.16.0",
     "bcryptjs": "^3.0.3",
     "chart.js": "^4.4.0",
@@ -102,7 +105,7 @@
     "multer": "^2.2.0",
     "node-cache": "^5.1.2",
     "node-cron": "^4.6.0",
-    "nodemailer": "10.1.1",
+    "nodemailer": "10.3.1",
     "otplib": "^13.5.0",
     "pdfkit": "^0.19.1",
     "proj4": "^2.20.9",
@@ -115,6 +118,7 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "tsx": "^4.23.13",
+    "web-push": "^3.6.7",
     "winston": "^3.19.0",
     "zod": "^4.5.4"
   },

@@ -20,6 +20,8 @@ export default function StoreMapSection({ stores, selectedStore, onStoreSelect, 
         <StoreMapLeaflet
           stores={stores}
           onSelect={onStoreSelect}
+          selectedStore={selectedStore}
+          className="h-[45vh] min-h-[320px] lg:h-[calc(100vh-190px)]"
         />
       </div>
 

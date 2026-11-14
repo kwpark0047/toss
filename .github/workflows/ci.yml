@@ -68,6 +68,11 @@ jobs:
       - name: SaaS Financial Regression Tests
         run: npm run test:saas
 
+      - name: Isolated mobile push lab policy and production boundary
+        run: |
+          node scripts/test-mobile-push-lab-policy.cjs
+          node scripts/test-mobile-push-lab-isolation.cjs
+
       - name: Backend Type Check
         run: npm run typecheck:backend
 
@@ -82,6 +87,34 @@ jobs:
 
       - name: JSX Reference Validation
         run: node scripts/validate-jsx-references.js
+
+  ai-live-p0-tests:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: [6379:6379]
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+      AI_LIVE_TEST_REDIS_URL: redis://127.0.0.1:6379
+      AI_LIVE_ENABLED: 'false'
+      AI_LIVE_ALLOW_PAID: 'false'
+      GEMINI_API_KEY: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify OFF-only preproduction review settings
+        run: npm run ai:review:check
+      - name: Rehearse pilot rollback with fake Provider and isolated Redis
+        run: node --test tests/saas/pilot-rollback.test.cjs
+      - name: Live policy, PCM, Redis concurrency and HTTP/WSS fake-provider integration
+        run: node --test tests/saas/gemini-live-p0.test.cjs tests/saas/gemini-live-audio.test.cjs tests/saas/gemini-live-redis.test.cjs tests/saas/manager-live.test.cjs tests/saas/live-camera.test.cjs tests/saas/menu-photo-drafts.test.cjs tests/saas/marketing-drafts.test.cjs tests/saas/shared-generation-budget.test.cjs tests/saas/shared-budget-boundaries.test.cjs
 
   backend-unit-tests:
     runs-on: ubuntu-latest
@@ -159,6 +192,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --prefer-offline --no-audit --no-fund
+      - name: Prepare Supabase roles in disposable CI database
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file scripts/ci/supabase-roles.sql
       - run: node scripts/deploy-migrations.cjs --apply
       - run: npx prisma generate
       - name: Actual PostgreSQL financial, session and canonical gates
@@ -322,6 +357,9 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      - name: Prepare Supabase roles in disposable CI database
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file scripts/ci/supabase-roles.sql
+
       - name: Run database migrations
         run: node scripts/deploy-migrations.cjs --apply
 
@@ -353,7 +391,9 @@ jobs:
       JWT_REFRESH_SECRET: test-refresh-secret
       TOSS_SECRET_KEY: test_sk_fixture_only
       SMS_ENV: dev
-    runs-on: ubuntu-latest
+    # Playwright 1.58.2 does not support the Ubuntu 26.04 image currently
+    # selected by ubuntu-latest. Keep browser installation on a supported LTS.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     needs: [backend-integration-tests, frontend-test]
     services:
@@ -381,6 +421,9 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
+
+      - name: Prepare Supabase roles in disposable CI database
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file scripts/ci/supabase-roles.sql
 
       - name: Run database migrations
         run: node scripts/deploy-migrations.cjs --apply
@@ -481,7 +524,7 @@ jobs:
         run: npm --prefix frontend audit --audit-level=high
 
   deploy:
-    if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
+    if: vars.ENABLE_PRODUCTION_DEPLOY == 'true' && (github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push'))
     needs:
       [
         lint-and-test,
@@ -495,7 +538,8 @@ jobs:
         e2e-tests,
       ]
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    # Vercel 배포(약 1~2분) + Render 새 리비전 대기(최대 10분)를 감안한다.
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@v4
 
@@ -548,6 +592,8 @@ jobs:
         if: steps.vercel-deploy.outputs.deployed == 'true'
         env:
           EXPECTED_COMMIT_SHA: ${{ github.sha }}
+          SMOKE_BACKEND_WAIT_MS: '600000'
+          SMOKE_POLL_INTERVAL_MS: '10000'
         run: node scripts/smoke-deploy.js
 
   # Docker build and security scan (스케줄/수동만)

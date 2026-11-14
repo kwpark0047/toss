@@ -1367,6 +1367,20 @@ export default function StoreSetupWizard() {
 
                   <div id="qr-print-area">{layoutTables.map((t) => renderPrintCard(t))}</div>
 
+                  {createdStore?.id && (
+                    <p className="text-[11px] text-slate-400 text-center mb-2">
+                      📍 고객 지도에 보일 매장 위치는 도로명 주소로 자동 지정돼요.{' '}
+                      <a
+                        href={`/admin/stores/${createdStore.id}/edit`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-bold text-amber-400 underline underline-offset-2"
+                      >
+                        위치 확인·수정
+                      </a>
+                    </p>
+                  )}
+
                   <p className="text-[11px] text-slate-600 text-center mb-4">
                     💡 5장 이상은 자동으로 다음 페이지 · 코팅 후 사용 시 오래 써요
                   </p>

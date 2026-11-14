@@ -39,6 +39,7 @@ i18n.use(initReactI18next).init({
           success: '주문이 완료되었습니다',
           failed: '주문에 실패했습니다',
         },
+        cart_modal: { title: '장바구니', split_payment: '친구와 나누어 결제할까요?', split_payment_setting: '분할 결제 설정' },
       },
     },
   },

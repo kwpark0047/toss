@@ -67,7 +67,10 @@ export const waitingAPI = {
       {},
       { headers: capability ? { 'x-waiting-capability': capability } : undefined }
     ),
-  getMyWaiting: (phone) => api.get(`/waiting/my/${phone}`),
+  getMyWaiting: (phone, capability) =>
+    api.get(`/waiting/my/${phone}`, {
+      headers: capability ? { 'x-waiting-capability': capability } : undefined,
+    }),
   getAISuggestions: (storeId, params = {}) =>
     api.get(`/waiting/store/${storeId}/ai-suggestions`, { params }),
   toggleFavorite: (storeId, phone, menuId) =>
@@ -135,6 +138,7 @@ export const aiAPI = {
   generateMenuImage: (data) => api.post('/ai/generate-menu-image', data),
   generateInstagramCopy: (data) => api.post('/ai/instagram', data),
   scanMenuImage: (data) => api.post('/ai/scan-menu-image', data),
+  tinkerbellRec: (data) => api.post('/ai/tinkerbell-rec', data),
 };
 
 export const weatherAPI = {

@@ -1,7 +1,6 @@
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const { AppError } = require('../utils/errorHandler');
-const { findExpiredTrial } = require('./businessTrialAccess');
 
 const rolePermissions = {
   owner: [
@@ -98,21 +97,6 @@ const checkStorePermission = (requiredPermission) => {
           .json({ error: '해당 매장에 대한 권한이 없거나 존재하지 않는 매장입니다' });
       }
 
-      // Preserve read access after a trial ends, but stop writes for every member
-      // of the trial store until a platform administrator approves the account.
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        const store = await prisma.stores.findUnique({
-          where: { id: Number(storeId) },
-          select: { user_id: true },
-        });
-        if (store && await findExpiredTrial(store.user_id)) {
-          return res.status(403).json({
-            error: '1개월 체험이 종료되었습니다. 최고관리자의 정식 이용 승인을 기다려 주세요.',
-            code: 'TRIAL_EXPIRED',
-          });
-        }
-      }
-
       const permissions = rolePermissions[role] || [];
 
       // 소유자(owner)이거나 명시적 권한이 포함된 경우 통과
@@ -137,7 +121,8 @@ const checkStorePermission = (requiredPermission) => {
  * - 검증된 주문/예약 capability 보유자는 통과 (req.orderCapability / req.capability)
  * - store_id 가 null 인 전역/시스템 대상은 통과 (알림 등)
  */
-const checkStorePermissionForObject = (model) => {
+// requiredPermission을 주면 매장 역할만이 아니라 그 권한까지 확인한다 (예: 직원은 메뉴 수정 불가).
+const checkStorePermissionForObject = (model, requiredPermission = null) => {
   return async (req, res, next) => {
     try {
       if (!req.user) {
@@ -170,6 +155,13 @@ const checkStorePermissionForObject = (model) => {
         return res
           .status(403)
           .json({ error: '해당 매장에 대한 권한이 없거나 존재하지 않는 매장입니다' });
+      }
+      if (
+        requiredPermission &&
+        role !== 'owner' &&
+        !(rolePermissions[role] || []).includes(requiredPermission)
+      ) {
+        return res.status(403).json({ error: `권한이 부족합니다 (${requiredPermission})` });
       }
 
       req.storeId = object.store_id;
@@ -358,4 +350,3 @@ module.exports = {
   checkResourcePermission,
   rolePermissions,
 };
-

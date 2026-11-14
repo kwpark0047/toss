@@ -41,7 +41,7 @@ const WaitingSection = ({ store, onClose }) => {
                     setStep('status');
                     fetchAISuggestions();
 
-                    ordersAPI.getSocket().emit('join-my-waiting', { phone });
+                    ordersAPI.getSocket().emit('join-my-waiting', { capability });
                 }
             }
         } catch (err) {
@@ -76,7 +76,7 @@ const WaitingSection = ({ store, onClose }) => {
         return () => {
             socket.off('waiting-status-changed', onWaitingStatusChanged);
             socket.off('refresh-ahead-count', onRefreshAheadCount);
-            socket.emit('leave-my-waiting', { phone: localStorage.getItem('waiting_phone') });
+            socket.emit('leave-my-waiting', { capability: localStorage.getItem('waiting_capability') });
         };
     }, [fetchMyStatus]);
 
@@ -96,7 +96,7 @@ const WaitingSection = ({ store, onClose }) => {
                     setWaitingCapability(res.capability);
                     localStorage.setItem('waiting_capability', res.capability);
                 }
-                ordersAPI.getSocket().emit('join-my-waiting', { phone: formData.phone });
+                ordersAPI.getSocket().emit('join-my-waiting', { capability: res.capability });
                 setMyWaiting(res.data);
                 setStep('success');
             }
