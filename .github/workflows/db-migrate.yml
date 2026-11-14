@@ -1,45 +1,60 @@
-# 승인형 DB migration 적용
-# Render 빌드는 migration 을 적용하지 않고 --check 로 미적용 여부만 확인한다.
-# 운영/스테이징 DB 변경은 이 워크플로를 수동 실행하고, 대상 GitHub Environment 의
-# 필수 승인자(Settings → Environments → Required reviewers)가 승인한 뒤에만 진행된다.
-# 각 Environment 에 MIGRATION_DATABASE_URL(직접 연결 URL) secret 을 등록해야 한다.
 name: DB Migrate (approval required)
-
 on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'Target environment (GitHub Environment name)'
+        description: Existing protected environment (explicit migration authorization required)
         required: true
         type: choice
-        options:
-          - staging
-          - production
-
+        options: [staging, production]
 concurrency:
   group: db-migrate-${{ inputs.target }}
   cancel-in-progress: false
-
 permissions:
   contents: read
-
+  actions: read
 jobs:
-  migrate:
+  preflight:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment: ${{ inputs.target }}
-    env:
-      MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
+      - name: Verify opt-in and protected environment before binding it
+        run: node scripts/verify-migration-approval.cjs
+        env:
+          ENABLE_APPROVED_DB_MIGRATIONS: ${{ vars.ENABLE_APPROVED_DB_MIGRATIONS }}
+          MIGRATION_TARGET: ${{ inputs.target }}
+          GH_TOKEN: ${{ github.token }}
+  migrate:
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.target }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
           cache: npm
+      - name: Recheck protection after platform approval
+        run: node scripts/verify-migration-approval.cjs
+        env:
+          ENABLE_APPROVED_DB_MIGRATIONS: ${{ vars.ENABLE_APPROVED_DB_MIGRATIONS }}
+          MIGRATION_TARGET: ${{ inputs.target }}
+          GH_TOKEN: ${{ github.token }}
       - run: npm ci --prefer-offline --no-audit --no-fund
       - name: Dry run (read-only plan)
         run: node scripts/deploy-migrations.cjs
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
       - name: Apply pending migrations
         run: node scripts/deploy-migrations.cjs --apply
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
       - name: Verify nothing is pending
         run: node scripts/deploy-migrations.cjs --check
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}

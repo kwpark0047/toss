@@ -37,6 +37,23 @@ describe('production migration deployment', () => {
     expect(workflow).toMatch(/workflow_dispatch:/);
     expect(workflow).toMatch(/environment: \$\{\{ inputs\.target \}\}/);
     expect(workflow).toContain('node scripts/deploy-migrations.cjs --apply');
+    const parsed = require('yaml').parse(workflow);
+    expect(Object.keys(parsed.on)).toEqual(['workflow_dispatch']);
+    expect(parsed.jobs.preflight.environment).toBeUndefined();
+    expect(parsed.jobs.migrate.needs).toBe('preflight');
+    const checks = parsed.jobs.migrate.steps.filter((step) =>
+      step.run?.includes('verify-migration-approval')
+    );
+    expect(checks).toHaveLength(1);
+    expect(parsed.jobs.migrate.steps.indexOf(checks[0])).toBeLessThan(
+      parsed.jobs.migrate.steps.findIndex((step) => step.run?.includes('npm ci'))
+    );
+    expect(parsed.jobs.migrate.env).toBeUndefined();
+    for (const step of parsed.jobs.migrate.steps.filter(
+      (item) => item.env?.MIGRATION_DATABASE_URL
+    )) {
+      expect(step.run).toMatch(/^node scripts\/deploy-migrations\.cjs/);
+    }
   });
 
   test('reports local migrations missing from the database journal', () => {
