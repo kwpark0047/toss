@@ -14,7 +14,10 @@ services:
     # --include=dev 는 필수다. 이 서비스는 NODE_ENV=production 이고 npm 의 omit 기본값이
     # 그 경우 dev 로 전환되므로, prisma CLI(devDependency)가 설치되지 않아
     # postinstall(prisma generate) 이 exit 127 로 죽고 빌드 전체가 실패한다.
-    buildCommand: npm ci --include=dev && node scripts/deploy-migrations.cjs --apply && npx prisma generate
+    # 빌드는 운영 DB를 변경하지 않는다. --check 는 읽기 전용으로 미적용 migration 을 확인하고,
+    # 남아 있으면 빌드를 실패시켜 스키마보다 앞선 코드가 배포되지 않게 한다.
+    # migration 적용은 승인형 GitHub Actions 워크플로(.github/workflows/db-migrate.yml)에서만 한다.
+    buildCommand: npm ci --include=dev && node scripts/deploy-migrations.cjs --check && npx prisma generate
     startCommand: node --import tsx index.mts
     healthCheckPath: /api/health
     autoDeploy: false
@@ -115,4 +118,3 @@ services:
         sync: false
       - key: SEED_KEY
         sync: false
-
