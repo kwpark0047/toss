@@ -517,7 +517,7 @@ jobs:
         run: npm --prefix frontend audit --audit-level=high
 
   deploy:
-    if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
+    if: vars.ENABLE_PRODUCTION_DEPLOY == 'true' && (github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push'))
     needs:
       [
         lint-and-test,
