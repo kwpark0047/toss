@@ -55,7 +55,9 @@
     "prepare": "husky",
     "test:saas": "node --test tests/saas/*.test.cjs",
     "typecheck:backend": "tsc --noEmit",
-    "smoke:startup": "node --import tsx scripts/smoke-startup.mjs"
+    "smoke:startup": "node --import tsx scripts/smoke-startup.mjs",
+    "ai:review:generate": "node scripts/generate-ai-preproduction-review.cjs",
+    "ai:review:check": "node scripts/generate-ai-preproduction-review.cjs --check && node --test tests/saas/preproduction-review.test.cjs"
   },
   "lint-staged": {
     "*.js": [
