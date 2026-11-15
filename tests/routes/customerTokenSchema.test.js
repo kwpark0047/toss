@@ -18,6 +18,7 @@ const mockOrdersController = {
   cancelDispatch: jest.fn(),
   deliveryWebhook: jest.fn(),
   cancelOrder: jest.fn(),
+  customerCancelOrder: jest.fn(),
   deleteOrder: jest.fn(),
   getEta: jest.fn(),
   returnExchange: jest.fn(),

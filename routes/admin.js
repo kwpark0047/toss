@@ -350,6 +350,60 @@ router.put(
 
 /**
  * @swagger
+ * /api/admin/stores/{storeId}/order-pace:
+ *   get:
+ *     tags: [Admin]
+ *     summary: 매장 바쁨 모드 조회
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: 추가 대기 시간과 주문 일시정지 상태
+ *   put:
+ *     tags: [Admin]
+ *     summary: 매장 바쁨 모드 저장 (주문 처리 권한이면 직원도 가능)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               extra_wait_minutes: { type: integer, enum: [0, 10, 20, 30] }
+ *               pause_minutes: { type: integer, enum: [0, 15, 30, 60], description: 0이면 즉시 재개 }
+ *     responses:
+ *       200:
+ *         description: 저장된 바쁨 모드 상태
+ */
+router.get(
+  '/stores/:storeId/order-pace',
+  authMiddleware,
+  checkStorePermission('orders:manage'),
+  storeSettingsController.getOrderPaceSettings
+);
+router.put(
+  '/stores/:storeId/order-pace',
+  authMiddleware,
+  checkStorePermission('orders:manage'),
+  storeSettingsController.updateOrderPaceSettings
+);
+
+/**
+ * @swagger
  * /api/admin/stores/{storeId}/order-channels:
  *   get:
  *     tags: [Admin]

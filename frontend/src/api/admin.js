@@ -17,6 +17,9 @@ export const adminAPI = {
   getTinkerbellSettings: (storeId) => api.get(`/admin/stores/${storeId}/tinkerbell-settings`),
   updateTinkerbellSettings: (storeId, data) =>
     api.put(`/admin/stores/${storeId}/tinkerbell-settings`, data),
+  // 바쁨 모드: { extra_wait_minutes: 0|10|20|30 } 또는 { pause_minutes: 0|15|30|60 }
+  getOrderPace: (storeId) => api.get(`/admin/stores/${storeId}/order-pace`),
+  updateOrderPace: (storeId, data) => api.put(`/admin/stores/${storeId}/order-pace`, data),
   // 주문 받는 방식(매장 식사/포장/배달)·직접 배달 설정
   getOrderChannels: (storeId) => api.get(`/admin/stores/${storeId}/order-channels`),
   updateOrderChannels: (storeId, data) => api.put(`/admin/stores/${storeId}/order-channels`, data),

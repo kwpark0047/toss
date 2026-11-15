@@ -43,7 +43,9 @@ function encrypt(value) {
 }
 function decrypt(value) {
   const bytes = Buffer.from(value, 'base64'),
-    cipher = crypto.createDecipheriv('aes-256-gcm', key(), bytes.subarray(0, 12), { authTagLength: 16 });
+    cipher = crypto.createDecipheriv('aes-256-gcm', key(), bytes.subarray(0, 12), {
+      authTagLength: 16,
+    });
   cipher.setAuthTag(bytes.subarray(12, 28));
   return JSON.parse(Buffer.concat([cipher.update(bytes.subarray(28)), cipher.final()]).toString());
 }

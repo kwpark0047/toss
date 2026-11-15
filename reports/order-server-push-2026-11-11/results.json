@@ -13,10 +13,6 @@
   "notificationClickEventReplayed": true,
   "clickUrl": "http://127.0.0.1:5174/search?orderId=10",
   "readyOrderVerified": true,
-  "widths": [
-    320,
-    390,
-    430
-  ],
+  "widths": [320, 390, 430],
   "pageErrors": []
 }
