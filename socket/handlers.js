@@ -3,7 +3,11 @@ const prisma = require('../config/prisma');
 const { phoneSearchCandidates } = require('../utils/phoneEncryption');
 const AlimtalkService = require('../services/AlimtalkService');
 const { getStoreRole } = require('../middleware/storeAuth');
-const { verifyWaitingCapability } = require('../utils/orderCapability');
+const {
+  verifyWaitingCapability,
+  verifyOrderCapability,
+  verifyCustomerHistoryCapability,
+} = require('../utils/orderCapability');
 
 const activeFoodTruckClients = new Map();
 
@@ -75,6 +79,43 @@ function registerSocketHandlers(io) {
     // ── 공통 룸 참여 ─────────────────────────────────────
     socket.on('join-order', (orderId) => {
       socket.join(`order - ${orderId}`);
+    });
+
+    // Customer progress subscriptions only expose an invalidation signal, never order details.
+    const customerOrders = new Set();
+    const customerWatches = new Map();
+    socket.on('watch-order-status', async (data = {}, ack) => {
+      try {
+        const id = Number(data.orderId);
+        const capability = verifyOrderCapability(data.capability);
+        const history = verifyCustomerHistoryCapability(data.historyCapability);
+        const authorized =
+          Number.isSafeInteger(id) &&
+          id > 0 &&
+          (capability?.orderId === id || history?.orderIds?.includes(id));
+        if (!authorized) return deny(ack, 'FORBIDDEN', '주문 구독 권한이 없습니다.');
+        const ticket = Symbol('watch');
+        customerWatches.set(id, ticket);
+        const order = await prisma.orders.findUnique({ where: { id }, select: { store_id: true } });
+        const storeId = capability?.orderId === id ? capability.storeId : history.storeId;
+        if (!order || order.store_id !== storeId)
+          return deny(ack, 'FORBIDDEN', '주문 구독 권한이 없습니다.');
+        if (customerWatches.get(id) !== ticket || socket.connected === false) return;
+        await socket.join(`customer-order - ${id}`);
+        if (customerWatches.get(id) !== ticket) {
+          socket.leave(`customer-order - ${id}`);
+          return;
+        }
+        customerOrders.add(id);
+        if (typeof ack === 'function') ack({ ok: true });
+      } catch {
+        deny(ack, 'UNAVAILABLE', '주문 상태를 다시 확인해 주세요.');
+      }
+    });
+    socket.on('unwatch-order-status', (data) => {
+      const id = Number(data?.orderId);
+      customerWatches.delete(id);
+      if (customerOrders.delete(id)) socket.leave(`customer-order - ${id}`);
     });
 
     socket.on('join-store', async (data, ack) => {

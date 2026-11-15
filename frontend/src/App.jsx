@@ -13,6 +13,7 @@ import { logError } from "@/lib/errorUtils";
 // Lazy imports
 import { Index, MenuPage, PaymentSuccess, PaymentFail, QrResolvePage, StoreIntroPage, MenuDemo, BusinessDemo, AuthPage, Register, StoreSearchPage, NotFound, KioskPage, ProfilePage, KitchenDisplayPage, LegalPage, StoreDisplay, FoodTruckLanding, FoodTruckDesignShowcase, FeaturesPage, PricingPage, GuidesPage, NewsPage, ContactPage, BoardList, BoardDetail, BoardWrite, PlanUpgrade, PointsHistoryPage, PointsSettingsPage, RecommendationStatsPage, AdminLayout, MasterDashboard, MultiStoreSupervisorDashboard, StoreSetupWizard, StoreForm, OrderManager, MenuManager, MenuBuilder, StaffManager, SalesStats, ReviewManager, AnalyticsDashboard, SettlementManager, BusinessSettingsWithTheme, SystemStatus, ReceiptSettings, CustomerManager, CampaignDashboard, ReservationManager, WaitingManager, BulkSMSManager, StoreEnrichment, InventoryManager, TableManager, StoreSettings, LegalSettings, NotificationTemplatesManager, DeveloperConsole, QrCustomizer, PartnershipManager, StaffScheduler, FoodTruckOwnerDashboard, FoodTruckAnalyticsDashboard, AlimtalkDeliveryConsole, CommunityPage, TinkerBellManagerPage, PlanRequestsManage, DynamicPricingManager, Wallet, OrderHistory, ManagerView, MenuWorldCup, RealTimeAnalyticsDashboard, StoreIntegrationCenter, AIStoreManager, BusinessSupportCenter, GlobalProviderSettings } from "@/routes/lazyImports";
 import PWAInstallBanner from "@/components/common/PWAInstallBanner";
+import TestOrdersPage from "@/pages/TestOrdersPage";
 import PWAUpdateNotification from "@/components/common/PWAUpdateNotification";
 import OfflineBanner from "@/components/common/OfflineBanner";
 import { ErrorBoundary, ErrorFallback } from "@/components/common/ErrorBoundary";
@@ -120,6 +121,7 @@ const AppRoutes = memo(() => <Routes>
     <Route path="/login" element={<Navigate to="/auth" replace />} />
     <Route path="/register" element={<AdminSuspense><Register /></AdminSuspense>} />
     <Route path="/search" element={<AdminSuspense><StoreSearchPage /></AdminSuspense>} />
+    <Route path="/test-orders" element={<TestOrdersPage />} />
     <Route path="/menu/demo" element={<AdminSuspense><MenuDemo /></AdminSuspense>} />
     <Route path="/demo/business" element={<AdminSuspense><BusinessDemo /></AdminSuspense>} />
     <Route path="/menu/:storeId" element={<AdminSuspense><MenuPage /></AdminSuspense>} />

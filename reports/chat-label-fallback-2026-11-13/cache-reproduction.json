@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-11-12T16:01:03.495Z",
+  "origin": "https://authentic-retail-presentation-steps.trycloudflare.com",
+  "method": "Controlled old-bundle simulation on isolated browser; not direct access to user browser cache",
+  "oldEntry": "/assets/index-C_7FpJ2x.js",
+  "currentEntry": "/assets/index-C_g4YW21.js",
+  "oldBundleShowsRawChatKeys": true,
+  "currentBundleAfterReloadShowsKorean": true,
+  "localStorageMarkerPreserved": true,
+  "cacheOrStorageCleared": false,
+  "serviceWorkers": "blocked in this simulation; actual user SW state not observed",
+  "chatMessagesSent": 0,
+  "cardCharges": 0
+}

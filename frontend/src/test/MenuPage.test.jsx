@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act, cleanup, fireEvent } from '@testing-library/react';
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 
 const h = React.createElement;
 
@@ -52,7 +53,7 @@ vi.mock('@/api/products', () => ({
   productsAPI: { getByStore: vi.fn() },
 }));
 vi.mock('@/api/orders', () => ({
-  ordersAPI: { create: vi.fn(), getSocket: vi.fn() },
+  ordersAPI: { create: vi.fn(), getById: vi.fn(), getSocket: vi.fn() },
   paymentsAPI: { create: vi.fn() },
 }));
 vi.mock('@/api/misc', () => ({
@@ -123,7 +124,7 @@ const createWrapper = () => {
   return ({ children }) =>
     h(I18nextProvider, { i18n },
       h(QueryClientProvider, { client: qc },
-        children
+        h(MemoryRouter, null, children)
       )
     );
 };
@@ -239,10 +240,16 @@ describe('MenuPage', () => {
     productsAPI.getByStore.mockResolvedValue({ data: [{ id: 1, name: 'fixture', price: 7500 }] });
     ordersAPI.create.mockResolvedValue({ success: true, data: { id: 1, order_number: 'fixture-order', total_amount: 7500, order_capability: 'fixture-capability' } });
     paymentsAPI.create.mockResolvedValue({ success: true, data: { id: 2, status: 'READY', method: method.toUpperCase() } });
+    ordersAPI.getById.mockResolvedValue({ data: { id: 1, store_id: 1, order_number: 'fixture-order', total_amount: 7500, payment_status: 'pending', items: [{ product_name: 'fixture menu', quantity: 1, price: 7500 }] } });
     render(h(MenuPage), { wrapper: createWrapper() });
     fireEvent.click(await screen.findByText('fixture add'));
     fireEvent.click(screen.getByText(`fixture ${method}`));
     fireEvent.click(screen.getByText('fixture order'));
+    expect(await screen.findByText('결제 예정금액')).toBeInTheDocument();
+    expect(screen.getByText('fixture menu × 1')).toBeInTheDocument();
+    expect(screen.queryByText('결제가 완료되었습니다!')).not.toBeInTheDocument();
+    expect(ordersAPI.getById).toHaveBeenCalledWith(1, 'fixture-capability');
+    fireEvent.click(screen.getByRole('button', { name: '현재 주문 진행 자세히 보기' }));
     await waitFor(() => expect(screen.getByText('OrderStatusModal receipt 1 fixture-capability')).toBeInTheDocument());
     expect(mockNavigate).not.toHaveBeenCalled();
     expect(paymentsAPI.create).toHaveBeenCalledWith(expect.objectContaining({ order_id: 1, payment_method: method }), 'fixture-capability');

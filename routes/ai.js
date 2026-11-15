@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+router.use('/marketing-drafts', require('./marketingDrafts').createMarketingDraftRouter());
 const aiController = require('../controllers/aiController');
 const { validateBody, validateId } = require('../middleware/validator');
 const { createAIRateLimiter } = require('../utils/aiRateLimiter');
@@ -354,7 +355,7 @@ router.post(
  *       200:
  *         description: 스캔된 메뉴 데이터
  */
-router.post('/scan-menu-image', createAIRateLimiter('scanMenuImage'), aiController.scanMenuImage);
+router.use('/scan-menu-image', require('./menuPhotoDrafts').createMenuPhotoDraftRouter());
 
 /**
  * @swagger

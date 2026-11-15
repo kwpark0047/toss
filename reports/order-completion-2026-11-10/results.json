@@ -1,0 +1,38 @@
+[
+  {
+    "width": 320,
+    "payment": "pass",
+    "image": "pass",
+    "overflow": false,
+    "confirmations": 1,
+    "finder": "pass",
+    "progress": "pass",
+    "longOrder": "pass",
+    "darkMode": "pass",
+    "errors": []
+  },
+  {
+    "width": 390,
+    "payment": "pass",
+    "image": "pass",
+    "overflow": false,
+    "confirmations": 1,
+    "finder": "pass",
+    "progress": "pass",
+    "longOrder": "pass",
+    "darkMode": "pass",
+    "errors": []
+  },
+  {
+    "width": 430,
+    "payment": "pass",
+    "image": "pass",
+    "overflow": false,
+    "confirmations": 1,
+    "finder": "pass",
+    "progress": "pass",
+    "longOrder": "pass",
+    "darkMode": "pass",
+    "errors": []
+  }
+]

@@ -98,7 +98,10 @@ class OrderService {
     // 사장님이 바쁨 모드로 주문을 잠시 멈춘 경우 (조회 실패 시에는 막지 않는다)
     const orderPace = await OrderPaceSettings.findByStoreIdSafe(store_id);
     if (orderPace.orders_paused) {
-      throw new AppError('주문이 몰려 잠시 주문을 받지 않고 있어요. 잠시 후 다시 시도해 주세요.', 409);
+      throw new AppError(
+        '주문이 몰려 잠시 주문을 받지 않고 있어요. 잠시 후 다시 시도해 주세요.',
+        409
+      );
     }
     const rawPhone = phone || customer_phone;
     if (user_coupon_id) {
@@ -561,7 +564,10 @@ class OrderService {
         !p.payment_key &&
         COUNTER_PAYMENT_METHODS.includes(String(p.method || '').toUpperCase());
       if (activePayments.some((p) => !isCounterPaymentPending(p))) {
-        throw new AppError('결제가 진행 중이거나 완료된 주문은 직원에게 취소를 요청해 주세요.', 409);
+        throw new AppError(
+          '결제가 진행 중이거나 완료된 주문은 직원에게 취소를 요청해 주세요.',
+          409
+        );
       }
       if (activePayments.length > 0) {
         await tx.payments.updateMany({
@@ -571,7 +577,11 @@ class OrderService {
       }
       // 주방 접수와 동시에 눌린 경우를 막기 위해 상태 조건부로 갱신한다.
       const { count } = await tx.orders.updateMany({
-        where: { id: orderId, status: 'pending', payment_status: { in: SELF_CANCELLABLE_PAYMENT_STATUSES } },
+        where: {
+          id: orderId,
+          status: 'pending',
+          payment_status: { in: SELF_CANCELLABLE_PAYMENT_STATUSES },
+        },
         data: { status: 'cancelled', updated_at: new Date() },
       });
       if (count !== 1) {
@@ -583,10 +593,18 @@ class OrderService {
     await this._revertPointsOnCancel(orderId).catch((e) =>
       logger.error('[Point Revert Error] ' + e.message)
     );
-    logger.info({ orderId, storeId: order.store_id }, 'order cancelled by customer before kitchen accept');
+    logger.info(
+      { orderId, storeId: order.store_id },
+      'order cancelled by customer before kitchen accept'
+    );
 
     if (this.io) {
-      const payload = { order_id: orderId, status: 'cancelled', store_id: order.store_id, cancelled_by: 'customer' };
+      const payload = {
+        order_id: orderId,
+        status: 'cancelled',
+        store_id: order.store_id,
+        cancelled_by: 'customer',
+      };
       this.io.to(`store - ${order.store_id}`).emit('order-updated', payload);
       this.io.to(`kitchen - ${order.store_id}`).emit('order-updated', payload);
       this.io.to(`order - ${orderId}`).emit('order-updated', payload);
@@ -853,6 +871,9 @@ class OrderService {
     this.io.to(`store - ${order.store_id}`).emit('order-updated', payload);
     this.io.to(`kitchen - ${order.store_id}`).emit('order-updated', payload);
     this.io.to(`order - ${order.id}`).emit('order-updated', payload);
+    this.io
+      .to(`customer-order - ${order.id}`)
+      .emit('customer-order-changed', { order_id: order.id });
 
     // 실시간 대시보드 (store_${storeId}_dashboard 룸) 알림 — DashboardBroadcastService 전담 채널
     dashboardBroadcastService.notifyOrderChange(order.store_id, payload);

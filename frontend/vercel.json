@@ -1,4 +1,5 @@
 {
+  "git": { "deploymentEnabled": { "main": false, "master": false } },
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
