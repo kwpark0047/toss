@@ -5,6 +5,18 @@ import Icon from '../../components/ui/Icon';
 import EmptyState from '../common/EmptyState';
 import { ArrowLeft, Calendar, ChevronRight, Clock, DollarSign, Map, RefreshCw, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react';
 
+const isMetric = (value) => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+const isSeries = (value, length) => Array.isArray(value) && value.length === length && value.every(isMetric);
+const validAnalytics = (data) => data &&
+    Number.isSafeInteger(data.totalOrderCount) && data.totalOrderCount >= 0 &&
+    isMetric(data.totalSales) && isMetric(data.averageOrderValue) &&
+    isSeries(data.hourlyOrders, 24) && isSeries(data.hourlySales, 24) &&
+    isSeries(data.dailyOrders, 7) && isSeries(data.dailySales, 7) &&
+    (data.locationSales == null || (Array.isArray(data.locationSales) && data.locationSales.every(location =>
+        location && typeof location.name === 'string' && isMetric(location.sales) && isMetric(location.count)))) &&
+    (data.aiInsights == null || (typeof data.aiInsights === 'object' && !Array.isArray(data.aiInsights) &&
+        ['summary', 'peakAdvice', 'inventoryStrategy'].every(key => data.aiInsights[key] == null || typeof data.aiInsights[key] === 'string')));
+
 export default function FoodTruckAnalyticsDashboard() {
     const { storeId } = useParams();
     const [loading, setLoading] = useState(true);
@@ -16,14 +28,14 @@ export default function FoodTruckAnalyticsDashboard() {
         try {
             setError(null);
             const json = await api.get(`/foodtruck/stores/${storeId}/analytics`);
-            if (json.success && json.data) {
-                setAnalyticsData(json.data);
+            if (json?.success === true && validAnalytics(json.data)) {
+                setAnalyticsData({ ...json.data, aiInsights: json.data.aiInsights || {} });
             } else {
                 setAnalyticsData(null);
                 setError('분석 데이터를 불러오지 못했습니다.');
             }
-        } catch (err) {
-            console.error('Failed to fetch real-time analytics:', err);
+        } catch {
+            console.error('Failed to fetch real-time analytics');
             // 실패 시 가상 통계를 보여주지 않는다 — 실제 매출로 오인될 수 있음
             setAnalyticsData(null);
             setError('분석 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');

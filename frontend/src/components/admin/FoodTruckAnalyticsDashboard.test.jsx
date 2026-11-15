@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import FoodTruckAnalyticsDashboard from './FoodTruckAnalyticsDashboard';
 
@@ -55,5 +55,52 @@ describe('FoodTruckAnalyticsDashboard', () => {
     expect(await screen.findByText('₩24,000')).toBeTruthy();
     expect(screen.getByText('실제 요약')).toBeTruthy();
     expect(api.get).toHaveBeenCalledWith('/foodtruck/stores/7/analytics');
+  });
+
+  it('recovers from an API failure through the retry button', async () => {
+    api.get.mockRejectedValueOnce(Error('offline')).mockResolvedValueOnce({ success: true, data: realData });
+    renderDashboard();
+    fireEvent.click(await screen.findByRole('button', { name: '다시 시도' }));
+    expect(await screen.findByText('₩24,000')).toBeVisible();
+    expect(screen.queryByText('분석을 불러올 수 없어요')).toBeNull();
+    expect(api.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('removes stale metrics if a refresh fails', async () => {
+    api.get.mockResolvedValueOnce({ success: true, data: realData }).mockRejectedValueOnce(Error('offline'));
+    renderDashboard();
+    await screen.findByText('₩24,000');
+    fireEvent.click(screen.getByRole('button', { name: '실시간 갱신' }));
+    expect(await screen.findByText('분석을 불러올 수 없어요')).toBeVisible();
+    expect(screen.queryByText('₩24,000')).toBeNull();
+    expect(screen.queryByText('실제 요약')).toBeNull();
+  });
+
+  it.each([null, { success: false, data: realData }, { success: true, data: null }, { success: true, data: { ...realData, totalOrderCount: null } }])('treats an invalid response as an error rather than no orders', async (response) => {
+    api.get.mockResolvedValue(response);
+    renderDashboard();
+    expect(await screen.findByText('분석을 불러올 수 없어요')).toBeVisible();
+    expect(screen.queryByText('아직 분석할 주문이 없어요')).toBeNull();
+  });
+
+  it('can retry an empty state and display newly available data', async () => {
+    api.get.mockResolvedValueOnce({ success: true, data: { ...realData, totalOrderCount: 0, totalSales: 0 } }).mockResolvedValueOnce({ success: true, data: realData });
+    renderDashboard();
+    await screen.findByText('아직 분석할 주문이 없어요');
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }));
+    await waitFor(() => expect(screen.getByText('₩24,000')).toBeVisible());
+  });
+
+  it.each([
+    { totalSales: -1 },
+    { hourlyOrders: [] },
+    { dailySales: [NaN, 0, 0, 0, 0, 0, 0] },
+    { locationSales: [null] },
+    { aiInsights: { summary: { invalid: true } } },
+  ])('rejects malformed metrics and chart content without rendering fabricated data', async (patch) => {
+    api.get.mockResolvedValue({ success: true, data: { ...realData, ...patch } });
+    renderDashboard();
+    expect(await screen.findByText('분석을 불러올 수 없어요')).toBeVisible();
+    expect(screen.queryByText('₩24,000')).toBeNull();
   });
 });
