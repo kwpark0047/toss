@@ -6,7 +6,7 @@ import path from 'path';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import 'dotenv/config';
-import logger from './utils/logger.ts';
+import logger from './utils/logger.js';
 import { checkEnv } from './utils/envValidator.js';
 const responseFormatterModule = await import('./middleware/responseFormatter.js');
 const responseFormatter = (responseFormatterModule.default ?? responseFormatterModule) as unknown as RequestHandler;
