@@ -975,6 +975,50 @@ describe('PaymentService', () => {
       ).toHaveBeenCalledWith('pk_regular', expect.stringContaining('취소된 주문'));
     });
 
+    test('PG 응답 대기 중 취소가 확정되면 늦은 승인은 장부 없이 보상한다', async () => {
+      const order = {
+        id: 1,
+        store_id: 1,
+        order_number: 'ORD-001',
+        total_amount: 50000,
+        status: 'pending',
+      };
+      prisma.orders.findUnique.mockResolvedValue(order);
+      prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+      prisma.payments.findFirst
+        .mockResolvedValueOnce({ id: 10, order_id: 1, status: 'READY', amount: 50000 })
+        .mockResolvedValueOnce(null);
+      let approve, entered;
+      const reachedPg = new Promise((resolve) => {
+        entered = resolve;
+      });
+      TossAPI.confirmPayment.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            approve = resolve;
+            entered();
+          })
+      );
+      const pending = service.processApproval('pk_delayed_fixture', 'ORD-001', 50000);
+      const rejected = expect(pending).rejects.toThrow(/취소된 주문/);
+      await reachedPg;
+      expect(ledgerService.recordIncome).not.toHaveBeenCalled();
+      mockTx.orders.findUnique.mockResolvedValue({ ...order, status: 'cancelled' });
+      approve({
+        paymentKey: 'pk_delayed_fixture',
+        method: 'CARD',
+        totalAmount: 50000,
+        card: {},
+        receipt: {},
+      });
+      await rejected;
+      expect(mockTx.payments.updateMany).not.toHaveBeenCalled();
+      expect(ledgerService.recordIncome).not.toHaveBeenCalled();
+      expect(
+        require('../../../services/PaymentCompensationService').autoCancel
+      ).toHaveBeenCalledWith('pk_delayed_fixture', expect.stringContaining('취소된 주문'));
+    });
+
     test('[2차 방어] PG 승인 금액이 READY 금액과 다르면 DONE 처리하지 않고 자동 취소한다', async () => {
       // 요청 금액은 정상 통과시키되, PG가 다른 금액을 승인한 상황을 재현
       prisma.orders.findUnique.mockResolvedValue({
