@@ -1,0 +1,66 @@
+name: Store search privacy PostgreSQL
+
+on:
+  push:
+    branches: [main, master, 'codex/store-search-privacy-*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: store-search-privacy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  store-search-privacy-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: wemarket_test_search_privacy
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U test -d wemarket_test_search_privacy"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://test:test@127.0.0.1:5432/wemarket_test_search_privacy
+      DIRECT_URL: postgresql://test:test@127.0.0.1:5432/wemarket_test_search_privacy
+      REPLICA_URL: postgresql://test:test@127.0.0.1:5432/wemarket_test_search_privacy
+      P0_TEST_DATABASE_URL: postgresql://test:test@127.0.0.1:5432/wemarket_test_search_privacy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit --no-fund
+      - name: Initialize disposable PostgreSQL from Prisma schema
+        run: |
+          npx prisma generate
+          npx prisma db push --schema prisma/schema.prisma --skip-generate
+      - name: Verify hidden-address search results and totals on PostgreSQL
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p reports
+          node --test --test-reporter=tap tests/database/store-search-privacy-postgres.test.cjs \
+            | tee reports/store-search-privacy-postgres.tap
+      - name: Upload PostgreSQL regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-search-privacy-postgres-evidence
+          path: reports/store-search-privacy-postgres.tap
+          if-no-files-found: warn
+          retention-days: 7
