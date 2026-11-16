@@ -307,14 +307,23 @@ class DeliveryDispatchService {
   }
 
   async recoverPendingEffects(orderService, limit = 50) {
-    const orders = await this.db.delivery_webhook_events.findMany({
-      where: { order_id: { not: null }, effect_completed_at: null,
+    // Advance across batches even when old orders keep failing. Always starting
+    // at id 0 would let the first 50 failures starve every newer order forever.
+    const batchAfter = (id) => this.db.delivery_webhook_events.findMany({
+      where: { id: { gt: id }, order_id: { not: null }, effect_completed_at: null,
         OR: [{ effect_lease_until: null }, { effect_lease_until: { lt: new Date() } }] },
-      distinct: ['order_id'], orderBy: { id: 'asc' }, take: limit, select: { order_id: true },
+      orderBy: { id: 'asc' }, take: limit, select: { id: true, order_id: true },
     });
+    let events = await batchAfter(this.recoveryAfterId || 0);
+    if (!events.length && this.recoveryAfterId) {
+      this.recoveryAfterId = 0;
+      events = await batchAfter(0);
+    }
+    if (events.length) this.recoveryAfterId = events[events.length - 1].id;
+    const orders = [...new Set(events.map((event) => event.order_id))];
     let failed = 0;
-    for (const event of orders) {
-      try { await this._drainEffects(event.order_id, orderService); }
+    for (const orderId of orders) {
+      try { await this._drainEffects(orderId, orderService); }
       catch { failed++; logger.warn('[DeliveryDispatch] Pending effects will retry'); }
     }
     return { attempted: orders.length, failed };

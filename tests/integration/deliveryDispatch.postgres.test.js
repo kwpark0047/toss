@@ -205,4 +205,22 @@ const enabled = !!process.env.DISPATCH_TEST_DATABASE_URL;
     expect((await db.delivery_webhook_events.findFirst()).effect_completed_at).not.toBeNull();
     await expect(fresh.recoverPendingEffects(recovered)).resolves.toEqual({ attempted: 0, failed: 0 });
   });
+  test('a persistently failing first order cannot starve later orders at batch limit 1', async () => {
+    await sql.query("INSERT INTO public.orders(id,store_id,order_number,order_type,status,delivery_status) VALUES(12,3,'D-12','delivery','completed','delivered')");
+    await db.orders.update({ where: { id: 11 }, data: { status: 'completed', delivery_status: 'delivered' } });
+    await db.delivery_webhook_events.createMany({ data: [
+      { provider: 'mock', event_id: 'failed-first', order_id: 11, effect_status: 'delivered' },
+      { provider: 'mock', event_id: 'healthy-second', order_id: 12, effect_status: 'delivered' },
+    ] });
+    const effects = { applyCommittedDeliveryEffects: jest.fn(async (id) => {
+      if (id === 11) throw new Error('persistent failure');
+    }) };
+    const worker = new DeliveryDispatchService(null, db);
+    await expect(worker.recoverPendingEffects(effects, 1)).resolves.toEqual({ attempted: 1, failed: 1 });
+    await expect(worker.recoverPendingEffects(effects, 1)).resolves.toEqual({ attempted: 1, failed: 0 });
+    const second = await db.delivery_webhook_events.findUnique({ where: { provider_event_id: { provider: 'mock', event_id: 'healthy-second' } } });
+    expect(second.effect_completed_at).not.toBeNull();
+    // Reaching the end wraps around and still retries the failed older order.
+    await expect(worker.recoverPendingEffects(effects, 1)).resolves.toEqual({ attempted: 1, failed: 1 });
+  });
 });

@@ -39,3 +39,7 @@
 PR #99의 최종 CI·보안·이미지 검사를 확인한 후 merge한다. 이번 승인된 배포를 위해 GitHub `ENABLE_PRODUCTION_DEPLOY`를 일시적으로 켜고 완료 후 원래 false로 복구한다. Render health revision과 Vercel production HTML의 app-commit이 merge SHA인지, deep schema·검색·공개 설정이 정상인지 확인한다. 운영에서 실제 결제·문자·배차를 생성하지 않는다.
 
 이미지 검사 보강: SARIF 모드에서도 기존 HIGH/CRITICAL 차단 기준을 적용하도록 `limit-severities-for-sarif`를 명시했다. zlib 및 XML parser·glob·minimatch 보안 업데이트를 적용했고, 별도 clean install에서 Swagger 330개 경로 생성·ZIP 내용·파일 패턴·레거시 rimraf API·XML 파싱 7항목을 통과했다. 이 호환성 스크립트도 매 PR CI에서 실행한다.
+
+## 배포 전 후속 보완
+
+추가 독립 검토에서 복구 스캔이 매번 오래된 50개 실패 주문부터 시작하면 이후 주문이 계속 밀릴 수 있음을 확인했다. PR #99 머지 후 배포 실행을 취소하고, 이벤트 ID 커서를 유지하며 끝에서 다시 순회하도록 보완했다. 추가 마이그레이션은 없다. 실제 PostgreSQL에서 batch limit=1·첫 주문 지속 실패·두 번째 주문 성공·끝에서 실패 주문 재시도를 확인했으며 배차 DB 검사는 총 11건 통과했다. 이 후속 PR까지 최종 검사·머지한 리비전을 배포한다.
