@@ -97,10 +97,9 @@ describe('OrderChannels 조회', () => {
     expect(OrderChannels.isOnlineOnly(channels)).toBe(false);
   });
 
-  test('테이블이 없어도 기본값으로 주문을 받는다 (fail-open)', async () => {
+  test('lookup failure propagates', async () => {
     prisma.store_order_channels.findUnique.mockRejectedValue(new Error('relation does not exist'));
-    const channels = await OrderChannels.findByStoreId(3);
-    expect(channels.dine_in_enabled).toBe(true);
+    await expect(OrderChannels.findByStoreId(3)).rejects.toThrow('relation does not exist');
   });
 
   test('만료되거나 해지된 부가기능은 꺼진 것으로 본다', async () => {
@@ -114,4 +113,12 @@ describe('OrderChannels 조회', () => {
     });
     await expect(OrderChannels.isAddonActive(3)).resolves.toBe(false);
   });
+});
+
+test('batch lookup errors propagate; missing rows are valid', async () => {
+  const error = new Error('unavailable');
+  prisma.store_order_channels.findMany.mockRejectedValueOnce(error);
+  await expect(OrderChannels.findByStoreIds([3])).rejects.toBe(error);
+  prisma.store_order_channels.findMany.mockResolvedValueOnce([]);
+  await expect(OrderChannels.findByStoreIds([3])).resolves.toEqual(new Map());
 });

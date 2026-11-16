@@ -277,7 +277,10 @@ const aiController = {
   // [AI 메뉴 이미지 생성]
   generateMenuImage: catchAsync(async (req, res) => {
     const { store_id, name, category, description } = req.body;
-    const storeId = parseInt(store_id);
+    const storeId = req.storeId;
+    if (!Number.isSafeInteger(storeId) || storeId <= 0 || Number(store_id) !== storeId) {
+      return res.status(400).json({ success: false, error: '검증된 매장 ID가 필요합니다.' });
+    }
 
     const store = await Store.findById(storeId);
 

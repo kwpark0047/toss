@@ -1,3 +1,6 @@
+jest.mock('../../config/prisma', () => ({
+  store_order_channels: { findUnique: jest.fn().mockResolvedValue(null) },
+}));
 jest.mock('../../utils/cache', () => ({ get: jest.fn(), set: jest.fn() }));
 jest.mock(
   '../../controllers/storeController',
@@ -23,5 +26,9 @@ test('async cache miss calls store controller instead of serializing Promise as 
 test('async cache hit returns the resolved store profile', async () => {
   cache.get.mockResolvedValue({ id: 6, name: 'cached store' });
   const response = await request(app).get('/stores/6');
+  expect(response.status).toBe(200);
   expect(response.body.data.name).toBe('cached store');
+  expect(require('../../config/prisma').store_order_channels.findUnique).toHaveBeenCalledWith({
+    where: { store_id: 6 },
+  });
 });

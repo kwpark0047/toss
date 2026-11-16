@@ -40,6 +40,15 @@ describe('aiController', () => {
     });
 
     describe('generateMenuImage', () => {
+        beforeEach(() => { req.storeId = 1; });
+        test.each([undefined, 2])('unverified or conflicting ID %s never calls AI', async (storeId) => {
+            req.storeId = storeId;
+            req.body = { store_id: '1', name: 'menu' };
+            await aiController.generateMenuImage(req, res);
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(Store.findById).not.toHaveBeenCalled();
+            expect(aiService.generateMenuImage).not.toHaveBeenCalled();
+        });
         test('매장이 유료 요금제인 경우 이미지를 생성한다', async () => {
             req.body = { store_id: '1', name: '김치찌개' };
             Store.findById.mockResolvedValue({ id: 1, plan: 'pro' });

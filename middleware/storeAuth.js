@@ -71,21 +71,32 @@ const checkStorePermission = (requiredPermission) => {
         return res.status(401).json({ error: '인증이 필요합니다' });
       }
 
-      // super_admin은 모든 매장에 대해 무조건 통과
+      // Reject conflicting store selectors before authorization or paid AI calls.
+      const ids = [
+        req.params?.storeId,
+        req.query?.store_id,
+        req.body?.store_id,
+        req.storeId,
+      ].filter((id) => id !== undefined && id !== null);
+      if (!ids.length) return res.status(400).json({ error: '매장 ID가 필요합니다' });
+      if (
+        ids.some(
+          (id) =>
+            !['string', 'number'].includes(typeof id) ||
+            !Number.isSafeInteger(Number(id)) ||
+            Number(id) <= 0
+        )
+      ) {
+        return res.status(400).json({ error: '유효하지 않은 매장 ID입니다.' });
+      }
+      const storeId = Number(ids[0]);
+      if (ids.some((id) => Number(id) !== storeId)) {
+        return res.status(400).json({ error: '매장 ID가 일치하지 않습니다.' });
+      }
       if (req.user.role === 'super_admin') {
+        req.storeId = storeId;
         req.storeRole = 'super_admin';
         return next();
-      }
-
-      // 권한 체크 대상 storeId 추출
-      const storeId =
-        req.params.storeId || req.query.store_id || (req.body && req.body.store_id) || req.storeId;
-
-      if (!storeId) {
-        return res.status(400).json({ error: '매장 ID가 필요합니다' });
-      }
-      if (!Number.isInteger(Number(storeId)) || Number(storeId) <= 0) {
-        return res.status(400).json({ error: '유효하지 않은 매장 ID입니다.' });
       }
 
       // 비동기로 역할 조회 (여기서 getStoreRole은 async)

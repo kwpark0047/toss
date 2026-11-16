@@ -1,4 +1,5 @@
 const Store = require("../repositories/Store");
+const OrderChannels = require("../repositories/OrderChannels");
 const catchAsync = require("../utils/catchAsync");
 const { AppError } = require("../utils/errorHandler");
 
@@ -107,6 +108,14 @@ const legalController = {
         const store = await Store.findById(req.params.storeId);
         if (!store) throw new AppError('매장을 찾을 수 없습니다.', 404);
 
+        const channels = await OrderChannels.findByStoreId(store.id);
+        // Preserve a separately configured legal disclosure, never the hidden location fallback.
+        const normalizeAddress = (value) => String(value || '').replace(/\s+/g, '').normalize('NFKC');
+        const configuredAddress = store.business_address?.trim();
+        const businessAddress = OrderChannels.hidesAddress(channels)
+            ? (configuredAddress && normalizeAddress(configuredAddress) !== normalizeAddress(store.address)
+                ? configuredAddress : '미등록')
+            : (store.business_address || store.address || '미등록');
         const validated = isValidBusinessNumber(store.business_number);
 
         res.success({
@@ -116,7 +125,7 @@ const legalController = {
             ceo_name:              store.ceo_name        || '미등록',
             business_number:       store.business_number || '미등록',
             business_number_valid: validated,
-            business_address:      store.business_address || store.address || '미등록',
+            business_address:      businessAddress,
             customer_service_phone: store.customer_service_phone || store.phone || '미등록',
             customer_service_email: store.customer_service_email || '미등록',
             mail_order_number:     store.mail_order_number || '미신고',

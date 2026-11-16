@@ -34,8 +34,8 @@ const OrderCard = ({ order, statusConfig, onShowDetail, onStatusChange, onCollec
   const dispatch = order.latest_dispatch;
   const dispatchActive = !!dispatch && ['requested', 'assigned', 'picked_up'].includes(dispatch.status);
   const canRequestDispatch = canStartDelivery && !dispatchActive;
-  const canCancelDispatch = !!dispatch && ['requested', 'assigned'].includes(dispatch.status);
-  const dispatchLabel = dispatch && {
+  const canCancelDispatch = !!dispatch && dispatch.request_state !== 'unknown' && ['requested', 'assigned'].includes(dispatch.status);
+  const dispatchLabel = dispatch?.request_state === 'unknown' ? '배차 결과 확인 필요 · 대행사에 문의' : dispatch && {
     requested: '배차 요청됨',
     assigned: `기사 배정${dispatch.rider_name ? ` · ${dispatch.rider_name}` : ''}`,
     picked_up: '기사 픽업',

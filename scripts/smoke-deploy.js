@@ -86,7 +86,7 @@ async function main(options = {}) {
       const statusOk = payload.status === 'ok';
       const checks = payload.checks || {};
       return Boolean(
-        statusOk && checks.database?.status === 'ok' && checks.operationalConfig?.status === 'ok'
+        statusOk && checks.database?.status === 'ok' && checks.operationalConfig?.status === 'ok' && checks.schema?.status === 'ok'
       );
     } catch {
       return false;

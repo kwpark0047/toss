@@ -2,7 +2,8 @@
 # Stage 1: Builder
 FROM node:22-alpine AS builder
 
-RUN apk add --no-cache openssl
+# CVE-2026-4738: refresh the base image's zlib to the fixed Alpine package.
+RUN apk upgrade --no-cache && apk add --no-cache openssl 'zlib>=1.4-r0'
 
 WORKDIR /app
 
@@ -22,7 +23,7 @@ RUN npx prisma generate
 # Stage 2: Production runtime
 FROM node:22-alpine AS production
 
-RUN apk add --no-cache openssl
+RUN apk upgrade --no-cache && apk add --no-cache openssl 'zlib>=1.4-r0'
 
 # Use the node user/group bundled with the official node image
 # (newer Alpine adduser/addgroup changed -S handling; the built-in node user avoids that)

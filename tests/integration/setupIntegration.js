@@ -32,6 +32,12 @@ jest.mock('../../config/prisma', () => {
   return {
     // Commonly used models across integration tests
     stores: createMockModel(),
+    // Missing settings is a normal empty result; database errors must still fail closed.
+    store_order_channels: {
+      ...createMockModel(),
+      findUnique: jest.fn().mockResolvedValue(null),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     products: createMockModel(),
     orders: createMockModel(),
     order_items: createMockModel(),

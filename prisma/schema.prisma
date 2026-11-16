@@ -166,6 +166,7 @@ model orders {
   reviews            reviews?
   print_jobs         print_jobs[]
   delivery_dispatches delivery_dispatches[]
+  delivery_order_effects delivery_order_effects?
 
   @@index([created_at], map: "idx_orders_created_at")
   @@index([store_id], map: "idx_orders_store_id")
@@ -727,6 +728,7 @@ model store_order_channels {
 }
 
 model delivery_dispatches {
+  request_state String @default("confirmed") @db.VarChar(20) // unknown requires provider reconciliation
   id             Int       @id @default(autoincrement())
   order_id       Int
   store_id       Int
@@ -754,6 +756,11 @@ model delivery_dispatches {
 }
 
 model delivery_webhook_events {
+  order_id Int?
+  effect_status String? @db.VarChar(20)
+  effect_reason String? @db.VarChar(300)
+  effect_completed_at DateTime?
+  effect_lease_until DateTime?
   id          Int      @id @default(autoincrement())
   provider    String   @db.VarChar(20)
   event_id    String   @db.VarChar(150)
@@ -2603,3 +2610,10 @@ model business_support_jobs {
 }
 
 
+
+model delivery_order_effects {
+  order_id Int @id
+  loyalty_applied_at DateTime @default(now())
+  orders orders @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@schema("public")
+}

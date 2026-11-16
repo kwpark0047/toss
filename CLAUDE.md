@@ -6,14 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 WeMarket QR 메뉴 플랫폼 — 식당/카페 운영자가 QR 코드 기반 디지털 메뉴, 주문, 결제(Toss Payments), 재고, CRM을 통합 관리하는 SaaS 서비스. 백엔드(Express + Prisma/PostgreSQL)와 프론트엔드(React + Vite)가 단일 레포에 공존한다.
 
-**배포 토폴로지**: 백엔드 API는 Render(`https://wemarket.onrender.com`)에서 운영하고, 프론트엔드는 Vercel(`https://wemarket.vercel.app`)에서 제공한다. 프론트가 `VITE_API_URL`(`https://wemarket.onrender.com/api`)로 Render API를 직접 호출한다 (Cloudflare Worker `/api` 프록시는 레거시).
+**배포 토폴로지**: 백엔드 API는 Render(`https://wemarket-eiw4.onrender.com`)에서 운영하고, 프론트엔드는 Vercel(`https://wemarket-saas.vercel.app`)에서 제공한다. 프론트가 `VITE_API_URL`(`https://wemarket-eiw4.onrender.com/api`)로 Render API를 직접 호출한다 (Cloudflare Worker `/api` 프록시는 레거시).
 
 ## Commands
 
 ### 백엔드
 
 ```bash
-node index.js                         # 서버 실행
+npm start                             # 서버 실행 (index.mts)
 npm run db:push                        # DB 스키마 동기화 (스테이징 전용, --accept-data-loss 포함)
 npm run seed                           # 시드 데이터 투입
 
@@ -43,10 +43,10 @@ npm run vercel-build   # 프론트엔드만 (Vercel 환경)
 
 ### 백엔드 (`/`)
 
-- **진입점**: `index.js` → `app.js`
+- **진입점**: `index.mts` → `app.mts`
 - **프레임워크**: Express 5 + Socket.io
 - **DB**: Prisma ORM + PostgreSQL (Supabase). `config/prisma.js`에서 싱글턴 클라이언트 생성
-- **라우팅**: `app.js`에서 `/api/<리소스>` 형태로 30개 라우터를 일괄 등록. 라우터 파일은 `routes/`에 위치
+- **라우팅**: `app.mts`에서 `/api/<리소스>` 형태로 30개 라우터를 일괄 등록. 라우터 파일은 `routes/`에 위치
 - **SPA 폴백**: API 경로(`/api/*`)가 아닌 모든 GET 요청은 `frontend/dist/index.html`로 폴백
 
 ### 프론트엔드 (`/frontend`)

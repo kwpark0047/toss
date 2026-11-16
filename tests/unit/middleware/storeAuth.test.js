@@ -305,3 +305,24 @@ describe('checkUniformStoreMutation', () => {
     expect(req.storeRole).toBe('owner');
   });
 });
+
+describe('store selector consistency', () => {
+  beforeEach(() => jest.resetAllMocks());
+  test.each([
+    { params: { storeId: '10' }, body: { store_id: 11 } },
+    { query: { store_id: '10' }, body: { store_id: 11 } },
+    { body: { store_id: 10 }, storeId: 11 },
+    { query: { store_id: ['10', '11'] }, body: { store_id: 10 } },
+  ])('rejects conflicting or nonscalar selectors %j before DB', async (selectors) => {
+    const res = mockRes(),
+      next = jest.fn();
+    await checkStorePermission('products:write')(
+      { user: { id: 7, role: 'owner' }, ...selectors },
+      res,
+      next
+    );
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(next).not.toHaveBeenCalled();
+    expect(prisma.stores.findUnique).not.toHaveBeenCalled();
+  });
+});
