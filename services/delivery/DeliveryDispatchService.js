@@ -306,6 +306,20 @@ class DeliveryDispatchService {
     return outcome.duplicate ? { handled: false, duplicate: true } : { handled: true };
   }
 
+  async recoverPendingEffects(orderService, limit = 50) {
+    const orders = await this.db.delivery_webhook_events.findMany({
+      where: { order_id: { not: null }, effect_completed_at: null,
+        OR: [{ effect_lease_until: null }, { effect_lease_until: { lt: new Date() } }] },
+      distinct: ['order_id'], orderBy: { id: 'asc' }, take: limit, select: { order_id: true },
+    });
+    let failed = 0;
+    for (const event of orders) {
+      try { await this._drainEffects(event.order_id, orderService); }
+      catch { failed++; logger.warn('[DeliveryDispatch] Pending effects will retry'); }
+    }
+    return { attempted: orders.length, failed };
+  }
+
   // Durable, at-least-once post-commit effects. A crash releases the lease after 60s.
   // Notification/loyalty providers must be idempotent too; DB state is exactly-once.
   async _drainEffects(orderId, orderService) {

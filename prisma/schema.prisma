@@ -166,6 +166,7 @@ model orders {
   reviews            reviews?
   print_jobs         print_jobs[]
   delivery_dispatches delivery_dispatches[]
+  delivery_order_effects delivery_order_effects?
 
   @@index([created_at], map: "idx_orders_created_at")
   @@index([store_id], map: "idx_orders_store_id")
@@ -2613,5 +2614,6 @@ model business_support_jobs {
 model delivery_order_effects {
   order_id Int @id
   loyalty_applied_at DateTime @default(now())
+  orders orders @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   @@schema("public")
 }

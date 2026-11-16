@@ -24,9 +24,9 @@ const probeReleaseSchema = createReadinessProbe(() => prismaClient.$queryRaw`
   SELECT o.delivery_fee, o.delivery_memo, o.delivery_status, o.delivery_started_at, o.delivered_at,
          c.agency_provider, c.agency_auto_dispatch, d.request_state,
          e.order_id, e.effect_status, e.effect_reason, e.effect_completed_at, e.effect_lease_until,
-         b.supply_amount, b.vat_amount, b.tax_free_amount
+         b.supply_amount, b.vat_amount, b.tax_free_amount, f.loyalty_applied_at
   FROM public.orders o, public.store_order_channels c, public.delivery_dispatches d,
-       public.delivery_webhook_events e, public."BillingInvoice" b LIMIT 0
+       public.delivery_webhook_events e, public."BillingInvoice" b, public.delivery_order_effects f LIMIT 0
 `);
 
 const router = Router();

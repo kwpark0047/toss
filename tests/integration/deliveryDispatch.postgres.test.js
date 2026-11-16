@@ -177,7 +177,7 @@ const enabled = !!process.env.DISPATCH_TEST_DATABASE_URL;
   test('post-commit order effects failure is visible and same event retries effects', async () => {
     await seed();
     const orderService = {
-      updateStatus: jest
+      applyCommittedDeliveryEffects: jest
         .fn()
         .mockRejectedValueOnce(new Error('effects unavailable'))
         .mockResolvedValue({}),
@@ -192,5 +192,17 @@ const enabled = !!process.env.DISPATCH_TEST_DATABASE_URL;
     });
     expect(orderService.applyCommittedDeliveryEffects).toHaveBeenCalledTimes(2);
     expect((await db.delivery_webhook_events.findFirst()).effect_completed_at).not.toBeNull();
+  });
+  test('fresh process recovers expired pending effects without another webhook', async () => {
+    await seed();
+    const failedService = { applyCommittedDeliveryEffects: jest.fn().mockRejectedValue(new Error('crash')) };
+    await expect(webhook('delivered', 'restart', 'dispatch-1', failedService)).rejects.toThrow('crash');
+    await db.delivery_webhook_events.updateMany({ data: { effect_lease_until: new Date(0) } });
+    const recovered = { applyCommittedDeliveryEffects: jest.fn().mockResolvedValue() };
+    const fresh = new DeliveryDispatchService(null, db);
+    await expect(fresh.recoverPendingEffects(recovered)).resolves.toEqual({ attempted: 1, failed: 0 });
+    expect(recovered.applyCommittedDeliveryEffects).toHaveBeenCalledWith(11, 'completed');
+    expect((await db.delivery_webhook_events.findFirst()).effect_completed_at).not.toBeNull();
+    await expect(fresh.recoverPendingEffects(recovered)).resolves.toEqual({ attempted: 0, failed: 0 });
   });
 });

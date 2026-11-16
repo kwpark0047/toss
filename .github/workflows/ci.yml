@@ -200,6 +200,10 @@ jobs:
           node --test tests/database/billing-fencing-postgres.test.cjs
           node --import tsx --test tests/database/webhook-inbox-postgres.test.cjs
           node --test tests/database/canonical-sync-postgres.test.cjs
+      - name: Delivery dispatch regression in a separate disposable database
+        env:
+          DISPATCH_TEST_DATABASE_URL: postgresql://audit:audit-local-only@127.0.0.1:55438/wemarket_dispatch_test
+        run: node scripts/run-delivery-dispatch-postgres.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -676,6 +680,7 @@ jobs:
         continue-on-error: true
         with:
           sarif_file: 'trivy-backend.sarif'
+          category: trivy-backend
 
       - name: Run Trivy vulnerability scanner (frontend)
         if: ${{ !cancelled() }}
@@ -695,8 +700,10 @@ jobs:
         continue-on-error: true
         with:
           sarif_file: 'trivy-frontend.sarif'
+          category: trivy-frontend
 
       - name: Generate SBOM (backend)
+        if: ${{ !cancelled() }}
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'wemarket-api:latest'
@@ -706,6 +713,7 @@ jobs:
           exit-code: '0'
 
       - name: Generate SBOM (frontend)
+        if: ${{ !cancelled() }}
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'wemarket-frontend:latest'
@@ -724,7 +732,7 @@ jobs:
             trivy-frontend.sarif
             trivy-backend.sbom.json
             trivy-frontend.sbom.json
-          retention-days: 3
+          retention-days: 14
 
   bundle-size-check:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
