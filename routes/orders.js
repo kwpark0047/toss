@@ -398,7 +398,7 @@ router.delete(
  *         description: 서명 검증 실패
  */
 router.post(
-  '/delivery-webhooks/:provider/:storeId',
+  ['/delivery-webhooks/:provider/:storeId', '/delivery-webhooks/:provider/:storeId/delivery/status', '/delivery-webhooks/:provider/:storeId/order/status'],
   rateLimit({ windowMs: 60000, limit: 300 }),
   validateParams(deliveryWebhookParamSchema),
   orderController.deliveryWebhook

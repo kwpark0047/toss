@@ -17,6 +17,12 @@ const baseProps = {
 };
 
 describe('OrderTypePanel', () => {
+  it('상세주소는 도로명 주소와 별도로 입력한다', () => {
+    const onDeliveryAddressDetailChange = vi.fn();
+    render(<OrderTypePanel {...baseProps} orderType="delivery" deliveryAddressDetail="" onDeliveryAddressDetailChange={onDeliveryAddressDetailChange} />);
+    fireEvent.change(screen.getByLabelText('상세주소'), { target: { value: '101호' } });
+    expect(onDeliveryAddressDetailChange).toHaveBeenCalledWith('101호');
+  });
   it('포장을 고르면 픽업 안내를 보여 주고, 배달로 바꿀 수 있다', () => {
     const onOrderTypeChange = vi.fn();
     render(<OrderTypePanel {...baseProps} onOrderTypeChange={onOrderTypeChange} />);

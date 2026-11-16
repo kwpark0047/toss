@@ -90,6 +90,8 @@ const Order = {
               is_takeout: is_takeout ? 1 : 0,
               order_type: data.order_type || (is_takeout ? 'takeout' : 'dine_in'),
               delivery_address: data.delivery_address || null,
+              delivery_road_address: data.delivery_road_address || null,
+              delivery_address_detail: data.delivery_address_detail || null,
               delivery_fee: data.order_type === 'delivery' ? deliveryFee : null,
               delivery_memo: data.delivery_memo || null,
               split_type: data.split_type || 'NONE',

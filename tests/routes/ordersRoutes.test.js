@@ -67,6 +67,11 @@ const validOrder = {
 };
 
 describe('orders routes', () => {
+  it.each(['delivery/status', 'order/status'])('공식 콜백 접미 경로 %s를 웹훅 컨트롤러에 전달한다', async (suffix) => {
+    const res = await request(buildApp()).post(`/api/orders/delivery-webhooks/barogo/3/${suffix}`).send({});
+    expect(res.status).toBe(200);
+    expect(mockController.deliveryWebhook).toHaveBeenCalled();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockPrisma.stores.findUnique.mockResolvedValue({ user_id: OWNER_ID });

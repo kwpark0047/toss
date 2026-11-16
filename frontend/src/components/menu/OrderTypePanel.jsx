@@ -20,6 +20,8 @@ export default function OrderTypePanel({
   delivery,
   deliveryAddress,
   onDeliveryAddressChange,
+  deliveryAddressDetail = '',
+  onDeliveryAddressDetailChange,
   deliveryMemo,
   onDeliveryMemoChange,
   quote,
@@ -69,12 +71,17 @@ export default function OrderTypePanel({
             id="delivery-address"
             type="text"
             autoComplete="street-address"
-            maxLength={300}
+            maxLength={100}
             value={deliveryAddress}
             onChange={(e) => onDeliveryAddressChange(e.target.value)}
-            placeholder="배달 받을 주소 (도로명 주소와 동·호수)"
+            placeholder="배달 받을 도로명 주소"
             className="w-full bg-grey-50 dark:bg-white/5 border border-grey-200 dark:border-white/10 rounded-xl tds-p-3 tds-p-2.5 tds-small font-bold cust-text-main placeholder:text-grey-400 outline-none focus:border-primary"
           />
+          <label htmlFor="delivery-address-detail" className="sr-only">상세주소</label>
+          <input id="delivery-address-detail" type="text" autoComplete="address-line2" maxLength={100}
+            value={deliveryAddressDetail} onChange={(e) => onDeliveryAddressDetailChange?.(e.target.value)}
+            placeholder="상세주소 (동·호수, 층 또는 수령 위치)"
+            className="w-full bg-grey-50 dark:bg-white/5 border border-grey-200 dark:border-white/10 rounded-xl tds-p-3 tds-small cust-text-main placeholder:text-grey-400 outline-none focus:border-primary" />
           <label htmlFor="delivery-memo" className="sr-only">배달 요청사항</label>
           <input
             id="delivery-memo"

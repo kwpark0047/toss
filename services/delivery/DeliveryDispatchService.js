@@ -32,9 +32,10 @@ const toPublic = (d) =>
   };
 
 class DeliveryDispatchService {
-  constructor(io = null, db = prisma) {
+  constructor(io = null, db = prisma, adapterResolver = getAdapter) {
     this.io = io;
     this.db = db;
+    this.getAdapter = adapterResolver;
   }
 
   _emit(order, dispatch) {
@@ -84,7 +85,7 @@ class DeliveryDispatchService {
     const channels = await OrderChannels.findByStoreId(order.store_id, this.db);
     if (channels.delivery_fulfillment !== 'agency' || !channels.agency_provider)
       throw new AppError('배달대행을 쓰도록 설정된 매장이 아닙니다.', 400);
-    const adapter = getAdapter(channels.agency_provider);
+    const adapter = this.getAdapter(channels.agency_provider);
     if (!adapter) throw new AppError('지원하지 않는 배달대행사입니다.', 400);
     const creds = await credentials.resolve(channels.agency_provider, order.store_id);
     if (!creds) throw new AppError(`${adapter.label} 계정을 먼저 연결해 주세요.`, 400);
@@ -95,9 +96,20 @@ class DeliveryDispatchService {
       select: { id: true, name: true, address: true, phone: true, latitude: true, longitude: true },
     });
     const callbackUrl = `${process.env.BACKEND_URL || ''}/api/orders/delivery-webhooks/${adapter.key}/${order.store_id}`;
+    let dispatchOrder = order;
     const claim = await this.db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM public.orders WHERE id = ${order.id} FOR UPDATE`;
-      const current = await tx.orders.findUnique({ where: { id: order.id } });
+      const current = await tx.orders.findUnique({
+        where: { id: order.id },
+        ...(adapter.needsOrderDetails ? { include: { order_items: true, payments: true } } : {}),
+      });
+      dispatchOrder = current;
+      if (adapter.prepareDispatch)
+        adapter.prepareDispatch({
+          order: current,
+          credentials: creds,
+          idempotencyKey: 'delivery-dispatch:preflight',
+        });
       if (
         ['completed', 'cancelled'].includes(current.status) ||
         ['delivering', 'delivered'].includes(current.delivery_status)
@@ -111,7 +123,7 @@ class DeliveryDispatchService {
           '이미 배차를 요청한 주문입니다. 미확정 결과는 대행사 확인이 필요합니다.',
           409
         );
-      return tx.delivery_dispatches.create({
+      const created = await tx.delivery_dispatches.create({
         data: {
           order_id: order.id,
           store_id: order.store_id,
@@ -120,6 +132,12 @@ class DeliveryDispatchService {
           request_state: 'unknown',
         },
       });
+      if (adapter.externalIdForClaim)
+        return tx.delivery_dispatches.update({
+          where: { id: created.id },
+          data: { external_id: adapter.externalIdForClaim(created.id) },
+        });
+      return created;
     });
 
     // Commit the claim BEFORE I/O. Timeouts/crashes/persistence errors must never cause a resend.
@@ -128,7 +146,7 @@ class DeliveryDispatchService {
     try {
       const result = await adapter.requestDispatch({
         credentials: creds,
-        order,
+        order: dispatchOrder,
         store,
         callbackUrl,
         idempotencyKey: `delivery-dispatch:${claim.id}`,
@@ -137,6 +155,9 @@ class DeliveryDispatchService {
         throw new AppError('대행사 응답을 해석하지 못했습니다.', 502);
       dispatch = await this.db.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT id FROM public.orders WHERE id = ${order.id} FOR UPDATE`;
+        const latestClaim = await tx.delivery_dispatches.findUnique({ where: { id: claim.id } });
+        // A callback may commit before the request response. Never overwrite it.
+        if (latestClaim?.provider_changed_at != null) return latestClaim;
         const saved = await tx.delivery_dispatches.update({
           where: { id: claim.id },
           data: {
@@ -188,9 +209,10 @@ class DeliveryDispatchService {
         '취소할 수 있는 배차가 없습니다. 기사가 픽업한 뒤에는 대행사에 직접 문의해 주세요.',
         409
       );
-    const adapter = getAdapter(dispatch.provider);
+    const adapter = this.getAdapter(dispatch.provider);
     const creds = await credentials.resolve(dispatch.provider, dispatch.store_id);
-    if (!adapter || !creds) throw new AppError('대행사 연결 정보를 확인할 수 없습니다.', 400);
+    if (!adapter || !adapter.ready || !creds)
+      throw new AppError('대행사 연결 정보를 확인할 수 없습니다.', 400);
     await adapter.cancelDispatch({ credentials: creds, dispatch, reason });
     await this.db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM public.orders WHERE id = ${dispatch.order_id} FOR UPDATE`;
@@ -214,16 +236,18 @@ class DeliveryDispatchService {
    * 대행사 상태 웹훅. 서명 검증 → 같은 이벤트 중복 무시 → 배차·주문 반영.
    * @returns {{ handled: boolean, duplicate?: boolean }}
    */
-  async handleWebhook({ provider, storeId, rawBody, headers, body, orderService }) {
-    const adapter = getAdapter(provider);
+  async handleWebhook({ provider, storeId, rawBody, headers, body, orderService, callbackKind }) {
+    const adapter = this.getAdapter(provider);
     if (!adapter || !adapter.ready) throw new AppError('지원하지 않는 배달대행사입니다.', 404);
     const creds = await credentials.resolve(provider, storeId);
     if (!creds || !adapter.verifyWebhook({ credentials: creds, rawBody, headers }))
       throw new AppError('서명을 확인할 수 없습니다.', 401);
 
-    const event = adapter.parseWebhook({ body });
+    const event = adapter.parseWebhook({ body, credentials: creds, callbackKind });
     if (!event?.eventId || !event.externalId || !STATUSES.includes(event.status))
       throw new AppError('대행사 이벤트 형식이 올바르지 않습니다.', 400);
+    if (event.changedAt != null && (!Number.isSafeInteger(event.changedAt) || event.changedAt <= 0))
+      throw new AppError('대행사 이벤트 시각이 올바르지 않습니다.', 400);
 
     const found = await this.db.delivery_dispatches.findFirst({
       where: { provider, external_id: event.externalId, store_id: Number(storeId) },
@@ -244,22 +268,49 @@ class DeliveryDispatchService {
         orderBy: { id: 'desc' },
       });
       if (latest.id !== dispatch.id) return { handled: true };
+      const providerTime = event.changedAt == null ? null : BigInt(event.changedAt);
+      if (
+        providerTime != null &&
+        dispatch.provider_changed_at != null &&
+        providerTime < dispatch.provider_changed_at
+      )
+        return { handled: true };
+      const reassignment =
+        event.reassignment === true &&
+        providerTime != null &&
+        (dispatch.provider_changed_at == null || providerTime > dispatch.provider_changed_at) &&
+        ['requested', 'assigned'].includes(dispatch.status) &&
+        event.status === 'requested';
       if (
         ['delivered', 'canceled', 'failed'].includes(dispatch.status) ||
-        RANK[event.status] < RANK[dispatch.status] ||
-        dispatch.status === event.status
-      ) {
+        (!reassignment && RANK[event.status] < RANK[dispatch.status])
+      )
+        return { handled: true };
+      // Keep the timestamp watermark even for same-state rider changes.
+      if (providerTime != null && !['delivered', 'canceled', 'failed'].includes(dispatch.status)) {
+        await tx.delivery_dispatches.update({
+          where: { id: dispatch.id },
+          data: { provider_changed_at: providerTime, request_state: 'confirmed' },
+        });
+      }
+      if (!reassignment && dispatch.status === event.status) {
         // 이미 지난 단계 — 기사 정보만 보강
-        if (event.riderName || event.trackingUrl) {
-          await tx.delivery_dispatches.update({
+        if (
+          !['delivered', 'canceled', 'failed'].includes(dispatch.status) &&
+          (event.riderName || event.riderPhone || event.trackingUrl)
+        ) {
+          const riderChanged = event.riderPhone && event.riderPhone !== dispatch.rider_phone;
+          const updated = await tx.delivery_dispatches.update({
             where: { id: dispatch.id },
             data: {
-              rider_name: event.riderName || dispatch.rider_name,
+              rider_name: event.riderName || (riderChanged ? null : dispatch.rider_name),
               rider_phone: event.riderPhone || dispatch.rider_phone,
-              tracking_url: event.trackingUrl || dispatch.tracking_url,
+              tracking_url: event.trackingUrl || (riderChanged ? null : dispatch.tracking_url),
               updated_at: new Date(),
             },
           });
+          const order = await tx.orders.findUnique({ where: { id: dispatch.order_id } });
+          return { handled: true, order, updated };
         }
         return { handled: true };
       }
@@ -276,10 +327,14 @@ class DeliveryDispatchService {
         where: { id: dispatch.id },
         data: {
           status: event.status,
+          ...(providerTime != null
+            ? { provider_changed_at: providerTime, request_state: 'confirmed' }
+            : {}),
+          ...(reassignment ? { assigned_at: null } : {}),
           ...(stamp ? { [stamp]: now } : {}),
-          rider_name: event.riderName || dispatch.rider_name,
-          rider_phone: event.riderPhone || dispatch.rider_phone,
-          tracking_url: event.trackingUrl || dispatch.tracking_url,
+          rider_name: reassignment ? null : event.riderName || dispatch.rider_name,
+          rider_phone: reassignment ? null : event.riderPhone || dispatch.rider_phone,
+          tracking_url: reassignment ? null : event.trackingUrl || dispatch.tracking_url,
           fee: Number.isInteger(event.fee) ? event.fee : dispatch.fee,
           failure_reason: event.reason || dispatch.failure_reason,
           updated_at: now,
@@ -309,11 +364,18 @@ class DeliveryDispatchService {
   async recoverPendingEffects(orderService, limit = 50) {
     // Advance across batches even when old orders keep failing. Always starting
     // at id 0 would let the first 50 failures starve every newer order forever.
-    const batchAfter = (id) => this.db.delivery_webhook_events.findMany({
-      where: { id: { gt: id }, order_id: { not: null }, effect_completed_at: null,
-        OR: [{ effect_lease_until: null }, { effect_lease_until: { lt: new Date() } }] },
-      orderBy: { id: 'asc' }, take: limit, select: { id: true, order_id: true },
-    });
+    const batchAfter = (id) =>
+      this.db.delivery_webhook_events.findMany({
+        where: {
+          id: { gt: id },
+          order_id: { not: null },
+          effect_completed_at: null,
+          OR: [{ effect_lease_until: null }, { effect_lease_until: { lt: new Date() } }],
+        },
+        orderBy: { id: 'asc' },
+        take: limit,
+        select: { id: true, order_id: true },
+      });
     let events = await batchAfter(this.recoveryAfterId || 0);
     if (!events.length && this.recoveryAfterId) {
       this.recoveryAfterId = 0;
@@ -323,8 +385,12 @@ class DeliveryDispatchService {
     const orders = [...new Set(events.map((event) => event.order_id))];
     let failed = 0;
     for (const orderId of orders) {
-      try { await this._drainEffects(orderId, orderService); }
-      catch { failed++; logger.warn('[DeliveryDispatch] Pending effects will retry'); }
+      try {
+        await this._drainEffects(orderId, orderService);
+      } catch {
+        failed++;
+        logger.warn('[DeliveryDispatch] Pending effects will retry');
+      }
     }
     return { attempted: orders.length, failed };
   }

@@ -144,6 +144,8 @@ model orders {
   is_takeout         Int?                 @default(0)
   order_type         String?              @default("dine_in")  // dine_in | takeout | delivery
   delivery_address   String?
+  delivery_road_address String? @db.VarChar(100)
+  delivery_address_detail String? @db.VarChar(100)
   delivery_fee       Int?
   delivery_memo      String?              @db.VarChar(500)
   delivery_status    String?              @db.VarChar(16)  // null | delivering | delivered (배달 주문만)
@@ -728,6 +730,7 @@ model store_order_channels {
 }
 
 model delivery_dispatches {
+  provider_changed_at BigInt?
   request_state String @default("confirmed") @db.VarChar(20) // unknown requires provider reconciliation
   id             Int       @id @default(autoincrement())
   order_id       Int

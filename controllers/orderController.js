@@ -125,6 +125,7 @@ const orderController = {
       rawBody: req.rawBody,
       headers: req.headers,
       body: req.body,
+      callbackKind: req.path.endsWith('/delivery/status') ? 'delivery' : req.path.endsWith('/order/status') ? 'order' : undefined,
       orderService: new OrderService(io),
     });
     res.json({ success: true, ...result });
