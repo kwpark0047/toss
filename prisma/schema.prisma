@@ -120,6 +120,7 @@ model order_items {
 }
 
 model orders {
+  push_subscriptions order_push_subscriptions[]
   inventory_compensation inventory_compensations?
   integration_events integration_events[]
   id                 Int                  @id @default(autoincrement())
@@ -171,6 +172,26 @@ model orders {
   @@index([store_id, status, created_at], map: "idx_orders_store_status_date")
   @@index([customer_phone], map: "idx_orders_customer_phone")
   @@index([table_id], map: "idx_orders_table_id")
+  @@schema("public")
+}
+
+model order_push_subscriptions {
+  id                Int       @id @default(autoincrement())
+  order_id          Int
+  endpoint_hash     String    @db.VarChar(64)
+  encrypted_payload String
+  expires_at        DateTime
+  sent_at           DateTime?
+  attempts          Int       @default(0)
+  next_attempt_at   DateTime  @default(now())
+  locked_until      DateTime?
+  enabled           Boolean  @default(true)
+  last_error        String?   @db.VarChar(32)
+  created_at        DateTime  @default(now())
+  orders            orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([order_id, endpoint_hash])
+  @@index([enabled, next_attempt_at])
   @@schema("public")
 }
 
@@ -672,6 +693,17 @@ model store_tinkerbell_settings {
   @@schema("public")
 }
 
+model store_order_pace {
+  id                  Int       @id @default(autoincrement())
+  store_id            Int       @unique(map: "uq_store_order_pace_store")
+  extra_wait_minutes  Int       @default(0)
+  orders_paused_until DateTime?
+  updated_at          DateTime  @default(now())
+  stores              stores    @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
 model store_order_channels {
   id                   Int      @id @default(autoincrement())
   store_id             Int      @unique(map: "uq_store_order_channels_store")
@@ -811,6 +843,7 @@ model stores {
   store_point_settings          store_point_settings?
   store_receipt_settings        store_receipt_settings?
   store_tinkerbell_settings     store_tinkerbell_settings?
+  store_order_pace              store_order_pace?
   store_order_channels          store_order_channels?
   store_addons                  store_addons[]
   delivery_dispatches           delivery_dispatches[]
@@ -1119,6 +1152,7 @@ model users {
   business_support_enrollments business_support_enrollments[]
   business_support_assignments business_support_cases[]
   business_support_events business_support_events[]
+  business_support_messages business_support_messages[]
   auth_sessions AuthSession[]
   customer_ai_consents customer_ai_consents[]
   id                                                               Int                      @id @default(autoincrement())
@@ -2521,6 +2555,7 @@ model business_support_cases {
   action manager_actions? @relation(fields:[store_id,action_id],references:[store_id,id],onDelete:NoAction)
   assignee users? @relation(fields:[assignee_id],references:[id],onDelete:NoAction)
   events business_support_events[]
+  messages business_support_messages[]
   @@unique([store_id,id])
   @@unique([store_id,snapshot_id])
   @@index([priority,created_at,id],map:"business_support_queue")
@@ -2541,6 +2576,21 @@ model business_support_events {
   support_case business_support_cases @relation(fields:[store_id,case_id],references:[store_id,id],onDelete:NoAction)
   actor users @relation(fields:[actor_id],references:[id],onDelete:NoAction)
   @@index([store_id,case_id,created_at],map:"business_support_event_case")
+  @@schema("public")
+}
+model business_support_messages {
+  id String @id @db.Uuid
+  store_id Int
+  case_id String @db.Uuid
+  author_id Int
+  author_role String
+  visibility String
+  operation_id String @unique @db.Uuid
+  body String
+  created_at DateTime @default(now()) @db.Timestamptz
+  support_case business_support_cases @relation(fields:[store_id,case_id],references:[store_id,id],onDelete:NoAction)
+  author users @relation(fields:[author_id],references:[id],onDelete:NoAction)
+  @@index([store_id,case_id,created_at,id],map:"business_support_message_thread")
   @@schema("public")
 }
 model business_support_jobs {

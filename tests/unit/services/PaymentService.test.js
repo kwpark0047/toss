@@ -293,7 +293,12 @@ describe('PaymentService', () => {
       expect(result.pg_order_id).toMatch(/^ORD-SPLIT-S-[a-f0-9]{12}$/);
       expect(mockTx.payments.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ status: 'READY', is_partial: true, amount: 4000, method: 'CASH' }),
+          data: expect.objectContaining({
+            status: 'READY',
+            is_partial: true,
+            amount: 4000,
+            method: 'CASH',
+          }),
         })
       );
       expect(ledgerService.recordIncome).not.toHaveBeenCalled();
@@ -316,11 +321,13 @@ describe('PaymentService', () => {
     );
 
     test('requires a stable participant idempotency key', async () => {
-      await expect(service.processSplitPayment({
-        order_id: 50,
-        amount: 4000,
-        payment_method: 'cash',
-      })).rejects.toThrow(/참가자 키/);
+      await expect(
+        service.processSplitPayment({
+          order_id: 50,
+          amount: 4000,
+          payment_method: 'cash',
+        })
+      ).rejects.toThrow(/참가자 키/);
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
@@ -344,7 +351,9 @@ describe('PaymentService', () => {
       expect(mockTx.payments.findFirst).toHaveBeenCalledWith({
         where: { order_id: 50, split_participant_key: hashedKey, is_partial: true },
       });
-      expect(result).toEqual(expect.objectContaining({ payment_id: 500, already_registered: true }));
+      expect(result).toEqual(
+        expect.objectContaining({ payment_id: 500, already_registered: true })
+      );
       expect(mockTx.payments.create).not.toHaveBeenCalled();
     });
 
@@ -395,15 +404,25 @@ describe('PaymentService', () => {
       });
       prisma.orders.update.mockResolvedValue({});
       mockTx.orders.findUnique.mockResolvedValue({
-        id: 3, total_amount: 27000, split_type: 'NONE', split_people_count: null,
-        split_status: null, payments: [],
+        id: 3,
+        total_amount: 27000,
+        split_type: 'NONE',
+        split_people_count: null,
+        split_status: null,
+        payments: [],
       });
       const result = await service.setupSplitPayment(3, 'EQUAL', 4);
       expect(result.items.map((i) => i.amount)).toEqual([6750, 6750, 6750, 6750]);
       expect(result.items.reduce((sum, i) => sum + i.amount, 0)).toBe(27000);
-      expect(mockTx.orders.update).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({ is_split_payment: true, split_type: 'EQUAL', split_people_count: 4 }),
-      }));
+      expect(mockTx.orders.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            is_split_payment: true,
+            split_type: 'EQUAL',
+            split_people_count: 4,
+          }),
+        })
+      );
     });
   });
 
@@ -754,7 +773,7 @@ describe('PaymentService', () => {
       prisma.stores.findUnique.mockResolvedValue({
         id: 1,
         name: 'T',
-        users: [],
+        users: { id: 7, fcm_token: 'fixture-owner-token' },
         owner_phone: null,
       });
 
@@ -762,6 +781,11 @@ describe('PaymentService', () => {
 
       expect(TossAPI.confirmPayment).toHaveBeenCalledWith('pk_regular', 'ORD-001', 50000);
       expect(result.success).toBe(true);
+      expect(require('../../../utils/notifications').sendNewOrderNotification).toHaveBeenCalledWith(
+        mockIo,
+        expect.objectContaining({ id: 1 }),
+        ['fixture-owner-token']
+      );
       // PG 승인 금액으로 payments.amount 를 동기화해야 한다
       expect(mockTx.payments.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -891,6 +915,108 @@ describe('PaymentService', () => {
       await expect(service.processApproval('pk_x', 'ORD-001', -100)).rejects.toThrow(AppError);
       await expect(service.processApproval('pk_x', 'ORD-001', 'abc')).rejects.toThrow(AppError);
       expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
+    });
+
+    test('취소된 주문은 PG 승인을 호출하지 않는다', async () => {
+      prisma.orders.findUnique.mockResolvedValue({
+        id: 1,
+        store_id: 1,
+        order_number: 'ORD-001',
+        total_amount: 50000,
+        status: 'cancelled',
+      });
+      prisma.payments.findFirst.mockResolvedValue({
+        id: 10,
+        order_id: 1,
+        status: 'READY',
+        amount: 50000,
+      });
+
+      await expect(service.processApproval('pk_regular', 'ORD-001', 50000)).rejects.toThrow(
+        /취소된 주문/
+      );
+      expect(TossAPI.confirmPayment).not.toHaveBeenCalled();
+    });
+
+    test('PG 승인 직후 주문이 취소돼 있으면 DONE 처리하지 않고 승인분을 자동 취소한다', async () => {
+      prisma.orders.findUnique.mockResolvedValue({
+        id: 1,
+        store_id: 1,
+        order_number: 'ORD-001',
+        total_amount: 50000,
+        status: 'pending',
+      });
+      prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+      prisma.payments.findFirst
+        .mockResolvedValueOnce({ id: 10, order_id: 1, status: 'READY', amount: 50000 })
+        .mockResolvedValueOnce(null);
+      TossAPI.confirmPayment.mockResolvedValue({
+        paymentKey: 'pk_regular',
+        method: 'CARD',
+        totalAmount: 50000,
+        card: {},
+        receipt: {},
+      });
+      mockTx.orders.findUnique.mockResolvedValue({
+        id: 1,
+        store_id: 1,
+        order_number: 'ORD-001',
+        total_amount: 50000,
+        status: 'cancelled',
+      });
+
+      await expect(service.processApproval('pk_regular', 'ORD-001', 50000)).rejects.toThrow(
+        /취소된 주문/
+      );
+      expect(mockTx.payments.updateMany).not.toHaveBeenCalled();
+      expect(ledgerService.recordIncome).not.toHaveBeenCalled();
+      expect(
+        require('../../../services/PaymentCompensationService').autoCancel
+      ).toHaveBeenCalledWith('pk_regular', expect.stringContaining('취소된 주문'));
+    });
+
+    test('PG 응답 대기 중 취소가 확정되면 늦은 승인은 장부 없이 보상한다', async () => {
+      const order = {
+        id: 1,
+        store_id: 1,
+        order_number: 'ORD-001',
+        total_amount: 50000,
+        status: 'pending',
+      };
+      prisma.orders.findUnique.mockResolvedValue(order);
+      prisma.payments.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+      prisma.payments.findFirst
+        .mockResolvedValueOnce({ id: 10, order_id: 1, status: 'READY', amount: 50000 })
+        .mockResolvedValueOnce(null);
+      let approve, entered;
+      const reachedPg = new Promise((resolve) => {
+        entered = resolve;
+      });
+      TossAPI.confirmPayment.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            approve = resolve;
+            entered();
+          })
+      );
+      const pending = service.processApproval('pk_delayed_fixture', 'ORD-001', 50000);
+      const rejected = expect(pending).rejects.toThrow(/취소된 주문/);
+      await reachedPg;
+      expect(ledgerService.recordIncome).not.toHaveBeenCalled();
+      mockTx.orders.findUnique.mockResolvedValue({ ...order, status: 'cancelled' });
+      approve({
+        paymentKey: 'pk_delayed_fixture',
+        method: 'CARD',
+        totalAmount: 50000,
+        card: {},
+        receipt: {},
+      });
+      await rejected;
+      expect(mockTx.payments.updateMany).not.toHaveBeenCalled();
+      expect(ledgerService.recordIncome).not.toHaveBeenCalled();
+      expect(
+        require('../../../services/PaymentCompensationService').autoCancel
+      ).toHaveBeenCalledWith('pk_delayed_fixture', expect.stringContaining('취소된 주문'));
     });
 
     test('[2차 방어] PG 승인 금액이 READY 금액과 다르면 DONE 처리하지 않고 자동 취소한다', async () => {
@@ -1101,9 +1227,7 @@ describe('PaymentService', () => {
         expect.objectContaining({ store_id: 2, order_id: 7, alreadyPaid: false })
       );
       const persistedOrder = mockTx.orders.update.mock.calls.at(-1)?.[0];
-      expect(persistedOrder.data).toEqual(
-        expect.objectContaining({ payment_status: 'paid' })
-      );
+      expect(persistedOrder.data).toEqual(expect.objectContaining({ payment_status: 'paid' }));
       expect(persistedOrder.data).not.toHaveProperty('status');
     });
   });
@@ -1133,7 +1257,6 @@ describe('maskCardNumber (front6-back4 정책)', () => {
   test('이미 마스킹된 짧은 값(**** 등)은 null 반환 (평문 저장 방지)', () => {
     expect(maskCardNumber('****')).toBeNull();
   });
-
 });
 
 describe('maskCardNumber (front6-back4 정책)', () => {

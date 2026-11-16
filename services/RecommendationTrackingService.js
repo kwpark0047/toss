@@ -79,7 +79,7 @@ class RecommendationTrackingService {
 
     try {
       // 주문 정보 조회
-      const { Order } = require('../repositories/Order');
+      const Order = require('../repositories/Order');
       const order = await Order.findById(orderId);
 
       if (!order) {

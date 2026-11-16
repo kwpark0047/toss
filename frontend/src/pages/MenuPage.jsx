@@ -1,3 +1,4 @@
+import { rememberCompletedOrder } from '@/utils/completedOrder';
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -21,11 +22,15 @@ import { addRecentStore } from "@/utils/recentStores";
 import EmptyState from "@/components/common/EmptyState";
 import { Maximize2 } from "lucide-react";
 
+import OrderCompletion from '@/components/customer/OrderCompletion';
+
 // Components
 import ManagerFeaturedMenus from '@/components/menu/ManagerFeaturedMenus';
 import MenuHeader from "@/components/menu/MenuHeader";
 import StoreInfoBanner from "@/components/menu/StoreInfoBanner";
 import CategoryTabs from "@/components/menu/CategoryTabs";
+import MenuSearchFilter from "@/components/menu/MenuSearchFilter";
+import { collectMenuAllergens, filterMenuItems } from "@/utils/menuMetadata";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import CartButton from "@/components/menu/CartButton";
 import CartModal from "@/components/menu/CartModal";
@@ -122,6 +127,7 @@ const MenuPage = () => {
     storeId
   } = useParams();
   const [searchParams] = useSearchParams();
+  const testMenuMode = searchParams.get('testMenus') === '1';
   const navigate = useNavigate();
   // 매장이 받는 주문 유형(매장 식사/포장/배달)과 배달 조건. 실패하면 기존처럼 매장 식사로 주문한다.
   const { data: orderChannels } = useQuery({
@@ -181,6 +187,8 @@ const MenuPage = () => {
 
   // State
   const [selectedCategory, setSelectedCategory] = useState("전체");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [excludedAllergens, setExcludedAllergens] = useState([]);
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [splitSession, setSplitSession] = useState(null);
@@ -188,6 +196,7 @@ const MenuPage = () => {
   const [isSplitStarting, setIsSplitStarting] = useState(false);
   // 주문 알림 받을 번호 — 저장된 번호로 자동 초기화 (재방문 고객)
   const [notifyPhone, setNotifyPhone] = useState(() => {
+    if (testMenuMode) return '';
     try {
       const d = (localStorage.getItem('wm_customer_phone') || '').replace(/\D/g, '');
       if (d.length === 11) return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
@@ -198,7 +207,7 @@ const MenuPage = () => {
   const [isOrderStatusOpen, setIsOrderStatusOpen] = useState(false);
   const [reviewOrder, setReviewOrder] = useState(null); // 리뷰 작성 대상 주문
   const [isOrdering, setIsOrdering] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState(testMenuMode ? 'cash' : 'card');
   // 테이블 없이 들어온 주문의 주문 방식과 배달 정보
   const orderTypeOptions = useMemo(() => {
     if (tableNumber || !orderChannels?.order_types) return [];
@@ -221,6 +230,7 @@ const MenuPage = () => {
   const [isPhoneSheetOpen, setIsPhoneSheetOpen] = useState(false);
   const [showCallSheet, setShowCallSheet] = useState(false);
   const [showChatDrawer, setShowChatDrawer] = useState(false);
+  const [completionOrder, setCompletionOrder] = useState(null);
   const [currentOrderId, setCurrentOrderId] = useState(null);
   const [currentOrderCapability, setCurrentOrderCapability] = useState(null);
   const [currentOrderAmount, setCurrentOrderAmount] = useState(0);
@@ -287,6 +297,20 @@ const {
     retry: 1,
     refetchOnWindowFocus: true
   });
+  // 사장님 바쁨 모드: 주문 일시정지 중이면 메뉴는 보여 주고 주문만 막는다 (조회 실패 시 평소대로)
+  const { data: orderPace } = useQuery({
+    queryKey: ["orderPace", storeId],
+    queryFn: async () => {
+      const raw = await storesAPI.getOrderPace(storeId);
+      return raw?.data || raw;
+    },
+    enabled: isNumericStoreId,
+    staleTime: 30000,
+    refetchInterval: 60000,
+    retry: 1
+  });
+  const ordersPausedUntil = orderPace?.orders_paused && orderPace?.orders_paused_until ? new Date(orderPace.orders_paused_until) : null;
+  const ordersPaused = Boolean(ordersPausedUntil && ordersPausedUntil > new Date());
   const [lastAddedItem, _setLastAddedItem] = useState(null);
 
   /* 콜드스타트 재시도 설정: 최대 10회, 5초 간격 (최대 30초 간격) */
@@ -375,7 +399,7 @@ const {
 
   // Fetch menu items
   const {
-    data: menuItems = [],
+    data: allMenuItems = [],
     isLoading: menuLoading
   } = useQuery({
     queryKey: ["publicMenuItems", storeId],
@@ -391,6 +415,9 @@ const {
     ...coldStartRetry
   });
   const isLoading = profileLoading || menuLoading;
+  const menuItems = useMemo(() => testMenuMode
+    ? allMenuItems.filter(item => item.tags === 'wm-numbered-test-menu-v1').sort((a, b) => a.price - b.price)
+    : allMenuItems, [allMenuItems, testMenuMode]);
   // analytics 호출 제거: authMiddleware 필수 엔드포인트 → 401 → 토큰 갱신 실패 → 로그아웃 유발
   const orderStats = [];
 
@@ -408,13 +435,26 @@ const hoursInput = useMemo(() => ({
   const storeOpen = isStoreOpen();
   const menuOrderable = canOrderFromMenuSnapshot(storeOpen, cachedSections);
   const categoryNames = useMemo(() => [t('menu.all_category'), ...categories.map(c => c.name)], [categories, t]);
-const filteredItems = useMemo(() => {
-    if (selectedCategory === t('menu.all_category')) return menuItems;
-    return menuItems.filter(item => {
-      const category = categories.find(c => c.id === item.category_id);
-      return category?.name === selectedCategory;
-    });
-  }, [selectedCategory, menuItems, categories, t]);
+  const menuAllergens = useMemo(() => collectMenuAllergens(menuItems), [menuItems]);
+  const isSearching = searchQuery.trim().length > 0;
+  const hasMenuFilter = isSearching || excludedAllergens.length > 0;
+  const filteredItems = useMemo(() => {
+    // 검색 중에는 카테고리와 무관하게 전체 메뉴에서 찾는다.
+    const inCategory = isSearching || selectedCategory === t('menu.all_category')
+      ? menuItems
+      : menuItems.filter(item => {
+        const category = categories.find(c => c.id === item.category_id);
+        return category?.name === selectedCategory;
+      });
+    return filterMenuItems(inCategory, { query: searchQuery, excludedAllergens });
+  }, [selectedCategory, menuItems, categories, t, isSearching, searchQuery, excludedAllergens]);
+  const toggleExcludedAllergen = useCallback(label => {
+    setExcludedAllergens(prev => prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label]);
+  }, []);
+  const resetMenuFilters = useCallback(() => {
+    setSearchQuery("");
+    setExcludedAllergens([]);
+  }, []);
   // 같은 테이블 손님끼리 장바구니 공유 (TC-22)
   useSharedTableCart({ storeId, tableNumber, cart, setCart, menuItems });
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -480,6 +520,25 @@ const handleOptionConfirm = useCallback((quantity, selectedOptions, totalPrice) 
   const checkoutAttempt = useRef(null);
 const handleOrder = useCallback(async () => {
     if (!storeId || cart.length === 0) return;
+    if (testMenuMode) {
+      if (notifyPhone || orderType !== 'dine_in' || cart.some(item => item.menuItem.tags !== 'wm-numbered-test-menu-v1')) {
+        toast.error('테스트는 전화번호 없이 테스트 메뉴의 매장 이용 주문으로 진행해 주세요.');
+        return;
+      }
+      if (!['cash', 'card'].includes(paymentMethod)) {
+        toast.error('테스트는 현금 또는 Toss 테스트 카드만 선택해 주세요.');
+        return;
+      }
+      if (paymentMethod === 'card') {
+        try {
+          const response = await paymentsAPI.getTestConfig();
+          if (!(response?.data || response)?.enabled) throw new Error();
+        } catch {
+          toast.error('Toss 테스트 결제 설정을 확인할 수 없어 카드 주문을 차단했습니다.');
+          return;
+        }
+      }
+    }
     if (checkoutAttempt.current?.busy) return;
     if (!menuOrderable) {
       toast.error('최신 메뉴와 재고를 확인할 수 있을 때 주문할 수 있습니다. 장바구니는 유지됩니다.');
@@ -491,6 +550,10 @@ const handleOrder = useCallback(async () => {
     }
     if (!storeOpen) {
       toast.error(t('order.cannot_order'));
+      return;
+    }
+    if (ordersPaused) {
+      toast.error(t('menu.orders_paused_toast'));
       return;
     }
     if (orderType === 'delivery') {
@@ -583,6 +646,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 // 토스페이/카드/카카오페이/네이버페이 → 토스 결제 플로우 (리다이렉트)
       if (['card', 'toss', 'kakao', 'naver'].includes(paymentMethod)) {
         const paymentResult = await initiateTossPayment({
+          testOnly: testMenuMode,
           orderId: createdOrderId,
           storeId,
           totalAmount: Number(orderData_.total_amount ?? totalPrice),
@@ -624,7 +688,14 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       setCurrentOrderId(createdOrderId);
       setCurrentOrderCapability(orderData_.order_capability);
       setCurrentOrderAmount(Number(orderData_.total_amount ?? totalPrice));
-      setIsOrderStatusOpen(true);
+      const receipt = { ...orderData_, store_id: storeId, store_name: profile?.store_name, payment_method: paymentMethod };
+      // 승인 후 서버의 최종 주문 상태·가격을 다시 읽는다. 조회 실패 시 생성 응답을 유지한다.
+      try {
+        const refreshed = await ordersAPI.getById(createdOrderId, orderData_.order_capability);
+        Object.assign(receipt, refreshed?.data || refreshed);
+      } catch { /* 생성 응답으로 확인 화면을 제공한다. */ }
+      rememberCompletedOrder(receipt, orderData_.order_capability);
+      setCompletionOrder(receipt);
     } catch (err) {
       // 영업시간·매장 반경·품절 등 서버가 알려준 이유를 그대로 보여준다
       const reason = err?.response?.data?.message || err?.response?.data?.error;
@@ -633,7 +704,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsOrdering(false);
     }
-  }, [storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t, orderType, deliveryAddress, deliveryMemo, deliveryQuote, onlinePaymentOnly]);
+  }, [testMenuMode, storeId, cart, storeOpen, ordersPaused, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t, orderType, deliveryAddress, deliveryMemo, deliveryQuote, onlinePaymentOnly]);
 
   // 배달 주소·장바구니 금액이 바뀌면 서버에 배달 가능 여부와 배달비를 다시 묻는다.
   useEffect(() => {
@@ -652,7 +723,15 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
   }, [orderType, deliveryAddress, totalPrice, storeId]);
 
   const handleStartSplitPayment = useCallback(async (peopleCount) => {
+    if (testMenuMode) {
+      toast.error('테스트 메뉴는 현금 또는 Toss 테스트 카드의 단일 결제로 확인해 주세요.');
+      return;
+    }
     if (!storeId || !cart.length || !menuOrderable || isSplitStarting) return;
+    if (ordersPaused) {
+      toast.error(t('menu.orders_paused_toast'));
+      return;
+    }
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       toast.error('인터넷 연결 후 분할 주문을 시작해 주세요. 오프라인 주문은 자동 접수되지 않습니다.');
       return;
@@ -716,7 +795,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsSplitStarting(false);
     }
-  }, [storeId, cart, storeOpen, menuOrderable, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
+  }, [testMenuMode, storeId, cart, storeOpen, ordersPaused, menuOrderable, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
 
   // Stable callbacks for JSX props (prevents child re-renders from inline closures)
   const handleOpenOrderHistory = useCallback(() => navigate('/order-history'), [navigate]);
@@ -775,11 +854,17 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
         </div>}
 
       {/* Header */}
+      {testMenuMode && <div role="status" className="border-b border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">테스트 메뉴 · 전화번호 없이 매장 이용으로 주문하세요. 현금은 결제 대기로 접수되며, 카드는 Toss 테스트 설정이 확인된 경우에만 진행합니다.</div>}
       {Object.values(cachedSections).some(Boolean) && <div role="status" className="px-4 py-2 bg-orange-50 text-orange-800 text-xs">저장된 메뉴를 먼저 표시하고 있습니다. 최신 가격과 품절 정보를 확인 중입니다.</div>}
       <MenuHeader storeName={profile?.store_name || t('menu.store_name_default')} tableNumber={tableNumber?.replace(/번$/, '')} onOrderHistoryClick={handleOpenOrderHistory} onCallStaffClick={() => setShowCallSheet(true)} />
 
       {/* Store Info */}
       <StoreInfoBanner storeName={profile?.store_name} description={profile?.description} phone={profile?.phone} address={profile?.address} isOpen={storeOpen} todayHours={todayHours} businessHours={profile?.business_hours} openTime={profile?.open_time} closeTime={profile?.close_time} />
+
+      {ordersPaused && <div role="status" className="mx-4 mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+          <p className="font-bold">{t('menu.orders_paused_title', { time: ordersPausedUntil.toLocaleTimeString(lang === 'ko' ? 'ko-KR' : lang, { hour: '2-digit', minute: '2-digit' }) })}</p>
+          <p className="mt-0.5 text-xs">{t('menu.orders_paused_desc')}</p>
+        </div>}
 
       {/* AI 개인화 추천 (F9) */}
       <PersonalizedRecommendations storeId={storeId} storeOpen={menuOrderable} onAddToCart={handleAddToCartClick} menuItems={menuItems} />
@@ -787,6 +872,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       <ManagerFeaturedMenus storeId={storeId} menuItems={menuItems} storeOpen={menuOrderable} onAddToCart={handleAddToCartClick} />
 
       {tinkerSettings?.enabled !== false && tinkerSettings?.voiceOrderEnabled !== false && <VoiceOrderAssistant
+        liveEnabled={import.meta.env.VITE_AI_LIVE_UI_ENABLED === "true"}
         storeId={storeId}
         menuItems={menuItems}
         lang={lang}
@@ -798,9 +884,11 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       {/* Category Tabs */}
       <CategoryTabs categories={categoryNames} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
 
+      {menuItems.length > 0 && <MenuSearchFilter query={searchQuery} onQueryChange={setSearchQuery} allergens={menuAllergens} excludedAllergens={excludedAllergens} onToggleAllergen={toggleExcludedAllergen} />}
+
       {/* Menu List */}
       <div className="container mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
-        {filteredItems.length === 0 ? <EmptyState icon="🍽️" title={t('menu.empty')} description={selectedCategory === t('menu.all_category') ? t('menu.empty_desc') : t('menu.category_empty')} /> :
+        {filteredItems.length === 0 && hasMenuFilter ? <EmptyState icon="🔍" title={t('menu.no_result')} description={t('menu.no_result_desc')} action={<button type="button" onClick={resetMenuFilters} className="min-h-11 rounded-xl border cust-border px-4 text-sm font-bold cust-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{t('menu.reset_filters')}</button>} /> : filteredItems.length === 0 ? <EmptyState icon="🍽️" title={t('menu.empty')} description={selectedCategory === t('menu.all_category') ? t('menu.empty_desc') : t('menu.category_empty')} /> :
           // Keep the store's selected layout while increasing card density only as viewport space allows.
           <div className={isGridLayout ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4' : 'mx-auto w-full max-w-4xl cust-bg-card rounded-2xl border cust-border shadow-sm overflow-hidden cust-divide'}>
             {filteredItems.map(item => {
@@ -823,6 +911,14 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 
       {splitSession && !isSplitSheetOpen && <button type="button" onClick={() => setIsSplitSheetOpen(true)} className="fixed bottom-24 left-1/2 z-40 -translate-x-1/2 rounded-full bg-blue-700 px-5 py-3 text-sm font-black text-white shadow-xl">분할 결제 상태 보기</button>}
       <SplitPaymentSheet isOpen={isSplitSheetOpen} onClose={() => setIsSplitSheetOpen(false)} session={splitSession} />
+
+      {completionOrder && <div className="oc-overlay"><div>
+        <OrderCompletion order={completionOrder} storeName={profile?.store_name}
+          paid={completionOrder.payment_status === 'paid'}>
+          <button className="oc-secondary" onClick={() => { setCompletionOrder(null); setIsOrderStatusOpen(true); }}>현재 주문 진행 자세히 보기</button>
+          <button className="oc-secondary" onClick={() => setCompletionOrder(null)}>메뉴로 돌아가기</button>
+        </OrderCompletion>
+      </div></div>}
 
       {/* Order Status Modal */}
       {storeId && <OrderStatusModal isOpen={isOrderStatusOpen} onClose={handleCloseOrderStatus} orderId={currentOrderId} capability={currentOrderCapability} storeId={storeId} tableNumber={tableNumber} onWriteReview={handleWriteReview} />}
@@ -868,7 +964,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
 
       <LanguageSelector currentLang={lang} onSelectLang={handleLangChange} />
 
-      {tinkerSettingsFetched && tinkerSettings?.enabled !== false && <TinkerBell lang={lang} menuItems={menuItems} weatherData={weatherData} voiceEnabled={tinkerSettings?.voiceEnabled ?? true} largeFont={tinkerSettings?.largeFont ?? false} lastAddedItem={lastAddedItem} voiceOrderMessage={voiceOrderMessage} storeId={tinkerSettings?.aiRecommendation ? Number(storeId) : null} customGreeting={tinkerSettings?.customMsg ?? ''} customGreetingLanguage={tinkerSettings?.lang ?? 'ko'} />}
+      {tinkerSettingsFetched && tinkerSettings?.enabled !== false && <TinkerBell liveStoreId={Number(storeId)} liveEnabled={import.meta.env.VITE_AI_LIVE_UI_ENABLED === "true"} lang={lang} menuItems={menuItems} weatherData={weatherData} voiceEnabled={tinkerSettings?.voiceEnabled ?? true} largeFont={tinkerSettings?.largeFont ?? false} lastAddedItem={lastAddedItem} voiceOrderMessage={voiceOrderMessage} storeId={tinkerSettings?.aiRecommendation ? Number(storeId) : null} customGreeting={tinkerSettings?.customMsg ?? ''} customGreetingLanguage={tinkerSettings?.lang ?? 'ko'} />}
     </div>
     </div>
   );

@@ -91,7 +91,9 @@ export default function Step1InlineGuide({ focus, form, customBtype, voiceEnable
   const sparkId    = useRef(0);
   const prevFocus  = useRef(null);
   const messageRef = useRef(msg);
-  messageRef.current = msg;
+  useEffect(() => {
+    messageRef.current = msg;
+  }, [msg]);
 
   // 타이핑 애니메이션
   useEffect(() => {

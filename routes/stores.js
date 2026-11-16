@@ -501,6 +501,27 @@ router.get(
 
 /**
  * @swagger
+ * /api/stores/{id}/order-pace:
+ *   get:
+ *     tags: [Stores]
+ *     summary: 매장 바쁨 모드 조회 (고객 메뉴 화면용)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: 추가 대기 시간과 주문 일시정지 상태
+ */
+router.get(
+  '/:id/order-pace',
+  validateParams(storeIdParamSchema),
+  storeSettingsController.getOrderPaceSettings
+);
+
+/**
+ * @swagger
  * /api/stores/{id}/order-channels:
  *   get:
  *     tags: [Stores]

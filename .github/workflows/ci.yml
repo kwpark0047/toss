@@ -68,6 +68,11 @@ jobs:
       - name: SaaS Financial Regression Tests
         run: npm run test:saas
 
+      - name: Isolated mobile push lab policy and production boundary
+        run: |
+          node scripts/test-mobile-push-lab-policy.cjs
+          node scripts/test-mobile-push-lab-isolation.cjs
+
       - name: Backend Type Check
         run: npm run typecheck:backend
 
@@ -82,6 +87,34 @@ jobs:
 
       - name: JSX Reference Validation
         run: node scripts/validate-jsx-references.js
+
+  ai-live-p0-tests:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: [6379:6379]
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+      AI_LIVE_TEST_REDIS_URL: redis://127.0.0.1:6379
+      AI_LIVE_ENABLED: 'false'
+      AI_LIVE_ALLOW_PAID: 'false'
+      GEMINI_API_KEY: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify OFF-only preproduction review settings
+        run: npm run ai:review:check
+      - name: Rehearse pilot rollback with fake Provider and isolated Redis
+        run: node --test tests/saas/pilot-rollback.test.cjs
+      - name: Live policy, PCM, Redis concurrency and HTTP/WSS fake-provider integration
+        run: node --test tests/saas/gemini-live-p0.test.cjs tests/saas/gemini-live-audio.test.cjs tests/saas/gemini-live-redis.test.cjs tests/saas/manager-live.test.cjs tests/saas/live-camera.test.cjs tests/saas/menu-photo-drafts.test.cjs tests/saas/marketing-drafts.test.cjs tests/saas/shared-generation-budget.test.cjs tests/saas/shared-budget-boundaries.test.cjs
 
   backend-unit-tests:
     runs-on: ubuntu-latest
@@ -117,8 +150,8 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: Run backend unit tests
-        run: node scripts/run-jest.cjs --config jest.config.js tests/unit/ --no-cache
+      - name: Run backend unit and route tests
+        run: node scripts/run-jest.cjs --config jest.config.js tests/unit/ tests/routes/ --no-cache
       - name: Store integration PostgreSQL regression
         run: |
           node scripts/test-store-integrations-postgres.cjs
@@ -488,7 +521,7 @@ jobs:
         run: npm --prefix frontend audit --audit-level=high
 
   deploy:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push')
+    if: vars.ENABLE_PRODUCTION_DEPLOY == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push')
     needs:
       [
         lint-and-test,

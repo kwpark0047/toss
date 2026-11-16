@@ -1,7 +1,8 @@
+import { rememberCompletedOrder } from '../../../utils/completedOrder';
 import { useState, useEffect, useMemo } from 'react';
 import {
-    X, CreditCard, Star, Building2, Banknote,
-    ChevronRight, Check, Loader2, ExternalLink,
+    X, CreditCard, Star, Banknote,
+    ChevronRight, Loader2,
     Smartphone, Store, AlertCircle, Construction,
     CheckSquare, Square
 } from 'lucide-react';
@@ -10,6 +11,7 @@ import { usePoints } from '../../../hooks/usePoints';
 import { useTossPayment } from '../../../hooks/useTossPayment';
 import { paymentsAPI, storeAccountAPI } from '../../../api';
 import { useBrandPay } from '../../../hooks/useBrandPay';
+import OrderCompletion from '../OrderCompletion';
 import PointPayment from './PointPayment';
 import TransferPayment from './TransferPayment';
 import { formatPrice } from '../../../utils/format';
@@ -442,37 +444,14 @@ export default function PaymentSheet({
                         <div className="py-8 text-center">
                             {paymentResult.success ? (
                                 <>
-                                    <div className="w-20 h-20 mx-auto bg-green-50 rounded-full flex items-center justify-center mb-6">
-                                        <Check className="w-10 h-10 text-green-500" strokeWidth={3} />
-                                    </div>
-                                    <h3 className="text-2xl font-black text-gray-900">주문 완료!</h3>
-                                    <p className="mt-2 text-gray-500 px-6 leading-relaxed text-sm">
-                                        {paymentResult.message || '주문해 주셔서 감사합니다.'}
-                                    </p>
-
-                                    {paymentResult.earnPoints > 0 && (
-                                        <div className="mt-5 px-4 py-3 bg-amber-50 rounded-2xl inline-flex flex-col items-center border border-amber-100">
-                                            <span className="text-amber-600 font-black text-lg">+{paymentResult.earnPoints.toLocaleString()}P 적립!</span>
-                                            <span className="text-amber-400 text-xs mt-0.5">포인트 혜택</span>
-                                        </div>
-                                    )}
-
-                                    <div className="mt-8 flex flex-col gap-3 px-4">
-                                        {paymentResult.payment?.receipt_url && (
-                                            <button
-                                                onClick={() => window.open(paymentResult.payment.receipt_url, '_blank')}
-                                                className="w-full py-3.5 bg-white border border-gray-200 text-gray-700 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-gray-50"
-                                            >
-                                                <ExternalLink className="w-4 h-4" /> 영수증 보기
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => { onPaymentComplete?.(paymentResult); onClose(); }}
-                                            className="w-full py-4 bg-blue-500 text-white rounded-2xl font-black text-lg shadow-lg shadow-blue-100 active:scale-95 transition-all"
-                                        >
-                                            주문 현황 확인
-                                        </button>
-                                    </div>
+                                    <OrderCompletion
+                                        order={{ ...paymentResult.payment, payment_method: paymentResult.method, items: paymentResult.payment?.items || cart, total_amount: paymentResult.payment?.total_amount ?? totalAmount }}
+                                        storeName={store?.name || store?.store_name}
+                                        pointsEarned={paymentResult.earnPoints}
+                                        paid={paymentResult.payment?.payment_status === 'paid' || paymentResult.payment?.status === 'DONE'}
+                                        onBeforeLeave={() => rememberCompletedOrder({ ...paymentResult.payment, id: paymentResult.payment?.order_id || paymentResult.payment?.id, store_id: store?.id, store_name: store?.name }, paymentResult.payment?.order_capability)}>
+                                        <button onClick={() => { onPaymentComplete?.(paymentResult); onClose(); }} className="oc-secondary">현재 주문 진행 자세히 보기</button>
+                                    </OrderCompletion>
                                 </>
                             ) : (
                                 <>

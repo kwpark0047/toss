@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { campaignAPI } from '@/api/admin';
+import AIMarketingDrafts from './AIMarketingDrafts';
 import Skeleton from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
 import Icon from '../../components/ui/Icon';
@@ -280,6 +281,10 @@ export default function CampaignDashboard() {
     if (!analysis?.summary?.segments) return [];
     return Object.entries(analysis.summary.segments).filter(([_, count]) => count > 0).sort((a, b) => (SEGMENT_INFO[b[0]]?.score || 0) - (SEGMENT_INFO[a[0]]?.score || 0));
   }, [analysis]);
+  if (tab === 'drafts') return <div className="p-4 sm:p-6 max-w-6xl mx-auto min-w-0">
+      <button type="button" onClick={() => setTab('campaigns')} className="mb-4 text-sm text-indigo-700 underline">캠페인 목록으로</button>
+      <AIMarketingDrafts storeId={storeId} />
+    </div>;
   if (loading) return <div className="space-y-4 p-6">
       <Skeleton className="h-8 w-48" />
       <div className="grid grid-cols-4 gap-4">
@@ -293,6 +298,7 @@ export default function CampaignDashboard() {
         <p className="text-red-600 font-medium">데이터를 불러오지 못했습니다</p>
         <p className="text-sm text-red-400 mt-1">{error}</p>
         <button onClick={loadAll} className="mt-4 text-sm text-red-600 underline">다시 시도</button>
+        <button type="button" onClick={() => setTab('drafts')} className="block mx-auto mt-4 text-sm text-indigo-700 underline">AI 마케팅 초안</button>
       </div>
     </div>;
   const totalCustomers = analysis?.summary?.total_customers || 0;
@@ -305,14 +311,15 @@ export default function CampaignDashboard() {
         </div>}
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col items-start gap-4 lg:flex-row lg:justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Icon icon="Megaphone" /> 스마트 마케팅
           </h1>
           <p className="text-sm text-gray-500 mt-1">AI 기반 고객 세그먼트 분석 + 자동 캠페인</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => setTab('drafts')} className="px-4 py-2 rounded-xl text-sm font-medium bg-indigo-50 text-indigo-800 border border-indigo-200">AI 마케팅 초안</button>
           <button onClick={() => setTab('campaigns')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'campaigns' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 border hover:bg-gray-50'}`}>
             캠페인 목록
           </button>

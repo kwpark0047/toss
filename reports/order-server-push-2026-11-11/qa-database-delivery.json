@@ -1,0 +1,11 @@
+{
+  "orderId": 9,
+  "scope": "Isolated QA snapshot before worker-readiness follow-up; no production customer data",
+  "checks": [
+    {
+      "attempts": 1,
+      "delivered": true,
+      "lease_released": true
+    }
+  ]
+}

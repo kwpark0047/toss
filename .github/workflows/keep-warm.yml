@@ -1,0 +1,26 @@
+name: Keep Render API warm (opt-in)
+# Independent of runtime wrappers; missing/false opt-in skips both schedule and dispatch.
+on:
+  schedule:
+    # UTC 22:00~14:59 = KST 07:00~23:59; scheduling is best-effort.
+    - cron: '3,13,23,33,43,53 22,23,0-14 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: keep-warm
+  cancel-in-progress: false
+jobs:
+  ping:
+    if: vars.ENABLE_RENDER_KEEP_WARM == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Read liveness without DB checks
+        run: node scripts/keep-warm.cjs
+        env:
+          ENABLE_RENDER_KEEP_WARM: ${{ vars.ENABLE_RENDER_KEEP_WARM }}

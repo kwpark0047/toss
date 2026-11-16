@@ -1,0 +1,44 @@
+{
+  "status": "REVIEW_ONLY_NOT_APPLIED",
+  "reviewedAt": "2026-11-15",
+  "baseCommit": "71eca285a76b0231f13356c59c74ce0e22400344",
+  "sources": [
+    "https://aistudio.google.com/docs/pricing#gemini-3.8-live",
+    "https://aistudio.google.com/docs/pricing#gemini-3.5-flash-lite",
+    "https://aistudio.google.com/docs/models/gemini-3.8-live",
+    "https://aistudio.google.com/docs/models/gemini-3.5-flash-lite"
+  ],
+  "proposedPilotStoreId": 3,
+  "storeRoster": "IDs 1-13 from local synthetic checkout reports dated 2026-11-13; not re-queried from DB",
+  "budgetNote": "USD10 per store is an internal pilot proposal, not a vendor price or spending authorization. All stores and paid gates remain OFF.",
+  "serverEnv": {
+    "AI_LIVE_ENABLED": "false",
+    "AI_LIVE_ALLOW_PAID": "false",
+    "AI_LIVE_MODEL": "gemini-3.8-live",
+    "AI_LIVE_TICKET_SECRET": "",
+    "AI_LIVE_REDIS_URL": "",
+    "GEMINI_API_KEY": "",
+    "AI_LIVE_ALLOWED_ORIGINS": "[\"https://wemarket-saas.vercel.app\"]",
+    "AI_LIVE_CAMERA_ENABLED": "false",
+    "AI_LIVE_STORE_POLICIES": "{\"1\":{\"enabled\":false,\"monthlyLimitMicros\":10000000,\"reservationMicros\":100000,\"photoReservationMicros\":20000,\"marketingReservationMicros\":10000,\"dailySeconds\":600,\"sessionSeconds\":30,\"concurrency\":1,\"cameraEnabled\":false},\"2\":{\"enabled\":false,\"monthlyLimitMicros\":10000000,\"reservationMicros\":100000,\"photoReservationMicros\":20000,\"marketingReservationMicros\":10000,\"dailySeconds\":600,\"sessionSeconds\":30,\"concurrency\":1,\"cameraEnabled\":false},\"3\":{\"enabled\":false,\"monthlyLimitMicros\":10000000,\"reservationMicros\":100000,\"photoReservationMicros\":20000,\"marketingReservationMicros\":10000,\"dailySeconds\":600,\"sessionSeconds\":30,\"concurrency\":1,\"cameraEnabled\":false},\"4\":{\"enabled\":false,\"monthlyLimitMicros\":10000000,\"reservationMicros\":100000,\"photoReservationMicros\":20000,\"marketingReservationMicros\":10000,\"dailySeconds\":600,\"sessionSeconds\":30,\"concurrency\":1,\"cameraEnabled\":false},\"5\":{\"enabled\":false,\"monthlyLimitMicros\":10000000,\"reservationMicros\":100000,\"photoReservationMicros\":20000,\"marketingReservationMicros\":10000,\"dailySeconds\":600,\"sessionSeconds\":30,\"concurrency\":1,\"cameraEnabled\":false},\"6\":{\"enabled\":false,\"monthlyLimitMicros\":10000000,\"reservationMicros\":100000,\"photoReservationMicros\":20000,\"marketingReservationMicros\":10000,\"dailySeconds\":600,\"sessionSeconds\":30,\"concurrency\":1,\"cameraEnabled\":false},\"7\":{\"enabled\":false,\"monthlyLimitMicros\":10000000,\"reservationMicros\":100000,\"photoReservationMicros\":20000,\"marketingReservationMicros\":10000,\"dailySeconds\":600,\"sessionSeconds\":30,\"concurrency\":1,\"cameraEnabled\":false},\"8\":{\"enabled\":false,\"monthlyLimitMicros\":10000000,\"reservationMicros\":100000,\"photoReservationMicros\":20000,\"marketingReservationMicros\":10000,\"dailySeconds\":600,\"sessionSeconds\":30,\"concurrency\":1,\"cameraEnabled\":false},\"9\":{\"enabled\":false,\"monthlyLimitMicros\":10000000,\"reservationMicros\":100000,\"photoReservationMicros\":20000,\"marketingReservationMicros\":10000,\"dailySeconds\":600,\"sessionSeconds\":30,\"concurrency\":1,\"cameraEnabled\":false},\"10\":{\"enabled\":false,\"monthlyLimitMicros\":10000000,\"reservationMicros\":100000,\"photoReservationMicros\":20000,\"marketingReservationMicros\":10000,\"dailySeconds\":600,\"sessionSeconds\":30,\"concurrency\":1,\"cameraEnabled\":false},\"11\":{\"enabled\":false,\"monthlyLimitMicros\":10000000,\"reservationMicros\":100000,\"photoReservationMicros\":20000,\"marketingReservationMicros\":10000,\"dailySeconds\":600,\"sessionSeconds\":30,\"concurrency\":1,\"cameraEnabled\":false},\"12\":{\"enabled\":false,\"monthlyLimitMicros\":10000000,\"reservationMicros\":100000,\"photoReservationMicros\":20000,\"marketingReservationMicros\":10000,\"dailySeconds\":600,\"sessionSeconds\":30,\"concurrency\":1,\"cameraEnabled\":false},\"13\":{\"enabled\":false,\"monthlyLimitMicros\":10000000,\"reservationMicros\":100000,\"photoReservationMicros\":20000,\"marketingReservationMicros\":10000,\"dailySeconds\":600,\"sessionSeconds\":30,\"concurrency\":1,\"cameraEnabled\":false}}",
+    "AI_LIVE_PRICING_JSON": "{\"model\":\"gemini-3.8-live\",\"version\":\"google-standard-usd-2026-11-15-review\",\"input\":{\"TEXT\":750000,\"AUDIO\":3000000,\"IMAGE\":1000000,\"VIDEO\":1000000},\"output\":{\"TEXT\":4500000,\"AUDIO\":12000000}}",
+    "AI_MENU_DRAFT_ENABLED": "false",
+    "AI_MENU_DRAFT_ALLOW_PAID": "false",
+    "AI_MENU_DRAFT_MODEL": "gemini-3.5-flash-lite",
+    "AI_MARKETING_ENABLED": "false",
+    "AI_MARKETING_ALLOW_PAID": "false",
+    "AI_MARKETING_MODEL": "gemini-3.5-flash-lite",
+    "AI_GENERATION_PRICING_JSON": "{\"models\":{\"gemini-3.5-flash-lite\":{\"version\":\"google-standard-usd-2026-11-15-review\",\"input\":{\"TEXT\":300000,\"IMAGE\":300000},\"output\":{\"TEXT\":2500000}}}}"
+  },
+  "frontendEnv": {
+    "VITE_AI_LIVE_UI_ENABLED": "false",
+    "VITE_AI_LIVE_CAMERA_UI_ENABLED": "false"
+  },
+  "blockers": [
+    "Account model availability and actual SDK wire/usage metadata are not tested without paid calls.",
+    "Ticket secret and dedicated durable Redis credentials must be supplied separately through secret management.",
+    "Store IDs, origins, model rates and proposed budget must be reviewed again before any activation.",
+    "Camera stays OFF: current code does not grant Vision capability to gemini-3.8-live.",
+    "No production settings, deploy flags or database values are modified by this artifact."
+  ]
+}

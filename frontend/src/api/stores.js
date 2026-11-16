@@ -42,6 +42,8 @@ export const storesAPI = {
     api.get('/stores/favorites/' + customerPhone, { headers: customerTokenHeader() }),
   // 고객 메뉴 화면용 매장 팅커벨 설정 (공개)
   getTinkerbellSettings: (id) => api.get('/stores/' + id + '/tinkerbell-settings'),
+  // 고객 메뉴 화면용 바쁨 모드(주문 일시정지) 상태 (공개)
+  getOrderPace: (id) => api.get('/stores/' + id + '/order-pace'),
   // 고객 메뉴 화면용 주문 유형·배달 조건 (공개)
   getOrderChannels: (id) => api.get('/stores/' + id + '/order-channels'),
   // 배달 가능 여부·배달비 견적 (공개)

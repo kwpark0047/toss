@@ -139,7 +139,7 @@ export default function SubscriptionBilling({ storeId, plans = [] }) {
   return (
     <section
       aria-labelledby="subscription-billing-title"
-      className="mb-8 rounded-2xl border border-white/10 bg-slate-900 p-5 sm:p-6 space-y-5"
+      className="subscription-billing-panel mb-8 rounded-2xl border border-white/10 bg-slate-900 p-5 sm:p-6 space-y-5"
     >
       <div>
         <h2 id="subscription-billing-title" className="text-xl font-bold text-white">
@@ -229,7 +229,7 @@ export default function SubscriptionBilling({ storeId, plans = [] }) {
             {plans
               .filter((p) => p.price_monthly > 0)
               .map((plan) => (
-                <div key={plan.id} className="rounded-xl border border-slate-600 p-4">
+                <div key={plan.id} className="subscription-plan-card rounded-xl border border-slate-600 p-4">
                   <h3 className="font-bold text-white">{plan.display_name}</h3>
                   <p className="my-2 text-slate-200">
                     {money(cycle === 'YEARLY' ? plan.price_yearly : plan.price_monthly)}원 /{' '}

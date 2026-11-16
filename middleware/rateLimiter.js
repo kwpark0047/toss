@@ -50,6 +50,8 @@ const publicLimiter = rateLimit({
 
 // ── 2. 주문 생성: 30 req / 1분 / IP (피크 보호) ──────────────────────────────
 const orderLimiter = rateLimit({
+  // Status polling uses the general read limit; do not consume the write budget.
+  skip: (req) => req.method === 'GET',
   windowMs: 60_000,
   max: 30,
   standardHeaders: true,

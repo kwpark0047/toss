@@ -40,6 +40,8 @@ export default function BusinessSupportCenter() {
     [consent, setConsent] = useState(false);
   const [detail, setDetail] = useState(null),
     [note, setNote] = useState(''),
+    [messageDraft, setMessageDraft] = useState(''),
+    [internalMessage, setInternalMessage] = useState(false),
     [cursor, setCursor] = useState(null),
     [error, setError] = useState(''),
     [notice, setNotice] = useState(''),
@@ -47,6 +49,8 @@ export default function BusinessSupportCenter() {
     [loaded, setLoaded] = useState(false),
     [confirmExecution, setConfirmExecution] = useState(false),
     [evaluation, setEvaluation] = useState(null);
+  const [filters, setFilters] = useState({ status: '', priority: '', quality: '', search: '' });
+  const [filterDraft, setFilterDraft] = useState(filters);
   const sequence = useRef(0),
     operations = useRef(new Map()),
     executionDialog = useRef(null);
@@ -61,7 +65,7 @@ export default function BusinessSupportCenter() {
       setError('');
       try {
         const [page, info] = await Promise.all([
-          api.list(storeId, next),
+          api.list(storeId, next, filters),
           platform ? api.overview() : api.enrollment(storeId),
         ]);
         if (request !== sequence.current) return;
@@ -80,7 +84,7 @@ export default function BusinessSupportCenter() {
         if (request === sequence.current) setBusy(false);
       }
     },
-    [storeId, platform]
+    [storeId, platform, filters]
   );
   useEffect(() => {
     setItems([]);
@@ -111,6 +115,8 @@ export default function BusinessSupportCenter() {
     perform(async () => {
       setDetail(unwrap(await api.detail(row.store_id, row.id)));
       setNote('');
+      setMessageDraft('');
+      setInternalMessage(false);
       setEvaluation(null);
     });
   const mutate = (event) =>
@@ -122,7 +128,24 @@ export default function BusinessSupportCenter() {
       setDetail(unwrap(await api.detail(detail.store_id, detail.id)));
       await load();
     });
+  const sendMessage = () =>
+    perform(async () => {
+      const body = messageDraft.trim();
+      const visibility = platform && internalMessage ? 'internal' : 'owner';
+      const key = JSON.stringify(['message', detail.store_id, detail.id, body, visibility]);
+      if (!operations.current.has(key)) operations.current.set(key, crypto.randomUUID());
+      await api.message(detail.store_id, detail.id, {
+        operation_id: operations.current.get(key),
+        body,
+        visibility,
+      });
+      operations.current.delete(key);
+      setMessageDraft('');
+      setDetail(unwrap(await api.detail(detail.store_id, detail.id)));
+      await load();
+    });
   const owner = !!enrollment?.can_consent;
+  const statusCount = (status) => Number(summary?.cases?.find((item) => item.status === status)?.count || 0);
   const options = detail
     ? platform
       ? [
@@ -168,7 +191,25 @@ export default function BusinessSupportCenter() {
           <p className="text-sm text-slate-400">
             실제 소유자가 지원에 동의한 운영 매장입니다. 공개 수집 매장 전체를 분석하지 않습니다.
           </p>
-          <div className="flex flex-wrap gap-5 mt-3">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mt-4" aria-label="지원 운영 현황">
+            <article className="rounded-lg border border-slate-700/40 p-3">
+              <p className="text-xs text-slate-400">사업자 확인 대기</p>
+              <strong className="text-xl">{statusCount('sent')}</strong>
+            </article>
+            <article className="rounded-lg border border-slate-700/40 p-3">
+              <p className="text-xs text-slate-400">승인 후 처리 중</p>
+              <strong className="text-xl">{statusCount('approved') + statusCount('running')}</strong>
+            </article>
+            <article className="rounded-lg border border-slate-700/40 p-3">
+              <p className="text-xs text-slate-400">반복 실패 분석</p>
+              <strong className="text-xl">{summary.failed_jobs?.length || 0}</strong>
+            </article>
+            <article className="rounded-lg border border-slate-700/40 p-3">
+              <p className="text-xs text-slate-400">완료 평가</p>
+              <strong className="text-xl">{statusCount('completed')}</strong>
+            </article>
+          </div>
+          <div className="flex flex-wrap gap-5 mt-4">
             {summary.cases.map((c) => (
               <span key={c.status}>
                 {labels[c.status] || c.status} <strong>{c.count}</strong>
@@ -250,9 +291,90 @@ export default function BusinessSupportCenter() {
           </Link>
         </section>
       )}
+      <form
+        className="menu-panel rounded-xl p-4"
+        aria-label="지원 목록 조회 조건"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setItems([]);
+          setCursor(null);
+          setFilters({ ...filterDraft });
+        }}
+      >
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="grid gap-1 text-sm">
+            <span>매장명</span>
+            <input
+              aria-label="매장명"
+              className="bg-transparent border border-slate-500 rounded-lg px-3 py-2"
+              maxLength={80}
+              value={filterDraft.search}
+              onChange={(event) => setFilterDraft({ ...filterDraft, search: event.target.value })}
+              placeholder="동의한 매장 이름"
+            />
+          </label>
+          <label className="grid gap-1 text-sm">
+            <span>상태</span>
+            <select
+              aria-label="지원 상태"
+              className="bg-slate-900 border border-slate-500 rounded-lg px-3 py-2"
+              value={filterDraft.status}
+              onChange={(event) => setFilterDraft({ ...filterDraft, status: event.target.value })}
+            >
+              <option value="">모든 상태</option>
+              {Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm">
+            <span>우선순위</span>
+            <select
+              aria-label="우선순위"
+              className="bg-slate-900 border border-slate-500 rounded-lg px-3 py-2"
+              value={filterDraft.priority}
+              onChange={(event) => setFilterDraft({ ...filterDraft, priority: event.target.value })}
+            >
+              <option value="">모든 우선순위</option>
+              <option value="1">긴급 · 1</option>
+              <option value="2">높음 · 2</option>
+              <option value="3">일반 · 3</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm">
+            <span>근거 품질</span>
+            <select
+              aria-label="자료 품질"
+              className="bg-slate-900 border border-slate-500 rounded-lg px-3 py-2"
+              value={filterDraft.quality}
+              onChange={(event) => setFilterDraft({ ...filterDraft, quality: event.target.value })}
+            >
+              <option value="">모든 자료</option>
+              <option value="observed">관측 자료</option>
+              <option value="insufficient">자료 부족</option>
+            </select>
+          </label>
+          <button className="menu-primary rounded-lg px-4 py-2" disabled={busy} type="submit">
+            조건 적용
+          </button>
+          <button
+            className="menu-quiet rounded-lg px-4 py-2"
+            disabled={busy}
+            type="button"
+            onClick={() => {
+              const empty = { status: '', priority: '', quality: '', search: '' };
+              setFilterDraft(empty);
+              setItems([]);
+              setCursor(null);
+              setFilters(empty);
+            }}
+          >
+            초기화
+          </button>
+        </div>
+        <p className="text-xs text-slate-400 mt-3">조건은 서버에서 적용되며, 결과는 우선순위 순으로 30건씩 조회합니다.</p>
+      </form>
       <section className="menu-panel rounded-xl p-4">
         <h2 className="font-semibold mb-3">지원 목록</h2>
-        {loaded && !items.length && <p className="text-slate-400">아직 지원 제안이 없습니다.</p>}
+        {loaded && !items.length && <p className="text-slate-400">{Object.values(filters).some(Boolean) ? '조건에 맞는 지원 건이 없습니다.' : '아직 지원 제안이 없습니다.'}</p>}
         <div className="overflow-x-auto">
           {!!items.length && (
             <table className="w-full text-sm text-left">
@@ -316,6 +438,21 @@ export default function BusinessSupportCenter() {
               <p className="text-sm text-slate-400">{i.detail}</p>
             </article>
           ))}
+          {!!detail.playbooks?.length && (
+            <section className="rounded-lg border border-slate-700/50 p-4 space-y-3" aria-label="운영 점검 가이드">
+              <h3 className="font-semibold">근거 유형별 운영 점검 가이드</h3>
+              {detail.playbooks.map((playbook) => (
+                <article key={playbook.key} className="border-t border-slate-700/40 pt-3">
+                  <h4 className="font-medium">{playbook.title}</h4>
+                  {playbook.data_warning && <p className="text-amber-400 text-sm mt-1">{playbook.data_warning}</p>}
+                  <ol className="list-decimal ml-5 text-sm text-slate-300 mt-2">
+                    {playbook.steps.map((step) => <li key={step}>{step}</li>)}
+                  </ol>
+                  <p className="text-xs text-slate-400 mt-2">담당자 확인 필요 · {playbook.guardrail}</p>
+                </article>
+              ))}
+            </section>
+          )}
           <p>
             미접수 {detail.evidence?.facts?.pending_orders || 0}건 · 최장 대기{' '}
             {Math.floor(detail.evidence?.facts?.oldest_minutes || 0)}분
@@ -418,6 +555,51 @@ export default function BusinessSupportCenter() {
               </li>
             ))}
           </ol>
+          <section className="border-t border-slate-700/40 pt-4 space-y-3" aria-label="사업자 지원 대화">
+            <h3 className="font-semibold">지원 대화</h3>
+            {!detail.messages?.length && <p className="text-sm text-slate-400">아직 대화가 없습니다.</p>}
+            <ol className="space-y-3" aria-label="지원 메시지">
+              {detail.messages?.map((message) => (
+                <li key={message.id} className="rounded-lg bg-slate-800/50 p-3">
+                  <div className="flex flex-wrap justify-between gap-2 text-xs text-slate-400">
+                    <span>{message.author_role === 'super_admin' ? '위마켓 지원팀' : '사업자'}</span>
+                    <span>
+                      {message.visibility === 'internal' ? '최고관리자 내부 메모' : '사업자에게 공개'}
+                      {' · '}{stamp(message.created_at)}
+                    </span>
+                  </div>
+                  <p className="mt-2 whitespace-pre-wrap break-words">{message.body}</p>
+                </li>
+              ))}
+            </ol>
+            <label className="block text-sm">
+              {internalMessage ? '최고관리자 내부 메모' : '사업자에게 답변'}
+              <textarea
+                className="block w-full bg-transparent border border-slate-500 rounded-lg p-3 mt-2"
+                maxLength={2000}
+                value={messageDraft}
+                onChange={(event) => setMessageDraft(event.target.value)}
+                placeholder="개인정보나 비밀번호·인증번호를 적지 마세요."
+              />
+            </label>
+            {platform && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={internalMessage}
+                  onChange={(event) => setInternalMessage(event.target.checked)}
+                />
+                최고관리자에게만 보이는 내부 메모
+              </label>
+            )}
+            <button
+              className="menu-quiet rounded-lg px-4 py-2"
+              disabled={busy || !messageDraft.trim()}
+              onClick={sendMessage}
+            >
+              메시지 보내기
+            </button>
+          </section>
         </section>
       )}
       <dialog
