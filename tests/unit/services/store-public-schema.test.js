@@ -1,4 +1,5 @@
 jest.mock('../../../config/prisma', () => ({
+  store_order_channels: { findMany: jest.fn().mockResolvedValue([]) },
   orders: { groupBy: jest.fn() },
   stores: { findMany: jest.fn(), count: jest.fn() },
   store_business_info: { findMany: jest.fn() },

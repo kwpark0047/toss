@@ -222,6 +222,7 @@ const Order = {
               select: {
                 id: true,
                 provider: true,
+                request_state: true,
                 status: true,
                 rider_name: true,
                 rider_phone: true,

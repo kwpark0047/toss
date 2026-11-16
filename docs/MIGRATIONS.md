@@ -64,3 +64,22 @@ datasource db {
 - 즉시 조치 완료: `print_jobs` 드리프트 제거 (데이터 유실 위험 해소)
 - 이후 스키마 변경: `db push` 대신 `npm run db:migrate` 사용
 - 운영 베이스라인 전환: 위 절차를 백업·점검 시간에 1회 수행
+
+## 현재 운영 대상과 배포 순서 (2026-11)
+
+운영 대상의 기준은 `config/deployment-targets.json`이다. 백엔드는
+`https://wemarket-eiw4.onrender.com`, 프론트는 `https://wemarket-saas.vercel.app`이다.
+예전 `wemarket.onrender.com` 서비스 결과로 운영 상태를 판단하지 않는다.
+
+1. 적용 대상 DB를 확인하고 `_prisma_migrations` 이력 및 필요한 테이블·컬럼을 조회한다.
+2. 이번 릴리스의 SQL을 임시 PostgreSQL에서 적용하고 테스트한다.
+3. 승인된 운영 DB에 필요한 마이그레이션만 적용한다. SQL이 성공한 뒤에만
+   `prisma migrate resolve --applied <migration>`로 Prisma 이력을 기록한다.
+   기존에 누락된 마이그레이션을 확인하지 않고 전체 deploy를 실행하지 않는다.
+4. DB 확인 후 PR을 머지하고 Render·Vercel 배포를 진행한다.
+5. 실제 Render 서비스 빌드 명령이 `render.yaml`과 일치하는지 확인한다.
+   저장소에 설정이 있다는 사실만으로 서비스가 자동 동기화됐다고 가정하지 않는다.
+6. 운영 `/api/health` 리비전과 프론트 HTML `app-commit`이 머지 커밋인지 확인하고,
+   검색·설정·주문 조회를 검증한다. 건강 상태 200만으로 DB 스키마 일치를 판단하지 않는다.
+
+운영에서 `prisma db push`와 `--accept-data-loss`는 사용하지 않는다.

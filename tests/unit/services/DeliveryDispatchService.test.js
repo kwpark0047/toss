@@ -4,8 +4,22 @@ const crypto = require('crypto');
 jest.mock('../../../config/prisma', () => ({
   orders: { findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
   stores: { findUnique: jest.fn() },
-  delivery_dispatches: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
-  delivery_webhook_events: { create: jest.fn() },
+  delivery_dispatches: {
+    findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    updateMany: jest.fn(),
+  },
+  delivery_webhook_events: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    update: jest.fn(),
+    updateMany: jest.fn(),
+  },
+  $transaction: jest.fn(),
+  $queryRaw: jest.fn(),
   store_order_channels: { findUnique: jest.fn() },
 }));
 jest.mock('../../../utils/logger', () => ({ warn: jest.fn(), info: jest.fn(), error: jest.fn() }));
@@ -19,6 +33,14 @@ const credentials = require('../../../services/ProviderCredentialService');
 const notificationService = require('../../../services/notificationService');
 const { getAdapter, listProviders, verifyHmac } = require('../../../services/delivery/adapters');
 const DeliveryDispatchService = require('../../../services/delivery/DeliveryDispatchService');
+
+beforeEach(() => {
+  prisma.$transaction.mockImplementation(async (fn) => fn(prisma));
+  prisma.$queryRaw.mockResolvedValue([]);
+  prisma.delivery_webhook_events.findUnique.mockResolvedValue(null);
+  prisma.delivery_webhook_events.findMany.mockResolvedValue([]);
+  prisma.delivery_dispatches.updateMany.mockResolvedValue({ count: 1 });
+});
 
 const SECRET = 'mock-secret-0123456789';
 const order = {
@@ -75,13 +97,18 @@ describe('DeliveryDispatchService.request', () => {
     prisma.stores.findUnique.mockResolvedValue({ id: 3, name: '매장' });
     prisma.delivery_dispatches.findFirst.mockResolvedValue(null);
     prisma.delivery_dispatches.create.mockImplementation(async ({ data }) => ({ id: 1, ...data }));
+    prisma.delivery_dispatches.update.mockImplementation(async ({ data }) => ({
+      id: 1,
+      provider: 'mock',
+      ...data,
+    }));
     credentials.resolve.mockResolvedValue({ values: { api_key: 'k', api_secret: SECRET } });
   });
 
   test('테스트 대행사로 배차를 요청하고 기록한다', async () => {
     const out = await svc.request(11);
     expect(out).toMatchObject({ provider: 'mock', status: 'requested', fee: 3500 });
-    expect(prisma.delivery_dispatches.create.mock.calls[0][0].data.external_id).toMatch(
+    expect(prisma.delivery_dispatches.update.mock.calls[0][0].data.external_id).toMatch(
       /^mock-11-/
     );
   });
@@ -134,6 +161,9 @@ describe('DeliveryDispatchService.handleWebhook', () => {
     svc = new DeliveryDispatchService(null);
     credentials.resolve.mockResolvedValue({ values: { api_key: 'k', api_secret: SECRET } });
     prisma.delivery_dispatches.findFirst.mockResolvedValue(dispatch);
+    prisma.delivery_dispatches.findUnique.mockImplementation(() =>
+      prisma.delivery_dispatches.findFirst()
+    );
     prisma.delivery_dispatches.update.mockImplementation(async ({ data }) => ({
       ...dispatch,
       ...data,
@@ -151,9 +181,7 @@ describe('DeliveryDispatchService.handleWebhook', () => {
   });
 
   test('같은 이벤트는 한 번만 처리', async () => {
-    prisma.delivery_webhook_events.create.mockRejectedValueOnce(
-      Object.assign(new Error('dup'), { code: 'P2002' })
-    );
+    prisma.delivery_webhook_events.findUnique.mockResolvedValueOnce({ id: 1 });
     await expect(
       call({ event_id: 'e1', dispatch_id: 'mock-11-a', status: 'assigned' })
     ).resolves.toEqual({ handled: false, duplicate: true });
@@ -172,8 +200,10 @@ describe('DeliveryDispatchService.handleWebhook', () => {
         data: expect.objectContaining({ status: 'picked_up', rider_name: '김기사' }),
       })
     );
-    expect(orderService.updateStatus).toHaveBeenCalledWith(11, 'ready', null, { role: 'system' });
-    expect(prisma.orders.updateMany).toHaveBeenCalledWith(
+    expect(prisma.orders.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'ready' }) })
+    );
+    expect(prisma.orders.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ delivery_status: 'delivering' }),
       })
@@ -193,9 +223,9 @@ describe('DeliveryDispatchService.handleWebhook', () => {
         data: expect.objectContaining({ delivery_status: 'delivered' }),
       })
     );
-    expect(orderService.updateStatus).toHaveBeenCalledWith(11, 'completed', null, {
-      role: 'system',
-    });
+    expect(prisma.orders.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'completed' }) })
+    );
   });
 
   test('늦게 온 이전 단계 이벤트는 상태를 되돌리지 않는다', async () => {
@@ -212,11 +242,9 @@ describe('DeliveryDispatchService.handleWebhook', () => {
         data: expect.objectContaining({ delivery_status: null }),
       })
     );
-    expect(notificationService.createNotification).toHaveBeenCalledWith(
+    expect(prisma.delivery_webhook_events.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        store_id: 3,
-        priority: 'high',
-        message: expect.stringContaining('기사 없음'),
+        data: expect.objectContaining({ effect_status: 'failed', effect_reason: '기사 없음' }),
       })
     );
   });
@@ -255,6 +283,7 @@ describe('DeliveryDispatchService.cancel', () => {
     });
     prisma.delivery_dispatches.update.mockResolvedValue({ id: 1, status: 'canceled' });
     prisma.orders.findUnique.mockResolvedValue(order);
+    prisma.delivery_dispatches.findFirst.mockResolvedValueOnce({ id: 1, status: 'canceled' });
     await expect(svc.cancel(11)).resolves.toMatchObject({ status: 'canceled' });
   });
 });

@@ -2,6 +2,10 @@
 // getDistanceFromLatLonInKm 함수의 정확성을 검증
 
 jest.mock('../../../config/prisma', () => ({
+  store_order_channels: {
+    findUnique: jest.fn().mockResolvedValue(null),
+    findMany: jest.fn().mockResolvedValue([]),
+  },
   stores: { findUnique: jest.fn() },
 }));
 jest.mock('../../../repositories/Order', () => ({

@@ -183,3 +183,20 @@ describe('DeliveryService 공개 응답', () => {
     expect(anonymous.address).toBe('서울 강남구');
   });
 });
+
+describe('privacy lookup failures', () => {
+  test('detail propagates settings error', async () => {
+    const error = new Error('unavailable');
+    prisma.store_order_channels.findUnique.mockRejectedValueOnce(error);
+    await expect(DeliveryService.storeViewFor(null, store)).rejects.toBe(error);
+  });
+  test('list propagates settings error', async () => {
+    const error = new Error('unavailable');
+    prisma.store_order_channels.findMany.mockRejectedValueOnce(error);
+    await expect(DeliveryService.applyPublicPrivacyToList([store])).rejects.toBe(error);
+  });
+  test('absent settings preserve legacy list', async () => {
+    prisma.store_order_channels.findMany.mockResolvedValueOnce([]);
+    await expect(DeliveryService.applyPublicPrivacyToList([store])).resolves.toEqual([store]);
+  });
+});

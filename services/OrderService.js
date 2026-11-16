@@ -274,25 +274,49 @@ class OrderService {
     if (order.order_type !== 'delivery') throw new AppError('배달 주문이 아닙니다.', 400);
     if (order.status === 'cancelled') throw new AppError('취소된 주문입니다.', 409);
 
+    const assertNoAgencyDispatch = async (db) => {
+      const active = await db.delivery_dispatches.findFirst({
+        where: {
+          order_id: orderId,
+          status: { in: ['requested', 'assigned', 'picked_up'] },
+        },
+      });
+      if (active)
+        throw new AppError(
+          '배달대행 배차가 진행 중이거나 결과 미확정입니다. 직접 배달로 변경할 수 없습니다.',
+          409
+        );
+    };
+    await assertNoAgencyDispatch(prisma);
+    const claimDelivery = (where, data) =>
+      prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM public.orders WHERE id = ${orderId} FOR UPDATE`;
+        await assertNoAgencyDispatch(tx);
+        return tx.orders.updateMany({ where, data });
+      });
     if (action === 'start') {
       if (order.delivery_status) throw new AppError('이미 배달을 출발한 주문입니다.', 409);
       if (order.status === 'completed') throw new AppError('이미 완료된 주문입니다.', 409);
       if (order.status !== 'ready') await this.updateStatus(orderId, 'ready', staff_id, actor);
-      const claimed = await prisma.orders.updateMany({
-        where: { id: orderId, delivery_status: null, status: 'ready' },
-        data: {
+      const claimed = await claimDelivery(
+        { id: orderId, delivery_status: null, status: 'ready' },
+        {
           delivery_status: 'delivering',
           delivery_started_at: new Date(),
           updated_at: new Date(),
-        },
-      });
+        }
+      );
       if (claimed.count !== 1)
         throw new AppError('배달 출발 처리 중 주문 상태가 바뀌었습니다.', 409);
     } else if (action === 'complete') {
-      const claimed = await prisma.orders.updateMany({
-        where: { id: orderId, delivery_status: 'delivering' },
-        data: { delivery_status: 'delivered', delivered_at: new Date(), updated_at: new Date() },
-      });
+      const claimed = await claimDelivery(
+        {
+          id: orderId,
+          delivery_status: 'delivering',
+          status: { notIn: ['cancelled', 'completed'] },
+        },
+        { delivery_status: 'delivered', delivered_at: new Date(), updated_at: new Date() }
+      );
       if (claimed.count !== 1)
         throw new AppError('배달 출발 전이거나 이미 완료된 주문입니다.', 409);
       await this.updateStatus(orderId, 'completed', staff_id, actor);
@@ -336,6 +360,73 @@ class OrderService {
         .catch(() => {});
       throw error;
     }
+  }
+
+  /** Replay effects for committed delivery state; NEVER write order status here. */
+  async applyCommittedDeliveryEffects(orderId, expectedStatus) {
+    let order = await Order.findById(orderId);
+    if (
+      !order ||
+      order.status !== expectedStatus ||
+      !['ready', 'completed'].includes(expectedStatus)
+    )
+      return;
+    await this._processInventory(order);
+    if (expectedStatus === 'completed') await this._processDeliveryLoyalty(order);
+    order = await Order.findById(orderId);
+    if (!order || order.status !== expectedStatus) return; // discard stale ready notifications
+    await notificationService.notifyOrderStatusDB(order, expectedStatus);
+    await notificationService.notifyOrderStatus(order, expectedStatus, order.customer_fcm_token);
+    this._emitOrderUpdate(order, expectedStatus);
+    await webhookDispatcher.emitEvent(order.store_id, 'order.updated', {
+      order_id: order.id,
+      order_number: order.order_number,
+      status: expectedStatus,
+    });
+    if (expectedStatus === 'completed')
+      await webhookDispatcher.emitEvent(order.store_id, 'order.completed', {
+        order_id: order.id,
+        order_number: order.order_number,
+        total_amount: order.total_amount,
+      });
+  }
+
+  async _processDeliveryLoyalty(order) {
+    const PointsService = require('./PointsService');
+    const StoreCustomer = require('../repositories/StoreCustomer');
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM public.orders WHERE id = ${order.id} FOR UPDATE`;
+      if (await tx.delivery_order_effects.findUnique({ where: { order_id: order.id } })) return;
+      const phone = order.customer_phone && decryptPhone(order.customer_phone);
+      if (phone) {
+        const existing = await tx.point_transactions.findFirst({
+          where: { order_id: order.id, type: 'earn' },
+        });
+        if (!existing) {
+          const customer = await StoreCustomer.upsertCustomer(
+            { store_id: order.store_id, customer_phone: phone, amount: order.total_amount },
+            tx
+          );
+          if (!customer) throw new Error('Delivery customer accounting failed');
+          const amount = await PointsService.calculateEarnPoints(
+            order.total_amount,
+            order.store_id,
+            { phone }
+          );
+          if (amount > 0)
+            await PointsService.earn(
+              order.id,
+              null,
+              order.store_id,
+              order.order_number,
+              phone,
+              amount,
+              tx
+            );
+        }
+      }
+      await tx.delivery_order_effects.create({ data: { order_id: order.id } });
+    });
   }
 
   async updateStatus(id, status, staff_id, actor = null) {

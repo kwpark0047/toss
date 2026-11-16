@@ -1,4 +1,8 @@
 jest.mock('../../../config/prisma', () => ({
+  store_order_channels: {
+    findUnique: jest.fn().mockResolvedValue(null),
+    findMany: jest.fn().mockResolvedValue([]),
+  },
   $transaction: jest.fn(),
   stores: {
     findUnique: jest.fn(),

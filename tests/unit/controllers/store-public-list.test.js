@@ -1,6 +1,9 @@
 jest.mock('../../../services/StoreService', () => jest.fn());
 jest.mock('../../../repositories/Store', () => ({ findAll: jest.fn() }));
-jest.mock('../../../config/prisma', () => ({ stores: { findMany: jest.fn() } }));
+jest.mock('../../../config/prisma', () => ({
+  stores: { findMany: jest.fn() },
+  store_order_channels: { findMany: jest.fn().mockResolvedValue([]) },
+}));
 const db = require('../../../config/prisma');
 const controller = require('../../../controllers/storeController');
 test('limited public store list uses normalized business relation and preserves flat contract', async () => {

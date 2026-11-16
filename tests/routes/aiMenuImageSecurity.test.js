@@ -15,17 +15,28 @@ const mockPrisma = {
 };
 jest.mock('../../config/prisma', () => mockPrisma);
 const mockGenerate = jest.fn((_req, res) => res.status(200).json({ success: true }));
-jest.mock('../../controllers/aiController', () =>
-  new Proxy({}, { get: (_t, key) => (key === 'generateMenuImage' ? mockGenerate : (_req, res) => res.json({})) })
+jest.mock(
+  '../../controllers/aiController',
+  () =>
+    new Proxy(
+      {},
+      {
+        get: (_t, key) =>
+          key === 'generateMenuImage' ? mockGenerate : (_req, res) => res.json({}),
+      }
+    )
 );
-jest.mock('../../utils/aiRateLimiter', () => ({ createAIRateLimiter: () => (_req, _res, next) => next() }));
+jest.mock('../../utils/aiRateLimiter', () => ({
+  createAIRateLimiter: () => (_req, _res, next) => next(),
+}));
 
 const app = express();
 app.use(express.json());
 app.use('/api/ai', require('../../routes/ai'));
 app.use((err, _req, res, _next) => res.status(err.statusCode || 500).json({ error: err.message }));
 
-const tokenFor = (id, role = 'owner') => jwt.sign({ id, role, type: 'access' }, process.env.JWT_SECRET);
+const tokenFor = (id, role = 'owner') =>
+  jwt.sign({ id, role, type: 'access' }, process.env.JWT_SECRET);
 const body = { store_id: 42, name: '바닐라 라떼' };
 
 describe('POST /api/ai/generate-menu-image 접근 제어', () => {
@@ -84,5 +95,28 @@ describe('POST /api/ai/generate-menu-image 접근 제어', () => {
       .send({ store_id: 'abc', name: '라떼' });
     expect(res.status).toBe(400);
     expect(mockGenerate).not.toHaveBeenCalled();
+  });
+});
+
+describe('store ID consistency', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockPrisma.stores.findUnique.mockResolvedValue({ user_id: 1 });
+  });
+  test.each(['owner', 'super_admin'])('conflict rejects before AI: %s', async (role) => {
+    const res = await request(app)
+      .post('/api/ai/generate-menu-image?store_id=7')
+      .set('Authorization', 'Bearer ' + tokenFor(1, role))
+      .send(body);
+    expect(res.status).toBe(400);
+    expect(mockGenerate).not.toHaveBeenCalled();
+  });
+  test('matching IDs use canonical ID', async () => {
+    const res = await request(app)
+      .post('/api/ai/generate-menu-image?store_id=42')
+      .set('Authorization', 'Bearer ' + tokenFor(1))
+      .send(body);
+    expect(res.status).toBe(200);
+    expect(mockGenerate.mock.calls[0][0].storeId).toBe(42);
   });
 });

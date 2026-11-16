@@ -167,7 +167,7 @@ const OrderChannels = {
   hidesAddress,
   toPublic,
 
-  // 매장 설정 조회 (기본값 병합). 테이블이 아직 없거나 조회가 실패하면 기본값으로 주문을 받는다(fail-open).
+  // 기본값은 저장된 행이 없을 때만 사용한다. 조회 오류는 공개 주소 노출을 막도록 전파한다.
   findByStoreId: async (storeId, client = prisma) => {
     try {
       const row = await client.store_order_channels.findUnique({
@@ -175,8 +175,8 @@ const OrderChannels = {
       });
       return toPublic(row);
     } catch (error) {
-      logger.warn(`[OrderChannels] 설정 조회 실패, 기본값 사용: ${error.message}`);
-      return toPublic(null);
+      logger.warn(`[OrderChannels] 설정 조회 실패: ${error.message}`);
+      throw error;
     }
   },
 
@@ -189,7 +189,8 @@ const OrderChannels = {
       const rows = await prisma.store_order_channels.findMany({ where: { store_id: { in: ids } } });
       for (const row of rows) map.set(row.store_id, toPublic(row));
     } catch (error) {
-      logger.warn(`[OrderChannels] 목록 설정 조회 실패, 기본값 사용: ${error.message}`);
+      logger.warn(`[OrderChannels] 목록 설정 조회 실패: ${error.message}`);
+      throw error;
     }
     return map;
   },

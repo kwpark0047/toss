@@ -10,7 +10,7 @@ describe('deployment verification rejects unhealthy successful HTTP responses', 
     jest.restoreAllMocks();
     process.exitCode = 0;
   });
-  test.each(['database', 'operationalConfig'])(
+  test.each(['database', 'operationalConfig', 'schema'])(
     'rejects %s error even when top-level status is ok',
     async (field) => {
       global.fetch = jest.fn(async (url) => ({
@@ -21,7 +21,7 @@ describe('deployment verification rejects unhealthy successful HTTP responses', 
                 status: 'ok',
                 checks: {
                   database: { status: 'ok' },
-                  operationalConfig: { status: 'ok' },
+                  operationalConfig: { status: 'ok' }, schema: { status: 'ok' },
                   [field]: { status: 'error' },
                 },
               })
@@ -51,7 +51,7 @@ describe('deployment verification rejects unhealthy successful HTTP responses', 
         url.endsWith('/deep')
           ? JSON.stringify({
               status: 'ok',
-              checks: { database: { status: 'ok' }, operationalConfig: { status: 'ok' } },
+              checks: { database: { status: 'ok' }, operationalConfig: { status: 'ok' }, schema: { status: 'ok' } },
             })
           : url.endsWith('/health')
             ? JSON.stringify({ status: 'ok', db: 'connected' })
@@ -63,7 +63,7 @@ describe('deployment verification rejects unhealthy successful HTTP responses', 
 
   const healthyDeep = JSON.stringify({
     status: 'ok',
-    checks: { database: { status: 'ok' }, operationalConfig: { status: 'ok' } },
+    checks: { database: { status: 'ok' }, operationalConfig: { status: 'ok' }, schema: { status: 'ok' } },
   });
   const NEW = 'b'.repeat(40);
   const OLD = 'a'.repeat(40);

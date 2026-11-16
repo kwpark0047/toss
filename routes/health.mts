@@ -18,6 +18,16 @@ const prismaModule = require('../config/prisma.js');
 const prismaClient = typeof prismaModule.$queryRaw === 'function' ? prismaModule : prismaModule.default;
 const { createReadinessProbe } = require('../utils/readinessProbe.js');
 const probeDatabase = createReadinessProbe(() => prismaClient.$queryRaw`SELECT 1`);
+// Validate release-critical columns without reading customer rows. Connectivity alone
+// cannot detect a successful deployment against a database missing migrations.
+const probeReleaseSchema = createReadinessProbe(() => prismaClient.$queryRaw`
+  SELECT o.delivery_fee, o.delivery_memo, o.delivery_status, o.delivery_started_at, o.delivered_at,
+         c.agency_provider, c.agency_auto_dispatch, d.request_state,
+         e.order_id, e.effect_status, e.effect_reason, e.effect_completed_at, e.effect_lease_until,
+         b.supply_amount, b.vat_amount, b.tax_free_amount
+  FROM public.orders o, public.store_order_channels c, public.delivery_dispatches d,
+       public.delivery_webhook_events e, public."BillingInvoice" b LIMIT 0
+`);
 
 const router = Router();
 router.get('/live', (_req: Request, res: Response) => res.json({ status: 'ok' }));
@@ -164,6 +174,10 @@ router.get('/deep', async (req, res) => {
     checks.database = { status: 'error', error: e.message };
     overallOk = false;
   }
+
+  const schemaReady = await probeReleaseSchema();
+  checks.schema = { status: schemaReady ? 'ok' : 'error' };
+  if (!schemaReady) overallOk = false;
 
   // 2. 메모리
   const mem = process.memoryUsage();

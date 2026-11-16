@@ -1,5 +1,8 @@
 // 주문 유형(매장 식사/포장/배달) 스위치와 직접 배달 주문 생성·진행 규칙
 jest.mock('../../../config/prisma', () => ({
+  $transaction: jest.fn(),
+  $queryRaw: jest.fn().mockResolvedValue([]),
+  delivery_dispatches: { findFirst: jest.fn().mockResolvedValue(null) },
   stores: { findUnique: jest.fn() },
   tables: { findUnique: jest.fn() },
   orders: { updateMany: jest.fn().mockResolvedValue({ count: 1 }), update: jest.fn() },
@@ -213,6 +216,8 @@ describe('OrderService.updateDelivery', () => {
     jest.clearAllMocks();
     svc = new OrderService(null);
     prisma.orders.updateMany.mockResolvedValue({ count: 1 });
+    prisma.delivery_dispatches.findFirst.mockResolvedValue(null);
+    prisma.$transaction.mockImplementation((fn) => fn(prisma));
   });
 
   test('배달 주문이 아니면 거절', async () => {
@@ -270,5 +275,65 @@ describe('OrderService.updateDelivery', () => {
       delivery_status: 'delivering',
     });
     await expect(svc.updateDelivery(1, 'start')).rejects.toThrow('이미 배달을 출발');
+  });
+  test('active/unknown agency dispatch blocks direct delivery before status updates', async () => {
+    Order.findById.mockResolvedValue({ id: 1, order_type: 'delivery', status: 'ready' });
+    prisma.delivery_dispatches.findFirst.mockResolvedValue({
+      id: 2,
+      status: 'requested',
+      request_state: 'unknown',
+    });
+    await expect(svc.updateDelivery(1, 'start')).rejects.toMatchObject({ status: 409 });
+    expect(prisma.orders.updateMany).not.toHaveBeenCalled();
+  });
+  test('agency claim appearing after precheck is rejected under the order lock', async () => {
+    Order.findById.mockResolvedValue({ id: 1, order_type: 'delivery', status: 'ready' });
+    prisma.delivery_dispatches.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 2 });
+    await expect(svc.updateDelivery(1, 'start')).rejects.toMatchObject({ status: 409 });
+    expect(prisma.$queryRaw).toHaveBeenCalled();
+    expect(prisma.orders.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('OrderService committed delivery effects', () => {
+  let svc;
+  beforeEach(() => {
+    jest.clearAllMocks();
+    svc = new OrderService(null);
+    jest.spyOn(svc, '_processInventory').mockResolvedValue();
+    jest.spyOn(svc, '_processDeliveryLoyalty').mockResolvedValue();
+    jest.spyOn(svc, '_emitOrderUpdate').mockImplementation(() => {});
+    jest
+      .spyOn(svc, 'updateStatus')
+      .mockRejectedValue(new Error('must not rewrite committed state'));
+  });
+  test('ready replay cannot rewrite a concurrently completed order', async () => {
+    Order.findById
+      .mockResolvedValueOnce({ id: 11, status: 'ready' })
+      .mockResolvedValue({ id: 11, status: 'completed' });
+    await svc.applyCommittedDeliveryEffects(11, 'ready');
+    expect(svc.updateStatus).not.toHaveBeenCalled();
+    expect(prisma.orders.updateMany).not.toHaveBeenCalled();
+    expect(svc._emitOrderUpdate).not.toHaveBeenCalled();
+  });
+  test('completion waits for loyalty; failure propagates for durable retry', async () => {
+    Order.findById.mockResolvedValue({ id: 11, status: 'completed' });
+    svc._processDeliveryLoyalty.mockRejectedValueOnce(new Error('points DB unavailable'));
+    await expect(svc.applyCommittedDeliveryEffects(11, 'completed')).rejects.toThrow(
+      'points DB unavailable'
+    );
+    expect(svc._processInventory).toHaveBeenCalled();
+    expect(svc._emitOrderUpdate).not.toHaveBeenCalled();
+    expect(svc.updateStatus).not.toHaveBeenCalled();
+  });
+  test('inventory failure propagates before loyalty and notifications', async () => {
+    Order.findById.mockResolvedValue({ id: 11, status: 'completed' });
+    svc._processInventory.mockRejectedValueOnce(new Error('inventory unavailable'));
+    await expect(svc.applyCommittedDeliveryEffects(11, 'completed')).rejects.toThrow(
+      'inventory unavailable'
+    );
+    expect(svc._processDeliveryLoyalty).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const DeliveryService = require('./DeliveryService');
 const logger = require('../utils/logger');
 const notificationService = require('./notificationService');
 const { AppError } = require('../utils/errorHandler');
@@ -112,13 +113,17 @@ class CommunityService {
       prisma.community_posts.count({ where }),
     ]);
 
+    const publicStores = await DeliveryService.applyPublicPrivacyToList(
+      posts.filter((post) => post.stores).map((post) => post.stores)
+    );
+    const storesById = new Map(publicStores.map((store) => [store.id, store]));
     const feedPosts = posts.map((post) => ({
       ...post,
       stores: post.stores
         ? {
             id: post.stores.id,
             name: post.stores.name,
-            address: post.stores.address,
+            address: storesById.get(post.stores.id).address,
             business_type: post.stores.store_business_info?.business_type ?? null,
           }
         : null,
@@ -311,7 +316,10 @@ class CommunityService {
       orderBy: { name: 'asc' },
     });
 
-    return { district: targetDistrict, stores };
+    return {
+      district: targetDistrict,
+      stores: await DeliveryService.applyPublicPrivacyToList(stores),
+    };
   }
 
   /**
@@ -344,7 +352,24 @@ class CommunityService {
       }),
     ]);
 
-    return { sent, received };
+    // A partnership does not grant ownership of the other store's private location.
+    const relatedStores = await DeliveryService.applyPublicPrivacyToList(
+      [
+        ...sent.map((row) => row.target_store),
+        ...received.map((row) => row.requester_store),
+      ].filter(Boolean)
+    );
+    const storesById = new Map(relatedStores.map((store) => [store.id, store]));
+    return {
+      sent: sent.map((row) => ({
+        ...row,
+        target_store: row.target_store ? storesById.get(row.target_store.id) : null,
+      })),
+      received: received.map((row) => ({
+        ...row,
+        requester_store: row.requester_store ? storesById.get(row.requester_store.id) : null,
+      })),
+    };
   }
 
   /**
