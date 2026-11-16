@@ -57,6 +57,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Verify upgraded dependency consumers
+        run: node scripts/check-dependency-consumers.cjs
+
       - name: Prisma Schema Validation
         run: |
           npx prisma generate
@@ -670,6 +673,8 @@ jobs:
           format: 'sarif'
           output: 'trivy-backend.sarif'
           exit-code: '1'
+          # Otherwise trivy-action unsets severity for SARIF and fails on LOW/MEDIUM too.
+          limit-severities-for-sarif: 'true'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
           scanners: 'vuln,secret'
@@ -690,6 +695,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-frontend.sarif'
           exit-code: '1'
+          limit-severities-for-sarif: 'true'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
           scanners: 'vuln,secret'
