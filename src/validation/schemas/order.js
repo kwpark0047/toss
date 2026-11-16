@@ -100,6 +100,8 @@ const canonicalOrderSchema = z.object({
   // 주문 유형. 보내지 않으면 서버가 테이블 유무와 매장 설정으로 정한다(기존 클라이언트 호환).
   order_type: z.enum(['dine_in', 'takeout', 'delivery']).optional(),
   delivery_address: z.string().trim().min(1).max(300).optional(),
+  delivery_road_address: z.string().trim().min(1).max(100).optional(),
+  delivery_address_detail: z.string().trim().min(1).max(100).optional(),
   delivery_memo: z.string().trim().max(500).optional(),
   // 고객 기기가 고른 배달 주소 좌표. 서버 지오코딩이 실패할 때만 반경 판정에 쓴다.
   delivery_latitude: z.number().min(-90).max(90).optional(),

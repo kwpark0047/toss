@@ -181,6 +181,34 @@ describe('OrderService 주문 유형', () => {
     ).rejects.toThrow('벗어났습니다');
   });
 
+  test('구조화 주소는 견적과 저장에 일관되게 쓰고 고객의 배달비는 무시한다', async () => {
+    OrderChannels.findByStoreId.mockResolvedValue(onlineOnly);
+    DeliveryService.quote.mockResolvedValue({ deliverable: true, fee: 3000 });
+    await svc.createOrder({
+      store_id: 1,
+      items,
+      total_amount: 18000,
+      order_type: 'delivery',
+      payment_method: 'toss',
+      phone: '01011112222',
+      delivery_address: '위조 주소',
+      delivery_road_address: ' 도로 1 ',
+      delivery_address_detail: ' 101호 ',
+      delivery_fee: 1,
+    });
+    expect(DeliveryService.quote).toHaveBeenCalledWith(
+      expect.objectContaining({ address: '도로 1 101호' })
+    );
+    expect(Order.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        delivery_address: '도로 1 101호',
+        delivery_road_address: '도로 1',
+        delivery_address_detail: '101호',
+        delivery_fee: 3000,
+        total_amount: 21000,
+      })
+    );
+  });
   test('배달 주문은 서버 합계로 견적을 받고 배달비를 더해 저장한다', async () => {
     OrderChannels.findByStoreId.mockResolvedValue(onlineOnly);
     DeliveryService.quote.mockResolvedValue({ deliverable: true, fee: 3000 });
@@ -195,7 +223,7 @@ describe('OrderService 주문 유형', () => {
       delivery_memo: '문 앞',
     });
     expect(DeliveryService.quote).toHaveBeenCalledWith(
-      expect.objectContaining({ subtotal: 18000, address: ' 서울 강남구 테헤란로 1 ' })
+      expect.objectContaining({ subtotal: 18000, address: '서울 강남구 테헤란로 1' })
     );
     expect(Order.create).toHaveBeenCalledWith(
       expect.objectContaining({

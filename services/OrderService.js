@@ -18,6 +18,7 @@ const orderEventService = require('./OrderEventService');
 const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
 const OrderChannels = require('../repositories/OrderChannels');
 const DeliveryService = require('./DeliveryService');
+const { normalizeDeliveryAddress } = require('./delivery/barogoOrder');
 const { orderPlaceLabel } = require('../utils/orderLabel');
 
 // 손님 셀프 취소를 허용하는 결제 상태 (결제 전이거나 결제 실패)
@@ -231,11 +232,12 @@ class OrderService {
 
     // 배달 권역·최소 주문 금액은 서버 상품 합계로 판정하고, 배달비는 서버 설정값을 쓴다.
     let deliveryFee = 0;
+    const deliveryAddress = normalizeDeliveryAddress({ ...data, order_type: orderType });
     if (orderType === 'delivery') {
       const quote = await DeliveryService.quote({
         store,
         channels,
-        address: data.delivery_address,
+        address: deliveryAddress.delivery_address,
         subtotal: serverSubtotal,
         clientCoords: { latitude: data.delivery_latitude, longitude: data.delivery_longitude },
       });
@@ -249,8 +251,7 @@ class OrderService {
     orderData.order_type = orderType;
     orderData.is_takeout = orderType !== 'dine_in';
     orderData.delivery_fee = orderType === 'delivery' ? deliveryFee : null;
-    orderData.delivery_address =
-      orderType === 'delivery' ? String(data.delivery_address).trim() : null;
+    Object.assign(orderData, deliveryAddress);
     orderData.delivery_memo =
       orderType === 'delivery' && data.delivery_memo ? String(data.delivery_memo).trim() : null;
     orderData.items = pricedItems;

@@ -217,6 +217,7 @@ const MenuPage = () => {
   }, [tableNumber, orderChannels]);
   const [chosenOrderType, setChosenOrderType] = useState(null);
   const orderType = orderTypeOptions.includes(chosenOrderType) ? chosenOrderType : orderTypeOptions[0] || null;
+  const [deliveryAddressDetail, setDeliveryAddressDetail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState(() => {
     try { return localStorage.getItem('wm_delivery_address') || ''; } catch { return ''; }
   });
@@ -557,6 +558,7 @@ const handleOrder = useCallback(async () => {
       return;
     }
     if (orderType === 'delivery') {
+      if (!deliveryAddressDetail.trim()) { toast.error('상세주소를 입력해 주세요.'); return; }
       if (notifyPhone.replace(/\D/g, '').length < 10) {
         toast.error('배달 주문은 연락받을 전화번호를 입력해 주세요.');
         return;
@@ -571,7 +573,7 @@ const handleOrder = useCallback(async () => {
       return;
     }
     setIsOrdering(true);
-    const fingerprint = JSON.stringify({ storeId, tableNumber, cart, totalPrice, paymentMethod, notifyPhone, orderType, deliveryAddress, deliveryMemo });
+    const fingerprint = JSON.stringify({ storeId, tableNumber, cart, totalPrice, paymentMethod, notifyPhone, orderType, deliveryAddress, deliveryAddressDetail, deliveryMemo });
     if (checkoutAttempt.current?.fingerprint !== fingerprint) {
       checkoutAttempt.current = { fingerprint, key: crypto.randomUUID(), order: null, busy: false };
     }
@@ -598,7 +600,9 @@ const handleOrder = useCallback(async () => {
         ...(position || {}),
         ...(orderType ? { order_type: orderType } : {}),
         ...(orderType === 'delivery' ? {
-          delivery_address: deliveryAddress.trim(),
+          delivery_address: `${deliveryAddress.trim()} ${deliveryAddressDetail.trim()}`,
+          delivery_road_address: deliveryAddress.trim(),
+          delivery_address_detail: deliveryAddressDetail.trim(),
           ...(deliveryMemo.trim() ? { delivery_memo: deliveryMemo.trim() } : {})
         } : {}),
         items: cart.map(item => ({
@@ -704,7 +708,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsOrdering(false);
     }
-  }, [testMenuMode, storeId, cart, storeOpen, ordersPaused, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t, orderType, deliveryAddress, deliveryMemo, deliveryQuote, onlinePaymentOnly]);
+  }, [testMenuMode, storeId, cart, storeOpen, ordersPaused, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t, orderType, deliveryAddress, deliveryAddressDetail, deliveryMemo, deliveryQuote, onlinePaymentOnly]);
 
   // 배달 주소·장바구니 금액이 바뀌면 서버에 배달 가능 여부와 배달비를 다시 묻는다.
   useEffect(() => {
@@ -907,7 +911,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       {!isCartOpen && <CartButton totalItems={totalItems} totalPrice={totalPrice} onClick={handleOpenCart} />}
 
       {/* Cart Modal */}
-      <CartModal isOpen={isCartOpen} onClose={handleCloseCart} cart={cart} onUpdateQuantity={updateQuantity} onOrder={handleOrder} isOrdering={isOrdering} totalPrice={totalPrice} notifyPhone={notifyPhone} onNotifyPhoneChange={setNotifyPhone} paymentMethod={paymentMethod} onPaymentMethodChange={setPaymentMethod} menuItems={menuItems} storeId={storeId} onAddToCartClick={handleAddToCartClick} onStartSplitPayment={handleStartSplitPayment} isSplitStarting={isSplitStarting} hideSplitPayment={!!orderType && orderType !== 'dine_in'} onlinePaymentOnly={onlinePaymentOnly} extraFee={orderType === 'delivery' && deliveryQuote?.deliverable ? deliveryQuote.fee : 0} orderTypePanel={orderTypeOptions.length ? <OrderTypePanel types={orderTypeOptions} orderType={orderType} onOrderTypeChange={setChosenOrderType} pickupGuide={orderChannels?.pickup_guide} delivery={orderChannels?.delivery} deliveryAddress={deliveryAddress} onDeliveryAddressChange={setDeliveryAddress} deliveryMemo={deliveryMemo} onDeliveryMemoChange={setDeliveryMemo} quote={deliveryQuote} quoting={isQuoting} /> : null} />
+      <CartModal isOpen={isCartOpen} onClose={handleCloseCart} cart={cart} onUpdateQuantity={updateQuantity} onOrder={handleOrder} isOrdering={isOrdering} totalPrice={totalPrice} notifyPhone={notifyPhone} onNotifyPhoneChange={setNotifyPhone} paymentMethod={paymentMethod} onPaymentMethodChange={setPaymentMethod} menuItems={menuItems} storeId={storeId} onAddToCartClick={handleAddToCartClick} onStartSplitPayment={handleStartSplitPayment} isSplitStarting={isSplitStarting} hideSplitPayment={!!orderType && orderType !== 'dine_in'} onlinePaymentOnly={onlinePaymentOnly} extraFee={orderType === 'delivery' && deliveryQuote?.deliverable ? deliveryQuote.fee : 0} orderTypePanel={orderTypeOptions.length ? <OrderTypePanel types={orderTypeOptions} orderType={orderType} onOrderTypeChange={setChosenOrderType} pickupGuide={orderChannels?.pickup_guide} delivery={orderChannels?.delivery} deliveryAddress={deliveryAddress} onDeliveryAddressChange={setDeliveryAddress} deliveryAddressDetail={deliveryAddressDetail} onDeliveryAddressDetailChange={setDeliveryAddressDetail} deliveryMemo={deliveryMemo} onDeliveryMemoChange={setDeliveryMemo} quote={deliveryQuote} quoting={isQuoting} /> : null} />
 
       {splitSession && !isSplitSheetOpen && <button type="button" onClick={() => setIsSplitSheetOpen(true)} className="fixed bottom-24 left-1/2 z-40 -translate-x-1/2 rounded-full bg-blue-700 px-5 py-3 text-sm font-black text-white shadow-xl">분할 결제 상태 보기</button>}
       <SplitPaymentSheet isOpen={isSplitSheetOpen} onClose={() => setIsSplitSheetOpen(false)} session={splitSession} />
