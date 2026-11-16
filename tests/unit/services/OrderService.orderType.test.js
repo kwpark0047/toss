@@ -90,6 +90,34 @@ describe('OrderService 주문 유형', () => {
       expect.objectContaining({ order_type: 'dine_in', is_takeout: false })
     );
   });
+  test('예약은 기본 고객 경로에서 차단하고 코드로 주입한 테스트 경로에서만 저장한다', async () => {
+    OrderChannels.findByStoreId.mockResolvedValue(onlineOnly);
+    DeliveryService.quote.mockResolvedValue({ deliverable: true, fee: 3000 });
+    const dropWishAt = Date.now() + 2 * 86400000;
+    const delivery_reservation = {
+      dropWishAt,
+      pickupWishAt: dropWishAt - 30 * 60000,
+      reservedOrderDisplayTime: 60,
+    };
+    const input = {
+      store_id: 1,
+      items,
+      total_amount: 18000,
+      order_type: 'delivery',
+      payment_method: 'toss',
+      phone: '01011112222',
+      delivery_address: '도로 1 101호',
+      delivery_reservation,
+    };
+    await expect(svc.createOrder(input)).rejects.toThrow('예약 배달 주문은 준비 중');
+    expect(Order.create).not.toHaveBeenCalled();
+    const testService = new OrderService(null, { deliveryReservationsEnabled: true });
+    testService._notifyNewOrder = jest.fn();
+    await testService.createOrder(input);
+    expect(Order.create).toHaveBeenCalledWith(
+      expect.objectContaining({ delivery_reservation, total_amount: 21000 })
+    );
+  });
 
   test('유형을 안 보내는 기존 클라이언트: 온라인 전용 매장은 포장', async () => {
     OrderChannels.findByStoreId.mockResolvedValue(onlineOnly);

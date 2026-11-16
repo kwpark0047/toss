@@ -19,6 +19,7 @@ const { priceOrderItem, assertClientTotal } = require('../utils/orderPricing');
 const OrderChannels = require('../repositories/OrderChannels');
 const DeliveryService = require('./DeliveryService');
 const { normalizeDeliveryAddress } = require('./delivery/barogoOrder');
+const { normalizeDeliveryReservation } = require('./delivery/barogoSchedule');
 const { orderPlaceLabel } = require('../utils/orderLabel');
 
 // 손님 셀프 취소를 허용하는 결제 상태 (결제 전이거나 결제 실패)
@@ -44,8 +45,10 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
 }
 
 class OrderService {
-  constructor(io) {
+  constructor(io, { deliveryReservationsEnabled = false } = {}) {
     this.io = io;
+    // Code-only staging/test injection. No HTTP or environment activation.
+    this.deliveryReservationsEnabled = deliveryReservationsEnabled === true;
   }
 
   async createOrder(data) {
@@ -139,6 +142,9 @@ class OrderService {
     if (orderType !== 'dine_in' && data.is_split_payment) {
       throw new AppError('분할 결제는 매장 식사 주문에서만 사용할 수 있습니다.', 400);
     }
+    const reservation = normalizeDeliveryReservation({ ...data, order_type: orderType });
+    if (reservation && !this.deliveryReservationsEnabled)
+      throw new AppError('예약 배달 주문은 준비 중입니다.', 409);
     const payMethod = method || payment_method;
     // 매장에서 직접 결제할 자리가 없는 주문(배달, 온라인 전용 매장의 포장)은 온라인 선결제만 받는다.
     const prepayOnly =
@@ -249,6 +255,7 @@ class OrderService {
     const final_amount = Math.max(0, serverSubtotal - discount_amount) + deliveryFee;
     const orderData = { ...data };
     orderData.order_type = orderType;
+    orderData.delivery_reservation = reservation;
     orderData.is_takeout = orderType !== 'dine_in';
     orderData.delivery_fee = orderType === 'delivery' ? deliveryFee : null;
     Object.assign(orderData, deliveryAddress);

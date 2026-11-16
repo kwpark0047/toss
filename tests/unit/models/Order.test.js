@@ -62,7 +62,15 @@ describe('Order.create', () => {
     const result = await Order.create({
       store_id: 3,
       total_amount: 2,
-      order_type: 'delivery', delivery_address: '도로 1 101호', delivery_road_address: '도로 1', delivery_address_detail: '101호',
+      delivery_reservation: {
+        dropWishAt: 1800172800000,
+        pickupWishAt: 1800171000000,
+        reservedOrderDisplayTime: 60,
+      },
+      order_type: 'delivery',
+      delivery_address: '도로 1 101호',
+      delivery_road_address: '도로 1',
+      delivery_address_detail: '101호',
       items: [{ product_id: 10, product_name: '위조', quantity: 2, price: 1 }],
     });
 
@@ -70,7 +78,13 @@ describe('Order.create', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           total_amount: 6000,
-          delivery_road_address: '도로 1', delivery_address_detail: '101호',
+          delivery_reservation: {
+            dropWishAt: 1800172800000,
+            pickupWishAt: 1800171000000,
+            reservedOrderDisplayTime: 60,
+          },
+          delivery_road_address: '도로 1',
+          delivery_address_detail: '101호',
           order_items: {
             create: [
               expect.objectContaining({ product_name: '떡볶이', price: 3000, subtotal: 6000 }),
