@@ -36,9 +36,9 @@ Store search privacy 워크플로는 별도 브랜치에서 등록되어 있으�
 
 1. 최신 PR·워크플로 상태를 확인하고 위 7개만 원래 active로 복구한다. 새로 등록된 다른 워크플로를 임의로 활성화하지 않는다.
 2. 최적화 PR이 머지됐으면 main, 미머지면 `chore/actions-budget-20261118`에서 CI를 job=required로 한 번 실행한다. 선택값이 아직 없으면 임의로 all을 실행하지 않는다.
-3. 별도 Security workflow도 한 번 검증한다. PR #102처럼 이미 성공한 실행은 반복하지 않는다. 사용량 제한이 계속되면 반복 실행하지 않고 보고한다.
-4. ENABLE_PRODUCTION_DEPLOY와 ENABLE_APPROVED_DB_MIGRATIONS 등 운영 opt-in이 꺼져 있는지 확인한다. 이 예약으로 운영 배포·DB 적용·유료 기능·배차를 켜지 않는다.
-5. 결과와 절감 효과를 보고한다. 이 예약은 PR 머지나 운영 배포를 승인하지 않는다.
+3. 별도 Security workflow도 한 번 검증한다. PR #102의 과거 브랜치 CI는 반복하지 않되, 이번 배포 대상 main SHA의 원격 검증은 새로 수행한다. 사용량 제한이 계속되면 반복 실행하지 않고 보고한다.
+4. ENABLE_PRODUCTION_DEPLOY와 ENABLE_APPROVED_DB_MIGRATIONS 등 운영 opt-in이 꺼져 있는지 확인한다. 검증 중에는 운영 배포·DB 적용을 실행하지 않는다. 유료 기능·배차는 계속 비활성으로 유지한다.
+5. 2026-11-18 추가 사용자 승인에 따라 main 원격 검증 통과 후 PR #102의 단일 추가 마이그레이션·배포·운영 확인을 진행한다. 실패 시 복구 및 당일 체크리스트는 `docs/RELEASE-102-RECOVERY-20261201.md`를 따른다. 다른 PR 머지·다른 마이그레이션·기능 활성화는 범위 밖이다.
 
 워크플로 파일 최적화는 PR 머지 전까지 기본 브랜치의 자동 실행에 반영되지 않는다. 미머지 상태라면 검증 결과를 확인한 뒤 별도 검토가 필요하다. paths로 건너뛴 워크플로가 branch protection의 필수 검사인 경우 pending으로 남을 수 있으므로, 필요한 PR에는 required 수동 검사를 실행한다. 검사를 가짜 성공으로 대체하지 않는다.
 
