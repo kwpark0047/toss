@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { AppError } = require('../../utils/errorHandler');
+const { validateBarogoSchedule } = require('./barogoSchedule');
 
 // Official public guide, checked 2026-11-16. Staging only until partner approval.
 const STAGING = 'https://staging-api-interlocker.gorelas.com';
@@ -23,7 +24,7 @@ function validateOrder(body, now) {
   if (
     !body ||
     body.orderType !== 'FOR_DELIVERY' ||
-    body.isReservation !== false ||
+    typeof body.isReservation !== 'boolean' ||
     typeof body.isUntact !== 'boolean' ||
     body.deliveryExecutionType !== undefined
   )
@@ -48,6 +49,8 @@ function validateOrder(body, now) {
     'isUntact',
     'dropRoadAddress',
     'dropAddressDetail',
+    'dropWishAt',
+    'reservedOrderDisplayTime',
   ]);
   if (Object.keys(body).some((key) => !allowed.has(key))) throw invalid();
   text(body.orderAgencyId, 30);
@@ -66,12 +69,10 @@ function validateOrder(body, now) {
   ].forEach((key) => money(body[key]));
   if (
     body.totalPayPrice < body.actualPayPrice ||
-    body.prepaidPrice + body.paymentCashPrice + body.paymentCardPrice !== body.actualPayPrice ||
-    !Number.isSafeInteger(body.pickupWishAt) ||
-    body.pickupWishAt < now ||
-    body.pickupWishAt > now + 90 * 60000
+    body.prepaidPrice + body.paymentCashPrice + body.paymentCardPrice !== body.actualPayPrice
   )
     throw invalid();
+  const schedule = validateBarogoSchedule(body, now);
   if (
     !Array.isArray(body.orderProducts) ||
     !body.orderProducts.length ||
@@ -79,20 +80,49 @@ function validateOrder(body, now) {
   )
     throw invalid();
   const orderProducts = body.orderProducts.map((product) => {
-    // Initial scope: food/delivery tip without options, reservations or alcohol.
+    // Prices are integer KRW. Option quantity is per parent unit.
     if (
       !product ||
       !['FOOD', 'DELIVERY_TIP', 'SUMMARY'].includes(product.type) ||
-      product.options !== undefined
+      Object.keys(product).some(
+        (key) => !['type', 'name', 'totalPrice', 'unitPrice', 'quantity', 'options'].includes(key)
+      )
     )
       throw invalid();
     text(product.name, 100);
     money(product.totalPrice);
     money(product.unitPrice);
+    let options;
+    if (product.options !== undefined) {
+      if (!Array.isArray(product.options) || product.options.length > 100) throw invalid();
+      options = product.options.map((option) => {
+        if (
+          !option ||
+          typeof option !== 'object' ||
+          Object.keys(option).some((key) => !['name', 'unitPrice', 'quantity'].includes(key)) ||
+          !Number.isSafeInteger(option.unitPrice) ||
+          !Number.isSafeInteger(option.quantity) ||
+          option.quantity <= 0
+        )
+          throw invalid();
+        text(option.name, 100);
+        if (!Number.isSafeInteger(option.unitPrice * option.quantity)) throw invalid();
+        return { name: option.name, unitPrice: option.unitPrice, quantity: option.quantity };
+      });
+    }
+    const optionPrice = (options || []).reduce((sum, option) => {
+      const total = sum + option.unitPrice * option.quantity;
+      if (!Number.isSafeInteger(total)) throw invalid();
+      return total;
+    }, 0);
+    const unitTotal = product.unitPrice + optionPrice;
+    if (!Number.isSafeInteger(optionPrice) || !Number.isSafeInteger(unitTotal) || unitTotal < 0)
+      throw invalid();
     if (
       !Number.isSafeInteger(product.quantity) ||
       product.quantity <= 0 ||
-      product.totalPrice !== product.unitPrice * product.quantity
+      !Number.isSafeInteger(unitTotal * product.quantity) ||
+      product.totalPrice !== unitTotal * product.quantity
     )
       throw invalid();
     return {
@@ -101,6 +131,7 @@ function validateOrder(body, now) {
       totalPrice: product.totalPrice,
       unitPrice: product.unitPrice,
       quantity: product.quantity,
+      ...(options !== undefined ? { options } : {}),
     };
   });
   if (orderProducts.reduce((sum, product) => sum + product.totalPrice, 0) !== body.totalPayPrice)
@@ -125,6 +156,7 @@ function validateOrder(body, now) {
     ].map((key) => [key, body[key]])
   );
   clean.orderProducts = orderProducts;
+  Object.assign(clean, schedule);
   for (const [key, max] of [
     ['receiverName', 30],
     ['storeOrderMemo', 250],

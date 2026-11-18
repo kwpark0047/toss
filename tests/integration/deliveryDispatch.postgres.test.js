@@ -12,6 +12,9 @@ const credentials = require('../../services/ProviderCredentialService');
 const DeliveryDispatchService = require('../../services/delivery/DeliveryDispatchService');
 const { getAdapter } = require('../../services/delivery/adapters');
 const enabled = !!process.env.DISPATCH_TEST_DATABASE_URL;
+// Real DB cases perform several transactions and module initialization. Allow
+// slow shared Windows hosts; database lock timeouts below remain unchanged.
+jest.setTimeout(15000);
 (enabled ? describe : describe.skip)('delivery dispatch real PostgreSQL', () => {
   let db, sql, svc, adapter, spy;
   const root = path.resolve(__dirname, '../..');
@@ -105,6 +108,16 @@ const enabled = !!process.env.DISPATCH_TEST_DATABASE_URL;
       )
     );
     db = new PrismaClient({ datasources: { db: { url: url.href } } });
+    await sql.query('ALTER TABLE public.orders DROP COLUMN delivery_reservation');
+    await sql.query(
+      fs.readFileSync(
+        path.join(
+          root,
+          'prisma/migrations/20261117010000_barogo_reservation_snapshot/migration.sql'
+        ),
+        'utf8'
+      )
+    );
     adapter = getAdapter('mock');
   }, 30000);
   beforeEach(async () => {
@@ -235,6 +248,89 @@ const enabled = !!process.env.DISPATCH_TEST_DATABASE_URL;
         headers: { 'x-test-auth': creds.values.callback_token },
       })
     ).toMatchObject({ duplicate: true });
+  });
+  test('persisted options and reservation reach staging without changing the production registry', async () => {
+    const { createBarogoStagingAdapter } = require('../../services/delivery/barogoAdapter');
+    const now = 1800000000000;
+    const reservation = {
+      dropWishAt: now + 2 * 86400000,
+      pickupWishAt: now + 2 * 86400000 - 1800000,
+      reservedOrderDisplayTime: 60,
+    };
+    await db.store_order_channels.update({
+      where: { store_id: 3 },
+      data: { agency_provider: 'barogo' },
+    });
+    await db.orders.update({
+      where: { id: 11 },
+      data: {
+        payment_status: 'paid',
+        total_amount: 29000,
+        delivery_fee: 3000,
+        customer_phone: '01000000000',
+        delivery_road_address: '도로 1',
+        delivery_address_detail: '101호',
+        delivery_reservation: reservation,
+      },
+    });
+    await db.order_items.create({
+      data: {
+        id: 1,
+        order_id: 11,
+        product_name: '옵션 상품',
+        price: 14000,
+        subtotal: 28000,
+        quantity: 2,
+        options: JSON.stringify([{ groupName: '소스', choiceName: '추가', priceAdjustment: 2000 }]),
+      },
+    });
+    await db.payments.create({
+      data: { id: 1, order_id: 11, store_id: 3, status: 'DONE', amount: 29000 },
+    });
+    credentials.resolve.mockResolvedValue({
+      values: { api_key: 'test-key', order_agency_id: 'wemarket', order_agency_store_id: 'shop-3' },
+    });
+    const transport = jest.fn(async (url, options) => {
+      expect(url).toBe('https://staging-api-interlocker.gorelas.com/api/orders');
+      const body = JSON.parse(options.body);
+      expect(body).toMatchObject({
+        isReservation: true,
+        ...reservation,
+        totalPayPrice: 31000,
+        actualPayPrice: 29000,
+      });
+      expect(body.orderProducts[0]).toMatchObject({
+        unitPrice: 12000,
+        quantity: 2,
+        totalPrice: 28000,
+        options: [{ name: '소스: 추가', unitPrice: 2000, quantity: 1 }],
+      });
+      return {
+        ok: true,
+        json: async () => ({
+          statusCode: 200,
+          data: {
+            isSuccess: true,
+            order: { status: 'CREATED', orderAgencyOrderId: body.orderAgencyOrderId },
+          },
+        }),
+      };
+    });
+    svc = new DeliveryDispatchService(null, db, () =>
+      createBarogoStagingAdapter({ transport, now: () => now })
+    );
+    await expect(svc.request(11)).resolves.toMatchObject({
+      request_state: 'confirmed',
+      status: 'requested',
+    });
+    expect(transport).toHaveBeenCalledTimes(1);
+    expect((await db.orders.findUnique({ where: { id: 11 } })).delivery_reservation).toEqual(
+      reservation
+    );
+    expect(getAdapter('barogo').ready).toBe(false);
+    await expect(new DeliveryDispatchService(null, db).request(11)).rejects.toMatchObject({
+      statusCode: 501,
+    });
   });
   test('timestamped unassignment allows reassignment but ignores delayed callbacks and terminal regression', async () => {
     const row = await seed('assigned');

@@ -146,6 +146,7 @@ model orders {
   delivery_address   String?
   delivery_road_address String? @db.VarChar(100)
   delivery_address_detail String? @db.VarChar(100)
+  delivery_reservation Json?
   delivery_fee       Int?
   delivery_memo      String?              @db.VarChar(500)
   delivery_status    String?              @db.VarChar(16)  // null | delivering | delivered (배달 주문만)

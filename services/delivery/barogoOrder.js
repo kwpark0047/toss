@@ -1,5 +1,6 @@
 const { AppError } = require('../../utils/errorHandler');
 const { decryptPhone } = require('../../utils/phoneEncryption');
+const { normalizeDeliveryReservation } = require('./barogoSchedule');
 const invalid = () =>
   new AppError('바로고 배차에 필요한 주소·결제·상품 정보를 확인해 주세요.', 400);
 const amount = (value) => {
@@ -48,22 +49,46 @@ function buildBarogoOrder({ order, config, idempotencyKey, now = Date.now() }) {
   const fee = amount(order.delivery_fee ?? 0);
   if (!Array.isArray(order.order_items) || !order.order_items.length) throw invalid();
   const products = order.order_items.map((item) => {
-    // Options need their own documented mapping; do not silently omit them.
     let options;
     try {
       options = typeof item.options === 'string' ? JSON.parse(item.options) : item.options;
     } catch {
       throw invalid();
     }
-    if (options != null && (!Array.isArray(options) || options.length)) throw invalid();
+    if (options != null && (!Array.isArray(options) || options.length > 100)) throw invalid();
+    const mappedOptions = (options || []).map((option) => {
+      if (
+        !option ||
+        typeof option.choiceName !== 'string' ||
+        !option.choiceName.trim() ||
+        (option.groupName !== undefined && typeof option.groupName !== 'string') ||
+        (option.quantity !== undefined && option.quantity !== 1) ||
+        !Number.isSafeInteger(option.priceAdjustment)
+      )
+        throw invalid();
+      const name = option.groupName
+        ? `${option.groupName}: ${option.choiceName}`
+        : option.choiceName;
+      if (typeof name !== 'string' || name.length > 100 || /[\r\n]/.test(name)) throw invalid();
+      return { name, unitPrice: option.priceAdjustment, quantity: 1 };
+    });
+    const optionUnitTotal = mappedOptions.reduce((sum, option) => {
+      const total = sum + option.unitPrice;
+      if (!Number.isSafeInteger(total)) throw invalid();
+      return total;
+    }, 0);
+    const basePrice = item.price - optionUnitTotal;
+    if (!Number.isSafeInteger(optionUnitTotal) || !Number.isSafeInteger(basePrice) || basePrice < 0)
+      throw invalid();
     if (amount(item.price) * amount(item.quantity) !== amount(item.subtotal) || !item.quantity)
       throw invalid();
     return {
       type: 'FOOD',
       name: item.product_name,
       totalPrice: item.subtotal,
-      unitPrice: item.price,
+      unitPrice: basePrice,
       quantity: item.quantity,
+      ...(mappedOptions.length ? { options: mappedOptions } : {}),
     };
   });
   if (fee)
@@ -75,12 +100,14 @@ function buildBarogoOrder({ order, config, idempotencyKey, now = Date.now() }) {
       quantity: 1,
     });
   const total = products.reduce((sum, item) => sum + item.totalPrice, 0);
+  const reservation = normalizeDeliveryReservation(order, now);
   if (
     !Number.isSafeInteger(total) ||
     actual > total ||
-    !Number.isInteger(config?.pickupMinutes) ||
-    config.pickupMinutes < 1 ||
-    config.pickupMinutes > 90
+    (!reservation &&
+      (!Number.isInteger(config?.pickupMinutes) ||
+        config.pickupMinutes < 1 ||
+        config.pickupMinutes > 90))
   )
     throw invalid();
   const phone = decryptPhone(order.customer_phone);
@@ -97,8 +124,8 @@ function buildBarogoOrder({ order, config, idempotencyKey, now = Date.now() }) {
     paymentCardPrice: 0,
     orderProducts: products,
     receiverPhone: phone,
-    isReservation: false,
-    pickupWishAt: now + config.pickupMinutes * 60000,
+    isReservation: Boolean(reservation),
+    ...(reservation || { pickupWishAt: now + config.pickupMinutes * 60000 }),
     isUntact: false,
     dropRoadAddress: order.delivery_road_address,
     dropAddressDetail: order.delivery_address_detail,
