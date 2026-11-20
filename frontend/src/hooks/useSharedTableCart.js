@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { getSocket } from '@/utils/socket';
+import { createSharedCartSocket } from '@/utils/socket';
 
 // 같은 테이블(같은 QR)에 접속한 손님들의 장바구니를 실시간으로 맞춘다.
 // 서버는 상태를 저장하지 않고 같은 테이블 방 안에서만 중계한다.
@@ -166,6 +166,9 @@ export default function useSharedTableCart({ storeId, tableNumber, cart, setCart
 
   const emitState = (socket) => {
     entriesRef.current = pruneEntries(entriesRef.current);
+    // Never queue pre-join state: Socket.IO flushes its buffer before connect
+    // listeners join the room. join() replays the latest entries after joining.
+    if (!socket.connected) return;
     if (entriesRef.current.size === 0) return;
     socket.emit('shared-cart:state', {
       cart: [...entriesRef.current.values()],
@@ -176,9 +179,7 @@ export default function useSharedTableCart({ storeId, tableNumber, cart, setCart
   // 방 참여 + 수신
   useEffect(() => {
     if (!storeId || !tableNumber) return undefined;
-    const socket = getSocket();
-    if (!socket) return undefined;
-    if (!socket.connected) socket.connect();
+    const socket = createSharedCartSocket();
     socketRef.current = socket;
 
     const join = () => {
@@ -206,11 +207,13 @@ export default function useSharedTableCart({ storeId, tableNumber, cart, setCart
     socket.on('shared-cart:state', onState);
     socket.on('shared-cart:request', onRequest);
     if (socket.connected) join();
+    else socket.connect();
     return () => {
       socket.off('connect', join);
       socket.off('shared-cart:state', onState);
       socket.off('shared-cart:request', onRequest);
       socket.emit('shared-cart:leave');
+      socket.disconnect();
       socketRef.current = null;
     };
   }, [storeId, tableNumber, setCart]);
@@ -221,7 +224,7 @@ export default function useSharedTableCart({ storeId, tableNumber, cart, setCart
     const { entries, changed } = diffLocal(entriesRef.current, cart, tick);
     entriesRef.current = entries;
     if (!changed) return;
-    const socket = socketRef.current || getSocket();
+    const socket = socketRef.current;
     if (socket) emitState(socket);
   }, [cart, storeId, tableNumber]);
 }
