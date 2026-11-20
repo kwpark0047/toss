@@ -11,7 +11,6 @@ vi.mock('socket.io-client', async () => {
 });
 const require = createRequire(import.meta.url);
 const { Server } = require('socket.io');
-const { authenticateSocket } = require('../../../socket/auth.js');
 let server;
 let socketModule;
 let useSharedTableCart;
@@ -22,7 +21,13 @@ beforeAll(async () => {
   server = new Server(http);
   server.use((socket, next) => {
     handshakes.push(Boolean(socket.handshake.auth?.token));
-    authenticateSocket(socket, next);
+    // Production rejects invalid auth with a namespace CONNECT_ERROR. Reproduce
+    // that protocol boundary without pulling backend/Prisma into frontend CI.
+    if (socket.handshake.auth?.token) {
+      const error = new Error('Invalid access token');
+      error.data = { code: 'UNAUTHENTICATED' };
+      next(error);
+    } else next();
   });
   server.on('connection', (socket) => {
     socket.on('shared-cart:join', ({ storeId, tableName }) => {
