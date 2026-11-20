@@ -2,9 +2,9 @@ import { RefreshCw } from 'lucide-react';
 import { usePWAUpdate } from '@/hooks/usePWA';
 
 export default function PWAUpdateNotification() {
-  const { needRefresh, updateServiceWorker } = usePWAUpdate();
+  const { needRefresh, autoUpdate, updateServiceWorker } = usePWAUpdate();
 
-  if (!needRefresh) return null;
+  if (!needRefresh || autoUpdate) return null;
 
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-[calc(100%-2rem)] max-w-sm">

@@ -8,6 +8,8 @@ import { isStoreOpenAt, getTodayHoursAt } from "@/utils/businessHours";
 import { canOrderFromMenuSnapshot } from "@/utils/customerMenuAvailability";
 import { getOrderPosition } from "@/utils/orderLocation";
 import useSharedTableCart from "@/hooks/useSharedTableCart";
+import useMenuCartState from "@/hooks/useMenuCartState";
+import { registerMenuCheckpoint } from "@/lib/customerUpdate";
 import { Loader2, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { storesAPI } from "@/api/stores";
 import { resolveThemeStyle } from "@/lib/themePresets";
@@ -189,7 +191,7 @@ const MenuPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [searchQuery, setSearchQuery] = useState("");
   const [excludedAllergens, setExcludedAllergens] = useState([]);
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useMenuCartState(storeId, tableNumber);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [splitSession, setSplitSession] = useState(null);
   const [isSplitSheetOpen, setIsSplitSheetOpen] = useState(false);
@@ -457,7 +459,11 @@ const hoursInput = useMemo(() => ({
     setExcludedAllergens([]);
   }, []);
   // 같은 테이블 손님끼리 장바구니 공유 (TC-22)
-  useSharedTableCart({ storeId, tableNumber, cart, setCart, menuItems });
+  const checkpointCart = useSharedTableCart({ storeId, tableNumber, cart, setCart, menuItems });
+  useEffect(() => registerMenuCheckpoint(() => {
+    if (isOrdering || isSplitStarting || isSplitSheetOpen || optionModalItem) return false;
+    return checkpointCart();
+  }), [checkpointCart, isOrdering, isSplitStarting, isSplitSheetOpen, optionModalItem]);
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
 
@@ -474,7 +480,7 @@ const hoursInput = useMemo(() => ({
     toast.success(t('order.item_added', {
       name: item.name
     }));
-  }, [t]);
+  }, [t, setCart]);
   const addVoiceDraftToCart = useCallback((lines) => {
     lines.forEach(({ item, quantity, selectedOptions, unitPrice }) => {
       addToCartDirect(item, quantity, selectedOptions, unitPrice);
@@ -517,7 +523,7 @@ const handleOptionConfirm = useCallback((quantity, selectedOptions, totalPrice) 
         return item;
       }).filter(Boolean);
     });
-  }, []);
+  }, [setCart]);
   const checkoutAttempt = useRef(null);
 const handleOrder = useCallback(async () => {
     if (!storeId || cart.length === 0) return;
@@ -708,7 +714,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsOrdering(false);
     }
-  }, [testMenuMode, storeId, cart, storeOpen, ordersPaused, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t, orderType, deliveryAddress, deliveryAddressDetail, deliveryMemo, deliveryQuote, onlinePaymentOnly]);
+  }, [testMenuMode, storeId, cart, storeOpen, ordersPaused, menuOrderable, tableNumber, totalPrice, navigate, profile, paymentMethod, initiateTossPayment, notifyPhone, t, orderType, deliveryAddress, deliveryAddressDetail, deliveryMemo, deliveryQuote, onlinePaymentOnly, setCart]);
 
   // 배달 주소·장바구니 금액이 바뀌면 서버에 배달 가능 여부와 배달비를 다시 묻는다.
   useEffect(() => {
@@ -799,7 +805,7 @@ const order = attempt.order || await ordersAPI.create(orderData, { idempotencyKe
       attempt.busy = false;
       setIsSplitStarting(false);
     }
-  }, [testMenuMode, storeId, cart, storeOpen, ordersPaused, menuOrderable, tableNumber, totalPrice, notifyPhone, isSplitStarting, t]);
+  }, [testMenuMode, storeId, cart, storeOpen, ordersPaused, menuOrderable, tableNumber, totalPrice, notifyPhone, isSplitStarting, t, setCart]);
 
   // Stable callbacks for JSX props (prevents child re-renders from inline closures)
   const handleOpenOrderHistory = useCallback(() => navigate('/order-history'), [navigate]);

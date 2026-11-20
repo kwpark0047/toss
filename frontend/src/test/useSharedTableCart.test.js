@@ -106,6 +106,8 @@ const openDevice = (name) => {
 
 beforeEach(() => {
   room.clear();
+  sessionStorage.clear();
+  localStorage.clear();
 });
 
 describe('공유 장바구니 직렬화', () => {
@@ -168,6 +170,21 @@ describe('항목 단위 병합', () => {
 });
 
 describe('같은 테이블 기기 사이 동기화', () => {
+  it('업데이트로 모든 기기가 닫혀도 저장한 항목과 삭제 기록을 복원한다', () => {
+    const a = openDevice('A');
+    a.add(line('a1', 1));
+    a.add(line('a2', 3));
+    a.remove('a2');
+    a.close();
+    const restored = openDevice('A-after-update');
+    const b = openDevice('B-after-update');
+    expect(restored.cart.map((item) => item.cartItemId)).toEqual(['a1']);
+    expect(total(restored.cart)).toBe(8000);
+    expect(total(b.cart)).toBe(8000);
+    b.remove('a1');
+    expect(restored.cart).toEqual([]);
+  });
+
   it('휴지통으로 지우면 다른 기기 합계도 맞게 줄어든다', () => {
     const a = openDevice('A');
     const b = openDevice('B');
