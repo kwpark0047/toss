@@ -117,7 +117,13 @@ function districtLabel(address) {
     .trim()
     .split(/\s+/)
     .filter(Boolean);
-  return parts.slice(0, 2).join(' ');
+  // 자유 입력 주소의 앞 두 토큰을 그대로 공개하면 도로명·번지까지 노출될 수 있다.
+  const province =
+    /^(서울(?:특별시)?|부산(?:광역시)?|대구(?:광역시)?|인천(?:광역시)?|광주(?:광역시)?|대전(?:광역시)?|울산(?:광역시)?|세종(?:특별자치시)?|경기(?:도)?|강원(?:도|특별자치도)?|충청[남북]도|충[남북]|전라[남북]도|전북특별자치도|전[남북]|경상[남북]도|경[남북]|제주(?:도|특별자치도)?)$/;
+  if (!province.test(parts[0] || '')) return '';
+  return parts[1] && /^[가-힣]+(?:시|군|구)$/.test(parts[1])
+    ? parts.slice(0, 2).join(' ')
+    : parts[0];
 }
 
 /**
