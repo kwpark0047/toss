@@ -102,6 +102,14 @@ const canonicalOrderSchema = z.object({
   delivery_address: z.string().trim().min(1).max(300).optional(),
   delivery_road_address: z.string().trim().min(1).max(100).optional(),
   delivery_address_detail: z.string().trim().min(1).max(100).optional(),
+  delivery_reservation: z
+    .object({
+      dropWishAt: z.number().int().positive(),
+      pickupWishAt: z.number().int().positive(),
+      reservedOrderDisplayTime: z.number().int().min(20).max(90),
+    })
+    .strict()
+    .optional(),
   delivery_memo: z.string().trim().max(500).optional(),
   // 고객 기기가 고른 배달 주소 좌표. 서버 지오코딩이 실패할 때만 반경 판정에 쓴다.
   delivery_latitude: z.number().min(-90).max(90).optional(),

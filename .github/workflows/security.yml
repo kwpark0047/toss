@@ -1,5 +1,5 @@
 # Security Scanning Pipeline - Lightweight
-# Runs for changes, weekly, and on manual trigger.
+# Automatic text-change secret/dependency review; full scans run in CI and manual mode.
 # Scans: Code (Semgrep), Dependencies (npm audit)
 
 name: Security Scanning
@@ -7,10 +7,32 @@ name: Security Scanning
 on:
   push:
     branches: [main]
+    paths:
+      - '**'
+      - '!**/*.png'
+      - '!**/*.jpg'
+      - '!**/*.jpeg'
+      - '!**/*.gif'
+      - '!**/*.webp'
+      - '!**/*.ico'
+      - '!**/*.woff'
+      - '!**/*.woff2'
+      - '!**/*.ttf'
+      - '!**/*.mp4'
   pull_request:
+    paths:
+      - '**'
+      - '!**/*.png'
+      - '!**/*.jpg'
+      - '!**/*.jpeg'
+      - '!**/*.gif'
+      - '!**/*.webp'
+      - '!**/*.ico'
+      - '!**/*.woff'
+      - '!**/*.woff2'
+      - '!**/*.ttf'
+      - '!**/*.mp4'
   workflow_dispatch:
-  schedule:
-    - cron: '0 3 * * 1' # 주간 월요일 새벽 3시 (UTC)
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -23,6 +45,7 @@ permissions:
 
 jobs:
   semgrep:
+    if: github.event_name == 'workflow_dispatch'
     name: Semgrep Static Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -41,6 +64,7 @@ jobs:
         run: npm run security:scan:frontend
 
   npm-audit:
+    if: github.event_name == 'workflow_dispatch'
     name: NPM Dependency Audit
     runs-on: ubuntu-latest
     timeout-minutes: 5

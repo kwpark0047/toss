@@ -3,8 +3,20 @@ name: CI
 on:
   push:
     branches: [main, master]
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!reports/**'
+      - '!**/*.md'
+      - '!LICENSE*'
   pull_request:
     branches: [main, master]
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!reports/**'
+      - '!**/*.md'
+      - '!LICENSE*'
   # 수동/스케줄로만 무거운 잡 실행
   workflow_dispatch:
     inputs:
@@ -12,7 +24,9 @@ on:
         description: '실행할 잡 선택'
         required: false
         type: choice
+        default: required
         options:
+          - required
           - all
           - backend-integration-tests
           - e2e-tests
@@ -22,6 +36,7 @@ on:
           - trivy-image-scan
           - bundle-size-check
           - lighthouse-ci
+          - print-agent-test
   schedule:
     - cron: '0 3 * * 0' # 주간 일요일 새벽 3시 (UTC) - 무거운 잡 주 1회
 
@@ -64,9 +79,6 @@ jobs:
         run: |
           npx prisma generate
           npx prisma validate
-
-      - name: Unit & Integration Tests (light)
-        run: npm run test:coverage
 
       - name: SaaS Financial Regression Tests
         run: npm run test:saas
@@ -133,6 +145,7 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
+      DIRECT_URL: postgresql://test:test@localhost:5432/wemarket_test
       NODE_ENV: test
       # .mts(ESM) 를 로드하는 테스트(PrometheusMetrics 등)를 위해 Jest ESM 런타임 활성화
       NODE_OPTIONS: --experimental-vm-modules
@@ -141,6 +154,13 @@ jobs:
       JWT_REFRESH_SECRET: test-refresh-secret
     steps:
       - uses: actions/checkout@v4
+      - name: Restore Jest transform cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/jest
+          key: ${{ runner.os }}-node22-jest-${{ github.job }}-${{ hashFiles('package-lock.json', 'jest.config*.js', 'babel.config.*') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-node22-jest-${{ github.job }}-${{ hashFiles('package-lock.json', 'jest.config*.js', 'babel.config.*') }}-
 
       - uses: actions/setup-node@v4
         with:
@@ -154,7 +174,7 @@ jobs:
         run: npx prisma generate
 
       - name: Run backend unit and route tests
-        run: node scripts/run-jest.cjs --config jest.config.js tests/unit/ tests/routes/ --no-cache
+        run: npm run test:coverage -- --cacheDirectory=.cache/jest
       - name: Store integration PostgreSQL regression
         run: |
           node scripts/test-store-integrations-postgres.cjs
@@ -226,6 +246,13 @@ jobs:
       DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
     steps:
       - uses: actions/checkout@v4
+      - name: Restore Jest transform cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/jest
+          key: ${{ runner.os }}-node22-jest-${{ github.job }}-${{ hashFiles('package-lock.json', 'jest.config*.js', 'babel.config.*') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-node22-jest-${{ github.job }}-${{ hashFiles('package-lock.json', 'jest.config*.js', 'babel.config.*') }}-
 
       - uses: actions/setup-node@v4
         with:
@@ -239,7 +266,7 @@ jobs:
         run: npx prisma generate
 
       - name: Run regression tests
-        run: node scripts/run-jest.cjs --config jest.config.js tests/regression/ --no-cache
+        run: node scripts/run-jest.cjs --config jest.config.js tests/regression/ --cacheDirectory=.cache/jest
 
       - name: Upload regression test coverage
         uses: actions/upload-artifact@v4
@@ -280,7 +307,8 @@ jobs:
           VITE_API_URL: http://localhost:3000/api
 
   frontend-browser-smoke:
-    runs-on: ubuntu-latest
+    # Match the E2E runner: the locked @playwright/test does not support 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test
@@ -296,12 +324,12 @@ jobs:
             frontend/package-lock.json
       - name: Install dependencies
         run: |
-          npm ci --no-audit --no-fund
-          npm --prefix frontend ci --no-audit --no-fund
+          npm ci --prefer-offline --no-audit --no-fund
+          npm --prefix frontend ci --prefer-offline --no-audit --no-fund
       - name: Build production frontend
         run: npm --prefix frontend run build
       - name: Install Chromium
-        run: node node_modules/playwright/cli.js install --with-deps chromium
+        uses: ./.github/actions/setup-playwright
       - name: Verify rendered production routes
         run: node scripts/smoke-frontend-browser.cjs
       - name: Verify desktop and mobile dashboard states
@@ -326,7 +354,16 @@ jobs:
         working-directory: frontend
         run: npx eslint src/components/menu/MenuHeader.jsx --quiet
 
-  # === 수동/스케줄 트리거 잡 (push/PR에서는 실행 안 함) ===
+      - name: Share verified frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: frontend/dist
+          include-hidden-files: true
+          retention-days: 1
+          if-no-files-found: error
+
+  # === 필수 통합 및 E2E 게이트 ===
   backend-integration-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -349,6 +386,13 @@ jobs:
       JWT_REFRESH_SECRET: test-refresh-secret
     steps:
       - uses: actions/checkout@v4
+      - name: Restore Jest transform cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/jest
+          key: ${{ runner.os }}-node22-jest-${{ github.job }}-${{ hashFiles('package-lock.json', 'jest.config*.js', 'babel.config.*') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-node22-jest-${{ github.job }}-${{ hashFiles('package-lock.json', 'jest.config*.js', 'babel.config.*') }}-
 
       - uses: actions/setup-node@v4
         with:
@@ -371,7 +415,7 @@ jobs:
         run: node scripts/seed_test.js
 
       - name: Run integration tests (mocked, fast)
-        run: node scripts/run-jest.cjs --config jest.config.integration.js --no-cache --verbose
+        run: node scripts/run-jest.cjs --config jest.config.integration.js --cacheDirectory=.cache/jest --verbose
 
       - name: Real PostgreSQL importer and AI approval regression
         run: |
@@ -399,7 +443,7 @@ jobs:
     # selected by ubuntu-latest. Keep browser installation on a supported LTS.
     runs-on: ubuntu-24.04
     timeout-minutes: 25
-    needs: [backend-integration-tests, frontend-test]
+    needs: [backend-integration-tests, frontend-test, frontend-browser-smoke]
     services:
       postgres:
         image: postgres:16-alpine
@@ -416,6 +460,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
 
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit --no-fund
@@ -448,8 +495,11 @@ jobs:
           JWT_SECRET: test-secret
           JWT_REFRESH_SECRET: test-refresh-secret
 
-      - name: Build frontend
-        run: cd frontend && npm run build
+      - name: Reuse verified production frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: frontend/dist
 
       - name: Start frontend preview server
         run: |
@@ -461,7 +511,7 @@ jobs:
           curl -fsS http://localhost:5173/menu/demo | grep -q 'id="root"'
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        uses: ./.github/actions/setup-playwright
 
       - name: Run Playwright tests
         run: npx playwright test --project=chromium
@@ -486,7 +536,7 @@ jobs:
           retention-days: 3
 
   print-agent-test:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.job == 'all' || inputs.job == 'print-agent-test'))
     runs-on: ubuntu-latest
     timeout-minutes: 8
     defaults:
@@ -528,7 +578,7 @@ jobs:
         run: npm --prefix frontend audit --audit-level=high
 
   deploy:
-    if: vars.ENABLE_PRODUCTION_DEPLOY == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push')
+    if: vars.ENABLE_PRODUCTION_DEPLOY == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.job == 'deploy'))
     needs:
       [
         lint-and-test,
@@ -602,7 +652,7 @@ jobs:
 
   # Docker build and security scan (스케줄/수동만)
   docker-build:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.job == 'all' || inputs.job == 'docker-build' || inputs.job == 'trivy-image-scan'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [lint-and-test, backend-unit-tests, backend-regression-tests, frontend-test]
@@ -620,8 +670,8 @@ jobs:
           target: production
           load: true
           tags: wemarket-api:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
       - name: Build frontend Docker image
         uses: docker/build-push-action@v6
@@ -631,8 +681,8 @@ jobs:
           target: production
           load: true
           tags: wemarket-frontend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
 
       - name: Save Docker images
         run: |
@@ -647,7 +697,7 @@ jobs:
 
   # Image vulnerability scan (docker-build 완료 후 실행)
   trivy-image-scan:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.job == 'all' || inputs.job == 'trivy-image-scan'))
     runs-on: ubuntu-latest
     timeout-minutes: 12
     needs: docker-build
@@ -741,10 +791,10 @@ jobs:
           retention-days: 14
 
   bundle-size-check:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.job == 'all' || inputs.job == 'bundle-size-check' || inputs.job == 'lighthouse-ci'))
     runs-on: ubuntu-latest
     timeout-minutes: 8
-    needs: [lint-and-test, backend-unit-tests, frontend-test]
+    needs: [lint-and-test, backend-unit-tests, frontend-test, frontend-browser-smoke]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -752,12 +802,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --prefer-offline --no-audit --no-fund
-      - run: npm run cloudflare-build
+      - name: Reuse verified production frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: frontend/dist
       - name: Check bundle size
         run: npm run bundle:check
 
   lighthouse-ci:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.job == 'all' || inputs.job == 'lighthouse-ci'))
     runs-on: ubuntu-latest
     timeout-minutes: 8
     needs: bundle-size-check
@@ -768,7 +822,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --prefer-offline --no-audit --no-fund
-      - run: npm run cloudflare-build
+      - name: Reuse verified production frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: frontend/dist
       - name: Serve built site
         run: npx serve frontend/dist -l 5173 &
       - name: Wait for server

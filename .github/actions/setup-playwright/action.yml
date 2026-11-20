@@ -1,0 +1,28 @@
+name: Cached Chromium setup
+description: Cache revision-bound Chromium binaries and always prepare system libraries
+runs:
+  using: composite
+  steps:
+    - name: Identify Linux image
+      id: image
+      shell: bash
+      run: |
+        source /etc/os-release
+        echo "id=${ID}-${VERSION_ID}" >> "$GITHUB_OUTPUT"
+    - name: Restore Playwright browser binaries
+      id: browser-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        # Smoke scripts use playwright; @playwright/test may resolve a different
+        # nested revision. v2 caches both, rather than reusing a smoke-only cache.
+        key: ${{ runner.os }}-${{ runner.arch }}-playwright-v2-${{ steps.image.outputs.id }}-${{ hashFiles('package-lock.json') }}
+    - name: Install Chromium system dependencies
+      shell: bash
+      run: node node_modules/playwright/cli.js install-deps chromium
+    - name: Install Chromium on cache miss
+      if: steps.browser-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        node node_modules/playwright/cli.js install chromium
+        node node_modules/@playwright/test/cli.js install chromium

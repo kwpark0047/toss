@@ -92,6 +92,9 @@ const Order = {
               delivery_address: data.delivery_address || null,
               delivery_road_address: data.delivery_road_address || null,
               delivery_address_detail: data.delivery_address_detail || null,
+              ...(data.delivery_reservation
+                ? { delivery_reservation: data.delivery_reservation }
+                : {}),
               delivery_fee: data.order_type === 'delivery' ? deliveryFee : null,
               delivery_memo: data.delivery_memo || null,
               split_type: data.split_type || 'NONE',
