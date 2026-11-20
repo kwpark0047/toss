@@ -307,7 +307,8 @@ jobs:
           VITE_API_URL: http://localhost:3000/api
 
   frontend-browser-smoke:
-    runs-on: ubuntu-latest
+    # Match the E2E runner: the locked @playwright/test does not support 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/wemarket_test

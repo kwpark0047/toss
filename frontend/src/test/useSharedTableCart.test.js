@@ -12,6 +12,7 @@ const makeSocket = (name) => {
     connected: true,
     online: true,
     connect: vi.fn(),
+    disconnect: vi.fn(),
     on: (event, fn) => {
       (handlers[event] ||= []).push(fn);
     },
@@ -46,7 +47,7 @@ const makeSocket = (name) => {
 };
 
 let currentSocket = null;
-vi.mock('@/utils/socket', () => ({ getSocket: () => currentSocket }));
+vi.mock('@/utils/socket', () => ({ createSharedCartSocket: () => currentSocket }));
 
 const {
   default: useSharedTableCart,

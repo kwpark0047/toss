@@ -16,6 +16,20 @@ const getSocketUrl = () => {
 
 const SOCKET_URL = getSocketUrl();
 
+// Public table carts must not inherit an expired admin token or share its
+// connection lifecycle. A namespace auth rejection disables automatic retries.
+export const createSharedCartSocket = () => io(SOCKET_URL, {
+  autoConnect: false,
+  forceNew: true,
+  transports: ['websocket', 'polling'],
+  tryAllTransports: true,
+  withCredentials: false,
+  auth: {},
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+});
+
 const socket = io(SOCKET_URL, {
   autoConnect: false,
   transports: ['websocket', 'polling'],
