@@ -159,6 +159,18 @@ describe('DeliveryService 공개 응답', () => {
     expect(Math.round(lng * 100) / 100).toBe(lng);
   });
 
+  test('행정구역으로 시작하지 않는 자유 입력 주소는 공개 응답에 남기지 않는다', () => {
+    const privateToken = 'private-address-token';
+    const out = DeliveryService.applyPublicPrivacy(
+      { ...store, address: `숨김전용로 ${privateToken} 987` },
+      delivery({ hide_exact_address: true })
+    );
+
+    expect(out.address).toBeNull();
+    expect(out.area_label).toBe('');
+    expect(JSON.stringify(out)).not.toContain(privateToken);
+  });
+
   test('주소를 숨기지 않은 온라인 매장은 실제 좌표를 권역 중심으로 쓴다', () => {
     const out = DeliveryService.applyPublicPrivacy(store, delivery());
     expect(out.latitude).toBe(store.latitude);
