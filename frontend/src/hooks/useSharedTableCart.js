@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createSharedCartSocket } from '@/utils/socket';
+import { menuCartKey, readMenuCart, writeMenuCart } from '@/lib/menuCartSession';
+import { itemSig, isNewer } from '@/lib/cartVersions';
 
 // 같은 테이블(같은 QR)에 접속한 손님들의 장바구니를 실시간으로 맞춘다.
 // 서버는 상태를 저장하지 않고 같은 테이블 방 안에서만 중계한다.
@@ -39,24 +41,6 @@ const fromWire = (items, menuItems) =>
       // 내 화면에 있는 메뉴 정보가 있으면 그것을 쓴다 (이미지·설명 등)
       menuItem: menuItems.find((m) => m.id === it.menuItem.id) || it.menuItem,
     }));
-
-// 내용 비교용 서명: 수량·옵션·가격·메뉴가 같으면 같은 항목이다
-const itemSig = (wireItem) =>
-  JSON.stringify([
-    wireItem.menuItem?.id,
-    Number(wireItem.quantity),
-    wireItem.unitPrice,
-    wireItem.selectedOptions || [],
-  ]);
-
-// a가 b보다 새로우면 true. 버전이 같으면 지움 기록이 이기고, 그래도 같으면 서명으로 정해 모든 기기가 같은 답을 낸다.
-const isNewer = (a, b) => {
-  if (!b) return true;
-  if (a.v !== b.v) return a.v > b.v;
-  if (Boolean(a.deleted) !== Boolean(b.deleted)) return Boolean(a.deleted);
-  if (a.deleted) return false;
-  return itemSig(a) > itemSig(b);
-};
 
 // 오래된 지움 기록을 정리하고 서버 상한(60개)에 맞춘다. 살아 있는 항목은 지우지 않는다.
 const pruneEntries = (entries, now = Date.now()) => {
@@ -149,7 +133,11 @@ const maxVersion = (entries) => {
 };
 
 export default function useSharedTableCart({ storeId, tableNumber, cart, setCart, menuItems }) {
-  const entriesRef = useRef(new Map());
+  const entriesRef = useRef(null);
+  if (entriesRef.current === null) entriesRef.current = new Map(
+    readMenuCart(storeId, tableNumber).map((entry) => [entry.cartItemId, entry])
+  );
+  const roomKeyRef = useRef(menuCartKey(storeId, tableNumber));
   const clockRef = useRef(0);
   const cartRef = useRef(cart);
   const menuItemsRef = useRef(menuItems);
@@ -176,9 +164,25 @@ export default function useSharedTableCart({ storeId, tableNumber, cart, setCart
     });
   };
 
+  const checkpoint = () => {
+    entriesRef.current = diffLocal(entriesRef.current, cartRef.current, tick).entries;
+    return writeMenuCart(storeId, tableNumber, entriesRef.current.values()) || entriesRef.current.size === 0;
+  };
+
   // 방 참여 + 수신
   useEffect(() => {
-    if (!storeId || !tableNumber) return undefined;
+    if (!storeId) return undefined;
+    const key = menuCartKey(storeId, tableNumber);
+    if (roomKeyRef.current !== key) {
+      entriesRef.current = new Map(readMenuCart(storeId, tableNumber).map((entry) => [entry.cartItemId, entry]));
+      roomKeyRef.current = key;
+    }
+    clockRef.current = Math.max(clockRef.current, maxVersion(entriesRef.current));
+    if (cartRef.current.length === 0 && entriesRef.current.size) {
+      cartRef.current = entriesToCart(entriesRef.current, menuItemsRef.current || []);
+      setCart(cartRef.current);
+    }
+    if (!tableNumber) return undefined;
     const socket = createSharedCartSocket();
     socketRef.current = socket;
 
@@ -195,6 +199,7 @@ export default function useSharedTableCart({ storeId, tableNumber, cart, setCart
       clockRef.current = Math.max(clockRef.current, maxVersion(entries));
       entriesRef.current = entries;
       if (changed) {
+        writeMenuCart(storeId, tableNumber, entries.values());
         const nextCart = entriesToCart(entries, menuItemsRef.current || []);
         cartRef.current = nextCart;
         setCart(nextCart);
@@ -202,16 +207,23 @@ export default function useSharedTableCart({ storeId, tableNumber, cart, setCart
       if (remoteStale) emitState(socket);
     };
     const onRequest = () => emitState(socket);
+    const onStorage = (event) => {
+      if (event.key !== menuCartKey(storeId, tableNumber)) return;
+      const items = readMenuCart(storeId, tableNumber);
+      onState({ cart: items, version: maxVersion(new Map(items.map((item) => [item.cartItemId, item]))) });
+    };
 
     socket.on('connect', join);
     socket.on('shared-cart:state', onState);
     socket.on('shared-cart:request', onRequest);
+    window.addEventListener('storage', onStorage);
     if (socket.connected) join();
     else socket.connect();
     return () => {
       socket.off('connect', join);
       socket.off('shared-cart:state', onState);
       socket.off('shared-cart:request', onRequest);
+      window.removeEventListener('storage', onStorage);
       socket.emit('shared-cart:leave');
       socket.disconnect();
       socketRef.current = null;
@@ -220,13 +232,15 @@ export default function useSharedTableCart({ storeId, tableNumber, cart, setCart
 
   // 내 기기에서 바뀐 항목만 기록하고 같은 테이블에 알림
   useEffect(() => {
-    if (!storeId || !tableNumber) return;
-    const { entries, changed } = diffLocal(entriesRef.current, cart, tick);
+    if (!storeId) return;
+    const { entries, changed } = diffLocal(entriesRef.current, cartRef.current, tick);
     entriesRef.current = entries;
+    writeMenuCart(storeId, tableNumber, entries.values());
     if (!changed) return;
     const socket = socketRef.current;
     if (socket) emitState(socket);
   }, [cart, storeId, tableNumber]);
+  return checkpoint;
 }
 
 export { toWire, fromWire, mergeEntries, diffLocal, pruneEntries, entriesToCart };

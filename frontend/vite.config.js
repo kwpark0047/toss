@@ -27,6 +27,27 @@ export default defineConfig({
 
   plugins: [
     react(),
+    {
+      name: 'customer-menu-bootstrap',
+      async generateBundle(_options, bundle) {
+        const files = new Set();
+        const visit = (name) => {
+          if (files.has(name)) return;
+          files.add(name);
+          const chunk = bundle[name];
+          if (chunk?.type !== 'chunk') return;
+          chunk.imports.forEach(visit);
+          for (const css of chunk.viteMetadata?.importedCss || []) files.add(css);
+          for (const asset of chunk.viteMetadata?.importedAssets || []) files.add(asset);
+        };
+        for (const chunk of Object.values(bundle)) {
+          if (chunk.type === 'chunk' && (chunk.isEntry || /\/pages\/MenuPage\.jsx$/.test(chunk.facadeModuleId || ''))) visit(chunk.fileName);
+        }
+        this.emitFile({ type: 'asset', fileName: 'menu-bootstrap.json', source: JSON.stringify({ revision: APP_REVISION, assets: [...files] }) });
+        const script = await fs.readFile(path.resolve(__dirname, 'src/sw/menu-upgrade.js'), 'utf8');
+        this.emitFile({ type: 'asset', fileName: 'sw-menu-update.js', source: script.replace('__MENU_REVISION__', APP_REVISION) });
+      },
+    },
     // HTML template transform: inject build timestamp into index.html
     {
       name: 'html-transform',
@@ -60,7 +81,7 @@ export default defineConfig({
             manifest: false, // public/manifest.json 사용
 
             workbox: {
-              importScripts: ['/sw-sync.js'],
+              importScripts: ['/sw-sync.js', '/sw-menu-update.js'],
               // 빌드 결과물 자동 프리캐시
               globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
               globIgnores: ['firebase-messaging-sw.js'],
@@ -87,6 +108,19 @@ export default defineConfig({
 
               // 런타임 캐시 전략
               runtimeCaching: [
+                {
+                  urlPattern: ({ request, url, sameOrigin }) => sameOrigin &&
+                    request.mode === 'navigate' && /^\/menu\/\d+\/?$/.test(url.pathname),
+                  handler: 'NetworkFirst',
+                  options: {
+                    cacheName: 'wemarket-menu-documents',
+                    networkTimeoutSeconds: 3,
+                    fetchOptions: { cache: 'no-store' },
+                    cacheableResponse: { statuses: [200] },
+                    expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 },
+                    precacheFallback: { fallbackURL: '/index.html' },
+                  },
+                },
                 {
                   urlPattern: ({ url, sameOrigin }) =>
                     sameOrigin && url.pathname.startsWith('/assets/'),
@@ -154,7 +188,7 @@ export default defineConfig({
               // offline.html을 설정하면 SW가 /menu/:id 등 미캐시 경로를 offline.html로 서빙,
               // online 감지 후 '/'로 자동 리다이렉트 → 로그아웃처럼 보이는 버그 유발
               navigateFallback: '/index.html',
-              navigateFallbackDenylist: [/^\/api\//, /^\/sw\.js$/, /^\/firebase-messaging-sw\.js$/],
+              navigateFallbackDenylist: [/^\/api\//, /^\/menu\/\d+\/?$/, /^\/sw\.js$/, /^\/firebase-messaging-sw\.js$/],
 
               // 기존 sw.js와 충돌 방지
               cleanupOutdatedCaches: true,

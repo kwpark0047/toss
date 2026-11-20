@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { useLocation } from 'react-router-dom';
+import useCustomerAutoUpdate from './useCustomerAutoUpdate';
 
 const LS_LAST_ONLINE = 'wm_last_online';
 const PING_URL        = '/api/health';
@@ -37,18 +39,25 @@ export function usePWAInstall() {
 
 /* ─── SW update detection ─── */
 export function usePWAUpdate() {
+  const { pathname, key } = useLocation();
+  const [registration, setRegistration] = useState(null);
+  const onReload = useRef(() => {});
   const {
     needRefresh: [needRefresh],
     updateServiceWorker,
   } = useRegisterSW({
+    immediate: true,
     onRegistered(r) {
-      if (r) setInterval(() => r.update(), 60 * 60 * 1000);
+      if (r) setRegistration(r);
     },
+    onNeedReload() { onReload.current(); },
     onRegisterError(error) {
       console.warn('[PWA] SW 등록 실패:', error);
     },
   });
-  return { needRefresh, updateServiceWorker };
+  const automatic = useCustomerAutoUpdate({ needRefresh, updateServiceWorker, registration, pathname, entryKey: key });
+  useEffect(() => { onReload.current = automatic.onNeedReload; }, [automatic.onNeedReload]);
+  return { needRefresh, autoUpdate: automatic.autoUpdate, updateServiceWorker: automatic.requestUpdate };
 }
 
 /* ─── Real connectivity check ─── */
