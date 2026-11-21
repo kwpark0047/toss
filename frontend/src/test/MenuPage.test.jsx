@@ -13,6 +13,8 @@ const h = React.createElement;
 const mockUseParams = vi.fn(() => ({ storeId: '1' }));
 const mockUseSearchParams = vi.fn(() => [new URLSearchParams('table=1'), vi.fn()]);
 const mockNavigate = vi.fn();
+const mockInitiateToss = vi.fn();
+vi.mock('@/hooks/useTossPayment', () => ({ useTossPayment: () => ({ initiateTossPayment: mockInitiateToss }) }));
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -54,7 +56,7 @@ vi.mock('@/api/products', () => ({
 }));
 vi.mock('@/api/orders', () => ({
   ordersAPI: { create: vi.fn(), getById: vi.fn(), getSocket: vi.fn() },
-  paymentsAPI: { create: vi.fn() },
+  paymentsAPI: { create: vi.fn(), getTestConfig: vi.fn() },
 }));
 vi.mock('@/api/misc', () => ({
   weatherAPI: { getCurrent: vi.fn(), getByCoords: vi.fn() },
@@ -86,7 +88,7 @@ vi.mock('@/components/menu/StoreInfoBanner', () => ({ default: () => 'StoreInfoB
 vi.mock('@/components/menu/CategoryTabs', () => ({ default: () => 'CategoryTabs' }));
 vi.mock('@/components/menu/MenuItemCard', () => ({ default: ({ item, onAddToCart }) => h('div', null, 'MenuItemCard', h('button', { onClick: () => onAddToCart(item) }, 'fixture add')) }));
 vi.mock('@/components/menu/CartButton', () => ({ default: () => 'CartButton' }));
-vi.mock('@/components/menu/CartModal', () => ({ default: ({ onOrder, onPaymentMethodChange }) => h('div', null, 'CartModal', h('button', { onClick: () => onPaymentMethodChange('cash') }, 'fixture cash'), h('button', { onClick: () => onPaymentMethodChange('transfer') }, 'fixture transfer'), h('button', { onClick: onOrder }, 'fixture order')) }));
+vi.mock('@/components/menu/CartModal', () => ({ default: ({ onOrder, onPaymentMethodChange }) => h('div', null, 'CartModal', h('button', { onClick: () => onPaymentMethodChange('cash') }, 'fixture cash'), h('button', { onClick: () => onPaymentMethodChange('card') }, 'fixture card'), h('button', { onClick: () => onPaymentMethodChange('transfer') }, 'fixture transfer'), h('button', { onClick: onOrder }, 'fixture order')) }));
 vi.mock('@/components/menu/OptionSelectionModal', () => ({ default: () => 'OptionSelectionModal' }));
 vi.mock('@/components/menu/OrderStatusModal', () => ({ default: ({ isOpen, orderId, capability }) => isOpen ? h('div', null, `OrderStatusModal receipt ${orderId} ${capability}`) : 'OrderStatusModal' }));
 vi.mock('@/components/menu/CustomerPhoneSheet', () => ({ default: () => 'CustomerPhoneSheet' }));
@@ -212,6 +214,37 @@ describe('buildThemeStyle', () => {
 // =====================
 
 describe('MenuPage', () => {
+  it('table QR test card reaches Toss with testOnly and preserves its cart during redirect', async () => {
+    localStorage.clear();
+    mockUseSearchParams.mockReturnValue([new URLSearchParams('table=QA&testMenus=1'), vi.fn()]);
+    storesAPI.getById.mockResolvedValue({ data: { id: 1, name: 'fixture', theme: null } });
+    categoriesAPI.getByStore.mockResolvedValue({ data: [] });
+    productsAPI.getByStore.mockResolvedValue({ data: [{ id: 1, name: 'fixture', price: 1000, tags: 'wm-numbered-test-menu-v1' }] });
+    paymentsAPI.getTestConfig.mockResolvedValue({ data: { enabled: true } });
+    ordersAPI.create.mockResolvedValue({ data: { id: 9, total_amount: 1000, order_capability: 'qa-cap' } });
+    mockInitiateToss.mockResolvedValue({ success: true, pendingRedirect: true });
+    render(h(MenuPage), { wrapper: createWrapper() });
+    fireEvent.click(await screen.findByText('fixture add'));
+    fireEvent.click(screen.getByText('fixture card'));
+    fireEvent.click(screen.getByText('fixture order'));
+    await waitFor(() => expect(mockInitiateToss).toHaveBeenCalledWith(expect.objectContaining({ testOnly: true, orderId: 9, totalAmount: 1000, capability: 'qa-cap' })));
+    expect(JSON.parse(localStorage.getItem('wm-menu-cart-v1:1:QA')).entries.some(row => !row.deleted && row.unitPrice === 1000)).toBe(true);
+  });
+  it('still blocks test card order creation when Toss test configuration is disabled', async () => {
+    localStorage.clear();
+    mockUseSearchParams.mockReturnValue([new URLSearchParams('table=QA&testMenus=1'), vi.fn()]);
+    storesAPI.getById.mockResolvedValue({ data: { id: 1, name: 'fixture', theme: null } });
+    categoriesAPI.getByStore.mockResolvedValue({ data: [] });
+    productsAPI.getByStore.mockResolvedValue({ data: [{ id: 1, name: 'fixture', price: 1000, tags: 'wm-numbered-test-menu-v1' }] });
+    paymentsAPI.getTestConfig.mockResolvedValue({ data: { enabled: false } });
+    render(h(MenuPage), { wrapper: createWrapper() });
+    fireEvent.click(await screen.findByText('fixture add'));
+    fireEvent.click(screen.getByText('fixture card'));
+    fireEvent.click(screen.getByText('fixture order'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Toss 테스트 결제 설정을 확인할 수 없어 카드 주문을 차단했습니다.'));
+    expect(ordersAPI.create).not.toHaveBeenCalled();
+    expect(mockInitiateToss).not.toHaveBeenCalled();
+  });
   it('매장 좌표가 있으면 해당 위치 기준 기상청 날씨를 조회한다', async () => {
     storesAPI.getById.mockResolvedValue({ data: { id: 1, name: '좌표매장', latitude: 37.52, longitude: 126.78, theme: null } });
     categoriesAPI.getByStore.mockResolvedValue({ data: [] });

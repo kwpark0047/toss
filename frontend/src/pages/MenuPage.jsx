@@ -528,7 +528,8 @@ const handleOptionConfirm = useCallback((quantity, selectedOptions, totalPrice) 
 const handleOrder = useCallback(async () => {
     if (!storeId || cart.length === 0) return;
     if (testMenuMode) {
-      if (notifyPhone || orderType !== 'dine_in' || cart.some(item => item.menuItem.tags !== 'wm-numbered-test-menu-v1')) {
+      // Table QR and dine-in-only stores use null for the implicit dine-in mode.
+      if (notifyPhone || (orderType && orderType !== 'dine_in') || cart.some(item => item.menuItem.tags !== 'wm-numbered-test-menu-v1')) {
         toast.error('테스트는 전화번호 없이 테스트 메뉴의 매장 이용 주문으로 진행해 주세요.');
         return;
       }
